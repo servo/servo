@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, EventCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLIFrameElementCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::global::GlobalRef;
@@ -28,6 +28,7 @@ use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::htmlelement::HTMLElementTypeId;
+use dom::htmliframeelement::HTMLIFrameElement;
 use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
 use dom::node::{self, Node, NodeHelpers, NodeDamage, NodeTypeId};
@@ -53,7 +54,7 @@ use script_traits::ScriptTaskFactory;
 use servo_msg::compositor_msg::ReadyState::{FinishedLoading, Loading, PerformingLayout};
 use servo_msg::compositor_msg::{LayerId, ScriptListener};
 use servo_msg::constellation_msg::{ConstellationChan};
-use servo_msg::constellation_msg::{LoadData, NavigationDirection, PipelineId};
+use servo_msg::constellation_msg::{LoadData, NavigationDirection, PipelineId, SubpageId};
 use servo_msg::constellation_msg::{Failure, Msg, WindowSizeData, Key, KeyState};
 use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT};
 use servo_msg::constellation_msg::{PipelineExitType};
@@ -586,8 +587,8 @@ impl ScriptTask {
         match msg {
             ConstellationControlMsg::AttachLayout(_) =>
                 panic!("should have handled AttachLayout already"),
-            ConstellationControlMsg::Load(id, parent_id, load_data) =>
-                self.load(id, parent_id, load_data),
+            ConstellationControlMsg::Load(id, parent, load_data) =>
+                self.load(id, parent, load_data),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ReflowComplete(id, reflow_id) =>
@@ -767,24 +768,35 @@ impl ScriptTask {
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-    fn load(&self, pipeline_id: PipelineId, parent_id: Option<PipelineId>, load_data: LoadData) {
+    fn load(&self, pipeline_id: PipelineId,
+            parent: Option<(PipelineId, SubpageId)>, load_data: LoadData) {
         let url = load_data.url.clone();
         debug!("ScriptTask: loading {:?} on page {:?}", url, pipeline_id);
 
         let borrowed_page = self.page.borrow_mut();
 
-        let parent_window = parent_id.and_then(|pid| {
-            // In the case a parent id exists but the matching page
-            // cannot be found, this means the page exists in a different
-            // script task (due to origin) so it shouldn't be returned.
-            // TODO: window.parent will continue to return self in that
-            // case, which is wrong. We should be returning an object that
-            // denies access to most properties (per
-            // https://github.com/servo/servo/issues/3939#issuecomment-62287025).
-            borrowed_page.find(pid).map(|page| {
-                page.frame.borrow().as_ref().unwrap().window.root()
-            })
-        });
+        let frame_element = parent.and_then(|(parent_id, subpage_id)| {
+          // In the case a parent id exists but the matching page
+          // cannot be found, this means the page exists in a different
+          // script task (due to origin) so it shouldn't be returned.
+          // TODO: window.parent will continue to return self in that
+          // case, which is wrong. We should be returning an object that
+          // denies access to most properties (per
+          // https://github.com/servo/servo/issues/3939#issuecomment-62287025).
+          borrowed_page.find(parent_id).and_then(|page| {
+            let match_iframe = |&:&node: &JSRef<HTMLIFrameElement>| {
+              node.subpage_id().map_or(false, |id| id == subpage_id)
+            };
+
+            let doc = page.frame().as_ref().unwrap().document.root();
+            let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
+
+            doc.traverse_preorder()
+               .filter_map(|node| HTMLIFrameElementCast::to_ref(node))
+               .find(match_iframe)
+               .map(|node| Temporary::from_rooted(ElementCast::from_ref(node)))
+          })
+        }).root();
 
         let page = borrowed_page.find(pipeline_id).expect("ScriptTask: received a load
             message for a layout channel that is not associated with this script task. This
@@ -865,7 +877,7 @@ impl ScriptTask {
         if let Some(tm) = last_modified {
             document.r().set_last_modified(dom_last_modified(&tm));
         }
-        window.r().init_browser_context(document.r(), parent_window.r());
+        window.r().init_browser_context(document.r(), frame_element.r());
 
 
         {
