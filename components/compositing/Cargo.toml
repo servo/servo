@@ -25,9 +25,6 @@ path = "../net"
 [dependencies.util]
 path = "../util"
 
-[dependencies.devtools]
-path = "../devtools"
-
 [dependencies.devtools_traits]
 path = "../devtools_traits"
 
