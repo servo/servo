@@ -16,7 +16,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCas
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, RootedReference};
 use dom::bindings::js::{RootCollection, RootCollectionPtr};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
@@ -772,7 +772,7 @@ impl ScriptTask {
           // denies access to most properties (per
           // https://github.com/servo/servo/issues/3939#issuecomment-62287025).
           borrowed_page.find(pid).and_then(|page| {
-            Some(*page.frame.borrow().as_ref().unwrap().window.root())
+            Some(page.frame.borrow().as_ref().unwrap().window.root())
           })
         });
 
@@ -853,9 +853,9 @@ impl ScriptTask {
                                      IsHTMLDocument::HTMLDocument, None,
                                      DocumentSource::FromParser).root();
         if let Some(tm) = last_modified {
-            document.set_last_modified(dom_last_modified(&tm));
+            document.r().set_last_modified(dom_last_modified(&tm));
         }
-        window.r().init_browser_context(document.r(), parent_window);
+        window.r().init_browser_context(document.r(), parent_window.r());
 
 
         {
@@ -1252,9 +1252,9 @@ impl ScriptTask {
 
                 for node_address in node_address.iter() {
                     let temp_node =
-                        node::from_untrusted_node_address(self.js_runtime.ptr, *node_address);
+                        node::from_untrusted_node_address(self.js_runtime.ptr, *node_address).root();
 
-                    let maybe_node = temp_node.root().ancestors().find(|node| node.is_element());
+                    let maybe_node = temp_node.r().ancestors().find(|node| node.is_element());
                     match maybe_node {
                         Some(node) => {
                             node.set_hover_state(true);
@@ -1406,7 +1406,7 @@ impl DocumentProgressHandler {
                                EventCancelable::NotCancelable).root();
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());
         let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
-        event.set_trusted(true);
+        event.r().set_trusted(true);
         let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
     }
 }

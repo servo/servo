@@ -170,6 +170,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     fn GetContentWindow(self) -> Option<Temporary<Window>> {
         self.subpage_id.get().and_then(|subpage_id| {
             let window = window_from_node(self).root();
+            let window = window.r();
             let children = window.page().children.borrow();
             let child = children.iter().find(|child| {
                 child.subpage_id.unwrap() == subpage_id
