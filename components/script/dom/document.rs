@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
@@ -86,6 +85,7 @@ pub struct Document {
     window: JS<Window>,
     idmap: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
     implementation: MutNullableJS<DOMImplementation>,
+    location: MutNullableJS<Location>,
     content_type: DOMString,
     last_modified: DOMRefCell<Option<DOMString>>,
     encoding_name: DOMRefCell<DOMString>,
@@ -425,6 +425,7 @@ impl Document {
             window: JS::from_rooted(window),
             idmap: DOMRefCell::new(HashMap::new()),
             implementation: Default::default(),
+            location: Default::default(),
             content_type: match content_type {
                 Some(string) => string.clone(),
                 None => match is_html_document {
@@ -976,7 +977,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     fn Location(self) -> Temporary<Location> {
         let window = self.window.root();
-        window.r().Location()
+        let window = window.r();
+        self.location.or_init(|| Location::new(window, window.page_clone()))
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-children
