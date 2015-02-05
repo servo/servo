@@ -3,6 +3,167 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! The implementation of the DOM.
+//!
+//! The DOM is comprised of interfaces (defined by specifications using
+//! [WebIDL](https://heycam.github.io/webidl/)) that are implemented as Rust
+//! structs in submodules of this module. Its implementation is documented
+//! below.
+//!
+//! A DOM object and its reflector
+//! ==============================
+//!
+//! The implementation of an interface `Foo` in Servo's DOM involves two
+//! related but distinct objects:
+//!
+//! * the **DOM object**: an instance of the Rust struct `dom::foo::Foo`
+//!   (marked with the `#[dom_struct]` attribute) on the Rust heap;
+//! * the **reflector**: a `JSObject` allocated by SpiderMonkey, that owns the
+//!   DOM object.
+//!
+//! Memory management
+//! =================
+//!
+//! Reflectors of DOM objects, and thus the DOM objects themselves, are managed
+//! by the SpiderMonkey Garbage Collector. Thus, keeping alive a DOM object
+//! is done through its reflector.
+//!
+//! For more information, see:
+//!
+//! * rooting pointers on the stack: the [`Root`](bindings/js/struct.Root.html)
+//!   and [`JSRef`](bindings/js/struct.JSRef.html) smart pointers;
+//! * tracing pointers in member fields: the [`JS`](bindings/js/struct.JS.html),
+//!   [`MutNullableJS`](bindings/js/struct.MutNullableJS.html) and
+//!   [`MutHeap`](bindings/js/struct.MutHeap.html) smart pointers and
+//!   [the tracing implementation](bindings/trace/index.html);
+//! * returning pointers from functions: the
+//!   [`Temporary`](bindings/js/struct.Temporary.html) smart pointer;
+//! * rooting pointers from across task boundaries or in channels: the
+//!   [`Trusted`](bindings/refcounted/struct.Trusted.html) smart pointer.
+//!
+//! Inheritance
+//! ===========
+//!
+//! Rust does not support struct inheritance, as would be used for the
+//! object-oriented DOM APIs. To work around this issue, Servo stores an
+//! instance of the superclass in the first field of its subclasses. (Note that
+//! it is stored by value, rather than in a smart pointer such as `JS<T>`.)
+//!
+//! This implies that a pointer to an object can safely be cast to a pointer
+//! to all its classes.
+//!
+//! This invariant is enforced by the lint in
+//! `plugins::lints::inheritance_integrity`.
+//!
+//! Construction
+//! ============
+//!
+//! DOM objects of type `T` in Servo have two constructors:
+//!
+//! * a `T::new_inherited` static method that returns a plain `T`, and
+//! * a `T::new` static method that returns `Temporary<T>`.
+//!
+//! (The result of either method can be wrapped in `Result`, if that is
+//! appropriate for the type in question.)
+//!
+//! The latter calls the former, boxes the result, and creates a reflector for
+//! it by calling `dom::bindings::utils::reflect_dom_object` (which yields
+//! ownership of the object to the SpiderMonkey Garbage Collector). This is the
+//! API to use when creating a DOM object.
+//!
+//! The former should only be called by the latter, and by subclasses'
+//! `new_inherited` methods.
+//!
+//! DOM object constructors in JavaScript correspond to a `T::Constructor`
+//! static method. This method is always fallible.
+//!
+//! Destruction
+//! ===========
+//!
+//! When the SpiderMonkey Garbage Collector discovers that the reflector of a
+//! DOM object is garbage, it calls the reflector's finalization hook. This
+//! function deletes the reflector's DOM object, calling its destructor in the
+//! process.
+//!
+//! Mutability and aliasing
+//! =======================
+//!
+//! Reflectors are JavaScript objects, and as such can be freely aliased. As
+//! Rust does not allow mutable aliasing, mutable borrows of DOM objects are
+//! not allowed. In particular, any mutable fields use `Cell` or `DOMRefCell`
+//! to manage their mutability.
+//!
+//! `Reflector` and `Reflectable`
+//! =============================
+//!
+//! Every DOM object has a `Reflector` as its first (transitive) member field.
+//! This contains a `*mut JSObject` that points to its reflector. This field
+//! is initialized by the `FooBinding::Wrap` method, called from
+//! `reflect_dom_object`.
+//!
+//! The `Reflectable` trait provides a `reflector()` method that returns the
+//! DOM object's `Reflector`. It is implemented automatically for DOM structs
+//! through the `#[dom_struct]` attribute.
+//!
+//! Implementing methods for a DOM object
+//! =====================================
+//!
+//! In order to ensure that DOM objects are rooted when they are called, we
+//! require that all methods are implemented for `JSRef<'a, Foo>`. This means
+//! that all methods are defined on traits. Conventionally, those traits are
+//! called
+//!
+//! * `dom::bindings::codegen::Bindings::FooBindings::FooMethods` for methods
+//!   defined through IDL;
+//! * `FooHelpers` for public methods;
+//! * `PrivateFooHelpers` for private methods.
+//!
+//! Calling methods on a DOM object
+//! ===============================
+//!
+//! To call a method on a DOM object, we require that the object is rooted, by
+//! calling `.root()` on a `Temporary` or `JS` pointer. This constructs a
+//! `Root` on the stack, which ensures the DOM object stays alive for the
+//! duration of its lifetime. A `JSRef` on which to call the method can then be
+//! obtained by calling the `r()` method on the `Root`.
+//!
+//! Accessing fields of a DOM object
+//! ================================
+//!
+//! All fields of DOM objects are private; accessing them from outside their
+//! module is done through explicit getter or setter methods.
+//!
+//! However, `JSRef<T>` dereferences to `&T`, so fields can be accessed on a
+//! `JSRef<T>` directly within the module that defines the struct.
+//!
+//! Inheritance and casting
+//! =======================
+//!
+//! For all DOM interfaces `Foo` in an inheritance chain, a
+//! `dom::bindings::codegen::InheritTypes::FooCast` provides methods to cast
+//! to other types in the inheritance chain. For example:
+//!
+//! ```ignore
+//! # use script::dom::bindings::js::JSRef;
+//! # use script::dom::bindings::codegen::InheritTypes::{NodeCast, HTMLElementCast};
+//! # use script::dom::element::Element;
+//! # use script::dom::node::Node;
+//! # use script::dom::htmlelement::HTMLElement;
+//! fn f(element: JSRef<Element>) {
+//!     let base: JSRef<Node> = NodeCast::from_ref(element);
+//!     let derived: Option<JSRef<HTMLElement>> = HTMLElementCast::to_ref(element);
+//! }
+//! ```
+//!
+//! Accessing DOM objects from layout
+//! =================================
+//!
+//! Layout code can access the DOM through the
+//! [`LayoutJS`](bindings/js/struct.LayoutJS.html) smart pointer. This does not
+//! keep the DOM object alive; we ensure that no DOM code (Garbage Collection
+//! in particular) runs while the layout task is accessing the DOM.
+//!
+//! Methods accessible to layout are implemented on `LayoutJS<Foo>` using
+//! `LayoutFooHelpers` traits.
 
 #[macro_use]
 pub mod macros;

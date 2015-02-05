@@ -3,6 +3,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! The code to expose the DOM to JavaScript through IDL bindings.
+//!
+//! Exposing a DOM object to JavaScript
+//! ===================================
+//!
+//! As [explained earlier](../index.html#a-dom-object-and-its-reflector), the
+//! implementation of an interface `Foo` involves two objects: the DOM object
+//! (implemented in Rust) and the reflector (a `JSObject`).
+//!
+//! In order to expose the interface's members to the web, properties
+//! corresponding to the operations and attributes are defined on an object in
+//! the reflector's prototype chain or on the reflector itself.
+//!
+//! Typically, these properties are either value properties whose value is a
+//! function (for operations) or accessor properties that have a getter and
+//! optionally a setter function (for attributes, depending on whether they are
+//! marked `readonly`).
+//!
+//! All these JavaScript functions are set up such that, when they're called,
+//! they call a Rust function in the generated glue code. This glue code does
+//! some sanity checks and [argument conversions](conversions/index.html), and
+//! calls into API implementation for the DOM object.
 
 #![allow(unsafe_blocks)]
 #![deny(missing_docs, non_snake_case)]
