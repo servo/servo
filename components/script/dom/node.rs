@@ -723,7 +723,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     fn following_siblings(self) -> NodeChildrenIterator<'a> {
         NodeChildrenIterator {
-            current: self.next_sibling().root().map(|next| next.clone()),
+            current: self.next_sibling().root().map(|next| next.get_unsound_ref_forever()),
         }
     }
 
@@ -797,7 +797,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     fn ancestors(self) -> AncestorIterator<'a> {
         AncestorIterator {
-            current: self.parent_node.get().map(|node| (*node.root()).clone()),
+            current: self.parent_node.get().map(|node| node.root().get_unsound_ref_forever()),
         }
     }
 
@@ -821,7 +821,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     fn children(self) -> NodeChildrenIterator<'a> {
         NodeChildrenIterator {
-            current: self.first_child.get().map(|node| (*node.root()).clone()),
+            current: self.first_child.get().map(|node| node.root().get_unsound_ref_forever()),
         }
     }
 
@@ -1035,7 +1035,7 @@ impl<'a> Iterator for NodeChildrenIterator<'a> {
 
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let node = self.current;
-        self.current = node.and_then(|node| node.next_sibling().map(|node| *node.root()));
+        self.current = node.and_then(|node| node.next_sibling().map(|node| node.root().get_unsound_ref_forever()));
         node
     }
 }
@@ -1063,7 +1063,7 @@ impl<'a> Iterator for AncestorIterator<'a> {
 
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let node = self.current;
-        self.current = node.and_then(|node| node.parent_node().map(|node| *node.root()));
+        self.current = node.and_then(|node| node.parent_node().map(|node| node.root().get_unsound_ref_forever()));
         node
     }
 }
@@ -1089,7 +1089,7 @@ impl<'a> Iterator for TreeIterator<'a> {
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let ret = self.stack.pop();
         ret.map(|node| {
-            self.stack.extend(node.rev_children().map(|c| *c.root()))
+            self.stack.extend(node.rev_children().map(|c| c.root().get_unsound_ref_forever()))
         });
         ret
     }
@@ -1124,7 +1124,7 @@ impl NodeIterator {
 
         match ElementCast::to_ref(node) {
             Some(element) if skip(element) => None,
-            _ => node.first_child().map(|child| (*child.root()).clone()),
+            _ => node.first_child().map(|child| child.root().get_unsound_ref_forever()),
         }
     }
 }
@@ -1138,33 +1138,34 @@ impl<'a> Iterator for NodeIterator {
                 if self.include_start {
                     Some(self.start_node)
                 } else {
-                    self.next_child(*self.start_node.root())
+                    self.next_child(self.start_node.root().r())
                         .map(|child| JS::from_rooted(child))
                 }
             },
             Some(node) => {
-                match self.next_child(*node) {
+                match self.next_child(node.r()) {
                     Some(child) => {
                         self.depth += 1;
                         Some(JS::from_rooted(child))
                     },
-                    None if JS::from_rooted(*node) == self.start_node => None,
+                    None if JS::from_rooted(node.r()) == self.start_node => None,
                     None => {
-                        match node.next_sibling().root() {
-                            Some(sibling) => Some(JS::from_rooted(*sibling)),
+                        match node.r().next_sibling().root() {
+                            Some(sibling) => Some(JS::from_rooted(sibling.r())),
                             None => {
-                                let mut candidate = node.clone();
+                                let mut candidate = node.get_unsound_ref_forever();
                                 while candidate.next_sibling().is_none() {
-                                    candidate = (*candidate.parent_node()
-                                                          .expect("Got to root without reaching start node")
-                                                          .root()).clone();
+                                    candidate = candidate.parent_node()
+                                                         .expect("Got to root without reaching start node")
+                                                         .root()
+                                                         .get_unsound_ref_forever();
                                     self.depth -= 1;
                                     if JS::from_rooted(candidate) == self.start_node {
                                         break;
                                     }
                                 }
                                 if JS::from_rooted(candidate) != self.start_node {
-                                    candidate.next_sibling().map(|node| JS::from_rooted(*node.root()))
+                                    candidate.next_sibling().map(|node| JS::from_rooted(node.root().r()))
                                 } else {
                                     None
                                 }
@@ -1174,7 +1175,7 @@ impl<'a> Iterator for NodeIterator {
                 }
             }
         };
-        self.current_node.map(|node| (*node.root()).clone())
+        self.current_node.map(|node| node.root().get_unsound_ref_forever())
     }
 }
 
@@ -1380,13 +1381,13 @@ impl Node {
 
         // Step 7-8.
         let reference_child = match child {
-            Some(child) if child.clone() == node => node.next_sibling().map(|node| (*node.root()).clone()),
+            Some(child) if child.clone() == node => node.next_sibling().map(|node| node.root().get_unsound_ref_forever()),
             _ => child
         };
 
         // Step 9.
         let document = document_from_node(parent).root();
-        Node::adopt(node, *document);
+        Node::adopt(node, document.r());
 
         // Step 10.
         Node::insert(node, parent, reference_child, SuppressObserver::Unsuppressed);
@@ -1970,9 +1971,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Step 7-8.
-        let next_sibling = child.next_sibling().map(|node| (*node.root()).clone());
+        let next_sibling = child.next_sibling().map(|node| node.root().get_unsound_ref_forever());
         let reference_child = match next_sibling {
-            Some(sibling) if sibling == node => node.next_sibling().map(|node| (*node.root()).clone()),
+            Some(sibling) if sibling == node => node.next_sibling().map(|node| node.root().get_unsound_ref_forever()),
             _ => next_sibling
         };
 
@@ -2240,7 +2241,7 @@ impl<'a> style::node::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
             this.parent_node()
         }
 
-        parent_node(self).map(|node| *node.root())
+        parent_node(self).map(|node| node.root().get_unsound_ref_forever())
     }
 
     fn first_child(self) -> Option<JSRef<'a, Node>> {
@@ -2250,7 +2251,7 @@ impl<'a> style::node::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
             this.first_child()
         }
 
-        first_child(self).map(|node| *node.root())
+        first_child(self).map(|node| node.root().get_unsound_ref_forever())
     }
 
     fn last_child(self) -> Option<JSRef<'a, Node>> {
@@ -2260,7 +2261,7 @@ impl<'a> style::node::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
             this.last_child()
         }
 
-        last_child(self).map(|node| *node.root())
+        last_child(self).map(|node| node.root().get_unsound_ref_forever())
     }
 
     fn prev_sibling(self) -> Option<JSRef<'a, Node>> {
@@ -2270,7 +2271,7 @@ impl<'a> style::node::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
             this.prev_sibling()
         }
 
-        prev_sibling(self).map(|node| *node.root())
+        prev_sibling(self).map(|node| node.root().get_unsound_ref_forever())
     }
 
     fn next_sibling(self) -> Option<JSRef<'a, Node>> {
@@ -2280,7 +2281,7 @@ impl<'a> style::node::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
             this.next_sibling()
         }
 
-        next_sibling(self).map(|node| *node.root())
+        next_sibling(self).map(|node| node.root().get_unsound_ref_forever())
     }
 
     fn is_document(self) -> bool {

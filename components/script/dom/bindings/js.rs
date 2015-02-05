@@ -614,19 +614,23 @@ impl<T: Reflectable> Root<T> {
             chain: ContravariantLifetime,
         }
     }
+
+    /// Obtain an unsafe reference to the wrapped JS owned-value that can
+    /// outlive the lifetime of this root.
+    ///
+    /// DO NOT CALL.
+    pub fn get_unsound_ref_forever<'b>(&self) -> JSRef<'b, T> {
+        JSRef {
+            ptr: self.jsref.ptr,
+            chain: ContravariantLifetime,
+        }
+    }
 }
 
 #[unsafe_destructor]
 impl<T: Reflectable> Drop for Root<T> {
     fn drop(&mut self) {
         self.root_list.unroot(self);
-    }
-}
-
-impl<'b, T: Reflectable> Deref for Root<T> {
-    type Target = JSRef<'b, T>;
-    fn deref<'c>(&'c self) -> &'c JSRef<'b, T> {
-        &self.jsref
     }
 }
 
