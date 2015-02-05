@@ -96,6 +96,10 @@ pub struct Page {
     /// An enlarged rectangle around the page contents visible in the viewport, used
     /// to prevent creating display list items for content that is far away from the viewport.
     pub page_clip_rect: Cell<Rect<Au>>,
+
+    /// A flag to indicate whether the developer tools have requested live updates of
+    /// page changes.
+    pub devtools_wants_updates: Cell<bool>,
 }
 
 pub struct PageIterator {
@@ -161,6 +165,7 @@ impl Page {
             constellation_chan: constellation_chan,
             children: DOMRefCell::new(vec!()),
             page_clip_rect: Cell::new(MAX_RECT),
+            devtools_wants_updates: Cell::new(false),
         }
     }
 
