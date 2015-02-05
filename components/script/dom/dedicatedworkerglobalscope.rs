@@ -5,6 +5,7 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
+use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
@@ -14,12 +15,14 @@ use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;
+use dom::errorevent::ErrorEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler};
+use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, Worker};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
+use script_task::ScriptMsg::WorkerDispatchErrorEvent;
 use script_task::StackRootTLS;
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
@@ -193,6 +196,7 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalSc
 
 trait PrivateDedicatedWorkerGlobalScopeHelpers {
     fn handle_event(self, msg: ScriptMsg);
+    fn dispatch_error_to_worker(self, JSRef<ErrorEvent>);
 }
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
@@ -211,6 +215,9 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 LiveDOMReferences::cleanup(scope.get_cx(), addr);
             }
+            ScriptMsg::WorkerDispatchErrorEvent(addr, msg, file_name, line_num, col_num) => {
+                Worker::handle_error_message(addr, msg, file_name, line_num, col_num);
+            },
             ScriptMsg::FireTimer(TimerSource::FromWorker, timer_id) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 scope.handle_fire_timer(timer_id);
@@ -218,6 +225,16 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
             _ => panic!("Unexpected message"),
         }
     }
+
+    fn dispatch_error_to_worker(self, errorevent: JSRef<ErrorEvent>) {
+        let msg = errorevent.Message();
+        let file_name = errorevent.Filename();
+        let line_num = errorevent.Lineno();
+        let col_num = errorevent.Colno();
+        let worker = self.worker.borrow().as_ref().unwrap().clone();
+        self.parent_sender.send(ScriptMsg::WorkerDispatchErrorEvent(worker, msg, file_name,
+                                                                    line_num, col_num));
+ }
 }
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
