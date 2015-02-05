@@ -147,7 +147,7 @@ pub trait TLayoutNode {
                     Some(elem) => elem,
                     None => panic!("not an iframe element!")
                 };
-            ((*iframe_element.unsafe_get()).containing_page_pipeline_id().unwrap(),
+            ((*iframe_element.unsafe_get()).contained_page_pipeline_id().unwrap(),
              (*iframe_element.unsafe_get()).subpage_id().unwrap())
         }
     }

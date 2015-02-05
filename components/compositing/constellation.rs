@@ -743,17 +743,17 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     // The script task associated with pipeline_id has loaded a URL in an iframe via script. This
     // will result in a new pipeline being spawned and a frame tree being added to
-    // containing_page_pipeline_id's frame tree's children. This message is never the result of a
+    // contained_page_pipeline_id's frame tree's children. This message is never the result of a
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self,
                                               url: Url,
-                                              containing_page_pipeline_id: PipelineId,
+                                              contained_page_pipeline_id: PipelineId,
                                               new_subpage_id: SubpageId,
                                               old_subpage_id: Option<SubpageId>,
                                               sandbox: IFrameSandboxState) {
         // Start by finding the frame trees matching the pipeline id,
         // and add the new pipeline to their sub frames.
-        let frame_trees = self.find_all(containing_page_pipeline_id);
+        let frame_trees = self.find_all(contained_page_pipeline_id);
         if frame_trees.is_empty() {
             panic!("Constellation: source pipeline id of ScriptLoadedURLInIFrame is not in
                     navigation context, nor is it in a pending frame. This should be
@@ -762,7 +762,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         // Compare the pipeline's url to the new url. If the origin is the same,
         // then reuse the script task in creating the new pipeline
-        let source_pipeline = self.pipelines.get(&containing_page_pipeline_id).expect("Constellation:
+        let source_pipeline = self.pipelines.get(&contained_page_pipeline_id).expect("Constellation:
             source Id of ScriptLoadedURLInIFrameMsg does have an associated pipeline in
             constellation. This should be impossible.").clone();
 
@@ -785,12 +785,12 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let pipeline = self.new_pipeline(
             new_frame_pipeline_id,
             Some(new_subpage_id),
-            Some(containing_page_pipeline_id),
+            Some(contained_page_pipeline_id),
             script_pipeline,
             LoadData::new(url)
         );
 
-        let rect = self.pending_sizes.remove(&(containing_page_pipeline_id, new_subpage_id));
+        let rect = self.pending_sizes.remove(&(contained_page_pipeline_id, new_subpage_id));
         for frame_tree in frame_trees.iter() {
             self.create_or_update_child_pipeline(frame_tree.clone(),
                                                  pipeline.clone(),
