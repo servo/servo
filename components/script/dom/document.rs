@@ -1015,6 +1015,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             return Err(Security);
         }
         let window = self.window.root();
+        let window = window.r();
         let page = window.page();
         let (tx, rx) = channel();
         let _ = page.resource_task.send(GetCookiesForUrl(url, tx, NonHTTP));
@@ -1030,6 +1031,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             return Err(Security);
         }
         let window = self.window.root();
+        let window = window.r();
         let page = window.page();
         let _ = page.resource_task.send(SetCookiesForUrl(url, cookie, NonHTTP));
         Ok(())

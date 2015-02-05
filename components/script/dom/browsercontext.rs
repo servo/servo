@@ -64,7 +64,7 @@ impl BrowserContext {
 
     pub fn parent(&self) -> Option<Temporary<Window>> {
         self.parent.map(|p| {
-            p.root().browser_context().as_ref().unwrap().active_window()
+            p.root().r().browser_context().as_ref().unwrap().active_window()
         })
     }
 
