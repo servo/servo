@@ -33,6 +33,8 @@ class MachCommands(CommandBase):
     @Command('run',
              description='Run Servo',
              category='post-build')
+    @CommandArgument('--release', '-r', action='store_true',
+                     help='Running release builds')
     @CommandArgument('--debug', action='store_true',
                      help='Enable the debugger. Not specifying a '
                           '--debugger option will result in the default '
@@ -43,11 +45,14 @@ class MachCommands(CommandBase):
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def run(self, params, debug=False, debugger=None):
+    def run(self, params, release=False, debug=False, debugger=None):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
-        args = [path.join("components", "servo", "target", "servo")]
+        if release:
+            args = [path.join("components", "servo", "target", "release", "servo")]
+        else:
+            args = [path.join("components", "servo", "target", "servo")]
 
         # Borrowed and modified from:
         # http://hg.mozilla.org/mozilla-central/file/c9cfa9b91dea/python/mozbuild/mozbuild/mach_commands.py#l883
