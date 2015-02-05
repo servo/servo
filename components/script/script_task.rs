@@ -32,6 +32,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
 use dom::node::{self, Node, NodeHelpers, NodeDamage, NodeTypeId};
 use dom::window::{Window, WindowHelpers, ScriptHelpers};
+use dom::worker::{Worker, TrustedWorkerAddress};
 use parse::html::{HTMLInput, parse_html};
 use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
 use layout_interface;
@@ -63,6 +64,7 @@ use servo_net::resource_task::LoadData as NetLoadData;
 use servo_net::storage_task::StorageTask;
 use util::geometry::to_frac_px;
 use util::smallvec::SmallVec;
+use util::str::DOMString;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 
@@ -123,6 +125,8 @@ pub enum ScriptMsg {
     /// Message sent through Worker.postMessage (only dispatched to
     /// DedicatedWorkerGlobalScope).
     DOMMessage(StructuredCloneData),
+    /// Sends a message to the Worker object (dispatched to all tasks) regarding error.
+    WorkerDispatchErrorEvent(TrustedWorkerAddress, DOMString, DOMString, u32, u32),
     /// Generic message that encapsulates event handling.
     RunnableMsg(Box<Runnable+Send>),
     /// A DOM object's last pinned reference was removed (dispatched to all tasks).
@@ -617,6 +621,8 @@ impl ScriptTask {
                 self.handle_exit_window_msg(id),
             ScriptMsg::DOMMessage(..) =>
                 panic!("unexpected message"),
+            ScriptMsg::WorkerDispatchErrorEvent(addr, msg, file_name,line_num, col_num) =>
+                    Worker::handle_error_message(addr, msg, file_name, line_num, col_num),
             ScriptMsg::RunnableMsg(runnable) =>
                 runnable.handler(),
             ScriptMsg::RefcountCleanup(addr) =>
