@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! A generic, safe mechnanism by which DOM objects can be pinned and transferred
+//! A generic, safe mechanism by which DOM objects can be pinned and transferred
 //! between tasks (or intra-task for asynchronous events). Akin to Gecko's
 //! nsMainThreadPtrHandle, this uses thread-safe reference counting and ensures
 //! that the actual SpiderMonkey GC integration occurs on the script task via
