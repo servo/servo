@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerN
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::error::Fallible;
@@ -57,7 +58,6 @@ pub struct Window {
     script_chan: Box<ScriptChan+Send>,
     control_chan: ScriptControlChan,
     console: MutNullableJS<Console>,
-    location: MutNullableJS<Location>,
     navigator: MutNullableJS<Navigator>,
     image_cache_task: ImageCacheTask,
     compositor: DOMRefCell<Box<ScriptListener+'static>>,
@@ -99,6 +99,10 @@ impl Window {
 
     pub fn page<'a>(&'a self) -> &'a Page {
         &*self.page
+    }
+
+    pub fn page_clone(&self) -> Rc<Page> {
+        self.page.clone()
     }
 
     pub fn get_url(&self) -> Url {
@@ -200,7 +204,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Location(self) -> Temporary<Location> {
-        self.location.or_init(|| Location::new(self, self.page.clone()))
+        self.Document().root().r().Location()
     }
 
     fn SessionStorage(self) -> Temporary<Storage> {
@@ -401,7 +405,6 @@ impl Window {
             console: Default::default(),
             compositor: DOMRefCell::new(compositor),
             page: page,
-            location: Default::default(),
             navigator: Default::default(),
             image_cache_task: image_cache_task,
             browser_context: DOMRefCell::new(None),
