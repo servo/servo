@@ -41,7 +41,7 @@ use devtools;
 
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, GetRootNode, DevtoolsPageInfo};
 use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, GetDocumentElement};
-use devtools_traits::{GetChildren, GetLayout, ModifyAttribute};
+use devtools_traits::{GetChildren, GetLayout, ModifyAttribute, WantsLiveNotifications};
 use script_traits::CompositorEvent;
 use script_traits::CompositorEvent::{ResizeEvent, ReflowEvent, ClickEvent};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
@@ -637,6 +637,8 @@ impl ScriptTask {
                 devtools::handle_get_layout(&*self.page.borrow(), id, node_id, reply),
             ModifyAttribute(id, node_id, modifications) =>
                 devtools::handle_modify_attribute(&*self.page.borrow(), id, node_id, modifications),
+            WantsLiveNotifications(pipeline_id, to_send) =>
+                devtools::handle_wants_live_notifications(&*self.page.borrow(), pipeline_id, to_send),
         }
     }
 
