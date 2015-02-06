@@ -53,6 +53,7 @@ version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gfx 0.0.1",
  "util 0.0.1",
 ]
 
