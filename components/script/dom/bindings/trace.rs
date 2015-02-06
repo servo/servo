@@ -34,6 +34,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
 use script_task::ScriptChan;
 
+use canvas::canvas_paint_task::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
 use cssparser::RGBA;
 use encoding::types::EncodingRef;
 use geom::matrix2d::Matrix2D;
@@ -233,6 +234,7 @@ no_jsmanaged_fields!(LengthOrPercentageOrAuto);
 no_jsmanaged_fields!(RGBA);
 no_jsmanaged_fields!(Matrix2D<T>);
 no_jsmanaged_fields!(StorageType);
+no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
 
 impl JSTraceable for Box<ScriptChan+Send> {
     #[inline]

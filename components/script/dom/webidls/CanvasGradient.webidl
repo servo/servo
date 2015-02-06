@@ -6,7 +6,7 @@
 interface CanvasGradient {
   // opaque object
   // addColorStop should take a double
-  //void addColorStop(float offset, DOMString color);
+  void addColorStop(float offset, DOMString color);
 };
 
 
