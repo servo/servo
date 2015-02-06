@@ -22,7 +22,7 @@
 //! is rooted when a hashmap entry is first created, and unrooted when the hashmap entry
 //! is removed.
 
-use dom::bindings::js::{Temporary, JS, JSRef};
+use dom::bindings::js::{Temporary, JSRef, Unrooted};
 use dom::bindings::utils::{Reflector, Reflectable};
 use script_task::{ScriptMsg, ScriptChan};
 
@@ -85,7 +85,7 @@ impl<T: Reflectable> Trusted<T> {
             self.owner_thread == (&*live_references) as *const _ as *const libc::c_void
         }));
         unsafe {
-            Temporary::new(JS::from_raw(self.ptr as *const T))
+            Temporary::from_unrooted(Unrooted::from_raw(self.ptr as *const T))
         }
     }
 }

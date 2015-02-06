@@ -23,7 +23,7 @@ use dom::bindings::conversions;
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::{NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, LayoutJS, RootedReference, Temporary, Root};
+use dom::bindings::js::{JS, JSRef, LayoutJS, RootedReference, Temporary, Root, Unrooted};
 use dom::bindings::js::{TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable, MutNullableJS};
 use dom::bindings::trace::JSTraceable;
@@ -907,7 +907,7 @@ pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: Untrusted
             panic!("Attempted to create a `JS<Node>` from an invalid pointer!")
         }
         let boxed_node: *const Node = conversions::unwrap(object);
-        Temporary::new(JS::from_raw(boxed_node))
+        Temporary::from_unrooted(Unrooted::from_raw(boxed_node))
     }
 }
 
