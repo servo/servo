@@ -9,6 +9,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 use dom::window::Window;
+use dom::window::WindowHelpers;
 use page::Page;
 
 use util::str::DOMString;
@@ -37,6 +38,11 @@ impl Location {
 }
 
 impl<'a> LocationMethods for JSRef<'a, Location> {
+    // https://html.spec.whatwg.org/multipage/browsers.html#dom-location-assign
+    fn Assign(self, url: DOMString) {
+        self.page.frame().as_ref().unwrap().window.root().r().load_url(url);
+    }
+
     fn Href(self) -> DOMString {
         UrlHelper::Href(&self.page.get_url())
     }

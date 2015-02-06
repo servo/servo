@@ -5,7 +5,7 @@
 
 // http://www.whatwg.org/html/#location
 /*[Unforgeable]*/ interface Location {
-  //void assign(DOMString url);
+  void assign(DOMString url);
   //void replace(DOMString url);
   //void reload();
 };
