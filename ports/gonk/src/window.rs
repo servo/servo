@@ -21,6 +21,7 @@ use std::mem::transmute;
 use std::mem::size_of;
 use std::mem::zeroed;
 use std::ptr;
+use std::ffi::CString;
 use util::cursor::Cursor;
 use util::geometry::ScreenPx;
 use gleam::gl;
@@ -631,14 +632,18 @@ impl Window {
     pub fn new() -> Rc<Window> {
         let mut hwc_mod = ptr::null();
         unsafe {
-            let ret = "hwcomposer".with_c_str(|s| hw_get_module(s, &mut hwc_mod));
+            let cstr = CString::from_slice("hwcomposer".as_bytes());
+            let ptr = cstr.as_ptr();
+            let ret = hw_get_module(ptr, &mut hwc_mod);
             assert!(ret == 0, "Failed to get HWC module!");
         }
 
         let mut hwc_device: *mut hwc_composer_device;
         unsafe {
             let mut device = ptr::null();
-            let ret = "composer".with_c_str(|s| ((*(*hwc_mod).methods).open)(hwc_mod, s, &mut device));
+            let cstr = CString::from_slice("composer".as_bytes());
+            let ptr = cstr.as_ptr();
+            let ret = ((*(*hwc_mod).methods).open)(hwc_mod, ptr, &mut device);
             assert!(ret == 0, "Failed to get HWC device!");
             hwc_device = transmute(device);
             // Require HWC 1.1 or newer
@@ -662,10 +667,13 @@ impl Window {
         let mut alloc_dev: *mut alloc_device;
         unsafe {
             let mut device = ptr::null();
-            let ret1 = "gralloc".with_c_str(|s| hw_get_module(s, &mut gralloc_mod));
+            let cstr = CString::from_slice("gralloc".as_bytes());
+            let ptr = cstr.as_ptr();
+            let ret1 = hw_get_module(ptr, &mut gralloc_mod);
             assert!(ret1 == 0, "Failed to get gralloc moudle!");
-
-            let ret2 = "gpu0".with_c_str(|s| ((*(*gralloc_mod).methods).open)(gralloc_mod, s, &mut device));
+            let cstr2 = CString::from_slice("gpu0".as_bytes());
+            let ptr2 = cstr2.as_ptr();
+            let ret2 = ((*(*gralloc_mod).methods).open)(gralloc_mod, ptr2, &mut device);
             assert!(ret2 == 0, "Failed to get gralloc moudle!");
             alloc_dev = transmute(device);
         }
@@ -769,8 +777,8 @@ impl Drop for Window {
 
 impl WindowMethods for Window {
     /// Returns the size of the window in hardware pixels.
-    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint> {
-        TypedSize2D(self.width as uint, self.height as uint)
+    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32> {
+        TypedSize2D(self.width as u32, self.height as u32)
     }
 
     /// Returns the size of the window in density-independent "px" units.
