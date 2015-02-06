@@ -698,8 +698,10 @@ pub mod longhands {
                         Ok(Token::QuotedString(value)) => {
                             content.push(ContentItem::StringContent(value.into_owned()))
                         }
-                        Ok(_) => return Err(()),
-                        Err(()) => return Ok(SpecifiedValue::Content(content))
+                        Err(()) if !content.is_empty() => {
+                            return Ok(SpecifiedValue::Content(content))
+                        }
+                        _ => return Err(())
                     }
                 }
             }
