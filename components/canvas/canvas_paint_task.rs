@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use azure::azure_hl::{DrawTarget, Color, SurfaceFormat, BackendType, StrokeOptions, DrawOptions};
+use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions};
 use azure::azure_hl::{ColorPattern, PatternRef};
 use geom::rect::Rect;
 use geom::size::Size2D;
+use gfx::color;
 use util::task::spawn_named;
 
 use std::borrow::ToOwned;
@@ -32,8 +33,8 @@ impl CanvasPaintTask {
     fn new(size: Size2D<i32>) -> CanvasPaintTask {
         CanvasPaintTask {
             drawtarget: CanvasPaintTask::create(size),
-            fill_color: ColorPattern::new(Color::new(0., 0., 0., 1.)),
-            stroke_color: ColorPattern::new(Color::new(0., 0., 0., 1.)),
+            fill_color: ColorPattern::new(color::black()),
+            stroke_color: ColorPattern::new(color::black()),
             stroke_opts: StrokeOptions::new(1.0, 1.0),
         }
     }

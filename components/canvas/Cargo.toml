@@ -15,3 +15,6 @@ git = "https://github.com/servo/rust-geom"
 
 [dependencies.util]
 path = "../util"
+
+[dependencies.gfx]
+path = "../gfx"
