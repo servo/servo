@@ -10,6 +10,8 @@ use std::os::errno;
 use std::os::unix::AsRawFd;
 use std::num::Float;
 use std::io::File;
+use std::thread::Thread;
+use std::sync::mpsc::Sender;
 
 use geom::point::TypedPoint2D;
 
@@ -116,9 +118,9 @@ fn read_input_device(device_path: &Path,
     println!("xMin: {}, yMin: {}, touchWidth: {}, touchHeight: {}", xInfo.minimum, yInfo.minimum, touchWidth, touchHeight);
 
     // XXX: Why isn't size_of treated as constant?
-    // let buf: [u8, ..(16 * size_of::<linux_input_event>())];
-    let mut buf: [u8, ..(16 * 16)] = unsafe { zeroed() };
-    let mut slots: [input_slot, ..10] = unsafe { zeroed() };
+    // let buf: [u8; (16 * size_of::<linux_input_event>())];
+    let mut buf: [u8; (16 * 16)] = unsafe { zeroed() };
+    let mut slots: [input_slot; 10] = unsafe { zeroed() };
     for slot in slots.iter_mut() {
         slot.tracking_id = -1;
     }
@@ -234,7 +236,7 @@ fn read_input_device(device_path: &Path,
 
 pub fn run_input_loop(event_sender: &Sender<WindowEvent>) {
     let sender = event_sender.clone();
-    spawn(proc () {
+    Thread::spawn(move || {
         // XXX need to scan all devices and read every one.
         let touchinputdev = Path::new("/dev/input/event0");
         read_input_device(&touchinputdev, &sender);

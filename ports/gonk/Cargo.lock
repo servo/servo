@@ -3,9 +3,11 @@ name = "b2s"
 version = "0.0.1"
 dependencies = [
  "compositing 0.0.1",
+ "devtools 0.0.1",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "layout 0.0.1",
  "msg 0.0.1",
  "script 0.0.1",
  "servo 0.0.1",

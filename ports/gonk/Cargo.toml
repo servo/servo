@@ -20,6 +20,12 @@ path = "../../components/msg"
 [dependencies.script]
 path = "../../components/script"
 
+[dependencies.layout]
+path = "../../components/layout"
+
+[dependencies.devtools]
+path = "../../components/devtools"
+
 [dependencies.servo]
 path = "../../components/servo"
 default-features = false
