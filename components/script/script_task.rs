@@ -781,8 +781,8 @@ impl ScriptTask {
             // case, which is wrong. We should be returning an object that
             // denies access to most properties (per
             // https://github.com/servo/servo/issues/3939#issuecomment-62287025).
-            borrowed_page.find(pid).and_then(|page| {
-                Some(page.frame.borrow().as_ref().unwrap().window.root())
+            borrowed_page.find(pid).map(|page| {
+                page.frame.borrow().as_ref().unwrap().window.root()
             })
         });
 
