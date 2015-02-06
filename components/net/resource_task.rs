@@ -25,6 +25,31 @@ use url::Url;
 use std::borrow::ToOwned;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thunk::Invoke;
+use std::collections::HashMap;
+use std::io::{BufferedReader, File};
+use std::mem;
+use std::os;
+
+#[cfg(test)]
+use std::io::{Listener, Acceptor, TimedOut};
+#[cfg(test)]
+use std::io::net::tcp::TcpListener;
+
+static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
+
+pub fn global_init() {
+    if let Some(host_file_path) = os::getenv("HOST_FILE") {
+        //TODO: handle bad file path and corrupted file
+        let path = Path::new(host_file_path);
+        let mut file = BufferedReader::new(File::open(&path));
+        if let Ok(lines) = file.read_to_string(){
+            unsafe {
+                let host_table: *mut HashMap<String, String> =  mem::transmute(parse_hostfile(lines.as_slice()));
+                HOST_TABLE = Some(host_table);
+            }
+        }
+    }
+}
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
@@ -203,6 +228,29 @@ pub fn new_resource_task(user_agent: Option<String>) -> ResourceTask {
     setup_chan
 }
 
+pub fn parse_hostfile(hostfile_content: &str) -> Box<HashMap<String, String>> {
+    let mut host_table = HashMap::new();
+    let lines: Vec<&str> = hostfile_content.split('\n').collect();
+    for line in lines.iter() {
+        let ip_host: Vec<&str> = line.split(' ').collect();
+        if ip_host.len() == 2 {
+            host_table.insert(ip_host[1].to_owned(), ip_host[0].to_owned());
+        }
+    }
+    box host_table
+}
+
+pub fn replace_hosts(mut load_data: LoadData, host_table: *mut HashMap<String, String>) -> LoadData {
+    if let Some(h) = load_data.url.domain_mut() {
+        unsafe {
+            if let Some(ip) = (*host_table).get(h) {
+                *h = ip.clone();
+            }
+        }
+    }
+    return load_data;
+}
+
 struct ResourceManager {
     from_client: Receiver<ControlMsg>,
     user_agent: Option<String>,
@@ -252,8 +300,13 @@ impl ResourceManager {
         }
     }
 
-    fn load(&mut self, load_data: LoadData) {
-        let mut load_data = load_data;
+    fn load(&mut self, mut load_data: LoadData) {
+        unsafe {
+            if let Some(host_table) = HOST_TABLE {
+                load_data = replace_hosts(load_data, host_table);
+            }
+        }
+
         self.user_agent.as_ref().map(|ua| load_data.headers.set(UserAgent(ua.clone())));
         let senders = ResponseSenders {
             immediate_consumer: self.sniffer_task.clone(),
@@ -333,4 +386,46 @@ fn test_bad_scheme() {
       _ => panic!("bleh")
     }
     resource_task.send(ControlMsg::Exit);
+}
+
+#[test]
+fn test_parse_hostfile() {
+    let mock_host_file_content = "127.0.0.1 foo.bar.com\n127.0.0.2 servo.test.server";
+    let host_table = parse_hostfile(mock_host_file_content);
+    assert_eq!(2, (*host_table).len());
+    assert_eq!("127.0.0.1".to_owned(), *host_table.get(&"foo.bar.com".to_owned()).unwrap());
+    assert_eq!("127.0.0.2".to_owned(), *host_table.get(&"servo.test.server".to_owned()).unwrap());
+}
+
+//TODO: test mal-formed file content
+
+#[test]
+fn test_replace_hosts() {
+    let mut host_table_box = box HashMap::new();
+    host_table_box.insert("foo.bar.com".to_owned(), "127.0.0.1".to_owned());
+    host_table_box.insert("servo.test.server".to_owned(), "127.0.0.2".to_owned());
+
+    let host_table: *mut HashMap<String, String> = unsafe {mem::transmute(host_table_box)};
+
+    //Start the TCP server
+    let mut listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.socket_name().unwrap().port;
+    let mut acceptor = listener.listen().unwrap();
+
+    //Start the resource task and make a request to our TCP server
+    let resource_task = new_resource_task(None);
+    let (start_chan, _) = channel();
+    let mut raw_url: String = "http://foo.bar.com:".to_string();
+    raw_url = raw_url + port.to_string().as_slice();
+    let url = Url::parse(raw_url.as_slice()).unwrap();
+    resource_task.send(ControlMsg::Load(replace_hosts(LoadData::new(url, start_chan), host_table)));
+
+    match acceptor.accept() {
+        Ok(..) => assert!(true, "received request"),
+        Err(ref e) if e.kind == TimedOut => { assert!(false, "timed out!");  },
+        Err(_) => assert!(false, "error")
+    }
+
+    resource_task.send(ControlMsg::Exit);
+    drop(acceptor);
 }

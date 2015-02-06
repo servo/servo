@@ -12,6 +12,7 @@ extern crate libc;
 extern crate servo;
 extern crate time;
 extern crate util;
+extern crate "net" as servo_net;
 
 #[cfg(not(test))]
 extern crate "glutin_app" as app;
@@ -28,6 +29,9 @@ use libc::c_int;
 
 #[cfg(not(test))]
 use util::opts;
+
+#[cfg(not(test))]
+use servo_net::resource_task;
 
 #[cfg(not(test))]
 use servo::Browser;
@@ -113,6 +117,7 @@ fn setup_logging() {
 fn main() {
     if opts::from_cmdline_args(get_args().as_slice()) {
         setup_logging();
+        resource_task::global_init();
 
         let window = if opts::get().headless {
             None
