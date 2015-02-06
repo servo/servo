@@ -28,7 +28,6 @@
 use dom::bindings::js::JS;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
-use dom::node::{Node, TrustedNodeAddress};
 use script_task::ScriptChan;
 
 use cssparser::RGBA;
@@ -255,15 +254,5 @@ impl JSTraceable for Box<LayoutRPC+'static> {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
-    }
-}
-
-impl JSTraceable for TrustedNodeAddress {
-    fn trace(&self, s: *mut JSTracer) {
-        let TrustedNodeAddress(addr) = *self;
-        let node = addr as *const Node;
-        unsafe {
-            JS::from_raw(node).trace(s)
-        }
     }
 }

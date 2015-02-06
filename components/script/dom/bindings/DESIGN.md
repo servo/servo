@@ -34,6 +34,7 @@ For supporting SpiderMonkey’s exact GC rooting, we introduce [some types](http
 
 - `JS<T>` is used for the DOM typed field in a DOM type structure. The GC can trace them recursively while the enclosing DOM object (maybe root) is alive.
   - `LayoutJS<T>` is specialized `JS<T>` to use in layout. `Layout*Helper` must be implemented on this type to prevent calling methods from non layout code.
+- `Unrooted<T>` is used to wrap raw pointers to DOM objects extracted from their reflectors.
 - `Temporary<T>` is used as a return value for functions returning a DOM type. They are rooted for the duration of their lifetime. But a retun value gets moved around which can break the LIFO ordering constraint. Thus we need to introduce `Root<T>`.
 - `Root<T>` contains the pointer to `JSObject` which the represented DOM type has. SpiderMonkey's conservative stack scanner scans it's pointers and marks a pointed `JSObject` as GC root.
 - `JSRef` is just a reference to the value rooted by `Root<T>`.

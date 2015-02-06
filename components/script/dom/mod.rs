@@ -38,7 +38,9 @@
 //! * returning pointers from functions: the
 //!   [`Temporary`](bindings/js/struct.Temporary.html) smart pointer;
 //! * rooting pointers from across task boundaries or in channels: the
-//!   [`Trusted`](bindings/refcounted/struct.Trusted.html) smart pointer.
+//!   [`Trusted`](bindings/refcounted/struct.Trusted.html) smart pointer;
+//! * extracting pointers to DOM objects from their reflectors: the
+//!   [`Unrooted`](bindings/js/struct.Unrooted.html) smart pointer.
 //!
 //! Inheritance
 //! ===========

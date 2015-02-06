@@ -30,7 +30,7 @@
 //! | union types             | `T`                              |
 
 use dom::bindings::codegen::PrototypeList;
-use dom::bindings::js::{JS, JSRef, Root};
+use dom::bindings::js::{JS, JSRef, Root, Unrooted};
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, Reflector, DOMClass};
 use util::str::DOMString;
@@ -458,13 +458,13 @@ unsafe fn get_dom_class(obj: *mut JSObject) -> Result<DOMClass, ()> {
     return Err(());
 }
 
-/// Get a `JS<T>` for the given DOM object, unwrapping any wrapper around it
-/// first, and checking if the object is of the correct type.
+/// Get an `Unrooted<T>` for the given DOM object, unwrapping any wrapper
+/// around it first, and checking if the object is of the correct type.
 ///
 /// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
 /// not a reflector for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
-pub fn unwrap_jsmanaged<T>(mut obj: *mut JSObject) -> Result<JS<T>, ()>
+pub fn unwrap_jsmanaged<T>(mut obj: *mut JSObject) -> Result<Unrooted<T>, ()>
     where T: Reflectable + IDLInterface
 {
     use js::glue::{IsWrapper, UnwrapObject};
@@ -493,7 +493,7 @@ pub fn unwrap_jsmanaged<T>(mut obj: *mut JSObject) -> Result<JS<T>, ()>
         let proto_depth = IDLInterface::get_prototype_depth(None::<T>);
         if dom_class.interface_chain[proto_depth] == proto_id {
             debug!("good prototype");
-            Ok(JS::from_raw(unwrap(obj)))
+            Ok(Unrooted::from_raw(unwrap(obj)))
         } else {
             debug!("bad prototype");
             Err(())
@@ -501,9 +501,10 @@ pub fn unwrap_jsmanaged<T>(mut obj: *mut JSObject) -> Result<JS<T>, ()>
     }
 }
 
-impl<T: Reflectable+IDLInterface> FromJSValConvertible for JS<T> {
+impl<T: Reflectable+IDLInterface> FromJSValConvertible for Unrooted<T> {
     type Config = ();
-    fn from_jsval(_cx: *mut JSContext, value: JSVal, _option: ()) -> Result<JS<T>, ()> {
+    fn from_jsval(_cx: *mut JSContext, value: JSVal, _option: ())
+                  -> Result<Unrooted<T>, ()> {
         if !value.is_object() {
             return Err(());
         }
@@ -524,6 +525,12 @@ impl<'a, T: Reflectable> ToJSValConvertible for JSRef<'a, T> {
 }
 
 impl<'a, T: Reflectable> ToJSValConvertible for JS<T> {
+    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
+        self.reflector().to_jsval(cx)
+    }
+}
+
+impl<'a, T: Reflectable> ToJSValConvertible for Unrooted<T> {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         self.reflector().to_jsval(cx)
     }
