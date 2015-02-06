@@ -622,7 +622,7 @@ impl ScriptTask {
             ScriptMsg::DOMMessage(..) =>
                 panic!("unexpected message"),
             ScriptMsg::WorkerDispatchErrorEvent(addr, msg, file_name,line_num, col_num) =>
-                    Worker::handle_error_message(addr, msg, file_name, line_num, col_num),
+                Worker::handle_error_message(addr, msg, file_name, line_num, col_num),
             ScriptMsg::RunnableMsg(runnable) =>
                 runnable.handler(),
             ScriptMsg::RefcountCleanup(addr) =>
@@ -774,16 +774,16 @@ impl ScriptTask {
         let borrowed_page = self.page.borrow_mut();
 
         let parent_window = parent_id.and_then(|pid| {
-          // In the case a parent id exists but the matching page
-          // cannot be found, this means the page exists in a different
-          // script task (due to origin) so it shouldn't be returned.
-          // TODO: window.parent will continue to return self in that
-          // case, which is wrong. We should be returning an object that
-          // denies access to most properties (per
-          // https://github.com/servo/servo/issues/3939#issuecomment-62287025).
-          borrowed_page.find(pid).and_then(|page| {
-            Some(page.frame.borrow().as_ref().unwrap().window.root())
-          })
+            // In the case a parent id exists but the matching page
+            // cannot be found, this means the page exists in a different
+            // script task (due to origin) so it shouldn't be returned.
+            // TODO: window.parent will continue to return self in that
+            // case, which is wrong. We should be returning an object that
+            // denies access to most properties (per
+            // https://github.com/servo/servo/issues/3939#issuecomment-62287025).
+            borrowed_page.find(pid).map(|page| {
+                page.frame.borrow().as_ref().unwrap().window.root()
+            })
         });
 
         let page = borrowed_page.find(pipeline_id).expect("ScriptTask: received a load
@@ -967,7 +967,7 @@ impl ScriptTask {
     fn handle_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
         match event {
             ResizeEvent(new_size) => {
-              self.handle_resize_event(pipeline_id, new_size);
+                self.handle_resize_event(pipeline_id, new_size);
             }
 
             ReflowEvent(nodes) => {
@@ -995,13 +995,13 @@ impl ScriptTask {
             }
 
             ClickEvent(_button, point) => {
-              self.handle_click_event(pipeline_id, _button, point);
+                self.handle_click_event(pipeline_id, _button, point);
             }
 
             MouseDownEvent(..) => {}
             MouseUpEvent(..) => {}
             MouseMoveEvent(point) => {
-              self.handle_mouse_move_event(pipeline_id, point);
+                self.handle_mouse_move_event(pipeline_id, point);
             }
 
             KeyEvent(key, state, modifiers) => {
@@ -1169,8 +1169,8 @@ impl ScriptTask {
                 debug!("node address is {:?}", node_address.0);
 
                 let temp_node =
-                        node::from_untrusted_node_address(
-                            self.js_runtime.ptr, node_address).root();
+                    node::from_untrusted_node_address(
+                        self.js_runtime.ptr, node_address).root();
 
                 let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(temp_node.r());
                 let maybe_node = match maybe_elem {
@@ -1234,30 +1234,30 @@ impl ScriptTask {
                 }
 
                 if node_address.len() > 0 {
-                  let top_most_node =
-                      node::from_untrusted_node_address(self.js_runtime.ptr, node_address[0]).root();
+                    let top_most_node =
+                        node::from_untrusted_node_address(self.js_runtime.ptr, node_address[0]).root();
 
-                  if let Some(ref frame) = *page.frame() {
-                      let window = frame.window.root();
+                    if let Some(ref frame) = *page.frame() {
+                        let window = frame.window.root();
 
-                      let x = point.x.to_i32().unwrap_or(0);
-                      let y = point.y.to_i32().unwrap_or(0);
+                        let x = point.x.to_i32().unwrap_or(0);
+                        let y = point.y.to_i32().unwrap_or(0);
 
-                      let mouse_event = MouseEvent::new(window.r(),
-                          "mousemove".to_owned(),
-                          true,
-                          true,
-                          Some(window.r()),
-                          0i32,
-                          x, y, x, y,
-                          false, false, false, false,
-                          0i16,
-                          None).root();
+                        let mouse_event = MouseEvent::new(window.r(),
+                            "mousemove".to_owned(),
+                            true,
+                            true,
+                            Some(window.r()),
+                            0i32,
+                            x, y, x, y,
+                            false, false, false, false,
+                            0i16,
+                            None).root();
 
-                      let event: JSRef<Event> = EventCast::from_ref(mouse_event.r());
-                      let target: JSRef<EventTarget> = EventTargetCast::from_ref(top_most_node.r());
-                      event.fire(target);
-                  }
+                        let event: JSRef<Event> = EventCast::from_ref(mouse_event.r());
+                        let target: JSRef<EventTarget> = EventTargetCast::from_ref(top_most_node.r());
+                        event.fire(target);
+                    }
                 }
 
                 for node_address in node_address.iter() {
