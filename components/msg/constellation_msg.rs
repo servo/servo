@@ -36,7 +36,7 @@ pub enum IFrameSandboxState {
 #[derive(Clone, Copy)]
 pub struct Failure {
     pub pipeline_id: PipelineId,
-    pub subpage_id: Option<SubpageId>,
+    pub parent: Option<(PipelineId, SubpageId)>,
 }
 
 #[derive(Copy)]

@@ -18,9 +18,11 @@ use dom::bindings::utils::Reflectable;
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
 use dom::document::Document;
+use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::location::Location;
 use dom::navigator::Navigator;
+use dom::node::window_from_node;
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
@@ -68,7 +70,7 @@ pub struct Window {
     navigation_start_precise: f64,
     screen: MutNullableJS<Screen>,
     session_storage: MutNullableJS<Storage>,
-    timers: TimerManager
+    timers: TimerManager,
 }
 
 impl Window {
@@ -215,6 +217,10 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.console.or_init(|| Console::new(GlobalRef::Window(self)))
     }
 
+    fn GetFrameElement(self) -> Option<Temporary<Element>> {
+        self.browser_context().as_ref().unwrap().frame_element()
+    }
+
     fn Navigator(self) -> Temporary<Navigator> {
         self.navigator.or_init(|| Navigator::new(self))
     }
@@ -278,7 +284,14 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     // https://html.spec.whatwg.org/multipage/browsers.html#dom-parent
     fn Parent(self) -> Temporary<Window> {
-        self.browser_context().as_ref().unwrap().parent().unwrap_or(self.Window())
+        let browser_context = self.browser_context();
+        let browser_context = browser_context.as_ref().unwrap();
+
+        browser_context.frame_element().map_or(self.Window(), |fe| {
+            let frame_element = fe.root();
+            let window = window_from_node(frame_element.r()).root();
+            window.r().browser_context().as_ref().unwrap().active_window()
+        })
     }
 
     fn Performance(self) -> Temporary<Performance> {
@@ -318,7 +331,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
 pub trait WindowHelpers {
     fn flush_layout(self, goal: ReflowGoal, query: ReflowQueryType);
-    fn init_browser_context(self, doc: JSRef<Document>, parent: Option<JSRef<Window>>);
+    fn init_browser_context(self, doc: JSRef<Document>, frame_element: Option<JSRef<Element>>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
     fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>>;
@@ -361,8 +374,8 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         self.page().flush_layout(goal, query);
     }
 
-    fn init_browser_context(self, doc: JSRef<Document>, parent: Option<JSRef<Window>>) {
-        *self.browser_context.borrow_mut() = Some(BrowserContext::new(doc, parent));
+    fn init_browser_context(self, doc: JSRef<Document>, frame_element: Option<JSRef<Element>>) {
+        *self.browser_context.borrow_mut() = Some(BrowserContext::new(doc, frame_element));
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -413,7 +426,7 @@ impl Window {
             navigation_start_precise: time::precise_time_ns() as f64,
             screen: Default::default(),
             session_storage: Default::default(),
-            timers: TimerManager::new()
+            timers: TimerManager::new(),
         };
 
         WindowBinding::Wrap(cx, win)

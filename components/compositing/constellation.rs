@@ -191,7 +191,7 @@ impl FrameTreeTraversal for Rc<FrameTree> {
 
     /// Returns the frame tree whose subpage is id
     fn find_with_subpage_id(&self, id: Option<SubpageId>) -> Option<Rc<FrameTree>> {
-        self.iter().find(|frame_tree| id == frame_tree.pipeline.borrow().subpage_id)
+        self.iter().find(|frame_tree| id == frame_tree.pipeline.borrow().subpage_id())
     }
 
     /// Replaces a node of the frame tree in place. Returns the node that was removed or the
@@ -392,14 +392,12 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     /// Helper function for creating a pipeline
     fn new_pipeline(&mut self,
                     id: PipelineId,
-                    subpage_id: Option<SubpageId>,
-                    parent_id: Option<PipelineId>,
+                    parent: Option<(PipelineId, SubpageId)>,
                     script_pipeline: Option<Rc<Pipeline>>,
                     load_data: LoadData)
                     -> Rc<Pipeline> {
         let pipe = Pipeline::create::<LTF, STF>(id,
-                                                subpage_id,
-                                                parent_id,
+                                                parent,
                                                 self.chan.clone(),
                                                 self.compositor_proxy.clone_compositor_proxy(),
                                                 self.devtools_chan.clone(),
@@ -454,8 +452,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 self.handle_exit();
                 return false;
             }
-            ConstellationMsg::Failure(Failure { pipeline_id, subpage_id }) => {
-                self.handle_failure_msg(pipeline_id, subpage_id);
+            ConstellationMsg::Failure(Failure { pipeline_id, parent }) => {
+                self.handle_failure_msg(pipeline_id, parent);
             }
             // This should only be called once per constellation, and only by the browser
             ConstellationMsg::InitLoadUrl(url) => {
@@ -530,8 +528,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.compositor_proxy.send(CompositorMsg::ShutdownComplete);
     }
 
-    fn handle_failure_msg(&mut self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>) {
-        debug!("handling failure message from pipeline {:?}, {:?}", pipeline_id, subpage_id);
+    fn handle_failure_msg(&mut self, pipeline_id: PipelineId, parent: Option<(PipelineId, SubpageId)>) {
+        debug!("handling failure message from pipeline {:?}, {:?}", pipeline_id, parent);
 
         if opts::get().hard_fail {
             // It's quite difficult to make Servo exit cleanly if some tasks have failed.
@@ -572,7 +570,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         let new_id = self.get_next_pipeline_id();
         let new_frame_id = self.get_next_frame_id();
-        let pipeline = self.new_pipeline(new_id, subpage_id, None, None,
+        let pipeline = self.new_pipeline(new_id, parent, None,
                                          LoadData::new(Url::parse("about:failure").unwrap()));
 
         self.browse(Some(pipeline_id),
@@ -599,7 +597,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_init_load(&mut self, url: Url) {
         let next_pipeline_id = self.get_next_pipeline_id();
         let next_frame_id = self.get_next_frame_id();
-        let pipeline = self.new_pipeline(next_pipeline_id, None, None, None, LoadData::new(url));
+        let pipeline = self.new_pipeline(next_pipeline_id, None, None, LoadData::new(url));
         self.browse(None,
                     Rc::new(FrameTree::new(next_frame_id, pipeline.clone(), None)),
                     NavigationType::Load);
@@ -614,7 +612,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // Returns true if a child frame tree's subpage id matches the given subpage id
         let subpage_eq = |&:child_frame_tree: & &mut ChildFrameTree| {
             child_frame_tree.frame_tree.pipeline.borrow().
-                subpage_id.expect("Constellation:
+                subpage_id().expect("Constellation:
                 child frame does not have a subpage id. This should not be possible.")
                 == subpage_id
         };
@@ -784,8 +782,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let new_frame_pipeline_id = self.get_next_pipeline_id();
         let pipeline = self.new_pipeline(
             new_frame_pipeline_id,
-            Some(new_subpage_id),
-            Some(containing_page_pipeline_id),
+            Some((containing_page_pipeline_id, new_subpage_id)),
             script_pipeline,
             LoadData::new(url)
         );
@@ -829,11 +826,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // changes would be overridden by changing the subframe associated with source_id.
 
         let parent = source_frame.parent.clone();
-        let subpage_id = source_frame.pipeline.borrow().subpage_id;
-        let parent_id = source_frame.pipeline.borrow().parent_id;
+        let parent_id = source_frame.pipeline.borrow().parent;
         let next_pipeline_id = self.get_next_pipeline_id();
         let next_frame_id = self.get_next_frame_id();
-        let pipeline = self.new_pipeline(next_pipeline_id, subpage_id, parent_id, None, load_data);
+        let pipeline = self.new_pipeline(next_pipeline_id, parent_id, None, load_data);
         self.browse(Some(source_id),
                     Rc::new(FrameTree::new(next_frame_id,
                                            pipeline.clone(),
@@ -979,7 +975,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                         // Add to_add to parent's children, if it is not the root
                         let parent = &to_add.parent;
                         for parent in parent.borrow().iter() {
-                            let subpage_id = to_add.pipeline.borrow().subpage_id
+                            let subpage_id = to_add.pipeline.borrow().subpage_id()
                                 .expect("Constellation:
                                 Child frame's subpage id is None. This should be impossible.");
                             let rect = self.pending_sizes.remove(&(parent.id, subpage_id));

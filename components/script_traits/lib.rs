@@ -56,7 +56,7 @@ pub struct NewLayoutInfo {
 /// Messages sent from the constellation to the script task
 pub enum ConstellationControlMsg {
     /// Loads a new URL on the specified pipeline.
-    Load(PipelineId, Option<PipelineId>, LoadData),
+    Load(PipelineId, Option<(PipelineId, SubpageId)>, LoadData),
     /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
