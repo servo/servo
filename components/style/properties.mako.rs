@@ -16,7 +16,7 @@ use util::logical_geometry::{WritingMode, LogicalMargin};
 use util::geometry::Au;
 use url::Url;
 use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
-                DeclarationListParser, parse_important};
+                DeclarationListParser, parse_important, ToCss};
 use geom::SideOffsets2D;
 
 use values::specified::BorderStyle;
@@ -361,18 +361,20 @@ pub mod longhands {
         pub use super::computed_as_specified as to_computed_value;
         pub type SpecifiedValue = computed_value::T;
         pub mod computed_value {
-            use std::fmt;
+            use cssparser::ToCss;
+            use text_writer::{self, TextWriter};
 
             #[derive(PartialEq, Clone, Eq, Copy)]
             pub enum T {
                 Auto,
                 Number(i32),
             }
-            impl fmt::Show for T {
-                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+
+            impl ToCss for T {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
                     match self {
-                        &T::Auto => write!(f, "auto"),
-                        &T::Number(number) => write!(f, "{}", number),
+                        &T::Auto => dest.write_str("auto"),
+                        &T::Number(number) => write!(dest, "{}", number),
                     }
                 }
             }
@@ -451,8 +453,10 @@ pub mod longhands {
     ${switch_to_style_struct("InheritedBox")}
 
     <%self:longhand name="line-height">
-        use std::fmt;
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
         use values::CSSFloat;
+
         #[derive(Clone, PartialEq, Copy)]
         pub enum SpecifiedValue {
             Normal,
@@ -460,13 +464,14 @@ pub mod longhands {
             Number(CSSFloat),
             Percentage(CSSFloat),
         }
-        impl fmt::Show for SpecifiedValue {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
                 match self {
-                    &SpecifiedValue::Normal => write!(f, "normal"),
-                    &SpecifiedValue::Length(length) => write!(f, "{:?}", length),
-                    &SpecifiedValue::Number(number) => write!(f, "{}", number),
-                    &SpecifiedValue::Percentage(number) => write!(f, "{}%", number * 100.),
+                    &SpecifiedValue::Normal => dest.write_str("normal"),
+                    &SpecifiedValue::Length(length) => length.to_css(dest),
+                    &SpecifiedValue::Number(number) => write!(dest, "{}", number),
+                    &SpecifiedValue::Percentage(number) => write!(dest, "{}%", number * 100.),
                 }
             }
         }
@@ -533,7 +538,9 @@ pub mod longhands {
     ${switch_to_style_struct("Box")}
 
     <%self:longhand name="vertical-align">
-        use std::fmt;
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
         <% vertical_align_keywords = (
             "baseline sub super top text-top middle bottom text-bottom".split()) %>
         #[allow(non_camel_case_types)]
@@ -544,13 +551,14 @@ pub mod longhands {
             % endfor
             LengthOrPercentage(specified::LengthOrPercentage),
         }
-        impl fmt::Show for SpecifiedValue {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
                 match self {
                     % for keyword in vertical_align_keywords:
-                        &SpecifiedValue::${to_rust_ident(keyword)} => write!(f, "${keyword}"),
+                        &SpecifiedValue::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
                     % endfor
-                    &SpecifiedValue::LengthOrPercentage(lop) => write!(f, "{:?}", lop),
+                    &SpecifiedValue::LengthOrPercentage(value) => value.to_css(dest),
                 }
             }
         }
@@ -642,19 +650,27 @@ pub mod longhands {
             pub use self::computed_value::T as SpecifiedValue;
             pub use self::computed_value::ContentItem;
             use cssparser::Token;
+
             pub mod computed_value {
-                use std::fmt;
+                use std::borrow::IntoCow;
+                use cssparser::{ToCss, Token};
+                use text_writer::{self, TextWriter};
+
                 #[derive(PartialEq, Eq, Clone)]
                 pub enum ContentItem {
                     StringContent(String),
                 }
-                impl fmt::Show for ContentItem {
-                    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+
+                impl ToCss for ContentItem {
+                    fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
                         match self {
-                            &ContentItem::StringContent(ref s) => write!(f, "\"{}\"", s),
+                            &ContentItem::StringContent(ref s) => {
+                                Token::QuotedString((&**s).into_cow()).to_css(dest)
+                            }
                         }
                     }
                 }
+
                 #[allow(non_camel_case_types)]
                 #[derive(PartialEq, Eq, Clone)]
                 pub enum T {
@@ -662,14 +678,17 @@ pub mod longhands {
                     none,
                     Content(Vec<ContentItem>),
                 }
-                impl fmt::Show for T {
-                    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+
+                impl ToCss for T {
+                    fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
                         match self {
-                            &T::normal => write!(f, "normal"),
-                            &T::none => write!(f, "none"),
+                            &T::normal => dest.write_str("normal"),
+                            &T::none => dest.write_str("none"),
                             &T::Content(ref content) => {
-                                for c in content.iter() {
-                                    let _ = write!(f, "{:?}", c);
+                                let mut iter = content.iter();
+                                try!(iter.next().unwrap().to_css(dest));
+                                for c in iter {
+                                    try!(c.to_css(dest));
                                 }
                                 Ok(())
                             }
@@ -698,8 +717,10 @@ pub mod longhands {
                         Ok(Token::QuotedString(value)) => {
                             content.push(ContentItem::StringContent(value.into_owned()))
                         }
-                        Ok(_) => return Err(()),
-                        Err(()) => return Ok(SpecifiedValue::Content(content))
+                        Err(()) if !content.is_empty() => {
+                            return Ok(SpecifiedValue::Content(content))
+                        }
+                        _ => return Err(())
                     }
                 }
             }
@@ -721,18 +742,46 @@ pub mod longhands {
                      "disc none circle square disclosure-open disclosure-closed")}
 
     <%self:longhand name="list-style-image">
+        use std::borrow::IntoCow;
         use url::Url;
-        pub use super::computed_as_specified as to_computed_value;
-        pub type SpecifiedValue = Option<Url>;
+        use cssparser::{ToCss, Token};
+        use text_writer::{self, TextWriter};
+
+        #[derive(Clone, PartialEq, Eq)]
+        pub enum SpecifiedValue {
+            None,
+            Url(Url),
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                match *self {
+                    SpecifiedValue::None => dest.write_str("none"),
+                    SpecifiedValue::Url(ref url) => {
+                        Token::Url(url.to_string().into_cow()).to_css(dest)
+                    }
+                }
+            }
+        }
+
         pub mod computed_value {
             use url::Url;
             pub type T = Option<Url>;
         }
+
+        pub fn to_computed_value(value: SpecifiedValue, _context: &computed::Context)
+                                 -> computed_value::T {
+            match value {
+                SpecifiedValue::None => None,
+                SpecifiedValue::Url(url) => Some(url),
+            }
+        }
+
         pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-                Ok(None)
+                Ok(SpecifiedValue::None)
             } else {
-                Ok(Some(context.parse_url(try!(input.expect_url()).as_slice())))
+                Ok(SpecifiedValue::Url(context.parse_url(try!(input.expect_url()).as_slice())))
             }
         }
         #[inline]
@@ -777,21 +826,16 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="background-position">
-            use std::fmt;
+            use cssparser::ToCss;
+            use text_writer::{self, TextWriter};
 
             pub mod computed_value {
                 use values::computed::LengthOrPercentage;
-                use std::fmt;
 
                 #[derive(PartialEq, Copy, Clone)]
                 pub struct T {
                     pub horizontal: LengthOrPercentage,
                     pub vertical: LengthOrPercentage,
-                }
-                impl fmt::Show for T {
-                    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                        write!(f, "{:?} {:?}", self.horizontal, self.vertical)
-                    }
                 }
             }
 
@@ -800,9 +844,13 @@ pub mod longhands {
                 pub horizontal: specified::LengthOrPercentage,
                 pub vertical: specified::LengthOrPercentage,
             }
-            impl fmt::Show for SpecifiedValue {
-                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                    write!(f, "{:?} {:?}", self.horizontal, self.vertical)
+
+            impl ToCss for SpecifiedValue {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                    try!(self.horizontal.to_css(dest));
+                    try!(dest.write_str(" "));
+                    try!(self.vertical.to_css(dest));
+                    Ok(())
                 }
             }
 
@@ -924,7 +972,9 @@ pub mod longhands {
         use std::borrow::ToOwned;
         use self::computed_value::FontFamily;
         pub mod computed_value {
-            use std::fmt;
+            use cssparser::ToCss;
+            use text_writer::{self, TextWriter};
+
             #[derive(PartialEq, Eq, Clone)]
             pub enum FontFamily {
                 FamilyName(String),
@@ -942,22 +992,25 @@ pub mod longhands {
                     }
                 }
             }
-            impl fmt::Show for FontFamily {
-                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            impl ToCss for FontFamily {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
                     match self {
-                        &FontFamily::FamilyName(ref name) => write!(f, "{}", name),
+                        &FontFamily::FamilyName(ref name) => dest.write_str(&**name),
                     }
                 }
             }
-            pub type T = Vec<FontFamily>;
-            /*impl fmt::Show for T {
-                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                    for font in self.iter() {
-                        write!(f, "{}", font);
+            impl ToCss for Vec<FontFamily> {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                    let mut iter = self.iter();
+                    try!(iter.next().unwrap().to_css(dest));
+                    for family in iter {
+                        try!(dest.write_str(", "));
+                        try!(family.to_css(dest));
                     }
                     Ok(())
                 }
-            }*/
+            }
+            pub type T = Vec<FontFamily>;
         }
         pub type SpecifiedValue = computed_value::T;
 
@@ -998,7 +1051,9 @@ pub mod longhands {
     ${single_keyword("font-variant", "normal small-caps")}
 
     <%self:longhand name="font-weight">
-        use std::fmt;
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
         #[derive(Clone, PartialEq, Eq, Copy)]
         pub enum SpecifiedValue {
             Bolder,
@@ -1007,13 +1062,14 @@ pub mod longhands {
                 Weight${weight},
             % endfor
         }
-        impl fmt::Show for SpecifiedValue {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
                 match self {
-                    &SpecifiedValue::Bolder => write!(f, "bolder"),
-                    &SpecifiedValue::Lighter => write!(f, "lighter"),
+                    &SpecifiedValue::Bolder => dest.write_str("bolder"),
+                    &SpecifiedValue::Lighter => dest.write_str("lighter"),
                     % for weight in range(100, 901, 100):
-                        &SpecifiedValue::Weight${weight} => write!(f, "{}", ${weight}i),
+                        &SpecifiedValue::Weight${weight} => dest.write_str("${weight}"),
                     % endfor
                 }
             }
@@ -1162,49 +1218,95 @@ pub mod longhands {
     ${single_keyword("text-align", "left right center justify")}
 
     <%self:longhand name="letter-spacing">
-        pub type SpecifiedValue = Option<specified::Length>;
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
+        #[derive(Clone, Copy, PartialEq)]
+        pub enum SpecifiedValue {
+            Normal,
+            Specified(specified::Length),
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                match *self {
+                    SpecifiedValue::Normal => dest.write_str("normal"),
+                    SpecifiedValue::Specified(l) => l.to_css(dest),
+                }
+            }
+        }
+
         pub mod computed_value {
             use util::geometry::Au;
             pub type T = Option<Au>;
         }
+
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
             None
         }
+
         #[inline]
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                                  -> computed_value::T {
-            value.map(|length| computed::compute_Au(length, context))
+            match value {
+                SpecifiedValue::Normal => None,
+                SpecifiedValue::Specified(l) => Some(computed::compute_Au(l, context))
+            }
         }
+
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-                Ok(None)
+                Ok(SpecifiedValue::Normal)
             } else {
-                specified::Length::parse_non_negative(input).map(Some)
+                specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
             }
         }
     </%self:longhand>
 
     <%self:longhand name="word-spacing">
-        pub type SpecifiedValue = Option<specified::Length>;
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
+        #[derive(Clone, Copy, PartialEq)]
+        pub enum SpecifiedValue {
+            Normal,
+            Specified(specified::Length),  // FIXME(SimonSapin) support percentages
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                match *self {
+                    SpecifiedValue::Normal => dest.write_str("normal"),
+                    SpecifiedValue::Specified(l) => l.to_css(dest),
+                }
+            }
+        }
+
         pub mod computed_value {
             use util::geometry::Au;
             pub type T = Option<Au>;
         }
+
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
             None
         }
+
         #[inline]
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                                  -> computed_value::T {
-            value.map(|length| computed::compute_Au(length, context))
+            match value {
+                SpecifiedValue::Normal => None,
+                SpecifiedValue::Specified(l) => Some(computed::compute_Au(l, context))
+            }
         }
+
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-                Ok(None)
+                Ok(SpecifiedValue::Normal)
             } else {
-                specified::Length::parse_non_negative(input).map(Some)
+                specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
             }
         }
     </%self:longhand>
@@ -1227,7 +1329,9 @@ pub mod longhands {
 
     <%self:longhand name="text-decoration">
         pub use super::computed_as_specified as to_computed_value;
-        use std::fmt;
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
         #[derive(PartialEq, Eq, Copy, Clone)]
         pub struct SpecifiedValue {
             pub underline: bool,
@@ -1236,25 +1340,26 @@ pub mod longhands {
             // 'blink' is accepted in the parser but ignored.
             // Just not blinking the text is a conforming implementation per CSS 2.1.
         }
-        impl fmt::Show for SpecifiedValue {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
                 let mut space = false;
                 if self.underline {
-                    let _ = write!(f, "underline");
+                    try!(dest.write_str("underline"));
                     space = true;
                 }
                 if self.overline {
                     if space {
-                        let _ = write!(f, " ");
+                        try!(dest.write_str(" "));
                     }
-                    let _ = write!(f, "overline");
+                    try!(dest.write_str("overline"));
                     space = true;
                 }
                 if self.line_through {
                     if space {
-                        let _ = write!(f, " ");
+                        try!(dest.write_str(" "));
                     }
-                    let _ = write!(f, "line-through");
+                    try!(dest.write_str("line-through"));
                 }
                 Ok(())
             }
@@ -1420,13 +1525,26 @@ pub mod longhands {
         pub use self::computed_value::T as SpecifiedValue;
 
         pub mod computed_value {
+            use cssparser::ToCss;
+            use text_writer::{self, TextWriter};
             use util::cursor::Cursor;
+
             #[derive(Clone, PartialEq, Eq, Copy, Show)]
             pub enum T {
                 AutoCursor,
                 SpecifiedCursor(Cursor),
             }
+
+            impl ToCss for T {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                    match *self {
+                        T::AutoCursor => dest.write_str("auto"),
+                        T::SpecifiedCursor(c) => c.to_css(dest),
+                    }
+                }
+            }
         }
+
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
             computed_value::T::AutoCursor
@@ -1479,8 +1597,8 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="box-shadow">
-        use cssparser;
-        use std::fmt;
+        use cssparser::{self, ToCss};
+        use text_writer::{self, TextWriter};
 
         pub type SpecifiedValue = Vec<SpecifiedBoxShadow>;
 
@@ -1494,15 +1612,39 @@ pub mod longhands {
             pub inset: bool,
         }
 
-        impl fmt::Show for SpecifiedBoxShadow {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                if self.inset {
-                    let _ = write!(f, "inset ");
+        impl ToCss for Vec<SpecifiedBoxShadow> {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                let mut iter = self.iter();
+                if let Some(shadow) = iter.next() {
+                    try!(shadow.to_css(dest));
+                } else {
+                    try!(dest.write_str("none"));
+                    return Ok(())
                 }
-                let _ = write!(f, "{:?} {:?} {:?} {:?}", self.offset_x, self.offset_y,
-                               self.blur_radius, self.spread_radius);
+                for shadow in iter {
+                    try!(dest.write_str(", "));
+                    try!(shadow.to_css(dest));
+                }
+                Ok(())
+            }
+        }
+
+        impl ToCss for SpecifiedBoxShadow {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                if self.inset {
+                    try!(dest.write_str("inset "));
+                }
+                try!(self.blur_radius.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(self.spread_radius.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(self.offset_x.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(self.offset_y.to_css(dest));
+
                 if let Some(ref color) = self.color {
-                    let _ = write!(f, "{:?}", color);
+                    try!(dest.write_str(" "));
+                    try!(color.to_css(dest));
                 }
                 Ok(())
             }
@@ -1631,6 +1773,9 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="clip">
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
         // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
 
         pub mod computed_value {
@@ -1656,6 +1801,44 @@ pub mod longhands {
         }
 
         pub type SpecifiedValue = Option<SpecifiedClipRect>;
+
+        impl ToCss for SpecifiedClipRect {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                try!(dest.write_str("rect("));
+
+                try!(self.top.to_css(dest));
+                try!(dest.write_str(", "));
+
+                if let Some(right) = self.right {
+                    try!(right.to_css(dest));
+                    try!(dest.write_str(", "));
+                } else {
+                    try!(dest.write_str("auto, "));
+                }
+
+                if let Some(bottom) = self.right {
+                    try!(bottom.to_css(dest));
+                    try!(dest.write_str(", "));
+                } else {
+                    try!(dest.write_str("auto, "));
+                }
+
+                try!(self.left.to_css(dest));
+
+                try!(dest.write_str(")"));
+                Ok(())
+            }
+        }
+
+        impl ToCss for Option<SpecifiedClipRect> {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                if let Some(ref rect) = *self {
+                    rect.to_css(dest)
+                } else {
+                    dest.write_str("auto")
+                }
+            }
+        }
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
@@ -1714,6 +1897,8 @@ pub mod longhands {
         pub mod computed_value {
             use values::specified::Angle;
             use values::CSSFloat;
+            use cssparser::ToCss;
+            use text_writer::{self, TextWriter};
 
             // TODO(pcwalton): `blur`, `drop-shadow`
             #[derive(Clone, PartialEq, Show)]
@@ -1728,9 +1913,46 @@ pub mod longhands {
                 Sepia(CSSFloat),
             }
 
+            impl ToCss for Filter {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                    match *self {
+                        Filter::Brightness(value) => try!(write!(dest, "brightness({})", value)),
+                        Filter::Contrast(value) => try!(write!(dest, "contrast({})", value)),
+                        Filter::Grayscale(value) => try!(write!(dest, "grayscale({})", value)),
+                        Filter::HueRotate(value) => {
+                            try!(dest.write_str("hue-rotate("));
+                            try!(value.to_css(dest));
+                            try!(dest.write_str(")"));
+                        }
+                        Filter::Invert(value) => try!(write!(dest, "invert({})", value)),
+                        Filter::Opacity(value) => try!(write!(dest, "opacity({})", value)),
+                        Filter::Saturate(value) => try!(write!(dest, "saturate({})", value)),
+                        Filter::Sepia(value) => try!(write!(dest, "sepia({})", value)),
+                    }
+                    Ok(())
+                }
+            }
+
             #[derive(Clone, PartialEq, Show)]
             pub struct T {
                 pub filters: Vec<Filter>,
+            }
+
+            impl ToCss for T {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                    let mut iter = self.filters.iter();
+                    if let Some(filter) = iter.next() {
+                        try!(filter.to_css(dest));
+                    } else {
+                        try!(dest.write_str("none"));
+                        return Ok(())
+                    }
+                    for filter in iter {
+                        try!(dest.write_str(" "));
+                        try!(filter.to_css(dest));
+                    }
+                    Ok(())
+                }
             }
 
             impl T {
@@ -1775,6 +1997,9 @@ pub mod longhands {
 
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             let mut filters = Vec::new();
+            if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+                return Ok(SpecifiedValue::new(filters))
+            }
             loop {
                 if let Ok(function_name) = input.try(|input| input.expect_function()) {
                     filters.push(try!(input.parse_nested_block(|input| {
@@ -1790,6 +2015,8 @@ pub mod longhands {
                             _ => Err(())
                         }
                     })));
+                } else if filters.is_empty() {
+                    return Err(())
                 } else {
                     return Ok(SpecifiedValue::new(filters))
                 }
@@ -2239,7 +2466,7 @@ pub mod shorthands {
             (true, 2, None, None) => {
                 Ok(Longhands {
                     list_style_position: position,
-                    list_style_image: Some(None),
+                    list_style_image: Some(list_style_image::SpecifiedValue::None),
                     list_style_type: Some(list_style_type::SpecifiedValue::none),
                 })
             }
@@ -2253,14 +2480,14 @@ pub mod shorthands {
             (true, 1, Some(list_style_type), None) => {
                 Ok(Longhands {
                     list_style_position: position,
-                    list_style_image: Some(None),
+                    list_style_image: Some(list_style_image::SpecifiedValue::None),
                     list_style_type: Some(list_style_type),
                 })
             }
             (true, 1, None, None) => {
                 Ok(Longhands {
                     list_style_position: position,
-                    list_style_image: Some(None),
+                    list_style_image: Some(list_style_image::SpecifiedValue::None),
                     list_style_type: Some(list_style_type::SpecifiedValue::none),
                 })
             }
@@ -2448,12 +2675,12 @@ pub enum DeclaredValue<T> {
     // depending on whether the property is inherited.
 }
 
-impl<T: Show> DeclaredValue<T> {
-    pub fn specified_value(&self) -> Option<String> {
+impl<T: ToCss> DeclaredValue<T> {
+    pub fn specified_value(&self) -> String {
         match self {
-            &DeclaredValue::SpecifiedValue(ref inner) => Some(format!("{:?}", inner)),
-            &DeclaredValue::Initial => None,
-            &DeclaredValue::Inherit => Some("inherit".to_owned()),
+            &DeclaredValue::SpecifiedValue(ref inner) => inner.to_css_string(),
+            &DeclaredValue::Initial => "initial".to_owned(),
+            &DeclaredValue::Inherit => "inherit".to_owned(),
         }
     }
 }
@@ -2491,8 +2718,7 @@ impl PropertyDeclaration {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
                     &PropertyDeclaration::${property.camel_case}(ref value) =>
-                        value.specified_value()
-                             .unwrap_or_else(|| format!("{:?}", longhands::${property.ident}::get_initial_value())),
+                        value.specified_value(),
                 % endif
             % endfor
             decl => panic!("unsupported property declaration: {:?}", decl.name()),
