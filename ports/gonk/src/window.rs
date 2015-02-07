@@ -15,12 +15,13 @@ use msg::compositor_msg::{ReadyState, PaintState};
 use msg::constellation_msg::{Key, KeyModifiers};
 use msg::constellation_msg::LoadData;
 use std::cell::Cell;
-use std::comm::Receiver;
+use std::sync::mpsc::{channel, Sender, Receiver};
 use std::rc::Rc;
 use std::mem::transmute;
 use std::mem::size_of;
 use std::mem::zeroed;
 use std::ptr;
+use std::ffi::CString;
 use util::cursor::Cursor;
 use util::geometry::ScreenPx;
 use gleam::gl;
@@ -50,7 +51,7 @@ pub struct native_handle {
     version: c_int,
     numFds: c_int,
     numInts: c_int,
-    data: [c_int, ..0],
+    data: [c_int; 0],
 }
 
 // system/core/include/system/window.h
@@ -59,7 +60,7 @@ pub struct native_handle {
 pub struct ANativeBase {
     magic: u32,
     version: u32,
-    reserved: [int, ..4],
+    reserved: [int; 4],
     incRef: extern fn(*mut ANativeBase),
     decRef: extern fn(*mut ANativeBase),
 }
@@ -72,9 +73,9 @@ pub struct ANativeWindowBuffer {
     stride: c_int,
     format: c_int,
     usage: c_int,
-    reserved: [*mut c_void, ..2],
+    reserved: [*mut c_void; 2],
     handle: *const native_handle,
-    reserved_proc: [*mut c_void, ..8],
+    reserved_proc: [*mut c_void; 8],
 }
 
 #[repr(C)]
@@ -85,7 +86,7 @@ pub struct ANativeWindow {
     maxSwapInterval: c_int,
     xdpi: f32,
     ydpi: f32,
-    oem: [int, ..4],
+    oem: [int; 4],
     setSwapInterval: extern fn(*mut ANativeWindow, c_int) -> c_int,
     //dequeueBuffer_DEPRECATED: extern fn(*mut ANativeWindow, *mut *mut ANativeWindowBuffer) -> c_int,
     //lockBuffer_DEPRECATED: extern fn(*mut ANativeWindow, *mut ANativeWindowBuffer) -> c_int,
@@ -119,7 +120,7 @@ pub struct hw_module {
     author: *const c_char,
     methods: *mut hw_module_methods,
     dso: *mut u32,
-    reserved: [u32, ..(32-7)],
+    reserved: [u32; (32-7)],
 }
 
 #[repr(C)]
@@ -127,7 +128,7 @@ pub struct hw_device {
     tag: u32,
     version: u32,
     module: *mut hw_module,
-    reserved: [u32, ..12],
+    reserved: [u32; 12],
     close: extern fn(*mut hw_device) -> c_int,
 }
 
@@ -183,8 +184,8 @@ pub struct hwc_layer {
     acquireFenceFd: c_int,
     releaseFenceFd: c_int,
     planeAlpha: u8,
-    pad: [u8, ..3],
-    reserved: [i32, ..(24 - 19)],
+    pad: [u8; 3],
+    reserved: [i32; (24 - 19)],
 }
 
 #[repr(C)]
@@ -195,7 +196,7 @@ pub struct hwc_display_contents {
     outbufAcquireFenceFd: c_int,
     flags: u32,
     numHwLayers: size_t,
-    hwLayers: [hwc_layer, ..2],
+    hwLayers: [hwc_layer; 2],
 }
 
 #[repr(C)]
@@ -224,7 +225,7 @@ pub struct hwc_composer_device {
     dump: extern fn(*mut hwc_composer_device, *const c_char, c_int),
     getDisplayConfigs: extern fn(*mut hwc_composer_device, c_int, *mut u32, *mut size_t) -> c_int,
     getDisplayAttributes: extern fn(*mut hwc_composer_device, c_int, u32, *const u32, *mut i32) -> c_int,
-    reserved: [*mut c_void, ..4],
+    reserved: [*mut c_void; 4],
 }
 
 // system/core/include/system/graphics.h
@@ -237,7 +238,7 @@ pub struct android_ycbcr {
     ystride: size_t,
     cstride: size_t,
     chroma_step: size_t,
-    reserved: [u32, ..8],
+    reserved: [u32; 8],
 }
 
 // hardware/libhardware/include/hardware/gralloc.h
@@ -251,7 +252,7 @@ pub struct gralloc_module {
     unlock: extern fn(*const gralloc_module, *const native_handle) -> c_int,
     perform: extern fn(*const gralloc_module, c_int, ...) -> c_int,
     lock_ycbcr: extern fn(*const gralloc_module, *const native_handle, c_int, c_int, c_int, c_int, c_int, *mut android_ycbcr) -> c_int,
-    reserved: [*mut c_void, ..6],
+    reserved: [*mut c_void; 6],
 }
 
 #[repr(C)]
@@ -261,7 +262,7 @@ pub struct alloc_device {
     alloc: extern fn(*mut alloc_device, c_int, c_int, c_int, c_int, *mut *const native_handle, *mut c_int) -> c_int,
     free: extern fn(*mut alloc_device, *const native_handle) -> c_int,
     dump: Option<extern fn(*mut alloc_device, *mut c_char, c_int)>,
-    reserved: [*mut c_void, ..7],
+    reserved: [*mut c_void; 7],
 }
 
 #[repr(C)]
@@ -282,13 +283,13 @@ pub struct GonkNativeWindow {
     usage: c_int,
     last_fence: c_int,
     last_idx: i32,
-    bufs: [Option<*mut GonkNativeWindowBuffer>, ..2],
-    fences: [c_int, ..2],
+    bufs: [Option<*mut GonkNativeWindowBuffer>; 2],
+    fences: [c_int; 2],
 }
 
 impl ANativeBase {
     fn magic(a: char, b: char, c: char, d: char) -> u32 {
-        a as u32 << 24 | b as u32 << 16 | c as u32 << 8 | d as u32
+        (a as u32) << 24 | (b as u32) << 16 | (c as u32) << 8 | d as u32
     }
 }
 
@@ -452,7 +453,7 @@ extern fn gnw_decRef(base: *mut ANativeBase) {
 
 impl GonkNativeWindow {
     pub fn new(alloc_dev: *mut alloc_device, hwc_dev: *mut hwc_composer_device, width: i32, height: i32, usage: c_int) -> *mut GonkNativeWindow {
-        let mut win = box GonkNativeWindow {
+        let mut win = Box::new(GonkNativeWindow {
             window: ANativeWindow {
                 common: ANativeBase {
                     magic: ANativeBase::magic('_', 'w', 'n', 'd'),
@@ -495,7 +496,7 @@ impl GonkNativeWindow {
             last_idx: -1,
             bufs: unsafe { zeroed() },
             fences: [-1, -1],
-        };
+        });
 
         unsafe { transmute(win) }
     }
@@ -557,7 +558,7 @@ impl GonkNativeWindow {
             ],
         };
         unsafe {
-            let mut displays: [*mut hwc_display_contents, ..3] = [ &mut list, ptr::null_mut(), ptr::null_mut(), ];
+            let mut displays: [*mut hwc_display_contents; 3] = [ &mut list, ptr::null_mut(), ptr::null_mut(), ];
             let _ = ((*self.hwc_dev).prepare)(self.hwc_dev, displays.len() as size_t, transmute(displays.as_mut_ptr()));
             let _ = ((*self.hwc_dev).set)(self.hwc_dev, displays.len() as size_t, transmute(displays.as_mut_ptr()));
             if list.retireFenceFd >= 0 {
@@ -583,7 +584,7 @@ extern fn gnwb_decRef(base: *mut ANativeBase) {
 
 impl GonkNativeWindowBuffer {
     pub fn new(dev: *mut alloc_device, width: i32, height: i32, format: c_int, usage: c_int) -> *mut GonkNativeWindowBuffer {
-        let mut buf = box GonkNativeWindowBuffer {
+        let mut buf = Box::new(GonkNativeWindowBuffer {
             buffer: ANativeWindowBuffer {
                 common: ANativeBase {
                     magic: ANativeBase::magic('_', 'b', 'f', 'r'),
@@ -602,7 +603,7 @@ impl GonkNativeWindowBuffer {
                 reserved_proc: unsafe { zeroed() },
             },
             count: 1,
-        };
+        });
 
         let ret = unsafe { ((*dev).alloc)(dev, width, height, format, usage, &mut buf.buffer.handle, &mut buf.buffer.stride) };
         assert!(ret == 0, "Failed to allocate gralloc buffer!");
@@ -631,14 +632,18 @@ impl Window {
     pub fn new() -> Rc<Window> {
         let mut hwc_mod = ptr::null();
         unsafe {
-            let ret = "hwcomposer".with_c_str(|s| hw_get_module(s, &mut hwc_mod));
+            let cstr = CString::from_slice("hwcomposer".as_bytes());
+            let ptr = cstr.as_ptr();
+            let ret = hw_get_module(ptr, &mut hwc_mod);
             assert!(ret == 0, "Failed to get HWC module!");
         }
 
         let mut hwc_device: *mut hwc_composer_device;
         unsafe {
             let mut device = ptr::null();
-            let ret = "composer".with_c_str(|s| ((*(*hwc_mod).methods).open)(hwc_mod, s, &mut device));
+            let cstr = CString::from_slice("composer".as_bytes());
+            let ptr = cstr.as_ptr();
+            let ret = ((*(*hwc_mod).methods).open)(hwc_mod, ptr, &mut device);
             assert!(ret == 0, "Failed to get HWC device!");
             hwc_device = transmute(device);
             // Require HWC 1.1 or newer
@@ -646,12 +651,12 @@ impl Window {
             assert!((*hwc_device).common.version > (1 << 8), "HWC too old!");
         }
 
-        let attrs: [u32, ..4] = [
+        let attrs: [u32; 4] = [
             HWC_DISPLAY_WIDTH,
             HWC_DISPLAY_HEIGHT,
             HWC_DISPLAY_DPI_X,
             HWC_DISPLAY_NO_ATTRIBUTE];
-        let mut values: [i32, ..4] = [0, 0, 0, 0];
+        let mut values: [i32; 4] = [0, 0, 0, 0];
         unsafe {
             // In theory, we should check the return code.
             // However, there are HALs which implement this wrong.
@@ -662,10 +667,13 @@ impl Window {
         let mut alloc_dev: *mut alloc_device;
         unsafe {
             let mut device = ptr::null();
-            let ret1 = "gralloc".with_c_str(|s| hw_get_module(s, &mut gralloc_mod));
+            let cstr = CString::from_slice("gralloc".as_bytes());
+            let ptr = cstr.as_ptr();
+            let ret1 = hw_get_module(ptr, &mut gralloc_mod);
             assert!(ret1 == 0, "Failed to get gralloc moudle!");
-
-            let ret2 = "gpu0".with_c_str(|s| ((*(*gralloc_mod).methods).open)(gralloc_mod, s, &mut device));
+            let cstr2 = CString::from_slice("gpu0".as_bytes());
+            let ptr2 = cstr2.as_ptr();
+            let ret2 = ((*(*gralloc_mod).methods).open)(gralloc_mod, ptr2, &mut device);
             assert!(ret2 == 0, "Failed to get gralloc moudle!");
             alloc_dev = transmute(device);
         }
@@ -755,7 +763,7 @@ impl Window {
     }
 
     pub fn wait_events(&self) -> WindowEvent {
-        self.event_recv.recv()
+        self.event_recv.recv().unwrap()
     }
 }
 
@@ -769,8 +777,8 @@ impl Drop for Window {
 
 impl WindowMethods for Window {
     /// Returns the size of the window in hardware pixels.
-    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint> {
-        TypedSize2D(self.width as uint, self.height as uint)
+    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32> {
+        TypedSize2D(self.width as u32, self.height as u32)
     }
 
     /// Returns the size of the window in density-independent "px" units.
@@ -818,11 +826,11 @@ impl WindowMethods for Window {
     fn create_compositor_channel(window: &Option<Rc<Window>>)
                                  -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>) {
         let (sender, receiver) = channel();
-        (box GonkCompositorProxy {
+        (Box::new(GonkCompositorProxy {
              sender: sender,
              event_sender: window.as_ref().unwrap().event_send.clone(),
-         } as Box<CompositorProxy+Send>,
-         box receiver as Box<CompositorReceiver>)
+         }) as Box<CompositorProxy+Send>,
+         Box::new(receiver) as Box<CompositorReceiver>)
     }
 
     fn set_cursor(&self, _: Cursor) {
@@ -845,10 +853,10 @@ impl CompositorProxy for GonkCompositorProxy {
         self.event_sender.send(WindowEvent::Idle);
     }
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
-        box GonkCompositorProxy {
+        Box::new(GonkCompositorProxy {
             sender: self.sender.clone(),
             event_sender: self.event_sender.clone(),
-        } as Box<CompositorProxy+Send>
+        }) as Box<CompositorProxy+Send>
     }
 }
 
