@@ -763,7 +763,7 @@ impl Window {
     }
 
     pub fn wait_events(&self) -> WindowEvent {
-        self.event_recv.recv()
+        self.event_recv.recv().unwrap()
     }
 }
 
