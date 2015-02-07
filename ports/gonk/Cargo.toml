@@ -3,7 +3,7 @@ name = "b2s"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 
-build = "make -f makefile.cargo"
+build = "build.rs"
 
 [dependencies.compositing]
 path = "../../components/compositing"
@@ -19,6 +19,12 @@ path = "../../components/msg"
 
 [dependencies.script]
 path = "../../components/script"
+
+[dependencies.layout]
+path = "../../components/layout"
+
+[dependencies.devtools]
+path = "../../components/devtools"
 
 [dependencies.servo]
 path = "../../components/servo"

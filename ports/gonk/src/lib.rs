@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(macro_rules, phase, thread_local)]
+#![feature(thread_local)]
+#![feature(box_syntax)]
+#![feature(int_uint)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
@@ -20,7 +22,6 @@ extern crate script;
 extern crate layout;
 extern crate gfx;
 extern crate libc;
-extern crate rustrt;
 extern crate url;
 
 use compositing::CompositorEventListener;
@@ -57,7 +58,9 @@ use std::os;
 #[cfg(not(test))]
 use std::rc::Rc;
 #[cfg(not(test))]
-use std::task::TaskBuilder;
+use std::thread::Builder;
+#[cfg(not(test))]
+use std::sync::mpsc::channel;
 
 pub struct Browser<Window> {
     compositor: Box<CompositorEventListener + 'static>,
@@ -85,8 +88,8 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
         let (result_chan, result_port) = channel();
         let compositor_proxy_for_constellation = compositor_proxy.clone_compositor_proxy();
-        TaskBuilder::new()
-            .spawn(proc() {
+        Builder::new()
+            .spawn(move || {
             let opts = &opts_clone;
             // Create a Servo instance.
             let resource_task = new_resource_task(opts.user_agent.clone());
@@ -128,7 +131,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             result_chan.send(constellation_chan);
         });
 
-        let constellation_chan = result_port.recv();
+        let constellation_chan = result_port.recv().unwrap();
 
         debug!("preparing to enter main loop");
         let compositor = CompositorTask::create(window,
