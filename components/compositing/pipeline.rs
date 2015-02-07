@@ -23,8 +23,7 @@ use std::sync::mpsc::{Receiver, channel};
 /// A uniquely-identifiable pipeline of script task, layout task, and paint task.
 pub struct Pipeline {
     pub id: PipelineId,
-    pub subpage_id: Option<SubpageId>,
-    pub parent_id: Option<PipelineId>,
+    pub parent: Option<(PipelineId, SubpageId)>,
     pub script_chan: ScriptControlChan,
     pub layout_chan: LayoutControlChan,
     pub paint_chan: PaintChan,
@@ -49,8 +48,7 @@ impl Pipeline {
     /// Returns the channels wrapped in a struct.
     /// If script_pipeline is not None, then subpage_id must also be not None.
     pub fn create<LTF,STF>(id: PipelineId,
-                           subpage_id: Option<SubpageId>,
-                           parent_id: Option<PipelineId>,
+                           parent: Option<(PipelineId, SubpageId)>,
                            constellation_chan: ConstellationChan,
                            compositor_proxy: Box<CompositorProxy+'static+Send>,
                            devtools_chan: Option<DevtoolsControlChan>,
@@ -72,7 +70,7 @@ impl Pipeline {
 
         let failure = Failure {
             pipeline_id: id,
-            subpage_id: subpage_id,
+            parent: parent,
         };
 
         let script_chan = match script_pipeline {
@@ -97,7 +95,7 @@ impl Pipeline {
                 let new_layout_info = NewLayoutInfo {
                     old_pipeline_id: spipe.id.clone(),
                     new_pipeline_id: id,
-                    subpage_id: subpage_id.expect("script_pipeline != None but subpage_id == None"),
+                    subpage_id: parent.expect("script_pipeline != None but subpage_id == None").1,
                     layout_chan: ScriptTaskFactory::clone_layout_channel(None::<&mut STF>, &layout_pair),
                 };
 
@@ -131,8 +129,7 @@ impl Pipeline {
                                   layout_shutdown_chan);
 
         Pipeline::new(id,
-                      subpage_id,
-                      parent_id,
+                      parent,
                       script_chan,
                       LayoutControlChan(pipeline_chan),
                       paint_chan,
@@ -142,8 +139,7 @@ impl Pipeline {
     }
 
     pub fn new(id: PipelineId,
-               subpage_id: Option<SubpageId>,
-               parent_id: Option<PipelineId>,
+               parent: Option<(PipelineId, SubpageId)>,
                script_chan: ScriptControlChan,
                layout_chan: LayoutControlChan,
                paint_chan: PaintChan,
@@ -153,8 +149,7 @@ impl Pipeline {
                -> Pipeline {
         Pipeline {
             id: id,
-            subpage_id: subpage_id,
-            parent_id: parent_id,
+            parent: parent,
             script_chan: script_chan,
             layout_chan: layout_chan,
             paint_chan: paint_chan,
@@ -167,7 +162,9 @@ impl Pipeline {
 
     pub fn load(&self) {
         let ScriptControlChan(ref chan) = self.script_chan;
-        chan.send(ConstellationControlMsg::Load(self.id, self.parent_id, self.load_data.clone())).unwrap();
+        chan.send(ConstellationControlMsg::Load(self.id,
+                                                self.parent,
+                                                self.load_data.clone())).unwrap();
     }
 
     pub fn grant_paint_permission(&self) {
@@ -211,5 +208,9 @@ impl Pipeline {
             script_chan: self.script_chan.clone(),
             paint_chan: self.paint_chan.clone(),
         }
+    }
+
+    pub fn subpage_id(&self) -> Option<SubpageId> {
+      self.parent.map(|parent| parent.1)
     }
 }
