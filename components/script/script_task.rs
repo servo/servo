@@ -753,9 +753,10 @@ impl ScriptTask {
         }
 
         // otherwise find just the matching page and exit all sub-pages
-        match page.remove(id) {
+        match page.find(id) {
             Some(ref mut page) => {
                 shut_down_layout(&*page, (*self.js_runtime).ptr, exit_type);
+                page.remove(id);
                 false
             }
             // TODO(tkuehn): pipeline closing is currently duplicated across
@@ -1321,8 +1322,9 @@ fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime, exit_type: Pipelin
         // processed this message.
         let (response_chan, response_port) = channel();
         let LayoutChan(ref chan) = page.layout_chan;
-        chan.send(layout_interface::Msg::PrepareToExit(response_chan)).unwrap();
-        response_port.recv().unwrap();
+        if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
+          response_port.recv().unwrap();
+        }
     }
 
     // Remove our references to the DOM objects in this page tree.
@@ -1344,7 +1346,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime, exit_type: Pipelin
     // Destroy the layout task. If there were node leaks, layout will now crash safely.
     for page in page_tree.iter() {
         let LayoutChan(ref chan) = page.layout_chan;
-        chan.send(layout_interface::Msg::ExitNow(exit_type)).unwrap();
+        chan.send(layout_interface::Msg::ExitNow(exit_type)).ok();
     }
 }
 
