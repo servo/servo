@@ -11,7 +11,7 @@ use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
 use gfx;
-use libc::uintptr_t;
+use libc::{c_void, uintptr_t};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{Node, SharedLayoutData};
 use script::layout_interface::{LayoutChan, TrustedNodeAddress};
@@ -163,11 +163,8 @@ impl OpaqueNodeMethods for OpaqueNode {
     }
 
     fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
-        unsafe {
-            let OpaqueNode(addr) = *self;
-            let addr: UntrustedNodeAddress = mem::transmute(addr);
-            addr
-        }
+        let OpaqueNode(addr) = *self;
+        UntrustedNodeAddress(addr as *const c_void)
     }
 }
 
