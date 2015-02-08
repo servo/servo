@@ -143,9 +143,7 @@ impl OpaqueNodeMethods for OpaqueNode {
 
     fn from_thread_safe_layout_node(node: &ThreadSafeLayoutNode) -> OpaqueNode {
         unsafe {
-            let abstract_node = node.get_jsmanaged();
-            let ptr: uintptr_t = abstract_node.get_jsobject() as uintptr_t;
-            OpaqueNode(ptr)
+            OpaqueNodeMethods::from_jsmanaged(node.get_jsmanaged())
         }
     }
 
