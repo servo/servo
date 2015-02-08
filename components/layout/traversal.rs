@@ -91,11 +91,9 @@ fn take_task_local_bloom_filter(parent_node: Option<LayoutNode>, layout_context:
 fn put_task_local_bloom_filter(bf: Box<BloomFilter>,
                                unsafe_node: &UnsafeLayoutNode,
                                layout_context: &LayoutContext) {
-    let bf: *mut BloomFilter = unsafe { mem::transmute(bf) };
-    STYLE_BLOOM.with(|style_bloom| {
+    STYLE_BLOOM.with(move |style_bloom| {
         assert!(style_bloom.borrow().is_none(),
                 "Putting into a never-taken task-local bloom filter");
-        let bf: Box<BloomFilter> = unsafe { mem::transmute(bf) };
         *style_bloom.borrow_mut() = Some((bf, *unsafe_node, layout_context.shared.generation));
     })
 }
