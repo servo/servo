@@ -4,6 +4,8 @@
 
 //! Data needed by the layout task.
 
+#![allow(unsafe_blocks)]
+
 use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 
 use geom::{Rect, Size2D};

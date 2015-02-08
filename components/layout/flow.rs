@@ -294,6 +294,7 @@ pub trait Flow: fmt::Show + Sync {
     }
 
     /// Returns a layer ID for the given fragment.
+    #[allow(unsafe_blocks)]
     fn layer_id(&self, fragment_id: uint) -> LayerId {
         unsafe {
             let obj = mem::transmute::<&&Self, &raw::TraitObject>(&self);
@@ -310,6 +311,7 @@ pub trait Flow: fmt::Show + Sync {
 // Base access
 
 #[inline(always)]
+#[allow(unsafe_blocks)]
 pub fn base<'a, T: ?Sized + Flow>(this: &'a T) -> &'a BaseFlow {
     unsafe {
         let obj = mem::transmute::<&&'a T, &'a raw::TraitObject>(&this);
@@ -323,6 +325,7 @@ pub fn imm_child_iter<'a>(flow: &'a Flow) -> FlowListIterator<'a> {
 }
 
 #[inline(always)]
+#[allow(unsafe_blocks)]
 pub fn mut_base<'a, T: ?Sized + Flow>(this: &'a mut T) -> &'a mut BaseFlow {
     unsafe {
         let obj = mem::transmute::<&&'a mut T, &'a raw::TraitObject>(&this);

@@ -4,6 +4,8 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
+#![allow(unsafe_blocks)]
+
 use css::node_style::StyledNode;
 use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
 use construct::FlowConstructor;

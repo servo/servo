@@ -6,6 +6,8 @@
 //!
 //! Eventually, with dynamically sized types in Rust, much of this code will be superfluous.
 
+#![allow(unsafe_blocks)]
+
 use flow::Flow;
 use flow;
 
