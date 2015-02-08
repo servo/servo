@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/// Reference-counted pointers to flows.
-///
-/// Eventually, with dynamically sized types in Rust, much of this code will be superfluous.
+//! Reference-counted pointers to flows.
+//!
+//! Eventually, with dynamically sized types in Rust, much of this code will be superfluous.
+
+#![allow(unsafe_blocks)]
 
 use flow::Flow;
 use flow;
