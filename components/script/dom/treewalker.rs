@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 // to move to the NodeFilter binding file (#3149).
 // For now, it is defined in this file.
 // use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, OptionalRootable, Temporary, MutHeap};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -84,10 +84,8 @@ impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
         Temporary::new(self.current_node.get())
     }
 
-    fn SetCurrentNode(self, node: JSRef<Node>) -> ErrorResult {
-        // XXX Future: check_same_origin(root_node, node) (throws)
+    fn SetCurrentNode(self, node: JSRef<Node>) {
         self.current_node.set(JS::from_rooted(node));
-        Ok(())
     }
 
     fn ParentNode(self) -> Fallible<Option<Temporary<Node>>> {

@@ -14,7 +14,7 @@ interface TreeWalker {
   readonly attribute unsigned long whatToShow;
   [Constant]
   readonly attribute NodeFilter? filter;
-  [Pure, SetterThrows]
+  [Pure]
            attribute Node currentNode;
 
   [Throws]
