@@ -160,16 +160,16 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
                 None => break,
                 Some(node) => {
                     // "1. Filter node and let result be the return value."
-                    match self.accept_node(node) {
-                        Err(e) => return Err(e),
+                    let result = try!(self.accept_node(node));
+                    match result {
                         // "2. If result is FILTER_ACCEPT, then set the currentNode
                         //     attribute to node and return node."
-                        Ok(NodeFilterConstants::FILTER_ACCEPT) => {
+                        NodeFilterConstants::FILTER_ACCEPT => {
                             self.current_node.set(JS::from_rooted(node));
                             return Ok(Some(Temporary::from_rooted(node)))
                         },
                         // "3. If result is FILTER_SKIP, run these subsubsteps:"
-                        Ok(NodeFilterConstants::FILTER_SKIP) => {
+                        NodeFilterConstants::FILTER_SKIP => {
                             // "1. Let child be node's first child if type is first,
                             //     and node's last child if type is last."
                             match next_child(node) {
@@ -247,12 +247,11 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
                 // "1. Set node to sibling."
                 node = sibling_op.unwrap().root().get_unsound_ref_forever();
                 // "2. Filter node and let result be the return value."
-                let result = self.accept_node(node);
+                let result = try!(self.accept_node(node));
                 // "3. If result is FILTER_ACCEPT, then set the currentNode
                 //     attribute to node and return node."
                 match result {
-                    Err(e) => return Err(e),
-                    Ok(NodeFilterConstants::FILTER_ACCEPT) => {
+                    NodeFilterConstants::FILTER_ACCEPT => {
                         self.current_node.set(JS::from_rooted(node));
                         return Ok(Some(Temporary::from_rooted(node)))
                     },
@@ -265,7 +264,7 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
                 //     then set sibling to node's next sibling if type is next,
                 //     and node's previous sibling if type is previous."
                 match (result, &sibling_op) {
-                    (Ok(NodeFilterConstants::FILTER_REJECT), _)
+                    (NodeFilterConstants::FILTER_REJECT, _)
                     | (_, &None) => sibling_op = next_sibling(node),
                     _ => {}
                 }
@@ -278,9 +277,8 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
                 // "5. Filter node and if the return value is FILTER_ACCEPT, then return null."
                 Some(n) => {
                     node = n;
-                    match self.accept_node(node) {
-                        Err(e) => return Err(e),
-                        Ok(NodeFilterConstants::FILTER_ACCEPT) => return Ok(None),
+                    match try!(self.accept_node(node)) {
+                        NodeFilterConstants::FILTER_ACCEPT => return Ok(None),
                         _ => {}
                     }
                 }
@@ -369,9 +367,8 @@ impl<'a> TreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
                     node = n.root().get_unsound_ref_forever();
                     // "2. If node is not null and filtering node returns FILTER_ACCEPT,
                     //     then set the currentNode attribute to node, return node."
-                    match self.accept_node(node) {
-                        Err(e) => return Err(e),
-                        Ok(NodeFilterConstants::FILTER_ACCEPT) => {
+                    match try!(self.accept_node(node)) {
+                        NodeFilterConstants::FILTER_ACCEPT => {
                             self.current_node.set(JS::from_rooted(node));
                             return Ok(Some(Temporary::from_rooted(node)))
                         },
@@ -432,12 +429,12 @@ impl<'a> TreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
                 // "4. If result is FILTER_ACCEPT, then
                 //     set the currentNode attribute to node and return node."
                 loop {
-                    match self.accept_node(node) {
-                        Err(e) => return Err(e),
-                        Ok(NodeFilterConstants::FILTER_REJECT) => break,
+                    let result = try!(self.accept_node(node));
+                    match result {
+                        NodeFilterConstants::FILTER_REJECT => break,
                         _ if node.first_child().is_some() =>
                             node = node.last_child().unwrap().root().get_unsound_ref_forever(),
-                        Ok(NodeFilterConstants::FILTER_ACCEPT) => {
+                        NodeFilterConstants::FILTER_ACCEPT => {
                             self.current_node.set(JS::from_rooted(node));
                             return Ok(Some(Temporary::from_rooted(node)))
                         },
@@ -461,9 +458,8 @@ impl<'a> TreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
             }
             // "5. Filter node and if the return value is FILTER_ACCEPT, then
             //     set the currentNode attribute to node and return node."
-            match self.accept_node(node) {
-                Err(e) => return Err(e),
-                Ok(NodeFilterConstants::FILTER_ACCEPT) => {
+            match try!(self.accept_node(node)) {
+                NodeFilterConstants::FILTER_ACCEPT => {
                     self.current_node.set(JS::from_rooted(node));
                     return Ok(Some(Temporary::from_rooted(node)))
                 },
@@ -479,13 +475,13 @@ impl<'a> TreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
         // "1. Let node be the value of the currentNode attribute."
         let mut node = self.current_node.get().root().get_unsound_ref_forever();
         // "2. Let result be FILTER_ACCEPT."
-        let mut result = Ok(NodeFilterConstants::FILTER_ACCEPT);
+        let mut result = NodeFilterConstants::FILTER_ACCEPT;
         // "3. Run these substeps:"
         loop {
             // "1. While result is not FILTER_REJECT and node has a child, run these subsubsteps:"
             loop {
                 match result {
-                    Ok(NodeFilterConstants::FILTER_REJECT) => break,
+                    NodeFilterConstants::FILTER_REJECT => break,
                     _ => {}
                 }
                 match node.first_child() {
@@ -494,12 +490,11 @@ impl<'a> TreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
                         // "1. Set node to its first child."
                         node = child.root().get_unsound_ref_forever();
                         // "2. Filter node and set result to the return value."
-                        result = self.accept_node(node);
+                        result = try!(self.accept_node(node));
                         // "3. If result is FILTER_ACCEPT, then
                         //     set the currentNode attribute to node and return node."
                         match result {
-                            Err(e) => return Err(e),
-                            Ok(NodeFilterConstants::FILTER_ACCEPT) => {
+                            NodeFilterConstants::FILTER_ACCEPT => {
                                 self.current_node.set(JS::from_rooted(node));
                                 return Ok(Some(Temporary::from_rooted(node)))
                             },
@@ -516,12 +511,11 @@ impl<'a> TreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
                 Some(n) => {
                     node = n.root().get_unsound_ref_forever();
                     // "3. Filter node and set result to the return value."
-                    result = self.accept_node(node);
+                    result = try!(self.accept_node(node));
                     // "4. If result is FILTER_ACCEPT, then
                     //     set the currentNode attribute to node and return node."
                     match result {
-                        Err(e) => return Err(e),
-                        Ok(NodeFilterConstants::FILTER_ACCEPT) => {
+                        NodeFilterConstants::FILTER_ACCEPT => {
                             self.current_node.set(JS::from_rooted(node));
                             return Ok(Some(Temporary::from_rooted(node)))
                         },
