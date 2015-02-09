@@ -23,6 +23,7 @@ pub trait StyledNode {
 
 impl<'ln> StyledNode for ThreadSafeLayoutNode<'ln> {
     #[inline]
+    #[allow(unsafe_blocks)]
     fn style<'a>(&'a self) -> &'a Arc<ComputedValues> {
         unsafe {
             let layout_data_ref = self.borrow_layout_data();

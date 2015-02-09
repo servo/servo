@@ -95,6 +95,7 @@ impl Drop for Scope {
 /// Generate a unique ID. This is used for items such as Fragment
 /// which are often reallocated but represent essentially the
 /// same data.
+#[allow(unsafe_blocks)]
 pub fn generate_unique_debug_id() -> u16 {
     unsafe { DEBUG_ID_COUNTER.fetch_add(1, Ordering::SeqCst) as u16 }
 }
