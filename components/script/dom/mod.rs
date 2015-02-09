@@ -156,6 +156,20 @@
 //! }
 //! ```
 //!
+//! Adding a new DOM interface
+//! ==========================
+//!
+//! Adding a new interface `Foo` requires at least the following:
+//!
+//! * adding the new IDL file at `components/script/dom/webidls/Foo.webidl`;
+//! * creating `components/script/dom/foo.rs`;
+//! * listing `foo.rs` in components/script/dom/mod.rs`;
+//! * defining the DOM struct `Foo` with a `#[dom_struct]` attribute, a
+//!   superclass or `Reflector` member, and other members as appropriate;
+//! * implementing the
+//!   `dom::bindings::codegen::Bindings::FooBindings::FooMethods` trait for
+//!   `JSRef<Foo>`.
+//!
 //! Accessing DOM objects from layout
 //! =================================
 //!
