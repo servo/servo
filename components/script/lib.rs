@@ -5,8 +5,6 @@
 #![feature(unsafe_destructor, plugin, box_syntax, int_uint)]
 
 #![deny(unsafe_blocks)]
-#![deny(unused_imports)]
-#![deny(unused_variables)]
 #![allow(non_snake_case)]
 #![allow(missing_copy_implementations)]
 #![allow(unstable)]

@@ -6,8 +6,6 @@
 #![feature(unboxed_closures)]
 #![feature(box_syntax)]
 
-#![deny(unused_imports)]
-#![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
 #![allow(unstable)]
 
