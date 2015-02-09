@@ -6,9 +6,6 @@
 #![feature(box_syntax)]
 #![feature(int_uint)]
 
-#![deny(unused_imports)]
-#![deny(unused_variables)]
-
 #[macro_use]
 extern crate log;
 
