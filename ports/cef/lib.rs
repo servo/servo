@@ -5,7 +5,6 @@
 #![feature(thread_local, link_args, plugin, box_syntax, int_uint)]
 
 #![allow(experimental, non_camel_case_types, unstable)]
-#![deny(unused_imports, unused_variables, unused_mut)]
 
 #[macro_use]
 extern crate log;
