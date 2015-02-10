@@ -17,7 +17,7 @@ extern crate png;
 #[macro_use]
 extern crate log;
 extern crate openssl;
-extern crate serialize;
+extern crate "rustc-serialize" as rustc_serialize;
 extern crate util;
 extern crate stb_image;
 extern crate time;
