@@ -23,9 +23,9 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use page::{IterablePage, Page};
 
-use servo_msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan};
-use servo_msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
-use servo_msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan};
+use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
+use msg::constellation_msg::Msg as ConstellationMsg;
 use util::str::DOMString;
 use string_cache::Atom;
 

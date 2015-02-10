@@ -20,11 +20,11 @@ use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsCo
 use layers::platform::surface::NativeSurface;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
-use servo_msg::compositor_msg::{Epoch, PaintState, LayerId};
-use servo_msg::compositor_msg::{LayerMetadata, PaintListener, ScrollPolicy};
-use servo_msg::constellation_msg::Msg as ConstellationMsg;
-use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
-use servo_msg::constellation_msg::PipelineExitType;
+use msg::compositor_msg::{Epoch, PaintState, LayerId};
+use msg::compositor_msg::{LayerMetadata, PaintListener, ScrollPolicy};
+use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
+use msg::constellation_msg::PipelineExitType;
 use skia::SkiaGrGLNativeContextRef;
 use util::geometry::{Au, ZERO_POINT};
 use util::opts;

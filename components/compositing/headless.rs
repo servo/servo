@@ -7,8 +7,8 @@ use windowing::WindowEvent;
 
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
-use servo_msg::constellation_msg::Msg as ConstellationMsg;
-use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
+use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use util::memory::MemoryProfilerChan;
 use util::memory;
 use util::time::TimeProfilerChan;

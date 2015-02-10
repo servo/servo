@@ -30,7 +30,7 @@ use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 use geom::num::Zero;
 use libc::uintptr_t;
 use paint_task::PaintLayer;
-use servo_msg::compositor_msg::LayerId;
+use msg::compositor_msg::LayerId;
 use servo_net::image::base::Image;
 use util::cursor::Cursor;
 use util::dlist as servo_dlist;

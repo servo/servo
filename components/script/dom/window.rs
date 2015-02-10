@@ -33,8 +33,8 @@ use script_task::ScriptMsg;
 use script_traits::ScriptControlChan;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
-use servo_msg::compositor_msg::ScriptListener;
-use servo_msg::constellation_msg::LoadData;
+use msg::compositor_msg::ScriptListener;
+use msg::constellation_msg::LoadData;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::storage_task::StorageTask;
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};

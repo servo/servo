@@ -24,7 +24,7 @@ extern crate core;
 extern crate devtools_traits;
 extern crate "serialize" as rustc_serialize;
 extern crate serialize;
-extern crate "msg" as servo_msg;
+extern crate msg;
 extern crate time;
 extern crate util;
 
@@ -37,7 +37,7 @@ use protocol::JsonPacketStream;
 
 use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg};
 use devtools_traits::{DevtoolsPageInfo, SendConsoleMessage, ConsoleMessage};
-use servo_msg::constellation_msg::PipelineId;
+use msg::constellation_msg::PipelineId;
 use util::task::spawn_named;
 
 use std::borrow::ToOwned;
