@@ -18,8 +18,8 @@ use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use script_traits::{ScriptControlChan, ConstellationControlMsg};
-use servo_msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
-use servo_msg::constellation_msg::PipelineId;
+use msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
+use msg::constellation_msg::PipelineId;
 use std::num::Float;
 use std::rc::Rc;
 

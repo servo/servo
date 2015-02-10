@@ -11,7 +11,7 @@ use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketStream;
 
 use collections::BTreeMap;
-use servo_msg::constellation_msg::PipelineId;
+use msg::constellation_msg::PipelineId;
 use serialize::json::{self, Json, ToJson};
 use std::cell::RefCell;
 use std::io::TcpStream;

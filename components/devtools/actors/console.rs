@@ -11,7 +11,7 @@ use protocol::JsonPacketStream;
 
 use devtools_traits::{EvaluateJS, NullValue, VoidValue, NumberValue, StringValue, BooleanValue};
 use devtools_traits::{ActorValue, DevtoolScriptControlMsg};
-use servo_msg::constellation_msg::PipelineId;
+use msg::constellation_msg::PipelineId;
 
 use collections::BTreeMap;
 use core::cell::RefCell;

@@ -13,7 +13,7 @@ extern crate log;
 extern crate compositing;
 extern crate devtools;
 extern crate "net" as servo_net;
-extern crate "msg" as servo_msg;
+extern crate msg;
 #[macro_use]
 extern crate util;
 extern crate script;
@@ -28,9 +28,9 @@ use compositing::windowing::{WindowEvent, WindowMethods};
 #[cfg(not(test))]
 use compositing::{CompositorProxy, CompositorTask, Constellation};
 #[cfg(not(test))]
-use servo_msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::Msg as ConstellationMsg;
 #[cfg(not(test))]
-use servo_msg::constellation_msg::ConstellationChan;
+use msg::constellation_msg::ConstellationChan;
 #[cfg(not(test))]
 use script::dom::bindings::codegen::RegisterBindings;
 

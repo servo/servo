@@ -12,7 +12,7 @@ use compositing::windowing::{WindowEvent, MouseWindowEvent};
 use geom::point::TypedPoint2D;
 use geom::size::TypedSize2D;
 use libc::{c_double, c_int};
-use servo_msg::constellation_msg::{self, KeyModifiers, KeyState};
+use msg::constellation_msg::{self, KeyModifiers, KeyState};
 use std::cell::RefCell;
 
 pub struct ServoCefBrowserHost {
