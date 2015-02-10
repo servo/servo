@@ -4,45 +4,50 @@
 
 //! Smart pointers for the JS-managed DOM objects.
 //!
-//! The DOM is made up of Rust types whose lifetime is entirely controlled by the whims of
-//! the SpiderMonkey garbage collector. The types in this module are designed to ensure
-//! that any interactions with said Rust types only occur on values that will remain alive
-//! the entire time.
+//! The DOM is made up of DOM objects whose lifetime is entirely controlled by
+//! the whims of the SpiderMonkey garbage collector. The types in this module
+//! are designed to ensure that any interactions with said Rust types only
+//! occur on values that will remain alive the entire time.
 //!
 //! Here is a brief overview of the important types:
 //!
-//! - `JSRef<T>`: a freely-copyable reference to a rooted value.
-//! - `Root<T>`: a stack-based reference to a rooted value.
-//! - `JS<T>`: a pointer to JS-owned memory that can automatically be traced by the GC when
-//!          encountered as a field of a Rust structure.
-//! - `Temporary<T>`: a value that will remain rooted for the duration of its lifetime.
+//! - `JSRef<T>`: a freely-copyable reference to a rooted DOM object.
+//! - `Root<T>`: a stack-based reference to a rooted DOM object.
+//! - `JS<T>`: a reference to a DOM object that can automatically be traced by
+//!   the GC when encountered as a field of a Rust structure.
+//! - `Temporary<T>`: a reference to a DOM object that will remain rooted for
+//!   the duration of its lifetime.
 //!
 //! The rule of thumb is as follows:
 //!
-//! - All methods return `Temporary<T>`, to ensure the value remains alive until it is stored
-//!   somewhere that is reachable by the GC.
-//! - All functions take `JSRef<T>` arguments, to ensure that they will remain uncollected for
-//!   the duration of their usage.
-//! - All types contain `JS<T>` fields and derive the `Encodable` trait, to ensure that they are
-//!   transitively marked as reachable by the GC if the enclosing value is reachable.
-//! - All methods for type `T` are implemented for `JSRef<T>`, to ensure that the self value
-//!   will not be collected for the duration of the method call.
+//! - All methods return `Temporary<T>`, to ensure the value remains alive
+//!   until it is stored somewhere that is reachable by the GC.
+//! - All functions take `JSRef<T>` arguments, to ensure that they will remain
+//!   uncollected for the duration of their usage.
+//! - All DOM structs contain `JS<T>` fields and derive the `JSTraceable`
+//!   trait, to ensure that they are transitively marked as reachable by the GC
+//!   if the enclosing value is reachable.
+//! - All methods for type `T` are implemented for `JSRef<T>`, to ensure that
+//!   the self value will not be collected for the duration of the method call.
 //!
-//! Both `Temporary<T>` and `JS<T>` do not allow access to their inner value without explicitly
-//! creating a stack-based root via the `root` method. This returns a `Root<T>`, which causes
-//! the JS-owned value to be uncollectable for the duration of the `Root` object's lifetime.
-//! A `JSRef<T>` can be obtained from a `Root<T>` by calling the `r` method. (Dereferencing the
-//! object is still supported, but as it is unsafe, this is deprecated.) These `JSRef<T>` values
-//! are not allowed to outlive their originating `Root<T>`, to ensure that all interactions with
-//! the enclosed value only occur when said value is uncollectable, and will cause static lifetime
-//! errors if misused.
+//! Both `Temporary<T>` and `JS<T>` do not allow access to their inner value
+//! without explicitly creating a stack-based root via the `root` method. This
+//! returns a `Root<T>`, which causes the JS-owned value to be uncollectable
+//! for the duration of the `Root` object's lifetime. A `JSRef<T>` can be
+//! obtained from a `Root<T>` by calling the `r` method. These `JSRef<T>`
+//! values are not allowed to outlive their originating `Root<T>`, to ensure
+//! that all interactions with the enclosed value only occur when said value is
+//! uncollectable, and will cause static lifetime errors if misused.
 //!
 //! Other miscellaneous helper traits:
 //!
-//! - `OptionalRootable` and `OptionalRootedRootable`: make rooting `Option` values easy via a `root` method
+//! - `OptionalRootable` and `OptionalRootedRootable`: make rooting `Option`
+//!   values easy via a `root` method
 //! - `ResultRootable`: make rooting successful `Result` values easy
-//! - `TemporaryPushable`: allows mutating vectors of `JS<T>` with new elements of `JSRef`/`Temporary`
-//! - `RootedReference`: makes obtaining an `Option<JSRef<T>>` from an `Option<Root<T>>` easy
+//! - `TemporaryPushable`: allows mutating vectors of `JS<T>` with new elements
+//!   of `JSRef`/`Temporary`
+//! - `RootedReference`: makes obtaining an `Option<JSRef<T>>` from an
+//!   `Option<Root<T>>` easy
 
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, Reflectable};
@@ -62,6 +67,8 @@ use std::mem;
 use std::ops::Deref;
 
 /// An unrooted, JS-owned value. Must not be held across a GC.
+///
+/// This is used in particular to wrap pointers extracted from a reflector.
 #[must_root]
 pub struct Unrooted<T> {
     ptr: NonZero<*const T>
@@ -101,10 +108,11 @@ impl<T: Reflectable> Unrooted<T> {
 
 impl<T> Copy for Unrooted<T> {}
 
-/// A type that represents a JS-owned value that is rooted for the lifetime of this value.
-/// Importantly, it requires explicit rooting in order to interact with the inner value.
-/// Can be assigned into JS-owned member fields (i.e. `JS<T>` types) safely via the
-/// `JS<T>::assign` method or `OptionalSettable::assign` (for `Option<JS<T>>` fields).
+/// A type that represents a JS-owned value that is rooted for the lifetime of
+/// this value. Importantly, it requires explicit rooting in order to interact
+/// with the inner value. Can be assigned into JS-owned member fields (i.e.
+/// `JS<T>` types) safely via the `JS<T>::assign` method or
+/// `OptionalSettable::assign` (for `Option<JS<T>>` fields).
 #[allow(unrooted_must_root)]
 pub struct Temporary<T> {
     inner: JS<T>,
@@ -172,7 +180,8 @@ impl<T: Reflectable> Temporary<T> {
     }
 }
 
-/// A rooted, JS-owned value. Must only be used as a field in other JS-owned types.
+/// A traced reference to a DOM object. Must only be used as a field in other
+/// DOM objects.
 #[must_root]
 pub struct JS<T> {
     ptr: NonZero<*const T>
@@ -187,8 +196,8 @@ impl<T> JS<T> {
     }
 }
 
-/// This is specialized `JS<T>` to use in under `layout` crate.
-/// `Layout*Helpers` traits must be implemented on this.
+/// An unrooted reference to a DOM object for use in layout. `Layout*Helpers`
+/// traits must be implemented on this.
 pub struct LayoutJS<T> {
     ptr: NonZero<*const T>
 }
@@ -237,8 +246,10 @@ impl <T> Clone for LayoutJS<T> {
 }
 
 impl LayoutJS<Node> {
-    /// Create a new JS-owned value wrapped from an address known to be a `Node` pointer.
-    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> LayoutJS<Node> {
+    /// Create a new JS-owned value wrapped from an address known to be a
+    /// `Node` pointer.
+    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress)
+                                            -> LayoutJS<Node> {
         let TrustedNodeAddress(addr) = inner;
         LayoutJS {
             ptr: NonZero::new(addr as *const Node)
@@ -290,7 +301,9 @@ impl HeapGCValue for JSVal {
 impl<T: Reflectable> HeapGCValue for JS<T> {
 }
 
-/// A mutable holder for a GC-owned SpiderMonkey value stored on the heap.
+/// A holder that provides interior mutability for GC-managed values such as
+/// `JSVal` and `JS<T>`.
+///
 /// Must be used in place of traditional interior mutability to ensure proper
 /// GC barriers are enforced.
 #[must_root]
@@ -404,18 +417,19 @@ impl<T: Reflectable> JS<T> {
         *self.ptr
     }
 
-    /// Store an unrooted value in this field. This is safe under the assumption that JS<T>
-    /// values are only used as fields in DOM types that are reachable in the GC graph,
-    /// so this unrooted value becomes transitively rooted for the lifetime of its new owner.
+    /// Store an unrooted value in this field. This is safe under the
+    /// assumption that JS<T> values are only used as fields in DOM types that
+    /// are reachable in the GC graph, so this unrooted value becomes
+    /// transitively rooted for the lifetime of its new owner.
     pub fn assign(&mut self, val: Temporary<T>) {
         *self = unsafe { val.inner() };
     }
 }
 
 impl<T: Reflectable> LayoutJS<T> {
-    /// Returns an unsafe pointer to the interior of this JS object without touching the borrow
-    /// flags. This is the only method that be safely accessed from layout. (The fact that this
-    /// is unsafe is what necessitates the layout wrappers.)
+    /// Returns an unsafe pointer to the interior of this JS object. This is
+    /// the only method that be safely accessed from layout. (The fact that
+    /// this is unsafe is what necessitates the layout wrappers.)
     pub unsafe fn unsafe_get(&self) -> *const T {
         *self.ptr
     }
@@ -461,9 +475,9 @@ impl<T: Reflectable> OptionalRootedReference<T> for Option<Option<Root<T>>> {
     }
 }
 
-/// Trait that allows extracting a `JS<T>` value from a variety of rooting-related containers,
-/// which in general is an unsafe operation since they can outlive the rooted lifetime of the
-/// original value.
+/// Trait that allows extracting a `JS<T>` value from a variety of
+/// rooting-related containers, which in general is an unsafe operation since
+/// they can outlive the rooted lifetime of the original value.
 pub trait Assignable<T> {
     /// Extract an unrooted `JS<T>`.
     unsafe fn get_js(&self) -> JS<T>;
@@ -567,9 +581,10 @@ impl<T: Reflectable, U> ResultRootable<T, U> for Result<JS<T>, U> {
     }
 }
 
-/// Provides a facility to push unrooted values onto lists of rooted values. This is safe
-/// under the assumption that said lists are reachable via the GC graph, and therefore the
-/// new values are transitively rooted for the lifetime of their new owner.
+/// Provides a facility to push unrooted values onto lists of rooted values.
+/// This is safe under the assumption that said lists are reachable via the GC
+/// graph, and therefore the new values are transitively rooted for the
+/// lifetime of their new owner.
 pub trait TemporaryPushable<T> {
     /// Push a new value onto this container.
     fn push_unrooted(&mut self, val: &T);
@@ -587,7 +602,11 @@ impl<T: Assignable<U>, U: Reflectable> TemporaryPushable<T> for Vec<JS<U>> {
     }
 }
 
-/// An opaque, LIFO rooting mechanism.
+/// An opaque, LIFO rooting mechanism. This tracks roots and ensures that they
+/// are destructed in a LIFO order.
+///
+/// See also [*Exact Stack Rooting - Storing a GCPointer on the CStack*]
+/// (https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Internals/GC/Exact_Stack_Rooting).
 pub struct RootCollection {
     roots: UnsafeCell<SmallVec16<*mut JSObject>>,
 }
@@ -614,7 +633,8 @@ impl RootCollection {
         }
     }
 
-    /// Stop tracking a stack-based root, asserting if LIFO root ordering has been violated
+    /// Stop tracking a stack-based root, asserting if LIFO root ordering has
+    /// been violated
     fn unroot<'b, T: Reflectable>(&self, rooted: &Root<T>) {
         unsafe {
             let roots = self.roots.get();
@@ -627,11 +647,13 @@ impl RootCollection {
     }
 }
 
-/// A rooted JS value. The JS value is pinned for the duration of this object's lifetime;
-/// roots are additive, so this object's destruction will not invalidate other roots
-/// for the same JS value. `Root`s cannot outlive the associated `RootCollection` object.
-/// Attempts to transfer ownership of a `Root` via moving will trigger dynamic unrooting
-/// failures due to incorrect ordering.
+/// A rooted reference to a DOM object.
+///
+/// The JS value is pinned for the duration of this object's lifetime; roots
+/// are additive, so this object's destruction will not invalidate other roots
+/// for the same JS value. `Root`s cannot outlive the associated
+/// `RootCollection` object. Attempts to transfer ownership of a `Root` via
+/// moving will trigger dynamic unrooting failures due to incorrect ordering.
 pub struct Root<T> {
     /// List that ensures correct dynamic root ordering
     root_list: &'static RootCollection,
@@ -643,8 +665,8 @@ pub struct Root<T> {
 
 impl<T: Reflectable> Root<T> {
     /// Create a new stack-bounded root for the provided JS-owned value.
-    /// It cannot not outlive its associated `RootCollection`, and it contains a `JSRef`
-    /// which cannot outlive this new `Root`.
+    /// It cannot not outlive its associated `RootCollection`, and it contains
+    /// a `JSRef` which cannot outlive this new `Root`.
     fn new(roots: &'static RootCollection, unrooted: NonZero<*const T>)
            -> Root<T> {
         let root = Root {
@@ -656,8 +678,8 @@ impl<T: Reflectable> Root<T> {
         root
     }
 
-    /// Obtain a safe reference to the wrapped JS owned-value that cannot outlive
-    /// the lifetime of this root.
+    /// Obtain a safe reference to the wrapped JS owned-value that cannot
+    /// outlive the lifetime of this root.
     pub fn r<'b>(&'b self) -> JSRef<'b, T> {
         JSRef {
             ptr: self.ptr,
@@ -693,7 +715,8 @@ impl<'a, T: Reflectable> Deref for JSRef<'a, T> {
     }
 }
 
-/// Encapsulates a reference to something that is guaranteed to be alive. This is freely copyable.
+/// A reference to a DOM object that is guaranteed to be alive. This is freely
+/// copyable.
 pub struct JSRef<'a, T> {
     ptr: NonZero<*const T>,
     chain: ContravariantLifetime<'a>,
