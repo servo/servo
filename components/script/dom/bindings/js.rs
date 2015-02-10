@@ -301,7 +301,9 @@ impl HeapGCValue for JSVal {
 impl<T: Reflectable> HeapGCValue for JS<T> {
 }
 
-/// A mutable holder for a GC-owned SpiderMonkey value stored on the heap.
+/// A holder that provides interior mutability for GC-managed values such as
+/// `JSVal` and `JS<T>`.
+///
 /// Must be used in place of traditional interior mutability to ensure proper
 /// GC barriers are enforced.
 #[must_root]
@@ -600,7 +602,11 @@ impl<T: Assignable<U>, U: Reflectable> TemporaryPushable<T> for Vec<JS<U>> {
     }
 }
 
-/// An opaque, LIFO rooting mechanism.
+/// An opaque, LIFO rooting mechanism. This tracks roots and ensures that they
+/// are destructed in a LIFO order.
+///
+/// See also [*Exact Stack Rooting - Storing a GCPointer on the CStack*]
+/// (https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Internals/GC/Exact_Stack_Rooting).
 pub struct RootCollection {
     roots: UnsafeCell<SmallVec16<*mut JSObject>>,
 }
