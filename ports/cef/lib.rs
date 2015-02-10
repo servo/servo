@@ -24,7 +24,7 @@ extern crate layers;
 extern crate png;
 extern crate script;
 
-extern crate "net" as servo_net;
+extern crate net;
 extern crate msg;
 extern crate util;
 extern crate style;

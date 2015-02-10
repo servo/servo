@@ -22,7 +22,7 @@ extern crate "serialize" as rustc_serialize;
 extern crate unicode;
 #[no_link] #[plugin]
 extern crate "plugins" as servo_plugins;
-extern crate "net" as servo_net;
+extern crate net;
 #[macro_use]
 extern crate util;
 extern crate msg;

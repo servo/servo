@@ -31,7 +31,7 @@ use geom::num::Zero;
 use libc::uintptr_t;
 use paint_task::PaintLayer;
 use msg::compositor_msg::LayerId;
-use servo_net::image::base::Image;
+use net::image::base::Image;
 use util::cursor::Cursor;
 use util::dlist as servo_dlist;
 use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};

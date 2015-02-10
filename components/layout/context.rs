@@ -15,7 +15,7 @@ use gfx::font_cache_task::FontCacheTask;
 use script::layout_interface::LayoutChan;
 use script_traits::UntrustedNodeAddress;
 use msg::constellation_msg::ConstellationChan;
-use servo_net::local_image_cache::LocalImageCache;
+use net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
 use std::cell::Cell;
 use std::mem;
