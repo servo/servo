@@ -11,7 +11,7 @@ use eutil::Downcast;
 use interfaces::CefBrowser;
 use render_handler::CefRenderHandlerExtensions;
 use types::{cef_cursor_handle_t, cef_rect_t};
-use wrappers::Utf16Encoder;
+use unicode::str::Utf16Encoder;
 
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
