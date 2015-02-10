@@ -17,7 +17,7 @@ use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use servo_net::image_cache_task;
+use net::image_cache_task;
 use util::geometry::to_px;
 use util::str::DOMString;
 use string_cache::Atom;

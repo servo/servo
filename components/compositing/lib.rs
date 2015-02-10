@@ -20,7 +20,7 @@ extern crate layout_traits;
 extern crate png;
 extern crate script_traits;
 extern crate msg;
-extern crate "net" as servo_net;
+extern crate net;
 #[macro_use]
 extern crate util;
 extern crate gleam;

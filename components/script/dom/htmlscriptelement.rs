@@ -29,7 +29,7 @@ use script_task::{ScriptMsg, Runnable};
 
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
-use servo_net::resource_task::load_whole_resource;
+use net::resource_task::load_whole_resource;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use std::borrow::ToOwned;
 use std::cell::Cell;
