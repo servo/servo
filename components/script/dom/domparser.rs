@@ -58,7 +58,7 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                                              Some(content_type),
                                              None,
                                              DocumentSource::FromParser).root();
-                parse_html(document.r(), HTMLInput::InputString(s), &url);
+                parse_html(document.r(), HTMLInput::InputString(s), &url, None);
                 document.r().set_ready_state(DocumentReadyState::Complete);
                 Ok(Temporary::from_rooted(document.r()))
             }

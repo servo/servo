@@ -10,11 +10,13 @@ use dom::attr::AttrValue;
 use dom::namednodemap::NamedNodeMap;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
@@ -22,6 +24,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCel
 use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTextAreaElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NamespaceError, InvalidCharacter, Syntax};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
@@ -32,6 +35,7 @@ use dom::create::create_element;
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
 use dom::document::{Document, DocumentHelpers, LayoutDocumentHelpers};
+use dom::document::{DocumentSource, IsHTMLDocument};
 use dom::domtokenlist::DOMTokenList;
 use dom::event::{Event, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -50,8 +54,10 @@ use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node, NodeHelpers, NodeTyp
 use dom::node::{NodeIterator, document_from_node, NodeDamage};
 use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
+use dom::servohtmlparser::FragmentContext;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use devtools_traits::AttrInfo;
+use parse::html::{HTMLInput, parse_html};
 use style::legacy::{SimpleColorAttribute, UnsignedIntegerAttribute, IntegerAttribute, LengthAttribute};
 use selectors::matching::matches;
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
@@ -1115,6 +1121,58 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn GetInnerHTML(self) -> Fallible<DOMString> {
         //XXX TODO: XML case
         Ok(serialize(&mut NodeIterator::new(NodeCast::from_ref(self), false, false)))
+    }
+
+    fn SetInnerHTML(self, value: DOMString) -> Fallible<()> {
+        let window = window_from_node(self).root();
+        let context_document = document_from_node(self).root();
+        let context_node: JSRef<Node> = NodeCast::from_ref(self);
+        let url = context_document.r().url();
+
+        // Follows https://html.spec.whatwg.org/multipage/syntax.html#parsing-html-fragments
+
+        // 1. Create a new Document node, and mark it as being an HTML document.
+        let document = Document::new(window.r(), Some(url.clone()),
+                                     IsHTMLDocument::HTMLDocument,
+                                     None, None,
+                                     DocumentSource::FromParser).root();
+
+        // 2. If the node document of the context element is in quirks mode,
+        //    then let the Document be in quirks mode. Otherwise,
+        //    the node document of the context element is in limited-quirks mode,
+        //    then let the Document be in limited-quirks mode. Otherwise,
+        //    leave the Document in no-quirks mode.
+        document.r().set_quirks_mode(context_document.r().quirks_mode());
+
+        // 11. Set the parser's form element pointer to the nearest node to
+        //     the context element that is a form element (going straight up
+        //     the ancestor chain, and including the element itself, if it
+        //     is a form element), if any. (If there is no such form element,
+        //     the form element pointer keeps its initial value, null.)
+        let form = context_node.inclusive_ancestors()
+                               .find(|element| element.is_htmlformelement());
+        let fragment_context = FragmentContext {
+            context_elem: context_node,
+            form_elem: form,
+        };
+        parse_html(document.r(), HTMLInput::InputString(value), &url, Some(fragment_context));
+
+        // "14. Return the child nodes of root, in tree order."
+        // We do this by deleting all nodes of the context node,
+        // and then moving all nodes parsed into the new root_node
+        // into the context node.
+        while let Some(child) = context_node.GetFirstChild() {
+            try!(context_node.RemoveChild(child.root().r()));
+        }
+        let root_element = document.r().GetDocumentElement().expect("no document element").root();
+        let root_node: JSRef<Node> = NodeCast::from_ref(root_element.r());
+        while let Some(child) = root_node.GetFirstChild() {
+            let child = child.root();
+            try!(root_node.RemoveChild(child.r()));
+            try!(context_node.AppendChild(child.r()));
+        }
+
+        Ok(())
     }
 
     fn GetOuterHTML(self) -> Fallible<DOMString> {

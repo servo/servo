@@ -1013,7 +1013,7 @@ impl ScriptTask {
             HTMLInput::InputUrl(response)
         };
 
-        parse_html(document.r(), parse_input, &final_url);
+        parse_html(document.r(), parse_input, &final_url, None);
 
         document.r().set_ready_state(DocumentReadyState::Interactive);
         self.compositor.borrow_mut().set_ready_state(incomplete.pipeline_id, PerformingLayout);
