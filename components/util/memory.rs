@@ -111,16 +111,16 @@ impl MemoryProfiler {
         match nbytes {
             Some(nbytes) => {
                 let mebi = 1024f64 * 1024f64;
-                println!("{:24}: {:12.2}", path, (nbytes as f64) / mebi);
+                println!("{:12.2}: {}", (nbytes as f64) / mebi, path);
             }
             None => {
-                println!("{:24}: {:>12}", path, "???");
+                println!("{:>12}: {}", "???", path);
             }
         }
     }
 
     fn handle_print_msg(&self) {
-        println!("{:24}: {:12}", "_category_", "_size (MiB)_");
+        println!("{:12}: {}", "_size (MiB)_", "_category_");
 
         // Virtual and physical memory usage, as reported by the OS.
         MemoryProfiler::print_measurement("vsize", get_vsize());
