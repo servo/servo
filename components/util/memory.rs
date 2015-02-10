@@ -112,39 +112,85 @@ impl MemoryProfiler {
         match nbytes {
             Some(nbytes) => {
                 let mebi = 1024f64 * 1024f64;
-                println!("{:16}: {:12.2}", path, (nbytes as f64) / mebi);
+                println!("{:24}: {:12.2}", path, (nbytes as f64) / mebi);
             }
             None => {
-                println!("{:16}: {:>12}", path, "???");
+                println!("{:24}: {:>12}", path, "???");
             }
         }
     }
 
     fn handle_print_msg(&self) {
-        println!("{:16}: {:12}", "_category_", "_size (MiB)_");
+        println!("{:24}: {:12}", "_category_", "_size (MiB)_");
 
         // Virtual and physical memory usage, as reported by the OS.
-        MemoryProfiler::print_measurement("vsize",          get_vsize());
-        MemoryProfiler::print_measurement("resident",       get_resident());
+        MemoryProfiler::print_measurement("vsize", get_vsize());
+        MemoryProfiler::print_measurement("resident", get_resident());
 
-        // The descriptions of the jemalloc measurements are taken directly
-        // from the jemalloc documentation.
+        // Total number of bytes allocated by the application on the system
+        // heap.
+        MemoryProfiler::print_measurement("system-heap-allocated",
+                                          get_system_heap_allocated());
 
-        // Total number of bytes allocated by the application.
-        MemoryProfiler::print_measurement("heap-allocated", get_jemalloc_stat("stats.allocated"));
+        // The descriptions of the following jemalloc measurements are taken
+        // directly from the jemalloc documentation.
 
-        // Total number of bytes in active pages allocated by the application.
+        // "Total number of bytes allocated by the application."
+        MemoryProfiler::print_measurement("jemalloc-heap-allocated",
+                                          get_jemalloc_stat("stats.allocated"));
+
+        // "Total number of bytes in active pages allocated by the application.
         // This is a multiple of the page size, and greater than or equal to
-        // |stats.allocated|.
-        MemoryProfiler::print_measurement("heap-active",    get_jemalloc_stat("stats.active"));
+        // |stats.allocated|."
+        MemoryProfiler::print_measurement("jemalloc-heap-active",
+                                          get_jemalloc_stat("stats.active"));
 
-        // Total number of bytes in chunks mapped on behalf of the application.
+        // "Total number of bytes in chunks mapped on behalf of the application.
         // This is a multiple of the chunk size, and is at least as large as
-        // |stats.active|. This does not include inactive chunks.
-        MemoryProfiler::print_measurement("heap-mapped",    get_jemalloc_stat("stats.mapped"));
+        // |stats.active|. This does not include inactive chunks."
+        MemoryProfiler::print_measurement("jemalloc-heap-mapped",
+                                          get_jemalloc_stat("stats.mapped"));
 
         println!("");
     }
+}
+
+#[cfg(target_os="linux")]
+extern {
+    fn mallinfo() -> struct_mallinfo;
+}
+
+#[cfg(target_os="linux")]
+#[repr(C)]
+pub struct struct_mallinfo {
+    arena:    c_int,
+    ordblks:  c_int,
+    smblks:   c_int,
+    hblks:    c_int,
+    hblkhd:   c_int,
+    usmblks:  c_int,
+    fsmblks:  c_int,
+    uordblks: c_int,
+    fordblks: c_int,
+    keepcost: c_int,
+}
+
+#[cfg(target_os="linux")]
+fn get_system_heap_allocated() -> Option<u64> {
+    let mut info: struct_mallinfo;
+    unsafe {
+        info = mallinfo();
+    }
+    // The documentation in the glibc man page makes it sound like |uordblks|
+    // would suffice, but that only gets the small allocations that are put in
+    // the brk heap. We need |hblkhd| as well to get the larger allocations
+    // that are mmapped.
+    Some((info.hblkhd + info.uordblks) as u64)
+}
+
+#[cfg(not(target_os="linux"))]
+fn get_system_heap_allocated() -> Option<u64> {
+    None
 }
 
 extern {
