@@ -26,7 +26,7 @@ use geom::size::Size2D;
 use libc::size_t;
 use libc::types::common::c99::{uint16_t, uint32_t};
 use png::PixelsByColorType;
-use servo_net::image::base::Image;
+use net::image::base::Image;
 use util::geometry::{Au, MAX_RECT};
 use util::opts;
 use util::range::Range;

@@ -9,8 +9,8 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use util::str::DOMString;
-use servo_net::storage_task::StorageTask;
-use servo_net::storage_task::StorageTaskMsg;
+use net::storage_task::StorageTask;
+use net::storage_task::StorageTaskMsg;
 use std::sync::mpsc::channel;
 use url::Url;
 

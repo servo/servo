@@ -38,7 +38,7 @@ use png::PixelsByColorType;
 use msg::compositor_msg::ScrollPolicy;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::ConstellationChan;
-use servo_net::image::holder::ImageHolder;
+use net::image::holder::ImageHolder;
 use servo_util::cursor::Cursor;
 use servo_util::geometry::{self, Au, to_px, to_frac_px};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};

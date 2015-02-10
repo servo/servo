@@ -19,7 +19,7 @@ use dom::window::{base64_atob, base64_btoa};
 use script_task::{ScriptChan, TimerSource};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
-use servo_net::resource_task::{ResourceTask, load_whole_resource};
+use net::resource_task::{ResourceTask, load_whole_resource};
 use util::str::DOMString;
 
 use js::jsapi::JSContext;

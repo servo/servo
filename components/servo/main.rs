@@ -10,7 +10,7 @@ extern crate libc;
 extern crate servo;
 extern crate time;
 extern crate util;
-extern crate "net" as servo_net;
+extern crate net;
 
 #[cfg(not(test))]
 extern crate "glutin_app" as app;
@@ -29,7 +29,7 @@ use libc::c_int;
 use util::opts;
 
 #[cfg(not(test))]
-use servo_net::resource_task;
+use net::resource_task;
 
 #[cfg(not(test))]
 use servo::Browser;

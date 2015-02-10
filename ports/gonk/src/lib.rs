@@ -11,7 +11,7 @@ extern crate log;
 
 extern crate compositing;
 extern crate devtools;
-extern crate "net" as servo_net;
+extern crate net;
 extern crate msg;
 #[macro_use]
 extern crate util;
@@ -34,11 +34,11 @@ use msg::constellation_msg::ConstellationChan;
 use script::dom::bindings::codegen::RegisterBindings;
 
 #[cfg(not(test))]
-use servo_net::image_cache_task::ImageCacheTask;
+use net::image_cache_task::ImageCacheTask;
 #[cfg(not(test))]
-use servo_net::storage_task::StorageTaskFactory;
+use net::storage_task::StorageTaskFactory;
 #[cfg(not(test))]
-use servo_net::resource_task::new_resource_task;
+use net::resource_task::new_resource_task;
 #[cfg(not(test))]
 use gfx::font_cache_task::FontCacheTask;
 #[cfg(not(test))]
