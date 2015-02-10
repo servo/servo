@@ -19,7 +19,7 @@ extern crate layers;
 extern crate layout_traits;
 extern crate png;
 extern crate script_traits;
-extern crate "msg" as servo_msg;
+extern crate msg;
 extern crate "net" as servo_net;
 #[macro_use]
 extern crate util;

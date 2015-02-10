@@ -13,7 +13,7 @@ use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::event::{Event, EventTypeId};
 use dom::uievent::UIEvent;
 use dom::window::Window;
-use servo_msg::constellation_msg;
+use msg::constellation_msg;
 use util::str::DOMString;
 
 use std::borrow::ToOwned;

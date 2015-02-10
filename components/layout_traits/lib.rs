@@ -6,7 +6,7 @@
 
 extern crate gfx;
 extern crate script_traits;
-extern crate "msg" as servo_msg;
+extern crate msg;
 extern crate "net" as servo_net;
 extern crate util;
 
@@ -17,7 +17,7 @@ extern crate util;
 
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::PaintChan;
-use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, PipelineExitType};
+use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, PipelineExitType};
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use util::time::TimeProfilerChan;

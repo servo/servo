@@ -36,7 +36,6 @@ extern crate "net" as servo_net;
 extern crate util;
 #[macro_use]
 extern crate style;
-extern crate "msg" as servo_msg;
 extern crate url;
 extern crate uuid;
 extern crate string_cache;

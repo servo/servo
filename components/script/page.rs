@@ -22,9 +22,9 @@ use script_traits::{UntrustedNodeAddress, ScriptControlChan};
 
 use geom::{Point2D, Rect, Size2D};
 use js::rust::Cx;
-use servo_msg::compositor_msg::ScriptListener;
-use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
-use servo_msg::constellation_msg::{PipelineId, SubpageId};
+use msg::compositor_msg::ScriptListener;
+use msg::constellation_msg::{ConstellationChan, WindowSizeData};
+use msg::constellation_msg::{PipelineId, SubpageId};
 use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
 use util::geometry::{Au, MAX_RECT};

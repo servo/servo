@@ -51,7 +51,7 @@ use wrapper::ThreadSafeLayoutNode;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{ClippingRegion, DisplayList};
 use serialize::{Encoder, Encodable};
-use servo_msg::compositor_msg::LayerId;
+use msg::compositor_msg::LayerId;
 use servo_util::geometry::{Au, MAX_AU};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;

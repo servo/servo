@@ -27,7 +27,7 @@ extern crate style;
 #[no_link] #[plugin]
 extern crate "plugins" as servo_plugins;
 extern crate "net" as servo_net;
-extern crate "msg" as servo_msg;
+extern crate msg;
 #[macro_use]
 extern crate "util" as servo_util;
 

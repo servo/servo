@@ -16,7 +16,7 @@ use dom::window::{ScriptHelpers};
 use dom::element::Element;
 use dom::document::DocumentHelpers;
 use page::Page;
-use servo_msg::constellation_msg::PipelineId;
+use msg::constellation_msg::PipelineId;
 use script_task::get_page;
 
 use std::sync::mpsc::Sender;

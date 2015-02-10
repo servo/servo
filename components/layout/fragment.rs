@@ -29,7 +29,7 @@ use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use script_traits::UntrustedNodeAddress;
 use serialize::{Encodable, Encoder};
-use servo_msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::{PipelineId, SubpageId};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::{self, Au, ZERO_POINT};
