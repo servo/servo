@@ -10,11 +10,11 @@
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 
-#![feature(int_uint, box_syntax)]
+#![feature(int_uint, box_syntax, io, core, rustc_private)]
+#![feature(collections, std_misc)]
 
 #![allow(non_snake_case)]
 #![allow(missing_copy_implementations)]
-#![allow(unstable)]
 
 #[macro_use]
 extern crate log;
@@ -45,8 +45,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
-use std::io::{TcpListener, TcpStream};
-use std::io::{Acceptor, Listener, TimedOut};
+use std::old_io::{TcpListener, TcpStream};
+use std::old_io::{Acceptor, Listener, TimedOut};
 use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
 

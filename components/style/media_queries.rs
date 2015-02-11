@@ -11,12 +11,12 @@ use util::geometry::{Au, ViewportPx};
 use values::{computed, specified};
 
 
-#[derive(Show, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct MediaQueryList {
     media_queries: Vec<MediaQuery>
 }
 
-#[derive(PartialEq, Eq, Copy, Show)]
+#[derive(PartialEq, Eq, Copy, Debug)]
 pub enum Range<T> {
     Min(T),
     Max(T),
@@ -33,18 +33,18 @@ impl<T: Ord> Range<T> {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Show)]
+#[derive(PartialEq, Eq, Copy, Debug)]
 pub enum Expression {
     Width(Range<Au>),
 }
 
-#[derive(PartialEq, Eq, Copy, Show)]
+#[derive(PartialEq, Eq, Copy, Debug)]
 pub enum Qualifier {
     Only,
     Not,
 }
 
-#[derive(Show, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct MediaQuery {
     qualifier: Option<Qualifier>,
     media_type: MediaQueryType,
@@ -62,13 +62,13 @@ impl MediaQuery {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Show)]
+#[derive(PartialEq, Eq, Copy, Debug)]
 pub enum MediaQueryType {
     All,  // Always true
     MediaType(MediaType),
 }
 
-#[derive(PartialEq, Eq, Copy, Show)]
+#[derive(PartialEq, Eq, Copy, Debug)]
 pub enum MediaType {
     Screen,
     Print,
@@ -76,7 +76,7 @@ pub enum MediaType {
 }
 
 #[allow(missing_copy_implementations)]
-#[derive(Show)]
+#[derive(Debug)]
 pub struct Device {
     pub media_type: MediaType,
     pub viewport_size: TypedSize2D<ViewportPx, f32>,

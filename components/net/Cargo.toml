@@ -15,11 +15,7 @@ git = "https://github.com/servo/rust-geom"
 
 [dependencies.hyper]
 git = "https://github.com/servo/hyper"
-branch = "old_servo_new_cookies"
-
-[dependencies.cookie]
-git = "https://github.com/servo/cookie-rs"
-branch = "lenientparse_backport"
+branch = "servo"
 
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
@@ -30,4 +26,6 @@ git = "https://github.com/servo/rust-stb-image"
 [dependencies]
 url = "0.2.16"
 time = "0.1.12"
-openssl="0.2.15"
+openssl="0.3.1"
+rustc-serialize = "0.2"
+cookie="*"

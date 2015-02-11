@@ -10,8 +10,8 @@ use url::Url;
 use hyper::http::RawStatus;
 use util::resource_files::resources_dir_path;
 
-use std::borrow::ToOwned;
-use std::io::fs::PathExtensions;
+use std::borrow::IntoCow;
+use std::old_io::fs::PathExtensions;
 use std::sync::mpsc::Sender;
 
 pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
@@ -26,7 +26,7 @@ pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>
                 content_type: Some(("text".to_string(), "html".to_string())),
                 charset: Some("utf-8".to_string()),
                 headers: None,
-                status: Some(RawStatus(200, "OK".to_owned())),
+                status: Some(RawStatus(200, "OK".into_cow())),
             });
             chan.send(Done(Ok(()))).unwrap();
             return

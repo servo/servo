@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(unsafe_destructor, plugin, box_syntax, int_uint)]
+#![feature(unsafe_destructor, plugin, box_syntax, int_uint, core)]
 
 #![deny(unsafe_blocks)]
 #![allow(non_snake_case)]
@@ -14,6 +14,7 @@
 #[macro_use]
 extern crate log;
 
+#[macro_use] extern crate bitflags;
 extern crate core;
 extern crate devtools_traits;
 extern crate cssparser;
@@ -26,7 +27,7 @@ extern crate js;
 extern crate libc;
 extern crate msg;
 extern crate net;
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate "rustc-serialize" as serialize;
 extern crate time;
 extern crate canvas;
 extern crate script_traits;

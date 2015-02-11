@@ -2,6 +2,7 @@
 /Cargo.lock
 /target
 /components/servo/target
+/ports/gonk/target
 /ports/cef/target
 /ports/android/bin
 /ports/android/libs

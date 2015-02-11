@@ -290,7 +290,7 @@ impl ImageFragmentInfo {
         fn convert_length(node: &ThreadSafeLayoutNode, name: &Atom) -> Option<Au> {
             let element = node.as_element();
             element.get_attr(&ns!(""), name).and_then(|string| {
-                let n: Option<int> = FromStr::from_str(string);
+                let n: Option<int> = FromStr::from_str(string).ok();
                 n
             }).and_then(|pixels| Some(Au::from_px(pixels)))
         }
@@ -589,7 +589,7 @@ impl ScannedTextFragmentInfo {
 
 /// Describes how to split a fragment. This is used during line breaking as part of the return
 /// value of `find_split_info_for_inline_size()`.
-#[derive(Show, Clone)]
+#[derive(Debug, Clone)]
 pub struct SplitInfo {
     // TODO(bjz): this should only need to be a single character index, but both values are
     // currently needed for splitting in the `inline::try_append_*` functions.
@@ -667,7 +667,7 @@ impl TableColumnFragmentInfo {
         let span = {
             let element = node.as_element();
             element.get_attr(&ns!(""), &atom!("span")).and_then(|string| {
-                let n: Option<int> = FromStr::from_str(string);
+                let n: Option<int> = FromStr::from_str(string).ok();
                 n
             }).unwrap_or(0)
         };
@@ -2016,7 +2016,7 @@ impl Fragment {
     }
 }
 
-impl fmt::Show for Fragment {
+impl fmt::Debug for Fragment {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "({} {} ", self.debug_id(), self.specific.get_type()));
         try!(write!(f, "bp {:?}", self.border_padding));
@@ -2059,7 +2059,7 @@ pub trait FragmentBorderBoxIterator {
 
 /// The coordinate system used in `stacking_relative_border_box()`. See the documentation of that
 /// method for details.
-#[derive(Clone, PartialEq, Show)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum CoordinateSystem {
     /// The border box returned is relative to the fragment's parent stacking context.
     Parent,

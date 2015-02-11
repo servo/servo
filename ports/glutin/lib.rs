@@ -7,6 +7,7 @@
 #![feature(box_syntax, int_uint)]
 #![allow(unstable)]
 
+#[macro_use] extern crate bitflags;
 #[cfg(target_os="macos")]
 extern crate cgl;
 extern crate compositing;

@@ -13,6 +13,9 @@ path = "../canvas"
 [dependencies.gfx]
 path = "../gfx"
 
+[dependencies.msg]
+path = "../msg"
+
 [dependencies.script]
 path = "../script"
 
@@ -46,6 +49,10 @@ git = "https://github.com/servo/string-cache"
 [dependencies.string_cache_macros]
 git = "https://github.com/servo/string-cache"
 
+[dependencies.png]
+git = "https://github.com/servo/rust-png"
+
 [dependencies]
 encoding = "0.2"
 url = "0.2.16"
+bitflags = "*"

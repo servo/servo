@@ -13,7 +13,7 @@ use layers::geometry::DevicePixel;
 use getopts;
 use std::collections::HashSet;
 use std::cmp;
-use std::io;
+use std::old_io as io;
 use std::mem;
 use std::os;
 use std::ptr;
@@ -219,11 +219,11 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         return false;
     };
 
-    let mut debug_options = HashSet::new();
     let debug_string = match opt_match.opt_str("Z") {
         Some(string) => string,
         None => String::new()
     };
+    let mut debug_options = HashSet::new();
     for split in debug_string.as_slice().split(',') {
         debug_options.insert(split.clone());
     }

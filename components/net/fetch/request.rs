@@ -6,7 +6,7 @@ use url::Url;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use hyper::header::Headers;
-use hyper::header::common::ContentType;
+use hyper::header::ContentType;
 use fetch::cors_cache::CORSCache;
 use fetch::response::Response;
 

@@ -26,7 +26,7 @@ use style::computed_values::list_style_type;
 use std::sync::Arc;
 
 /// A block with the CSS `display` property equal to `list-item`.
-#[derive(Show)]
+#[derive(Debug)]
 pub struct ListItemFlow {
     /// Data common to all block flows.
     pub block_flow: BlockFlow,

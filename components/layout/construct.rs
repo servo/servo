@@ -182,12 +182,12 @@ impl InlineFragmentsAccumulator {
         }
     }
 
-    fn push_all(&mut self, fragments: DList<Fragment>) {
+    fn push_all(&mut self, mut fragments: DList<Fragment>) {
         if fragments.len() == 0 {
             return
         }
 
-        self.fragments.append(fragments)
+        self.fragments.append(&mut fragments)
     }
 
     fn to_dlist(self) -> DList<Fragment> {

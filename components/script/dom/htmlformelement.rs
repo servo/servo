@@ -23,7 +23,7 @@ use dom::htmlbuttonelement::{HTMLButtonElement};
 use dom::htmltextareaelement::{HTMLTextAreaElement, HTMLTextAreaElementHelpers};
 use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use hyper::method::Method;
-use hyper::header::common::ContentType;
+use hyper::header::ContentType;
 use hyper::mime;
 use msg::constellation_msg::LoadData;
 use util::str::DOMString;

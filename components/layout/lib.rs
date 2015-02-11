@@ -12,6 +12,7 @@
 #[macro_use]
 extern crate log;
 
+#[macro_use] extern crate bitflags;
 extern crate cssparser;
 extern crate canvas;
 extern crate geom;

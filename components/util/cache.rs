@@ -10,7 +10,7 @@ use std::collections::hash_state::DefaultState;
 use rand::Rng;
 use std::hash::{Hash, Hasher, SipHasher};
 use std::iter::repeat;
-use std::rand;
+use rand;
 use std::slice::Iter;
 
 #[cfg(test)]

@@ -332,7 +332,7 @@ impl Flow for TableRowFlow {
     }
 }
 
-impl fmt::Show for TableRowFlow {
+impl fmt::Debug for TableRowFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "TableRowFlow: {:?}", self.block_flow.fragment)
     }
