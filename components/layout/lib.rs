@@ -12,6 +12,7 @@
 #[macro_use]
 extern crate log;
 
+extern crate azure;
 extern crate cssparser;
 extern crate canvas;
 extern crate geom;
