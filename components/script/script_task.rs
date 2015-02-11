@@ -31,7 +31,7 @@ use dom::htmlelement::HTMLElementTypeId;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, Node, NodeHelpers, NodeDamage, NodeTypeId};
+use dom::node::{self, Node, NodeHelpers, NodeDamage, NodeTypeId, window_from_node};
 use dom::window::{Window, WindowHelpers, ScriptHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use parse::html::{HTMLInput, parse_html};
@@ -1432,6 +1432,20 @@ impl DocumentProgressHandler {
         let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
         event.r().set_trusted(true);
         let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
+
+        let window_ref = window.r();
+        let browser_context = window_ref.browser_context();
+        let browser_context = browser_context.as_ref().unwrap();
+
+        browser_context.frame_element().map(|frame_element| {
+            let frame_element = frame_element.root();
+            let frame_window = window_from_node(frame_element.r()).root();
+            let event = Event::new(GlobalRef::Window(frame_window.r()), "load".to_owned(),
+                                   EventBubbles::DoesNotBubble,
+                                   EventCancelable::NotCancelable).root();
+            let target: JSRef<EventTarget> = EventTargetCast::from_ref(frame_element.r());
+            event.r().fire(target);
+        });
     }
 }
 
