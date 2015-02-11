@@ -327,7 +327,7 @@ impl CompositorProxy for CefCompositorProxy {
     #[cfg(target_os="macos")]
     fn send(&mut self, msg: compositor_task::Msg) {
         use cocoa::appkit::{NSApp, NSApplication, NSApplicationDefined, NSAutoreleasePool};
-        use cocoa::appkit::{NSEvent, NSPoint};
+        use cocoa::appkit::{NSEvent, NSEventModifierFlags, NSEventSubtype, NSPoint};
         use cocoa::base::nil;
 
         // Send a message and kick the OS event loop awake.
@@ -336,18 +336,18 @@ impl CompositorProxy for CefCompositorProxy {
         unsafe {
             let pool = NSAutoreleasePool::new(nil);
             let event =
-                NSEvent::otherEventWithType_location_modifierFlags_timestamp_windowNumber_context_subtype_data1_data2(
+                NSEvent::otherEventWithType_location_modifierFlags_timestamp_windowNumber_context_subtype_data1_data2_(
                 nil,
                 NSApplicationDefined,
                 NSPoint::new(0.0, 0.0),
-                0,
+                NSEventModifierFlags::empty(),
                 0.0,
                 0,
-                ptr::null_mut(),
                 0,
+                NSEventSubtype::NSWindowExposedEventType,
                 0,
                 0);
-            NSApp().postEvent_atStart_(event, false);
+            NSApp().postEvent_atStart_(event, 0);
             pool.drain();
         }
     }
