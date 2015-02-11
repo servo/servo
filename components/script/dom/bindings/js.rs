@@ -197,7 +197,7 @@ pub struct JS<T> {
 
 impl<T> JS<T> {
     /// Returns `LayoutJS<T>` containing the same pointer.
-    fn to_layout(self) -> LayoutJS<T> {
+    pub unsafe fn to_layout(self) -> LayoutJS<T> {
         LayoutJS {
             ptr: self.ptr.clone()
         }
@@ -291,7 +291,7 @@ impl<U: Reflectable> JS<U> {
 impl<T: Reflectable> Reflectable for JS<T> {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         unsafe {
-            (*self.unsafe_get()).reflector()
+            (**self.ptr).reflector()
         }
     }
 }
@@ -419,12 +419,6 @@ impl<T: Reflectable> MutNullableJS<T> {
 }
 
 impl<T: Reflectable> JS<T> {
-    /// Returns an unsafe pointer to the interior of this object.
-    /// This should only be used by the DOM bindings.
-    pub unsafe fn unsafe_get(&self) -> *const T {
-        *self.ptr
-    }
-
     /// Store an unrooted value in this field. This is safe under the
     /// assumption that JS<T> values are only used as fields in DOM types that
     /// are reachable in the GC graph, so this unrooted value becomes
