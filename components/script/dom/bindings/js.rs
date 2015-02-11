@@ -83,6 +83,14 @@ impl<T: Reflectable> Unrooted<T> {
         }
     }
 
+    /// Create a new unrooted value from a `JS<T>`.
+    #[allow(unrooted_must_root)]
+    pub fn from_js(ptr: JS<T>) -> Unrooted<T> {
+        Unrooted {
+            ptr: ptr.ptr
+        }
+    }
+
     /// Get the `Reflector` for this pointer.
     pub fn reflector<'a>(&'a self) -> &'a Reflector {
         unsafe {
