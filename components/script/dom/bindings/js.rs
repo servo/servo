@@ -390,16 +390,10 @@ impl<T: Reflectable> MutNullableJS<T> {
         self.ptr.get().map(Temporary::new)
     }
 
-    /// Retrieve a copy of the inner optional `JS<T>`. For use by layout, which
-    /// can't use safe types like Temporary.
-    pub unsafe fn get_inner(&self) -> Option<JS<T>> {
-        self.ptr.get()
-    }
-
     /// Retrieve a copy of the inner optional `JS<T>` as `LayoutJS<T>`.
     /// For use by layout, which can't use safe types like Temporary.
     pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
-        self.get_inner().map(|js| js.to_layout())
+        self.ptr.get().map(|js| js.to_layout())
     }
 
     /// Retrieve a copy of the current inner value. If it is `None`, it is
