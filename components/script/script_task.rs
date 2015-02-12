@@ -109,7 +109,7 @@ pub trait Runnable {
 pub enum ScriptMsg {
     /// Acts on a fragment URL load on the specified pipeline (only dispatched
     /// to ScriptTask).
-    TriggerFragment(PipelineId, Url),
+    TriggerFragment(PipelineId, String),
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptTask).
     TriggerLoad(PipelineId, LoadData),
@@ -610,8 +610,8 @@ impl ScriptTask {
         match msg {
             ScriptMsg::TriggerLoad(id, load_data) =>
                 self.trigger_load(id, load_data),
-            ScriptMsg::TriggerFragment(id, url) =>
-                self.trigger_fragment(id, url),
+            ScriptMsg::TriggerFragment(id, fragment) =>
+                self.trigger_fragment(id, fragment),
             ScriptMsg::FireTimer(TimerSource::FromWindow(id), timer_id) =>
                 self.handle_fire_timer_msg(id, timer_id),
             ScriptMsg::FireTimer(TimerSource::FromWorker, _) =>
@@ -1113,9 +1113,9 @@ impl ScriptTask {
 
     /// The entry point for content to notify that a fragment url has been requested
     /// for the given pipeline.
-    fn trigger_fragment(&self, pipeline_id: PipelineId, url: Url) {
+    fn trigger_fragment(&self, pipeline_id: PipelineId, fragment: String) {
         let page = get_page(&*self.page.borrow(), pipeline_id);
-        match page.find_fragment_node(url.fragment.unwrap()).root() {
+        match page.find_fragment_node(fragment).root() {
             Some(node) => {
                 self.scroll_fragment_point(pipeline_id, node.r());
             }
