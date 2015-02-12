@@ -109,14 +109,12 @@ impl DisplayList {
     /// `other` in the process.
     #[inline]
     pub fn append_from(&mut self, other: &mut DisplayList) {
-        servo_dlist::append_from(&mut self.background_and_borders,
-                                 &mut other.background_and_borders);
-        servo_dlist::append_from(&mut self.block_backgrounds_and_borders,
-                                 &mut other.block_backgrounds_and_borders);
-        servo_dlist::append_from(&mut self.floats, &mut other.floats);
-        servo_dlist::append_from(&mut self.content, &mut other.content);
-        servo_dlist::append_from(&mut self.outlines, &mut other.outlines);
-        servo_dlist::append_from(&mut self.children, &mut other.children);
+        self.background_and_borders.append(&mut other.background_and_borders);
+        self.block_backgrounds_and_borders.append(&mut other.block_backgrounds_and_borders);
+        self.floats.append(&mut other.floats);
+        self.content.append(&mut other.content);
+        self.outlines.append(&mut other.outlines);
+        self.children.append(&mut other.children);
     }
 
     /// Merges all display items from all non-float stacking levels to the `float` stacking level.
