@@ -638,16 +638,16 @@ impl Descendants {
     /// Return an iterator over the descendant flows.
     pub fn iter<'a>(&'a mut self) -> DescendantIter<'a> {
         DescendantIter {
-            iter: self.descendant_links.slice_from_mut(0).iter_mut(),
+            iter: self.descendant_links.iter_mut(),
         }
     }
 
     /// Return an iterator over (descendant, static y offset).
     pub fn iter_with_offset<'a>(&'a mut self) -> DescendantOffsetIter<'a> {
         let descendant_iter = DescendantIter {
-            iter: self.descendant_links.slice_from_mut(0).iter_mut(),
+            iter: self.descendant_links.iter_mut(),
         };
-        descendant_iter.zip(self.static_block_offsets.slice_from_mut(0).iter_mut())
+        descendant_iter.zip(self.static_block_offsets.iter_mut())
     }
 }
 

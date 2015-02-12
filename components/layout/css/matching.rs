@@ -71,7 +71,7 @@ impl ApplicableDeclarationsCacheEntry {
 
 impl PartialEq for ApplicableDeclarationsCacheEntry {
     fn eq(&self, other: &ApplicableDeclarationsCacheEntry) -> bool {
-        let this_as_query = ApplicableDeclarationsCacheQuery::new(self.declarations.as_slice());
+        let this_as_query = ApplicableDeclarationsCacheQuery::new(&*self.declarations);
         this_as_query.eq(other)
     }
 }
@@ -79,7 +79,7 @@ impl Eq for ApplicableDeclarationsCacheEntry {}
 
 impl<H: Hasher+Writer> Hash<H> for ApplicableDeclarationsCacheEntry {
     fn hash(&self, state: &mut H) {
-        let tmp = ApplicableDeclarationsCacheQuery::new(self.declarations.as_slice());
+        let tmp = ApplicableDeclarationsCacheQuery::new(&*self.declarations);
         tmp.hash(state);
     }
 }
@@ -643,7 +643,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                         if applicable_declarations.before.len() > 0 {
                            damage = damage | self.cascade_node_pseudo_element(
                                Some(layout_data.shared_data.style.as_ref().unwrap()),
-                               applicable_declarations.before.as_slice(),
+                               &*applicable_declarations.before,
                                &mut layout_data.data.before_style,
                                applicable_declarations_cache,
                                false);
@@ -651,7 +651,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                         if applicable_declarations.after.len() > 0 {
                            damage = damage | self.cascade_node_pseudo_element(
                                Some(layout_data.shared_data.style.as_ref().unwrap()),
-                               applicable_declarations.after.as_slice(),
+                               &*applicable_declarations.after,
                                &mut layout_data.data.after_style,
                                applicable_declarations_cache,
                                false);

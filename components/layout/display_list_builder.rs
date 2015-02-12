@@ -468,9 +468,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             position_to_offset(gradient.stops[i - 1].position.unwrap(), length)
                         };
                         let (end_index, end_offset) =
-                            match gradient.stops
-                                          .as_slice()
-                                          .slice_from(i)
+                            match gradient.stops[i..]
                                           .iter()
                                           .enumerate()
                                           .find(|&(_, ref stop)| stop.position.is_some()) {

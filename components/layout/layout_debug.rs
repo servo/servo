@@ -14,11 +14,11 @@ use serialize::json;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::old_io::File;
-use std::sync::atomic::{AtomicUint, Ordering, ATOMIC_UINT_INIT};
+use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 
 thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));
 
-static mut DEBUG_ID_COUNTER: AtomicUint = ATOMIC_UINT_INIT;
+static mut DEBUG_ID_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
 
 pub struct Scope;
 
