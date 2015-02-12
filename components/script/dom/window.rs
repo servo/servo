@@ -159,9 +159,9 @@ pub fn base64_atob(atob: DOMString) -> Fallible<DOMString> {
     //  remove them from input."
     if input.len() % 4 == 0 {
         if input.ends_with("==") {
-            input = input.slice_to(input.len() - 2)
+            input = &input[..input.len() - 2]
         } else if input.ends_with("=") {
-            input = input.slice_to(input.len() - 1)
+            input = &input[..input.len() - 1]
         }
     }
 

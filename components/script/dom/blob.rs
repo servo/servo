@@ -129,7 +129,7 @@ impl<'a> BlobMethods for JSRef<'a, Blob> {
                 let start = relativeStart.to_uint().unwrap();
                 let end = (relativeStart + span).to_uint().unwrap();
                 let mut bytes: Vec<u8> = Vec::new();
-                bytes.push_all(vec.slice(start, end));
+                bytes.push_all(&vec[start..end]);
                 Blob::new(global.r(), Some(bytes), relativeContentType.as_slice())
             }
         }

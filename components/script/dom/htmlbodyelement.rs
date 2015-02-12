@@ -107,7 +107,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
                     EventTargetCast::from_ref(*self)
                 };
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
-                                                  name.slice_from(2),
+                                                  &name[2..],
                                                   attr.value().as_slice().to_owned());
         }
 
