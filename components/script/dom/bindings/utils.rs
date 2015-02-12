@@ -15,9 +15,9 @@ use dom::window;
 
 use libc;
 use libc::c_uint;
+use std::boxed;
 use std::cell::Cell;
 use std::ffi::CString;
-use std::mem;
 use std::ptr;
 use js::glue::UnwrapObject;
 use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
@@ -62,11 +62,6 @@ impl GlobalStaticData {
             windowproxy_handler: browsercontext::new_window_proxy_handler(),
         }
     }
-}
-
-/// Leak the given pointer.
-pub unsafe fn squirrel_away_unique<T>(x: Box<T>) -> *const T {
-    mem::transmute(x)
 }
 
 // NOTE: This is baked into the Ion JIT as 0 in codegen for LGetDOMProperty and
@@ -343,7 +338,7 @@ pub fn initialize_global(global: *mut JSObject) {
         ([0 as *mut JSObject; PrototypeList::ID::Count as uint]);
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
-        let box_ = squirrel_away_unique(proto_array);
+        let box_ = boxed::into_raw(proto_array);
         JS_SetReservedSlot(global,
                            DOM_PROTOTYPE_SLOT,
                            PrivateValue(box_ as *const libc::c_void));
