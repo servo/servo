@@ -1800,7 +1800,7 @@ def CreateBindingJSObject(descriptor, parent=None):
         assert not descriptor.isGlobal()
         create += """
 let handler = RegisterBindings::proxy_handlers[PrototypeList::Proxies::%s as uint];
-let mut private = PrivateValue(squirrel_away_unique(object) as *const libc::c_void);
+let mut private = PrivateValue(boxed::into_raw(object) as *const libc::c_void);
 let obj = with_compartment(cx, proto, || {
     NewProxyObject(cx, handler,
                    &private,
@@ -1820,7 +1820,7 @@ assert!(!obj.is_null());\
 assert!(!obj.is_null());
 
 JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
-                   PrivateValue(squirrel_away_unique(object) as *const libc::c_void));"""
+                   PrivateValue(boxed::into_raw(object) as *const libc::c_void));"""
     return create
 
 class CGWrapMethod(CGAbstractMethod):
@@ -3978,7 +3978,7 @@ let this: *const %s = unwrap::<%s>(obj);
 def finalizeHook(descriptor, hookName, context):
     release = """\
 let value = unwrap::<%s>(obj);
-let _: Box<%s> = mem::transmute(value);
+let _ = Box::from_raw(value as *mut %s);
 debug!("%s finalize: {:p}", this);\
 """ % (descriptor.concreteType, descriptor.concreteType, descriptor.concreteType)
     return release
@@ -4557,7 +4557,6 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::has_property_on_prototype',
             'dom::bindings::utils::is_platform_object',
             'dom::bindings::utils::{Reflectable}',
-            'dom::bindings::utils::{squirrel_away_unique}',
             'dom::bindings::utils::throwing_constructor',
             'dom::bindings::utils::get_dictionary_property',
             'dom::bindings::utils::{NativeProperties, NativePropertyHooks}',
@@ -4587,6 +4586,7 @@ class CGBindingRoot(CGThing):
             'libc',
             'util::str::DOMString',
             'std::borrow::ToOwned',
+            'std::boxed',
             'std::cmp',
             'std::iter::repeat',
             'std::mem',
