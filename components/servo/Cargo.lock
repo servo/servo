@@ -36,7 +36,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#9ae7938c56e8c59d09a3ce682dd4cf5fcbb2ac57"
+source = "git+https://github.com/servo/rust-azure#08d2513e8ebbfe9ce6620aa514c2f2b91059b304"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -476,6 +476,7 @@ dependencies = [
 name = "layout"
 version = "0.0.1"
 dependencies = [
+ "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
  "cssparser 0.2.0 (git+https://github.com/servo/rust-cssparser)",
