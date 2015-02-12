@@ -327,25 +327,23 @@ impl Page {
     /// layout task has finished any pending request messages.
     fn join_layout(&self) {
         let mut layout_join_port = self.layout_join_port.borrow_mut();
-        if layout_join_port.is_some() {
-            let join_port = replace(&mut *layout_join_port, None);
-            match join_port {
-                Some(ref join_port) => {
-                    match join_port.try_recv() {
-                        Err(Empty) => {
-                            info!("script: waiting on layout");
-                            join_port.recv().unwrap();
-                        }
-                        Ok(_) => {}
-                        Err(Disconnected) => {
-                            panic!("Layout task failed while script was waiting for a result.");
-                        }
+        let join_port = replace(&mut *layout_join_port, None);
+        match join_port {
+            Some(ref join_port) => {
+                match join_port.try_recv() {
+                    Err(Empty) => {
+                        info!("script: waiting on layout");
+                        join_port.recv().unwrap();
                     }
-
-                    debug!("script: layout joined")
+                    Ok(_) => {}
+                    Err(Disconnected) => {
+                        panic!("Layout task failed while script was waiting for a result.");
+                    }
                 }
-                None => panic!("reader forked but no join port?"),
+
+                debug!("script: layout joined")
             }
+            None => (),
         }
     }
 
