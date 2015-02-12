@@ -52,7 +52,7 @@ impl<T> DOMRefCell<T> {
     ///
     /// For safety checks in debug builds only.
     pub fn is_mutably_borrowed(&self) -> bool {
-        self.value.try_borrow().is_some()
+        self.value.borrow_state() == BorrowState::Writing
     }
 
     /// Attempts to immutably borrow the wrapped value.
