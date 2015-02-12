@@ -1663,7 +1663,7 @@ impl Node {
         }
     }
 
-    pub fn collect_text_contents<'a, T: Iterator<Item=JSRef<'a, Node>>>(mut iterator: T) -> String {
+    pub fn collect_text_contents<'a, T: Iterator<Item=JSRef<'a, Node>>>(iterator: T) -> String {
         let mut content = String::new();
         for node in iterator {
             let text: Option<JSRef<Text>> = TextCast::to_ref(node);

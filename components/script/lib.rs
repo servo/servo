@@ -2,12 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(unsafe_destructor, plugin, box_syntax, int_uint, core)]
+#![feature(alloc)]
+#![feature(box_syntax)]
+#![feature(collections)]
+#![feature(core)]
+#![feature(hash)]
+#![feature(int_uint)]
+#![feature(io)]
+#![feature(libc)]
+#![feature(plugin)]
+#![feature(rustc_private)]
+#![feature(std_misc)]
+#![feature(unicode)]
+#![feature(unsafe_destructor)]
 
 #![deny(unsafe_blocks)]
 #![allow(non_snake_case)]
 #![allow(missing_copy_implementations)]
-#![allow(unstable)]
 
 #![doc="The script crate contains all matters DOM."]
 
