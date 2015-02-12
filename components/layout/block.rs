@@ -63,7 +63,7 @@ use style::computed_values::{overflow, position, box_sizing, display, float};
 use std::sync::Arc;
 
 /// Information specific to floated blocks.
-#[derive(Clone, Encodable)]
+#[derive(Clone, RustcEncodable)]
 pub struct FloatedBlockInfo {
     /// The amount of inline size that is available for the float.
     pub containing_inline_size: Au,
@@ -735,7 +735,7 @@ impl BlockFlow {
         traversal.process(flow);
 
         let cb_block_start_edge_offset = flow.generated_containing_block_rect().start.b;
-        let mut descendant_offset_iter = mut_base(flow).abs_descendants.iter_with_offset();
+        let descendant_offset_iter = mut_base(flow).abs_descendants.iter_with_offset();
         // Pass in the respective static y offset for each descendant.
         for (ref mut descendant_link, ref y_offset) in descendant_offset_iter {
             let block = descendant_link.as_block();

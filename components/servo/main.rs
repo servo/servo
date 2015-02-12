@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![allow(unstable)]
+#![feature(env, os)]
 
 #[cfg(target_os="android")]
 extern crate libc;
@@ -39,9 +39,6 @@ use compositing::windowing::WindowEvent;
 #[cfg(target_os="android")]
 use std::borrow::ToOwned;
 
-#[cfg(not(any(test,target_os="android")))]
-use std::os;
-
 #[cfg(not(test))]
 struct BrowserWrapper {
     browser: Browser<app::window::Window>,
@@ -60,7 +57,8 @@ fn get_args() -> Vec<String> {
 
 #[cfg(not(target_os="android"))]
 fn get_args() -> Vec<String> {
-    os::args()
+    use std::env;
+    env::args().map(|s| s.into_string().unwrap()).collect()
 }
 
 #[cfg(target_os="android")]
@@ -113,7 +111,7 @@ fn setup_logging() {
 }
 
 fn main() {
-    if opts::from_cmdline_args(get_args().as_slice()) {
+    if opts::from_cmdline_args(&*get_args()) {
         setup_logging();
         resource_task::global_init();
 
