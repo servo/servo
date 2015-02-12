@@ -29,6 +29,7 @@ use types::{cef_termination_status_t, cef_text_input_context_t, cef_thread_id_t}
 use types::{cef_time_t, cef_transition_type_t, cef_urlrequest_status_t};
 use types::{cef_v8_accesscontrol_t, cef_v8_propertyattribute_t, cef_value_type_t};
 use types::{cef_window_info_t, cef_xml_encoding_type_t, cef_xml_node_type_t};
+use unicode::str::Utf16Encoder;
 
 use libc::{self, c_char, c_int, c_ushort, c_void};
 use std::collections::HashMap;
@@ -268,39 +269,6 @@ impl<'a> CefWrap<cef_string_userfree_t> for String {
 extern "C" fn free_utf16_buffer(buffer: *mut c_ushort) {
     unsafe {
         libc::free(buffer as *mut c_void)
-    }
-}
-
-// TODO(pcwalton): Post Rust-upgrade, remove this and use `collections::str::Utf16Encoder`.
-pub struct Utf16Encoder<I> {
-    chars: I,
-    extra: u16,
-}
-
-impl<I> Utf16Encoder<I> {
-    pub fn new(chars: I) -> Utf16Encoder<I> where I: Iterator<Item=char> {
-        Utf16Encoder {
-            chars: chars,
-            extra: 0,
-        }
-    }
-}
-
-impl<I> Iterator for Utf16Encoder<I> where I: Iterator<Item=char> {
-    type Item = u16;
-    fn next(&mut self) -> Option<u16> {
-        if self.extra != 0 {
-            return Some(mem::replace(&mut self.extra, 0))
-        }
-
-        let mut buf = [0u16; 2];
-        self.chars.next().map(|ch| {
-            let n = ch.encode_utf16(buf.as_mut_slice()).unwrap_or(0);
-            if n == 2 {
-                self.extra = buf[1]
-            }
-            buf[0]
-        })
     }
 }
 
