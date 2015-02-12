@@ -136,8 +136,8 @@ impl TextInput {
         let new_lines = {
             let prefix = self.lines[begin.line].slice_chars(0, begin.index);
             let suffix = self.lines[end.line].slice_chars(end.index, self.lines[end.line].chars().count());
-            let lines_prefix = self.lines.slice(0, begin.line);
-            let lines_suffix = self.lines.slice(end.line + 1, self.lines.len());
+            let lines_prefix = &self.lines[..begin.line];
+            let lines_suffix = &self.lines[end.line + 1..];
 
             let mut insert_lines = if self.multiline {
                 insert.as_slice().split('\n').map(|s| s.to_owned()).collect()

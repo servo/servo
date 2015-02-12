@@ -81,7 +81,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     fn SubstringData(self, offset: u32, count: u32) -> Fallible<DOMString> {
-        Ok(self.data.borrow().as_slice().slice(offset as uint, count as uint).to_owned())
+        Ok(self.data.borrow()[offset as uint .. count as uint].to_owned())
     }
 
     fn AppendData(self, arg: DOMString) -> ErrorResult {
@@ -107,9 +107,9 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
         } else {
             count
         };
-        let mut data = self.data.borrow().as_slice().slice(0, offset as uint).to_owned();
+        let mut data = self.data.borrow()[..offset as uint].to_owned();
         data.push_str(arg.as_slice());
-        data.push_str(self.data.borrow().as_slice().slice((offset + count) as uint, length as uint));
+        data.push_str(&self.data.borrow()[(offset + count) as uint..]);
         *self.data.borrow_mut() = data;
         // FIXME: Once we have `Range`, we should implement step7 to step11
         Ok(())

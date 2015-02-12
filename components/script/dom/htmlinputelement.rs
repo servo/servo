@@ -317,7 +317,7 @@ fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&
     fn do_broadcast<'a>(doc_node: JSRef<'a, Node>, broadcaster: JSRef<'a, HTMLInputElement>,
                         owner: Option<JSRef<'a, HTMLFormElement>>, group: Option<&str>) {
         // There is no DOM tree manipulation here, so this is safe
-        let mut iter = unsafe {
+        let iter = unsafe {
             doc_node.query_selector_iter("input[type=radio]".to_owned()).unwrap()
                 .filter_map(|t| HTMLInputElementCast::to_ref(t))
                 .filter(|&r| in_same_group(r, owner, group) && broadcaster != r)
