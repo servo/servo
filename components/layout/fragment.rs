@@ -1484,7 +1484,7 @@ impl Fragment {
     /// A helper method that uses the breaking strategy described by `slice_iterator` (at present,
     /// either natural word breaking or character breaking) to split this fragment.
     fn calculate_split_position_using_breaking_strategy<'a,I>(&self,
-                                                              mut slice_iterator: I,
+                                                              slice_iterator: I,
                                                               max_inline_size: Au,
                                                               flags: SplitOptions)
                                                               -> Option<SplitResult>
