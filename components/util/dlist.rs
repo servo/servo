@@ -71,55 +71,9 @@ pub fn split<T>(list: &mut DList<T>) -> DList<T> {
     }
 }
 
-/// Appends the items in the other list to this one, leaving the other list empty.
-#[inline]
-pub fn append_from<T>(this: &mut DList<T>, other: &mut DList<T>) {
-    unsafe {
-        let this = mem::transmute::<&mut DList<T>,&mut RawDList<T>>(this);
-        let other = mem::transmute::<&mut DList<T>,&mut RawDList<T>>(other);
-        if this.length == 0 {
-            this.head = mem::replace(&mut other.head, ptr::null_mut());
-            this.tail = mem::replace(&mut other.tail, ptr::null_mut());
-            this.length = mem::replace(&mut other.length, 0);
-            return
-        }
-
-        let old_other_head = mem::replace(&mut other.head, ptr::null_mut());
-        if old_other_head.is_null() {
-            return
-        }
-        (*old_other_head).prev = this.tail;
-        (*this.tail).next = old_other_head;
-
-        this.tail = mem::replace(&mut other.tail, ptr::null_mut());
-        this.length += other.length;
-        other.length = 0;
-    }
-}
-
 /// Prepends the items in the other list to this one, leaving the other list empty.
 #[inline]
 pub fn prepend_from<T>(this: &mut DList<T>, other: &mut DList<T>) {
-    unsafe {
-        let this = mem::transmute::<&mut DList<T>,&mut RawDList<T>>(this);
-        let other = mem::transmute::<&mut DList<T>,&mut RawDList<T>>(other);
-        if this.length == 0 {
-            this.head = mem::replace(&mut other.head, ptr::null_mut());
-            this.tail = mem::replace(&mut other.tail, ptr::null_mut());
-            this.length = mem::replace(&mut other.length, 0);
-            return
-        }
-
-        let old_other_tail = mem::replace(&mut other.tail, ptr::null_mut());
-        if old_other_tail.is_null() {
-            return
-        }
-        (*old_other_tail).next = this.head;
-        (*this.head).prev = old_other_tail;
-
-        this.head = mem::replace(&mut other.head, ptr::null_mut());
-        this.length += other.length;
-        other.length = 0;
-    }
+    other.append(this);
+    mem::swap(this, other);
 }
-
