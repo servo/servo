@@ -88,9 +88,7 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
             match (*self.data.borrow())[name][0].clone() {
                 FormDatum::StringData(ref s) => Some(eString(s.clone())),
                 FormDatum::FileData(ref f) => {
-                    Some(eFile(unsafe {
-                        Unrooted::from_raw(f.unsafe_get())
-                    }))
+                    Some(eFile(Unrooted::from_js(*f)))
                 }
             }
         } else {

@@ -83,6 +83,14 @@ impl<T: Reflectable> Unrooted<T> {
         }
     }
 
+    /// Create a new unrooted value from a `JS<T>`.
+    #[allow(unrooted_must_root)]
+    pub fn from_js(ptr: JS<T>) -> Unrooted<T> {
+        Unrooted {
+            ptr: ptr.ptr
+        }
+    }
+
     /// Get the `Reflector` for this pointer.
     pub fn reflector<'a>(&'a self) -> &'a Reflector {
         unsafe {
@@ -189,7 +197,7 @@ pub struct JS<T> {
 
 impl<T> JS<T> {
     /// Returns `LayoutJS<T>` containing the same pointer.
-    fn to_layout(self) -> LayoutJS<T> {
+    pub unsafe fn to_layout(self) -> LayoutJS<T> {
         LayoutJS {
             ptr: self.ptr.clone()
         }
@@ -283,7 +291,7 @@ impl<U: Reflectable> JS<U> {
 impl<T: Reflectable> Reflectable for JS<T> {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         unsafe {
-            (*self.unsafe_get()).reflector()
+            (**self.ptr).reflector()
         }
     }
 }
@@ -382,16 +390,10 @@ impl<T: Reflectable> MutNullableJS<T> {
         self.ptr.get().map(Temporary::new)
     }
 
-    /// Retrieve a copy of the inner optional `JS<T>`. For use by layout, which
-    /// can't use safe types like Temporary.
-    pub unsafe fn get_inner(&self) -> Option<JS<T>> {
-        self.ptr.get()
-    }
-
     /// Retrieve a copy of the inner optional `JS<T>` as `LayoutJS<T>`.
     /// For use by layout, which can't use safe types like Temporary.
     pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
-        self.get_inner().map(|js| js.to_layout())
+        self.ptr.get().map(|js| js.to_layout())
     }
 
     /// Retrieve a copy of the current inner value. If it is `None`, it is
@@ -411,12 +413,6 @@ impl<T: Reflectable> MutNullableJS<T> {
 }
 
 impl<T: Reflectable> JS<T> {
-    /// Returns an unsafe pointer to the interior of this object.
-    /// This should only be used by the DOM bindings.
-    pub unsafe fn unsafe_get(&self) -> *const T {
-        *self.ptr
-    }
-
     /// Store an unrooted value in this field. This is safe under the
     /// assumption that JS<T> values are only used as fields in DOM types that
     /// are reachable in the GC graph, so this unrooted value becomes

@@ -163,7 +163,7 @@ unsafe fn get_attr_for_layout<'a>(elem: &'a Element, namespace: &Namespace, name
     // cast to point to T in RefCell<T> directly
     let attrs = elem.attrs.borrow_for_layout();
     attrs.iter().find(|attr: & &JS<Attr>| {
-        let attr = attr.unsafe_get();
+        let attr = attr.to_layout().unsafe_get();
         *name == (*attr).local_name_atom_forever() &&
         (*attr).namespace() == namespace
     })
@@ -174,7 +174,7 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                           -> Option<&'a str> {
         get_attr_for_layout(self, namespace, name).map(|attr| {
-            let attr = attr.unsafe_get();
+            let attr = attr.to_layout().unsafe_get();
             (*attr).value_ref_forever()
         })
     }
@@ -183,7 +183,7 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &Atom) -> Vec<&'a str> {
         let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().filter_map(|attr: &JS<Attr>| {
-            let attr = attr.unsafe_get();
+            let attr = attr.to_layout().unsafe_get();
             if *name == (*attr).local_name_atom_forever() {
               Some((*attr).value_ref_forever())
             } else {
@@ -197,11 +197,11 @@ impl RawLayoutElementHelpers for Element {
                                       -> Option<Atom> {
         let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().find(|attr: & &JS<Attr>| {
-            let attr = attr.unsafe_get();
+            let attr = attr.to_layout().unsafe_get();
             *name == (*attr).local_name_atom_forever() &&
             (*attr).namespace() == namespace
         }).and_then(|attr| {
-            let attr = attr.unsafe_get();
+            let attr = attr.to_layout().unsafe_get();
             (*attr).value_atom_forever()
         })
     }
@@ -210,10 +210,10 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn has_class_for_layout(&self, name: &Atom) -> bool {
         let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().find(|attr: & &JS<Attr>| {
-            let attr = attr.unsafe_get();
+            let attr = attr.to_layout().unsafe_get();
             (*attr).local_name_atom_forever() == atom!("class")
         }).map_or(false, |attr| {
-            let attr = attr.unsafe_get();
+            let attr = attr.to_layout().unsafe_get();
             (*attr).value_tokens_forever().map(|tokens| {
                 tokens.iter().any(|atom| atom == name)
             })
@@ -224,10 +224,10 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]> {
         let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().find(|attr: & &JS<Attr>| {
-            let attr = attr.unsafe_get();
+            let attr = attr.to_layout().unsafe_get();
             (*attr).local_name_atom_forever() == atom!("class")
         }).and_then(|attr| {
-            let attr = attr.unsafe_get();
+            let attr = attr.to_layout().unsafe_get();
             (*attr).value_tokens_forever()
         })
     }
