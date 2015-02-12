@@ -385,10 +385,13 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         let url = UrlParser::new().base_url(&base_url).parse(href.as_slice());
         // FIXME: handle URL parse errors more gracefully.
         let url = url.unwrap();
-        if href.as_slice().starts_with("#") {
-            self.script_chan.send(ScriptMsg::TriggerFragment(self.page.id, url));
-        } else {
-            self.script_chan.send(ScriptMsg::TriggerLoad(self.page.id, LoadData::new(url)));
+        match url.fragment {
+            Some(fragment) => {
+                self.script_chan.send(ScriptMsg::TriggerFragment(self.page.id, fragment));
+            },
+            None => {
+                self.script_chan.send(ScriptMsg::TriggerLoad(self.page.id, LoadData::new(url)));
+            }
         }
     }
 
