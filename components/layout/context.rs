@@ -17,8 +17,8 @@ use script_traits::UntrustedNodeAddress;
 use msg::constellation_msg::ConstellationChan;
 use net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
+use std::boxed;
 use std::cell::Cell;
-use std::mem;
 use std::ptr;
 use std::sync::{Arc, Mutex};
 use style::selector_matching::Stylist;
@@ -40,7 +40,7 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext) -> *
                 applicable_declarations_cache: ApplicableDeclarationsCache::new(),
                 style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
             };
-            r.set(unsafe { mem::transmute(context) });
+            r.set(unsafe { boxed::into_raw(context) });
         }
 
         r.get()
