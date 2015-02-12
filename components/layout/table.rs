@@ -398,7 +398,7 @@ impl Flow for TableFlow {
     }
 }
 
-impl fmt::Show for TableFlow {
+impl fmt::Debug for TableFlow {
     /// Outputs a debugging string describing this table flow.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "TableFlow: {:?}", self.block_flow)
@@ -443,7 +443,7 @@ impl ISizeAndMarginsComputer for InternalTable {
 /// maximum of 100 pixels and 20% of the table), the preceding constraint means that we must
 /// potentially store both a specified width *and* a specified percentage, so that the inline-size
 /// assignment phase of layout will know which one to pick.
-#[derive(Clone, RustcEncodable, Show, Copy)]
+#[derive(Clone, RustcEncodable, Debug, Copy)]
 pub struct ColumnIntrinsicInlineSize {
     /// The preferred intrinsic inline size.
     pub preferred: Au,

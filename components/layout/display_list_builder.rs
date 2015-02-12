@@ -1333,7 +1333,7 @@ fn position_to_offset(position: LengthOrPercentage, Au(total_length): Au) -> f32
 }
 
 /// "Steps" as defined by CSS 2.1 § E.2.
-#[derive(Clone, PartialEq, Show, Copy)]
+#[derive(Clone, PartialEq, Debug, Copy)]
 pub enum StackingLevel {
     /// The border and backgrounds for the root of this stacking context: steps 1 and 2.
     BackgroundAndBorders,

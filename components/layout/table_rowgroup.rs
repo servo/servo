@@ -167,7 +167,7 @@ impl Flow for TableRowGroupFlow {
     }
 }
 
-impl fmt::Show for TableRowGroupFlow {
+impl fmt::Debug for TableRowGroupFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "TableRowGroupFlow: {:?}", self.block_flow.fragment)
     }

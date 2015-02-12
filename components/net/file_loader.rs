@@ -6,8 +6,8 @@ use resource_task::{ProgressMsg, Metadata, LoadData, start_sending, TargetedLoad
 use resource_task::ProgressMsg::{Payload, Done};
 
 use std::borrow::ToOwned;
-use std::io;
-use std::io::File;
+use std::old_io as io;
+use std::old_io::File;
 use std::sync::mpsc::Sender;
 use util::task::spawn_named;
 

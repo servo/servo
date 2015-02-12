@@ -152,7 +152,8 @@ impl Hash<SipHasher> for ByteString {
 }
 
 impl FromStr for ByteString {
-    fn from_str(s: &str) -> Option<ByteString> {
-        Some(ByteString::new(s.to_owned().into_bytes()))
+    type Err = ();
+    fn from_str(s: &str) -> Result<ByteString, ()> {
+        Ok(ByteString::new(s.to_owned().into_bytes()))
     }
 }

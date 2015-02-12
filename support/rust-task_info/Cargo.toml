@@ -4,4 +4,4 @@ name = "task_info"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 
-build = "make -f makefile.cargo"
+build = "build.rs"

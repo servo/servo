@@ -22,7 +22,7 @@ use util::vec::*;
 /// In the uncommon case (multiple glyphs per unicode character, large glyph index/advance, or
 /// glyph offsets), we pack the glyph count into GlyphEntry, and store the other glyph information
 /// in DetailedGlyphStore.
-#[derive(Clone, Show, Copy)]
+#[derive(Clone, Debug, Copy)]
 struct GlyphEntry {
     value: u32,
 }
@@ -251,7 +251,7 @@ impl GlyphEntry {
 
 // Stores data for a detailed glyph, in the case that several glyphs
 // correspond to one character, or the glyph's data couldn't be packed.
-#[derive(Clone, Show, Copy)]
+#[derive(Clone, Debug, Copy)]
 struct DetailedGlyph {
     id: GlyphId,
     // glyph's advance, in the text's direction (LTR or RTL)
@@ -270,7 +270,7 @@ impl DetailedGlyph {
     }
 }
 
-#[derive(PartialEq, Clone, Eq, Show, Copy)]
+#[derive(PartialEq, Clone, Eq, Debug, Copy)]
 struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
     entry_offset: CharIndex,
@@ -594,7 +594,7 @@ impl<'a> GlyphStore {
         let entry = match first_glyph_data.is_missing {
             true  => GlyphEntry::missing(glyph_count),
             false => {
-                let glyphs_vec: Vec<DetailedGlyph> = (0..glyph_count as uint).map(|&:i| {
+                let glyphs_vec: Vec<DetailedGlyph> = (0..glyph_count as uint).map(|i| {
                     DetailedGlyph::new(data_for_glyphs[i].id,
                                        data_for_glyphs[i].advance,
                                        data_for_glyphs[i].offset)
@@ -786,7 +786,7 @@ impl<'a> Iterator for GlyphIterator<'a> {
             self.next_glyph_range()
         } else {
             // No glyph range. Look at next character.
-            self.char_range.next().and_then(|:i| {
+            self.char_range.next().and_then(|i| {
                 self.char_index = i;
                 assert!(i < self.store.char_len());
                 let entry = self.store.entry_buffer[i.to_uint()];

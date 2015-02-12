@@ -41,3 +41,4 @@ git = "https://github.com/servo/rust-egl"
 
 [dependencies]
 time = "0.1.12"
+bitflags = "*"

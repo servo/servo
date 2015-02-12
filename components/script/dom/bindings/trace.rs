@@ -57,7 +57,7 @@ use std::collections::HashMap;
 use std::collections::hash_state::HashState;
 use std::ffi::CString;
 use std::hash::{Hash, Hasher};
-use std::io::timer::Timer;
+use std::old_io::timer::Timer;
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, Sender};
 use string_cache::{Atom, Namespace};

@@ -512,7 +512,7 @@ impl BaseDisplayItem {
 /// A clipping region for a display item. Currently, this can describe rectangles, rounded
 /// rectangles (for `border-radius`), or arbitrary intersections of the two. Arbitrary transforms
 /// are not supported because those are handled by the higher-level `StackingContext` abstraction.
-#[derive(Clone, PartialEq, Show)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ClippingRegion {
     /// The main rectangular region. This does not include any corners.
     pub main: Rect<Au>,
@@ -526,7 +526,7 @@ pub struct ClippingRegion {
 /// A complex clipping region. These don't as easily admit arbitrary intersection operations, so
 /// they're stored in a list over to the side. Currently a complex clipping region is just a
 /// rounded rectangle, but the CSS WGs will probably make us throw more stuff in here eventually.
-#[derive(Clone, PartialEq, Show)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ComplexClippingRegion {
     /// The boundaries of the rectangle.
     pub rect: Rect<Au>,
@@ -750,7 +750,7 @@ pub struct BorderDisplayItem {
 /// Information about the border radii.
 ///
 /// TODO(pcwalton): Elliptical radii.
-#[derive(Clone, Default, PartialEq, Show, Copy)]
+#[derive(Clone, Default, PartialEq, Debug, Copy)]
 pub struct BorderRadii<T> {
     pub top_left: T,
     pub top_right: T,
@@ -931,7 +931,7 @@ impl DisplayItem {
     }
 }
 
-impl fmt::Show for DisplayItem {
+impl fmt::Debug for DisplayItem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} @ {:?} ({:x})",
             match *self {

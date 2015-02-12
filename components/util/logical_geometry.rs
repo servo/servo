@@ -7,7 +7,7 @@
 use geom::{Size2D, Point2D, SideOffsets2D, Rect};
 use geom::num::Zero;
 use std::cmp::{min, max};
-use std::fmt::{Show, Formatter, Error};
+use std::fmt::{Debug, Formatter, Error};
 use std::ops::{Add, Sub};
 
 bitflags!(
@@ -49,7 +49,7 @@ impl WritingMode {
     }
 }
 
-impl Show for WritingMode {
+impl Debug for WritingMode {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         if self.is_vertical() {
             try!(write!(formatter, "V"));
@@ -121,7 +121,7 @@ impl DebugWritingMode {
     }
 }
 
-impl Show for DebugWritingMode {
+impl Debug for DebugWritingMode {
     #[cfg(ndebug)]
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter, "?")
@@ -142,7 +142,7 @@ pub struct LogicalSize<T> {
     debug_writing_mode: DebugWritingMode,
 }
 
-impl<T: Show> Show for LogicalSize<T> {
+impl<T: Debug> Debug for LogicalSize<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter, "LogicalSize({:?}, i{:?}×b{:?})",
                self.debug_writing_mode, self.inline, self.block)
@@ -278,7 +278,7 @@ pub struct LogicalPoint<T> {
     debug_writing_mode: DebugWritingMode,
 }
 
-impl<T: Show> Show for LogicalPoint<T> {
+impl<T: Debug> Debug for LogicalPoint<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter, "LogicalPoint({:?} (i{:?}, b{:?}))",
                self.debug_writing_mode, self.i, self.b)
@@ -452,7 +452,7 @@ pub struct LogicalMargin<T> {
     debug_writing_mode: DebugWritingMode,
 }
 
-impl<T: Show> Show for LogicalMargin<T> {
+impl<T: Debug> Debug for LogicalMargin<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter,
                "LogicalMargin({:?}, inline: {:?}..{:?} block: {:?}..{:?})",
@@ -738,7 +738,7 @@ pub struct LogicalRect<T> {
     debug_writing_mode: DebugWritingMode,
 }
 
-impl<T: Show> Show for LogicalRect<T> {
+impl<T: Debug> Debug for LogicalRect<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter,
                "LogicalRect({:?}, i{:?}×b{:?}, @ (i{:?},b{:?}))",

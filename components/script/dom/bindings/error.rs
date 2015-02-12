@@ -20,7 +20,7 @@ use std::ffi::CString;
 use std::ptr;
 
 /// DOM exceptions that can be thrown by a native DOM method.
-#[derive(Show, Clone)]
+#[derive(Debug, Clone)]
 pub enum Error {
     /// IndexSizeError
     IndexSize,

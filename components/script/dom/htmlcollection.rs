@@ -165,9 +165,7 @@ impl HTMLCollection {
     }
 
     fn traverse<'a>(root: JSRef<'a, Node>)
-                    -> FilterMap<JSRef<'a, Node>,
-                                 JSRef<'a, Element>,
-                                 Skip<TreeIterator<'a>>,
+                    -> FilterMap<Skip<TreeIterator<'a>>,
                                  fn(JSRef<Node>) -> Option<JSRef<Element>>> {
         root.traverse_preorder()
             .skip(1)

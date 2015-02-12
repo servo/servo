@@ -4,11 +4,10 @@
 
 /// General actor system infrastructure.
 
-use std::any::Any;
+use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::cell::{Cell, RefCell};
-use std::intrinsics::TypeId;
-use std::io::TcpStream;
+use std::old_io::TcpStream;
 use std::mem::{replace, transmute};
 use std::raw::TraitObject;
 use serialize::json;

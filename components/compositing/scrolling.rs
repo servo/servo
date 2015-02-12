@@ -6,7 +6,7 @@
 
 use compositor_task::{CompositorProxy, Msg};
 
-use std::io::timer;
+use std::old_io::timer;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread::Builder;
 use std::time::duration::Duration;

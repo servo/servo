@@ -14,7 +14,7 @@ use collections::BTreeMap;
 use msg::constellation_msg::PipelineId;
 use serialize::json::{self, Json, ToJson};
 use std::cell::RefCell;
-use std::io::TcpStream;
+use std::old_io::TcpStream;
 use std::sync::mpsc::{channel, Sender};
 use std::num::Float;
 

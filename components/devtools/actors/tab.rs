@@ -12,7 +12,7 @@ use devtools_traits::WantsLiveNotifications;
 use protocol::JsonPacketStream;
 
 use serialize::json;
-use std::io::TcpStream;
+use std::old_io::TcpStream;
 
 #[derive(RustcEncodable)]
 struct TabTraits;

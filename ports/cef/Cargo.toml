@@ -17,6 +17,9 @@ path = "../glutin"
 [dependencies.plugins]
 path = "../../components/plugins"
 
+[dependencies.compositing]
+path = "../../components/compositing"
+
 [dependencies.gfx]
 path = "../../components/gfx"
 
@@ -64,3 +67,12 @@ git = "https://github.com/servo/rust-core-text"
 
 [dependencies.cocoa]
 git = "https://github.com/servo/rust-cocoa"
+
+[dependencies.gleam]
+git = "https://github.com/servo/gleam"
+
+[dependencies.cgl]
+git = "https://github.com/servo/rust-cgl"
+
+[dependencies]
+url = "*"

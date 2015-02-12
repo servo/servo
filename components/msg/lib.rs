@@ -8,6 +8,7 @@
 #![allow(unstable)]
 
 extern crate azure;
+#[macro_use] extern crate bitflags;
 extern crate geom;
 extern crate hyper;
 extern crate layers;

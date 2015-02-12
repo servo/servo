@@ -11,14 +11,14 @@ use log;
 use std::collections::HashSet;
 use file_loader;
 use hyper::client::Request;
-use hyper::header::common::{ContentLength, ContentType, Host, Location};
+use hyper::header::{ContentLength, ContentType, Host, Location};
 use hyper::HttpError;
 use hyper::method::Method;
 use hyper::net::HttpConnector;
 use hyper::status::{StatusCode, StatusClass};
 use std::error::Error;
 use openssl::ssl::{SslContext, SslVerifyMode};
-use std::io::{IoError, IoErrorKind, Reader};
+use std::old_io::{IoError, IoErrorKind, Reader};
 use std::sync::mpsc::{Sender, channel};
 use std::thunk::Invoke;
 use util::task::spawn_named;
@@ -29,7 +29,7 @@ use std::borrow::ToOwned;
 
 pub fn factory(cookies_chan: Sender<ControlMsg>)
                -> Box<Invoke<(LoadData, Sender<TargetedLoadResponse>)> + Send> {
-    box move |:(load_data, start_chan)| {
+    box move |(load_data, start_chan)| {
         spawn_named("http_loader".to_owned(), move || load(load_data, start_chan, cookies_chan))
     }
 }

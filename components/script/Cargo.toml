@@ -3,7 +3,7 @@ name = "script"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 
-build = "make -f makefile.cargo"
+build = "build.rs"
 
 [lib]
 name = "script"
@@ -50,7 +50,7 @@ git = "https://github.com/servo/html5ever"
 
 [dependencies.hyper]
 git = "https://github.com/servo/hyper"
-branch = "old_servo_new_cookies"
+branch = "servo"
 
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
@@ -68,3 +68,5 @@ git = "https://github.com/servo/string-cache"
 encoding = "0.2"
 url = "0.2.16"
 time = "0.1.12"
+bitflags = "*"
+rustc-serialize = "*"
