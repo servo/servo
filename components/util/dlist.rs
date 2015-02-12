@@ -6,69 +6,15 @@
 
 use std::collections::DList;
 use std::mem;
-use std::ptr;
 
-struct RawDList<T> {
-    length: uint,
-    head: *mut RawNode<T>,
-    tail: *mut RawNode<T>,
-}
-
-#[allow(dead_code)]
-struct RawNode<T> {
-    next: *mut RawNode<T>,
-    prev: *mut RawNode<T>,
-    value: T,
-}
-
-#[unsafe_destructor]
-impl<T> Drop for RawDList<T> {
-    fn drop(&mut self) {
-        panic!("shouldn't happen")
+/// Splits the head off a list in O(1) time, and returns the head.
+pub fn split_off_head<T>(list: &mut DList<T>) -> DList<T> {
+    // FIXME: Work around https://github.com/rust-lang/rust/issues/22244
+    if list.len() == 1 {
+        return mem::replace(list, DList::new());
     }
-}
-
-/// Workaround for a missing method on Rust's `DList` type. Splits the head off a list in O(1)
-/// time.
-pub fn split<T>(list: &mut DList<T>) -> DList<T> {
-    let list = unsafe {
-        mem::transmute::<&mut DList<T>,&mut RawDList<T>>(list)
-    };
-
-    if list.length == 0 {
-        panic!("split_dlist(): empty list")
-    }
-    let head_node = mem::replace(&mut list.head, ptr::null_mut());
-    let head_list = RawDList {
-        length: 1,
-        head: head_node,
-        tail: head_node,
-    };
-    debug_assert!(list.head.is_null());
-
-    unsafe {
-        mem::swap(&mut (*head_list.head).next, &mut list.head);
-        debug_assert!((*head_list.head).next.is_null());
-        debug_assert!((*head_list.head).prev.is_null());
-        (*head_list.head).prev = ptr::null_mut();
-    }
-
-    list.length -= 1;
-    if list.length == 0 {
-        list.tail = ptr::null_mut()
-    } else {
-        if list.length == 1 {
-            list.tail = list.head
-        }
-
-        unsafe {
-            (*list.head).prev = ptr::null_mut()
-        }
-    }
-
-    unsafe {
-        mem::transmute::<RawDList<T>,DList<T>>(head_list)
-    }
+    let tail = list.split_off(1);
+    mem::replace(list, tail)
 }
 
 /// Prepends the items in the other list to this one, leaving the other list empty.
