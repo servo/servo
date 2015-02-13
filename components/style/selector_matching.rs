@@ -126,7 +126,7 @@ impl SelectorMap {
 
         SelectorMap::get_matching_rules(node,
                                         parent_bf,
-                                        self.universal_rules.as_slice(),
+                                        &self.universal_rules,
                                         matching_rules_list,
                                         shareable);
 
@@ -151,7 +151,7 @@ impl SelectorMap {
             Some(rules) => {
                 SelectorMap::get_matching_rules(node,
                                                 parent_bf,
-                                                rules.as_slice(),
+                                                rules,
                                                 matching_rules,
                                                 shareable)
             }
@@ -292,8 +292,8 @@ impl Stylist {
         //        (Does it make a difference?)
         for &filename in ["user-agent.css", "servo.css", "presentational-hints.css"].iter() {
             let ua_stylesheet = Stylesheet::from_bytes(
-                read_resource_file(&[filename]).unwrap().as_slice(),
-                Url::parse(format!("chrome:///{:?}", filename).as_slice()).unwrap(),
+                &read_resource_file(&[filename]).unwrap(),
+                Url::parse(&format!("chrome:///{:?}", filename)).unwrap(),
                 None,
                 None,
                 Origin::UserAgent);
@@ -384,7 +384,7 @@ impl Stylist {
 
     pub fn add_quirks_mode_stylesheet(&mut self) {
         self.add_stylesheet(Stylesheet::from_bytes(
-            read_resource_file(&["quirks-mode.css"]).unwrap().as_slice(),
+            &read_resource_file(&["quirks-mode.css"]).unwrap(),
             Url::parse("chrome:///quirks-mode.css").unwrap(),
             None,
             None,
@@ -862,10 +862,10 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
             element.match_attr(attr, |_| true)
         }
         SimpleSelector::AttrEqual(ref attr, ref value, case_sensitivity) => {
-            if value.as_slice() != "DIR" &&
+            if *value != "DIR" &&
                     common_style_affecting_attributes().iter().all(|common_attr_info| {
                         !(common_attr_info.atom == attr.name && match common_attr_info.mode {
-                            CommonStyleAffectingAttributeMode::IsEqual(target_value, _) => target_value == value.as_slice(),
+                            CommonStyleAffectingAttributeMode::IsEqual(target_value, _) => *value == target_value,
                             CommonStyleAffectingAttributeMode::IsPresent(_) => false,
                         })
                     }) {
@@ -875,40 +875,40 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
             }
             element.match_attr(attr, |attr_value| {
                 match case_sensitivity {
-                    CaseSensitivity::CaseSensitive => attr_value == value.as_slice(),
-                    CaseSensitivity::CaseInsensitive => attr_value.eq_ignore_ascii_case(value.as_slice()),
+                    CaseSensitivity::CaseSensitive => attr_value == *value,
+                    CaseSensitivity::CaseInsensitive => attr_value.eq_ignore_ascii_case(value),
                 }
             })
         }
         SimpleSelector::AttrIncludes(ref attr, ref value) => {
             *shareable = false;
             element.match_attr(attr, |attr_value| {
-                attr_value.split(SELECTOR_WHITESPACE).any(|v| v == value.as_slice())
+                attr_value.split(SELECTOR_WHITESPACE).any(|v| v == *value)
             })
         }
         SimpleSelector::AttrDashMatch(ref attr, ref value, ref dashing_value) => {
             *shareable = false;
             element.match_attr(attr, |attr_value| {
-                attr_value == value.as_slice() ||
-                attr_value.starts_with(dashing_value.as_slice())
+                attr_value == *value ||
+                attr_value.starts_with(dashing_value)
             })
         }
         SimpleSelector::AttrPrefixMatch(ref attr, ref value) => {
             *shareable = false;
             element.match_attr(attr, |attr_value| {
-                attr_value.starts_with(value.as_slice())
+                attr_value.starts_with(value)
             })
         }
         SimpleSelector::AttrSubstringMatch(ref attr, ref value) => {
             *shareable = false;
             element.match_attr(attr, |attr_value| {
-                attr_value.contains(value.as_slice())
+                attr_value.contains(value)
             })
         }
         SimpleSelector::AttrSuffixMatch(ref attr, ref value) => {
             *shareable = false;
             element.match_attr(attr, |attr_value| {
-                attr_value.ends_with(value.as_slice())
+                attr_value.ends_with(value)
             })
         }
 
