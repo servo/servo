@@ -3,9 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::AzFloat;
-use azure::azure_hl::Color as AzColor;
+use azure::azure::AzColor;
 
-pub type Color = AzColor;
+#[inline]
+pub fn new(r: AzFloat, g: AzFloat, b: AzFloat, a: AzFloat) -> AzColor {
+    AzColor { r: r, g: g, b: b, a: a }
+}
 
 #[inline]
 pub fn rgb(r: u8, g: u8, b: u8) -> AzColor {
