@@ -41,8 +41,8 @@ use page::{Page, IterablePage, Frame};
 use timers::TimerId;
 use devtools;
 
-use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, GetRootNode, DevtoolsPageInfo};
-use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, GetDocumentElement};
+use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, GetRootNode, DevtoolsPageInfo};
+use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg, EvaluateJS, GetDocumentElement};
 use devtools_traits::{GetChildren, GetLayout, ModifyAttribute, WantsLiveNotifications};
 use script_traits::CompositorEvent;
 use script_traits::CompositorEvent::{ResizeEvent, ReflowEvent, ClickEvent};
@@ -947,8 +947,9 @@ impl ScriptTask {
                     title: document.r().Title(),
                     url: final_url
                 };
-                chan.send(NewGlobal(pipeline_id, self.devtools_sender.clone(),
-                                    page_info)).unwrap();
+                chan.send(DevtoolsControlMsg::NewGlobal(pipeline_id,
+                                                        self.devtools_sender.clone(),
+                                                        page_info)).unwrap();
             }
         }
     }

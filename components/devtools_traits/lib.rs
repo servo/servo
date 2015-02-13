@@ -20,7 +20,6 @@ extern crate "serialize" as rustc_serialize;
 extern crate url;
 extern crate util;
 
-pub use self::DevtoolsControlMsg::*;
 pub use self::DevtoolScriptControlMsg::*;
 pub use self::EvaluateJSReply::*;
 
