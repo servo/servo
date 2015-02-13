@@ -8,7 +8,7 @@
 
 use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
-use devtools_traits::WantsLiveNotifications;
+use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use protocol::JsonPacketStream;
 
 use serialize::json;
@@ -100,7 +100,8 @@ impl Actor for TabActor {
                 let console_actor = registry.find::<ConsoleActor>(self.console.as_slice());
                 console_actor.streams.borrow_mut().push(stream.clone());
                 stream.write_json_packet(&msg);
-                console_actor.script_chan.send(WantsLiveNotifications(console_actor.pipeline, true)).unwrap();
+                console_actor.script_chan.send(
+                    WantsLiveNotifications(console_actor.pipeline, true)).unwrap();
                 true
             }
 
@@ -114,7 +115,8 @@ impl Actor for TabActor {
                 let console_actor = registry.find::<ConsoleActor>(self.console.as_slice());
                 console_actor.streams.borrow_mut().pop();
                 stream.write_json_packet(&msg);
-                console_actor.script_chan.send(WantsLiveNotifications(console_actor.pipeline, false)).unwrap();
+                console_actor.script_chan.send(
+                    WantsLiveNotifications(console_actor.pipeline, false)).unwrap();
                 true
             }
 

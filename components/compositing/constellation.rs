@@ -6,8 +6,7 @@ use pipeline::{Pipeline, CompositionPipeline};
 
 use compositor_task::CompositorProxy;
 use compositor_task::Msg as CompositorMsg;
-use devtools_traits;
-use devtools_traits::DevtoolsControlChan;
+use devtools_traits::{DevtoolsControlChan, DevtoolsControlMsg};
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
 use gfx::font_cache_task::FontCacheTask;
@@ -521,7 +520,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.image_cache_task.exit();
         self.resource_task.send(resource_task::ControlMsg::Exit).unwrap();
         self.devtools_chan.as_ref().map(|chan| {
-            chan.send(devtools_traits::ServerExitMsg).unwrap();
+            chan.send(DevtoolsControlMsg::ServerExitMsg).unwrap();
         });
         self.storage_task.send(StorageTaskMsg::Exit).unwrap();
         self.font_cache_task.exit();
