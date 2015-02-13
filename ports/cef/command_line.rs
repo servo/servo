@@ -33,7 +33,7 @@ fn command_line_new() -> *mut command_line_t {
 pub fn command_line_init(argc: c_int, argv: *const *const u8) {
     unsafe {
         let mut a: Vec<String> = vec!();
-        for i in range(0u, argc as uint) {
+        for i in 0u..(argc as uint) {
             let offset = *argv.offset(i as int) as *const c_char;
             let slice = ffi::c_str_to_bytes(&offset);
             let s = str::from_utf8(slice).unwrap();
@@ -58,7 +58,7 @@ pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, na
         let cl: *mut command_line_t = mem::transmute(cmd);
         let cs: *const cef_string_utf16_t = mem::transmute(name);
         let buf = (*cs).str as *const _;
-        let slice = slice::from_raw_buf(&buf, (*cs).length as usize);
+        let slice = slice::from_raw_parts(buf, (*cs).length as usize);
         let opt = String::from_utf16(slice).unwrap();
             //debug!("opt: {}", opt);
         for s in (*cl).argv.iter() {
@@ -66,7 +66,7 @@ pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, na
             //debug!("arg: {}", o);
             if o.as_slice().starts_with(opt.as_slice()) {
                 let mut string = mem::uninitialized();
-                let arg = o.slice_from(opt.len() + 1).as_bytes();
+                let arg = o[opt.len() + 1..].as_bytes();
                 let c_str = ffi::CString::from_slice(arg);
                 cef_string_utf16_set(c_str.as_bytes().as_ptr() as *const _,
                                      arg.len() as size_t,
