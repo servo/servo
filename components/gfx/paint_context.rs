@@ -687,7 +687,10 @@ impl<'a> PaintContext<'a> {
     }
 
     fn scale_color(&self, color: Color, scale_factor: f32) -> Color {
-        return Color::new(color.r * scale_factor, color.g * scale_factor, color.b * scale_factor, color.a);
+        return color::new(color.r * scale_factor,
+                          color.g * scale_factor,
+                          color.b * scale_factor,
+                          color.a);
     }
 
     fn draw_double_border_segment(&self,
@@ -735,8 +738,8 @@ impl<'a> PaintContext<'a> {
             lighter_color = color;
         } else {
             // You can't scale black color (i.e. 'scaled = 0 * scale', equals black).
-            darker_color = Color::new(0.3, 0.3, 0.3, color.a);
-            lighter_color = Color::new(0.7, 0.7, 0.7, color.a);
+            darker_color = color::new(0.3, 0.3, 0.3, color.a);
+            lighter_color = color::new(0.7, 0.7, 0.7, color.a);
         }
 
         let (outer_color, inner_color) = match (direction, is_groove) {
@@ -787,16 +790,16 @@ impl<'a> PaintContext<'a> {
             scaled_color = match direction {
                 Direction::Top | Direction::Left => {
                     if is_inset {
-                        Color::new(0.3, 0.3, 0.3, color.a)
+                        color::new(0.3, 0.3, 0.3, color.a)
                     } else {
-                        Color::new(0.7, 0.7, 0.7, color.a)
+                        color::new(0.7, 0.7, 0.7, color.a)
                     }
                 }
                 Direction::Right | Direction::Bottom => {
                     if is_inset {
-                        Color::new(0.7, 0.7, 0.7, color.a)
+                        color::new(0.7, 0.7, 0.7, color.a)
                     } else {
-                        Color::new(0.3, 0.3, 0.3, color.a)
+                        color::new(0.3, 0.3, 0.3, color.a)
                     }
                 }
             };

@@ -16,7 +16,6 @@
 
 #![deny(unsafe_blocks)]
 
-use color::Color;
 use display_list::optimizer::DisplayListOptimizer;
 use paint_context::{PaintContext, ToAzureRect};
 use self::DisplayItem::*;
@@ -25,6 +24,8 @@ use text::glyph::CharIndex;
 use text::TextRun;
 
 use azure::azure::AzFloat;
+use azure::azure_hl::{Color};
+
 use collections::dlist::{self, DList};
 use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 use geom::num::Zero;
