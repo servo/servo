@@ -487,10 +487,10 @@ pub mod longhands {
                     Ok(SpecifiedValue::Percentage(value.unit_value))
                 }
                 Token::Dimension(ref value, ref unit) if value.value >= 0. => {
-                    specified::Length::parse_dimension(value.value, unit.as_slice())
+                    specified::Length::parse_dimension(value.value, unit)
                     .map(SpecifiedValue::Length)
                 }
-                Token::Ident(ref value) if value.as_slice().eq_ignore_ascii_case("normal") => {
+                Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
                     Ok(SpecifiedValue::Normal)
                 }
                 _ => Err(()),
@@ -781,7 +781,7 @@ pub mod longhands {
             if input.try(|input| input.expect_ident_matching("none")).is_ok() {
                 Ok(SpecifiedValue::None)
             } else {
-                Ok(SpecifiedValue::Url(context.parse_url(try!(input.expect_url()).as_slice())))
+                Ok(SpecifiedValue::Url(context.parse_url(&*try!(input.expect_url()))))
             }
         }
         #[inline]
@@ -988,7 +988,7 @@ pub mod longhands {
             impl FontFamily {
                 pub fn name(&self) -> &str {
                     match *self {
-                        FontFamily::FamilyName(ref name) => name.as_slice(),
+                        FontFamily::FamilyName(ref name) => name,
                     }
                 }
             }
@@ -1040,7 +1040,7 @@ pub mod longhands {
             let mut value = first_ident.into_owned();
             while let Ok(ident) = input.try(|input| input.expect_ident()) {
                 value.push_str(" ");
-                value.push_str(ident.as_slice());
+                value.push_str(&ident);
             }
             Ok(FontFamily::FamilyName(value))
         }
@@ -1555,7 +1555,7 @@ pub mod longhands {
             if ident.eq_ignore_ascii_case("auto") {
                 Ok(SpecifiedValue::AutoCursor)
             } else {
-                util_cursor::Cursor::from_css_keyword(ident.as_slice())
+                util_cursor::Cursor::from_css_keyword(&ident)
                 .map(SpecifiedValue::SpecifiedCursor)
             }
         }
@@ -2600,9 +2600,9 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
         match declaration {
             Ok((results, important)) => {
                 if important {
-                    important_declarations.push_all(results.as_slice());
+                    important_declarations.push_all(&results);
                 } else {
-                    normal_declarations.push_all(results.as_slice());
+                    normal_declarations.push_all(&results);
                 }
             }
             Err(range) => {
@@ -2727,11 +2727,12 @@ impl PropertyDeclaration {
     }
 
     pub fn matches(&self, name: &str) -> bool {
-        let name_lower = name.as_slice().to_ascii_lowercase();
-        match (self, name_lower.as_slice()) {
+        match *self {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
-                    (&PropertyDeclaration::${property.camel_case}(..), "${property.name}") => true,
+                    PropertyDeclaration::${property.camel_case}(..) => {
+                        name.eq_ignore_ascii_case("${property.name}")
+                    }
                 % endif
             % endfor
             _ => false,

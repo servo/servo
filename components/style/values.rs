@@ -89,7 +89,7 @@ pub mod specified {
     impl ToCss for CSSColor {
         fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
             match self.authored {
-                Some(ref s) => dest.write_str(s.as_slice()),
+                Some(ref s) => dest.write_str(s),
                 None => self.parsed.to_css(dest),
             }
         }
@@ -107,7 +107,7 @@ pub mod specified {
     impl ToCss for CSSRGBA {
         fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
             match self.authored {
-                Some(ref s) => dest.write_str(s.as_slice()),
+                Some(ref s) => dest.write_str(s),
                 None => self.parsed.to_css(dest),
             }
         }
@@ -171,7 +171,7 @@ pub mod specified {
         fn parse_internal(input: &mut Parser, negative_ok: bool) -> Result<Length, ()> {
             match try!(input.next()) {
                 Token::Dimension(ref value, ref unit) if negative_ok || value.value >= 0. => {
-                    Length::parse_dimension(value.value, unit.as_slice())
+                    Length::parse_dimension(value.value, unit)
                 }
                 Token::Number(ref value) if value.value == 0. => Ok(Length::Au(Au(0))),
                 _ => Err(())
@@ -229,7 +229,7 @@ pub mod specified {
                           -> Result<LengthOrPercentage, ()> {
             match try!(input.next()) {
                 Token::Dimension(ref value, ref unit) if negative_ok || value.value >= 0. => {
-                    Length::parse_dimension(value.value, unit.as_slice())
+                    Length::parse_dimension(value.value, unit)
                     .map(LengthOrPercentage::Length)
                 }
                 Token::Percentage(ref value) if negative_ok || value.unit_value >= 0. => {
@@ -278,7 +278,7 @@ pub mod specified {
                      -> Result<LengthOrPercentageOrAuto, ()> {
             match try!(input.next()) {
                 Token::Dimension(ref value, ref unit) if negative_ok || value.value >= 0. => {
-                    Length::parse_dimension(value.value, unit.as_slice())
+                    Length::parse_dimension(value.value, unit)
                     .map(LengthOrPercentageOrAuto::Length)
                 }
                 Token::Percentage(ref value) if negative_ok || value.unit_value >= 0. => {
@@ -329,7 +329,7 @@ pub mod specified {
                      -> Result<LengthOrPercentageOrNone, ()> {
             match try!(input.next()) {
                 Token::Dimension(ref value, ref unit) if negative_ok || value.value >= 0. => {
-                    Length::parse_dimension(value.value, unit.as_slice())
+                    Length::parse_dimension(value.value, unit)
                     .map(LengthOrPercentageOrNone::Length)
                 }
                 Token::Percentage(ref value) if negative_ok || value.unit_value >= 0. => {
@@ -370,7 +370,7 @@ pub mod specified {
         pub fn parse(input: &mut Parser) -> Result<PositionComponent, ()> {
             match try!(input.next()) {
                 Token::Dimension(ref value, ref unit) => {
-                    Length::parse_dimension(value.value, unit.as_slice())
+                    Length::parse_dimension(value.value, unit)
                     .map(PositionComponent::Length)
                 }
                 Token::Percentage(ref value) => {
@@ -479,7 +479,7 @@ pub mod specified {
         pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Image, ()> {
             match try!(input.next()) {
                 Token::Url(url) => {
-                    Ok(Image::Url(context.parse_url(url.as_slice())))
+                    Ok(Image::Url(context.parse_url(&url)))
                 }
                 Token::Function(name) => {
                     match_ignore_ascii_case! { name,

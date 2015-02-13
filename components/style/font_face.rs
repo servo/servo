@@ -20,11 +20,11 @@ pub fn iter_font_face_rules_inner<F>(rules: &[CSSRule], device: &Device,
             CSSRule::Charset(..) |
             CSSRule::Namespace(..) => {},
             CSSRule::Media(ref rule) => if rule.media_queries.evaluate(device) {
-                iter_font_face_rules_inner(rule.rules.as_slice(), device, callback)
+                iter_font_face_rules_inner(&rule.rules, device, callback)
             },
             CSSRule::FontFace(ref rule) => {
                 for source in rule.sources.iter() {
-                    callback(rule.family.as_slice(), source)
+                    callback(&rule.family, source)
                 }
             },
         }
@@ -130,7 +130,7 @@ fn parse_one_src(context: &ParserContext, input: &mut Parser) -> Result<Source, 
     let url = match input.next() {
         // Parsing url()
         Ok(Token::Url(url)) => {
-            UrlParser::new().base_url(context.base_url).parse(url.as_slice()).unwrap_or_else(
+            UrlParser::new().base_url(context.base_url).parse(&url).unwrap_or_else(
                 |_error| Url::parse("about:invalid").unwrap())
         },
         // Parsing local() with early return

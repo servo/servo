@@ -5,9 +5,13 @@
 #![feature(plugin)]
 #![feature(int_uint)]
 #![feature(box_syntax)]
+#![feature(core)]
+#![feature(std_misc)]
+#![feature(hash)]
+#![feature(collections)]
+#![feature(rustc_private)]
 
 #![allow(missing_copy_implementations)]
-#![allow(unstable)]
 
 #[macro_use] extern crate log;
 #[macro_use] extern crate bitflags;
