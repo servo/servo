@@ -17,7 +17,7 @@ use glutin_app;
 use libc::c_int;
 use util::opts;
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, RefCell, BorrowState};
 use std::sync::atomic::{AtomicInt, Ordering};
 
 thread_local!(pub static ID_COUNTER: AtomicInt = AtomicInt::new(0));
@@ -144,19 +144,19 @@ impl ServoCefBrowserExtensions for CefBrowser {
         self.downcast().message_queue.borrow_mut().push(event);
 
         loop {
-            match self.downcast().servo_browser.try_borrow_mut() {
-                None => {
-                    // We're trying to send an event while processing another one. This will
-                    // cause general badness, so queue up that event instead of immediately
-                    // processing it.
-                    break
-                }
-                Some(ref mut browser) => {
+            match self.downcast().servo_browser.borrow_state() {
+                BorrowState::Unused => {
                     let event = match self.downcast().message_queue.borrow_mut().pop() {
                         None => return,
                         Some(event) => event,
                     };
-                    browser.handle_event(event);
+                    self.downcast().servo_browser.borrow_mut().handle_event(event);
+                }
+                _ => {
+                    // We're trying to send an event while processing another one. This will
+                    // cause general badness, so queue up that event instead of immediately
+                    // processing it.
+                    break
                 }
             }
         }
