@@ -31,9 +31,6 @@ use std::ffi::CString;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, channel};
 
-#[cfg(target_os="macos")]
-use std::ptr;
-
 /// The type of an off-screen window.
 #[derive(Clone)]
 pub struct Window {
@@ -355,7 +352,7 @@ impl CompositorProxy for CefCompositorProxy {
     #[cfg(target_os="linux")]
     fn send(&mut self, msg: compositor_task::Msg) {
         // FIXME(pcwalton): Kick the GTK event loop awake?
-        self.sender.send(msg);
+        self.sender.send(msg).unwrap();
     }
 
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {

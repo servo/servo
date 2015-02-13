@@ -18,6 +18,7 @@ use types::{cef_string_userfree_utf16_t, cef_string_userfree_utf8_t, cef_string_
 //cef_string
 
 #[no_mangle]
+#[allow(private_no_mangle_fns)]
 extern "C" fn string_wide_dtor(str: *mut wchar_t) {
     unsafe {
         libc::free(str as *mut c_void)
@@ -25,6 +26,7 @@ extern "C" fn string_wide_dtor(str: *mut wchar_t) {
 }
 
 #[no_mangle]
+#[allow(private_no_mangle_fns)]
 extern "C" fn string_utf8_dtor(str: *mut u8) {
     unsafe {
         libc::free(str as *mut c_void)
@@ -32,6 +34,7 @@ extern "C" fn string_utf8_dtor(str: *mut u8) {
 }
 
 #[no_mangle]
+#[allow(private_no_mangle_fns)]
 extern "C" fn string_utf16_dtor(str: *mut c_ushort) {
     unsafe {
         libc::free(str as *mut c_void)
@@ -109,8 +112,8 @@ pub extern "C" fn cef_string_utf8_cmp(a: *const cef_string_utf8_t, b: *const cef
     unsafe {
         let astr = (*a).str as *const u8;
         let bstr = (*b).str as *const u8;
-        let astr = slice::from_raw_buf(&astr, (*a).length as uint);
-        let bstr = slice::from_raw_buf(&bstr, (*b).length as uint);
+        let astr = slice::from_raw_parts(astr, (*a).length as uint);
+        let bstr = slice::from_raw_parts(bstr, (*b).length as uint);
         match astr.cmp(bstr) {
             Ordering::Less => -1,
             Ordering::Equal => 0,
@@ -131,7 +134,7 @@ pub extern "C" fn cef_string_utf8_to_utf16(src: *const u8, src_len: size_t, outp
 #[no_mangle]
 pub extern "C" fn cef_string_utf16_to_utf8(src: *const u16, src_len: size_t, output: *mut cef_string_utf8_t) -> c_int {
     unsafe {
-        let ustr = slice::from_raw_buf(&src, src_len as uint);
+        let ustr = slice::from_raw_parts(src, src_len as uint);
         match string::String::from_utf16(ustr) {
             Ok(str) => {
                 cef_string_utf8_set(str.as_bytes().as_ptr(), str.len() as size_t, output, 1);
@@ -190,8 +193,8 @@ pub extern "C" fn cef_string_utf16_cmp(a: *const cef_string_utf16_t, b: *const c
     unsafe {
         let astr = (*a).str as *const _;
         let bstr = (*b).str as *const _;
-        let astr: &[u16] = slice::from_raw_buf(&astr, (*a).length as uint);
-        let bstr: &[u16] = slice::from_raw_buf(&bstr, (*b).length as uint);
+        let astr: &[u16] = slice::from_raw_parts(astr, (*a).length as uint);
+        let bstr: &[u16] = slice::from_raw_parts(bstr, (*b).length as uint);
         match astr.cmp(bstr) {
             Ordering::Less => -1,
             Ordering::Equal => 0,
@@ -248,8 +251,8 @@ pub extern "C" fn cef_string_wide_cmp(a: *const cef_string_wide_t, b: *const cef
     unsafe {
         let astr = (*a).str as *const wchar_t;
         let bstr = (*b).str as *const wchar_t;
-        let astr = slice::from_raw_buf(&astr, (*a).length as uint);
-        let bstr = slice::from_raw_buf(&bstr, (*b).length as uint);
+        let astr = slice::from_raw_parts(astr, (*a).length as uint);
+        let bstr = slice::from_raw_parts(bstr, (*b).length as uint);
         match astr.cmp(bstr) {
             Ordering::Less => -1,
             Ordering::Equal => 0,
@@ -275,7 +278,7 @@ pub extern "C" fn cef_string_wide_to_utf8(src: *const wchar_t, src_len: size_t, 
          return cef_string_utf16_to_utf8(src as *const u16, src_len, output);
     }
     unsafe {
-        let ustr = slice::from_raw_buf(&src, src_len as uint);
+        let ustr = slice::from_raw_parts(src, src_len as uint);
         let conv = ustr.iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>();
         cef_string_utf8_set(conv.as_bytes().as_ptr(), conv.len() as size_t, output, 1)
     }
@@ -292,7 +295,7 @@ pub extern "C" fn cef_string_ascii_to_utf16(src: *const u8, src_len: size_t, out
 #[no_mangle]
 pub extern "C" fn cef_string_ascii_to_wide(src: *const u8, src_len: size_t, output: *mut cef_string_wide_t) -> c_int {
     unsafe {
-        let ustr = slice::from_raw_buf(&src, src_len as uint);
+        let ustr = slice::from_raw_parts(src, src_len as uint);
         let conv = ustr.iter().map(|&c| c as u8).collect::<Vec<u8>>();
         cef_string_wide_set(conv.as_ptr() as *const wchar_t, conv.len() as size_t, output, 1)
     }
