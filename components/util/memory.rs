@@ -198,17 +198,31 @@ extern {
                   newp: *mut c_void, newlen: size_t) -> c_int;
 }
 
-fn get_jemalloc_stat(name: &'static str) -> Option<u64> {
-    let mut old: size_t = 0;
-    let c_name = CString::from_slice(name.as_bytes());
-    let oldp = &mut old as *mut _ as *mut c_void;
-    let mut oldlen = size_of::<size_t>() as size_t;
-    let rv: c_int;
+fn get_jemalloc_stat(value_name: &str) -> Option<u64> {
+    // Before we request the measurement of interest, we first send an "epoch"
+    // request. Without that jemalloc gives cached statistics(!) which can be
+    // highly inaccurate.
+    let epoch_name = "epoch";
+    let epoch_c_name = CString::from_slice(epoch_name.as_bytes());
+    let mut epoch: u64 = 0;
+    let epoch_ptr = &mut epoch as *mut _ as *mut c_void;
+    let mut epoch_len = size_of::<u64>() as size_t;
+
+    let value_c_name = CString::from_slice(value_name.as_bytes());
+    let mut value: size_t = 0;
+    let value_ptr = &mut value as *mut _ as *mut c_void;
+    let mut value_len = size_of::<size_t>() as size_t;
+
+    let mut rv: c_int;
     unsafe {
-        rv = je_mallctl(c_name.as_ptr(), oldp, &mut oldlen, null_mut(), 0);
-        mem::forget(c_name); // XXX correct?
+        // Using the same values for the `old` and `new` parameters is enough
+        // to get the statistics updated.
+        rv = je_mallctl(epoch_c_name.as_ptr(), epoch_ptr, &mut epoch_len, epoch_ptr, epoch_len);
+        if rv == 0 {
+            rv = je_mallctl(value_c_name.as_ptr(), value_ptr, &mut value_len, null_mut(), 0);
+        }
     }
-    if rv == 0 { Some(old as u64) } else { None }
+    if rv == 0 { Some(value as u64) } else { None }
 }
 
 // Like std::macros::try!, but for Option<>.
