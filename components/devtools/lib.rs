@@ -35,8 +35,8 @@ use actors::root::RootActor;
 use actors::tab::TabActor;
 use protocol::JsonPacketStream;
 
-use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg};
-use devtools_traits::{DevtoolsPageInfo, SendConsoleMessage, ConsoleMessage};
+use devtools_traits::{ConsoleMessage, DevtoolsControlMsg};
+use devtools_traits::{DevtoolsPageInfo, DevtoolScriptControlMsg};
 use msg::constellation_msg::PipelineId;
 use util::task::spawn_named;
 
@@ -231,11 +231,11 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
         match acceptor.accept() {
             Err(ref e) if e.kind == TimedOut => {
                 match receiver.try_recv() {
-                    Ok(ServerExitMsg) | Err(Disconnected) => break,
-                    Ok(NewGlobal(id, sender, pageinfo)) =>
+                    Ok(DevtoolsControlMsg::ServerExitMsg) | Err(Disconnected) => break,
+                    Ok(DevtoolsControlMsg::NewGlobal(id, sender, pageinfo)) =>
                         handle_new_global(actors.clone(), id,sender, &mut actor_pipelines,
                                           pageinfo),
-                    Ok(SendConsoleMessage(id, console_message)) =>
+                    Ok(DevtoolsControlMsg::SendConsoleMessage(id, console_message)) =>
                         handle_console_message(actors.clone(), id, console_message,
                                                &actor_pipelines),
                     Err(Empty) => acceptor.set_timeout(Some(POLL_TIMEOUT)),

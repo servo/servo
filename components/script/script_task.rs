@@ -41,9 +41,8 @@ use page::{Page, IterablePage, Frame};
 use timers::TimerId;
 use devtools;
 
-use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, GetRootNode, DevtoolsPageInfo};
-use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, GetDocumentElement};
-use devtools_traits::{GetChildren, GetLayout, ModifyAttribute, WantsLiveNotifications};
+use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, DevtoolsPageInfo};
+use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
 use script_traits::CompositorEvent;
 use script_traits::CompositorEvent::{ResizeEvent, ReflowEvent, ClickEvent};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
@@ -633,19 +632,19 @@ impl ScriptTask {
 
     fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg) {
         match msg {
-            EvaluateJS(id, s, reply) =>
+            DevtoolScriptControlMsg::EvaluateJS(id, s, reply) =>
                 devtools::handle_evaluate_js(&*self.page.borrow(), id, s, reply),
-            GetRootNode(id, reply) =>
+            DevtoolScriptControlMsg::GetRootNode(id, reply) =>
                 devtools::handle_get_root_node(&*self.page.borrow(), id, reply),
-            GetDocumentElement(id, reply) =>
+            DevtoolScriptControlMsg::GetDocumentElement(id, reply) =>
                 devtools::handle_get_document_element(&*self.page.borrow(), id, reply),
-            GetChildren(id, node_id, reply) =>
+            DevtoolScriptControlMsg::GetChildren(id, node_id, reply) =>
                 devtools::handle_get_children(&*self.page.borrow(), id, node_id, reply),
-            GetLayout(id, node_id, reply) =>
+            DevtoolScriptControlMsg::GetLayout(id, node_id, reply) =>
                 devtools::handle_get_layout(&*self.page.borrow(), id, node_id, reply),
-            ModifyAttribute(id, node_id, modifications) =>
+            DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) =>
                 devtools::handle_modify_attribute(&*self.page.borrow(), id, node_id, modifications),
-            WantsLiveNotifications(pipeline_id, to_send) =>
+            DevtoolScriptControlMsg::WantsLiveNotifications(pipeline_id, to_send) =>
                 devtools::handle_wants_live_notifications(&*self.page.borrow(), pipeline_id, to_send),
         }
     }
@@ -947,8 +946,9 @@ impl ScriptTask {
                     title: document.r().Title(),
                     url: final_url
                 };
-                chan.send(NewGlobal(pipeline_id, self.devtools_sender.clone(),
-                                    page_info)).unwrap();
+                chan.send(DevtoolsControlMsg::NewGlobal(pipeline_id,
+                                                        self.devtools_sender.clone(),
+                                                        page_info)).unwrap();
             }
         }
     }

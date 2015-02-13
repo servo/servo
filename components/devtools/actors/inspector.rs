@@ -4,8 +4,9 @@
 
 /// Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
-use devtools_traits::{GetRootNode, GetDocumentElement, GetChildren, DevtoolScriptControlMsg};
-use devtools_traits::{GetLayout, NodeInfo, ModifyAttribute};
+use devtools_traits::{DevtoolScriptControlMsg, NodeInfo};
+use devtools_traits::DevtoolScriptControlMsg::{GetRootNode, GetDocumentElement, GetChildren};
+use devtools_traits::DevtoolScriptControlMsg::{GetLayout, ModifyAttribute};
 
 use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketStream;
