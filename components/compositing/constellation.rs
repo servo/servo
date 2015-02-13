@@ -1084,7 +1084,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             return; // Our message has been discarded, probably shutting down.
         }
 
-        let mut iter = frame_tree.iter();
+        let iter = frame_tree.iter();
         for frame in iter {
             frame.has_compositor_layer.set(true);
             frame.pipeline.borrow().grant_paint_permission();

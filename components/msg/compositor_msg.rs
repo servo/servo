@@ -8,7 +8,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use layers::platform::surface::NativeGraphicsMetadata;
 use layers::layers::LayerBufferSet;
-use std::fmt::{Formatter, Show};
+use std::fmt::{Formatter, Debug};
 use std::fmt;
 
 use constellation_msg::PipelineId;
@@ -20,7 +20,7 @@ pub enum PaintState {
     Painting,
 }
 
-#[derive(Eq, Ord, PartialEq, PartialOrd, Clone, Show, Copy)]
+#[derive(Eq, Ord, PartialEq, PartialOrd, Clone, Debug, Copy)]
 pub enum ReadyState {
     /// Informs the compositor that nothing has been done yet. Used for setting status
     Blank,
@@ -33,7 +33,7 @@ pub enum ReadyState {
 }
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
-#[derive(PartialEq, Eq, Show, Copy)]
+#[derive(PartialEq, Eq, Debug, Copy)]
 pub struct Epoch(pub uint);
 
 impl Epoch {
@@ -46,7 +46,7 @@ impl Epoch {
 #[derive(Clone, PartialEq, Eq, Copy)]
 pub struct LayerId(pub uint, pub uint);
 
-impl Show for LayerId {
+impl Debug for LayerId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let LayerId(a, b) = *self;
         write!(f, "Layer({}, {})", a, b)

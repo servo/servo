@@ -126,7 +126,7 @@ reason: \"certificate verify failed\" }]";
         req.headers_mut().set(host);
 
         let (tx, rx) = channel();
-        cookies_chan.send(ControlMsg::GetCookiesForUrl(url.clone(), tx, CookieSource::HTTP));
+        cookies_chan.send(ControlMsg::GetCookiesForUrl(url.clone(), tx, CookieSource::HTTP)).unwrap();
         if let Some(cookie_list) = rx.recv().unwrap() {
             let mut v = Vec::new();
             v.push(cookie_list.into_bytes());
@@ -157,7 +157,7 @@ reason: \"certificate verify failed\" }]";
                         return;
                     }
                 };
-                match writer.write(data.as_slice()) {
+                match writer.write_all(&*data) {
                     Err(e) => {
                         send_error(url, e.desc.to_string(), senders);
                         return;
@@ -201,7 +201,7 @@ reason: \"certificate verify failed\" }]";
                 if let Ok(cookies) = String::from_utf8(cookie.clone()) {
                     cookies_chan.send(ControlMsg::SetCookiesForUrl(url.clone(),
                                                                    cookies,
-                                                                   CookieSource::HTTP));
+                                                                   CookieSource::HTTP)).unwrap();
                 }
             }
         }

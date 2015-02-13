@@ -42,8 +42,6 @@
 //!     let mut stealer2 = stealer.clone();
 //!     stealer2.steal();
 
-#![experimental]
-
 // NB: the "buffer pool" strategy is not done for speed, but rather for
 //     correctness. For more info, see the comment on `swap_buffer`
 

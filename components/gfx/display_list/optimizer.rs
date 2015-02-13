@@ -43,7 +43,7 @@ impl DisplayListOptimizer {
     /// Adds display items that intersect the visible rect to `result_list`.
     fn add_in_bounds_display_items<'a,I>(&self,
                                          result_list: &mut DList<DisplayItem>,
-                                         mut display_items: I)
+                                         display_items: I)
                                          where I: Iterator<Item=&'a DisplayItem> {
         for display_item in display_items {
             if self.visible_rect.intersects(&display_item.base().bounds) &&
@@ -56,7 +56,7 @@ impl DisplayListOptimizer {
     /// Adds child stacking contexts whose boundaries intersect the visible rect to `result_list`.
     fn add_in_bounds_stacking_contexts<'a,I>(&self,
                                              result_list: &mut DList<Arc<StackingContext>>,
-                                             mut stacking_contexts: I)
+                                             stacking_contexts: I)
                                              where I: Iterator<Item=&'a Arc<StackingContext>> {
         for stacking_context in stacking_contexts {
             let overflow = stacking_context.overflow.translate(&stacking_context.bounds.origin);
