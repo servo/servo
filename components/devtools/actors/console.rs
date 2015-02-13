@@ -9,8 +9,9 @@
 use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketStream;
 
-use devtools_traits;
-use devtools_traits::{DevtoolScriptControlMsg};
+use devtools_traits::EvaluateJSReply::{NullValue, VoidValue, NumberValue};
+use devtools_traits::EvaluateJSReply::{StringValue, BooleanValue, ActorValue};
+use devtools_traits::DevtoolScriptControlMsg;
 use msg::constellation_msg::PipelineId;
 
 use collections::BTreeMap;
@@ -226,18 +227,18 @@ impl Actor for ConsoleActor {
 
                 //TODO: extract conversion into protocol module or some other useful place
                 let result = match try!(port.recv().map_err(|_| ())) {
-                    devtools_traits::EvaluateJSReply::VoidValue => {
+                    VoidValue => {
                         let mut m = BTreeMap::new();
                         m.insert("type".to_string(), "undefined".to_string().to_json());
                         Json::Object(m)
                     }
-                    devtools_traits::EvaluateJSReply::NullValue => {
+                    NullValue => {
                         let mut m = BTreeMap::new();
                         m.insert("type".to_string(), "null".to_string().to_json());
                         Json::Object(m)
                     }
-                    devtools_traits::EvaluateJSReply::BooleanValue(val) => val.to_json(),
-                    devtools_traits::EvaluateJSReply::NumberValue(val) => {
+                    BooleanValue(val) => val.to_json(),
+                    NumberValue(val) => {
                         if val.is_nan() {
                             let mut m = BTreeMap::new();
                             m.insert("type".to_string(), "NaN".to_string().to_json());
@@ -258,8 +259,8 @@ impl Actor for ConsoleActor {
                             val.to_json()
                         }
                     }
-                    devtools_traits::EvaluateJSReply::StringValue(s) => s.to_json(),
-                    devtools_traits::EvaluateJSReply::ActorValue(s) => {
+                    StringValue(s) => s.to_json(),
+                    ActorValue(s) => {
                         //TODO: make initial ActorValue message include these properties.
                         let mut m = BTreeMap::new();
                         m.insert("type".to_string(), "object".to_string().to_json());
