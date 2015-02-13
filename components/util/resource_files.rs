@@ -5,14 +5,6 @@
 use std::old_io::{File, IoResult};
 use std::old_path::Path;
 
-#[cfg(not(target_os = "android"))]
-use opts;
-
-#[cfg(not(target_os = "android"))]
-use std::old_io::fs::PathExtensions;
-#[cfg(not(target_os = "android"))]
-use std::os;
-
 #[cfg(target_os = "android")]
 pub fn resources_dir_path() -> Path {
     Path::new("/sdcard/servo/")
@@ -20,13 +12,18 @@ pub fn resources_dir_path() -> Path {
 
 #[cfg(not(target_os = "android"))]
 pub fn resources_dir_path() -> Path {
+    use opts;
+    use std::env;
+    use std::old_io::fs::PathExtensions;
+
     match opts::get().resources_path {
         Some(ref path) => Path::new(path),
         None => {
             // FIXME: Find a way to not rely on the executable being
             // under `<servo source>/components/servo/target`
             // or `<servo source>/components/servo/target/release`.
-            let mut path = os::self_exe_path().expect("can't get exe path");
+            let mut path = env::current_exe().ok().expect("can't get exe path");
+            path.pop();
             path.pop();
             path.pop();
             path.pop();

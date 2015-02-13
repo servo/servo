@@ -273,7 +273,7 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA,()> {
 
     // Step 12.
     let mut length = input.len() / 3;
-    let (mut red, mut green, mut blue) = (input.slice_to(length),
+    let (mut red, mut green, mut blue) = (&input[..length],
                                           &input[length..length * 2],
                                           &input[length * 2..]);
 
