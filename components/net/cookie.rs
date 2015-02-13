@@ -100,7 +100,7 @@ impl Cookie {
            request_path.chars().filter(|&c| c == '/').count() == 1 {
             "/".to_owned()
         } else if request_path.ends_with("/") {
-            request_path.slice_to(request_path.len()-1).to_owned()
+            request_path[..request_path.len() - 1].to_owned()
         } else {
             request_path.to_owned()
         }

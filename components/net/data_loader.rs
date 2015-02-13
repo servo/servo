@@ -55,7 +55,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     let mut ct_str = parts[0];
     if ct_str.ends_with(";base64") {
         is_base64 = true;
-        ct_str = ct_str.slice_to(ct_str.as_bytes().len() - 7);
+        ct_str = &ct_str[..ct_str.as_bytes().len() - 7];
     }
 
     // Parse the content type using rust-http.

@@ -2,12 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(int_uint)]
-#![feature(unboxed_closures)]
 #![feature(box_syntax)]
+#![feature(collections)]
+#![feature(core)]
+#![feature(env)]
+#![feature(int_uint)]
+#![feature(io)]
+#![feature(path)]
+#![feature(rustc_private)]
+#![feature(std_misc)]
+#![feature(unboxed_closures)]
 
 #![allow(missing_copy_implementations)]
-#![allow(unstable)]
 
 extern crate "cookie" as cookie_rs;
 extern crate collections;
