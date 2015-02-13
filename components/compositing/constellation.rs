@@ -6,7 +6,6 @@ use pipeline::{Pipeline, CompositionPipeline};
 
 use compositor_task::CompositorProxy;
 use compositor_task::Msg as CompositorMsg;
-use devtools_traits;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlMsg};
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
