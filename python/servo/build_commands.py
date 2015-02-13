@@ -161,7 +161,10 @@ class MachCommands(CommandBase):
     @CommandArgument('--verbose', '-v',
                      action='store_true',
                      help='Print verbose output')
-    def clean(self, manifest_path, verbose=False):
+    
+    @CommandArgument('params', nargs='...',
+                     help="Command-line arguments to be passed through to Cargo")
+    def clean(self, manifest_path, params, verbose=False):
         self.ensure_bootstrapped()
 
         opts = []
@@ -169,6 +172,6 @@ class MachCommands(CommandBase):
             opts += ["--manifest-path", manifest_path]
         if verbose:
             opts += ["-v"]
-
+	opts += params
         return subprocess.call(["cargo", "clean"] + opts,
                                env=self.build_env(), cwd=self.servo_crate())
