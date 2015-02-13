@@ -38,26 +38,30 @@ pub fn match_ty_unwrap<'a>(ty: &'a Ty, segments: &[&str]) -> Option<&'a [P<Ty>]>
 
 /// Checks if a type has a #[servo_lang = "str"] attribute
 pub fn match_lang_ty(cx: &Context, ty: &Ty, value: &str) -> bool {
-    let mut found = false;
-    if let TyPath(_, ty_id) = ty.node {
-        if let Some(def::DefTy(def_id, _)) = cx.tcx.def_map.borrow().get(&ty_id).cloned() {
-            // Iterating through attributes is hard because of cross-crate defs
-            for attr in ty::get_attrs(cx.tcx, def_id).iter() {
-                if let ast::MetaNameValue(ref name, ref val) = attr.node.value.node {
-                    if &**name == "servo_lang" {
-                        if let ast::LitStr(ref v, _) = val.node {
-                            if &**v == value {
-                                mark_used(attr);
-                                found = true;
-                                break
-                            }
-                        }
-                    }
+    let ty_id = match ty.node {
+        TyPath(_, ty_id) => ty_id,
+        _ => return false,
+    };
+
+    let def_id = match cx.tcx.def_map.borrow().get(&ty_id).cloned() {
+        Some(def::DefTy(def_id, _)) => def_id,
+        _ => return false,
+    };
+
+    ty::get_attrs(cx.tcx, def_id).iter().any(|attr| {
+        match attr.node.value.node {
+            ast::MetaNameValue(ref name, ref val) if &**name == "servo_lang" => {
+                match val.node {
+                    ast::LitStr(ref v, _) if &**v == value => {
+                        mark_used(attr);
+                        true
+                    },
+                    _ => false,
                 }
             }
-        };
-    }
-    found
+            _ => false,
+        }
+    })
 }
 
 // Determines if a block is in an unsafe context so that an unhelpful
