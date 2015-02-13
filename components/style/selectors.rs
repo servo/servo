@@ -125,13 +125,13 @@ fn compute_specificity(mut selector: &CompoundSelector,
     };
     if pseudo_element.is_some() { specificity.element_selectors += 1 }
 
-    simple_selectors_specificity(selector.simple_selectors.as_slice(), &mut specificity);
+    simple_selectors_specificity(&selector.simple_selectors, &mut specificity);
     loop {
         match selector.next {
             None => break,
             Some((ref next_selector, _)) => {
                 selector = &**next_selector;
-                simple_selectors_specificity(selector.simple_selectors.as_slice(), &mut specificity)
+                simple_selectors_specificity(&selector.simple_selectors, &mut specificity)
             }
         }
     }
@@ -169,7 +169,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
                     specificity.class_like_selectors += 1,
                 &SimpleSelector::Namespace(..) => (),
                 &SimpleSelector::Negation(ref negated) =>
-                    simple_selectors_specificity(negated.as_slice(), specificity),
+                    simple_selectors_specificity(negated, specificity),
             }
         }
     }
@@ -270,8 +270,8 @@ fn parse_type_selector(context: &ParserContext, input: &mut Parser)
             match local_name {
                 Some(name) => {
                     simple_selectors.push(SimpleSelector::LocalName(LocalName {
-                        name: Atom::from_slice(name.as_slice()),
-                        lower_name: Atom::from_slice(name.into_owned().into_ascii_lowercase().as_slice())
+                        name: Atom::from_slice(&name),
+                        lower_name: Atom::from_slice(&name.into_owned().into_ascii_lowercase())
                     }))
                 }
                 None => (),
@@ -322,7 +322,7 @@ fn parse_qualified_name<'i, 't>
             let position = input.position();
             match input.next_including_whitespace() {
                 Ok(Token::Delim('|')) => {
-                    let result = context.namespaces.prefix_map.get(value.as_slice());
+                    let result = context.namespaces.prefix_map.get(&*value);
                     let namespace = try!(result.ok_or(()));
                     explicit_namespace(input, NamespaceConstraint::Specific(namespace.clone()))
                 },
@@ -366,8 +366,8 @@ fn parse_attribute_selector(context: &ParserContext, input: &mut Parser)
         Some((_, None)) => unreachable!(),
         Some((namespace, Some(local_name))) => AttrSelector {
             namespace: namespace,
-            lower_name: Atom::from_slice(local_name.as_slice().to_ascii_lowercase().as_slice()),
-            name: Atom::from_slice(local_name.as_slice()),
+            lower_name: Atom::from_slice(&local_name.to_ascii_lowercase()),
+            name: Atom::from_slice(&local_name),
         },
     };
 
@@ -526,13 +526,13 @@ fn parse_one_simple_selector(context: &ParserContext,
     let start_position = input.position();
     match input.next_including_whitespace() {
         Ok(Token::IDHash(id)) => {
-            let id = SimpleSelector::ID(Atom::from_slice(id.as_slice()));
+            let id = SimpleSelector::ID(Atom::from_slice(&id));
             Ok(Some(SimpleSelectorParseResult::SimpleSelector(id)))
         }
         Ok(Token::Delim('.')) => {
             match input.next_including_whitespace() {
                 Ok(Token::Ident(class)) => {
-                    let class = SimpleSelector::Class(Atom::from_slice(class.as_slice()));
+                    let class = SimpleSelector::Class(Atom::from_slice(&class));
                     Ok(Some(SimpleSelectorParseResult::SimpleSelector(class)))
                 }
                 _ => Err(()),
@@ -547,7 +547,7 @@ fn parse_one_simple_selector(context: &ParserContext,
         Ok(Token::Colon) => {
             match input.next_including_whitespace() {
                 Ok(Token::Ident(name)) => {
-                    match parse_simple_pseudo_class(context, name.as_slice()) {
+                    match parse_simple_pseudo_class(context, &name) {
                         Err(()) => {
                             let pseudo_element = match_ignore_ascii_case! { name,
                                 // Supported CSS 2.1 pseudo-elements only.
@@ -564,16 +564,15 @@ fn parse_one_simple_selector(context: &ParserContext,
                     }
                 }
                 Ok(Token::Function(name)) => {
-                    let name = name.as_slice();
                     let pseudo = try!(input.parse_nested_block(|input| {
-                        parse_functional_pseudo_class(context, input, name, inside_negation)
+                        parse_functional_pseudo_class(context, input, &name, inside_negation)
                     }));
                     Ok(Some(SimpleSelectorParseResult::SimpleSelector(pseudo)))
                 }
                 Ok(Token::Colon) => {
                     match input.next() {
                         Ok(Token::Ident(name)) => {
-                            let pseudo = try!(parse_pseudo_element(name.as_slice()));
+                            let pseudo = try!(parse_pseudo_element(&name));
                             Ok(Some(SimpleSelectorParseResult::PseudoElement(pseudo)))
                         }
                         _ => Err(())
