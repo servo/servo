@@ -231,7 +231,7 @@ impl<'a> TextRun {
 
             // Create a glyph store for this slice if it's nonempty.
             if can_break_before && byte_i > byte_last_boundary {
-                let slice = text.slice(byte_last_boundary, byte_i);
+                let slice = &text[byte_last_boundary .. byte_i];
                 debug!("creating glyph store for slice {} (ws? {}), {} - {} in run {}",
                         slice, !cur_slice_is_whitespace, byte_last_boundary, byte_i, text);
 
@@ -254,7 +254,7 @@ impl<'a> TextRun {
 
         // Create a glyph store for the final slice if it's nonempty.
         if byte_i > byte_last_boundary {
-            let slice = text.slice_from(byte_last_boundary);
+            let slice = &text[byte_last_boundary..];
             debug!("creating glyph store for final slice {} (ws? {}), {} - {} in run {}",
                 slice, cur_slice_is_whitespace, byte_last_boundary, text.len(), text);
 
@@ -343,7 +343,7 @@ impl<'a> TextRun {
             Some(index) => index,
         };
         NaturalWordSliceIterator {
-            glyph_iter: self.glyphs.slice_from(index).iter(),
+            glyph_iter: self.glyphs[index..].iter(),
             range: *range,
         }
     }
@@ -356,7 +356,7 @@ impl<'a> TextRun {
             None => self.glyphs.len(),
             Some(index) => index,
         };
-        let mut glyph_run_iter = self.glyphs.slice_from(index).iter();
+        let mut glyph_run_iter = self.glyphs[index..].iter();
         let first_glyph_run = glyph_run_iter.next();
         CharacterSliceIterator {
             glyph_run: first_glyph_run,
