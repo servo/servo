@@ -60,7 +60,7 @@ pub enum KeyState {
 }
 
 //N.B. Based on the glutin key enum
-#[derive(Show, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Key {
     Space,
     Apostrophe,
@@ -237,22 +237,22 @@ impl LoadData {
 }
 
 /// Represents the two different ways to which a page can be navigated
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Show)]
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
 pub enum NavigationType {
     Load,               // entered or clicked on a url
     Navigate,           // browser forward/back buttons
 }
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Show)]
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
 pub enum NavigationDirection {
     Forward,
     Back,
 }
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Show)]
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
 pub struct PipelineId(pub uint);
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Show)]
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
 pub struct SubpageId(pub uint);
 
 // The type of pipeline exit. During complete shutdowns, pipelines do not have to
