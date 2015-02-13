@@ -6,7 +6,7 @@
 
 #![feature(int_uint)]
 #![feature(core)]
-#![feature(hash)]
+#![cfg_attr(feature = "window", feature(hash))]
 #![feature(box_syntax)]
 #![feature(libc)]
 
