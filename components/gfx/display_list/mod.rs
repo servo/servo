@@ -353,7 +353,7 @@ impl StackingContext {
         fn hit_test_in_list<'a,I>(point: Point2D<Au>,
                                   result: &mut Vec<DisplayItemMetadata>,
                                   topmost_only: bool,
-                                  mut iterator: I)
+                                  iterator: I)
                                   where I: Iterator<Item=&'a DisplayItem> {
             for item in iterator {
                 // TODO(pcwalton): Use a precise algorithm here. This will allow us to properly hit

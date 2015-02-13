@@ -23,12 +23,12 @@ use hyper::mime::{Mime, Attr};
 use url::Url;
 
 use std::borrow::{ToOwned, IntoCow};
+use std::collections::HashMap;
+use std::env;
+use std::mem;
+use std::old_io::{BufferedReader, File};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thunk::Invoke;
-use std::collections::HashMap;
-use std::old_io::{BufferedReader, File};
-use std::mem;
-use std::os;
 
 #[cfg(test)]
 use std::old_io::{Listener, Acceptor, TimedOut};
@@ -38,7 +38,7 @@ use std::old_io::net::tcp::TcpListener;
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 
 pub fn global_init() {
-    if let Some(host_file_path) = os::getenv("HOST_FILE") {
+    if let Ok(host_file_path) = env::var_string("HOST_FILE") {
         //TODO: handle bad file path and corrupted file
         let path = Path::new(host_file_path);
         let mut file = BufferedReader::new(File::open(&path));
@@ -291,7 +291,7 @@ impl ResourceManager {
                 }
               }
               ControlMsg::GetCookiesForUrl(url, consumer, source) => {
-                consumer.send(self.cookie_storage.cookies_for_url(&url, source));
+                consumer.send(self.cookie_storage.cookies_for_url(&url, source)).unwrap();
               }
               ControlMsg::Exit => {
                 break

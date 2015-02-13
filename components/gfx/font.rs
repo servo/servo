@@ -58,7 +58,7 @@ impl FontTableTagConversions for FontTableTag {
     fn tag_to_str(&self) -> String {
         unsafe {
             let pointer = mem::transmute::<&u32, *const u8>(self);
-            let mut bytes = slice::from_raw_buf(&pointer, 4).to_vec();
+            let mut bytes = slice::from_raw_parts(pointer, 4).to_vec();
             bytes.reverse();
             String::from_utf8_unchecked(bytes)
         }

@@ -345,7 +345,7 @@ impl<'a> DetailedGlyphStore {
         // FIXME: Is this right? --pcwalton
         // TODO: should fix this somewhere else
         if count == 0 {
-            return self.detail_buffer.slice(0, 0);
+            return &self.detail_buffer[0..0];
         }
 
         assert!((count as uint) <= self.detail_buffer.len());
@@ -361,7 +361,7 @@ impl<'a> DetailedGlyphStore {
 
         assert!(i + (count as uint) <= self.detail_buffer.len());
         // return a slice into the buffer
-        self.detail_buffer.slice(i, i + count as uint)
+        &self.detail_buffer[i .. i + count as uint]
     }
 
     fn get_detailed_glyph_with_index(&'a self,

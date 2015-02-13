@@ -10,13 +10,13 @@
 #![crate_type = "rlib"]
 
 #![feature(int_uint)]
+#![feature(rustc_private)]
 
 #![allow(non_snake_case)]
 #![allow(missing_copy_implementations)]
-#![allow(unstable)]
 
 extern crate msg;
-extern crate serialize;
+extern crate "serialize" as rustc_serialize;
 extern crate url;
 extern crate util;
 
@@ -24,7 +24,7 @@ pub use self::DevtoolsControlMsg::*;
 pub use self::DevtoolScriptControlMsg::*;
 pub use self::EvaluateJSReply::*;
 
-use serialize::{Decodable, Decoder};
+use rustc_serialize::{Decodable, Decoder};
 use msg::constellation_msg::PipelineId;
 use util::str::DOMString;
 use url::Url;
@@ -105,7 +105,7 @@ pub enum ScriptDevtoolControlMsg {
     ReportConsoleMsg(String),
 }
 
-#[derive(Encodable)]
+#[derive(RustcEncodable)]
 pub struct Modification{
     pub attributeName: String,
     pub newValue: Option<String>,

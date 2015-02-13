@@ -13,9 +13,9 @@ use layers::geometry::DevicePixel;
 use getopts;
 use std::collections::HashSet;
 use std::cmp;
+use std::env;
 use std::old_io as io;
 use std::mem;
-use std::os;
 use std::ptr;
 use std::rt;
 
@@ -137,7 +137,7 @@ pub fn print_debug_usage(app: &str)  {
 
 fn args_fail(msg: &str) {
     io::stderr().write_line(msg).unwrap();
-    os::set_exit_status(1);
+    env::set_exit_status(1);
 }
 
 // Always use CPU painting on android.

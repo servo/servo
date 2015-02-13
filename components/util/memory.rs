@@ -13,7 +13,7 @@ use std::old_io::File;
 use std::mem;
 use std::mem::size_of;
 #[cfg(target_os="linux")]
-use std::os::page_size;
+use std::env::page_size;
 use std::ptr::null_mut;
 use std::sync::mpsc::{Sender, channel, Receiver};
 use std::time::duration::Duration;
