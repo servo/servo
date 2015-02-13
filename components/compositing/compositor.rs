@@ -1190,9 +1190,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             for y in range(0, height) {
                 let dst_start = y * stride;
                 let src_start = (height - y - 1) * stride;
-                let src_slice = orig_pixels.slice(src_start, src_start + stride);
-                copy_memory(pixels.slice_mut(dst_start, dst_start + stride),
-                            src_slice.slice_to(stride));
+                let src_slice = &orig_pixels[src_start .. src_start + stride];
+                copy_memory(&mut pixels[dst_start .. dst_start + stride],
+                            &src_slice[..stride]);
             }
             let mut img = png::Image {
                 width: width as u32,
