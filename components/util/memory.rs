@@ -10,7 +10,6 @@ use std::ffi::CString;
 use std::old_io::timer::sleep;
 #[cfg(target_os="linux")]
 use std::old_io::File;
-use std::mem;
 use std::mem::size_of;
 #[cfg(target_os="linux")]
 use std::env::page_size;
@@ -213,16 +212,25 @@ fn get_jemalloc_stat(value_name: &str) -> Option<u64> {
     let value_ptr = &mut value as *mut _ as *mut c_void;
     let mut value_len = size_of::<size_t>() as size_t;
 
-    let mut rv: c_int;
-    unsafe {
-        // Using the same values for the `old` and `new` parameters is enough
-        // to get the statistics updated.
-        rv = je_mallctl(epoch_c_name.as_ptr(), epoch_ptr, &mut epoch_len, epoch_ptr, epoch_len);
-        if rv == 0 {
-            rv = je_mallctl(value_c_name.as_ptr(), value_ptr, &mut value_len, null_mut(), 0);
-        }
+    // Using the same values for the `old` and `new` parameters is enough
+    // to get the statistics updated.
+    let rv = unsafe {
+        je_mallctl(epoch_c_name.as_ptr(), epoch_ptr, &mut epoch_len, epoch_ptr,
+                   epoch_len)
+    };
+    if rv != 0 {
+        return None;
     }
-    if rv == 0 { Some(value as u64) } else { None }
+
+    let rv = unsafe {
+        je_mallctl(value_c_name.as_ptr(), value_ptr, &mut value_len,
+                   null_mut(), 0)
+    };
+    if rv != 0 {
+        return None;
+    }
+
+    Some(value as u64)
 }
 
 // Like std::macros::try!, but for Option<>.
