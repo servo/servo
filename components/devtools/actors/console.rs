@@ -9,7 +9,7 @@
 use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketStream;
 
-use devtools_traits::{EvaluateJS, NullValue, VoidValue, NumberValue, StringValue, BooleanValue};
+use devtools_traits::{NullValue, VoidValue, NumberValue, StringValue, BooleanValue};
 use devtools_traits::{ActorValue, DevtoolScriptControlMsg};
 use msg::constellation_msg::PipelineId;
 
@@ -221,7 +221,8 @@ impl Actor for ConsoleActor {
             "evaluateJS" => {
                 let input = msg.get(&"text".to_string()).unwrap().as_string().unwrap().to_string();
                 let (chan, port) = channel();
-                self.script_chan.send(EvaluateJS(self.pipeline, input.clone(), chan)).unwrap();
+                self.script_chan.send(DevtoolScriptControlMsg::EvaluateJS(
+                    self.pipeline, input.clone(), chan)).unwrap();
 
                 //TODO: extract conversion into protocol module or some other useful place
                 let result = match try!(port.recv().map_err(|_| ())) {
