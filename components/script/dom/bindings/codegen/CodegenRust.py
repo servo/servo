@@ -3015,8 +3015,11 @@ class CGUnionConversionStruct(CGThing):
             pre="fn from_jsval(cx: *mut JSContext, value: JSVal, _option: ()) -> Result<%s, ()> {\n" % self.type,
             post="\n}")
         return CGWrapper(
-            CGIndenter(method),
-            pre="impl FromJSValConvertible for %s {\ntype Config = ();\n" % self.type,
+            CGIndenter(CGList([
+                CGGeneric("type Config = ();"),
+                method,
+            ], "\n")),
+            pre="impl FromJSValConvertible for %s {\n" % self.type,
             post="\n}")
 
     def try_method(self, t):
