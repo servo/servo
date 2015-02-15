@@ -5242,10 +5242,10 @@ class GlobalGenRoots():
 impl ${selfName} for ${baseName} {
     #[inline]
     fn ${fname}(&self) -> bool {
-let base: &${parentName} = ${parentName}Cast::from_actual(self);
+        let base: &${parentName} = ${parentName}Cast::from_actual(self);
         base.${fname}()
     }
-}\
+}
 """).substitute({'fname': 'is_' + name.lower(),
                  'selfName': name + 'Derived',
                  'baseName': protoDescriptor.concreteType,
