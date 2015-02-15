@@ -5242,10 +5242,10 @@ class GlobalGenRoots():
 impl ${selfName} for ${baseName} {
     #[inline]
     fn ${fname}(&self) -> bool {
-let base: &${parentName} = ${parentName}Cast::from_actual(self);
+        let base: &${parentName} = ${parentName}Cast::from_actual(self);
         base.${fname}()
     }
-}\
+}
 """).substitute({'fname': 'is_' + name.lower(),
                  'selfName': name + 'Derived',
                  'baseName': protoDescriptor.concreteType,
@@ -5254,9 +5254,10 @@ let base: &${parentName} = ${parentName}Cast::from_actual(self);
             derived += [CGGeneric('\n')]
 
             cast = [CGGeneric(string.Template("""\
-pub trait ${castTraitName} : Sized {
+pub struct ${name}Cast;
+impl ${name}Cast {
     #[inline(always)]
-    fn to_ref<'a, T: ${toBound}+Reflectable>(base: JSRef<'a, T>) -> Option<JSRef<'a, Self>> {
+    pub fn to_ref<'a, T: ${toBound}+Reflectable>(base: JSRef<'a, T>) -> Option<JSRef<'a, ${name}>> {
         match base.${checkFn}() {
             true => unsafe { Some(base.transmute()) },
             false => None
@@ -5264,7 +5265,7 @@ pub trait ${castTraitName} : Sized {
     }
 
     #[inline(always)]
-    fn to_borrowed_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a JSRef<'b, T>) -> Option<&'a JSRef<'b, Self>> {
+    pub fn to_borrowed_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a JSRef<'b, T>) -> Option<&'a JSRef<'b, ${name}>> {
         match base.${checkFn}() {
             true => unsafe { Some(base.transmute_borrowed()) },
             false => None
@@ -5273,7 +5274,7 @@ pub trait ${castTraitName} : Sized {
 
     #[inline(always)]
     #[allow(unrooted_must_root)]
-    fn to_layout_js<T: ${toBound}+Reflectable>(base: &LayoutJS<T>) -> Option<LayoutJS<Self>> {
+    pub fn to_layout_js<T: ${toBound}+Reflectable>(base: &LayoutJS<T>) -> Option<LayoutJS<${name}>> {
         unsafe {
             match (*base.unsafe_get()).${checkFn}() {
                 true => Some(base.transmute_copy()),
@@ -5283,30 +5284,29 @@ pub trait ${castTraitName} : Sized {
     }
 
     #[inline(always)]
-    fn from_ref<'a, T: ${fromBound}+Reflectable>(derived: JSRef<'a, T>) -> JSRef<'a, Self> {
+    pub fn from_ref<'a, T: ${fromBound}+Reflectable>(derived: JSRef<'a, T>) -> JSRef<'a, ${name}> {
         unsafe { derived.transmute() }
     }
 
     #[inline(always)]
-    fn from_borrowed_ref<'a, 'b, T: ${fromBound}+Reflectable>(derived: &'a JSRef<'b, T>) -> &'a JSRef<'b, Self> {
+    pub fn from_borrowed_ref<'a, 'b, T: ${fromBound}+Reflectable>(derived: &'a JSRef<'b, T>) -> &'a JSRef<'b, ${name}> {
         unsafe { derived.transmute_borrowed() }
     }
 
     #[inline(always)]
-    fn from_temporary<T: ${fromBound}+Reflectable>(derived: Temporary<T>) -> Temporary<Self> {
+    pub fn from_temporary<T: ${fromBound}+Reflectable>(derived: Temporary<T>) -> Temporary<${name}> {
         unsafe { derived.transmute() }
     }
 
     #[inline(always)]
-    fn from_actual<'a, T: ${fromBound}+Reflectable>(derived: &T) -> &'a Self {
+    pub fn from_actual<'a, T: ${fromBound}+Reflectable>(derived: &T) -> &'a ${name} {
         unsafe { mem::transmute(derived) }
     }
 }
 """).substitute({'checkFn': 'is_' + name.lower(),
-                 'castTraitName': name + 'Cast',
+                 'name': name,
                  'fromBound': name + 'Base',
-                 'toBound': name + 'Derived'})),
-                    CGGeneric("impl %s for %s {}\n\n" % (name + 'Cast', name))]
+                 'toBound': name + 'Derived'}))]
 
             allprotos += protos + derived + cast
 
