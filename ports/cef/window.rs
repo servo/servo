@@ -328,7 +328,7 @@ impl CompositorProxy for CefCompositorProxy {
         use cocoa::base::nil;
 
         // Send a message and kick the OS event loop awake.
-        self.sender.send(msg);
+        self.sender.send(msg).unwrap();
 
         unsafe {
             let pool = NSAutoreleasePool::new(nil);
