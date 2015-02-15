@@ -125,6 +125,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == background_image_position_a.html background_image_position_ref.html
 == multiple_css_class_a.html multiple_css_class_b.html
 
+== iframe/bg_color.html iframe/bg_color_ref.html
 == iframe/simple.html iframe/simple_ref.html
 == iframe/simple_inline_default.html iframe/simple_inline_default_ref.html
 == iframe/simple_inline_width.html iframe/simple_inline_width_ref.html
