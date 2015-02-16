@@ -1031,9 +1031,6 @@
         "url": "/battery-status/battery-interface.js"
       },
       {
-        "url": "/battery-status/countdown.js"
-      },
-      {
         "url": "/battery-status/prime.js"
       },
       {
@@ -4444,10 +4441,10 @@
         "url": "/battery-status/battery-full-manual.html"
       },
       {
-        "url": "/battery-status/battery-plugged-in-manual.html"
+        "url": "/battery-status/battery-plugging-in-manual.html"
       },
       {
-        "url": "/battery-status/battery-unplugged-manual.html"
+        "url": "/battery-status/battery-unplugging-manual.html"
       },
       {
         "url": "/gamepad/events-manual.html"
@@ -4541,6 +4538,24 @@
       },
       {
         "url": "/html-longdesc/reflected-changing-longdesc-manual.html"
+      },
+      {
+        "url": "/html-media-capture/capture_audio-manual.html"
+      },
+      {
+        "url": "/html-media-capture/capture_audio_cancel-manual.html"
+      },
+      {
+        "url": "/html-media-capture/capture_image-manual.html"
+      },
+      {
+        "url": "/html-media-capture/capture_image_cancel-manual.html"
+      },
+      {
+        "url": "/html-media-capture/capture_video-manual.html"
+      },
+      {
+        "url": "/html-media-capture/capture_video_cancel-manual.html"
       },
       {
         "url": "/html/browsers/offline/application-cache-api/api_status_checking-manual.html"
@@ -9461,6 +9476,9 @@
         "url": "/FileAPI/reading-data-section/Determining-Encoding.html"
       },
       {
+        "url": "/FileAPI/reading-data-section/FileReader-event-handler-attributes.html"
+      },
+      {
         "url": "/FileAPI/reading-data-section/FileReader-multiple-reads.html"
       },
       {
@@ -11939,6 +11957,9 @@
         "url": "/html-media-capture/idlharness.html"
       },
       {
+        "url": "/html/browsers/browsing-the-web/history-traversal/PopStateEvent.html"
+      },
+      {
         "url": "/html/browsers/browsing-the-web/read-media/pageload-image.html"
       },
       {
@@ -11969,9 +11990,6 @@
         "url": "/html/browsers/history/the-history-interface/002.html"
       },
       {
-        "url": "/html/browsers/history/the-history-interface/003.html"
-      },
-      {
         "url": "/html/browsers/history/the-history-interface/004.html"
       },
       {
@@ -11996,7 +12014,91 @@
         "url": "/html/browsers/history/the-history-interface/012.html"
       },
       {
+        "url": "/html/browsers/history/the-history-interface/combination_history_001.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/combination_history_002.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/combination_history_003.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/combination_history_004.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/combination_history_005.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/combination_history_006.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/combination_history_007.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/history_back.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/history_forward.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/history_go_minus.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/history_go_plus.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/history_pushstate.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/history_pushstate_err.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/history_pushstate_nooptionalparam.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/history_replacestate.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/history_replacestate_err.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/history_replacestate_nooptionalparam.html"
+      },
+      {
+        "url": "/html/browsers/history/the-history-interface/history_state.html"
+      },
+      {
         "url": "/html/browsers/history/the-location-interface/location-stringifier.html"
+      },
+      {
+        "url": "/html/browsers/history/the-location-interface/location_assign.html"
+      },
+      {
+        "url": "/html/browsers/history/the-location-interface/location_hash.html"
+      },
+      {
+        "url": "/html/browsers/history/the-location-interface/location_host.html"
+      },
+      {
+        "url": "/html/browsers/history/the-location-interface/location_hostname.html"
+      },
+      {
+        "url": "/html/browsers/history/the-location-interface/location_href.html"
+      },
+      {
+        "url": "/html/browsers/history/the-location-interface/location_pathname.html"
+      },
+      {
+        "url": "/html/browsers/history/the-location-interface/location_port.html"
+      },
+      {
+        "url": "/html/browsers/history/the-location-interface/location_protocol.html"
+      },
+      {
+        "url": "/html/browsers/history/the-location-interface/location_replace.html"
+      },
+      {
+        "url": "/html/browsers/history/the-location-interface/location_search.html"
       },
       {
         "url": "/html/browsers/history/the-location-interface/security_location_0.sub.htm"
@@ -13859,6 +13961,9 @@
         "url": "/html/semantics/forms/the-input-element/email.html"
       },
       {
+        "url": "/html/semantics/forms/the-input-element/files.html"
+      },
+      {
         "url": "/html/semantics/forms/the-input-element/hidden.html"
       },
       {
@@ -14649,9 +14754,6 @@
       },
       {
         "url": "/media-source/mediasource-play.html"
-      },
-      {
-        "url": "/media-source/mediasource-redundant-seek.html"
       },
       {
         "url": "/media-source/mediasource-remove.html"
@@ -17937,6 +18039,10 @@
       },
       {
         "timeout": "long",
+        "url": "/media-source/mediasource-redundant-seek.html"
+      },
+      {
+        "timeout": "long",
         "url": "/websockets/binary/002.html"
       },
       {
@@ -18054,6 +18160,6 @@
     "deleted": [],
     "items": {}
   },
-  "rev": "9b3cf7130b08834291687e8b011e85829c20ea79",
+  "rev": "a44e574f5832d164472a7c26010bfd460f74d314",
   "url_base": "/"
 }
