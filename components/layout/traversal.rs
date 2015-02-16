@@ -55,7 +55,7 @@ thread_local!(static STYLE_BLOOM: RefCell<Option<(Box<BloomFilter>, UnsafeLayout
 /// Returns the task local bloom filter.
 ///
 /// If one does not exist, a new one will be made for you. If it is out of date,
-/// it will be thrown out and a new one will be made for you.
+/// it will be cleared and reused.
 fn take_task_local_bloom_filter(parent_node: Option<LayoutNode>, layout_context: &LayoutContext)
                                 -> Box<BloomFilter> {
     STYLE_BLOOM.with(|style_bloom| {
@@ -73,18 +73,17 @@ fn take_task_local_bloom_filter(parent_node: Option<LayoutNode>, layout_context:
             }
             // Found cached bloom filter.
             (Some(parent), Some((mut bloom_filter, old_node, old_generation))) => {
-                // Hey, the cached parent is our parent! We can reuse the bloom filter.
                 if old_node == layout_node_to_unsafe_layout_node(&parent) &&
                     old_generation == layout_context.shared.generation {
+                    // Hey, the cached parent is our parent! We can reuse the bloom filter.
                     debug!("[{}] Parent matches (={}). Reusing bloom filter.", tid(), old_node.0);
-                    bloom_filter.clone()
                 } else {
                     // Oh no. the cached parent is stale. I guess we need a new one. Reuse the existing
                     // allocation to avoid malloc churn.
-                    *bloom_filter = BloomFilter::new();
+                    bloom_filter.clear();
                     insert_ancestors_into_bloom_filter(&mut bloom_filter, parent, layout_context);
-                    bloom_filter
                 }
+                bloom_filter
             },
         }
     })
