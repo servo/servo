@@ -666,7 +666,17 @@ impl LayoutTask {
 
             // FIXME(pcwalton): This is really ugly and can't handle overflow: scroll. Refactor
             // it with extreme prejudice.
-            let mut color = color::white();
+
+            // The default computed value for background-color is transparent (see
+            // http://dev.w3.org/csswg/css-backgrounds/#background-color). However, we
+            // need to propagate the background color from the root HTML/Body
+            // element (http://dev.w3.org/csswg/css-backgrounds/#special-backgrounds) if
+            // it is non-transparent. The phrase in the spec "If the canvas background
+            // is not opaque, what shows through is UA-dependent." is handled by rust-layers
+            // clearing the frame buffer to white. This ensures that setting a background
+            // color on an iframe element, while the iframe content itself has a default
+            // transparent background color is handled correctly.
+            let mut color = color::transparent_black();
             for child in node.traverse_preorder() {
                 if child.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHtmlElement))) ||
                         child.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement))) {
