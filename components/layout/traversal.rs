@@ -55,7 +55,7 @@ thread_local!(static STYLE_BLOOM: RefCell<Option<(Box<BloomFilter>, UnsafeLayout
 /// Returns the task local bloom filter.
 ///
 /// If one does not exist, a new one will be made for you. If it is out of date,
-/// it will be thrown out and a new one will be made for you.
+/// it will be cleared and reused.
 fn take_task_local_bloom_filter(parent_node: Option<LayoutNode>, layout_context: &LayoutContext)
                                 -> Box<BloomFilter> {
     STYLE_BLOOM.with(|style_bloom| {
