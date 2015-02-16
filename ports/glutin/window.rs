@@ -27,7 +27,7 @@ use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 #[cfg(feature = "window")]
 use geom::point::{Point2D, TypedPoint2D};
 #[cfg(feature = "window")]
-use glutin::{ElementState, Event, MouseButton, VirtualKeyCode};
+use glutin::{ElementState, Event, MouseButton, MouseCursor, VirtualKeyCode};
 #[cfg(feature = "window")]
 use msg::constellation_msg::{KeyState, CONTROL, SHIFT, ALT};
 #[cfg(feature = "window")]
@@ -500,7 +500,55 @@ impl WindowMethods for Window {
     fn load_end(&self) {
     }
 
+    // TODO: Enable on macos when supported by glutin.
+    #[cfg(target_os="macos")]
     fn set_cursor(&self, _: Cursor) {
+    }
+    
+    #[cfg(target_os="android")]
+    fn set_cursor(&self, _: Cursor) {
+    }
+    
+    #[cfg(target_os="linux")]
+    fn set_cursor(&self, c: Cursor) {
+        let glutin_cursor = match c {
+            Cursor::NoCursor => MouseCursor::NoneCursor,
+            Cursor::DefaultCursor => MouseCursor::Default,
+            Cursor::PointerCursor => MouseCursor::Hand,
+            Cursor::ContextMenuCursor => MouseCursor::ContextMenu,
+            Cursor::HelpCursor => MouseCursor::Help,
+            Cursor::ProgressCursor => MouseCursor::Progress,
+            Cursor::WaitCursor => MouseCursor::Wait,
+            Cursor::CellCursor => MouseCursor::Cell,
+            Cursor::CrosshairCursor => MouseCursor::Crosshair,
+            Cursor::TextCursor => MouseCursor::Text,
+            Cursor::VerticalTextCursor => MouseCursor::VerticalText,
+            Cursor::AliasCursor => MouseCursor::Alias,
+            Cursor::CopyCursor => MouseCursor::Copy,
+            Cursor::MoveCursor => MouseCursor::Move,
+            Cursor::NoDropCursor => MouseCursor::NoDrop,
+            Cursor::NotAllowedCursor => MouseCursor::NotAllowed,
+            Cursor::GrabCursor => MouseCursor::Grab,
+            Cursor::GrabbingCursor => MouseCursor::Grabbing,
+            Cursor::EResizeCursor => MouseCursor::EResize,
+            Cursor::NResizeCursor => MouseCursor::NResize,
+            Cursor::NeResizeCursor => MouseCursor::NeResize,
+            Cursor::NwResizeCursor => MouseCursor::NwResize,
+            Cursor::SResizeCursor => MouseCursor::SResize,
+            Cursor::SeResizeCursor => MouseCursor::SeResize,
+            Cursor::SwResizeCursor => MouseCursor::SwResize,
+            Cursor::WResizeCursor => MouseCursor::WResize,
+            Cursor::EwResizeCursor => MouseCursor::EwResize,
+            Cursor::NsResizeCursor => MouseCursor::NsResize,
+            Cursor::NeswResizeCursor => MouseCursor::NeswResize,
+            Cursor::NwseResizeCursor => MouseCursor::NwseResize,
+            Cursor::ColResizeCursor => MouseCursor::ColResize,
+            Cursor::RowResizeCursor => MouseCursor::RowResize,
+            Cursor::AllScrollCursor => MouseCursor::AllScroll,
+            Cursor::ZoomInCursor => MouseCursor::ZoomIn,
+            Cursor::ZoomOutCursor => MouseCursor::ZoomOut,
+        };
+        self.window.set_cursor(glutin_cursor);
     }
 
     fn prepare_for_composite(&self) -> bool {
