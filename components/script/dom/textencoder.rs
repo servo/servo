@@ -3,21 +3,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::TextEncoderBinding;
+use dom::bindings::codegen::Bindings::TextEncoderBinding::TextEncoderMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::IndexSize;
-use dom::bindings::js::Temporary;
+use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::str::USVString;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 
 use util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::ascii::AsciiExt;
+use std::ptr;
 
 use encoding::types::EncodingRef;
-use encoding::Encoding;
+use encoding::{Encoding, EncoderTrap};
 use encoding::label::encoding_from_whatwg_label;
 
+use libc::uint8_t;
+use js::jsapi::{JSContext, JSObject};
+use js::jsfriendapi::bindgen::{JS_NewUint8Array, JS_GetUint8ArrayData};
 
 #[dom_struct]
 pub struct TextEncoder {
@@ -62,6 +68,27 @@ impl TextEncoder {
                 // TODO: should throw RangeError
                 Err(IndexSize)
             }
+        }
+    }
+}
+
+impl<'a> TextEncoderMethods for JSRef<'a, TextEncoder> {
+    // https://encoding.spec.whatwg.org/#dom-textencoder-encoding
+    fn Encoding(self) -> DOMString {
+        self.encoding.clone()
+    }
+
+    // https://encoding.spec.whatwg.org/#dom-textencoder-encode
+    #[allow(unsafe_blocks)]
+    fn Encode(self, cx: *mut JSContext, input: USVString) -> *mut JSObject {
+        unsafe {
+            let output = self.encoder.encode(input.0.as_slice(), EncoderTrap::Strict).unwrap();
+            let length = output.len() as u32;
+            let js_object: *mut JSObject = JS_NewUint8Array(cx, length);
+
+            let js_object_data: *mut uint8_t = JS_GetUint8ArrayData(js_object, cx);
+            ptr::copy_nonoverlapping_memory(js_object_data, output.as_ptr(), length as usize);
+            return js_object;
         }
     }
 }

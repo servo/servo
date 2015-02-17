@@ -6,8 +6,7 @@
 /* https://encoding.spec.whatwg.org/#interface-textencoder */
 [Constructor(optional DOMString utfLabel = "utf-8")/*, Exposed=Window,Worker */]
 interface TextEncoder {
-   //readonly attribute DOMString encoding;
-   //[NewObject]
-   //TODO: should be USVString here
-   //Uint8Array encode(optional DOMString input = "");
+   readonly attribute DOMString encoding;
+   [NewObject]
+   Uint8Array encode(optional USVString input = "");
 };
