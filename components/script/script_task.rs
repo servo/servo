@@ -615,8 +615,6 @@ impl ScriptTask {
                 self.handle_fire_timer_msg(id, timer_id),
             ScriptMsg::FireTimer(TimerSource::FromWorker, _) =>
                 panic!("Worker timeouts must not be sent to script task"),
-            ScriptMsg::Navigate(direction) =>
-                self.handle_navigate_msg(direction),
             ScriptMsg::ExitWindow(id) =>
                 self.handle_exit_window_msg(id),
             ScriptMsg::DOMMessage(..) =>
