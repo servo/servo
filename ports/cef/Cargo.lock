@@ -15,6 +15,7 @@ dependencies = [
  "glutin_app 0.0.1",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net 0.0.1",
  "plugins 0.0.1",
