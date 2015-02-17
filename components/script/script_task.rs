@@ -112,9 +112,6 @@ pub enum ScriptMsg {
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptTask).
     TriggerLoad(PipelineId, LoadData),
-    /// Instructs the script task to send a navigate message to
-    /// the constellation (only dispatched to ScriptTask).
-    Navigate(NavigationDirection),
     /// Fires a JavaScript timeout
     /// TimerSource must be FromWindow when dispatched to ScriptTask and
     /// must be FromWorker when dispatched to a DedicatedGlobalWorkerScope
