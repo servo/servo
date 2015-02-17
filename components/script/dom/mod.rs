@@ -312,6 +312,7 @@ pub mod servohtmlparser;
 pub mod storage;
 pub mod storageevent;
 pub mod text;
+pub mod textencoder;
 pub mod treewalker;
 pub mod uievent;
 pub mod urlhelper;
