@@ -8,7 +8,6 @@
 #![feature(core)]
 #![cfg_attr(feature = "window", feature(hash))]
 #![feature(box_syntax)]
-#![feature(libc)]
 
 #[macro_use] extern crate bitflags;
 #[cfg(target_os="macos")]

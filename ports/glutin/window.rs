@@ -175,8 +175,8 @@ impl Window {
                 self.event_queue.borrow_mut().push(WindowEvent::Resize(TypedSize2D(width, height)));
             }
             Event::MouseInput(element_state, mouse_button) => {
-                if mouse_button == MouseButton::LeftMouseButton ||
-                                    mouse_button == MouseButton::RightMouseButton {
+                if mouse_button == MouseButton::Left ||
+                                    mouse_button == MouseButton::Right {
                         let mouse_pos = self.mouse_pos.get();
                         self.handle_mouse(mouse_button, element_state, mouse_pos.x, mouse_pos.y);
                    }
