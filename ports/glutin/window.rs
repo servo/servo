@@ -175,8 +175,8 @@ impl Window {
                 self.event_queue.borrow_mut().push(WindowEvent::Resize(TypedSize2D(width, height)));
             }
             Event::MouseInput(element_state, mouse_button) => {
-                if mouse_button == MouseButton::LeftMouseButton ||
-                                    mouse_button == MouseButton::RightMouseButton {
+                if mouse_button == MouseButton::Left ||
+                                    mouse_button == MouseButton::Right {
                         let mouse_pos = self.mouse_pos.get();
                         self.handle_mouse(mouse_button, element_state, mouse_pos.x, mouse_pos.y);
                    }
@@ -371,27 +371,27 @@ impl Window {
             VirtualKeyCode::Y => Ok(Key::Y),
             VirtualKeyCode::Z => Ok(Key::Z),
 
-            VirtualKeyCode::Numpad0 => Ok(Key::Num0),
-            VirtualKeyCode::Numpad1 => Ok(Key::Num1),
-            VirtualKeyCode::Numpad2 => Ok(Key::Num2),
-            VirtualKeyCode::Numpad3 => Ok(Key::Num3),
-            VirtualKeyCode::Numpad4 => Ok(Key::Num4),
-            VirtualKeyCode::Numpad5 => Ok(Key::Num5),
-            VirtualKeyCode::Numpad6 => Ok(Key::Num6),
-            VirtualKeyCode::Numpad7 => Ok(Key::Num7),
-            VirtualKeyCode::Numpad8 => Ok(Key::Num8),
-            VirtualKeyCode::Numpad9 => Ok(Key::Num9),
+            VirtualKeyCode::Numpad0 => Ok(Key::Kp0),
+            VirtualKeyCode::Numpad1 => Ok(Key::Kp1),
+            VirtualKeyCode::Numpad2 => Ok(Key::Kp2),
+            VirtualKeyCode::Numpad3 => Ok(Key::Kp3),
+            VirtualKeyCode::Numpad4 => Ok(Key::Kp4),
+            VirtualKeyCode::Numpad5 => Ok(Key::Kp5),
+            VirtualKeyCode::Numpad6 => Ok(Key::Kp6),
+            VirtualKeyCode::Numpad7 => Ok(Key::Kp7),
+            VirtualKeyCode::Numpad8 => Ok(Key::Kp8),
+            VirtualKeyCode::Numpad9 => Ok(Key::Kp9),
 
-            VirtualKeyCode::Key0 => Ok(Key::Kp0),
-            VirtualKeyCode::Key1 => Ok(Key::Kp1),
-            VirtualKeyCode::Key2 => Ok(Key::Kp2),
-            VirtualKeyCode::Key3 => Ok(Key::Kp3),
-            VirtualKeyCode::Key4 => Ok(Key::Kp4),
-            VirtualKeyCode::Key5 => Ok(Key::Kp5),
-            VirtualKeyCode::Key6 => Ok(Key::Kp6),
-            VirtualKeyCode::Key7 => Ok(Key::Kp7),
-            VirtualKeyCode::Key8 => Ok(Key::Kp8),
-            VirtualKeyCode::Key9 => Ok(Key::Kp9),
+            VirtualKeyCode::Key0 => Ok(Key::Num0),
+            VirtualKeyCode::Key1 => Ok(Key::Num1),
+            VirtualKeyCode::Key2 => Ok(Key::Num2),
+            VirtualKeyCode::Key3 => Ok(Key::Num3),
+            VirtualKeyCode::Key4 => Ok(Key::Num4),
+            VirtualKeyCode::Key5 => Ok(Key::Num5),
+            VirtualKeyCode::Key6 => Ok(Key::Num6),
+            VirtualKeyCode::Key7 => Ok(Key::Num7),
+            VirtualKeyCode::Key8 => Ok(Key::Num8),
+            VirtualKeyCode::Key9 => Ok(Key::Num9),
 
             VirtualKeyCode::Return => Ok(Key::Enter),
             VirtualKeyCode::Space => Ok(Key::Space),

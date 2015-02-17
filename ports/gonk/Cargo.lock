@@ -8,6 +8,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "layout 0.0.1",
+ "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "script 0.0.1",
  "servo 0.0.1",
@@ -17,7 +18,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#08d2513e8ebbfe9ce6620aa514c2f2b91059b304"
+source = "git+https://github.com/servo/rust-azure#ec5fddfe96f889e35cc83abd2255f8325f2ec147"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -25,6 +26,7 @@ dependencies = [
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "skia 0.0.20130412 (git+https://github.com/servo/skia?branch=upstream-2014-06-16)",
  "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
@@ -282,7 +284,7 @@ dependencies = [
 
 [[package]]
 name = "gl_generator"
-version = "0.0.16"
+version = "0.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "khronos_api 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -293,11 +295,12 @@ dependencies = [
 [[package]]
 name = "gleam"
 version = "0.0.1"
-source = "git+https://github.com/servo/gleam#7e063390e52df54e6f90884535c072b99b69de1b"
+source = "git+https://github.com/servo/gleam#1a85194298997cf602270d4c1aeb0a043ce339e7"
 dependencies = [
  "gl_common 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "gl_generator 0.0.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gl_generator 0.0.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "khronos_api 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -306,7 +309,7 @@ version = "0.0.1"
 source = "git+https://github.com/servo/rust-glx#d8a3329d1f68dc4cf72509daca7ef837b8ce94d6"
 dependencies = [
  "gl_common 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "gl_generator 0.0.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gl_generator 0.0.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "khronos_api 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -378,7 +381,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#7f0ab52e147b778c79b9378fe3ddd4d13055df84"
+source = "git+https://github.com/servo/rust-layers#62870a30b06fb8776e01140167e55d1f2370b503"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
@@ -388,6 +391,7 @@ dependencies = [
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
  "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
  "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface)",
+ "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "skia 0.0.20130412 (git+https://github.com/servo/skia?branch=upstream-2014-06-16)",
  "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
@@ -772,9 +776,10 @@ dependencies = [
 [[package]]
 name = "xlib"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-xlib#7558b1b41304292955b3c081dba23d291458fde9"
+source = "git+https://github.com/servo/rust-xlib#4f1bfc476256c37a152980d42213116a62629599"
 dependencies = [
  "bitflags 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
