@@ -4,7 +4,6 @@
 
 #![feature(hash)]
 #![feature(int_uint)]
-#![feature(rustc_private)]
 
 #![allow(missing_copy_implementations)]
 
@@ -13,7 +12,6 @@ extern crate azure;
 extern crate geom;
 extern crate hyper;
 extern crate layers;
-extern crate serialize;
 extern crate util;
 extern crate url;
 

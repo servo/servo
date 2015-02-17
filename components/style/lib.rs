@@ -19,7 +19,6 @@
 
 extern crate collections;
 extern crate geom;
-extern crate serialize;
 extern crate text_writer;
 extern crate url;
 

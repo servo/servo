@@ -5,7 +5,7 @@
 use resource_task::{Metadata, LoadData, TargetedLoadResponse, start_sending, ResponseSenders};
 use resource_task::ProgressMsg::{Payload, Done};
 
-use serialize::base64::FromBase64;
+use rustc_serialize::base64::FromBase64;
 
 use hyper::mime::Mime;
 use url::{percent_decode, SchemeData};

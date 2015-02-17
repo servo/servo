@@ -48,7 +48,7 @@ use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::ClippingRegion;
-use serialize::{Encoder, Encodable};
+use rustc_serialize::{Encoder, Encodable};
 use msg::compositor_msg::LayerId;
 use servo_util::geometry::{Au, ZERO_RECT};
 use servo_util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
