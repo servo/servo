@@ -20,10 +20,6 @@ extern crate "serialize" as rustc_serialize;
 extern crate url;
 extern crate util;
 
-pub use self::DevtoolsControlMsg::*;
-pub use self::DevtoolScriptControlMsg::*;
-pub use self::EvaluateJSReply::*;
-
 use rustc_serialize::{Decodable, Decoder};
 use msg::constellation_msg::PipelineId;
 use util::str::DOMString;

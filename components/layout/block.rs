@@ -1299,8 +1299,16 @@ impl BlockFlow {
 
         // Calculate non-auto block size to pass to children.
         let content_block_size = self.fragment.style().content_block_size();
-        let explicit_content_size = match (content_block_size,
-                                           self.base.block_container_explicit_block_size) {
+
+        let parent_container_size = if self.is_root() {
+            let screen_size = LogicalSize::from_physical(self.fragment.style.writing_mode,
+                                                         layout_context.shared.screen_size);
+            Some(screen_size.block)
+        } else {
+            self.base.block_container_explicit_block_size
+        };
+
+        let explicit_content_size = match (content_block_size, parent_container_size) {
             (LengthOrPercentageOrAuto::Percentage(percent), Some(container_size)) => {
                 Some(container_size.scale_by(percent))
             }
@@ -1688,10 +1696,10 @@ impl Flow for BlockFlow {
             }
         } else if self.is_root() || self.base.flags.is_float() || self.is_inline_block() {
             // Root element margins should never be collapsed according to CSS § 8.3.1.
-            debug!("assign_block_size: assigning block_size for root flow");
+            debug!("assign_block_size: assigning block_size for root flow {:?}", flow::base(self).debug_id());
             self.assign_block_size_block_base(ctx, MarginsMayCollapseFlag::MarginsMayNotCollapse);
         } else {
-            debug!("assign_block_size: assigning block_size for block");
+            debug!("assign_block_size: assigning block_size for block {:?}", flow::base(self).debug_id());
             self.assign_block_size_block_base(ctx, MarginsMayCollapseFlag::MarginsMayCollapse);
         }
     }

@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use devtools_traits::{SendConsoleMessage, ConsoleMessage};
+use devtools_traits::{DevtoolsControlMsg, ConsoleMessage};
 use util::str::DOMString;
 
 #[dom_struct]
@@ -68,7 +68,8 @@ fn propagate_console_msg(console: &JSRef<Console>, console_message: ConsoleMessa
         GlobalRef::Window(window_ref) => {
             let pipelineId = window_ref.page().id;
             console.global.root().r().as_window().page().devtools_chan.as_ref().map(|chan| {
-                chan.send(SendConsoleMessage(pipelineId, console_message.clone())).unwrap();
+                chan.send(DevtoolsControlMsg::SendConsoleMessage(
+                    pipelineId, console_message.clone())).unwrap();
             });
         },
 

@@ -125,6 +125,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == background_image_position_a.html background_image_position_ref.html
 == multiple_css_class_a.html multiple_css_class_b.html
 
+== iframe/bg_color.html iframe/bg_color_ref.html
 == iframe/simple.html iframe/simple_ref.html
 == iframe/simple_inline_default.html iframe/simple_inline_default_ref.html
 == iframe/simple_inline_width.html iframe/simple_inline_width_ref.html
@@ -247,3 +248,4 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == text_justify_none_a.html text_justify_none_ref.html
 == text_overflow_basic_a.html text_overflow_basic_ref.html
 == text_align_complex_a.html text_align_complex_ref.html
+== percentage_height_root.html percentage_height_root_ref.html
