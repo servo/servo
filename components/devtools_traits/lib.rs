@@ -10,13 +10,12 @@
 #![crate_type = "rlib"]
 
 #![feature(int_uint)]
-#![feature(rustc_private)]
 
 #![allow(non_snake_case)]
 #![allow(missing_copy_implementations)]
 
 extern crate msg;
-extern crate "serialize" as rustc_serialize;
+extern crate "rustc-serialize" as rustc_serialize;
 extern crate url;
 extern crate util;
 

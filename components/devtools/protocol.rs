@@ -6,8 +6,8 @@
 //! [JSON packets]
 //! (https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport#JSON_Packets).
 
-use serialize::{json, Encodable};
-use serialize::json::Json;
+use rustc_serialize::{json, Encodable};
+use rustc_serialize::json::Json;
 use std::old_io::{IoError, OtherIoError, EndOfFile, TcpStream, IoResult};
 use std::num;
 
@@ -39,7 +39,7 @@ impl JsonPacketStream for TcpStream {
                     let packet_buf = self.read_exact(packet_len).unwrap();
                     let packet = String::from_utf8(packet_buf).unwrap();
                     println!("{}", packet);
-                    return Ok(json::from_str(packet.as_slice()).unwrap())
+                    return Ok(Json::from_str(packet.as_slice()).unwrap())
                 },
                 Err(ref e) if e.kind == EndOfFile =>
                     return Err(IoError { kind: EndOfFile, desc: "EOF", detail: None }),

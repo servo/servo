@@ -28,7 +28,7 @@ use gfx::display_list::{BOX_SHADOW_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use script_traits::UntrustedNodeAddress;
-use serialize::{Encodable, Encoder};
+use rustc_serialize::{Encodable, Encoder};
 use msg::constellation_msg::{PipelineId, SubpageId};
 use net::image::holder::ImageHolder;
 use net::local_image_cache::LocalImageCache;

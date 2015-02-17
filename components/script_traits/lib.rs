@@ -5,7 +5,6 @@
 #![feature(core)]
 #![feature(int_uint)]
 #![feature(libc)]
-#![feature(rustc_private)]
 
 #![allow(missing_copy_implementations)]
 
@@ -16,7 +15,6 @@ extern crate msg;
 extern crate net;
 extern crate util;
 extern crate url;
-extern crate serialize;
 
 // This module contains traits in script used generically
 //   in the rest of Servo.
