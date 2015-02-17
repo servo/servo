@@ -18,3 +18,4 @@ path = "../util"
 
 [dependencies]
 time = "*"
+rustc-serialize = "0.2"

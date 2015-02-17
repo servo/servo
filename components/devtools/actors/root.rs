@@ -10,7 +10,7 @@ use actor::{Actor, ActorRegistry};
 use actors::tab::{TabActor, TabActorMsg};
 use protocol::JsonPacketStream;
 
-use serialize::json;
+use rustc_serialize::json;
 use std::old_io::TcpStream;
 
 #[derive(RustcEncodable)]

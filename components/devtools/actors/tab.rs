@@ -11,7 +11,7 @@ use actors::console::ConsoleActor;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use protocol::JsonPacketStream;
 
-use serialize::json;
+use rustc_serialize::json;
 use std::old_io::TcpStream;
 
 #[derive(RustcEncodable)]

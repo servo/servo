@@ -13,7 +13,7 @@ use protocol::JsonPacketStream;
 
 use collections::BTreeMap;
 use msg::constellation_msg::PipelineId;
-use serialize::json::{self, Json, ToJson};
+use rustc_serialize::json::{self, Json, ToJson};
 use std::cell::RefCell;
 use std::old_io::TcpStream;
 use std::sync::mpsc::{channel, Sender};

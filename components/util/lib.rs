@@ -33,7 +33,7 @@ extern crate layers;
 extern crate libc;
 #[no_link] #[macro_use] extern crate cssparser;
 extern crate rand;
-extern crate "serialize" as rustc_serialize;
+extern crate "rustc-serialize" as rustc_serialize;
 #[cfg(target_os="macos")]
 extern crate task_info;
 extern crate "time" as std_time;

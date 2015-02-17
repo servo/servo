@@ -10,7 +10,7 @@ use std::cell::{Cell, RefCell};
 use std::old_io::TcpStream;
 use std::mem::{replace, transmute};
 use std::raw::TraitObject;
-use serialize::json;
+use rustc_serialize::json;
 
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.

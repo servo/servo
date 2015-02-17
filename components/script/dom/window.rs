@@ -47,7 +47,7 @@ use js::rust::with_compartment;
 use url::{Url, UrlParser};
 
 use libc;
-use serialize::base64::{FromBase64, ToBase64, STANDARD};
+use rustc_serialize::base64::{FromBase64, ToBase64, STANDARD};
 use std::cell::{Ref, RefMut};
 use std::default::Default;
 use std::ffi::CString;
