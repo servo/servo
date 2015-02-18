@@ -17,6 +17,7 @@ use util::geometry::Au;
 use url::Url;
 use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
                 DeclarationListParser, parse_important, ToCss};
+use geom::num::Zero;
 use geom::SideOffsets2D;
 
 use values::specified::BorderStyle;
@@ -3531,6 +3532,21 @@ pub fn make_inline(style: &ComputedValues) -> ComputedValues {
     let mut style = (*style).clone();
     style.box_.make_unique().display = longhands::display::computed_value::T::inline;
     style.box_.make_unique().position = longhands::position::computed_value::T::static_;
+    style
+}
+
+/// Sets `border_${side}_width` to the passed in values.
+/// If `border_${side}_width` == 0 also sets `border_${side}_style` = none.
+#[inline]
+pub fn make_border(style: &ComputedValues, border_width: LogicalMargin<Au>) -> ComputedValues {
+    let mut style = (*style).clone();
+    let physical_border = LogicalMargin::to_physical(&border_width, style.writing_mode);
+    % for side in ["top", "right", "bottom", "left"]:
+        style.border.make_unique().border_${side}_width = physical_border.${side};
+        if physical_border.${side} == Zero::zero() {
+            style.border.make_unique().border_${side}_style = BorderStyle::none;
+        }
+    % endfor
     style
 }
 

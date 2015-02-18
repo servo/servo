@@ -31,6 +31,7 @@
 == img_dynamic_remove.html img_dynamic_remove_ref.html
 == upper_id_attr.html upper_id_attr_ref.html
 # inline_border_a.html inline_border_b.html
+== border_code_tag.html border_code_tag_ref.html
 == anon_block_inherit_a.html anon_block_inherit_b.html
 == attr_exists_selector.html attr_exists_selector_ref.html
 == attr_selector_case_sensitivity.html attr_selector_case_sensitivity_ref.html

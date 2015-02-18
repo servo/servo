@@ -23,6 +23,7 @@ use text;
 use util::OpaqueNodeMethods;
 use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
+use geom::num::Zero;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{BOX_SHADOW_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
@@ -46,7 +47,7 @@ use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
-use style::properties::{ComputedValues, cascade_anonymous};
+use style::properties::{ComputedValues, cascade_anonymous, make_border};
 use style::node::{TElement, TNode};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use style::computed_values::{clear, mix_blend_mode, overflow_wrap};
@@ -877,11 +878,31 @@ impl Fragment {
 
     /// Adds a style to the inline context for this fragment. If the inline
     /// context doesn't exist yet, it will be created.
-    pub fn add_inline_context_style(&mut self, style: Arc<ComputedValues>) {
+    pub fn add_inline_context_style(&mut self,
+                                    style: Arc<ComputedValues>,
+                                    first_frag: bool,
+                                    last_frag: bool) {
+
         if self.inline_context.is_none() {
             self.inline_context = Some(InlineFragmentContext::new());
         }
-        self.inline_context.as_mut().unwrap().styles.push(style.clone());
+        let frag_style = if first_frag && last_frag {
+            style.clone()
+        } else {
+            // Set the border width to zero and the border style to none on
+            // border sides that are not the outermost for a node container.
+            // Because with multiple inline fragments they don't have interior
+            // borders separating each other.
+            let mut border_width = style.logical_border_width();
+            if !last_frag {
+                border_width.set_right(style.writing_mode, Zero::zero());
+            }
+            if !first_frag {
+                border_width.set_left(style.writing_mode, Zero::zero());
+            }
+            Arc::new(make_border(&*style, border_width))
+        };
+        self.inline_context.as_mut().unwrap().styles.push(frag_style);
     }
 
     /// Determines which quantities (border/padding/margin/specified) should be included in the
