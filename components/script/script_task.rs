@@ -15,7 +15,6 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLIFrameElementCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, RootedReference};
 use dom::bindings::js::{RootCollection, RootCollectionPtr};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
@@ -24,7 +23,7 @@ use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource};
 use dom::element::{Element, ActivationElementHelpers};
-use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
+use dom::event::{Event, EventHelpers};
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
 use dom::htmliframeelement::HTMLIFrameElement;
@@ -86,6 +85,7 @@ use std::fmt::{self, Display};
 use std::mem::replace;
 use std::num::ToPrimitive;
 use std::rc::Rc;
+use std::result::Result;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::u32;
 use time::{Tm, strptime};
@@ -135,7 +135,7 @@ pub enum ScriptMsg {
 /// A cloneable interface for communicating with an event loop.
 pub trait ScriptChan {
     /// Send a message to the associated event loop.
-    fn send(&self, msg: ScriptMsg);
+    fn send(&self, msg: ScriptMsg) -> Result<(), ()>;
     /// Clone this handle.
     fn clone(&self) -> Box<ScriptChan+Send>;
 }
@@ -145,9 +145,9 @@ pub trait ScriptChan {
 pub struct NonWorkerScriptChan(pub Sender<ScriptMsg>);
 
 impl ScriptChan for NonWorkerScriptChan {
-    fn send(&self, msg: ScriptMsg) {
+    fn send(&self, msg: ScriptMsg) -> Result<(), ()> {
         let NonWorkerScriptChan(ref chan) = *self;
-        chan.send(msg).unwrap();
+        return chan.send(msg).map_err(|_| ());
     }
 
     fn clone(&self) -> Box<ScriptChan+Send> {
@@ -898,7 +898,7 @@ impl ScriptTask {
         // https://html.spec.whatwg.org/multipage/#the-end step 4
         let addr: Trusted<Document> = Trusted::new(self.get_cx(), document.r(), self.chan.clone());
         let handler = Box::new(DocumentProgressHandler::new(addr.clone(), DocumentProgressTask::DOMContentLoaded));
-        self.chan.send(ScriptMsg::RunnableMsg(handler));
+        self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
 
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
@@ -906,7 +906,7 @@ impl ScriptTask {
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let handler = Box::new(DocumentProgressHandler::new(addr, DocumentProgressTask::Load));
-        self.chan.send(ScriptMsg::RunnableMsg(handler));
+        self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
 
         *page.fragment_name.borrow_mut() = final_url.fragment.clone();
 

@@ -257,7 +257,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             ScriptOrigin::Internal => {
                 let chan = window.script_chan();
                 let handler = Trusted::new(window.get_cx(), self, chan.clone());
-                chan.send(ScriptMsg::RunnableMsg(box handler));
+                chan.send(ScriptMsg::RunnableMsg(box handler)).unwrap();
             }
         }
     }
@@ -268,7 +268,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         let window = window.r();
         let chan = window.script_chan();
         let handler = Trusted::new(window.get_cx(), self, chan.clone());
-        chan.send(ScriptMsg::RunnableMsg(box handler));
+        chan.send(ScriptMsg::RunnableMsg(box handler)).unwrap();
     }
 
     fn dispatch_load_event(self) {

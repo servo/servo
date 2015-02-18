@@ -49,8 +49,8 @@ pub struct SendableWorkerScriptChan {
 }
 
 impl ScriptChan for SendableWorkerScriptChan {
-    fn send(&self, msg: ScriptMsg) {
-        self.sender.send((self.worker.clone(), msg)).unwrap();
+    fn send(&self, msg: ScriptMsg) -> Result<(), ()> {
+        return self.sender.send((self.worker.clone(), msg)).map_err(|_| ());
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
@@ -147,7 +147,7 @@ impl DedicatedWorkerGlobalScope {
                 Err(_) => {
                     println!("error loading script {}", worker_url.serialize());
                     parent_sender.send(ScriptMsg::RunnableMsg(
-                        box WorkerEventHandler::new(worker)));
+                        box WorkerEventHandler::new(worker))).unwrap();
                     return;
                 }
                 Ok((metadata, bytes)) => {
@@ -235,7 +235,7 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
         let col_num = errorevent.Colno();
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         self.parent_sender.send(ScriptMsg::WorkerDispatchErrorEvent(worker, msg, file_name,
-                                                                    line_num, col_num));
+                                                                    line_num, col_num)).unwrap();
  }
 }
 
@@ -244,7 +244,7 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
         let data = try!(StructuredCloneData::write(cx, message));
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         self.parent_sender.send(ScriptMsg::RunnableMsg(
-            box WorkerMessageHandler::new(worker, data)));
+            box WorkerMessageHandler::new(worker, data))).unwrap();
         Ok(())
     }
 

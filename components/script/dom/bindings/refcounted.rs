@@ -114,7 +114,7 @@ impl<T: Reflectable> Drop for Trusted<T> {
         *refcount -= 1;
         if *refcount == 0 {
             self.script_chan.send(
-                ScriptMsg::RefcountCleanup(TrustedReference(self.ptr)));
+                ScriptMsg::RefcountCleanup(TrustedReference(self.ptr))).unwrap();
         }
     }
 }
