@@ -1,6 +1,7 @@
 from __future__ import print_function, unicode_literals
 
 import argparse
+import sys
 import os
 import os.path as path
 import subprocess
@@ -27,7 +28,9 @@ class MachCommands(CommandBase):
     def ensure_built_tests(self):
         if self.context.built_tests:
             return
-        Registrar.dispatch('build-tests', context=self.context)
+        returncode = Registrar.dispatch('build-tests', context=self.context)
+	if returncode:
+	    sys.exit(returncode)
         self.context.built_tests = True
 
     def find_test(self, prefix):
@@ -180,7 +183,6 @@ class MachCommands(CommandBase):
     def test_content(self, test_name=None):
         self.ensure_bootstrapped()
         self.ensure_built_tests()
-
         test_path = path.join(self.context.topdir, "tests", "content")
         test_args = ["--source-dir=%s" % test_path]
 
