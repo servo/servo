@@ -78,7 +78,7 @@ dependencies = [
 [[package]]
 name = "cocoa"
 version = "0.1.1"
-source = "git+https://github.com/servo/rust-cocoa#fdc033e2edf9e6979d6cd15da1a904b81a448b57"
+source = "git+https://github.com/servo/rust-cocoa#7768a8f6af73d132b68e5cad6a0d81ec54102abe"
 dependencies = [
  "bitflags 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
