@@ -70,6 +70,19 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTitleElement> {
         Some(htmlelement as &VirtualMethods)
     }
 
+    fn child_inserted(&self, child: JSRef<Node>) {
+        match self.super_type() {
+            Some(ref s) => s.child_inserted(child),
+            _ => (),
+        }
+
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        if node.is_in_doc() {
+            let document = node.owner_doc().root();
+            document.r().send_title_to_compositor();
+        }
+    }
+
     fn bind_to_tree(&self, is_in_doc: bool) {
         let node: JSRef<Node> = NodeCast::from_ref(*self);
         if is_in_doc {
