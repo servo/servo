@@ -295,8 +295,11 @@ class CGMethodCall(CGThing):
                     # The argument at index distinguishingIndex can't possibly
                     # be unset here, because we've already checked that argc is
                     # large enough that we can examine this argument.
-                    template, _, declType, needsRooting = getJSToNativeConversionTemplate(
+                    info = getJSToNativeConversionInfo(
                         type, descriptor, failureCode="break;", isDefinitelyObject=True)
+                    template = info.template
+                    declType = info.declType
+                    needsRooting = info.needsRooting
 
                     testCode = instantiateJSToNativeConversionTemplate(
                         template,
@@ -424,19 +427,48 @@ def union_native_type(t):
     return 'UnionTypes::%s' % name
 
 
-def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
-                                    isDefinitelyObject=False,
-                                    isMember=False,
-                                    isArgument=False,
-                                    invalidEnumValueFatal=True,
-                                    defaultValue=None,
-                                    treatNullAs="Default",
-                                    isEnforceRange=False,
-                                    isClamp=False,
-                                    exceptionCode=None,
-                                    allowTreatNonObjectAsNull=False,
-                                    isCallbackReturnValue=False,
-                                    sourceDescription="value"):
+class JSToNativeConversionInfo():
+    """
+    An object representing information about a JS-to-native conversion.
+    """
+    def __init__(self, template, default=None, declType=None,
+                 needsRooting=False):
+        """
+        template: A string representing the conversion code.  This will have
+                  template substitution performed on it as follows:
+
+          ${val} is a handle to the JS::Value in question
+
+        default: A string or None representing rust code for default value(if any).
+
+        declType: A CGThing representing the native C++ type we're converting
+                  to.  This is allowed to be None if the conversion code is
+                  supposed to be used as-is.
+
+        needsRooting: A boolean indicating whether the caller has to root
+                      the result
+        """
+        assert isinstance(template, str)
+        assert declType is None or isinstance(declType, CGThing)
+        self.template = template
+        self.default = default
+        self.declType = declType
+        self.needsRooting = needsRooting
+
+
+def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
+                                isDefinitelyObject=False,
+                                isMember=False,
+                                isArgument=False,
+                                invalidEnumValueFatal=True,
+                                defaultValue=None,
+                                treatNullAs="Default",
+                                isEnforceRange=False,
+                                isClamp=False,
+                                exceptionCode=None,
+                                allowTreatNonObjectAsNull=False,
+                                isCallbackReturnValue=False,
+                                sourceDescription="value"):
     """
     Get a template for converting a JS value to a native object based on the
     given type and descriptor.  If failureCode is given, then we're actually
@@ -471,7 +503,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     If allowTreatNonObjectAsNull is true, then [TreatNonObjectAsNull]
     extended attributes on nullable callback functions will be honored.
 
-    The return value from this function is a tuple consisting of four things:
+    The return value from this function is an object of JSToNativeConversionInfo consisting of four things:
 
     1)  A string representing the conversion code.  This will have template
         substitution performed on it as follows:
@@ -501,7 +533,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
     def handleOptional(template, declType, default):
         assert (defaultValue is None) == (default is None)
-        return (template, default, declType, needsRooting)
+        return JSToNativeConversionInfo(template, default, declType, needsRooting=needsRooting)
 
     # Unfortunately, .capitalize() on a string will lowercase things inside the
     # string, which we do not want.
@@ -779,7 +811,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         else:
             default = None
 
-        return (template, default, declType, needsRooting)
+        return JSToNativeConversionInfo(template, default, declType, needsRooting=needsRooting)
 
     if type.isAny():
         assert not isEnforceRange and not isClamp
@@ -818,7 +850,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     if type.isVoid():
         # This one only happens for return values, and its easy: Just
         # ignore the jsval.
-        return ("", None, None, False)
+        return JSToNativeConversionInfo("", None, None, needsRooting=False)
 
     if not type.isPrimitive():
         raise TypeError("Need conversion for argument type '%s'" % str(type))
@@ -862,7 +894,7 @@ def instantiateJSToNativeConversionTemplate(templateBody, replacements,
                                             declType, declName, needsRooting):
     """
     Take the templateBody and declType as returned by
-    getJSToNativeConversionTemplate, a set of replacements as required by the
+    getJSToNativeConversionInfo, a set of replacements as required by the
     strings in such a templateBody, and a declName, and generate code to
     convert into a stack Rust binding with that name.
     """
@@ -936,7 +968,7 @@ class CGArgumentConverter(CGThing):
             "val": string.Template("(*${argv}.offset(${index}))").substitute(replacer),
         }
 
-        template, default, declType, needsRooting = getJSToNativeConversionTemplate(
+        info = getJSToNativeConversionInfo(
             argument.type,
             descriptorProvider,
             invalidEnumValueFatal=invalidEnumValueFatal,
@@ -946,6 +978,10 @@ class CGArgumentConverter(CGThing):
             isClamp=argument.clamp,
             isMember="Variadic" if argument.variadic else False,
             allowTreatNonObjectAsNull=argument.allowTreatNonCallableAsNull())
+        template = info.template
+        default = info.default
+        declType = info.declType
+        needsRooting = info.needsRooting
 
         if not argument.variadic:
             if argument.optional:
@@ -2827,7 +2863,7 @@ class CGConstant(CGThing):
 
 def getUnionTypeTemplateVars(type, descriptorProvider):
     # For dictionaries and sequences we need to pass None as the failureCode
-    # for getJSToNativeConversionTemplate.
+    # for getJSToNativeConversionInfo.
     # Also, for dictionaries we would need to handle conversion of
     # null/undefined to the dictionary correctly.
     if type.isDictionary() or type.isSequence():
@@ -2853,10 +2889,11 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         name = type.name
         typeName = "/*" + type.name + "*/"
 
-    template, _, _, _ = getJSToNativeConversionTemplate(
+    info = getJSToNativeConversionInfo(
         type, descriptorProvider, failureCode="return Ok(None);",
         exceptionCode='return Err(());',
         isDefinitelyObject=True)
+    template = info.template
 
     assert not type.isObject()
     jsConversion = string.Template(template).substitute({
@@ -3529,9 +3566,13 @@ class CGProxySpecialOperation(CGPerSignatureCall):
         if operation.isSetter() or operation.isCreator():
             # arguments[0] is the index or name of the item that we're setting.
             argument = arguments[1]
-            template, _, declType, needsRooting = getJSToNativeConversionTemplate(
+            info = getJSToNativeConversionInfo(
                 argument.type, descriptor, treatNullAs=argument.treatNullAs,
                 exceptionCode="return false;")
+            template = info.template
+            declType = info.declType
+            needsRooting = info.needsRooting
+
             templateValues = {
                 "val": "(*desc).value",
             }
@@ -4287,14 +4328,15 @@ class CGDictionary(CGThing):
             self.generatable = False
             # Nothing else to do here
             return
+
         self.memberInfo = [
             (member,
-             getJSToNativeConversionTemplate(member.type,
-                                             descriptorProvider,
-                                             isMember="Dictionary",
-                                             defaultValue=member.defaultValue,
-                                             failureCode="return Err(());",
-                                             exceptionCode="return Err(());"))
+             getJSToNativeConversionInfo(member.type,
+                                         descriptorProvider,
+                                         isMember="Dictionary",
+                                         defaultValue=member.defaultValue,
+                                         failureCode="return Err(());",
+                                         exceptionCode="return Err(());"))
             for member in dictionary.members ]
 
     def define(self):
@@ -4376,16 +4418,20 @@ class CGDictionary(CGThing):
         return dictionary.module()
 
     def getMemberType(self, memberInfo):
-        member, (_, _, declType, _) = memberInfo
+        member, info = memberInfo
+        declType = info.declType
         if not member.defaultValue:
-            declType = CGWrapper(declType, pre="Option<", post=">")
+            declType = CGWrapper(info.declType, pre="Option<", post=">")
         return declType.define()
 
     def getMemberConversion(self, memberInfo):
         def indent(s):
             return CGIndenter(CGGeneric(s), 8).define()
 
-        member, (templateBody, default, declType, _) = memberInfo
+        member, info = memberInfo
+        templateBody = info.template
+        default = info.default
+        declType = info.declType
         replacements = { "val": "value" }
         conversion = string.Template(templateBody).substitute(replacements)
 
@@ -4608,8 +4654,9 @@ class CGBindingRoot(CGThing):
         return stripTrailingWhitespace(self.root.define())
 
 def argument_type(descriptorProvdider, ty, optional=False, defaultValue=None, variadic=False):
-    _, _, declType, _ = getJSToNativeConversionTemplate(
+    info = getJSToNativeConversionInfo(
         ty, descriptorProvdider, isArgument=True)
+    declType = info.declType
 
     if variadic:
         declType = CGWrapper(declType, pre="Vec<", post=">")
@@ -4919,13 +4966,16 @@ class CallbackMember(CGNativeMember):
             "val": "rval",
         }
 
-        template, _, declType, needsRooting = getJSToNativeConversionTemplate(
+        info = getJSToNativeConversionInfo(
             self.retvalType,
             self.descriptorProvider,
             exceptionCode=self.exceptionCode,
             isCallbackReturnValue="Callback",
             # XXXbz we should try to do better here
             sourceDescription="return value")
+        template = info.template
+        declType = info.declType
+        needsRooting = info.needsRooting
 
         convertType = instantiateJSToNativeConversionTemplate(
             template, replacements, declType, "rvalDecl", needsRooting)
