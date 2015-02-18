@@ -35,8 +35,6 @@ use std::cell::{Cell, RefCell};
 #[cfg(feature = "window")]
 use std::num::Float;
 #[cfg(feature = "window")]
-use time::{self, Timespec};
-#[cfg(feature = "window")]
 use util::opts;
 
 #[cfg(all(feature = "headless", target_os="linux"))]
@@ -71,15 +69,13 @@ pub struct Window {
     ready_state: Cell<ReadyState>,
     paint_state: Cell<PaintState>,
     key_modifiers: Cell<KeyModifiers>,
-
-    last_title_set_time: Cell<Timespec>,
 }
 
 #[cfg(feature = "window")]
 impl Window {
     pub fn new(is_foreground: bool, window_size: TypedSize2D<DevicePixel, u32>) -> Rc<Window> {
         let mut glutin_window = glutin::WindowBuilder::new()
-                            .with_title("Servo [glutin]".to_string())
+                            .with_title("Servo".to_string())
                             .with_dimensions(window_size.to_untyped().width, window_size.to_untyped().height)
                             .with_gl_version(Window::gl_version())
                             .with_visibility(is_foreground)
@@ -101,8 +97,6 @@ impl Window {
             ready_state: Cell::new(ReadyState::Blank),
             paint_state: Cell::new(PaintState::Idle),
             key_modifiers: Cell::new(KeyModifiers::empty()),
-
-            last_title_set_time: Cell::new(Timespec::new(0, 0)),
         };
 
         gl::clear_color(0.6, 0.6, 0.6, 1.0);
@@ -254,36 +248,6 @@ impl Window {
             }
         };
         self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(event));
-    }
-
-    fn update_window_title(&self) {
-        let now = time::get_time();
-        if now.sec == self.last_title_set_time.get().sec {
-            return
-        }
-        self.last_title_set_time.set(now);
-
-        match self.ready_state.get() {
-            ReadyState::Blank => {
-                self.window.set_title("blank - Servo [glutin]")
-            }
-            ReadyState::Loading => {
-                self.window.set_title("Loading - Servo [glutin]")
-            }
-            ReadyState::PerformingLayout => {
-                self.window.set_title("Performing Layout - Servo [glutin]")
-            }
-            ReadyState::FinishedLoading => {
-                match self.paint_state.get() {
-                    PaintState::Painting => {
-                        self.window.set_title("Rendering - Servo [glutin]")
-                    }
-                    PaintState::Idle => {
-                        self.window.set_title("Servo [glutin]")
-                    }
-                }
-            }
-        }
     }
 
     pub fn wait_events(&self) -> WindowEvent {
@@ -478,20 +442,24 @@ impl WindowMethods for Window {
     /// Sets the ready state.
     fn set_ready_state(&self, ready_state: ReadyState) {
         self.ready_state.set(ready_state);
-        self.update_window_title()
     }
 
     /// Sets the paint state.
     fn set_paint_state(&self, paint_state: PaintState) {
         self.paint_state.set(paint_state);
-        self.update_window_title()
     }
 
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
         ScaleFactor(self.window.hidpi_factor())
     }
 
-    fn set_page_title(&self, _: Option<String>) {
+    fn set_page_title(&self, title: Option<String>) {
+        let title = match title {
+            Some(ref title) if title.len() > 0 => title.as_slice(),
+            _ => "untitled",
+        };
+        let title = format!("{} - Servo", title);
+        self.window.set_title(&title);
     }
 
     fn set_page_load_data(&self, _: LoadData) {
@@ -504,11 +472,11 @@ impl WindowMethods for Window {
     #[cfg(target_os="macos")]
     fn set_cursor(&self, _: Cursor) {
     }
-    
+
     #[cfg(target_os="android")]
     fn set_cursor(&self, _: Cursor) {
     }
-    
+
     #[cfg(target_os="linux")]
     fn set_cursor(&self, c: Cursor) {
         use glutin::MouseCursor;
