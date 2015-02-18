@@ -75,7 +75,14 @@ class MachCommands(CommandBase):
         else:
             args = args + params
 
-        subprocess.check_call(args, env=env)
+        try:
+            subprocess.check_call(args, env=env)
+        except OSError as e:
+            if e.errno == 2:
+                print("Servo Binary can't be found! Run './mach build'"
+                     " and try again!")
+            else:
+                raise e
 
     @Command('doc',
              description='Generate documentation',
