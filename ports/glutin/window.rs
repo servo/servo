@@ -27,7 +27,7 @@ use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 #[cfg(feature = "window")]
 use geom::point::{Point2D, TypedPoint2D};
 #[cfg(feature = "window")]
-use glutin::{ElementState, Event, MouseButton, MouseCursor, VirtualKeyCode};
+use glutin::{ElementState, Event, MouseButton, VirtualKeyCode};
 #[cfg(feature = "window")]
 use msg::constellation_msg::{KeyState, CONTROL, SHIFT, ALT};
 #[cfg(feature = "window")]
@@ -511,6 +511,8 @@ impl WindowMethods for Window {
     
     #[cfg(target_os="linux")]
     fn set_cursor(&self, c: Cursor) {
+        use glutin::MouseCursor;
+
         let glutin_cursor = match c {
             Cursor::NoCursor => MouseCursor::NoneCursor,
             Cursor::DefaultCursor => MouseCursor::Default,
