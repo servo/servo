@@ -436,23 +436,23 @@ impl Page {
         address
     }
 
-    pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Option<Vec<UntrustedNodeAddress>> {
+    pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
+        let mut results = vec!();
         let frame = self.frame();
         let document = frame.as_ref().unwrap().document.root();
-        let root = match document.r().GetDocumentElement().root() {
-            None => return None,
-            Some(root) => root,
-        };
-        let root: JSRef<Node> = NodeCast::from_ref(root.r());
-        let address = match self.layout().mouse_over(root.to_trusted_node_address(), *point) {
-            Ok(MouseOverResponse(node_address)) => {
-                Some(node_address)
+        match document.r().GetDocumentElement().root() {
+            Some(root) => {
+                let root: JSRef<Node> = NodeCast::from_ref(root.r());
+                match self.layout().mouse_over(root.to_trusted_node_address(), *point) {
+                    Ok(MouseOverResponse(node_addresses)) => {
+                        results = node_addresses;
+                    }
+                    Err(()) => {}
+                };
             }
-            Err(()) => {
-                None
-            }
-        };
-        address
+            None => {}
+        }
+        results
     }
 }
 
