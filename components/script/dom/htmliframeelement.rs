@@ -47,7 +47,7 @@ enum SandboxAllowance {
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     subpage_id: Cell<Option<SubpageId>>,
-    containing_page_pipeline_id: Cell<Option<PipelineId>>,
+    contained_page_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
 }
 
@@ -108,7 +108,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         let page = window.page();
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id(page);
 
-        self.containing_page_pipeline_id.set(Some(page.id));
+        self.contained_page_pipeline_id.set(Some(page.id));
 
         let ConstellationChan(ref chan) = page.constellation_chan;
     chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(url,
@@ -124,7 +124,7 @@ impl HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLIFrameElement, localName, prefix, document),
             subpage_id: Cell::new(None),
-            containing_page_pipeline_id: Cell::new(None),
+            contained_page_pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),
         }
     }
@@ -136,8 +136,8 @@ impl HTMLIFrameElement {
     }
 
     #[inline]
-    pub fn containing_page_pipeline_id(&self) -> Option<PipelineId> {
-        self.containing_page_pipeline_id.get()
+    pub fn contained_page_pipeline_id(&self) -> Option<PipelineId> {
+        self.contained_page_pipeline_id.get()
     }
 
     #[inline]
