@@ -9,7 +9,6 @@
 #![feature(hash)]
 #![feature(int_uint)]
 #![feature(io)]
-#![feature(libc)]
 #![feature(path)]
 #![feature(plugin)]
 #![feature(rustc_private)]
