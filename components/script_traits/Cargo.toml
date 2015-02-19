@@ -24,3 +24,4 @@ git = "https://github.com/servo/rust-geom"
 
 [dependencies]
 url = "0.2.16"
+libc = "*"
