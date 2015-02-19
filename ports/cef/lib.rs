@@ -7,7 +7,6 @@
 #![feature(plugin)]
 #![feature(link_args)]
 #![feature(thread_local)]
-#![feature(libc)]
 #![feature(unicode)]
 #![feature(core)]
 #![feature(std_misc)]
