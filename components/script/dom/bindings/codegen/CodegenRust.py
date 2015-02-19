@@ -1920,10 +1920,10 @@ class CGIDLInterface(CGThing):
         }
         return string.Template("""\
 impl IDLInterface for ${type} {
-    fn get_prototype_id(_: Option<${type}>) -> PrototypeList::ID {
+    fn get_prototype_id() -> PrototypeList::ID {
         PrototypeList::ID::${type}
     }
-    fn get_prototype_depth(_: Option<${type}>) -> uint {
+    fn get_prototype_depth() -> uint {
         ${depth}
     }
 }
