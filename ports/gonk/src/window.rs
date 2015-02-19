@@ -13,7 +13,6 @@ use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
 use msg::compositor_msg::{ReadyState, PaintState};
 use msg::constellation_msg::{Key, KeyModifiers};
-use msg::constellation_msg::LoadData;
 use std::cell::Cell;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::rc::Rc;
@@ -22,6 +21,7 @@ use std::mem::size_of;
 use std::mem::zeroed;
 use std::ptr;
 use std::ffi::CString;
+use url::Url;
 use util::cursor::Cursor;
 use util::geometry::ScreenPx;
 use gleam::gl;
@@ -804,7 +804,7 @@ impl WindowMethods for Window {
     fn set_page_title(&self, _: Option<String>) {
     }
 
-    fn set_page_load_data(&self, _: LoadData) {
+    fn set_page_url(&self, _: Url) {
     }
 
     fn load_end(&self) {

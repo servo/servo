@@ -392,6 +392,7 @@ dependencies = [
  "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "time 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 

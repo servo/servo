@@ -15,10 +15,10 @@ use layers::platform::surface::NativeGraphicsMetadata;
 use msg::constellation_msg;
 use msg::constellation_msg::Key;
 use msg::compositor_msg::{PaintState, ReadyState};
-use msg::constellation_msg::LoadData;
 use NestedEventLoopListener;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
+use url::Url;
 use util::cursor::Cursor;
 use util::geometry::ScreenPx;
 
@@ -462,7 +462,7 @@ impl WindowMethods for Window {
         self.window.set_title(&title);
     }
 
-    fn set_page_load_data(&self, _: LoadData) {
+    fn set_page_url(&self, _: Url) {
     }
 
     fn load_end(&self) {
@@ -657,7 +657,7 @@ impl WindowMethods for Window {
     fn set_page_title(&self, _: Option<String>) {
     }
 
-    fn set_page_load_data(&self, _: LoadData) {
+    fn set_page_url(&self, _: Url) {
     }
 
     fn load_end(&self) {
