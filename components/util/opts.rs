@@ -27,8 +27,8 @@ pub struct Opts {
 
     /// How many threads to use for CPU painting (`-t`).
     ///
-    /// FIXME(pcwalton): This is not currently used. All painting is sequential.
-    pub n_paint_threads: uint,
+    /// Note that painting is sequentialized when using GPU painting.
+    pub paint_threads: uint,
 
     /// True to use GPU painting via Skia-GL, false to use CPU painting via Skia (`-g`). Note that
     /// compositing is always done on the GPU.
@@ -74,6 +74,9 @@ pub struct Opts {
 
     /// True if we should show borders on all fragments for debugging purposes (`--show-debug-fragment-borders`).
     pub show_debug_fragment_borders: bool,
+
+    /// True if we should paint tiles with overlays based on which thread painted them.
+    pub show_debug_parallel_paint: bool,
 
     /// If set with --disable-text-aa, disable antialiasing on fonts. This is primarily useful for reftests
     /// where pixel perfect results are required when using fonts such as the Ahem
@@ -128,6 +131,7 @@ pub fn print_debug_usage(app: &str)  {
     print_option("profile-tasks", "Instrument each task, writing the output to a file.");
     print_option("show-compositor-borders", "Paint borders along layer and tile boundaries.");
     print_option("show-fragment-borders", "Paint borders along fragment boundaries.");
+    print_option("show-parallel-paint", "Overlay tiles with colors showing which thread painted them.");
     print_option("trace-layout", "Write layout trace to an external file for debugging.");
     print_option("validate-display-list-geometry",
                  "Display an error when display list geometry escapes overflow region.");
@@ -151,7 +155,7 @@ static FORCE_CPU_PAINTING: bool = false;
 pub fn default_opts() -> Opts {
     Opts {
         urls: vec!(),
-        n_paint_threads: 1,
+        paint_threads: 1,
         gpu_painting: false,
         tile_size: 512,
         device_pixels_per_px: None,
@@ -166,6 +170,7 @@ pub fn default_opts() -> Opts {
         bubble_inline_sizes_separately: false,
         show_debug_borders: false,
         show_debug_fragment_borders: false,
+        show_debug_parallel_paint: false,
         enable_text_antialiasing: false,
         trace_layout: false,
         devtools_port: None,
@@ -249,9 +254,9 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         ScaleFactor(dppx_str.parse().unwrap())
     );
 
-    let mut n_paint_threads: uint = match opt_match.opt_str("t") {
-        Some(n_paint_threads_str) => n_paint_threads_str.parse().unwrap(),
-        None => 1,      // FIXME: Number of cores.
+    let mut paint_threads: uint = match opt_match.opt_str("t") {
+        Some(paint_threads_str) => paint_threads_str.parse().unwrap(),
+        None => cmp::max(rt::default_sched_threads() * 3 / 4, 1),
     };
 
     // If only the flag is present, default to a 5 second period for both profilers.
@@ -274,7 +279,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     let mut bubble_inline_sizes_separately = debug_options.contains(&"bubble-widths");
     let trace_layout = debug_options.contains(&"trace-layout");
     if trace_layout {
-        n_paint_threads = 1;
+        paint_threads = 1;
         layout_threads = 1;
         bubble_inline_sizes_separately = true;
     }
@@ -295,7 +300,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
 
     let opts = Opts {
         urls: urls,
-        n_paint_threads: n_paint_threads,
+        paint_threads: paint_threads,
         gpu_painting: gpu_painting,
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,
@@ -315,6 +320,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         user_agent: opt_match.opt_str("u"),
         show_debug_borders: debug_options.contains(&"show-compositor-borders"),
         show_debug_fragment_borders: debug_options.contains(&"show-fragment-borders"),
+        show_debug_parallel_paint: debug_options.contains(&"show-parallel-paint"),
         enable_text_antialiasing: !debug_options.contains(&"disable-text-aa"),
         dump_flow_tree: debug_options.contains(&"dump-flow-tree"),
         validate_display_list_geometry: debug_options.contains(&"validate-display-list-geometry"),
