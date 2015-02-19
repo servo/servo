@@ -355,7 +355,8 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
             for (i, tile) in tiles.into_iter().enumerate() {
                 let thread_id = i % self.worker_threads.len();
                 let layer_buffer = self.find_or_create_layer_buffer_for_tile(&tile, scale);
-                self.worker_threads[thread_id].paint_tile(tile,
+                self.worker_threads[thread_id].paint_tile(thread_id,
+                                                          tile,
                                                           layer_buffer,
                                                           stacking_context.clone(),
                                                           scale);
@@ -423,7 +424,7 @@ impl WorkerThreadProxy {
         let thread_count = if opts::get().gpu_painting {
             1
         } else {
-            opts::get().layout_threads
+            opts::get().paint_threads
         };
         (0..thread_count).map(|_| {
             let (from_worker_sender, from_worker_receiver) = channel();
@@ -447,11 +448,12 @@ impl WorkerThreadProxy {
     }
 
     fn paint_tile(&mut self,
+                  thread_id: usize,
                   tile: BufferRequest,
                   layer_buffer: Option<Box<LayerBuffer>>,
                   stacking_context: Arc<StackingContext>,
                   scale: f32) {
-        self.sender.send(MsgToWorkerThread::PaintTile(tile, layer_buffer, stacking_context, scale)).unwrap()
+        self.sender.send(MsgToWorkerThread::PaintTile(thread_id, tile, layer_buffer, stacking_context, scale)).unwrap()
     }
 
     fn get_painted_tile_buffer(&mut self) -> Box<LayerBuffer> {
@@ -495,8 +497,8 @@ impl WorkerThread {
         loop {
             match self.receiver.recv().unwrap() {
                 MsgToWorkerThread::Exit => break,
-                MsgToWorkerThread::PaintTile(tile, layer_buffer, stacking_context, scale) => {
-                    let draw_target = self.optimize_and_paint_tile(&tile, stacking_context, scale);
+                MsgToWorkerThread::PaintTile(thread_id, tile, layer_buffer, stacking_context, scale) => {
+                    let draw_target = self.optimize_and_paint_tile(thread_id, &tile, stacking_context, scale);
                     let buffer = self.create_layer_buffer_for_painted_tile(&tile,
                                                                            layer_buffer,
                                                                            draw_target,
@@ -508,6 +510,7 @@ impl WorkerThread {
     }
 
     fn optimize_and_paint_tile(&mut self,
+                               thread_id: usize,
                                tile: &BufferRequest,
                                stacking_context: Arc<StackingContext>,
                                scale: f32)
@@ -563,7 +566,24 @@ impl WorkerThread {
                                                                 &matrix,
                                                                 None);
                 paint_context.draw_target.flush();
-            });
+                    });
+
+            if opts::get().show_debug_parallel_paint {
+                // Overlay a transparent solid color to identify the thread that
+                // painted this tile.
+                let colors = [Color { r: 6.0/255.0, g: 153.0/255.0, b: 198.0/255.0, a: 0.7 },
+                              Color { r: 255.0/255.0, g: 212.0/255.0, b: 83.0/255.0, a: 0.7 },
+                              Color { r: 116.0/255.0, g: 29.0/255.0, b: 109.0/255.0, a: 0.7 },
+                              Color { r: 204.0/255.0, g: 158.0/255.0, b: 199.0/255.0, a: 0.7 },
+                              Color { r: 242.0/255.0, g: 46.0/255.0, b: 121.0/255.0, a: 0.7 },
+                              Color { r: 116.0/255.0, g: 203.0/255.0, b: 196.0/255.0, a: 0.7 },
+                              Color { r: 255.0/255.0, g: 249.0/255.0, b: 201.0/255.0, a: 0.7 },
+                              Color { r: 137.0/255.0, g: 196.0/255.0, b: 78.0/255.0, a: 0.7 }];
+                paint_context.draw_solid_color(&Rect(Point2D(Au(0), Au(0)),
+                                                     Size2D(Au::from_px(size.width as isize),
+                                                            Au::from_px(size.height as isize))),
+                                               colors[thread_id % colors.len()]);
+            }
         }
 
         draw_target
@@ -613,7 +633,7 @@ impl WorkerThread {
 
 enum MsgToWorkerThread {
     Exit,
-    PaintTile(BufferRequest, Option<Box<LayerBuffer>>, Arc<StackingContext>, f32),
+    PaintTile(usize, BufferRequest, Option<Box<LayerBuffer>>, Arc<StackingContext>, f32),
 }
 
 enum MsgFromWorkerThread {
