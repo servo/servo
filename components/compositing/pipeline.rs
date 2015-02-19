@@ -88,7 +88,8 @@ impl Pipeline {
                                           storage_task.clone(),
                                           image_cache_task.clone(),
                                           devtools_chan,
-                                          window_size);
+                                          window_size,
+                                          load_data.clone());
                 ScriptControlChan(script_chan)
             }
             Some(spipe) => {
@@ -97,6 +98,7 @@ impl Pipeline {
                     new_pipeline_id: id,
                     subpage_id: parent.expect("script_pipeline != None but subpage_id == None").1,
                     layout_chan: ScriptTaskFactory::clone_layout_channel(None::<&mut STF>, &layout_pair),
+                    load_data: load_data.clone(),
                 };
 
                 let ScriptControlChan(ref chan) = spipe.script_chan;
@@ -160,11 +162,9 @@ impl Pipeline {
         }
     }
 
-    pub fn load(&self) {
+    pub fn activate(&self) {
         let ScriptControlChan(ref chan) = self.script_chan;
-        chan.send(ConstellationControlMsg::Load(self.id,
-                                                self.parent,
-                                                self.load_data.clone())).unwrap();
+        chan.send(ConstellationControlMsg::Activate(self.id)).unwrap();
     }
 
     pub fn grant_paint_permission(&self) {

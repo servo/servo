@@ -48,12 +48,13 @@ pub struct NewLayoutInfo {
     pub new_pipeline_id: PipelineId,
     pub subpage_id: SubpageId,
     pub layout_chan: Box<Any+Send>, // opaque reference to a LayoutChannel
+    pub load_data: LoadData,
 }
 
 /// Messages sent from the constellation to the script task
 pub enum ConstellationControlMsg {
-    /// Loads a new URL on the specified pipeline.
-    Load(PipelineId, Option<(PipelineId, SubpageId)>, LoadData),
+    /// Reactivate an existing pipeline.
+    Activate(PipelineId),
     /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
@@ -111,7 +112,8 @@ pub trait ScriptTaskFactory {
                  storage_task: StorageTask,
                  image_cache_task: ImageCacheTask,
                  devtools_chan: Option<DevtoolsControlChan>,
-                 window_size: WindowSizeData)
+                 window_size: WindowSizeData,
+                 load_data: LoadData)
                  where C: ScriptListener + Send;
     fn create_layout_channel(_phantom: Option<&mut Self>) -> OpaqueScriptLayoutChannel;
     fn clone_layout_channel(_phantom: Option<&mut Self>, pair: &OpaqueScriptLayoutChannel)
