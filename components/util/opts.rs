@@ -27,8 +27,8 @@ pub struct Opts {
 
     /// How many threads to use for CPU painting (`-t`).
     ///
-    /// FIXME(pcwalton): This is not currently used. All painting is sequential.
-    pub n_paint_threads: uint,
+    /// Note that painting is sequentialized when using GPU painting.
+    pub paint_threads: uint,
 
     /// True to use GPU painting via Skia-GL, false to use CPU painting via Skia (`-g`). Note that
     /// compositing is always done on the GPU.
@@ -155,7 +155,7 @@ static FORCE_CPU_PAINTING: bool = false;
 pub fn default_opts() -> Opts {
     Opts {
         urls: vec!(),
-        n_paint_threads: 1,
+        paint_threads: 1,
         gpu_painting: false,
         tile_size: 512,
         device_pixels_per_px: None,
@@ -254,9 +254,9 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         ScaleFactor(dppx_str.parse().unwrap())
     );
 
-    let mut n_paint_threads: uint = match opt_match.opt_str("t") {
-        Some(n_paint_threads_str) => n_paint_threads_str.parse().unwrap(),
-        None => 1,      // FIXME: Number of cores.
+    let mut paint_threads: uint = match opt_match.opt_str("t") {
+        Some(paint_threads_str) => paint_threads_str.parse().unwrap(),
+        None => cmp::max(rt::default_sched_threads() * 3 / 4, 1),
     };
 
     // If only the flag is present, default to a 5 second period for both profilers.
@@ -279,7 +279,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     let mut bubble_inline_sizes_separately = debug_options.contains(&"bubble-widths");
     let trace_layout = debug_options.contains(&"trace-layout");
     if trace_layout {
-        n_paint_threads = 1;
+        paint_threads = 1;
         layout_threads = 1;
         bubble_inline_sizes_separately = true;
     }
@@ -300,7 +300,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
 
     let opts = Opts {
         urls: urls,
-        n_paint_threads: n_paint_threads,
+        paint_threads: paint_threads,
         gpu_painting: gpu_painting,
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,

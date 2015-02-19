@@ -60,10 +60,20 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
         }
     }
 
+    let rendering_threads = unsafe {
+        if ((*settings).rendering_threads as uint) < 1 {
+            1
+        } else if (*settings).rendering_threads as uint > MAX_RENDERING_THREADS {
+            MAX_RENDERING_THREADS
+        } else {
+            (*settings).rendering_threads as uint
+        }
+    };
+
     let urls = vec![HOME_URL.to_owned()];
     opts::set_opts(opts::Opts {
         urls: urls,
-        n_paint_threads: 1,
+        paint_threads: rendering_threads,
         gpu_painting: false,
         tile_size: 512,
         device_pixels_per_px: None,
@@ -71,15 +81,7 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
         memory_profiler_period: None,
         enable_experimental: false,
         nonincremental_layout: false,
-        layout_threads: unsafe {
-            if ((*settings).rendering_threads as uint) < 1 {
-                1
-            } else if (*settings).rendering_threads as uint > MAX_RENDERING_THREADS {
-                MAX_RENDERING_THREADS
-            } else {
-                (*settings).rendering_threads as uint
-            }
-        },
+        layout_threads: rendering_threads,
         output_file: None,
         headless: false,
         hard_fail: false,

@@ -424,7 +424,7 @@ impl WorkerThreadProxy {
         let thread_count = if opts::get().gpu_painting {
             1
         } else {
-            opts::get().layout_threads
+            opts::get().paint_threads
         };
         (0..thread_count).map(|_| {
             let (from_worker_sender, from_worker_receiver) = channel();
