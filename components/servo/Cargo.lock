@@ -451,8 +451,9 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#f01d85186415afdaded8179ba7455534931778ca"
+source = "git+https://github.com/servo/rust-mozjs#db08a4eacdb3d92df9a38c8a5d7ad1e1ee0fef4e"
 dependencies = [
+ "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs)",
 ]
 
@@ -703,6 +704,7 @@ dependencies = [
  "html5ever 0.0.0 (git+https://github.com/servo/html5ever)",
  "hyper 0.1.10 (git+https://github.com/servo/hyper?branch=servo)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
+ "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net 0.0.1",
  "plugins 0.0.1",
