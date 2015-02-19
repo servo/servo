@@ -17,6 +17,7 @@ use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use dom::window::WindowHelpers;
 use layout_interface::{LayoutChan, Msg};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
@@ -130,9 +131,9 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
     fn handle_stylesheet_url(self, href: &str) {
         let window = window_from_node(self).root();
         let window = window.r();
-        match UrlParser::new().base_url(&window.page().get_url()).parse(href) {
+        match UrlParser::new().base_url(&window.get_url()).parse(href) {
             Ok(url) => {
-                let LayoutChan(ref layout_chan) = window.page().layout_chan;
+                let LayoutChan(ref layout_chan) = window.layout_chan();
                 layout_chan.send(Msg::LoadStylesheet(url)).unwrap();
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)

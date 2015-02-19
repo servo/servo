@@ -16,6 +16,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use dom::window::WindowHelpers;
 
 use cssparser::RGBA;
 use util::str::{self, DOMString};

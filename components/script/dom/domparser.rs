@@ -12,7 +12,7 @@ use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
 use dom::document::DocumentSource;
-use dom::window::Window;
+use dom::window::{Window, WindowHelpers};
 use parse::html::{HTMLInput, parse_html};
 use util::str::DOMString;
 
