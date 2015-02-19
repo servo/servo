@@ -407,8 +407,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                 self.time_profiler_chan.clone(),
                                                 self.window_size,
                                                 script_pipeline,
-                                                load_data.clone());
-        pipe.load();
+                                                load_data);
         Rc::new(pipe)
     }
 
@@ -876,7 +875,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         };
 
         for frame in destination_frame.iter() {
-            frame.pipeline.borrow().load();
+            frame.pipeline.borrow().activate();
             frame.pipeline.borrow().thaw();
         }
         self.send_frame_tree_and_grant_paint_permission(destination_frame);

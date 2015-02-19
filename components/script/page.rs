@@ -68,11 +68,11 @@ pub struct Page {
 
     js_info: DOMRefCell<Option<JSPageInfo>>,
 
-    /// Cached copy of the most recent url loaded by the script
+    /// Cached copy of the most recent url loaded by the script, after all redirections.
     /// TODO(tkuehn): this currently does not follow any particular caching policy
     /// and simply caches pages forever (!). The bool indicates if reflow is required
     /// when reloading.
-    url: DOMRefCell<Option<(Url, bool)>>,
+    url: DOMRefCell<(Url, bool)>,
 
     next_subpage_id: Cell<SubpageId>,
 
@@ -140,7 +140,8 @@ impl Page {
                storage_task: StorageTask,
                constellation_chan: ConstellationChan,
                js_context: Rc<Cx>,
-               devtools_chan: Option<DevtoolsControlChan>) -> Page {
+               devtools_chan: Option<DevtoolsControlChan>,
+               url: Url) -> Page {
         let js_info = JSPageInfo {
             dom_static: GlobalStaticData::new(),
             js_context: js_context,
@@ -160,7 +161,7 @@ impl Page {
             layout_join_port: DOMRefCell::new(None),
             window_size: Cell::new(window_size),
             js_info: DOMRefCell::new(Some(js_info)),
-            url: DOMRefCell::new(None),
+            url: DOMRefCell::new((url, true)),
             next_subpage_id: Cell::new(SubpageId(0)),
             resize_event: Cell::new(None),
             fragment_name: DOMRefCell::new(None),
@@ -292,11 +293,11 @@ impl Page {
         self.js_info.borrow()
     }
 
-    pub fn url<'a>(&'a self) -> Ref<'a, Option<(Url, bool)>> {
+    pub fn url<'a>(&'a self) -> Ref<'a, (Url, bool)> {
         self.url.borrow()
     }
 
-    pub fn mut_url<'a>(&'a self) -> RefMut<'a, Option<(Url, bool)>> {
+    pub fn mut_url<'a>(&'a self) -> RefMut<'a, (Url, bool)> {
         self.url.borrow_mut()
     }
 
@@ -316,7 +317,7 @@ impl Page {
     }
 
     pub fn get_url(&self) -> Url {
-        self.url().as_ref().unwrap().0.clone()
+        self.url().0.clone()
     }
 
     // FIXME(cgaebel): join_layout is racey. What if the compositor triggers a
