@@ -9,7 +9,6 @@ interface URLUtils {
   //stringifier attribute ScalarValueString href;
   readonly attribute DOMString href;
   //readonly attribute ScalarValueString origin;
-
   //         attribute ScalarValueString protocol;
   //         attribute ScalarValueString username;
   //         attribute ScalarValueString password;
@@ -22,4 +21,8 @@ interface URLUtils {
   //         attribute URLSearchParams searchParams;
   //         attribute ScalarValueString hash;
   readonly attribute DOMString hash;
+
+  // This is only doing as well as gecko right now, bug 824857 is on file for
+  // adding attribute stringifier support.
+  stringifier;
 };
