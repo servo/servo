@@ -1484,7 +1484,7 @@ const Class_name: [u8; %i] = %s;
 static Class: DOMJSClass = DOMJSClass {
     base: js::Class {
         name: &Class_name as *const u8 as *const libc::c_char,
-        flags: JSCLASS_IS_DOMJSCLASS | %s | (((%s) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT as uint), //JSCLASS_HAS_RESERVED_SLOTS(%s),
+        flags: JSCLASS_IS_DOMJSCLASS | %s | (((%s) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT), //JSCLASS_HAS_RESERVED_SLOTS(%s),
         addProperty: Some(JS_PropertyStub),
         delProperty: Some(JS_PropertyStub),
         getProperty: Some(JS_PropertyStub),
@@ -1567,7 +1567,7 @@ class CGPrototypeJSClass(CGThing):
 const PrototypeClassName__: [u8; %s] = %s;
 static PrototypeClass: JSClass = JSClass {
     name: &PrototypeClassName__ as *const u8 as *const libc::c_char,
-    flags: (1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT as uint, //JSCLASS_HAS_RESERVED_SLOTS(1)
+    flags: (1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT, //JSCLASS_HAS_RESERVED_SLOTS(1)
     addProperty: Some(JS_PropertyStub),
     delProperty: Some(JS_PropertyStub),
     getProperty: Some(JS_PropertyStub),
