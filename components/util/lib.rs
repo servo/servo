@@ -10,7 +10,6 @@
 #![feature(hash)]
 #![feature(int_uint)]
 #![feature(io)]
-#![feature(libc)]
 #![feature(optin_builtin_traits)]
 #![feature(path)]
 #![feature(plugin)]
