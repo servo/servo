@@ -172,8 +172,8 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
             let window = window_from_node(self).root();
             let window = window.r();
             let children = window.page().children.borrow();
-            children.iter().find(|child| {
-                let window = child.window().root();
+            children.iter().find(|page| {
+                let window = page.window().root();
                 window.r().subpage() == Some(subpage_id)
             }).map(|page| page.window())
         })

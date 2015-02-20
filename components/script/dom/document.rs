@@ -370,7 +370,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             Some(root) => root,
             None => return None,
         };
-        let root: JSRef<Node> = NodeCast::from_ref(root);
+        let root = NodeCast::from_ref(root);
         let win = self.window.root();
         let address = match win.r().layout().hit_test(root.to_trusted_node_address(), *point) {
             Ok(HitTestResponse(node_address)) => {

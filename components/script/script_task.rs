@@ -3,7 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
-//! and layout tasks.
+//! and layout tasks. It's in charge of processing events for all same-origin pages in a frame
+//! tree, and manages the entire lifetime of pages in the frame tree from initial request to
+//! teardown.
+//!
+//! Page loads follow a two-step process. When a request for a new page load is received, the
+//! network request is initiated and the relevant data pertaining to the new page is stashed.
+//! While the non-blocking request is ongoing, the script task is free to process further events,
+//! noting when they pertain to ongoing loads (such as resizes/viewport adjustments). When the
+//! initial response is received for an ongoing load, the second phase starts - the frame tree
+//! entry is created, along with the Window and Document objects, and the appropriate parser
+//! takes over the response body. Once parsing is complete, the document lifecycle for loading
+//! a page runs its course and the script task returns to processing events in the main event
+//! loop.
 
 #![allow(unsafe_blocks)]
 
@@ -83,16 +95,27 @@ use time::Tm;
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 
+/// A document load that is in the process of fetching the requested resource. Contains
+/// data that will need to be present when the document and frame tree entry are created,
+/// but is only easily available at initiation of the load and on a push basis (so some
+/// data will be updated according to future resize events, viewport changes, etc.)
 struct InProgressLoad {
+    /// The pipeline which requested this load.
     pipeline_id: PipelineId,
+    /// The parent pipeline and child subpage associated with this load, if any.
     subpage_id: Option<(PipelineId, SubpageId)>,
+    /// The current window size associated with this pipeline.
     window_size: WindowSizeData,
+    /// Channel to the layout task associated with this pipeline.
     layout_chan: LayoutChan,
+    /// The current viewport clipping rectangle applying to this pipelie, if any.
     clip_rect: Option<Rect<f32>>,
+    /// The requested URL of the load.
     url: Url,
 }
 
 impl InProgressLoad {
+    /// Create a new InProgressLoad object.
     fn new(id: PipelineId,
            subpage_id: Option<(PipelineId, SubpageId)>,
            layout_chan: LayoutChan,
@@ -445,6 +468,7 @@ impl ScriptTask {
         (js_runtime, js_context)
     }
 
+    // Return the root page in the frame tree. Panics if it doesn't exist.
     fn root_page(&self) -> Rc<Page> {
         self.page.borrow().as_ref().unwrap().clone()
     }
@@ -472,7 +496,7 @@ impl ScriptTask {
 
         {
             let page = self.page.borrow();
-            if let Some(ref page) = page.as_ref() {
+            if let Some(page) = page.as_ref() {
                 for page in page.iter() {
                     // Only process a resize if layout is idle.
                     let window = page.window().root();
@@ -686,6 +710,7 @@ impl ScriptTask {
         panic!("Page rect message sent to nonexistent pipeline");
      }
 
+    /// Handle a request to load a page in a new child frame of an existing page.
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
         let NewLayoutInfo {
             old_pipeline_id,
@@ -703,6 +728,7 @@ impl ScriptTask {
         let parent_window = parent_page.window().root();
         let chan = layout_chan.downcast_ref::<Sender<layout_interface::Msg>>().unwrap();
         let layout_chan = LayoutChan(chan.clone());
+        // Kick off the fetch for the new resource.
         let new_load = InProgressLoad::new(new_pipeline_id, Some((old_pipeline_id, subpage_id)),
                                            layout_chan, parent_window.r().window_size(),
                                            load_data.url.clone());
@@ -736,6 +762,8 @@ impl ScriptTask {
         window.r().thaw();
     }
 
+    /// Handle a request to make a previously-created pipeline active.
+    //TODO: unsuspend JS and timers, etc. when we support such things.
     fn handle_activate(&self, pipeline_id: PipelineId) {
         // We should only get this message when moving in history, so all pages requested
         // should exist.
@@ -790,8 +818,11 @@ impl ScriptTask {
         self.compositor.borrow_mut().close();
     }
 
+    /// We have received notification that the response associated with a load has completed.
+    /// Kick off the document and frame tree creation process using the result.
     fn handle_page_fetch_complete(&self, id: PipelineId, subpage: Option<SubpageId>,
                                   response: LoadResponse) {
+        // Any notification received should refer to an existing, in-progress load that is tracked.
         let idx = self.incomplete_loads.borrow().iter().position(|&:load| {
             load.pipeline_id == id && load.subpage_id.map(|sub| sub.1) == subpage
         }).unwrap();
@@ -840,7 +871,9 @@ impl ScriptTask {
         let final_url = response.metadata.final_url.clone();
         debug!("ScriptTask: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
 
-        let root_page_exists = self.page.borrow().is_none();
+        // We should either be initializing a root page or loading a child page of an
+        // existing one.
+        let root_page_exists = self.page.borrow().is_some();
         assert!(incomplete.subpage_id.is_none() || root_page_exists);
 
         let frame_element = incomplete.subpage_id.and_then(|(parent_id, subpage_id)| {
@@ -866,18 +899,17 @@ impl ScriptTask {
 
         self.compositor.borrow_mut().set_ready_state(incomplete.pipeline_id, Loading);
 
-        let last_modified = response.metadata.headers.as_ref().and_then(|headers| {
-            headers.get().map(|&LastModified(ref tm)| tm.clone())
-        });
-
         let cx = self.js_context.borrow();
         let cx = cx.as_ref().unwrap();
 
+        // Create a new frame tree entry.
         let page = Rc::new(Page::new(incomplete.pipeline_id, incomplete.subpage_id.map(|p| p.1),
                                      final_url.clone()));
-        if root_page_exists {
+        if !root_page_exists {
+            // We have a new root frame tree.
             *self.page.borrow_mut() = Some(page.clone());
         } else if let Some((parent, _)) = incomplete.subpage_id {
+            // We have a new child frame.
             let parent_page = self.root_page();
             parent_page.find(parent).expect("received load for subpage with missing parent");
             parent_page.children.borrow_mut().push(page.clone());
@@ -902,11 +934,15 @@ impl ScriptTask {
         let document = Document::new(window.r(), Some(final_url.clone()),
                                      IsHTMLDocument::HTMLDocument, None,
                                      DocumentSource::FromParser).root();
+
+        window.r().init_browser_context(document.r(), frame_element.r());
+
+        let last_modified = response.metadata.headers.as_ref().and_then(|headers| {
+            headers.get().map(|&LastModified(ref tm)| tm.clone())
+        });
         if let Some(tm) = last_modified {
             document.r().set_last_modified(dom_last_modified(&tm));
         }
-        window.r().init_browser_context(document.r(), frame_element.r());
-
 
         // Create the root frame
         page.set_frame(Some(Frame {
@@ -1108,6 +1144,8 @@ impl ScriptTask {
         self.force_reflow(&*page);
     }
 
+    /// Initiate a non-blocking fetch for a specified resource. Stores the InProgressLoad
+    /// argument until a notification is received that the fetch is complete.
     fn start_page_load(&self, incomplete: InProgressLoad, mut load_data: LoadData) {
         let id = incomplete.pipeline_id.clone();
         let subpage = incomplete.subpage_id.clone().map(|p| p.1);
