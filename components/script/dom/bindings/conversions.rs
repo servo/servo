@@ -410,8 +410,8 @@ pub fn is_dom_proxy(obj: *mut JSObject) -> bool {
 /// stored for non-proxy bindings.
 // We use slot 0 for holding the raw object.  This is safe for both
 // globals and non-globals.
-pub const DOM_OBJECT_SLOT: uint = 0;
-const DOM_PROXY_OBJECT_SLOT: uint = js::JSSLOT_PROXY_PRIVATE as uint;
+pub const DOM_OBJECT_SLOT: u32 = 0;
+const DOM_PROXY_OBJECT_SLOT: u32 = js::JSSLOT_PROXY_PRIVATE;
 
 /// Returns the index of the slot wherein a pointer to the reflected DOM object
 /// is stored.
@@ -420,10 +420,10 @@ const DOM_PROXY_OBJECT_SLOT: uint = js::JSSLOT_PROXY_PRIVATE as uint;
 pub unsafe fn dom_object_slot(obj: *mut JSObject) -> u32 {
     let clasp = JS_GetClass(obj);
     if is_dom_class(&*clasp) {
-        DOM_OBJECT_SLOT as u32
+        DOM_OBJECT_SLOT
     } else {
         assert!(is_dom_proxy(obj));
-        DOM_PROXY_OBJECT_SLOT as u32
+        DOM_PROXY_OBJECT_SLOT
     }
 }
 

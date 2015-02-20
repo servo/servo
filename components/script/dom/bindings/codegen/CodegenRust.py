@@ -1855,7 +1855,7 @@ assert!(!obj.is_null());\
         create += """\
 assert!(!obj.is_null());
 
-JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
+JS_SetReservedSlot(obj, DOM_OBJECT_SLOT,
                    PrivateValue(boxed::into_raw(object) as *const libc::c_void));"""
     return create
 
