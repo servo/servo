@@ -204,8 +204,8 @@ impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
 
 
 no_jsmanaged_fields!(bool, f32, f64, String, Url);
-no_jsmanaged_fields!(uint, u8, u16, u32, u64);
-no_jsmanaged_fields!(int, i8, i16, i32, i64);
+no_jsmanaged_fields!(usize, u8, u16, u32, u64);
+no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 no_jsmanaged_fields!(Sender<T>);
 no_jsmanaged_fields!(Receiver<T>);
 no_jsmanaged_fields!(Rect<T>);
