@@ -45,8 +45,6 @@ use js::JSFUN_CONSTRUCTOR;
 use js;
 
 /// Proxy handler for a WindowProxy.
-#[allow(raw_pointer_derive)]
-#[derive(Copy)]
 pub struct WindowProxyHandler(pub *const libc::c_void);
 
 #[allow(raw_pointer_derive)]

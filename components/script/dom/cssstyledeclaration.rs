@@ -221,9 +221,8 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
         let owner = self.owner.root();
         let window = window_from_node(owner.r()).root();
-        let window = window.r();
         let decl_block = parse_style_attribute(synthesized_declaration.as_slice(),
-                                               &window.get_url());
+                                               &window.r().get_url());
 
         // Step 7
         if decl_block.normal.len() == 0 {
@@ -269,9 +268,8 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
         let owner = self.owner.root();
         let window = window_from_node(owner.r()).root();
-        let window = window.r();
         let decl_block = parse_style_attribute(property.as_slice(),
-                                               &window.get_url());
+                                               &window.r().get_url());
         let element: JSRef<Element> = ElementCast::from_ref(owner.r());
 
         // Step 5

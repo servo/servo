@@ -10,10 +10,11 @@ use dom::window::Window;
 
 use msg::constellation_msg::{PipelineId, SubpageId};
 use util::smallvec::SmallVec;
+use std::cell::Cell;
 use std::rc::Rc;
 use url::Url;
 
-/// Encapsulates a handle to a frame and its associated layout information.
+/// Encapsulates a handle to a frame in a frame tree.
 #[jstraceable]
 pub struct Page {
     /// Pipeline id associated with this page.
@@ -27,9 +28,11 @@ pub struct Page {
 
     /// Cached copy of the most recent url loaded by the script, after all redirections.
     /// TODO(tkuehn): this currently does not follow any particular caching policy
-    /// and simply caches pages forever (!). The bool indicates if reflow is required
-    /// when reloading.
-    url: DOMRefCell<(Url, bool)>,
+    /// and simply caches pages forever (!).
+    url: Url,
+
+    /// Indicates if reflow is required when reloading.
+    needs_reflow: Cell<bool>,
 
     // Child Pages.
     pub children: DOMRefCell<Vec<Rc<Page>>>,
@@ -67,7 +70,8 @@ impl Page {
             id: id,
             subpage_id: subpage_id,
             frame: DOMRefCell::new(None),
-            url: DOMRefCell::new((url, true)),
+            url: url,
+            needs_reflow: Cell::new(true),
             children: DOMRefCell::new(vec!()),
         }
     }
@@ -123,8 +127,8 @@ impl Iterator for PageIterator {
 
 impl Page {
     pub fn set_reflow_status(&self, status: bool) -> bool {
-        let old = (*self.url.borrow()).1;
-        (*self.url.borrow_mut()).1 = status;
+        let old = self.needs_reflow.get();
+        self.needs_reflow.set(status);
         old
     }
 

@@ -56,7 +56,7 @@ use rustc_serialize::base64::{FromBase64, ToBase64, STANDARD};
 use std::cell::{Cell, Ref, RefMut};
 use std::default::Default;
 use std::ffi::CString;
-use std::mem::replace;
+use std::mem;
 use std::num::Float;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Receiver};
@@ -543,7 +543,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     /// layout task has finished any pending request messages.
     fn join_layout(self) {
         let mut layout_join_port = self.layout_join_port.borrow_mut();
-        if let Some(join_port) = replace(&mut *layout_join_port, None) {
+        if let Some(join_port) = mem::replace(&mut *layout_join_port, None) {
             match join_port.try_recv() {
                 Err(Empty) => {
                     info!("script: waiting on layout");
@@ -652,7 +652,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn windowproxy_handler(self) -> WindowProxyHandler {
-        self.dom_static.windowproxy_handler
+        WindowProxyHandler(self.dom_static.windowproxy_handler.0)
     }
 
     fn get_next_subpage_id(self) -> SubpageId {
