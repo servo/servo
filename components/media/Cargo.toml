@@ -1,0 +1,12 @@
+[package]
+name = "media"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "media"
+path = "lib.rs"
+
+[dependencies.rust-media]
+git = "https://github.com/pcwalton/rust-media"
+

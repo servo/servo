@@ -39,6 +39,9 @@ path = "../gfx"
 [dependencies.canvas]
 path = "../canvas"
 
+[dependencies.media]
+path = "../media"
+
 [dependencies.cssparser]
 git = "https://github.com/servo/rust-cssparser"
 
