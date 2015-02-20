@@ -272,7 +272,6 @@ pub mod htmlprogresselement;
 pub mod htmlquoteelement;
 pub mod htmlscriptelement;
 pub mod htmlselectelement;
-pub mod htmlserializer;
 pub mod htmlspanelement;
 pub mod htmlsourceelement;
 pub mod htmlstyleelement;
