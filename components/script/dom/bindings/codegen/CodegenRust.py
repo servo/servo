@@ -4365,11 +4365,9 @@ class CGDictionary(CGThing):
     def impl(self):
         d = self.dictionary
         if d.parent:
-            initParent = ("parent: match %s::%s::new(cx, val) {\n"
-                          "    Ok(parent) => parent,\n"
-                          "    Err(_) => return Err(()),\n"
-                          "},\n") % (self.makeModuleName(d.parent),
-                                     self.makeClassName(d.parent))
+            initParent = "parent: try!(%s::%s::new(cx, val)),\n" % (
+                self.makeModuleName(d.parent),
+                self.makeClassName(d.parent))
         else:
             initParent = ""
 
@@ -4441,12 +4439,11 @@ class CGDictionary(CGThing):
             conversion = "Some(%s)" % conversion
 
         conversion = (
-            "match get_dictionary_property(cx, object, \"%s\") {\n"
-            "    Err(()) => return Err(()),\n"
-            "    Ok(Some(value)) => {\n"
+            "match try!(get_dictionary_property(cx, object, \"%s\")) {\n"
+            "    Some(value) => {\n"
             "%s\n"
             "    },\n"
-            "    Ok(None) => {\n"
+            "    None => {\n"
             "%s\n"
             "    },\n"
             "}") % (member.identifier.name, indent(conversion), indent(default))
