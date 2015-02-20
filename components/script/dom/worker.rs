@@ -28,7 +28,6 @@ use js::jsval::{JSVal, UndefinedValue};
 use url::UrlParser;
 
 use std::borrow::ToOwned;
-use std::cell::Cell;
 use std::sync::mpsc::{channel, Sender};
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
@@ -36,7 +35,6 @@ pub type TrustedWorkerAddress = Trusted<Worker>;
 #[dom_struct]
 pub struct Worker {
     eventtarget: EventTarget,
-    refcount: Cell<uint>,
     global: GlobalField,
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
@@ -47,7 +45,6 @@ impl Worker {
     fn new_inherited(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::Worker),
-            refcount: Cell::new(0),
             global: GlobalField::from_rooted(&global),
             sender: sender,
         }
