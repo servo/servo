@@ -187,6 +187,11 @@ partial interface CSSStyleDeclaration {
 
   [TreatNullAs=EmptyString] attribute DOMString imageRendering;
 
+  [TreatNullAs=EmptyString] attribute DOMString columnCount;
+  [TreatNullAs=EmptyString] attribute DOMString columnWidth;
+  [TreatNullAs=EmptyString] attribute DOMString columns;
+  [TreatNullAs=EmptyString] attribute DOMString columnGap;
+
   [TreatNullAs=EmptyString] attribute DOMString transition;
   [TreatNullAs=EmptyString] attribute DOMString transitionDuration;
   [TreatNullAs=EmptyString] attribute DOMString transitionTimingFunction;
