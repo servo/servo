@@ -1923,7 +1923,7 @@ impl IDLInterface for ${type} {
     fn get_prototype_id() -> PrototypeList::ID {
         PrototypeList::ID::${type}
     }
-    fn get_prototype_depth() -> uint {
+    fn get_prototype_depth() -> usize {
         ${depth}
     }
 }

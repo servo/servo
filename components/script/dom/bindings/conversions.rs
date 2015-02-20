@@ -62,7 +62,7 @@ pub trait IDLInterface {
     fn get_prototype_id() -> PrototypeList::ID;
     /// Returns the prototype depth, i.e., the number of interfaces this
     /// interface inherits from.
-    fn get_prototype_depth() -> uint;
+    fn get_prototype_depth() -> usize;
 }
 
 /// A trait to convert Rust types to `JSVal`s.
