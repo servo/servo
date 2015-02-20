@@ -47,6 +47,10 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
         UrlHelper::Href(&self.page.get_url())
     }
 
+    fn Stringify(self) -> DOMString {
+        self.Href()
+    }
+
     fn Search(self) -> DOMString {
         UrlHelper::Search(&self.page.get_url())
     }

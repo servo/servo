@@ -68,6 +68,13 @@ def stripTrailingWhitespace(text):
     return '\n'.join(lines) + tail
 
 def MakeNativeName(name):
+    # The gecko counterpart to this file uses the BinaryName machinery
+    # for this purpose (#4435 is the servo issue for BinaryName).
+    replacements = {
+        "__stringifier": "Stringify",
+    }
+    if name in replacements:
+        return replacements[name]
     return name[0].upper() + name[1:]
 
 builtinNames = {
@@ -1218,13 +1225,25 @@ class MethodDefiner(PropertyDefiner):
                                  "length": 0,
                                  "flags": "JSPROP_ENUMERATE" })
 
+        if not static:
+            stringifier = descriptor.operations['Stringifier']
+            if stringifier:
+                self.regular.append({
+                    "name": "toString",
+                    "nativeName": stringifier.identifier.name,
+                    "length": 0,
+                    "flags": "JSPROP_ENUMERATE"
+                })
+
+
     def generateArray(self, array, name):
         if len(array) == 0:
             return ""
 
         def specData(m):
             if m.get("methodInfo", True):
-                jitinfo = ("&%s_methodinfo" % m["name"])
+                identifier = m.get("nativeName", m["name"])
+                jitinfo = "&%s_methodinfo" % identifier
                 accessor = "genericMethod as NonNullJSNative"
             else:
                 jitinfo = "0 as *const JSJitInfo"
@@ -4100,8 +4119,8 @@ class CGInterfaceTrait(CGThing):
 
         def members():
             for m in descriptor.interface.members:
-                if m.isMethod() and not m.isStatic() \
-                        and not m.isIdentifierLess():
+                if (m.isMethod() and not m.isStatic() and
+                    (not m.isIdentifierLess() or m.isStringifier())):
                     name = CGSpecializedMethod.makeNativeName(descriptor, m)
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m)
                     for idx, (rettype, arguments) in enumerate(m.signatures()):
@@ -4169,7 +4188,8 @@ class CGDescriptor(CGThing):
         (hasMethod, hasGetter, hasLenientGetter,
          hasSetter, hasLenientSetter) = False, False, False, False, False
         for m in descriptor.interface.members:
-            if m.isMethod() and not m.isIdentifierLess():
+            if (m.isMethod() and
+                (not m.isIdentifierLess() or m == descriptor.operations["Stringifier"])):
                 if m.isStatic():
                     assert descriptor.interface.hasInterfaceObject()
                     cgThings.append(CGStaticMethod(descriptor, m))
@@ -4178,6 +4198,11 @@ class CGDescriptor(CGThing):
                     cgThings.append(CGMemberJITInfo(descriptor, m))
                     hasMethod = True
             elif m.isAttr():
+                if m.stringifier:
+                    raise TypeError("Stringifier attributes not supported yet. "
+                                    "See bug 824857.\n"
+                                    "%s" % m.location)
+
                 if m.isStatic():
                     assert descriptor.interface.hasInterfaceObject()
                     cgThings.append(CGStaticGetter(descriptor, m))
