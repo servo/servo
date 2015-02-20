@@ -1,5 +1,5 @@
 from __future__ import print_function, unicode_literals
-from os import path
+from os import path, getcwd
 
 import subprocess
 
@@ -23,7 +23,12 @@ class MachCommands(CommandBase):
     def cargo(self, params):
         if not params:
             params = []
-        return subprocess.call(["cargo"] + params,
+
+        if self.context.topdir == getcwd():
+            with cd(path.join('components', 'servo')):
+                return subprocess.call(["cargo"] + params,
+                               env=self.build_env())
+        return subprocess.call(['cargo'] + params,
                                env=self.build_env())
 
     @Command('update-cargo',
