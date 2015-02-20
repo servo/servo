@@ -174,7 +174,7 @@ class CommandBase(object):
             env["LDFLAGS"] = ("-mandroid -L%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib "
                               "-Wl,-rpath-link=%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib "
                               "--sysroot=%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/")  % {"gonkdir": env["GONKDIR"], "gonkproduct": env["GONK_PRODUCT"] }
-            
+
             # Not strictly necessary for a vanilla build, but might be when tweaking the openssl build
             env["OPENSSL_PATH"] = "%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib" % {"gonkdir": env["GONKDIR"], "gonkproduct": env["GONK_PRODUCT"] }
 

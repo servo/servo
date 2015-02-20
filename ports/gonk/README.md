@@ -8,6 +8,9 @@ and toolchain.
 
 Note: this will take a long time and will take around 20GB of space
 
+Disable the screen timeout on the device, and connect to wifi. Also connect it to your computer
+with remote debugging enabled.
+
 ```
 git clone https://github.com/mozilla-b2g/B2G
 ./config.sh flame-kk
@@ -21,13 +24,10 @@ If behind a firewall, put the following in your gitconfig:
 [url "https://git.mozilla.org/external/caf"]
     insteadOf = git://codeaurora.org
 ```
-
-Disable the screen timeout on the device, and connect to wifi
-
 Then run
 
 ```
-./build.sh libssl libsuspend libz libGLESv2 toolbox
+./build.sh libssl libsuspend libz libGLESv2 toolbox libhardware
 ```
 
 ## Build B2S
