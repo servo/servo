@@ -585,7 +585,7 @@ pub trait TemporaryPushable<T> {
     /// Push a new value onto this container.
     fn push_unrooted(&mut self, val: &T);
     /// Insert a new value into this container.
-    fn insert_unrooted(&mut self, index: uint, val: &T);
+    fn insert_unrooted(&mut self, index: usize, val: &T);
 }
 
 impl<T: Assignable<U>, U: Reflectable> TemporaryPushable<T> for Vec<JS<U>> {
@@ -593,7 +593,7 @@ impl<T: Assignable<U>, U: Reflectable> TemporaryPushable<T> for Vec<JS<U>> {
         self.push(unsafe { val.get_js() });
     }
 
-    fn insert_unrooted(&mut self, index: uint, val: &T) {
+    fn insert_unrooted(&mut self, index: usize, val: &T) {
         self.insert(index, unsafe { val.get_js() });
     }
 }

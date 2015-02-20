@@ -109,17 +109,18 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
     }
 
     fn Item(self, index: u32) -> DOMString {
+        let index = index as usize;
         let owner = self.owner.root();
         let elem: JSRef<Element> = ElementCast::from_ref(owner.r());
         let style_attribute = elem.style_attribute().borrow();
         let result = style_attribute.as_ref().and_then(|declarations| {
-            if index as uint > declarations.normal.len() {
+            if index > declarations.normal.len() {
                 declarations.important
-                            .get(index as uint - declarations.normal.len())
+                            .get(index - declarations.normal.len())
                             .map(|decl| format!("{:?} !important", decl))
             } else {
                 declarations.normal
-                            .get(index as uint)
+                            .get(index)
                             .map(|decl| format!("{:?}", decl))
             }
         });

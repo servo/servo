@@ -189,16 +189,17 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
 
     // http://dom.spec.whatwg.org/#dom-htmlcollection-item
     fn Item(self, index: u32) -> Option<Temporary<Element>> {
+        let index = index as usize;
         match self.collection {
             CollectionTypeId::Static(ref elems) => elems
                 .as_slice()
-                .get(index as uint)
+                .get(index)
                 .map(|elem| Temporary::new(elem.clone())),
             CollectionTypeId::Live(ref root, ref filter) => {
                 let root = root.root();
                 HTMLCollection::traverse(root.r())
                     .filter(|element| filter.filter(*element, root.r()))
-                    .nth(index as uint)
+                    .nth(index)
                     .clone()
                     .map(Temporary::from_rooted)
             }
