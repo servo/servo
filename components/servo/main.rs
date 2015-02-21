@@ -4,102 +4,24 @@
 
 #![feature(start)]
 
-#[cfg(target_os="android")]
-extern crate libc;
-
 extern crate servo;
 extern crate time;
 extern crate util;
 extern crate net;
-
 extern crate "glutin_app" as app;
-
 extern crate compositing;
 
 #[cfg(target_os="android")]
 #[macro_use]
 extern crate android_glue;
 
-#[cfg(target_os="android")]
-use libc::c_int;
-
 use util::opts;
-
 use net::resource_task;
-
 use servo::Browser;
 use compositing::windowing::WindowEvent;
 
-#[cfg(target_os="android")]
-use std::borrow::ToOwned;
-
 struct BrowserWrapper {
     browser: Browser,
-}
-
-#[cfg(target_os="android")]
-android_start!(main);
-
-#[cfg(target_os="android")]
-fn get_args() -> Vec<String> {
-    vec![
-        "servo".to_owned(),
-        "http://en.wikipedia.org/wiki/Rust".to_owned()
-    ]
-}
-
-#[cfg(not(target_os="android"))]
-fn get_args() -> Vec<String> {
-    use std::env;
-    env::args().collect()
-}
-
-#[cfg(target_os="android")]
-struct FilePtr(*mut libc::types::common::c95::FILE);
-
-#[cfg(target_os="android")]
-unsafe impl Send for FilePtr {}
-
-#[cfg(target_os="android")]
-fn redirect_output(file_no: c_int) {
-    use libc::funcs::posix88::unistd::{pipe, dup2};
-    use libc::funcs::posix88::stdio::fdopen;
-    use libc::funcs::c95::stdio::fgets;
-    use util::task::spawn_named;
-    use std::mem;
-    use std::ffi::CString;
-    use std::str::from_utf8;
-
-    unsafe {
-        let mut pipes: [c_int; 2] = [ 0, 0 ];
-        pipe(pipes.as_mut_ptr());
-        dup2(pipes[1], file_no);
-        let mode = CString::new("r").unwrap();
-        let input_file = FilePtr(fdopen(pipes[0], mode.as_ptr()));
-        spawn_named("android-logger".to_owned(), move || {
-            loop {
-                let mut read_buffer: [u8; 1024] = mem::zeroed();
-                let FilePtr(input_file) = input_file;
-                fgets(read_buffer.as_mut_ptr() as *mut i8, read_buffer.len() as i32, input_file);
-                match from_utf8(&read_buffer) {
-                    Ok(s) => android_glue::write_log(s.trim_right_matches('\0')),
-                    _ => {}
-                }
-            }
-        });
-    }
-}
-
-#[cfg(target_os="android")]
-fn setup_logging() {
-    use libc::consts::os::posix88::{STDERR_FILENO, STDOUT_FILENO};
-    //os::setenv("RUST_LOG", "servo,gfx,msg,util,layers,js,std,rt,extra");
-    redirect_output(STDERR_FILENO);
-    redirect_output(STDOUT_FILENO);
-}
-
-#[cfg(not(target_os="android"))]
-fn setup_logging() {
 }
 
 fn main() {
@@ -173,3 +95,77 @@ impl app::NestedEventLoopListener for BrowserWrapper {
     }
 }
 
+#[cfg(target_os="android")]
+fn setup_logging() {
+    android::setup_logging();
+}
+
+#[cfg(not(target_os="android"))]
+fn setup_logging() {
+}
+
+#[cfg(target_os="android")]
+fn get_args() -> Vec<String> {
+    vec![
+        "servo".to_owned(),
+        "http://en.wikipedia.org/wiki/Rust".to_owned()
+    ]
+}
+
+#[cfg(not(target_os="android"))]
+fn get_args() -> Vec<String> {
+    use std::env;
+    env::args().map(|s| s.into_string().unwrap()).collect()
+}
+
+#[cfg(target_os = "android")]
+mod android {
+    extern crate libc;
+
+    use libc::c_int;
+    use std::borrow::ToOwned;
+
+    pub fn setup_logging() {
+        use libc::consts::os::posix88::{STDERR_FILENO, STDOUT_FILENO};
+        //os::setenv("RUST_LOG", "servo,gfx,msg,util,layers,js,std,rt,extra");
+        redirect_output(STDERR_FILENO);
+        redirect_output(STDOUT_FILENO);
+    }
+
+    android_start!(main);
+
+    struct FilePtr(*mut libc::types::common::c95::FILE);
+
+    unsafe impl Send for FilePtr {}
+
+    fn redirect_output(file_no: c_int) {
+        use libc::funcs::posix88::unistd::{pipe, dup2};
+        use libc::funcs::posix88::stdio::fdopen;
+        use libc::funcs::c95::stdio::fgets;
+        use util::task::spawn_named;
+        use std::mem;
+        use std::ffi::CString;
+        use std::str::from_utf8;
+
+        unsafe {
+            let mut pipes: [c_int; 2] = [ 0, 0 ];
+            pipe(pipes.as_mut_ptr());
+            dup2(pipes[1], file_no);
+            let mode = CString::from_slice("r".as_bytes());
+            let input_file = FilePtr(fdopen(pipes[0], mode.as_ptr()));
+            spawn_named("android-logger".to_owned(), move || {
+                loop {
+                    let mut read_buffer: [u8; 1024] = mem::zeroed();
+                    let FilePtr(input_file) = input_file;
+                    fgets(read_buffer.as_mut_ptr() as *mut i8, read_buffer.len() as i32, input_file);
+                    let cs = CString::from_slice(&read_buffer);
+                    match from_utf8(cs.as_bytes()) {
+                        Ok(s) => android_glue::write_log(s),
+                        _ => {}
+                    }
+                }
+            });
+        }
+    }
+
+}
