@@ -197,7 +197,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Close(self) {
-        self.script_chan.send(ScriptMsg::ExitWindow(self.page.id.clone()));
+        self.script_chan.send(ScriptMsg::ExitWindow(self.page.id.clone())).unwrap();
     }
 
     fn Document(self) -> Temporary<Document> {
@@ -387,10 +387,10 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         let url = url.unwrap();
         match url.fragment {
             Some(fragment) => {
-                self.script_chan.send(ScriptMsg::TriggerFragment(self.page.id, fragment));
+                self.script_chan.send(ScriptMsg::TriggerFragment(self.page.id, fragment)).unwrap();
             },
             None => {
-                self.script_chan.send(ScriptMsg::TriggerLoad(self.page.id, LoadData::new(url)));
+                self.script_chan.send(ScriptMsg::TriggerLoad(self.page.id, LoadData::new(url))).unwrap();
             }
         }
     }
