@@ -3,10 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net_traits::{ControlMsg, CookieSource, LoadData, LoadResponse, Metadata};
-use net_traits::ProgressMsg;
 use net_traits::ProgressMsg::{Payload, Done};
 use mime_classifier::MIMEClassifier;
-use resource_task::start_sending_opt;
+use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 
 use log;
 use std::collections::HashSet;
@@ -47,6 +46,24 @@ fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {
         Ok(p) => p.send(Done(Err(err))).unwrap(),
         _ => {}
     };
+}
+
+enum ReadResult {
+    Payload(Vec<u8>),
+    EOF,
+}
+
+fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
+    let mut buf = vec![0; 1024];
+
+    match reader.read(buf.as_mut_slice()) {
+        Ok(len) if len > 0 => {
+            unsafe { buf.set_len(len); }
+            Ok(ReadResult::Payload(buf))
+        }
+        Ok(_) => Ok(ReadResult::EOF),
+        Err(_) => Err(()),
+    }
 }
 
 fn load(mut load_data: LoadData, classifier: Arc<MIMEClassifier>, cookies_chan: Sender<ControlMsg>) {
@@ -289,11 +306,6 @@ reason: \"certificate verify failed\" }]";
         metadata.headers = Some(adjusted_headers);
         metadata.status = Some(response.status_raw().clone());
 
-        let progress_chan = match start_sending_opt(start_chan, metadata) {
-            Ok(p) => p,
-            _ => return
-        };
-
         let mut encoding_str: Option<String> = None;
         //FIXME: Implement Content-Encoding Header https://github.com/hyperium/hyper/issues/391
         if let Some(encodings) = response.headers.get_raw("content-encoding") {
@@ -311,14 +323,14 @@ reason: \"certificate verify failed\" }]";
             Some(encoding) => {
                 if encoding == "gzip" {
                     let mut response_decoding = GzDecoder::new(response).unwrap();
-                    send_data(&mut response_decoding, progress_chan);
+                    send_data(&mut response_decoding, start_chan, metadata, classifier);
                 } else if encoding == "deflate" {
                     let mut response_decoding = DeflateDecoder::new(response);
-                    send_data(&mut response_decoding, progress_chan);
+                    send_data(&mut response_decoding, start_chan, metadata, classifier);
                 }
             },
             None => {
-                send_data(&mut response, progress_chan);
+                send_data(&mut response, start_chan, metadata, classifier);
             }
         }
 
@@ -327,25 +339,35 @@ reason: \"certificate verify failed\" }]";
     }
 }
 
-fn send_data<R: Read>(reader: &mut R, progress_chan: Sender<ProgressMsg>) {
-    loop {
-        let mut buf = Vec::with_capacity(1024);
+fn send_data<R: Read>(reader: &mut R,
+                      start_chan: Sender<LoadResponse>,
+                      metadata: Metadata,
+                      classifier: Arc<MIMEClassifier>) {
+    let (progress_chan, mut chunk) = {
+        let buf = match read_block(reader) {
+            Ok(ReadResult::Payload(buf)) => buf,
+            _ => vec!(),
+        };
+        let p = match start_sending_sniffed_opt(start_chan, metadata, classifier, &buf) {
+            Ok(p) => p,
+            _ => return
+        };
+        (p, buf)
+    };
 
-        unsafe { buf.set_len(1024); }
-        match reader.read(buf.as_mut_slice()) {
-            Ok(len) if len > 0 => {
-                unsafe { buf.set_len(len); }
-                if progress_chan.send(Payload(buf)).is_err() {
-                    // The send errors when the receiver is out of scope,
-                    // which will happen if the fetch has timed out (or has been aborted)
-                    // so we don't need to continue with the loading of the file here.
-                    return;
-                }
-            }
-            Ok(_) | Err(_) => {
-                let _ = progress_chan.send(Done(Ok(())));
-                break;
-            }
+    loop {
+        if progress_chan.send(Payload(chunk)).is_err() {
+            // The send errors when the receiver is out of scope,
+            // which will happen if the fetch has timed out (or has been aborted)
+            // so we don't need to continue with the loading of the file here.
+            return;
         }
+
+        chunk = match read_block(reader) {
+            Ok(ReadResult::Payload(buf)) => buf,
+            Ok(ReadResult::EOF) | Err(_) => break,
+        };
     }
+
+    let _ = progress_chan.send(Done(Ok(())));
 }
