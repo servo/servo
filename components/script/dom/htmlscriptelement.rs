@@ -40,6 +40,8 @@ use url::UrlParser;
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
 
+    error_occurred: Cell<bool>,
+
     /// https://html.spec.whatwg.org/multipage/scripting.html#already-started
     already_started: Cell<bool>,
 
@@ -68,6 +70,7 @@ impl HTMLScriptElement {
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLScriptElement, localName, prefix, document),
+            error_occurred: Cell::new(false),
             already_started: Cell::new(false),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
@@ -93,8 +96,14 @@ pub trait HTMLScriptElementHelpers {
     /// Set the "already started" flag (<https://whatwg.org/html/#already-started>)
     fn mark_already_started(self);
 
+    // Queues error event
+    fn queue_error_event(self);
+
     /// Dispatch load event.
     fn dispatch_load_event(self);
+
+    /// Dispatch error event.
+    fn dispatch_error_event(self);
 }
 
 /// Supported script types as defined by
@@ -205,7 +214,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         let (origin, source, url) = match element.get_attribute(ns!(""), &atom!("src")).root() {
             Some(src) => {
                 if src.r().Value().is_empty() {
-                    // TODO: queue a task to fire a simple event named `error` at the element
+                    self.queue_error_event();
                     return;
                 }
                 match UrlParser::new().base_url(&base_url).parse(src.r().Value().as_slice()) {
@@ -222,13 +231,14 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                             }
                             Err(_) => {
                                 error!("error loading script {}", src.r().Value());
+                                self.queue_error_event();
                                 return;
                             }
                         }
                     }
                     Err(_) => {
-                        // TODO: queue a task to fire a simple event named `error` at the element
                         error!("error parsing URL for script {}", src.r().Value());
+                        self.queue_error_event();
                         return;
                     }
                 }
@@ -252,11 +262,31 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         }
     }
 
+    fn queue_error_event(self) {
+        self.error_occurred.set(true);
+        let window = window_from_node(self).root();
+        let window = window.r();
+        let chan = window.script_chan();
+        let handler = Trusted::new(window.get_cx(), self, chan.clone());
+        chan.send(ScriptMsg::RunnableMsg(box handler));
+    }
+
     fn dispatch_load_event(self) {
         let window = window_from_node(self).root();
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window),
                                "load".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        event.r().fire(target);
+    }
+
+    fn dispatch_error_event(self) {
+        let window = window_from_node(self).root();
+        let window = window.r();
+        let event = Event::new(GlobalRef::Window(window),
+                               "error".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
@@ -377,6 +407,10 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
 impl Runnable for Trusted<HTMLScriptElement> {
     fn handler(self: Box<Trusted<HTMLScriptElement>>) {
         let target = self.to_temporary().root();
-        target.r().dispatch_load_event();
+        if target.r().error_occurred.get() {
+            target.r().dispatch_error_event();
+        } else {
+            target.r().dispatch_load_event();
+        }
     }
 }
