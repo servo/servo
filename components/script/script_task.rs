@@ -22,15 +22,15 @@ use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
-use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentSource};
+use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource};
 use dom::element::{Element, ActivationElementHelpers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::uievent::UIEvent;
-use dom::eventtarget::{EventTarget, EventTargetHelpers};
+use dom::eventtarget::EventTarget;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, Node, NodeHelpers, NodeDamage, window_from_node};
+use dom::node::{self, Node, NodeHelpers, NodeDamage};
 use dom::window::{Window, WindowHelpers, ScriptHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use parse::html::{HTMLInput, parse_html};
@@ -897,22 +897,16 @@ impl ScriptTask {
 
         // https://html.spec.whatwg.org/multipage/#the-end step 4
         let addr: Trusted<Document> = Trusted::new(self.get_cx(), document.r(), self.chan.clone());
-
-        self.chan.send(ScriptMsg::RunnableMsg(box DocumentProgressHandler {
-            addr: addr.clone(),
-            task: DocumentProgressTask::DOMContentLoaded,
-        }));
+        let handler = Box::new(DocumentProgressHandler::new(addr.clone(), DocumentProgressTask::DOMContentLoaded));
+        self.chan.send(ScriptMsg::RunnableMsg(handler));
 
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
-        self.chan.send(ScriptMsg::RunnableMsg(box DocumentProgressHandler {
-            addr: addr,
-            task: DocumentProgressTask::Load,
-        }));
-
+        let handler = Box::new(DocumentProgressHandler::new(addr, DocumentProgressTask::Load));
+        self.chan.send(ScriptMsg::RunnableMsg(handler));
 
         *page.fragment_name.borrow_mut() = final_url.fragment.clone();
 
@@ -1325,71 +1319,4 @@ impl HeaderFormat for LastModified {
 
 fn dom_last_modified(tm: &Tm) -> String {
     format!("{}", tm.to_local().strftime("%m/%d/%Y %H:%M:%S").unwrap())
-}
-
-enum DocumentProgressTask {
-    DOMContentLoaded,
-    Load,
-}
-
-struct DocumentProgressHandler {
-    addr: Trusted<Document>,
-    task: DocumentProgressTask,
-}
-
-impl DocumentProgressHandler {
-    fn dispatch_dom_content_loaded(&self) {
-        let document = self.addr.to_temporary().root();
-        let window = document.r().window().root();
-        let event = Event::new(GlobalRef::Window(window.r()), "DOMContentLoaded".to_owned(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable).root();
-        let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
-        let _ = doctarget.DispatchEvent(event.r());
-    }
-
-    fn set_ready_state_complete(&self) {
-        let document = self.addr.to_temporary().root();
-        document.r().set_ready_state(DocumentReadyState::Complete);
-    }
-
-    fn dispatch_load(&self) {
-        let document = self.addr.to_temporary().root();
-        let window = document.r().window().root();
-        let event = Event::new(GlobalRef::Window(window.r()), "load".to_owned(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable).root();
-        let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());
-        let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
-        event.r().set_trusted(true);
-        let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
-
-        let window_ref = window.r();
-        let browser_context = window_ref.browser_context();
-        let browser_context = browser_context.as_ref().unwrap();
-
-        browser_context.frame_element().map(|frame_element| {
-            let frame_element = frame_element.root();
-            let frame_window = window_from_node(frame_element.r()).root();
-            let event = Event::new(GlobalRef::Window(frame_window.r()), "load".to_owned(),
-                                   EventBubbles::DoesNotBubble,
-                                   EventCancelable::NotCancelable).root();
-            let target: JSRef<EventTarget> = EventTargetCast::from_ref(frame_element.r());
-            event.r().fire(target);
-        });
-    }
-}
-
-impl Runnable for DocumentProgressHandler {
-    fn handler(self: Box<DocumentProgressHandler>) {
-        match self.task {
-            DocumentProgressTask::DOMContentLoaded => {
-                self.dispatch_dom_content_loaded();
-            }
-            DocumentProgressTask::Load => {
-                self.set_ready_state_complete();
-                self.dispatch_load();
-            }
-        }
-    }
 }
