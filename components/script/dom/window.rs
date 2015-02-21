@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::global::global_object_for_js_object;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{report_pending_exception, Fallible};
 use dom::bindings::error::Error::InvalidCharacter;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
@@ -362,6 +362,7 @@ impl<'a, T: Reflectable> ScriptHelpers for JSRef<'a, T> {
                                        code.len() as libc::c_uint,
                                        filename.as_ptr(), 1, &mut rval) == 0 {
                     debug!("error evaluating JS string");
+                    report_pending_exception(cx, global);
                 }
                 rval
             }
