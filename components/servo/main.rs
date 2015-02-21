@@ -12,10 +12,8 @@ extern crate time;
 extern crate util;
 extern crate net;
 
-#[cfg(not(test))]
 extern crate "glutin_app" as app;
 
-#[cfg(not(test))]
 extern crate compositing;
 
 #[cfg(target_os="android")]
@@ -25,21 +23,16 @@ extern crate android_glue;
 #[cfg(target_os="android")]
 use libc::c_int;
 
-#[cfg(not(test))]
 use util::opts;
 
-#[cfg(not(test))]
 use net::resource_task;
 
-#[cfg(not(test))]
 use servo::Browser;
-#[cfg(not(test))]
 use compositing::windowing::WindowEvent;
 
 #[cfg(target_os="android")]
 use std::borrow::ToOwned;
 
-#[cfg(not(test))]
 struct BrowserWrapper {
     browser: Browser,
 }
