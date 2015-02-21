@@ -23,15 +23,14 @@ use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentSource};
-use dom::element::{Element, ElementTypeId, ActivationElementHelpers};
+use dom::element::{Element, ActivationElementHelpers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
-use dom::htmlelement::HTMLElementTypeId;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, Node, NodeHelpers, NodeDamage, NodeTypeId, window_from_node};
+use dom::node::{self, Node, NodeHelpers, NodeDamage, window_from_node};
 use dom::window::{Window, WindowHelpers, ScriptHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use parse::html::{HTMLInput, parse_html};
@@ -261,24 +260,6 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
                 }
             }
             None => (),
-        }
-    }
-}
-
-trait PrivateScriptTaskHelpers {
-    fn click_event_filter_by_disabled_state(&self) -> bool;
-}
-
-impl<'a> PrivateScriptTaskHelpers for JSRef<'a, Node> {
-    fn click_event_filter_by_disabled_state(&self) -> bool {
-        match self.type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
-            // NodeTypeId::Element(ElementTypeId::HTMLKeygenElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) if self.get_disabled_state() => true,
-            _ => false
         }
     }
 }
@@ -1008,7 +989,10 @@ impl ScriptTask {
             }
 
             ClickEvent(_button, point) => {
-                self.handle_click_event(pipeline_id, _button, point);
+                let page = get_page(&*self.page.borrow(), pipeline_id);
+                let frame = page.frame();
+                let document = frame.as_ref().unwrap().document.root();
+                document.r().handle_click_event(self.js_runtime.ptr, _button, point);
             }
 
             MouseDownEvent(..) => {}
@@ -1171,59 +1155,6 @@ impl ScriptTask {
         let frame = page.frame();
         if frame.is_some() {
             self.force_reflow(&*page);
-        }
-    }
-
-    fn handle_click_event(&self, pipeline_id: PipelineId, _button: uint, point: Point2D<f32>) {
-        debug!("ClickEvent: clicked at {:?}", point);
-        let page = get_page(&*self.page.borrow(), pipeline_id);
-        match page.hit_test(&point) {
-            Some(node_address) => {
-                debug!("node address is {:?}", node_address.0);
-
-                let temp_node =
-                    node::from_untrusted_node_address(
-                        self.js_runtime.ptr, node_address).root();
-
-                let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(temp_node.r());
-                let maybe_node = match maybe_elem {
-                    Some(element) => Some(element),
-                    None => temp_node.r().ancestors().filter_map(ElementCast::to_ref).next(),
-                };
-
-                match maybe_node {
-                    Some(el) => {
-                        let node: JSRef<Node> = NodeCast::from_ref(el);
-                        debug!("clicked on {:?}", node.debug_str());
-                        // Prevent click event if form control element is disabled.
-                        if node.click_event_filter_by_disabled_state() { return; }
-                        match *page.frame() {
-                            Some(ref frame) => {
-                                let window = frame.window.root();
-                                let doc = window.r().Document().root();
-                                doc.r().begin_focus_transaction();
-
-                                let event =
-                                    Event::new(GlobalRef::Window(window.r()),
-                                               "click".to_owned(),
-                                               EventBubbles::Bubbles,
-                                               EventCancelable::Cancelable).root();
-                                // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
-                                event.r().set_trusted(true);
-                                // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
-                                el.authentic_click_activation(event.r());
-
-                                doc.r().commit_focus_transaction();
-                                window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
-                            }
-                            None => {}
-                        }
-                    }
-                    None => {}
-                }
-            }
-
-            None => {}
         }
     }
 

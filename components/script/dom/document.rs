@@ -9,6 +9,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
@@ -32,7 +33,7 @@ use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, ElementCreator, AttributeHandlers, get_attribute_parts};
-use dom::element::ElementTypeId;
+use dom::element::{ElementTypeId, ActivationElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlanchorelement::HTMLAnchorElement;
@@ -45,7 +46,7 @@ use dom::location::Location;
 use dom::mouseevent::MouseEvent;
 use dom::keyboardevent::KeyboardEvent;
 use dom::messageevent::MessageEvent;
-use dom::node::{Node, NodeHelpers, NodeTypeId, CloneChildrenFlag, NodeDamage};
+use dom::node::{self, Node, NodeHelpers, NodeTypeId, CloneChildrenFlag, NodeDamage};
 use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
@@ -57,11 +58,14 @@ use net::resource_task::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
 use net::cookie_storage::CookieSource::NonHTTP;
 use util::namespace;
 use util::str::{DOMString, split_html_space_chars};
+use layout_interface::{ReflowGoal, ReflowQueryType};
 
+use geom::point::Point2D;
 use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
 use layout_interface::{LayoutChan, Msg};
 use string_cache::{Atom, QualName};
 use url::Url;
+use js::jsapi::JSRuntime;
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -191,6 +195,7 @@ pub trait DocumentHelpers<'a> {
     fn commit_focus_transaction(self);
     fn send_title_to_compositor(self);
     fn dirty_all_nodes(self);
+    fn handle_click_event(self, js_runtime: *mut JSRuntime, _button: uint, point: Point2D<f32>);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -386,6 +391,61 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             node.dirty(NodeDamage::OtherNodeDamage)
         }
     }
+
+    fn handle_click_event(self, js_runtime: *mut JSRuntime, _button: uint, point: Point2D<f32>) {
+        debug!("ClickEvent: clicked at {:?}", point);
+        let window = self.window.root();
+        let window = window.r();
+        let page = window.page();
+        match page.hit_test(&point) {
+            Some(node_address) => {
+                debug!("node address is {:?}", node_address.0);
+
+                let temp_node =
+                    node::from_untrusted_node_address(
+                        js_runtime, node_address).root();
+
+                let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(temp_node.r());
+                let maybe_node = match maybe_elem {
+                    Some(element) => Some(element),
+                    None => temp_node.r().ancestors().filter_map(ElementCast::to_ref).next(),
+                };
+
+                match maybe_node {
+                    Some(el) => {
+                        let node: JSRef<Node> = NodeCast::from_ref(el);
+                        debug!("clicked on {:?}", node.debug_str());
+                        // Prevent click event if form control element is disabled.
+                        if node.click_event_filter_by_disabled_state() { return; }
+                        match *page.frame() {
+                            Some(ref frame) => {
+                                let window = frame.window.root();
+                                let doc = window.r().Document().root();
+                                doc.r().begin_focus_transaction();
+
+                                let event =
+                                    Event::new(GlobalRef::Window(window.r()),
+                                               "click".to_owned(),
+                                               EventBubbles::Bubbles,
+                                               EventCancelable::Cancelable).root();
+                                // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
+                                event.r().set_trusted(true);
+                                // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
+                                el.authentic_click_activation(event.r());
+
+                                doc.r().commit_focus_transaction();
+                                window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+                            }
+                            None => {}
+                        }
+                    }
+                    None => {}
+                }
+            }
+
+            None => {}
+        }
+    }
 }
 
 #[derive(PartialEq)]
@@ -503,6 +563,24 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
             .r()
             .and_then(HTMLHtmlElementCast::to_ref)
             .map(Temporary::from_rooted)
+    }
+}
+
+trait PrivateClickEventHelpers {
+    fn click_event_filter_by_disabled_state(&self) -> bool;
+}
+
+impl<'a> PrivateClickEventHelpers for JSRef<'a, Node> {
+    fn click_event_filter_by_disabled_state(&self) -> bool {
+        match self.type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
+            // NodeTypeId::Element(ElementTypeId::HTMLKeygenElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) if self.get_disabled_state() => true,
+            _ => false
+        }
     }
 }
 
