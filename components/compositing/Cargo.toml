@@ -52,3 +52,4 @@ git = "https://github.com/servo/gleam"
 [dependencies]
 url = "0.2.16"
 time = "0.1.12"
+libc = "*"
