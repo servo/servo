@@ -220,7 +220,7 @@ impl XMLHttpRequest {
                     xhr.process_partial_response(msg);
                 },
                 SyncOrAsync::Async(ref addr, ref script_chan) => {
-                    script_chan.send(ScriptMsg::RunnableMsg(box XHRProgressHandler::new(addr.clone(), msg)));
+                    script_chan.send(ScriptMsg::RunnableMsg(box XHRProgressHandler::new(addr.clone(), msg))).unwrap();
                 }
             }
         }
