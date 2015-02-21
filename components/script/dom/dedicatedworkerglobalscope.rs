@@ -18,7 +18,7 @@ use dom::bindings::utils::Reflectable;
 use dom::errorevent::ErrorEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, Worker};
+use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, Worker};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
@@ -146,6 +146,8 @@ impl DedicatedWorkerGlobalScope {
             let (url, source) = match load_whole_resource(&resource_task, worker_url.clone()) {
                 Err(_) => {
                     println!("error loading script {}", worker_url.serialize());
+                    parent_sender.send(ScriptMsg::RunnableMsg(
+                        box WorkerEventHandler::new(worker)));
                     return;
                 }
                 Ok((metadata, bytes)) => {

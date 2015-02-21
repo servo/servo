@@ -89,6 +89,18 @@ impl Worker {
         MessageEvent::dispatch_jsval(target, global.r(), message);
     }
 
+    pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
+        let worker = address.to_temporary().root();
+        let global = worker.r().global.root();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
+
+        let event = Event::new(global.r(),
+                               "error".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
+        event.r().fire(target);
+    }
+
     pub fn handle_error_message(address: TrustedWorkerAddress, message: DOMString,
                                 filename: DOMString, lineno: u32, colno: u32) {
         let worker = address.to_temporary().root();
@@ -132,5 +144,24 @@ impl Runnable for WorkerMessageHandler {
     fn handler(self: Box<WorkerMessageHandler>) {
         let this = *self;
         Worker::handle_message(this.addr, this.data);
+    }
+}
+
+pub struct WorkerEventHandler {
+    addr: TrustedWorkerAddress,
+}
+
+impl WorkerEventHandler {
+    pub fn new(addr: TrustedWorkerAddress) -> WorkerEventHandler {
+        WorkerEventHandler {
+            addr: addr
+        }
+    }
+}
+
+impl Runnable for WorkerEventHandler {
+    fn handler(self: Box<WorkerEventHandler>) {
+        let this = *self;
+        Worker::dispatch_simple_error(this.addr);
     }
 }
