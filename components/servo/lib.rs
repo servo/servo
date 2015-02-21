@@ -23,33 +23,20 @@ extern crate url;
 use compositing::CompositorEventListener;
 use compositing::windowing::{WindowEvent, WindowMethods};
 
-#[cfg(not(test))]
 use compositing::{CompositorProxy, CompositorTask, Constellation};
-#[cfg(not(test))]
 use msg::constellation_msg::Msg as ConstellationMsg;
-#[cfg(not(test))]
 use msg::constellation_msg::ConstellationChan;
-#[cfg(not(test))]
 use script::dom::bindings::codegen::RegisterBindings;
 
-#[cfg(not(test))]
 use net::image_cache_task::{ImageCacheTask, LoadPlaceholder};
-#[cfg(not(test))]
 use net::resource_task::new_resource_task;
-#[cfg(not(test))]
 use net::storage_task::{StorageTaskFactory, StorageTask};
-#[cfg(not(test))]
 use gfx::font_cache_task::FontCacheTask;
-#[cfg(not(test))]
 use profile::mem;
-#[cfg(not(test))]
 use profile::time;
-#[cfg(not(test))]
 use util::opts;
-#[cfg(not(test))]
 use util::taskpool::TaskPool;
 
-#[cfg(not(test))]
 use std::rc::Rc;
 
 pub struct Browser {
@@ -57,7 +44,6 @@ pub struct Browser {
 }
 
 impl Browser  {
-    #[cfg(not(test))]
     pub fn new<Window>(window: Option<Rc<Window>>) -> Browser
     where Window: WindowMethods + 'static {
         use std::env;
