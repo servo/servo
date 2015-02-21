@@ -7,6 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
+use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -24,6 +25,7 @@ use dom::bindings::error::Error::{HierarchyRequest, NamespaceError};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, RootedReference};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::reflect_dom_object;
 use dom::bindings::utils::xml_name_type;
 use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
@@ -46,7 +48,7 @@ use dom::location::Location;
 use dom::mouseevent::MouseEvent;
 use dom::keyboardevent::KeyboardEvent;
 use dom::messageevent::MessageEvent;
-use dom::node::{self, Node, NodeHelpers, NodeTypeId, CloneChildrenFlag, NodeDamage};
+use dom::node::{self, Node, NodeHelpers, NodeTypeId, CloneChildrenFlag, NodeDamage, window_from_node};
 use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
@@ -56,6 +58,7 @@ use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers};
 use net::resource_task::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
 use net::cookie_storage::CookieSource::NonHTTP;
+use script_task::Runnable;
 use util::namespace;
 use util::str::{DOMString, split_html_space_chars};
 use layout_interface::{ReflowGoal, ReflowQueryType};
@@ -1123,4 +1126,78 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
 fn is_scheme_host_port_tuple(url: &Url) -> bool {
     url.host().is_some() && url.port_or_default().is_some()
+}
+
+pub enum DocumentProgressTask {
+    DOMContentLoaded,
+    Load,
+}
+
+pub struct DocumentProgressHandler {
+    addr: Trusted<Document>,
+    task: DocumentProgressTask,
+}
+
+impl DocumentProgressHandler {
+    pub fn new(addr: Trusted<Document>, task: DocumentProgressTask) -> DocumentProgressHandler {
+        DocumentProgressHandler {
+            addr: addr,
+            task: task,
+        }
+    }
+
+    fn dispatch_dom_content_loaded(&self) {
+        let document = self.addr.to_temporary().root();
+        let window = document.r().window().root();
+        let event = Event::new(GlobalRef::Window(window.r()), "DOMContentLoaded".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
+        let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
+        let _ = doctarget.DispatchEvent(event.r());
+    }
+
+    fn set_ready_state_complete(&self) {
+        let document = self.addr.to_temporary().root();
+        document.r().set_ready_state(DocumentReadyState::Complete);
+    }
+
+    fn dispatch_load(&self) {
+        let document = self.addr.to_temporary().root();
+        let window = document.r().window().root();
+        let event = Event::new(GlobalRef::Window(window.r()), "load".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
+        let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());
+        let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
+        event.r().set_trusted(true);
+        let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
+
+        let window_ref = window.r();
+        let browser_context = window_ref.browser_context();
+        let browser_context = browser_context.as_ref().unwrap();
+
+        browser_context.frame_element().map(|frame_element| {
+            let frame_element = frame_element.root();
+            let frame_window = window_from_node(frame_element.r()).root();
+            let event = Event::new(GlobalRef::Window(frame_window.r()), "load".to_owned(),
+                                   EventBubbles::DoesNotBubble,
+                                   EventCancelable::NotCancelable).root();
+            let target: JSRef<EventTarget> = EventTargetCast::from_ref(frame_element.r());
+            event.r().fire(target);
+        });
+    }
+}
+
+impl Runnable for DocumentProgressHandler {
+    fn handler(self: Box<DocumentProgressHandler>) {
+        match self.task {
+            DocumentProgressTask::DOMContentLoaded => {
+                self.dispatch_dom_content_loaded();
+            }
+            DocumentProgressTask::Load => {
+                self.set_ready_state_complete();
+                self.dispatch_load();
+            }
+        }
+    }
 }
