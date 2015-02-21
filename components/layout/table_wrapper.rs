@@ -342,7 +342,8 @@ impl Flow for TableWrapperFlow {
     }
 
     fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
-                                                            layout_context: &'a LayoutContext<'a>)
+                                                            layout_context: &'a LayoutContext<'a>,
+                                                            parent_thread_id: u8)
                                                             -> bool {
         if self.block_flow.base.flags.is_float() {
             self.block_flow.place_float();
@@ -351,6 +352,7 @@ impl Flow for TableWrapperFlow {
 
         let impacted = self.block_flow.base.flags.impacted_by_floats();
         if impacted {
+            self.block_flow.base.thread_id = parent_thread_id;
             self.assign_block_size(layout_context);
         }
         impacted

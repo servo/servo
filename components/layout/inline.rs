@@ -1301,12 +1301,13 @@ impl Flow for InlineFlow {
         } // End of `lines.iter_mut()` loop.
 
         // Assign block sizes for any inline-block descendants.
+        let thread_id = self.base.thread_id;
         for kid in self.base.child_iter() {
             if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) ||
                     flow::base(kid).flags.is_float() {
                 continue
             }
-            kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
+            kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
         }
 
         self.base.position.size.block = match self.lines.as_slice().last() {
