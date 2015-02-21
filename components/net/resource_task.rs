@@ -10,10 +10,12 @@ use file_loader;
 use http_loader;
 use cookie_storage::CookieStorage;
 use cookie;
+use mime_classifier::MIMEClassifier;
 
 use net_traits::{ControlMsg, LoadData, LoadResponse};
 use net_traits::{Metadata, ProgressMsg, ResourceTask};
 use net_traits::ProgressMsg::Done;
+use util::opts;
 use util::task::spawn_named;
 
 use hyper::header::UserAgent;
@@ -27,6 +29,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
+use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thunk::Invoke;
 
@@ -59,6 +62,30 @@ pub fn global_init() {
 /// For use by loaders in responding to a Load message.
 pub fn start_sending(start_chan: Sender<LoadResponse>, metadata: Metadata) -> Sender<ProgressMsg> {
     start_sending_opt(start_chan, metadata).ok().unwrap()
+}
+
+/// For use by loaders in responding to a Load message that allows content sniffing.
+pub fn start_sending_sniffed(start_chan: Sender<LoadResponse>, metadata: Metadata,
+                             classifier: Arc<MIMEClassifier>, partial_body: &Vec<u8>)
+                             -> Sender<ProgressMsg> {
+    start_sending_sniffed_opt(start_chan, metadata, classifier, partial_body).ok().unwrap()
+}
+
+/// For use by loaders in responding to a Load message that allows content sniffing.
+pub fn start_sending_sniffed_opt(start_chan: Sender<LoadResponse>, mut metadata: Metadata,
+                                 classifier: Arc<MIMEClassifier>, partial_body: &Vec<u8>)
+                                 -> Result<Sender<ProgressMsg>, ()> {
+    if opts::get().sniff_mime_types {
+        // TODO: should be calculated in the resource loader, from pull requeset #4094
+        let nosniff = false;
+        let check_for_apache_bug = false;
+
+        metadata.content_type = classifier.classify(nosniff, check_for_apache_bug,
+                                                    &metadata.content_type, &partial_body);
+
+    }
+
+    start_sending_opt(start_chan, metadata)
 }
 
 /// For use by loaders in responding to a Load message.
@@ -123,6 +150,7 @@ struct ResourceManager {
     user_agent: Option<String>,
     cookie_storage: CookieStorage,
     resource_task: Sender<ControlMsg>,
+    mime_classifier: Arc<MIMEClassifier>,
 }
 
 impl ResourceManager {
@@ -133,6 +161,7 @@ impl ResourceManager {
             user_agent: user_agent,
             cookie_storage: CookieStorage::new(),
             resource_task: resource_task,
+            mime_classifier: Arc::new(MIMEClassifier::new()),
         }
     }
 }
@@ -174,10 +203,10 @@ impl ResourceManager {
 
         self.user_agent.as_ref().map(|ua| load_data.headers.set(UserAgent(ua.clone())));
 
-        fn from_factory(factory: fn(LoadData,))
-                        -> Box<Invoke<(LoadData,)> + Send> {
-            box move |(load_data,)| {
-                factory(load_data)
+        fn from_factory(factory: fn(LoadData, Arc<MIMEClassifier>))
+                        -> Box<Invoke<(LoadData, Arc<MIMEClassifier>)> + Send> {
+            box move |(load_data, classifier)| {
+                factory(load_data, classifier)
             }
         }
 
@@ -195,7 +224,7 @@ impl ResourceManager {
         };
         debug!("resource_task: loading url: {}", load_data.url.serialize());
 
-        loader.invoke((load_data,));
+        loader.invoke((load_data, self.mime_classifier.clone()));
     }
 }
 

@@ -4,22 +4,24 @@
 
 use net_traits::{LoadData, Metadata};
 use net_traits::ProgressMsg::{Payload, Done};
+use mime_classifier::MIMEClassifier;
 use resource_task::start_sending;
 
 use rustc_serialize::base64::FromBase64;
 
 use hyper::mime::Mime;
+use std::sync::Arc;
 use url::{percent_decode, SchemeData};
 
-pub fn factory(load_data: LoadData) {
+pub fn factory(load_data: LoadData, classifier: Arc<MIMEClassifier>) {
     // NB: we don't spawn a new task.
     // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
     // Should be tested at some point.
     // Left in separate function to allow easy moving to a task, if desired.
-    load(load_data)
+    load(load_data, classifier)
 }
 
-fn load(load_data: LoadData) {
+fn load(load_data: LoadData, _classifier: Arc<MIMEClassifier>) {
     let start_chan = load_data.consumer;
     let url = load_data.url;
     assert!(&*url.scheme == "data");

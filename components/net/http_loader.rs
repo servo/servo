@@ -5,6 +5,7 @@
 use net_traits::{ControlMsg, CookieSource, LoadData, LoadResponse, Metadata};
 use net_traits::ProgressMsg;
 use net_traits::ProgressMsg::{Payload, Done};
+use mime_classifier::MIMEClassifier;
 use resource_task::start_sending_opt;
 
 use log;
@@ -21,6 +22,7 @@ use hyper::status::{StatusCode, StatusClass};
 use std::error::Error;
 use openssl::ssl::{SslContext, SslVerifyMode};
 use std::io::{self, Read, Write};
+use std::sync::Arc;
 use std::sync::mpsc::{Sender, channel};
 use std::thunk::Invoke;
 use util::task::spawn_named;
@@ -31,9 +33,9 @@ use url::{Url, UrlParser};
 use std::borrow::ToOwned;
 
 pub fn factory(cookies_chan: Sender<ControlMsg>)
-               -> Box<Invoke<(LoadData,)> + Send> {
-    box move |(load_data,)| {
-        spawn_named("http_loader".to_owned(), move || load(load_data, cookies_chan))
+               -> Box<Invoke<(LoadData, Arc<MIMEClassifier>)> + Send> {
+    box move |(load_data, classifier)| {
+        spawn_named("http_loader".to_owned(), move || load(load_data, classifier, cookies_chan))
     }
 }
 
@@ -47,7 +49,7 @@ fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {
     };
 }
 
-fn load(mut load_data: LoadData, cookies_chan: Sender<ControlMsg>) {
+fn load(mut load_data: LoadData, classifier: Arc<MIMEClassifier>, cookies_chan: Sender<ControlMsg>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -122,7 +124,7 @@ reason: \"certificate verify failed\" }]";
                 let mut image = resources_dir_path();
                 image.push("badcert.html");
                 let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), start_chan);
-                file_loader::factory(load_data);
+                file_loader::factory(load_data, classifier);
                 return;
             },
             Err(e) => {

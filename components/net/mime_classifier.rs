@@ -315,13 +315,13 @@ impl MIMEChecker for BinaryOrPlaintextClassifier {
     }
 }
 struct GroupedClassifier {
-   byte_matchers: Vec<Box<MIMEChecker + Send>>,
+   byte_matchers: Vec<Box<MIMEChecker + Send + Sync>>,
 }
 impl GroupedClassifier {
     fn image_classifer() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
-                box ByteMatcher::image_x_icon() as Box<MIMEChecker+Send>,
+                box ByteMatcher::image_x_icon(),
                 box ByteMatcher::image_x_icon_cursor(),
                 box ByteMatcher::image_bmp(),
                 box ByteMatcher::image_gif89a(),
@@ -335,7 +335,7 @@ impl GroupedClassifier {
     fn audio_video_classifer() -> GroupedClassifier {
         GroupedClassifier{
             byte_matchers: vec![
-                box ByteMatcher::video_webm() as Box<MIMEChecker+Send>,
+                box ByteMatcher::video_webm(),
                 box ByteMatcher::audio_basic(),
                 box ByteMatcher::audio_aiff(),
                 box ByteMatcher::audio_mpeg(),
@@ -350,7 +350,7 @@ impl GroupedClassifier {
     fn scriptable_classifier() -> GroupedClassifier {
         GroupedClassifier{
             byte_matchers: vec![
-                box ByteMatcher::text_html_doctype() as Box<MIMEChecker+Send>,
+                box ByteMatcher::text_html_doctype(),
                 box ByteMatcher::text_html_page(),
                 box ByteMatcher::text_html_head(),
                 box ByteMatcher::text_html_script(),
@@ -376,7 +376,7 @@ impl GroupedClassifier {
     fn plaintext_classifier() -> GroupedClassifier {
         GroupedClassifier{
             byte_matchers: vec![
-                box ByteMatcher::text_plain_utf_8_bom() as Box<MIMEChecker+Send>,
+                box ByteMatcher::text_plain_utf_8_bom(),
                 box ByteMatcher::text_plain_utf_16le_bom(),
                 box ByteMatcher::text_plain_utf_16be_bom(),
                 box ByteMatcher::application_postscript()
@@ -386,7 +386,7 @@ impl GroupedClassifier {
     fn archive_classifier() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
-                box ByteMatcher::application_x_gzip() as Box<MIMEChecker+Send>,
+                box ByteMatcher::application_x_gzip(),
                 box ByteMatcher::application_zip(),
                 box ByteMatcher::application_x_rar_compressed()
             ]
@@ -398,7 +398,7 @@ impl GroupedClassifier {
     fn font_classifier() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
-                box ByteMatcher::application_font_woff() as Box<MIMEChecker+Send>,
+                box ByteMatcher::application_font_woff(),
                 box ByteMatcher::true_type_collection(),
                 box ByteMatcher::open_type(),
                 box ByteMatcher::true_type(),
