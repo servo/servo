@@ -30,7 +30,7 @@
 //! | union types             | `T`                              |
 
 use dom::bindings::codegen::PrototypeList;
-use dom::bindings::js::{JS, JSRef, Root, Unrooted};
+use dom::bindings::js::{JSRef, Root, Unrooted};
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, Reflector, DOMClass};
 use util::str::DOMString;
@@ -517,12 +517,6 @@ impl<T: Reflectable> ToJSValConvertible for Root<T> {
 }
 
 impl<'a, T: Reflectable> ToJSValConvertible for JSRef<'a, T> {
-    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-        self.reflector().to_jsval(cx)
-    }
-}
-
-impl<'a, T: Reflectable> ToJSValConvertible for JS<T> {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         self.reflector().to_jsval(cx)
     }
