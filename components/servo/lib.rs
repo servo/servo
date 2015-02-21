@@ -4,7 +4,7 @@
 
 // Servo, the mighty web browser engine from the future.
 
-#![feature(core, env, libc, path, rustc_private, std_misc, thread_local)]
+#![feature(core, env, libc, path, rustc_private, thread_local)]
 
 #![allow(missing_copy_implementations)]
 
@@ -45,8 +45,7 @@ use util::taskpool::TaskPool;
 
 use std::env;
 use std::rc::Rc;
-use std::sync::mpsc::{channel, Sender};
-use std::thread;
+use std::sync::mpsc::Sender;
 
 /// The in-process interface to Servo.
 ///
@@ -141,47 +140,40 @@ fn create_constellation(opts: opts::Opts,
                         time_profiler_chan: TimeProfilerChan,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         shared_task_pool: TaskPool) -> ConstellationChan {
-    let (result_chan, result_port) = channel();
-    thread::Builder::new().spawn(move || {
-        // Create a Servo instance.
-        let resource_task = new_resource_task(opts.user_agent.clone());
-        // If we are emitting an output file, then we need to block on
-        // image load or we risk emitting an output file missing the
-        // image.
-        let image_cache_task = if opts.output_file.is_some() {
-            ImageCacheTask::new_sync(resource_task.clone(), shared_task_pool)
-        } else {
-            ImageCacheTask::new(resource_task.clone(), shared_task_pool)
+    let resource_task = new_resource_task(opts.user_agent.clone());
+    // If we are emitting an output file, then we need to block on
+    // image load or we risk emitting an output file missing the
+    // image.
+    let image_cache_task = if opts.output_file.is_some() {
+        ImageCacheTask::new_sync(resource_task.clone(), shared_task_pool)
+    } else {
+        ImageCacheTask::new(resource_task.clone(), shared_task_pool)
+    };
+    let font_cache_task = FontCacheTask::new(resource_task.clone());
+    let storage_task: StorageTask = StorageTaskFactory::new();
+    let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
+                                             script::script_task::ScriptTask>::start(
+                                                 compositor_proxy,
+                                                 resource_task,
+                                                 image_cache_task,
+                                                 font_cache_task,
+                                                 time_profiler_chan,
+                                                 devtools_chan,
+                                                 storage_task);
+
+    // Send the URL command to the constellation.
+    let cwd = env::current_dir().unwrap();
+    for url in opts.urls.iter() {
+        let url = match url::Url::parse(&*url) {
+            Ok(url) => url,
+            Err(url::ParseError::RelativeUrlWithoutBase)
+                => url::Url::from_file_path(&cwd.join(&*url)).unwrap(),
+            Err(_) => panic!("URL parsing failed"),
         };
-        let font_cache_task = FontCacheTask::new(resource_task.clone());
-        let storage_task: StorageTask = StorageTaskFactory::new();
-        let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
-        script::script_task::ScriptTask>::start(
-            compositor_proxy,
-            resource_task,
-            image_cache_task,
-            font_cache_task,
-            time_profiler_chan,
-            devtools_chan,
-            storage_task);
 
-        // Send the URL command to the constellation.
-        let cwd = env::current_dir().unwrap();
-        for url in opts.urls.iter() {
-            let url = match url::Url::parse(&*url) {
-                Ok(url) => url,
-                Err(url::ParseError::RelativeUrlWithoutBase)
-                    => url::Url::from_file_path(&cwd.join(&*url)).unwrap(),
-                Err(_) => panic!("URL parsing failed"),
-            };
+        let ConstellationChan(ref chan) = constellation_chan;
+        chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
+    }
 
-            let ConstellationChan(ref chan) = constellation_chan;
-            chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
-        }
-
-        // Send the constallation Chan as the result
-        result_chan.send(constellation_chan).unwrap();
-    });
-
-    result_port.recv().unwrap()
+    constellation_chan
 }
