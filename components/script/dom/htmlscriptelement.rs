@@ -170,9 +170,25 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         // these steps at this point. The script is not executed.
 
         // Step 12.
-        // TODO: If the script element has an `event` attribute and a `for` attribute, then run
-        // these substeps...
+        match element.get_attribute(ns!(""), &atom!("for")).root() {
+            Some(for_script) => {
+                if for_script.r().Value().to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS) != "window" {
+                    return;
+                }
+            }
+            _ => { }
+        }
 
+        match element.get_attribute(ns!(""), &Atom::from_slice("event")).root() {
+            Some(event) => {
+                let event = event.r().Value().to_ascii_lowercase();
+                let event = event.trim_matches(HTML_SPACE_CHARACTERS);
+                if event != "onload" && event != "onload()" {
+                    return;
+                }
+            }
+            _ => { }
+        }
         // Step 13.
         // TODO: If the script element has a `charset` attribute, then let the script block's
         // character encoding for this script element be the result of getting an encoding from the
