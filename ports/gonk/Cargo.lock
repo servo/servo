@@ -233,7 +233,10 @@ dependencies = [
 [[package]]
 name = "freetype"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-freetype#f65e8d82550b5d5b06a7785a13a008e125c30b7a"
+source = "git+https://github.com/servo/rust-freetype#47ead45f939fe934af40e9652205c9d2a8b8e5e0"
+dependencies = [
+ "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "freetype-sys"
@@ -272,6 +275,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "harfbuzz 0.1.0 (git+https://github.com/servo/rust-harfbuzz)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net 0.0.1",
  "plugins 0.0.1",
@@ -328,7 +332,10 @@ dependencies = [
 [[package]]
 name = "harfbuzz"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-harfbuzz#d5833511875673aa994ca194922acb3b1ea3ec61"
+source = "git+https://github.com/servo/rust-harfbuzz#d583ad55cc27600ffd33a8924812ec5ddb826c70"
+dependencies = [
+ "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "html5ever"

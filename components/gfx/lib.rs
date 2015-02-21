@@ -9,7 +9,6 @@
 #![feature(hash)]
 #![feature(int_uint)]
 #![cfg_attr(any(target_os="linux", target_os = "android"), feature(io))]
-#![feature(libc)]
 #![cfg_attr(any(target_os="linux", target_os = "android"), feature(path))]
 #![feature(plugin)]
 #![feature(rustc_private)]
