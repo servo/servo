@@ -109,12 +109,11 @@ pub struct Fragment {
     /// that are part of an inline formatting context.
     pub inline_context: Option<InlineFragmentContext>,
 
-    /// A debug ID that is consistent for the life of
-    /// this fragment (via transform etc).
-    pub debug_id: u16,
-
     /// How damaged this fragment is since last reflow.
     pub restyle_damage: RestyleDamage,
+
+    /// A debug ID that is consistent for the life of this fragment (via transform etc).
+    pub debug_id: u16,
 }
 
 unsafe impl Send for Fragment {}
@@ -1667,14 +1666,23 @@ impl Fragment {
     /// content per CSS 2.1 § 10.3.2.
     pub fn assign_replaced_inline_size_if_necessary<'a>(&'a mut self, container_inline_size: Au) {
         match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper => return,
-            SpecificFragmentInfo::TableColumn(_) => panic!("Table column fragments do not have inline_size"),
+            SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::TableWrapper => return,
+            SpecificFragmentInfo::TableColumn(_) => {
+                panic!("Table column fragments do not have inline_size")
+            }
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
             }
-            SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::ScannedText(_) | SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) | SpecificFragmentInfo::Iframe(_) => {}
+            SpecificFragmentInfo::Canvas(_) |
+            SpecificFragmentInfo::Image(_) |
+            SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::InlineBlock(_) |
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::Iframe(_) => {}
         };
 
         let style = self.style().clone();
@@ -1703,22 +1711,24 @@ impl Fragment {
             SpecificFragmentInfo::Image(ref mut image_fragment_info) => {
                 let fragment_inline_size = image_fragment_info.image_inline_size();
                 let fragment_block_size = image_fragment_info.image_block_size();
-                self.border_box.size.inline = image_fragment_info.replaced_image_fragment_info.
-                                              calculate_replaced_inline_size(style,
-                                                                             noncontent_inline_size,
-                                                                             container_inline_size,
-                                                                             fragment_inline_size,
-                                                                             fragment_block_size);
+                self.border_box.size.inline =
+                    image_fragment_info.replaced_image_fragment_info
+                                       .calculate_replaced_inline_size(style,
+                                                                       noncontent_inline_size,
+                                                                       container_inline_size,
+                                                                       fragment_inline_size,
+                                                                       fragment_block_size);
             }
             SpecificFragmentInfo::Canvas(ref mut canvas_fragment_info) => {
                 let fragment_inline_size = canvas_fragment_info.canvas_inline_size();
                 let fragment_block_size = canvas_fragment_info.canvas_block_size();
-                self.border_box.size.inline = canvas_fragment_info.replaced_image_fragment_info.
-                                              calculate_replaced_inline_size(style,
-                                                                             noncontent_inline_size,
-                                                                             container_inline_size,
-                                                                             fragment_inline_size,
-                                                                             fragment_block_size);
+                self.border_box.size.inline =
+                    canvas_fragment_info.replaced_image_fragment_info
+                                        .calculate_replaced_inline_size(style,
+                                                                        noncontent_inline_size,
+                                                                        container_inline_size,
+                                                                        fragment_inline_size,
+                                                                        fragment_block_size);
             }
             SpecificFragmentInfo::Iframe(_) => {
                 self.border_box.size.inline = IframeFragmentInfo::calculate_replaced_inline_size(
@@ -1735,14 +1745,23 @@ impl Fragment {
     /// Ideally, this should follow CSS 2.1 § 10.6.2.
     pub fn assign_replaced_block_size_if_necessary(&mut self, containing_block_block_size: Au) {
         match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper => return,
-            SpecificFragmentInfo::TableColumn(_) => panic!("Table column fragments do not have block_size"),
+            SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::TableWrapper => return,
+            SpecificFragmentInfo::TableColumn(_) => {
+                panic!("Table column fragments do not have block_size")
+            }
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
             }
-            SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::ScannedText(_) | SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) | SpecificFragmentInfo::Iframe(_) => {}
+            SpecificFragmentInfo::Canvas(_) |
+            SpecificFragmentInfo::Image(_) |
+            SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::InlineBlock(_) |
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::Iframe(_) => {}
         }
 
         let style = self.style().clone();
@@ -1752,22 +1771,24 @@ impl Fragment {
             SpecificFragmentInfo::Image(ref mut image_fragment_info) => {
                 let fragment_inline_size = image_fragment_info.image_inline_size();
                 let fragment_block_size = image_fragment_info.image_block_size();
-                self.border_box.size.block = image_fragment_info.replaced_image_fragment_info.
-                                             calculate_replaced_block_size(style,
-                                                                           noncontent_block_size,
-                                                                           containing_block_block_size,
-                                                                           fragment_inline_size,
-                                                                           fragment_block_size);
+                self.border_box.size.block =
+                    image_fragment_info.replaced_image_fragment_info.
+                                       calculate_replaced_block_size(style,
+                                                                     noncontent_block_size,
+                                                                     containing_block_block_size,
+                                                                     fragment_inline_size,
+                                                                     fragment_block_size);
             }
             SpecificFragmentInfo::Canvas(ref mut canvas_fragment_info) => {
                 let fragment_inline_size = canvas_fragment_info.canvas_inline_size();
                 let fragment_block_size = canvas_fragment_info.canvas_block_size();
-                self.border_box.size.block = canvas_fragment_info.replaced_image_fragment_info.
-                                             calculate_replaced_block_size(style,
-                                                                           noncontent_block_size,
-                                                                           containing_block_block_size,
-                                                                           fragment_inline_size,
-                                                                           fragment_block_size);
+                self.border_box.size.block =
+                    canvas_fragment_info.replaced_image_fragment_info
+                                        .calculate_replaced_block_size(style,
+                                                                       noncontent_block_size,
+                                                                       containing_block_block_size,
+                                                                       fragment_inline_size,
+                                                                       fragment_block_size);
             }
             SpecificFragmentInfo::ScannedText(ref info) => {
                 // Scanned text fragments' content block-sizes are calculated by the text run
@@ -1794,14 +1815,16 @@ impl Fragment {
         }
     }
 
-    /// Calculates block-size above baseline, depth below baseline, and ascent for this fragment when
-    /// used in an inline formatting context. See CSS 2.1 § 10.8.1.
+    /// Calculates block-size above baseline, depth below baseline, and ascent for this fragment
+    /// when used in an inline formatting context. See CSS 2.1 § 10.8.1.
     pub fn inline_metrics(&self, layout_context: &LayoutContext) -> InlineMetrics {
         match self.specific {
             SpecificFragmentInfo::Image(ref image_fragment_info) => {
-                let computed_block_size = image_fragment_info.replaced_image_fragment_info.computed_block_size();
+                let computed_block_size = image_fragment_info.replaced_image_fragment_info
+                                                             .computed_block_size();
                 InlineMetrics {
-                    block_size_above_baseline: computed_block_size + self.border_padding.block_start_end(),
+                    block_size_above_baseline: computed_block_size +
+                                                   self.border_padding.block_start_end(),
                     depth_below_baseline: Au(0),
                     ascent: computed_block_size + self.border_padding.block_end,
                 }

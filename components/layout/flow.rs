@@ -202,11 +202,17 @@ pub trait Flow: fmt::Debug + Sync {
     /// Assigns block-sizes in-order; or, if this is a float, places the float. The default
     /// implementation simply assigns block-sizes if this flow is impacted by floats. Returns true
     /// if this child was impacted by floats or false otherwise.
+    ///
+    /// `parent_thread_id` is the thread ID of the parent. This is used for the layout tinting
+    /// debug mode; if the block size of this flow was determined by its parent, we should treat
+    /// it as laid out by its parent.
     fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
-                                                            layout_context: &'a LayoutContext<'a>)
+                                                            layout_context: &'a LayoutContext<'a>,
+                                                            parent_thread_id: u8)
                                                             -> bool {
         let impacted = base(self).flags.impacted_by_floats();
         if impacted {
+            mut_base(self).thread_id = parent_thread_id;
             self.assign_block_size(layout_context);
             mut_base(self).restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
         }
@@ -777,6 +783,9 @@ pub struct BaseFlow {
     /// The writing mode for this flow.
     pub writing_mode: WritingMode,
 
+    /// For debugging and profiling, the identifier of the thread that laid out this fragment.
+    pub thread_id: u8,
+
     /// Various flags for flows, tightly packed to save space.
     pub flags: FlowFlags,
 }
@@ -918,6 +927,7 @@ impl BaseFlow {
             clip: ClippingRegion::max(),
             flags: flags,
             writing_mode: writing_mode,
+            thread_id: 0,
         }
     }
 

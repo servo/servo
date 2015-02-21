@@ -571,18 +571,11 @@ impl WorkerThread {
             if opts::get().show_debug_parallel_paint {
                 // Overlay a transparent solid color to identify the thread that
                 // painted this tile.
-                let colors = [Color { r: 6.0/255.0, g: 153.0/255.0, b: 198.0/255.0, a: 0.7 },
-                              Color { r: 255.0/255.0, g: 212.0/255.0, b: 83.0/255.0, a: 0.7 },
-                              Color { r: 116.0/255.0, g: 29.0/255.0, b: 109.0/255.0, a: 0.7 },
-                              Color { r: 204.0/255.0, g: 158.0/255.0, b: 199.0/255.0, a: 0.7 },
-                              Color { r: 242.0/255.0, g: 46.0/255.0, b: 121.0/255.0, a: 0.7 },
-                              Color { r: 116.0/255.0, g: 203.0/255.0, b: 196.0/255.0, a: 0.7 },
-                              Color { r: 255.0/255.0, g: 249.0/255.0, b: 201.0/255.0, a: 0.7 },
-                              Color { r: 137.0/255.0, g: 196.0/255.0, b: 78.0/255.0, a: 0.7 }];
+                let color = THREAD_TINT_COLORS[thread_id % THREAD_TINT_COLORS.len()];
                 paint_context.draw_solid_color(&Rect(Point2D(Au(0), Au(0)),
                                                      Size2D(Au::from_px(size.width as isize),
                                                             Au::from_px(size.height as isize))),
-                                               colors[thread_id % colors.len()]);
+                                               color);
             }
         }
 
@@ -639,3 +632,15 @@ enum MsgToWorkerThread {
 enum MsgFromWorkerThread {
     PaintedTile(Box<LayerBuffer>),
 }
+
+pub static THREAD_TINT_COLORS: [Color; 8] = [
+    Color { r: 6.0/255.0, g: 153.0/255.0, b: 198.0/255.0, a: 0.7 },
+    Color { r: 255.0/255.0, g: 212.0/255.0, b: 83.0/255.0, a: 0.7 },
+    Color { r: 116.0/255.0, g: 29.0/255.0, b: 109.0/255.0, a: 0.7 },
+    Color { r: 204.0/255.0, g: 158.0/255.0, b: 199.0/255.0, a: 0.7 },
+    Color { r: 242.0/255.0, g: 46.0/255.0, b: 121.0/255.0, a: 0.7 },
+    Color { r: 116.0/255.0, g: 203.0/255.0, b: 196.0/255.0, a: 0.7 },
+    Color { r: 255.0/255.0, g: 249.0/255.0, b: 201.0/255.0, a: 0.7 },
+    Color { r: 137.0/255.0, g: 196.0/255.0, b: 78.0/255.0, a: 0.7 },
+];
+

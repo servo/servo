@@ -157,6 +157,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                     worker: &mut deque,
                     ref_count: ref_count,
                     queue_data: queue_data,
+                    worker_index: self.index as u8,
                 };
                 (work_unit.fun)(work_unit.data, &mut proxy);
 
@@ -180,6 +181,7 @@ pub struct WorkerProxy<'a, QueueData: 'a, WorkData: 'a> {
     worker: &'a mut Worker<WorkUnit<QueueData, WorkData>>,
     ref_count: *mut AtomicUint,
     queue_data: *const QueueData,
+    worker_index: u8,
 }
 
 impl<'a, QueueData: 'static, WorkData: Send> WorkerProxy<'a, QueueData, WorkData> {
@@ -198,6 +200,12 @@ impl<'a, QueueData: 'static, WorkData: Send> WorkerProxy<'a, QueueData, WorkData
         unsafe {
             mem::transmute(self.queue_data)
         }
+    }
+
+    /// Retrieves the index of the worker.
+    #[inline]
+    pub fn worker_index(&self) -> u8 {
+        self.worker_index
     }
 }
 
