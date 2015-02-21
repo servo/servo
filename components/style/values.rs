@@ -49,6 +49,7 @@ macro_rules! define_css_keyword_enum {
 
 pub type CSSFloat = f64;
 
+
 pub mod specified {
     use std::ascii::AsciiExt;
     use std::f64::consts::PI;
@@ -60,7 +61,6 @@ pub mod specified {
     use text_writer::{self, TextWriter};
     use util::geometry::Au;
     use super::CSSFloat;
-    use super::computed;
 
     #[derive(Clone, PartialEq)]
     pub struct CSSColor {
@@ -113,22 +113,6 @@ pub mod specified {
         }
     }
 
-    #[derive(Clone, PartialEq)]
-    pub struct CSSImage(pub Option<Image>);
-
-    impl fmt::Debug for CSSImage {
-        #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
-    }
-
-    impl ToCss for CSSImage {
-        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
-            match self {
-                &CSSImage(Some(ref image)) => image.to_css(dest),
-                &CSSImage(None) => dest.write_str("none"),
-            }
-        }
-    }
-
     #[derive(Clone, PartialEq, Copy)]
     pub enum Length {
         Au(Au),  // application units
@@ -159,6 +143,31 @@ pub mod specified {
             }
         }
     }
+
+    impl Length {
+        pub fn to_computed_value_with_font_size(&self, reference_font_size: Au, root_font_size: Au)
+                                                -> Au {
+            match *self {
+                Length::Au(value) => value,
+                Length::Em(value) => reference_font_size.scale_by(value),
+                Length::Ex(value) => {
+                    let x_height = 0.5;  // TODO: find that from the font
+                    reference_font_size.scale_by(value * x_height)
+                },
+                Length::Rem(value) => root_font_size.scale_by(value),
+                Length::ServoCharacterWidth(value) => {
+                    // This applies the *converting a character width to pixels* algorithm as specified
+                    // in HTML5 § 14.5.4.
+                    //
+                    // TODO(pcwalton): Find these from the font.
+                    let average_advance = reference_font_size.scale_by(0.5);
+                    let max_advance = reference_font_size;
+                    average_advance.scale_by(value as CSSFloat - 1.0) + max_advance
+                }
+            }
+        }
+    }
+
 
     const AU_PER_PX: CSSFloat = 60.;
     const AU_PER_IN: CSSFloat = AU_PER_PX * 96.;
@@ -493,16 +502,6 @@ pub mod specified {
                 _ => Err(())
             }
         }
-
-        pub fn to_computed_value(self, context: &computed::Context) -> computed::Image {
-            match self {
-                Image::Url(url) => computed::Image::Url(url),
-                Image::LinearGradient(linear_gradient) => {
-                    computed::Image::LinearGradient(
-                        computed::LinearGradient::compute(linear_gradient, context))
-                }
-            }
-        }
     }
 
     /// Specified values for a CSS linear gradient.
@@ -701,45 +700,41 @@ pub mod computed {
         // TODO, as needed: viewport size, etc.
     }
 
-    #[allow(non_snake_case)]
-    #[inline]
-    pub fn compute_CSSColor(value: specified::CSSColor, _context: &Context) -> CSSColor {
-        value.parsed
+    pub trait ToComputedValue {
+        type ComputedValue;
+
+        #[inline]
+        fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue;
     }
 
-    #[allow(non_snake_case)]
-    #[inline]
-    pub fn compute_BorderStyle(value: BorderStyle, _context: &Context) -> BorderStyle {
-        value
+    pub trait ComputedValueAsSpecified {}
+
+    impl<T> ToComputedValue for T where T: ComputedValueAsSpecified + Clone {
+        type ComputedValue = T;
+
+        #[inline]
+        fn to_computed_value(&self, _context: &Context) -> T {
+            self.clone()
+        }
     }
 
-    #[allow(non_snake_case)]
-    #[inline]
-    pub fn compute_Au(value: specified::Length, context: &Context) -> Au {
-        compute_Au_with_font_size(value, context.font_size, context.root_font_size)
+    impl ToComputedValue for specified::CSSColor {
+        type ComputedValue = CSSColor;
+
+        #[inline]
+        fn to_computed_value(&self, _context: &Context) -> CSSColor {
+            self.parsed
+        }
     }
 
-    /// A special version of `compute_Au` used for `font-size`.
-    #[allow(non_snake_case)]
-    #[inline]
-    pub fn compute_Au_with_font_size(value: specified::Length, reference_font_size: Au, root_font_size: Au) -> Au {
-        match value {
-            specified::Length::Au(value) => value,
-            specified::Length::Em(value) => reference_font_size.scale_by(value),
-            specified::Length::Ex(value) => {
-                let x_height = 0.5;  // TODO: find that from the font
-                reference_font_size.scale_by(value * x_height)
-            },
-            specified::Length::Rem(value) => root_font_size.scale_by(value),
-            specified::Length::ServoCharacterWidth(value) => {
-                // This applies the *converting a character width to pixels* algorithm as specified
-                // in HTML5 § 14.5.4.
-                //
-                // TODO(pcwalton): Find these from the font.
-                let average_advance = reference_font_size.scale_by(0.5);
-                let max_advance = reference_font_size;
-                average_advance.scale_by(value as CSSFloat - 1.0) + max_advance
-            }
+    impl ComputedValueAsSpecified for specified::BorderStyle {}
+
+    impl ToComputedValue for specified::Length {
+        type ComputedValue = Au;
+
+        #[inline]
+        fn to_computed_value(&self, context: &Context) -> Au {
+            self.to_computed_value_with_font_size(context.font_size, context.root_font_size)
         }
     }
 
@@ -757,14 +752,18 @@ pub mod computed {
         }
     }
 
-    #[allow(non_snake_case)]
-    pub fn compute_LengthOrPercentage(value: specified::LengthOrPercentage, context: &Context)
-                                   -> LengthOrPercentage {
-        match value {
-            specified::LengthOrPercentage::Length(value) =>
-                LengthOrPercentage::Length(compute_Au(value, context)),
-            specified::LengthOrPercentage::Percentage(value) =>
-                LengthOrPercentage::Percentage(value),
+    impl ToComputedValue for specified::LengthOrPercentage {
+        type ComputedValue = LengthOrPercentage;
+
+        fn to_computed_value(&self, context: &Context) -> LengthOrPercentage {
+            match *self {
+                specified::LengthOrPercentage::Length(value) => {
+                    LengthOrPercentage::Length(value.to_computed_value(context))
+                }
+                specified::LengthOrPercentage::Percentage(value) => {
+                    LengthOrPercentage::Percentage(value)
+                }
+            }
         }
     }
 
@@ -783,16 +782,23 @@ pub mod computed {
             }
         }
     }
-    #[allow(non_snake_case)]
-    pub fn compute_LengthOrPercentageOrAuto(value: specified::LengthOrPercentageOrAuto,
-                                            context: &Context) -> LengthOrPercentageOrAuto {
-        match value {
-            specified::LengthOrPercentageOrAuto::Length(value) =>
-                LengthOrPercentageOrAuto::Length(compute_Au(value, context)),
-            specified::LengthOrPercentageOrAuto::Percentage(value) =>
-                LengthOrPercentageOrAuto::Percentage(value),
-            specified::LengthOrPercentageOrAuto::Auto =>
-                LengthOrPercentageOrAuto::Auto,
+
+    impl ToComputedValue for specified::LengthOrPercentageOrAuto {
+        type ComputedValue = LengthOrPercentageOrAuto;
+
+        #[inline]
+        fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrAuto {
+            match *self {
+                specified::LengthOrPercentageOrAuto::Length(value) => {
+                    LengthOrPercentageOrAuto::Length(value.to_computed_value(context))
+                }
+                specified::LengthOrPercentageOrAuto::Percentage(value) => {
+                    LengthOrPercentageOrAuto::Percentage(value)
+                }
+                specified::LengthOrPercentageOrAuto::Auto => {
+                    LengthOrPercentageOrAuto::Auto
+                }
+            }
         }
     }
 
@@ -811,18 +817,41 @@ pub mod computed {
             }
         }
     }
-    #[allow(non_snake_case)]
-    pub fn compute_LengthOrPercentageOrNone(value: specified::LengthOrPercentageOrNone,
-                                            context: &Context) -> LengthOrPercentageOrNone {
-        match value {
-            specified::LengthOrPercentageOrNone::Length(value) =>
-                LengthOrPercentageOrNone::Length(compute_Au(value, context)),
-            specified::LengthOrPercentageOrNone::Percentage(value) =>
-                LengthOrPercentageOrNone::Percentage(value),
-            specified::LengthOrPercentageOrNone::None =>
-                LengthOrPercentageOrNone::None,
+
+    impl ToComputedValue for specified::LengthOrPercentageOrNone {
+        type ComputedValue = LengthOrPercentageOrNone;
+
+        #[inline]
+        fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrNone {
+            match *self {
+                specified::LengthOrPercentageOrNone::Length(value) => {
+                    LengthOrPercentageOrNone::Length(value.to_computed_value(context))
+                }
+                specified::LengthOrPercentageOrNone::Percentage(value) => {
+                    LengthOrPercentageOrNone::Percentage(value)
+                }
+                specified::LengthOrPercentageOrNone::None => {
+                    LengthOrPercentageOrNone::None
+                }
+            }
         }
     }
+
+
+    impl ToComputedValue for specified::Image {
+        type ComputedValue = Image;
+
+        #[inline]
+        fn to_computed_value(&self, context: &Context) -> Image {
+            match *self {
+                specified::Image::Url(ref url) => Image::Url(url.clone()),
+                specified::Image::LinearGradient(ref linear_gradient) => {
+                    Image::LinearGradient(linear_gradient.to_computed_value(context))
+                }
+            }
+        }
+    }
+
 
     /// Computed values for an image according to CSS-IMAGES.
     #[derive(Clone, PartialEq)]
@@ -881,32 +910,28 @@ pub mod computed {
         }
     }
 
-    impl LinearGradient {
-        pub fn compute(value: specified::LinearGradient, context: &Context) -> LinearGradient {
+    impl ToComputedValue for specified::LinearGradient {
+        type ComputedValue = LinearGradient;
+
+        #[inline]
+        fn to_computed_value(&self, context: &Context) -> LinearGradient {
             let specified::LinearGradient {
                 angle_or_corner,
-                stops
-            } = value;
+                ref stops
+            } = *self;
             LinearGradient {
                 angle_or_corner: angle_or_corner,
-                stops: stops.into_iter().map(|stop| {
+                stops: stops.iter().map(|stop| {
                     ColorStop {
                         color: stop.color.parsed,
                         position: match stop.position {
                             None => None,
-                            Some(value) => Some(compute_LengthOrPercentage(value, context)),
+                            Some(value) => Some(value.to_computed_value(context)),
                         },
                     }
                 }).collect()
             }
         }
     }
-
-    #[allow(non_snake_case)]
-    #[inline]
-    pub fn compute_Length(value: specified::Length, context: &Context) -> Au {
-        compute_Au(value, context)
-    }
-
     pub type Length = Au;
 }
