@@ -20,10 +20,6 @@ use net::resource_task;
 use servo::Browser;
 use compositing::windowing::WindowEvent;
 
-struct BrowserWrapper {
-    browser: Browser<app::window::Window>,
-}
-
 fn main() {
     if opts::from_cmdline_args(&*get_args()) {
         setup_logging();
@@ -77,6 +73,10 @@ fn main() {
         } = browser;
         browser.shutdown();
     }
+}
+
+struct BrowserWrapper {
+    browser: Browser<app::window::Window>,
 }
 
 impl app::NestedEventLoopListener for BrowserWrapper {
