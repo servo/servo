@@ -79,6 +79,9 @@ impl DomParallelInfo {
     }
 }
 
+pub type FlowTraversalFunction =
+    extern "Rust" fn(UnsafeFlow, &mut WorkerProxy<SharedLayoutContextWrapper,UnsafeLayoutNode>);
+
 /// A parallel top-down DOM traversal.
 pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
     fn run_parallel(&self,
@@ -89,12 +92,8 @@ pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
     fn run_parallel_helper(&self,
                            unsafe_node: UnsafeLayoutNode,
                            proxy: &mut WorkerProxy<SharedLayoutContextWrapper,UnsafeLayoutNode>,
-                           top_down_func: extern "Rust" fn(UnsafeFlow,
-                                                           &mut WorkerProxy<SharedLayoutContextWrapper,
-                                                                            UnsafeLayoutNode>),
-                           bottom_up_func: extern "Rust" fn(UnsafeFlow,
-                                                            &mut WorkerProxy<SharedLayoutContextWrapper,
-                                                                             UnsafeFlow>)) {
+                           top_down_func: FlowTraversalFunction,
+                           bottom_up_func: FlowTraversalFunction) {
         // Get a real layout node.
         let node: LayoutNode = unsafe {
             layout_node_from_unsafe_layout_node(&unsafe_node)
@@ -156,11 +155,10 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
             let shared_layout_context = unsafe { &*(proxy.user_data().0) };
             let layout_context = LayoutContext::new(shared_layout_context);
 
-            let parent =
-                match node.layout_parent_node(layout_context.shared) {
-                    None         => break,
-                    Some(parent) => parent,
-                };
+            let parent = match node.layout_parent_node(layout_context.shared) {
+                None => break,
+                Some(parent) => parent,
+            };
 
             unsafe {
                 let parent_layout_data =
@@ -265,20 +263,22 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
                     unsafe_flow: UnsafeFlow,
                     proxy: &mut WorkerProxy<SharedLayoutContextWrapper,UnsafeFlow>);
 
+    fn should_record_thread_ids(&self) -> bool;
+
     #[inline(always)]
     fn run_parallel_helper(&self,
                            unsafe_flow: UnsafeFlow,
                            proxy: &mut WorkerProxy<SharedLayoutContextWrapper,UnsafeFlow>,
-                           top_down_func: extern "Rust" fn(UnsafeFlow,
-                                                           &mut WorkerProxy<SharedLayoutContextWrapper,
-                                                                            UnsafeFlow>),
-                           bottom_up_func: extern "Rust" fn(UnsafeFlow,
-                                                            &mut WorkerProxy<SharedLayoutContextWrapper,
-                                                                             UnsafeFlow>)) {
+                           top_down_func: FlowTraversalFunction,
+                           bottom_up_func: FlowTraversalFunction) {
         let mut had_children = false;
         unsafe {
             // Get a real flow.
             let flow: &mut FlowRef = mem::transmute(&unsafe_flow);
+
+            if self.should_record_thread_ids() {
+                flow::mut_base(&mut **flow).thread_id = proxy.worker_index();
+            }
 
             if self.should_process(&mut **flow) {
                 // Perform the appropriate traversal.
@@ -293,7 +293,6 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
                     data: borrowed_flow_to_unsafe_flow(kid),
                 });
             }
-
         }
 
         // If there were no more children, start assigning block-sizes.
@@ -314,6 +313,10 @@ impl<'a> ParallelPreorderFlowTraversal for AssignISizes<'a> {
                                  assign_inline_sizes,
                                  assign_block_sizes_and_store_overflow)
     }
+
+    fn should_record_thread_ids(&self) -> bool {
+        true
+    }
 }
 
 impl<'a> ParallelPostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {}
@@ -326,6 +329,10 @@ impl<'a> ParallelPreorderFlowTraversal for ComputeAbsolutePositions<'a> {
                                  proxy,
                                  compute_absolute_positions,
                                  build_display_list)
+    }
+
+    fn should_record_thread_ids(&self) -> bool {
+        false
     }
 }
 

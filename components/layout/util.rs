@@ -9,7 +9,7 @@ use incremental::RestyleDamage;
 use parallel::DomParallelInfo;
 use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
-use azure::azure_hl::{Color};
+use azure::azure_hl::Color;
 use gfx::display_list::OpaqueNode;
 use gfx;
 use libc::{c_void, uintptr_t};

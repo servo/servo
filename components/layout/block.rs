@@ -863,6 +863,7 @@ impl BlockFlow {
             // At this point, `cur_b` is at the content edge of our box. Now iterate over children.
             let mut floats = self.base.floats.clone();
             let mut layers_needed_for_descendants = false;
+            let thread_id = self.base.thread_id;
             for kid in self.base.child_iter() {
                 if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                     // Assume that the *hypothetical box* for an absolute flow starts immediately
@@ -870,7 +871,8 @@ impl BlockFlow {
                     kid.as_block().hypothetical_position.b = cur_b;
                     kid.place_float_if_applicable(layout_context);
                     if !flow::base(kid).flags.is_float() {
-                        kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
+                        kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
+                                                                             thread_id);
                     }
                     propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
 
@@ -910,7 +912,8 @@ impl BlockFlow {
 
                 // Lay the child out if this was an in-order traversal.
                 let need_to_process_child_floats =
-                    kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
+                    kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
+                                                                         thread_id);
 
                 // Mark flows for layerization if necessary to handle painting order correctly.
                 propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
@@ -1047,8 +1050,9 @@ impl BlockFlow {
         } else {
             // We don't need to reflow, but we still need to perform in-order traversals if
             // necessary.
+            let thread_id = self.base.thread_id;
             for kid in self.base.child_iter() {
-                kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
+                kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
             }
         }
 
@@ -1650,7 +1654,8 @@ impl Flow for BlockFlow {
     }
 
     fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
-                                                            layout_context: &'a LayoutContext<'a>)
+                                                            layout_context: &'a LayoutContext<'a>,
+                                                            parent_thread_id: u8)
                                                             -> bool {
         if self.base.flags.is_float() {
             return false
@@ -1662,6 +1667,7 @@ impl Flow for BlockFlow {
         }
 
         if self.base.flags.impacted_by_floats() {
+            self.base.thread_id = parent_thread_id;
             if self.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
                 self.assign_block_size(layout_context);
                 // Don't remove the restyle damage; `assign_block_size` decides whether that is

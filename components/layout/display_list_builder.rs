@@ -13,7 +13,7 @@
 use block::BlockFlow;
 use canvas::canvas_paint_task::CanvasMsg::SendPixelContents;
 use context::LayoutContext;
-use flow::{self, Flow, IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
+use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
 use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo};
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
 use inline::InlineFlow;
@@ -29,10 +29,9 @@ use gfx::display_list::{BorderRadii, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayItemMetadata};
 use gfx::display_list::{GradientDisplayItem};
 use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
-use gfx::display_list::TextOrientation;
-use gfx::display_list::{SolidColorDisplayItem};
-use gfx::display_list::{StackingContext, TextDisplayItem};
-use gfx::paint_task::PaintLayer;
+use gfx::display_list::{OpaqueNode, SolidColorDisplayItem};
+use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
+use gfx::paint_task::{PaintLayer, THREAD_TINT_COLORS};
 use png;
 use png::PixelsByColorType;
 use msg::compositor_msg::ScrollPolicy;
@@ -720,7 +719,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                               relative_containing_block_size,
                                               CoordinateSystem::Self);
 
-        debug!("Fragment::build_display_list at rel={:?}, abs={:?}, dirty={:?}, flow origin={:?}: {:?}",
+        debug!("Fragment::build_display_list at rel={:?}, abs={:?}, dirty={:?}, flow origin={:?}: \
+                {:?}",
                self.border_box,
                stacking_relative_border_box,
                layout_context.shared.dirty,
@@ -1118,6 +1118,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         for kid in self.base.children.iter_mut() {
             flow::mut_base(kid).display_list_building_result.add_to(display_list);
         }
+
+        self.base.build_display_items_for_debugging_tint(display_list, self.fragment.node);
     }
 
     fn build_display_list_for_static_block(&mut self,
@@ -1192,13 +1194,13 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         if self.base.flags.is_float() {
             // TODO(#2009, pcwalton): This is a pseudo-stacking context. We need to merge `z-index:
             // auto` kids into the parent stacking context, when that is supported.
-            self.build_display_list_for_floating_block(display_list, layout_context)
+            self.build_display_list_for_floating_block(display_list, layout_context);
         } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-            self.build_display_list_for_absolutely_positioned_block(display_list, layout_context)
+            self.build_display_list_for_absolutely_positioned_block(display_list, layout_context);
         } else {
             self.build_display_list_for_static_block(display_list,
                                                      layout_context,
-                                                     BackgroundAndBorderLevel::Block)
+                                                     BackgroundAndBorderLevel::Block);
         }
     }
 
@@ -1246,6 +1248,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
         debug!("Flow: building display list for {} inline fragments", self.fragments.len());
 
         let mut display_list = box DisplayList::new();
+
         for fragment in self.fragments.fragments.iter_mut() {
             fragment.build_display_list(&mut *display_list,
                                         layout_context,
@@ -1268,6 +1271,11 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                 }
                 _ => {}
             }
+        }
+
+        if !self.fragments.fragments.is_empty() {
+            self.base.build_display_items_for_debugging_tint(&mut *display_list,
+                                                             self.fragments.fragments[0].node);
         }
 
         self.base.display_list_building_result = DisplayListBuildingResult::Normal(display_list);
@@ -1303,6 +1311,43 @@ impl ListItemFlowDisplayListBuilding for ListItemFlow {
 
         // Draw the rest of the block.
         self.block_flow.build_display_list_for_block(display_list, layout_context)
+    }
+}
+
+trait BaseFlowDisplayListBuilding {
+    fn build_display_items_for_debugging_tint(&self,
+                                              display_list: &mut DisplayList,
+                                              node: OpaqueNode);
+}
+
+impl BaseFlowDisplayListBuilding for BaseFlow {
+    fn build_display_items_for_debugging_tint(&self,
+                                              display_list: &mut DisplayList,
+                                              node: OpaqueNode) {
+        if !opts::get().show_debug_parallel_layout {
+            return
+        }
+
+        let thread_id = self.thread_id;
+        let stacking_context_relative_bounds =
+            Rect(self.stacking_relative_position,
+                 self.position.size.to_physical(self.writing_mode));
+
+        let mut color = THREAD_TINT_COLORS[thread_id as usize % THREAD_TINT_COLORS.len()];
+        color.a = 1.0;
+        display_list.push(DisplayItem::BorderClass(box BorderDisplayItem {
+            base: BaseDisplayItem::new(stacking_context_relative_bounds.inflate(Au::from_px(2),
+                                                                                Au::from_px(2)),
+                                       DisplayItemMetadata {
+                                           node: node,
+                                           pointing: None,
+                                       },
+                                       self.clip.clone()),
+            border_widths: SideOffsets2D::new_all_same(Au::from_px(2)),
+            color: SideOffsets2D::new_all_same(color),
+            style: SideOffsets2D::new_all_same(border_style::T::solid),
+            radius: BorderRadii::all_same(Au(0)),
+        }), StackingLevel::Content);
     }
 }
 
