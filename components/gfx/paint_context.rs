@@ -10,8 +10,9 @@ use azure::azure_hl::{DrawOptions, DrawSurfaceOptions, DrawTarget, ExtendMode, F
 use azure::azure_hl::{GaussianBlurInput, GradientStop, Filter, LinearGradientPattern};
 use azure::azure_hl::{PatternRef, Path, PathBuilder, CompositionOp};
 use azure::azure_hl::{GaussianBlurAttribute, StrokeOptions, SurfaceFormat};
+use azure::azure_hl::{JoinStyle, CapStyle};
 use azure::scaled_font::ScaledFont;
-use azure::{AZ_CAP_BUTT, AzFloat, struct__AzDrawOptions, struct__AzGlyph};
+use azure::{AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
 use color;
 use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
@@ -23,7 +24,6 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::side_offsets::SideOffsets2D;
 use geom::size::Size2D;
-use libc::size_t;
 use libc::types::common::c99::{uint16_t, uint32_t};
 use png::PixelsByColorType;
 use net::image::base::Image;
@@ -608,24 +608,19 @@ impl<'a> PaintContext<'a> {
                                   dash_size: DashSize) {
         let rect = bounds.to_azure_rect();
         let draw_opts = DrawOptions::new(1u as AzFloat, 0 as uint16_t);
-        let mut stroke_opts = StrokeOptions::new(0u as AzFloat, 10u as AzFloat);
-        let mut dash: [AzFloat; 2] = [0u as AzFloat, 0u as AzFloat];
-
-        stroke_opts.set_cap_style(AZ_CAP_BUTT as u8);
-
         let border_width = match direction {
             Direction::Top => border.top,
             Direction::Left => border.left,
             Direction::Right => border.right,
             Direction::Bottom => border.bottom
         };
-
-        stroke_opts.line_width = border_width;
-        dash[0] = border_width * (dash_size as int) as AzFloat;
-        dash[1] = border_width * (dash_size as int) as AzFloat;
-        stroke_opts.mDashPattern = dash.as_mut_ptr();
-        stroke_opts.mDashLength = dash.len() as size_t;
-
+        let dash_pattern = [border_width * (dash_size as int) as AzFloat,
+                            border_width * (dash_size as int) as AzFloat];
+        let stroke_opts = StrokeOptions::new(border_width as AzFloat,
+                                             JoinStyle::MiterOrBevel,
+                                             CapStyle::Butt,
+                                             10u as AzFloat,
+                                             &dash_pattern);
         let (start, end)  = match direction {
             Direction::Top => {
                 let y = rect.origin.y + border.top * 0.5;
