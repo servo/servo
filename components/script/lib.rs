@@ -41,6 +41,7 @@ extern crate "rustc-serialize" as rustc_serialize;
 extern crate time;
 extern crate canvas;
 extern crate script_traits;
+extern crate selectors;
 #[no_link] #[plugin] #[macro_use]
 extern crate "plugins" as servo_plugins;
 extern crate util;
