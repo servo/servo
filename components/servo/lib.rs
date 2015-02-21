@@ -3,6 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // Servo, the mighty web browser engine from the future.
+//
+// This is a very simple library that wires all of Servo's components
+// together as type `Browser`, along with a generic client
+// implementing the `WindowMethods` trait, to create a working web
+// browser.
+//
+// The `Browser` type is responsible for configuring a
+// `Constellation`, which does the heavy lifting of coordinating all
+// of Servo's internal subsystems, including the `ScriptTask` and the
+// `LayoutTask`, as well maintains the navigation context.
+//
+// The `Browser` is fed events from a generic type that implements the
+// `WindowMethods` trait.
 
 #![feature(core, env, libc, path, rustc_private, thread_local)]
 
@@ -34,7 +47,7 @@ use script::dom::bindings::codegen::RegisterBindings;
 
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::new_resource_task;
-use net::storage_task::{StorageTaskFactory, StorageTask};
+use net::storage_task::StorageTaskFactory;
 
 use gfx::font_cache_task::FontCacheTask;
 
@@ -49,8 +62,8 @@ use std::sync::mpsc::Sender;
 
 /// The in-process interface to Servo.
 ///
-/// It does  everything necessary  to render  the web, primarily
-/// orchestrating  the interaction  between  JavaScript, CSS  layout,
+/// It does everything necessary to render the web, primarily
+/// orchestrating the interaction between JavaScript, CSS layout,
 /// rendering, and the client window.
 ///
 /// Clients create a `Browser` for a given reference-counted type
@@ -113,7 +126,6 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         }
     }
 
-    /// Processes events from the embedding client.
     pub fn handle_event(&mut self, event: WindowEvent) -> bool {
         self.compositor.handle_event(event)
     }
@@ -140,7 +152,9 @@ fn create_constellation(opts: opts::Opts,
                         time_profiler_chan: TimeProfilerChan,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         shared_task_pool: TaskPool) -> ConstellationChan {
+
     let resource_task = new_resource_task(opts.user_agent.clone());
+
     // If we are emitting an output file, then we need to block on
     // image load or we risk emitting an output file missing the
     // image.
@@ -151,8 +165,10 @@ fn create_constellation(opts: opts::Opts,
         ImageCacheTask::new(resource_task.clone(), shared_task_pool,
                             time_profiler_chan.clone())
     };
+
     let font_cache_task = FontCacheTask::new(resource_task.clone());
-    let storage_task: StorageTask = StorageTaskFactory::new();
+    let storage_task = StorageTaskFactory::new();
+
     let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
                                              script::script_task::ScriptTask>::start(
                                                  compositor_proxy,
@@ -163,7 +179,8 @@ fn create_constellation(opts: opts::Opts,
                                                  devtools_chan,
                                                  storage_task);
 
-    // Send the URL command to the constellation.
+    // If the global configuration asked to load a URL then send
+    // it to the constellation.
     let cwd = env::current_dir().unwrap();
     for url in opts.urls.iter() {
         let url = match url::Url::parse(&*url) {
