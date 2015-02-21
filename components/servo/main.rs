@@ -2,27 +2,49 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// The `servo` engine test application.
+//
+// Creates a `Browser` instance with a simple implementation of
+// the compositor's `WindowMethods` to create a working web browser.
+//
+// This browser's implementation of `WindowMethods` is built on top
+// of [glutin], the cross-platform OpenGL utility and // windowing
+// library.
+//
+// For the engine itself look next door in lib.rs.
+//
+// [glutin]: https://github.com/tomaka/glutin
+
 #![feature(env, os)]
 
+// The Servo engine
 extern crate servo;
-extern crate time;
-extern crate util;
-extern crate net;
-extern crate "glutin_app" as app;
+// Window graphics compositing and message dispatch
 extern crate compositing;
+// Servo networking
+extern crate net;
+// Servo common utilitiess
+extern crate util;
+// The window backed by glutin
+extern crate "glutin_app" as app;
+extern crate time;
 
 #[cfg(target_os="android")]
 #[macro_use]
 extern crate android_glue;
 
+use std::rc::Rc;
 use util::opts;
 use net::resource_task;
 use servo::Browser;
 use compositing::windowing::WindowEvent;
 
 fn main() {
+    // Parse the command line options and store them globally
     if opts::from_cmdline_args(&*get_args()) {
         setup_logging();
+
+        // Possibly interpret the `HOST_FILE` environment variable
         resource_task::global_init();
 
         let window = if opts::get().headless {
@@ -31,21 +53,18 @@ fn main() {
             Some(app::create_window())
         };
 
+        // Our wrapper around `Browser` that also implements some
+        // callbacks required by the glutin window implementation.
         let mut browser = BrowserWrapper {
             browser: Browser::new(window.clone()),
         };
 
-        match window {
-            None => {}
-            Some(ref window) => {
-                unsafe {
-                    window.set_nested_event_loop_listener(&mut browser);
-                }
-            }
-        }
+        maybe_register_glutin_resize_handler(&window, &mut browser);
 
         browser.browser.handle_event(WindowEvent::InitializeCompositing);
 
+        // Feed events from the window to the browser until the browser
+        // says to stop.
         loop {
             let should_continue = match window {
                 None => browser.browser.handle_event(WindowEvent::Idle),
@@ -59,19 +78,35 @@ fn main() {
             }
         };
 
-        match window {
-            None => {}
-            Some(ref window) => {
-                unsafe {
-                    window.remove_nested_event_loop_listener();
-                }
-            }
-        }
+        maybe_unregister_glutin_resize_handler(&window);
 
         let BrowserWrapper {
             browser
         } = browser;
         browser.shutdown();
+    }
+}
+
+fn maybe_register_glutin_resize_handler(window: &Option<Rc<app::window::Window>>,
+                                        browser: &mut BrowserWrapper) {
+    match *window {
+        None => {}
+        Some(ref window) => {
+            unsafe {
+                window.set_nested_event_loop_listener(browser);
+            }
+        }
+    }
+}
+
+fn maybe_unregister_glutin_resize_handler(window: &Option<Rc<app::window::Window>>) {
+    match *window {
+        None => {}
+        Some(ref window) => {
+            unsafe {
+                window.remove_nested_event_loop_listener();
+            }
+        }
     }
 }
 
