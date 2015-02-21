@@ -983,7 +983,7 @@ impl ByteMatcher {
 #[cfg(test)]
 mod tests {
 
-    use std::io::File;
+    use std::old_io::File;
     use std::os;
     use super::Mp4Matcher;
     use super::MIMEClassifier;
@@ -998,7 +998,7 @@ mod tests {
         let read_result = file.read_to_end();
         match read_result {
             Ok(data) => {
-                println!("Data Length {:u}",data.len());
+                println!("Data Length {:?}",data.len());
                 if !matcher.matches(&data) {
                     panic!("Didn't read mime type")
                 }
@@ -1010,7 +1010,7 @@ mod tests {
     #[cfg(test)]
     fn test_sniff_full(filename_orig: &Path,type_string: &str,subtype_string: &str,
                                 supplied_type: Option<(&'static str,&'static str)>){
-        let current_working_directory = os::getcwd();
+        let current_working_directory = os::getcwd().unwrap();
         println!("The current directory is {}", current_working_directory.display());
 
         let mut filename = Path::new("../../tests/content/parsable_mime/");
@@ -1018,28 +1018,25 @@ mod tests {
         filename.push(filename_orig);
         let classifier = MIMEClassifier::new();
 
-
-
         let mut file = File::open(&filename);
         let read_result = file.read_to_end();
         match read_result {
             Ok(data) => {
-                match classifier.classify(false,false,&as_string_option(supplied_type),&data)
-                {
-                    Some(mime) => {
-                        let parsed_type=mime.ref0().as_slice();
-                        let parsed_subtp=mime.ref1().as_slice();
-                         if (parsed_type!=type_string)||
-                                (parsed_subtp!=subtype_string) {
+                match classifier.classify(false, false, &as_string_option(supplied_type), &data) {
+                    Some((parsed_type, parsed_subtp)) => {
+                         if (parsed_type.as_slice() != type_string) ||
+                            (parsed_subtp.as_slice() != subtype_string) {
                             panic!("File {} parsed incorrectly should be {}/{}, parsed as {}/{}",
-                                filename.as_str(),type_string,subtype_string,parsed_type,
-                                parsed_subtp);
+                                   filename.as_str().unwrap(), type_string, subtype_string,
+                                   parsed_type, parsed_subtp);
                         }
                     }
-                    None => {panic!("No classification found for {} with supplied type {}",filename.as_str(),supplied_type);}
+                    None => panic!("No classification found for {} with supplied type {:?}",
+                                   filename.as_str().unwrap(), supplied_type),
                 }
             }
-            Err(e) => {panic!("Couldn't read from file {} with error {}",filename.as_str(),e);}
+            Err(e) => panic!("Couldn't read from file {} with error {}",
+                             filename.as_str().unwrap(), e),
         }
     }
 

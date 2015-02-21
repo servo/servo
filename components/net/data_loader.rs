@@ -13,15 +13,15 @@ use hyper::mime::Mime;
 use std::sync::Arc;
 use url::{percent_decode, SchemeData};
 
-pub fn factory(load_data: LoadData, classifier: Arc<MIMEClassifier>) {
+pub fn factory(load_data: LoadData, _classifier: Arc<MIMEClassifier>) {
     // NB: we don't spawn a new task.
     // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
     // Should be tested at some point.
     // Left in separate function to allow easy moving to a task, if desired.
-    load(load_data, classifier)
+    load(load_data)
 }
 
-fn load(load_data: LoadData, _classifier: Arc<MIMEClassifier>) {
+fn load(load_data: LoadData) {
     let start_chan = load_data.consumer;
     let url = load_data.url;
     assert!(&*url.scheme == "data");
