@@ -137,6 +137,42 @@ class MachCommands(CommandBase):
 
         return ret
 
+    @Command('build-gonk',
+             description='Build the Gonk port',
+             category='build')
+    @CommandArgument('--jobs', '-j',
+                     default=None,
+                     help='Number of jobs to run in parallel')
+    @CommandArgument('--verbose', '-v',
+                     action='store_true',
+                     help='Print verbose output')
+    @CommandArgument('--release', '-r',
+                     action='store_true',
+                     help='Build in release mode')
+    def build_gonk(self, jobs=None, verbose=False, release=False):
+        self.ensure_bootstrapped()
+
+        ret = None
+        opts = []
+        if jobs is not None:
+            opts += ["-j", jobs]
+        if verbose:
+            opts += ["-v"]
+        if release:
+            opts += ["--release"]
+
+        opts += ["--target", "arm-linux-androideabi"]
+        env=self.build_env(gonk=True)
+        build_start = time()
+        with cd(path.join("ports", "gonk")):
+            ret = subprocess.call(["cargo", "build"] + opts, env=env)
+        elapsed = time() - build_start
+
+        print("Gonk build completed in %0.2fs" % elapsed)
+
+        return ret
+
+
     @Command('build-tests',
              description='Build the Servo test suites',
              category='build')

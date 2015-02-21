@@ -1,3 +1,7 @@
+# Copy this file to .servobuild in the Servo root directory
+# Be sure to set the cache-dir correctly, otherwise extra snapshots
+# may get downloaded
+
 # Tool options
 [tools]
 # Where Rust compiler snapshots and other downloads will be stored.  Can be
@@ -23,3 +27,10 @@ debug-mozjs = false
 sdk = "/opt/android-sdk"
 ndk = "/opt/android-ndk"
 toolchain = "/opt/android-toolchain"
+
+# Gonk information
+# Please fill the ndk/toolchain for android too
+[gonk]
+# Path to B2G repo and build
+b2g = "/opt/B2G"
+product = "flame"

@@ -88,6 +88,10 @@ class CommandBase(object):
         self.config["android"].setdefault("ndk", "")
         self.config["android"].setdefault("toolchain", "")
 
+        self.config.setdefault("gonk", {})
+        self.config["gonk"].setdefault("b2g", "")
+        self.config["gonk"].setdefault("product", "flame")
+
     _rust_snapshot_path = None
     _cargo_build_id = None
 
@@ -104,7 +108,7 @@ class CommandBase(object):
             self._cargo_build_id = open(filename).read().strip()
         return self._cargo_build_id
 
-    def build_env(self):
+    def build_env(self, gonk=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         extra_path = []
@@ -141,6 +145,38 @@ class CommandBase(object):
             env["ANDROID_NDK"] = self.config["android"]["ndk"]
         if self.config["android"]["toolchain"]:
             env["ANDROID_TOOLCHAIN"] = self.config["android"]["toolchain"]
+
+        if gonk:
+            if self.config["gonk"]["b2g"]:
+                env["GONKDIR"] = self.config["gonk"]["b2g"]
+            if "GONKDIR" not in env:
+                # Things can get pretty opaque if this hasn't been set
+                print("Please set $GONKDIR in your environment or servobild file")
+                os.exit(1)
+            if self.config["gonk"]["product"]:
+                env["GONK_PRODUCT"] = self.config["gonk"]["product"]
+
+            env["CC"] = "arm-linux-androideabi-gcc"
+            env["ARCH_DIR"] = "arch-arm"
+            env["CPPFLAGS"] = ("-DANDROID -DTARGET_OS_GONK -DGR_GL_USE_NEW_SHADER_SOURCE_SIGNATURE=1 "
+                               "-isystem %(gonkdir)s/bionic/libc/%(archdir)s/include -isystem %(gonkdir)s/bionic/libc/include/ "
+                               "-isystem %(gonkdir)s/bionic/libc/kernel/common -isystem %(gonkdir)s/bionic/libc/kernel/%(archdir)s "
+                               "-isystem %(gonkdir)s/bionic/libm/include -I%(gonkdir)s/system -I%(gonkdir)s/system/core/include "
+                               "-isystem %(gonkdir)s/bionic -I%(gonkdir)s/frameworks/native/opengl/include -I%(gonkdir)s/external/zlib "
+                               "-I%(gonkdir)s/hardware/libhardware/include/hardware/") % {"gonkdir": env["GONKDIR"], "archdir": env["ARCH_DIR"] }
+            env["CXXFLAGS"] = ("-O2 -mandroid -fPIC  %(cppflags)s -I%(gonkdir)s/ndk/sources/cxx-stl/stlport/stlport "
+                                "-I%(gonkdir)s/ndk/sources/cxx-stl/system/include") % {"gonkdir": env["GONKDIR"], "cppflags": env["CPPFLAGS"] }
+            env["CFLAGS"] = ("-O2 -mandroid -fPIC  %(cppflags)s -I%(gonkdir)s/ndk/sources/cxx-stl/stlport/stlport "
+                             "-I%(gonkdir)s/ndk/sources/cxx-stl/system/include") % {"gonkdir": env["GONKDIR"], "cppflags": env["CPPFLAGS"] }
+
+            another_extra_path = path.join(env["GONKDIR"], "prebuilts", "gcc", "linux-x86", "arm", "arm-linux-androideabi-4.7", "bin")
+            env["PATH"] = "%s%s%s" % (another_extra_path, os.pathsep, env["PATH"])
+            env["LDFLAGS"] = ("-mandroid -L%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib "
+                              "-Wl,-rpath-link=%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib "
+                              "--sysroot=%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/")  % {"gonkdir": env["GONKDIR"], "gonkproduct": env["GONK_PRODUCT"] }
+
+            # Not strictly necessary for a vanilla build, but might be when tweaking the openssl build
+            env["OPENSSL_PATH"] = "%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib" % {"gonkdir": env["GONKDIR"], "gonkproduct": env["GONK_PRODUCT"] }
 
         # FIXME: These are set because they are the variable names that
         # android-rs-glue expects. However, other submodules have makefiles that
