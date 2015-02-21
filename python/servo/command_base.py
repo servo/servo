@@ -152,7 +152,7 @@ class CommandBase(object):
             if "GONKDIR" not in env:
                 # Things can get pretty opaque if this hasn't been set
                 print("Please set $GONKDIR in your environment or servobild file")
-                os.exit(1)
+                sys.exit(1)
             if self.config["gonk"]["product"]:
                 env["GONK_PRODUCT"] = self.config["gonk"]["product"]
 
