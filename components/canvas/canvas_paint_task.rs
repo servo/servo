@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions};
-use azure::azure_hl::{ColorPattern, PatternRef};
+use azure::azure_hl::{ColorPattern, PatternRef, JoinStyle, CapStyle};
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::color;
@@ -22,20 +22,20 @@ pub enum CanvasMsg {
     Close,
 }
 
-pub struct CanvasPaintTask {
+pub struct CanvasPaintTask<'a> {
     drawtarget: DrawTarget,
     fill_color: ColorPattern,
     stroke_color: ColorPattern,
-    stroke_opts: StrokeOptions,
+    stroke_opts: StrokeOptions<'a>,
 }
 
-impl CanvasPaintTask {
-    fn new(size: Size2D<i32>) -> CanvasPaintTask {
+impl<'a> CanvasPaintTask<'a> {
+    fn new(size: Size2D<i32>) -> CanvasPaintTask<'a> {
         CanvasPaintTask {
             drawtarget: CanvasPaintTask::create(size),
             fill_color: ColorPattern::new(color::black()),
             stroke_color: ColorPattern::new(color::black()),
-            stroke_opts: StrokeOptions::new(1.0, 1.0),
+            stroke_opts: StrokeOptions::new(1.0, JoinStyle::MiterOrBevel, CapStyle::Butt, 1.0, &[]),
         }
     }
 
