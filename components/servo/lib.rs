@@ -24,37 +24,22 @@ extern crate url;
 use compositing::CompositorEventListener;
 use compositing::windowing::{WindowEvent, WindowMethods};
 
-#[cfg(not(test))]
 use compositing::{CompositorProxy, CompositorTask, Constellation};
-#[cfg(not(test))]
 use msg::constellation_msg::Msg as ConstellationMsg;
-#[cfg(not(test))]
 use msg::constellation_msg::ConstellationChan;
-#[cfg(not(test))]
 use script::dom::bindings::codegen::RegisterBindings;
 
-#[cfg(not(test))]
 use net::image_cache_task::ImageCacheTask;
-#[cfg(not(test))]
 use net::resource_task::new_resource_task;
-#[cfg(not(test))]
 use net::storage_task::{StorageTaskFactory, StorageTask};
-#[cfg(not(test))]
 use gfx::font_cache_task::FontCacheTask;
-#[cfg(not(test))]
 use util::time::TimeProfiler;
-#[cfg(not(test))]
 use util::memory::MemoryProfiler;
-#[cfg(not(test))]
 use util::opts;
-#[cfg(not(test))]
 use util::taskpool::TaskPool;
 
-#[cfg(not(test))]
 use std::rc::Rc;
-#[cfg(not(test))]
 use std::sync::mpsc::channel;
-#[cfg(not(test))]
 use std::thread::Builder;
 
 pub struct Browser<Window> {
@@ -62,7 +47,6 @@ pub struct Browser<Window> {
 }
 
 impl<Window> Browser<Window> where Window: WindowMethods + 'static {
-    #[cfg(not(test))]
     pub fn new(window: Option<Rc<Window>>) -> Browser<Window> {
         use std::env;
 
