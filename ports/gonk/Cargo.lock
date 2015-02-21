@@ -498,7 +498,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "mozjs-sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#2267d10685f101438e4f9e8bdfeb9964214dbeeb"
+source = "git+https://github.com/servo/mozjs#056e1d953b95d7a9545d514cf95772a0a1c69bb2"
 
 [[package]]
 name = "msg"
