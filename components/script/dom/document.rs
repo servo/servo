@@ -65,7 +65,7 @@ use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
 use layout_interface::{LayoutChan, Msg};
 use string_cache::{Atom, QualName};
 use url::Url;
-use js::rust::rt_rsrc;
+use js::jsapi::JSRuntime;
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -74,7 +74,6 @@ use std::ascii::AsciiExt;
 use std::cell::{Cell, Ref};
 use std::default::Default;
 use std::sync::mpsc::channel;
-use std::rc::Rc;
 use time;
 
 #[derive(PartialEq)]
@@ -196,7 +195,7 @@ pub trait DocumentHelpers<'a> {
     fn commit_focus_transaction(self);
     fn send_title_to_compositor(self);
     fn dirty_all_nodes(self);
-    fn handle_click_event(self, js_runtime: Rc<rt_rsrc>, _button: uint, point: Point2D<f32>);
+    fn handle_click_event(self, js_runtime: *mut JSRuntime, _button: uint, point: Point2D<f32>);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -393,7 +392,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         }
     }
 
-    fn handle_click_event(self, js_runtime: Rc<rt_rsrc>, _button: uint, point: Point2D<f32>) {
+    fn handle_click_event(self, js_runtime: *mut JSRuntime, _button: uint, point: Point2D<f32>) {
         debug!("ClickEvent: clicked at {:?}", point);
         let window = self.window.root();
         let window = window.r();
@@ -404,7 +403,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
                 let temp_node =
                     node::from_untrusted_node_address(
-                        js_runtime.ptr, node_address).root();
+                        js_runtime, node_address).root();
 
                 let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(temp_node.r());
                 let maybe_node = match maybe_elem {

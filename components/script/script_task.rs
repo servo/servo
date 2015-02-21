@@ -992,7 +992,7 @@ impl ScriptTask {
                 let page = get_page(&*self.page.borrow(), pipeline_id);
                 let frame = page.frame();
                 let document = frame.as_ref().unwrap().document.root();
-                document.r().handle_click_event(self.js_runtime.clone(), _button, point);
+                document.r().handle_click_event(self.js_runtime.ptr, _button, point);
             }
 
             MouseDownEvent(..) => {}
