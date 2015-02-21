@@ -21,6 +21,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableEle
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCellElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTextAreaElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NamespaceError, InvalidCharacter, Syntax};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
@@ -34,6 +35,7 @@ use dom::document::{Document, DocumentHelpers, LayoutDocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::event::{Event, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElementTypeId;
@@ -1446,19 +1448,26 @@ pub trait ActivationElementHelpers<'a> {
 impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
     fn as_maybe_activatable(&'a self) -> Option<&'a (Activatable + 'a)> {
         let node: JSRef<Node> = NodeCast::from_ref(*self);
-        match node.type_id() {
+        let element = match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                 let element: &'a JSRef<'a, HTMLInputElement> = HTMLInputElementCast::to_borrowed_ref(self).unwrap();
-                if element.is_instance_activatable() {
-                    Some(element as &'a (Activatable + 'a))
-                } else {
-                    None
-                }
+                Some(element as &'a (Activatable + 'a))
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
+                let element: &'a JSRef<'a, HTMLAnchorElement> = HTMLAnchorElementCast::to_borrowed_ref(self).unwrap();
+                Some(element as &'a (Activatable + 'a))
             },
             _ => {
                 None
             }
-        }
+        };
+        element.and_then(|elem| {
+            if elem.is_instance_activatable() {
+              Some(elem)
+            } else {
+              None
+            }
+        })
     }
 
     fn click_in_progress(self) -> bool {

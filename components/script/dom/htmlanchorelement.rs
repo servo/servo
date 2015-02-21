@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::activation::Activatable;
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
-use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -17,7 +17,7 @@ use dom::element::{Element, AttributeHandlers, ElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use std::default::Default;
@@ -51,29 +51,6 @@ impl HTMLAnchorElement {
     }
 }
 
-trait PrivateHTMLAnchorElementHelpers {
-    fn handle_event_impl(self, event: JSRef<Event>);
-}
-
-impl<'a> PrivateHTMLAnchorElementHelpers for JSRef<'a, HTMLAnchorElement> {
-    fn handle_event_impl(self, event: JSRef<Event>) {
-        if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
-            let element: JSRef<Element> = ElementCast::from_ref(self);
-            let attr = element.get_attribute(ns!(""), &atom!("href")).root();
-            match attr {
-                Some(ref href) => {
-                    let value = href.r().Value();
-                    debug!("clicked on link to {}", value);
-                    let node: JSRef<Node> = NodeCast::from_ref(self);
-                    let doc = node.owner_doc().root();
-                    doc.r().load_anchor_href(value);
-                }
-                None => ()
-            }
-        }
-    }
-}
-
 impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
@@ -87,7 +64,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
             }
             None => {}
         }
-        self.handle_event_impl(event);
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
@@ -113,5 +89,48 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
         })
+    }
+}
+
+impl<'a> Activatable for JSRef<'a, HTMLAnchorElement> {
+    fn as_element(&self) -> Temporary<Element> {
+        Temporary::from_rooted(ElementCast::from_ref(*self))
+    }
+
+    fn is_instance_activatable(&self) -> bool {
+        true
+    }
+
+
+    //TODO:https://html.spec.whatwg.org/multipage/semantics.html#the-a-element
+    fn pre_click_activation(&self) {
+    }
+
+    //TODO:https://html.spec.whatwg.org/multipage/semantics.html#the-a-element
+    // https://html.spec.whatwg.org/multipage/interaction.html#run-canceled-activation-steps
+    fn canceled_activation(&self) {
+    }
+
+    //https://html.spec.whatwg.org/multipage/semantics.html#the-a-element:activation-behaviour
+    fn activation_behavior(&self) {
+        //TODO: Step 1. If the node document is not fully active, abort.
+        //TODO: Step 2. Check if browsing context is specified and act accordingly.
+        //TODO: Step 3. Handle <img ismap/>.
+        //TODO: Step 4. Download the link is `download` attribute is set.
+        let element: JSRef<Element> = ElementCast::from_ref(*self);
+        let attr = element.get_attribute(ns!(""), &atom!("href")).root();
+        match attr {
+            Some(ref href) => {
+                let value = href.r().Value();
+                debug!("clicked on link to {}", value);
+                let doc = document_from_node(*self).root();
+                doc.r().load_anchor_href(value);
+            }
+            None => ()
+        }
+    }
+
+    //TODO:https://html.spec.whatwg.org/multipage/semantics.html#the-a-element
+    fn implicit_submission(&self, _ctrlKey: bool, _shiftKey: bool, _altKey: bool, _metaKey: bool) {
     }
 }
