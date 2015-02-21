@@ -27,7 +27,6 @@ use dom::element::{Element, ActivationElementHelpers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
-use dom::htmliframeelement::HTMLIFrameElement;
 use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
 use dom::node::{self, Node, NodeHelpers, NodeDamage};
@@ -752,31 +751,28 @@ impl ScriptTask {
     fn load(&self, pipeline_id: PipelineId,
             parent: Option<(PipelineId, SubpageId)>, load_data: LoadData) {
         let url = load_data.url.clone();
-        debug!("ScriptTask: loading {:?} on page {:?}", url, pipeline_id);
+        debug!("ScriptTask: loading {} on page {:?}", url.serialize(), pipeline_id);
 
         let borrowed_page = self.page.borrow_mut();
 
         let frame_element = parent.and_then(|(parent_id, subpage_id)| {
-          // In the case a parent id exists but the matching page
-          // cannot be found, this means the page exists in a different
-          // script task (due to origin) so it shouldn't be returned.
-          // TODO: window.parent will continue to return self in that
-          // case, which is wrong. We should be returning an object that
-          // denies access to most properties (per
-          // https://github.com/servo/servo/issues/3939#issuecomment-62287025).
-          borrowed_page.find(parent_id).and_then(|page| {
-            let match_iframe = |&:&node: &JSRef<HTMLIFrameElement>| {
-              node.subpage_id().map_or(false, |id| id == subpage_id)
-            };
+            // In the case a parent id exists but the matching page
+            // cannot be found, this means the page exists in a different
+            // script task (due to origin) so it shouldn't be returned.
+            // TODO: window.parent will continue to return self in that
+            // case, which is wrong. We should be returning an object that
+            // denies access to most properties (per
+            // https://github.com/servo/servo/issues/3939#issuecomment-62287025).
+            borrowed_page.find(parent_id).and_then(|page| {
+                let doc = page.frame().as_ref().unwrap().document.root();
+                let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
 
-            let doc = page.frame().as_ref().unwrap().document.root();
-            let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
-
-            doc.traverse_preorder()
-               .filter_map(|node| HTMLIFrameElementCast::to_ref(node))
-               .find(match_iframe)
-               .map(|node| Temporary::from_rooted(ElementCast::from_ref(node)))
-          })
+                doc.traverse_preorder()
+                   .filter_map(HTMLIFrameElementCast::to_ref)
+                   .find(|node| node.subpage_id() == Some(subpage_id))
+                   .map(ElementCast::from_ref)
+                   .map(Temporary::from_rooted)
+            })
         }).root();
 
         let page = borrowed_page.find(pipeline_id).expect("ScriptTask: received a load
