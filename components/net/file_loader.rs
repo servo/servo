@@ -4,7 +4,7 @@
 
 use net_traits::{LoadData, Metadata, ProgressMsg};
 use net_traits::ProgressMsg::{Payload, Done};
-use resource_task::{start_sending, TargetedLoadResponse, ResponseSenders};
+use resource_task::start_sending;
 
 use std::borrow::ToOwned;
 use std::io;
@@ -30,14 +30,11 @@ fn read_all(reader: &mut io::Read, progress_chan: &Sender<ProgressMsg>)
     }
 }
 
-pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
+pub fn factory(load_data: LoadData) {
     let url = load_data.url;
+    let start_chan = load_data.consumer;
     assert!(&*url.scheme == "file");
-    let senders = ResponseSenders {
-        immediate_consumer: start_chan,
-        eventual_consumer: load_data.consumer,
-    };
-    let progress_chan = start_sending(senders, Metadata::default(url.clone()));
+    let progress_chan = start_sending(start_chan, Metadata::default(url.clone()));
     spawn_named("file_loader".to_owned(), move || {
         let file_path: Result<PathBuf, ()> = url.to_file_path();
         match file_path {

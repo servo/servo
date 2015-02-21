@@ -6,7 +6,7 @@
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread::Builder;
 use mime_classifier::MIMEClassifier;
-use resource_task::{TargetedLoadResponse, LoadResponse, ProgressMsg};
+use resource_task::{LoadResponse, LoadResponse, ProgressMsg};
 
 pub type SnifferTask = Sender<TargetedLoadResponse>;
 
