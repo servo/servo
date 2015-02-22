@@ -66,8 +66,7 @@ use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 
 use geom::point::Point2D;
-use hyper::header::{Header, Headers, HeaderFormat};
-use hyper::header::parsing as header_parsing;
+use hyper::header::{LastModified, Headers};
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime, JSObject};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
@@ -80,14 +79,13 @@ use libc;
 use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::fmt::{self, Display};
 use std::mem::replace;
 use std::num::ToPrimitive;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::u32;
-use time::{Tm, strptime};
+use time::Tm;
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 
@@ -1276,41 +1274,6 @@ pub fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
     page.find(pipeline_id).expect("ScriptTask: received an event \
         message for a layout channel that is not associated with this script task.\
          This is a bug.")
-}
-
-//FIXME(seanmonstar): uplift to Hyper
-#[derive(Clone)]
-struct LastModified(pub Tm);
-
-impl Header for LastModified {
-    #[inline]
-    fn header_name() -> &'static str {
-        "Last-Modified"
-    }
-
-    // Parses an RFC 2616 compliant date/time string,
-    fn parse_header(raw: &[Vec<u8>]) -> Option<LastModified> {
-        header_parsing::from_one_raw_str(raw).and_then(|s: String| {
-            let s = s.as_slice();
-            strptime(s, "%a, %d %b %Y %T %Z").or_else(|_| {
-                strptime(s, "%A, %d-%b-%y %T %Z")
-            }).or_else(|_| {
-                strptime(s, "%c")
-            }).ok().map(|tm| LastModified(tm))
-        })
-    }
-}
-
-impl HeaderFormat for LastModified {
-    // a localized date/time string in a format suitable
-    // for document.lastModified.
-    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let LastModified(ref tm) = *self;
-        match tm.tm_utcoff {
-            0 => <_ as Display>::fmt(&tm.rfc822(), f),
-            _ => <_ as Display>::fmt(&tm.to_utc().rfc822(), f)
-        }
-    }
 }
 
 fn dom_last_modified(tm: &Tm) -> String {
