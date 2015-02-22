@@ -40,8 +40,6 @@ use url::UrlParser;
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
 
-    error_occurred: Cell<bool>,
-
     /// https://html.spec.whatwg.org/multipage/scripting.html#already-started
     already_started: Cell<bool>,
 
@@ -70,7 +68,6 @@ impl HTMLScriptElement {
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLScriptElement, localName, prefix, document),
-            error_occurred: Cell::new(false),
             already_started: Cell::new(false),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
@@ -257,18 +254,25 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             ScriptOrigin::Internal => {
                 let chan = window.script_chan();
                 let handler = Trusted::new(window.get_cx(), self, chan.clone());
-                chan.send(ScriptMsg::RunnableMsg(box handler)).unwrap();
+                let dispatcher = Box::new(EventDispatcher {
+                    element: handler,
+                    is_error: false,
+                });
+                chan.send(ScriptMsg::RunnableMsg(dispatcher)).unwrap();
             }
         }
     }
 
     fn queue_error_event(self) {
-        self.error_occurred.set(true);
         let window = window_from_node(self).root();
         let window = window.r();
         let chan = window.script_chan();
         let handler = Trusted::new(window.get_cx(), self, chan.clone());
-        chan.send(ScriptMsg::RunnableMsg(box handler)).unwrap();
+        let dispatcher = Box::new(EventDispatcher {
+            element: handler,
+            is_error: true,
+        });
+        chan.send(ScriptMsg::RunnableMsg(dispatcher)).unwrap();
     }
 
     fn dispatch_load_event(self) {
@@ -404,10 +408,15 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
     }
 }
 
-impl Runnable for Trusted<HTMLScriptElement> {
-    fn handler(self: Box<Trusted<HTMLScriptElement>>) {
-        let target = self.to_temporary().root();
-        if target.r().error_occurred.get() {
+struct EventDispatcher {
+    element: Trusted<HTMLScriptElement>,
+    is_error: bool,
+}
+
+impl Runnable for EventDispatcher {
+    fn handler(self: Box<EventDispatcher>) {
+        let target = self.element.to_temporary().root();
+        if self.is_error {
             target.r().dispatch_error_event();
         } else {
             target.r().dispatch_load_event();
