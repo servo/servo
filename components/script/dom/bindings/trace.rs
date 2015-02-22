@@ -35,6 +35,7 @@ use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
 use script_task::ScriptChan;
 
 use cssparser::RGBA;
+use encoding::types::EncodingRef;
 use geom::matrix2d::Matrix2D;
 use geom::rect::Rect;
 use html5ever::tree_builder::QuirksMode;
@@ -77,6 +78,8 @@ impl<T: Reflectable> JSTraceable for JS<T> {
         trace_reflector(trc, "", self.reflector());
     }
 }
+
+no_jsmanaged_fields!(EncodingRef);
 
 no_jsmanaged_fields!(Reflector);
 
