@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(core)]
+#![feature(collections)]
 
 #![allow(missing_copy_implementations)]
 
