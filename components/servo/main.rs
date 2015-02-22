@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// The `servo` engine test application.
-//
-// Creates a `Browser` instance with a simple implementation of
-// the compositor's `WindowMethods` to create a working web browser.
-//
-// This browser's implementation of `WindowMethods` is built on top
-// of [glutin], the cross-platform OpenGL utility and // windowing
-// library.
-//
-// For the engine itself look next door in lib.rs.
-//
-// [glutin]: https://github.com/tomaka/glutin
+//! The `servo` engine test application.
+//!
+//! Creates a `Browser` instance with a simple implementation of
+//! the compositor's `WindowMethods` to create a working web browser.
+//!
+//! This browser's implementation of `WindowMethods` is built on top
+//! of [glutin], the cross-platform OpenGL utility and // windowing
+//! library.
+//!
+//! For the engine itself look next door in lib.rs.
+//!
+//! [glutin]: https://github.com/tomaka/glutin
 
 #![feature(env, os)]
 
