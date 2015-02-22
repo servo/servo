@@ -4040,10 +4040,9 @@ let this: *const %s = unwrap::<%s>(obj);
 
 def finalizeHook(descriptor, hookName, context):
     release = """\
-let value = unwrap::<%s>(obj);
-let _ = Box::from_raw(value as *mut %s);
+let _ = Box::from_raw(this as *mut %s);
 debug!("%s finalize: {:p}", this);\
-""" % (descriptor.concreteType, descriptor.concreteType, descriptor.concreteType)
+""" % (descriptor.concreteType, descriptor.concreteType)
     return release
 
 class CGClassTraceHook(CGAbstractClassHook):
