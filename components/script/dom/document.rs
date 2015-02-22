@@ -400,52 +400,53 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let window = self.window.root();
         let window = window.r();
         let page = window.page();
-        match page.hit_test(&point) {
+        let node = match page.hit_test(&point) {
             Some(node_address) => {
                 debug!("node address is {:?}", node_address.0);
+                node::from_untrusted_node_address(js_runtime, node_address)
+            },
+            None => return,
+        }.root();
 
-                let temp_node =
-                    node::from_untrusted_node_address(
-                        js_runtime, node_address).root();
-
-                let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(temp_node.r());
-                let maybe_node = match maybe_elem {
-                    Some(element) => Some(element),
-                    None => temp_node.r().ancestors().filter_map(ElementCast::to_ref).next(),
-                };
-
-                match maybe_node {
-                    Some(el) => {
-                        let node: JSRef<Node> = NodeCast::from_ref(el);
-                        debug!("clicked on {:?}", node.debug_str());
-                        // Prevent click event if form control element is disabled.
-                        if node.click_event_filter_by_disabled_state() { return; }
-                        match *page.frame() {
-                            Some(ref frame) => {
-                                let window = frame.window.root();
-                                let doc = window.r().Document().root();
-                                doc.r().begin_focus_transaction();
-
-                                let event =
-                                    Event::new(GlobalRef::Window(window.r()),
-                                               "click".to_owned(),
-                                               EventBubbles::Bubbles,
-                                               EventCancelable::Cancelable).root();
-                                // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
-                                event.r().set_trusted(true);
-                                // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
-                                el.authentic_click_activation(event.r());
-
-                                doc.r().commit_focus_transaction();
-                                window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
-                            }
-                            None => {}
-                        }
-                    }
-                    None => {}
+        let el = match ElementCast::to_ref(node.r()) {
+            Some(el) => el,
+            None => {
+                let ancestor = node.r()
+                                   .ancestors()
+                                   .filter_map(ElementCast::to_ref)
+                                   .next();
+                match ancestor {
+                    Some(ancestor) => ancestor,
+                    None => return,
                 }
-            }
+            },
+        };
 
+        let node: JSRef<Node> = NodeCast::from_ref(el);
+        debug!("clicked on {:?}", node.debug_str());
+        // Prevent click event if form control element is disabled.
+        if node.click_event_filter_by_disabled_state() {
+            return;
+        }
+
+        match *page.frame() {
+            Some(ref frame) => {
+                let window = frame.window.root();
+                let doc = window.r().Document().root();
+                doc.r().begin_focus_transaction();
+
+                let event = Event::new(GlobalRef::Window(window.r()),
+                                       "click".to_owned(),
+                                       EventBubbles::Bubbles,
+                                       EventCancelable::Cancelable).root();
+                // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
+                event.r().set_trusted(true);
+                // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
+                el.authentic_click_activation(event.r());
+
+                doc.r().commit_focus_transaction();
+                window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+            }
             None => {}
         }
     }
