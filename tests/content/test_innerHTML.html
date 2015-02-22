@@ -4,7 +4,9 @@
     <script>
       var a = document.createElement("div");
       a.appendChild(document.createElement("pre")).appendChild(new Text(""));
-      is(a.innerHTML, "<pre></pre>");
+      var b = document.createElement("div");
+      b.appendChild(a);
+      is(b.innerHTML, "<div><pre></pre></div>");
     </script>
   </head>
 </html>
