@@ -96,9 +96,12 @@ interface CanvasRenderingContext2D {
   //void removeHitRegion(DOMString id);
 
   // pixel manipulation
-  //ImageData createImageData(double sw, double sh);
-  //ImageData createImageData(ImageData imagedata);
-  //ImageData getImageData(double sx, double sy, double sw, double sh);
-  //void putImageData(ImageData imagedata, double dx, double dy);
-  //void putImageData(ImageData imagedata, double dx, double dy, double dirtyX, double dirtyY, double dirtyWidth, double dirtyHeight);
+  [Throws]
+  ImageData createImageData(double sw, double sh);
+  [Throws]
+  ImageData createImageData(ImageData imagedata);
+  [Throws]
+  ImageData getImageData(double sx, double sy, double sw, double sh);
+  void putImageData(ImageData imagedata, double dx, double dy);
+  void putImageData(ImageData imagedata, double dx, double dy, double dirtyX, double dirtyY, double dirtyWidth, double dirtyHeight);
 };
