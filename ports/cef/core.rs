@@ -71,35 +71,15 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
     };
 
     let urls = vec![HOME_URL.to_owned()];
-    opts::set_opts(opts::Opts {
-        urls: urls,
-        paint_threads: rendering_threads,
-        gpu_painting: false,
-        tile_size: 512,
-        device_pixels_per_px: None,
-        time_profiler_period: None,
-        memory_profiler_period: None,
-        enable_experimental: false,
-        nonincremental_layout: false,
-        layout_threads: rendering_threads,
-        output_file: None,
-        headless: false,
-        hard_fail: false,
-        bubble_inline_sizes_separately: false,
-        show_debug_borders: false,
-        show_debug_fragment_borders: false,
-        show_debug_parallel_paint: false,
-        show_debug_parallel_layout: false,
-        enable_text_antialiasing: true,
-        trace_layout: false,
-        devtools_port: None,
-        initial_window_size: TypedSize2D(800, 600),
-        profile_tasks: false,
-        user_agent: None,
-        dump_flow_tree: false,
-        validate_display_list_geometry: false,
-        resources_path: resources_path(),
-    });
+    let mut temp_opts = opts::default_opts();
+
+    temp_opts.paint_threads = rendering_threads;
+    temp_opts.layout_threads = rendering_threads;
+    temp_opts.headless = false;
+    temp_opts.hard_fail = false;
+    temp_opts.enable_text_antialiasing = true;
+    temp_opts.resources_path = resources_path();
+    opts::set_opts(temp_opts);
 
     return 1
 }
