@@ -8,6 +8,7 @@
 #![allow(missing_copy_implementations)]
 
 extern crate azure;
+extern crate cssparser;
 extern crate geom;
 extern crate gfx;
 extern crate util;

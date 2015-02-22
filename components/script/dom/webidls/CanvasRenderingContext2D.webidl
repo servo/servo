@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+enum CanvasWindingRule { "nonzero", "evenodd" };
+
 // http://www.whatwg.org/html/#2dcontext
 //[Constructor(optional unsigned long width, unsigned long height), Exposed=Window,Worker]
 interface CanvasRenderingContext2D {
@@ -23,11 +25,21 @@ interface CanvasRenderingContext2D {
 
   // transformations (default transform is the identity matrix)
   //         attribute SVGMatrix currentTransform;
-  //void scale(unrestricted double x, unrestricted double y);
+  void scale(/*unrestricted*/ double x, /*unrestricted*/ double y);
   //void rotate(unrestricted double angle);
-  //void translate(unrestricted double x, unrestricted double y);
-  //void transform(unrestricted double a, unrestricted double b, unrestricted double c, unrestricted double d, unrestricted double e, unrestricted double f);
-  //void setTransform(unrestricted double a, unrestricted double b, unrestricted double c, unrestricted double d, unrestricted double e, unrestricted double f);
+  void translate(/*unrestricted*/ double x, /*unrestricted*/ double y);
+  void transform(/*unrestricted*/ double a,
+                 /*unrestricted*/ double b,
+                 /*unrestricted*/ double c,
+                 /*unrestricted*/ double d,
+                 /*unrestricted*/ double e,
+                 /*unrestricted*/ double f);
+  void setTransform(/*unrestricted*/ double a,
+                    /*unrestricted*/ double b,
+                    /*unrestricted*/ double c,
+                    /*unrestricted*/ double d,
+                    /*unrestricted*/ double e,
+                    /*unrestricted*/ double f);
   //void resetTransform();
 
   // compositing
@@ -38,8 +50,8 @@ interface CanvasRenderingContext2D {
   //         attribute boolean imageSmoothingEnabled; // (default true)
 
   // colours and styles (see also the CanvasDrawingStyles interface)
-  //         attribute (DOMString or CanvasGradient or CanvasPattern) strokeStyle; // (default black)
-  //         attribute (DOMString or CanvasGradient or CanvasPattern) fillStyle; // (default black)
+           attribute (DOMString or CanvasGradient or CanvasPattern) strokeStyle; // (default black)
+           attribute (DOMString or CanvasGradient or CanvasPattern) fillStyle; // (default black)
   //CanvasGradient createLinearGradient(double x0, double y0, double x1, double y1);
   //CanvasGradient createRadialGradient(double x0, double y0, double r0, double x1, double y1, double r1);
   //CanvasPattern createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
@@ -62,9 +74,9 @@ interface CanvasRenderingContext2D {
   void strokeRect(double x, double y, double w, double h);
 
   // path API (see also CanvasPathMethods)
-  //void beginPath();
-  //void fill(optional CanvasFillRule fillRule = "nonzero");
-  //void fill(Path2D path, optional CanvasFillRule fillRule = "nonzero");
+  void beginPath();
+  void fill(optional CanvasWindingRule fillRule = "nonzero");
+  //void fill(Path2D path, optional CanvasWindingRule fillRule = "nonzero");
   //void stroke();
   //void stroke(Path2D path);
   //void drawSystemFocusRing(Element element);
@@ -73,11 +85,11 @@ interface CanvasRenderingContext2D {
   //boolean drawCustomFocusRing(Path2D path, Element element);
   //void scrollPathIntoView();
   //void scrollPathIntoView(Path2D path);
-  //void clip(optional CanvasFillRule fillRule = "nonzero");
-  //void clip(Path2D path, optional CanvasFillRule fillRule = "nonzero");
+  //void clip(optional CanvasWindingRule fillRule = "nonzero");
+  //void clip(Path2D path, optional CanvasWindingRule fillRule = "nonzero");
   //void resetClip();
-  //boolean isPointInPath(unrestricted double x, unrestricted double y, optional CanvasFillRule fillRule = "nonzero");
-  //boolean isPointInPath(Path2D path, unrestricted double x, unrestricted double y, optional CanvasFillRule fillRule = "nonzero");
+  //boolean isPointInPath(unrestricted double x, unrestricted double y, optional CanvasWindingRule fillRule = "nonzero");
+  //boolean isPointInPath(Path2D path, unrestricted double x, unrestricted double y, optional CanvasWindingRule fillRule = "nonzero");
   //boolean isPointInStroke(unrestricted double x, unrestricted double y);
   //boolean isPointInStroke(Path2D path, unrestricted double x, unrestricted double y);
 
@@ -105,3 +117,31 @@ interface CanvasRenderingContext2D {
   void putImageData(ImageData imagedata, double dx, double dy);
   void putImageData(ImageData imagedata, double dx, double dy, double dirtyX, double dirtyY, double dirtyWidth, double dirtyHeight);
 };
+
+[NoInterfaceObject]
+interface CanvasPathMethods {
+  // shared path API methods
+  void closePath();
+  void moveTo(/*unrestricted*/ double x, /*unrestricted*/ double y);
+  //void lineTo(double x, double y);
+  //void quadraticCurveTo(double cpx, double cpy, double x, double y);
+
+  void bezierCurveTo(/*unrestricted*/ double cp1x,
+                     /*unrestricted*/ double cp1y,
+                     /*unrestricted*/ double cp2x,
+                     /*unrestricted*/ double cp2y,
+                     /*unrestricted*/ double x,
+                     /*unrestricted*/ double y);
+
+  //void arcTo(double x1, double y1, double x2, double y2, double radius); 
+// NOT IMPLEMENTED  [LenientFloat] void arcTo(double x1, double y1, double x2, double y2, double radiusX, double radiusY, double rotation);
+
+  //void rect(double x, double y, double w, double h);
+
+  //void arc(double x, double y, double radius, double startAngle, double endAngle, optional boolean anticlockwise = false); 
+// NOT IMPLEMENTED  [LenientFloat] void ellipse(double x, double y, double radiusX, double radiusY, double rotation, double startAngle, double endAngle, boolean anticlockwise);
+};
+
+
+CanvasRenderingContext2D implements CanvasPathMethods;
+
