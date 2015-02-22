@@ -104,7 +104,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             WindowMethods::create_compositor_channel(&window);
 
         // Create the constellation, which maintains the engine
-        // pipelines, including the script and layout threads,as well
+        // pipelines, including the script and layout threads, as well
         // as the navigation context.
         let constellation_chan = create_constellation(opts.clone(),
                                                       compositor_proxy.clone_compositor_proxy(),
