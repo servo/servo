@@ -6,7 +6,6 @@ use command_line::command_line_init;
 use interfaces::cef_app_t;
 use types::{cef_main_args_t, cef_settings_t};
 
-use geom::size::TypedSize2D;
 use libc::{c_char, c_int, c_void};
 use util::opts;
 use std::borrow::ToOwned;
@@ -70,9 +69,8 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
         }
     };
 
-    let urls = vec![HOME_URL.to_owned()];
     let mut temp_opts = opts::default_opts();
-
+    temp_opts.urls = vec![HOME_URL.to_owned()];
     temp_opts.paint_threads = rendering_threads;
     temp_opts.layout_threads = rendering_threads;
     temp_opts.headless = false;
