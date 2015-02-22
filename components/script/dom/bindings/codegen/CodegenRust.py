@@ -2591,7 +2591,7 @@ class CGGenericGetter(CGAbstractBindingMethod):
     A class for generating the C++ code for an IDL attribute getter.
     """
     def __init__(self, descriptor, lenientThis=False):
-        args = [Argument('*mut JSContext', 'cx'), Argument('libc::c_uint', 'argc'),
+        args = [Argument('*mut JSContext', 'cx'), Argument('libc::c_uint', '_argc'),
                 Argument('*mut JSVal', 'vp')]
         if lenientThis:
             name = "genericLenientGetter"
@@ -3911,7 +3911,7 @@ return true;"""
 class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('*mut JSObject', 'proxy'),
-                Argument('*mut JSObject', 'receiver'), Argument('jsid', 'id'),
+                Argument('*mut JSObject', '_receiver'), Argument('jsid', 'id'),
                 Argument('*mut JSVal', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, "get", "bool", args)
         self.descriptor = descriptor
@@ -3987,7 +3987,7 @@ return true;""" % (getIndexedOrExpando, getNamed)
 
 class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
     def __init__(self, descriptor):
-        args = [Argument('*mut JSContext', 'cx'), Argument('*mut JSObject', 'proxy')]
+        args = [Argument('*mut JSContext', 'cx'), Argument('*mut JSObject', '_proxy')]
         CGAbstractExternMethod.__init__(self, descriptor, "obj_toString", "*mut JSString", args)
         self.descriptor = descriptor
     def getBody(self):
@@ -4087,7 +4087,7 @@ class CGClassFinalizeHook(CGAbstractClassHook):
     A hook for finalize, used to release our native object.
     """
     def __init__(self, descriptor):
-        args = [Argument('*mut JSFreeOp', 'fop'), Argument('*mut JSObject', 'obj')]
+        args = [Argument('*mut JSFreeOp', '_fop'), Argument('*mut JSObject', 'obj')]
         CGAbstractClassHook.__init__(self, descriptor, FINALIZE_HOOK_NAME,
                                      'void', args)
 
