@@ -68,7 +68,7 @@ use std::mem;
 use std::sync::mpsc::Sender;
 use string_cache::{Atom, Namespace};
 use style::computed_values::{content, display, white_space};
-use style::selectors::{NamespaceConstraint, AttrSelector};
+use selectors::parser::{NamespaceConstraint, AttrSelector};
 use style::legacy::{LengthAttribute, SimpleColorAttribute, UnsignedIntegerAttribute, IntegerAttribute};
 use style::node::{TElement, TElementAttributes, TNode};
 use style::properties::PropertyDeclarationBlock;

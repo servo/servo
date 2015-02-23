@@ -37,6 +37,7 @@ extern crate "rustc-serialize" as rustc_serialize;
 extern crate task_info;
 extern crate "time" as std_time;
 extern crate text_writer;
+extern crate selectors;
 extern crate string_cache;
 extern crate unicode;
 extern crate url;
@@ -45,9 +46,10 @@ extern crate url;
 extern crate string_cache_macros;
 extern crate lazy_static;
 
+pub use selectors::smallvec;
+
 use std::sync::Arc;
 
-pub mod bloom;
 pub mod cache;
 pub mod cursor;
 pub mod debug_utils;
@@ -62,8 +64,6 @@ pub mod opts;
 pub mod persistent_list;
 pub mod range;
 pub mod resource_files;
-pub mod smallvec;
-pub mod sort;
 pub mod str;
 pub mod task;
 pub mod tid;

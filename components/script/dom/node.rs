@@ -48,9 +48,9 @@ use devtools_traits::NodeInfo;
 use script_traits::UntrustedNodeAddress;
 use util::geometry::Au;
 use util::str::{DOMString, null_str_as_empty};
-use style::selectors::{Selector, AttrSelector, NamespaceConstraint};
-use style::selectors::parse_author_origin_selector_list_from_str;
-use style::selector_matching::matches;
+use selectors::parser::{Selector, AttrSelector, NamespaceConstraint};
+use selectors::parser::parse_author_origin_selector_list_from_str;
+use selectors::matching::matches;
 use style::properties::ComputedValues;
 use style;
 

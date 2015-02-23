@@ -5,17 +5,21 @@
 //! Legacy presentational attributes defined in the HTML5 specification: `<td width>`,
 //! `<input size>`, and so forth.
 
-use node::{TElement, TElementAttributes, TNode};
+use std::sync::Arc;
+
+use selectors::tree::{TElement, TNode};
+use selectors::matching::DeclarationBlock;
+use node::TElementAttributes;
 use values::specified::CSSColor;
 use values::{CSSFloat, specified};
 use properties::DeclaredValue::SpecifiedValue;
 use properties::PropertyDeclaration;
 use properties::longhands;
-use selector_matching::{DeclarationBlock, Stylist};
+use selector_matching::Stylist;
 
 use cssparser::Color;
+use selectors::smallvec::VecLike;
 use util::geometry::Au;
-use util::smallvec::VecLike;
 use util::str::LengthOrPercentageOrAuto;
 
 /// Legacy presentational attributes that take a length as defined in HTML5 § 2.4.4.4.
@@ -68,7 +72,7 @@ pub trait PresentationalHintSynthesis {
                                                              where E: TElement<'a> +
                                                                       TElementAttributes,
                                                                    N: TNode<'a,E>,
-                                                                   V: VecLike<DeclarationBlock>;
+                                                                   V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
     /// Synthesizes rules for the legacy `bgcolor` attribute.
     fn synthesize_presentational_hint_for_legacy_background_color_attribute<'a,E,V>(
                                                                             &self,
@@ -80,7 +84,7 @@ pub trait PresentationalHintSynthesis {
                                                                             E: TElement<'a> +
                                                                                TElementAttributes,
                                                                             V: VecLike<
-                                                                                DeclarationBlock>;
+                                                                                DeclarationBlock<Vec<PropertyDeclaration>>>;
     /// Synthesizes rules for the legacy `border` attribute.
     fn synthesize_presentational_hint_for_legacy_border_attribute<'a,E,V>(
                                                                   &self,
@@ -90,7 +94,7 @@ pub trait PresentationalHintSynthesis {
                                                                   where
                                                                     E: TElement<'a> +
                                                                        TElementAttributes,
-                                                                    V: VecLike<DeclarationBlock>;
+                                                                    V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
 }
 
 impl PresentationalHintSynthesis for Stylist {
@@ -102,7 +106,7 @@ impl PresentationalHintSynthesis for Stylist {
                                                              where E: TElement<'a> +
                                                                       TElementAttributes,
                                                                    N: TNode<'a,E>,
-                                                                   V: VecLike<DeclarationBlock> {
+                                                                   V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {
         let element = node.as_element();
         match element.get_local_name() {
             name if *name == atom!("td") => {
@@ -110,13 +114,13 @@ impl PresentationalHintSynthesis for Stylist {
                     LengthOrPercentageOrAuto::Auto => {}
                     LengthOrPercentageOrAuto::Percentage(percentage) => {
                         let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
-                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        matching_rules_list.vec_push(from_declaration(
                                 PropertyDeclaration::Width(SpecifiedValue(width_value))));
                         *shareable = false
                     }
                     LengthOrPercentageOrAuto::Length(length) => {
                         let width_value = specified::LengthOrPercentageOrAuto::Length(specified::Length::Au(length));
-                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        matching_rules_list.vec_push(from_declaration(
                                 PropertyDeclaration::Width(SpecifiedValue(width_value))));
                         *shareable = false
                     }
@@ -160,7 +164,7 @@ impl PresentationalHintSynthesis for Stylist {
                             }
                             _ => specified::Length::Au(Au::from_px(value as int)),
                         };
-                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        matching_rules_list.vec_push(from_declaration(
                                 PropertyDeclaration::Width(SpecifiedValue(
                                     specified::LengthOrPercentageOrAuto::Length(value)))));
                         *shareable = false
@@ -177,7 +181,7 @@ impl PresentationalHintSynthesis for Stylist {
                         //
                         // https://html.spec.whatwg.org/multipage/rendering.html#textarea-effective-width
                         let value = specified::Length::ServoCharacterWidth(value);
-                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        matching_rules_list.vec_push(from_declaration(
                                 PropertyDeclaration::Width(SpecifiedValue(
                                     specified::LengthOrPercentageOrAuto::Length(value)))));
                         *shareable = false
@@ -190,7 +194,7 @@ impl PresentationalHintSynthesis for Stylist {
                         //
                         // https://html.spec.whatwg.org/multipage/rendering.html#textarea-effective-height
                         let value = specified::Length::Em(value as CSSFloat);
-                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        matching_rules_list.vec_push(from_declaration(
                                 PropertyDeclaration::Height(SpecifiedValue(
                                     longhands::height::SpecifiedValue(
                                         specified::LengthOrPercentageOrAuto::Length(value))))));
@@ -213,11 +217,11 @@ impl PresentationalHintSynthesis for Stylist {
                                                                             E: TElement<'a> +
                                                                                TElementAttributes,
                                                                             V: VecLike<
-                                                                                DeclarationBlock> {
+                                                                                DeclarationBlock<Vec<PropertyDeclaration>>> {
         match element.get_simple_color_attribute(SimpleColorAttribute::BgColor) {
             None => {}
             Some(color) => {
-                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                matching_rules_list.vec_push(from_declaration(
                         PropertyDeclaration::BackgroundColor(SpecifiedValue(
                             CSSColor { parsed: Color::RGBA(color), authored: None }))));
                 *shareable = false
@@ -233,21 +237,21 @@ impl PresentationalHintSynthesis for Stylist {
                                                                   where
                                                                     E: TElement<'a> +
                                                                        TElementAttributes,
-                                                                    V: VecLike<DeclarationBlock> {
+                                                                    V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {
         match element.get_unsigned_integer_attribute(UnsignedIntegerAttribute::Border) {
             None => {}
             Some(length) => {
                 let width_value = specified::Length::Au(Au::from_px(length as int));
-                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                matching_rules_list.vec_push(from_declaration(
                         PropertyDeclaration::BorderTopWidth(SpecifiedValue(
                             longhands::border_top_width::SpecifiedValue(width_value)))));
-                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                matching_rules_list.vec_push(from_declaration(
                         PropertyDeclaration::BorderLeftWidth(SpecifiedValue(
                             longhands::border_left_width::SpecifiedValue(width_value)))));
-                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                matching_rules_list.vec_push(from_declaration(
                         PropertyDeclaration::BorderBottomWidth(SpecifiedValue(
                             longhands::border_bottom_width::SpecifiedValue(width_value)))));
-                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                matching_rules_list.vec_push(from_declaration(
                         PropertyDeclaration::BorderRightWidth(SpecifiedValue(
                             longhands::border_right_width::SpecifiedValue(width_value)))));
                 *shareable = false
@@ -256,3 +260,10 @@ impl PresentationalHintSynthesis for Stylist {
     }
 }
 
+
+/// A convenience function to create a declaration block from a single declaration. This is
+/// primarily used in `synthesize_rules_for_legacy_attributes`.
+#[inline]
+pub fn from_declaration(rule: PropertyDeclaration) -> DeclarationBlock<Vec<PropertyDeclaration>> {
+    DeclarationBlock::from_declarations(Arc::new(vec![rule]))
+}

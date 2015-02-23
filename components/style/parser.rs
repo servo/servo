@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-use std::collections::HashMap;
-use string_cache::Namespace;
+use selectors::parser::ParserContext as SelectorParserContext;
 use cssparser::{Parser, SourcePosition};
 use url::{Url, UrlParser};
 use log;
@@ -12,37 +11,24 @@ use log;
 use stylesheets::Origin;
 
 
-pub struct NamespaceMap {
-    pub default: Option<Namespace>,
-    pub prefix_map: HashMap<String, Namespace>,
-}
-
-
 pub struct ParserContext<'a> {
-    pub stylesheet_origin: Origin,
     pub base_url: &'a Url,
-    pub namespaces: NamespaceMap,
+    pub selector_context: SelectorParserContext,
 }
 
 impl<'a> ParserContext<'a> {
     pub fn new(stylesheet_origin: Origin, base_url: &'a Url) -> ParserContext<'a> {
+        let mut selector_context = SelectorParserContext::new();
+        selector_context.in_user_agent_stylesheet = stylesheet_origin == Origin::UserAgent;
         ParserContext {
-            stylesheet_origin: stylesheet_origin,
             base_url: base_url,
-            namespaces: NamespaceMap {
-                default: None,
-                prefix_map: HashMap::new()
-            }
+            selector_context: selector_context,
         }
     }
 }
 
 
 impl<'a> ParserContext<'a> {
-    pub fn in_user_agent_stylesheet(&self) -> bool {
-        self.stylesheet_origin == Origin::UserAgent
-    }
-
     pub fn parse_url(&self, input: &str) -> Url {
         UrlParser::new().base_url(self.base_url).parse(input)
             .unwrap_or_else(|_| Url::parse("about:invalid").unwrap())

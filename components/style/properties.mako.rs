@@ -21,7 +21,7 @@ use geom::SideOffsets2D;
 
 use values::specified::BorderStyle;
 use values::computed::{self, ToComputedValue};
-use selector_matching::DeclarationBlock;
+use selectors::matching::DeclarationBlock;
 use parser::{ParserContext, log_css_error};
 use stylesheets::Origin;
 use computed_values;
@@ -3180,7 +3180,7 @@ fn initial_writing_mode_is_empty() {
 
 /// Fast path for the function below. Only computes new inherited styles.
 #[allow(unused_mut)]
-fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock],
+fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
                                     shareable: bool,
                                     parent_style: &ComputedValues,
                                     cached_style: &ComputedValues,
@@ -3283,7 +3283,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock]
 ///     this is ignored.
 ///
 /// Returns the computed values and a boolean indicating whether the result is cacheable.
-pub fn cascade(applicable_declarations: &[DeclarationBlock],
+pub fn cascade(applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
                shareable: bool,
                parent_style: Option< &ComputedValues >,
                cached_style: Option< &ComputedValues >)

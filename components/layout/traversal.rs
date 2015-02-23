@@ -18,7 +18,7 @@ use wrapper::{layout_node_to_unsafe_layout_node, LayoutNode};
 use wrapper::{PostorderNodeMutTraversal, ThreadSafeLayoutNode, UnsafeLayoutNode};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
-use servo_util::bloom::BloomFilter;
+use selectors::bloom::BloomFilter;
 use servo_util::opts;
 use servo_util::tid::tid;
 use style::node::TNode;
