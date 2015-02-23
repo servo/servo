@@ -149,7 +149,11 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     }
 
     fn remove_from_parent(&mut self, _target: JS<Node>) {
-        error!("remove_from_parent not implemented!");
+        let node: Root<Node> = _target.root();
+        let parent: JSRef<Node> = node.r();
+        for child in parent.children() {
+            parent.RemoveChild(child).ok().expect("tried to remove an non-Node in HTML parsing");
+        }
     }
 
     fn mark_script_already_started(&mut self, node: JS<Node>) {
