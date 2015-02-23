@@ -849,8 +849,8 @@ struct GonkCompositorProxy {
 impl CompositorProxy for GonkCompositorProxy {
     fn send(&mut self, msg: compositor_task::Msg) {
         // Send a message and kick the OS event loop awake.
-        self.sender.send(msg).ok();
-        self.event_sender.send(WindowEvent::Idle).ok();
+        self.sender.send(msg).ok().unwrap();
+        self.event_sender.send(WindowEvent::Idle).ok().unwrap();
     }
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
         Box::new(GonkCompositorProxy {

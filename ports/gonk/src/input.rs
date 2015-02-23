@@ -97,16 +97,16 @@ fn read_input_device(device_path: &Path,
     };
     let fd = device.as_raw_fd();
 
-    let x_info: linux_input_absinfo = unsafe { zeroed() };
-    let y_info: linux_input_absinfo = unsafe { zeroed() };
+    let mut x_info: linux_input_absinfo = unsafe { zeroed() };
+    let mut y_info: linux_input_absinfo = unsafe { zeroed() };
     unsafe {
-        let ret = ioctl(fd, ev_ioc_g_abs(ABS_MT_POSITION_X), &x_info);
+        let ret = ioctl(fd, ev_ioc_g_abs(ABS_MT_POSITION_X), &mut x_info);
         if ret < 0 {
             println!("Couldn't get ABS_MT_POSITION_X info {} {}", ret, errno());
         }
     }
     unsafe {
-        let ret = ioctl(fd, ev_ioc_g_abs(ABS_MT_POSITION_Y), &y_info);
+        let ret = ioctl(fd, ev_ioc_g_abs(ABS_MT_POSITION_Y), &mut y_info);
         if ret < 0 {
             println!("Couldn't get ABS_MT_POSITION_Y info {} {}", ret, errno());
         }
@@ -166,9 +166,9 @@ fn read_input_device(device_path: &Path,
                             if dist < 16 {
                                 let click_pt = TypedPoint2D(slotA.x as f32, slotA.y as f32);
                                 println!("Dispatching click!");
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(0, click_pt))).ok();
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(0, click_pt))).ok();
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(0, click_pt))).ok();
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(0, click_pt))).ok().unwrap();
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(0, click_pt))).ok().unwrap();
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(0, click_pt))).ok().unwrap();
                             }
                         } else {
                             println!("Touch down");
@@ -184,14 +184,14 @@ fn read_input_device(device_path: &Path,
                     } else {
                         println!("Touch move x: {}, y: {}", slotA.x, slotA.y);
                         sender.send(WindowEvent::Scroll(TypedPoint2D((slotA.x - last_x) as f32, (slotA.y - last_y) as f32),
-                                                        TypedPoint2D(slotA.x, slotA.y))).ok();
+                                                        TypedPoint2D(slotA.x, slotA.y))).ok().unwrap();
                         last_x = slotA.x;
                         last_y = slotA.y;
                         if touch_count >= 2 {
                             let slotB = &slots[1];
                             let cur_dist = dist(slotA.x, slotB.x, slotA.y, slotB.y);
                             println!("Zooming {} {} {} {}", cur_dist, last_dist, screen_dist, ((screen_dist + (cur_dist - last_dist))/screen_dist));
-                            sender.send(WindowEvent::Zoom((screen_dist + (cur_dist - last_dist))/screen_dist)).ok();
+                            sender.send(WindowEvent::Zoom((screen_dist + (cur_dist - last_dist))/screen_dist)).ok().unwrap();
                             last_dist = cur_dist;
                         }
                     }
