@@ -27,7 +27,6 @@ use dom::event::{Event, EventHelpers};
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
 use dom::keyboardevent::KeyboardEvent;
-use dom::mouseevent::MouseEvent;
 use dom::node::{self, Node, NodeHelpers, NodeDamage};
 use dom::window::{Window, WindowHelpers, ScriptHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
@@ -986,7 +985,17 @@ impl ScriptTask {
             MouseDownEvent(..) => {}
             MouseUpEvent(..) => {}
             MouseMoveEvent(point) => {
-                self.handle_mouse_move_event(pipeline_id, point);
+                let page = get_page(&*self.page.borrow(), pipeline_id);
+                let frame = page.frame();
+                let document = frame.as_ref().unwrap().document.root();
+                let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();
+
+                if document.r().handle_mouse_move_event(self.js_runtime.ptr, point, mouse_over_targets) {
+
+                    if mouse_over_targets.is_some() {
+                        self.force_reflow(&page)
+                    }
+                }
             }
 
             KeyEvent(key, state, modifiers) => {
@@ -1146,92 +1155,6 @@ impl ScriptTask {
         }
     }
 
-
-    fn handle_mouse_move_event(&self, pipeline_id: PipelineId, point: Point2D<f32>) {
-        let page = get_page(&*self.page.borrow(), pipeline_id);
-        match page.get_nodes_under_mouse(&point) {
-            Some(node_address) => {
-                let mut target_list = vec!();
-                let mut target_compare = false;
-
-                let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();
-                match *mouse_over_targets {
-                    Some(ref mut mouse_over_targets) => {
-                        for node in mouse_over_targets.iter_mut() {
-                            let node = node.root();
-                            node.r().set_hover_state(false);
-                        }
-                    }
-                    None => {}
-                }
-
-                if node_address.len() > 0 {
-                    let top_most_node =
-                        node::from_untrusted_node_address(self.js_runtime.ptr, node_address[0]).root();
-
-                    if let Some(ref frame) = *page.frame() {
-                        let window = frame.window.root();
-
-                        let x = point.x.to_i32().unwrap_or(0);
-                        let y = point.y.to_i32().unwrap_or(0);
-
-                        let mouse_event = MouseEvent::new(window.r(),
-                            "mousemove".to_owned(),
-                            true,
-                            true,
-                            Some(window.r()),
-                            0i32,
-                            x, y, x, y,
-                            false, false, false, false,
-                            0i16,
-                            None).root();
-
-                        let event: JSRef<Event> = EventCast::from_ref(mouse_event.r());
-                        let target: JSRef<EventTarget> = EventTargetCast::from_ref(top_most_node.r());
-                        event.fire(target);
-                    }
-                }
-
-                for node_address in node_address.iter() {
-                    let temp_node =
-                        node::from_untrusted_node_address(self.js_runtime.ptr, *node_address).root();
-
-                    let maybe_node = temp_node.r().ancestors().find(|node| node.is_element());
-                    match maybe_node {
-                        Some(node) => {
-                            node.set_hover_state(true);
-                            match *mouse_over_targets {
-                                Some(ref mouse_over_targets) if !target_compare => {
-                                    target_compare =
-                                        !mouse_over_targets.contains(&JS::from_rooted(node));
-                                }
-                                _ => {}
-                            }
-                            target_list.push(JS::from_rooted(node));
-                        }
-                        None => {}
-                    }
-                }
-                match *mouse_over_targets {
-                    Some(ref mouse_over_targets) => {
-                        if mouse_over_targets.len() != target_list.len() {
-                            target_compare = true
-                        }
-                    }
-                    None => target_compare = true,
-                }
-
-                if target_compare {
-                    if mouse_over_targets.is_some() {
-                        self.force_reflow(&*page)
-                    }
-                    *mouse_over_targets = Some(target_list);
-                }
-            }
-
-            None => {}
-        }
-    }
 }
 
 /// Shuts down layout for the given page tree.
