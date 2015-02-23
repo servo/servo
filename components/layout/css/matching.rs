@@ -12,7 +12,7 @@ use util::{LayoutDataAccess, LayoutDataWrapper};
 use wrapper::{LayoutElement, LayoutNode, TLayoutNode};
 
 use script::dom::node::NodeTypeId;
-use servo_util::bloom::BloomFilter;
+use selectors::bloom::BloomFilter;
 use servo_util::cache::{LRUCache, SimpleHashCache};
 use servo_util::smallvec::{SmallVec, SmallVec16};
 use servo_util::arc_ptr_eq;
@@ -21,12 +21,12 @@ use std::mem;
 use std::hash::{Hash, Hasher, Writer};
 use std::slice::Iter;
 use string_cache::{Atom, Namespace};
-use style::selectors::PseudoElement;
+use selectors::parser::PseudoElement;
 use style::selector_matching::{Stylist, DeclarationBlock};
 use style::node::{TElement, TNode};
 use style::properties::{ComputedValues, cascade};
-use style::selector_matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
-use style::selector_matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
+use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
+use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use std::sync::Arc;
 
 pub struct ApplicableDeclarations {

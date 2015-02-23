@@ -21,6 +21,9 @@ git = "https://github.com/servo/rust-geom"
 [dependencies.cssparser]
 git = "https://github.com/servo/rust-cssparser"
 
+[dependencies.selectors]
+git = "https://github.com/servo/rust-selectors"
+
 [dependencies.lazy_static]
 git = "https://github.com/Kimundi/lazy-static.rs"
 

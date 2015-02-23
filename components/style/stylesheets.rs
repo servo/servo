@@ -12,7 +12,7 @@ use encoding::EncodingRef;
 use cssparser::{Parser, decode_stylesheet_bytes,
                 QualifiedRuleParser, AtRuleParser, RuleListParser, AtRuleType};
 use string_cache::{Atom, Namespace};
-use selectors::{Selector, parse_selector_list};
+use selectors::parser::{Selector, parse_selector_list};
 use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use media_queries::{self, Device, MediaQueryList, parse_media_query_list};
@@ -97,10 +97,11 @@ impl Stylesheet {
                 Ok(rule) => {
                     if let CSSRule::Namespace(ref prefix, ref namespace) = rule {
                         if let Some(prefix) = prefix.as_ref() {
-                            iter.parser.context.namespaces.prefix_map.insert(
+                            iter.parser.context.selector_context.namespace_prefixes.insert(
                                 prefix.clone(), namespace.clone());
                         } else {
-                            iter.parser.context.namespaces.default = Some(namespace.clone());
+                            iter.parser.context.selector_context.default_namespace =
+                                Some(namespace.clone());
                         }
                     }
                     rules.push(rule);
@@ -270,7 +271,7 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
     type QualifiedRule = CSSRule;
 
     fn parse_prelude(&self, input: &mut Parser) -> Result<Vec<Selector>, ()> {
-        parse_selector_list(self.context, input)
+        parse_selector_list(&self.context.selector_context, input)
     }
 
     fn parse_block(&self, prelude: Vec<Selector>, input: &mut Parser) -> Result<CSSRule, ()> {
@@ -327,7 +328,7 @@ pub fn iter_font_face_rules<F>(stylesheet: &Stylesheet, device: &Device,
 fn test_parse_stylesheet() {
     use std::sync::Arc;
     use cssparser;
-    use selectors::*;
+    use selectors::parser::*;
     use string_cache::Atom;
     use properties::{PropertyDeclaration, DeclaredValue, longhands};
     use std::borrow::ToOwned;

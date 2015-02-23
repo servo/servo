@@ -21,6 +21,9 @@ path = "../plugins"
 [dependencies.cssparser]
 git = "https://github.com/servo/rust-cssparser"
 
+[dependencies.selectors]
+git = "https://github.com/servo/rust-selectors"
+
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
