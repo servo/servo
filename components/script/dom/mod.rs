@@ -195,6 +195,8 @@ pub mod activation;
 pub mod attr;
 pub mod blob;
 pub mod browsercontext;
+pub mod canvasgradient;
+pub mod canvaspattern;
 pub mod canvasrenderingcontext2d;
 pub mod characterdata;
 pub mod cssstyledeclaration;
