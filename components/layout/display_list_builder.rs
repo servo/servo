@@ -826,8 +826,12 @@ impl FragmentDisplayListBuilding for Fragment {
         // because layout for the iframe only needs to know size, and origin is only relevant if
         // the iframe is actually going to be displayed.
         if let SpecificFragmentInfo::Iframe(ref iframe_fragment) = self.specific {
+            let iframe_rect = self.stacking_relative_border_box(stacking_relative_flow_origin,
+                                                                relative_containing_block_size,
+                                                                CoordinateSystem::Parent);
+
             self.finalize_position_and_size_of_iframe(&**iframe_fragment,
-                                                      stacking_relative_border_box.origin,
+                                                      iframe_rect.origin,
                                                       layout_context)
         }
     }
