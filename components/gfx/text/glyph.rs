@@ -156,8 +156,11 @@ fn is_simple_glyph_id(id: GlyphId) -> bool {
 }
 
 fn is_simple_advance(advance: Au) -> bool {
-    let unsigned_au = advance.to_u32().unwrap();
-    (unsigned_au & (GLYPH_ADVANCE_MASK >> GLYPH_ADVANCE_SHIFT as uint)) == unsigned_au
+    match advance.to_u32() {
+        Some(unsigned_au) =>
+            (unsigned_au & (GLYPH_ADVANCE_MASK >> GLYPH_ADVANCE_SHIFT as uint)) == unsigned_au,
+        None => false
+    }
 }
 
 type DetailedGlyphCount = u16;
