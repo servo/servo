@@ -634,11 +634,9 @@ impl RootCollection {
     fn unroot<'b, T: Reflectable>(&self, rooted: &Root<T>) {
         unsafe {
             let roots = self.roots.get();
-            debug!("unrooting {:?} (expecting {:?}",
-                   (*roots).as_slice().last().unwrap(),
-                   rooted.js_ptr);
-            assert!(*(*roots).as_slice().last().unwrap() == rooted.js_ptr);
-            (*roots).pop().unwrap();
+            let unrooted = (*roots).pop().unwrap();
+            debug!("unrooted {:?} (expecting {:?}", unrooted, rooted.js_ptr);
+            assert!(unrooted == rooted.js_ptr);
         }
     }
 }
