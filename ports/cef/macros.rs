@@ -72,7 +72,8 @@ macro_rules! full_cef_class_impl(
                         ::eutil::create_cef_object::<$c_interface_name,$class_name>(size))
                 };
                 unsafe {
-                    $((*cef_object.c_object()).$method_name = Some($method_name as extern "C" fn(*mut $c_interface_name, $($c_method_arg_type,)*) -> $method_return_type);)*
+                    $((*cef_object.c_object()).$method_name =
+                        Some($method_name as extern "C" fn(*mut $c_interface_name, $($c_method_arg_type,)*) -> $method_return_type);)*
                     let extra_slot =
                         ::std::mem::transmute::<&mut u8,
                                                 &mut $class_name>(&mut (*cef_object.c_object())
