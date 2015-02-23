@@ -29,12 +29,12 @@ use script_task::{ScriptMsg, Runnable};
 
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
-use net::resource_task::load_whole_resource;
+use net::resource_task::{load_whole_resource, Metadata};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use string_cache::Atom;
-use url::UrlParser;
+use url::{Url, UrlParser};
 
 #[dom_struct]
 pub struct HTMLScriptElement {
@@ -87,6 +87,10 @@ pub trait HTMLScriptElementHelpers {
     /// Prepare a script (<http://www.whatwg.org/html/#prepare-a-script>)
     fn prepare(self);
 
+    /// [Execute a script block]
+    /// (https://html.spec.whatwg.org/multipage/#execute-the-script-block)
+    fn execute(self, load: ScriptOrigin);
+
     /// Prepare a script, steps 6 and 7.
     fn is_javascript(self) -> bool;
 
@@ -124,9 +128,9 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
     "text/x-javascript",
 ];
 
-enum ScriptOrigin {
-    Internal,
-    External,
+pub enum ScriptOrigin {
+    Internal(String, Url),
+    External(Result<(Metadata, Vec<u8>), String>),
 }
 
 impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
@@ -200,66 +204,146 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         // character encoding for this script element be the result of getting an encoding from the
         // value of the `charset` attribute.
 
-        // Step 14 and 15.
-        // TODO: Add support for the `defer` and `async` attributes.  (For now, we fetch all
-        // scripts synchronously and execute them immediately.)
+        // Step 14.
         let window = window_from_node(self).root();
         let window = window.r();
         let page = window.page();
         let base_url = page.get_url();
 
-        let (origin, source, url) = match element.get_attribute(ns!(""), &atom!("src")).root() {
+        let load = match element.get_attribute(ns!(""), &atom!("src")).root() {
+            // Step 14.
             Some(src) => {
-                if src.r().Value().is_empty() {
+                // Step 14.1
+                let src = src.r().Value();
+
+                // Step 14.2
+                if src.is_empty() {
                     self.queue_error_event();
                     return;
                 }
-                match UrlParser::new().base_url(&base_url).parse(src.r().Value().as_slice()) {
+
+                // Step 14.3
+                match UrlParser::new().base_url(&base_url).parse(&*src) {
+                    Err(_) => {
+                        // Step 14.4
+                        error!("error parsing URL for script {}", src);
+                        self.queue_error_event();
+                        return;
+                    }
                     Ok(url) => {
+                        // Step 14.5
                         // TODO: Do a potentially CORS-enabled fetch with the mode being the current
                         // state of the element's `crossorigin` content attribute, the origin being
                         // the origin of the script element's node document, and the default origin
                         // behaviour set to taint.
-                        match load_whole_resource(&page.resource_task, url) {
-                            Ok((metadata, bytes)) => {
-                                // TODO: use the charset from step 13.
-                                let source = UTF_8.decode(bytes.as_slice(), DecoderTrap::Replace).unwrap();
-                                (ScriptOrigin::External, source, metadata.final_url)
-                            }
-                            Err(_) => {
-                                error!("error loading script {}", src.r().Value());
-                                self.queue_error_event();
-                                return;
-                            }
-                        }
-                    }
-                    Err(_) => {
-                        error!("error parsing URL for script {}", src.r().Value());
-                        self.queue_error_event();
-                        return;
+                        ScriptOrigin::External(load_whole_resource(&page.resource_task, url))
                     }
                 }
-            }
-            None => (ScriptOrigin::Internal, text, base_url)
+            },
+            None => ScriptOrigin::Internal(text, base_url),
         };
 
-        window.evaluate_script_on_global_with_result(source.as_slice(), url.serialize().as_slice());
+        // Step 15.
+        // TODO: Add support for the `defer` and `async` attributes.  (For now, we fetch all
+        // scripts synchronously and execute them immediately.)
+        self.execute(load);
+    }
 
-        // https://html.spec.whatwg.org/multipage/scripting.html#execute-the-script-block
-        // step 2, substep 10
-        match origin {
-            ScriptOrigin::External => {
-                self.dispatch_load_event();
+    fn execute(self, load: ScriptOrigin) {
+        // Step 1.
+        // TODO: If the element is flagged as "parser-inserted", but the
+        // element's node document is not the Document of the parser that
+        // created the element, then abort these steps.
+
+        // Step 2.
+        let (source, external, url) = match load {
+            // Step 2.a.
+            ScriptOrigin::External(Err(e)) => {
+                error!("error loading script {}", e);
+                self.queue_error_event();
+                return;
             }
-            ScriptOrigin::Internal => {
-                let chan = window.script_chan();
-                let handler = Trusted::new(window.get_cx(), self, chan.clone());
-                let dispatcher = Box::new(EventDispatcher {
-                    element: handler,
-                    is_error: false,
-                });
-                chan.send(ScriptMsg::RunnableMsg(dispatcher)).unwrap();
+
+            // Step 2.b.1.a.
+            ScriptOrigin::External(Ok((metadata, bytes))) => {
+                // Step 1.
+                // TODO: If the resource's Content Type metadata, if any,
+                // specifies a character encoding, and the user agent supports
+                // that encoding, then let character encoding be that encoding,
+                // and jump to the bottom step in this series of steps.
+
+                // Step 2.
+                // TODO: If the algorithm above set the script block's
+                // character encoding, then let character encoding be that
+                // encoding, and jump to the bottom step in this series of
+                // steps.
+
+                // Step 3.
+                // TODO: Let character encoding be the script block's fallback
+                // character encoding.
+
+                // Step 4.
+                // TODO: Otherwise, decode the file to Unicode, using character
+                // encoding as the fallback encoding.
+
+                (UTF_8.decode(&*bytes, DecoderTrap::Replace).unwrap(), true,
+                 metadata.final_url)
+            },
+
+            // Step 2.b.1.c.
+            ScriptOrigin::Internal(text, url) => {
+                (text, false, url)
             }
+        };
+
+        // Step 2.b.2.
+        // TODO: Fire a simple event named beforescriptexecute that bubbles and
+        // is cancelable at the script element.
+        // If the event is canceled, then abort these steps.
+
+        // Step 2.b.3.
+        // TODO: If the script is from an external file, then increment the
+        // ignore-destructive-writes counter of the script element's node
+        // document. Let neutralised doc be that Document.
+
+        // Step 2.b.4.
+        // TODO: Let old script element be the value to which the script
+        // element's node document's currentScript object was most recently
+        // initialised.
+
+        // Step 2.b.5.
+        // TODO: Initialise the script element's node document's currentScript
+        // object to the script element.
+
+        // Step 2.b.6.
+        // TODO: Create a script...
+        let window = window_from_node(self).root();
+        window.r().evaluate_script_on_global_with_result(&*source,
+                                                         &*url.serialize());
+
+        // Step 2.b.7.
+        // TODO: Initialise the script element's node document's currentScript
+        // object to old script element.
+
+        // Step 2.b.8.
+        // TODO: Decrement the ignore-destructive-writes counter of neutralised
+        // doc, if it was incremented in the earlier step.
+
+        // Step 2.b.9.
+        // TODO: Fire a simple event named afterscriptexecute that bubbles (but
+        // is not cancelable) at the script element.
+
+        // Step 2.b.10.
+        if external {
+            self.dispatch_load_event();
+        } else {
+            let chan = window.r().script_chan();
+            let handler = Trusted::new(window.r().get_cx(), self, chan.clone());
+            let dispatcher = Box::new(EventDispatcher {
+                element: handler,
+                is_error: false,
+            });
+            chan.send(ScriptMsg::RunnableMsg(dispatcher)).unwrap();
         }
     }
 
