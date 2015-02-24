@@ -335,6 +335,8 @@ pub trait WindowHelpers {
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
     fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>>;
+    fn thaw(self);
+    fn freeze(self);
 }
 
 pub trait ScriptHelpers {
@@ -405,6 +407,15 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>> {
         None
     }
+
+    fn thaw(self) {
+        self.timers.resume();
+    }
+
+    fn freeze(self) {
+        self.timers.suspend();
+    }
+
 }
 
 impl Window {

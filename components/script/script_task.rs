@@ -580,6 +580,10 @@ impl ScriptTask {
                 panic!("should have handled ExitPipeline already"),
             ConstellationControlMsg::GetTitle(pipeline_id) =>
                 self.handle_get_title_msg(pipeline_id),
+            ConstellationControlMsg::Freeze(pipeline_id) =>
+                self.handle_freeze_msg(pipeline_id),
+            ConstellationControlMsg::Thaw(pipeline_id) =>
+                self.handle_thaw_msg(pipeline_id)
         }
     }
 
@@ -661,6 +665,26 @@ impl ScriptTask {
         let frame = page.frame();
         let window = frame.as_ref().unwrap().window.root();
         window.r().handle_fire_timer(timer_id);
+    }
+
+    /// Handles freeze message
+    fn handle_freeze_msg(&self, id: PipelineId) {
+        let page = self.page.borrow_mut();
+        let page = page.find(id).expect("ScriptTask: received freeze msg for a
+                    pipeline ID not associated with this script task. This is a bug.");
+        let frame = page.frame();
+        let window = frame.as_ref().unwrap().window.root();
+        window.r().freeze();
+    }
+
+    /// Handles thaw message
+    fn handle_thaw_msg(&self, id: PipelineId) {
+        let page = self.page.borrow_mut();
+        let page = page.find(id).expect("ScriptTask: received thaw msg for a
+                            pipeline ID not associated with this script task. This is a bug.");
+        let frame = page.frame();
+        let window = frame.as_ref().unwrap().window.root();
+        window.r().thaw();
     }
 
     /// Handles a notification that reflow completed.

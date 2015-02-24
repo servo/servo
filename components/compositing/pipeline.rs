@@ -191,6 +191,16 @@ impl Pipeline {
 
     }
 
+    pub fn freeze(&self) {
+        let ScriptControlChan(ref script_channel) = self.script_chan;
+        let _ = script_channel.send(ConstellationControlMsg::Freeze(self.id)).unwrap();
+    }
+
+    pub fn thaw(&self) {
+        let ScriptControlChan(ref script_channel) = self.script_chan;
+        let _ = script_channel.send(ConstellationControlMsg::Thaw(self.id)).unwrap();
+    }
+
     pub fn force_exit(&self) {
         let ScriptControlChan(ref script_channel) = self.script_chan;
         let _ = script_channel.send(
