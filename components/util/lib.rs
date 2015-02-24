@@ -32,6 +32,8 @@ extern crate layers;
 extern crate libc;
 #[no_link] #[macro_use] extern crate cssparser;
 extern crate rand;
+#[cfg(target_os="linux")]
+extern crate regex;
 extern crate "rustc-serialize" as rustc_serialize;
 #[cfg(target_os="macos")]
 extern crate task_info;
