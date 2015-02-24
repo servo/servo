@@ -35,6 +35,7 @@ pub struct Opts {
     pub gpu_painting: bool,
 
     /// The maximum size of each tile in pixels (`-s`).
+    // TODO(xojoc): change to u32. Requires changes in rust-layers.
     pub tile_size: usize,
 
     /// The ratio of device pixels per px at the default scale. If unspecified, will use the
@@ -102,7 +103,7 @@ pub struct Opts {
     pub devtools_port: Option<u16>,
 
     /// The initial requested size of the window.
-    pub initial_window_size: TypedSize2D<ScreenPx, usize>,
+    pub initial_window_size: TypedSize2D<ScreenPx, u32>,
 
     /// An optional string allowing the user agent to be set for testing.
     pub user_agent: Option<String>,
@@ -296,7 +297,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
 
     let initial_window_size = match opt_match.opt_str("resolution") {
         Some(res_string) => {
-            let res: Vec<usize> = res_string.split('x').map(|r| r.parse().unwrap()).collect();
+            let res: Vec<u32> = res_string.split('x').map(|r| r.parse().unwrap()).collect();
             TypedSize2D(res[0], res[1])
         }
         None => {

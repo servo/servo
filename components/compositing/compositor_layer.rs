@@ -49,7 +49,7 @@ pub struct CompositorData {
 impl CompositorData {
     pub fn new_layer(layer_properties: LayerProperties,
                      wants_scroll_events: WantsScrollEventsFlag,
-                     tile_size: uint)
+                     tile_size: usize)
                      -> Rc<Layer<CompositorData>> {
         let new_compositor_data = CompositorData {
             pipeline_id: layer_properties.pipeline_id,
