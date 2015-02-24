@@ -11,8 +11,6 @@ use std::old_io::timer::sleep;
 #[cfg(target_os="linux")]
 use std::old_io::File;
 use std::mem::size_of;
-#[cfg(target_os="linux")]
-use std::env::page_size;
 use std::ptr::null_mut;
 use std::sync::mpsc::{Sender, channel, Receiver};
 use std::time::duration::Duration;
@@ -111,20 +109,24 @@ impl MemoryProfiler {
         match nbytes {
             Some(nbytes) => {
                 let mebi = 1024f64 * 1024f64;
-                println!("{:24}: {:12.2}", path, (nbytes as f64) / mebi);
+                println!("{:12.2}: {}", (nbytes as f64) / mebi, path);
             }
             None => {
-                println!("{:24}: {:>12}", path, "???");
+                println!("{:>12}: {}", "???", path);
             }
         }
     }
 
     fn handle_print_msg(&self) {
-        println!("{:24}: {:12}", "_category_", "_size (MiB)_");
+        println!("{:12}: {}", "_size (MiB)_", "_category_");
 
         // Virtual and physical memory usage, as reported by the OS.
         MemoryProfiler::print_measurement("vsize", get_vsize());
         MemoryProfiler::print_measurement("resident", get_resident());
+
+        for seg in get_resident_segments().iter() {
+            MemoryProfiler::print_measurement(seg.0.as_slice(), Some(seg.1));
+        }
 
         // Total number of bytes allocated by the application on the system
         // heap.
@@ -244,8 +246,8 @@ fn get_proc_self_statm_field(field: uint) -> Option<u64> {
     match f.read_to_string() {
         Ok(contents) => {
             let s = option_try!(contents.as_slice().words().nth(field));
-            let npages: u64 = option_try!(s.parse().ok());
-            Some(npages * (page_size() as u64))
+            let npages = option_try!(s.parse::<u64>().ok());
+            Some(npages * (::std::env::page_size() as u64))
         }
         Err(_) => None
     }
@@ -280,3 +282,115 @@ fn get_vsize() -> Option<u64> {
 fn get_resident() -> Option<u64> {
     None
 }
+
+#[cfg(target_os="linux")]
+fn get_resident_segments() -> Vec<(String, u64)> {
+    use regex::Regex;
+    use std::collections::HashMap;
+    use std::collections::hash_map::Entry;
+
+    // The first line of an entry in /proc/<pid>/smaps looks just like an entry
+    // in /proc/<pid>/maps:
+    //
+    //   address           perms offset  dev   inode  pathname
+    //   02366000-025d8000 rw-p 00000000 00:00 0      [heap]
+    //
+    // Each of the following lines contains a key and a value, separated
+    // by ": ", where the key does not contain either of those characters.
+    // For example:
+    //
+    //   Rss:           132 kB
+
+    let path = Path::new("/proc/self/smaps");
+    let mut f = ::std::old_io::BufferedReader::new(File::open(&path));
+
+    let seg_re = Regex::new(
+        r"^[:xdigit:]+-[:xdigit:]+ (....) [:xdigit:]+ [:xdigit:]+:[:xdigit:]+ \d+ +(.*)").unwrap();
+    let rss_re = Regex::new(r"^Rss: +(\d+) kB").unwrap();
+
+    // We record each segment's resident size.
+    let mut seg_map: HashMap<String, u64> = HashMap::new();
+
+    #[derive(PartialEq)]
+    enum LookingFor { Segment, Rss }
+    let mut looking_for = LookingFor::Segment;
+
+    let mut curr_seg_name = String::new();
+
+    // Parse the file.
+    for line in f.lines() {
+        let line = match line {
+            Ok(line) => line,
+            Err(_) => continue,
+        };
+        if looking_for == LookingFor::Segment {
+            // Look for a segment info line.
+            let cap = match seg_re.captures(line.as_slice()) {
+                Some(cap) => cap,
+                None => continue,
+            };
+            let perms = cap.at(1).unwrap();
+            let pathname = cap.at(2).unwrap();
+
+            // Construct the segment name from its pathname and permissions.
+            curr_seg_name.clear();
+            curr_seg_name.push_str("- ");
+            if pathname == "" || pathname.starts_with("[stack:") {
+                // Anonymous memory. Entries marked with "[stack:nnn]"
+                // look like thread stacks but they may include other
+                // anonymous mappings, so we can't trust them and just
+                // treat them as entirely anonymous.
+                curr_seg_name.push_str("anonymous");
+            } else {
+                curr_seg_name.push_str(pathname);
+            }
+            curr_seg_name.push_str(" (");
+            curr_seg_name.push_str(perms);
+            curr_seg_name.push_str(")");
+
+            looking_for = LookingFor::Rss;
+        } else {
+            // Look for an "Rss:" line.
+            let cap = match rss_re.captures(line.as_slice()) {
+                Some(cap) => cap,
+                None => continue,
+            };
+            let rss = cap.at(1).unwrap().parse::<u64>().unwrap() * 1024;
+
+            if rss > 0 {
+                // Aggregate small segments into "- other".
+                let seg_name = if rss < 512 * 1024 {
+                    "- other".to_owned()
+                } else {
+                    curr_seg_name.clone()
+                };
+                match seg_map.entry(seg_name) {
+                    Entry::Vacant(entry) => { entry.insert(rss); },
+                    Entry::Occupied(mut entry) => *entry.get_mut() += rss,
+                }
+            }
+
+            looking_for = LookingFor::Segment;
+        }
+    }
+
+    let mut segs: Vec<(String, u64)> = seg_map.into_iter().collect();
+
+    // Get the total and add it to the vector. Note that this total differs
+    // from the "resident" measurement obtained via /proc/<pid>/statm in
+    // get_resident(). It's unclear why this difference occurs; for some
+    // processes the measurements match, but for Servo they do not.
+    let total = segs.iter().fold(0u64, |total, &(_, size)| total + size);
+    segs.push(("resident-according-to-smaps".to_owned(), total));
+
+    // Sort by size; the total will be first.
+    segs.sort_by(|&(_, rss1), &(_, rss2)| rss2.cmp(&rss1));
+
+    segs
+}
+
+#[cfg(not(target_os="linux"))]
+fn get_resident_segments() -> Vec<(String, u64)> {
+    vec![]
+}
+
