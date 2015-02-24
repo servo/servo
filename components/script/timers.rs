@@ -93,7 +93,7 @@ pub enum IsInterval {
 
 // Messages sent control timers from script task
 #[jstraceable]
-#[derive(PartialEq, Copy, Clone, Show)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum TimerControlMsg {
     Cancel,
     Suspend,
