@@ -476,9 +476,6 @@
         "url": "/DOMEvents/tests/submissions/Microsoft/support/iepreview.png"
       },
       {
-        "url": "/DOMEvents/tests/submissions/Microsoft/support/navigate.js"
-      },
-      {
         "url": "/DOMEvents/tests/submissions/Microsoft/support/style01.css"
       },
       {
@@ -1206,6 +1203,12 @@
       },
       {
         "url": "/cors/support.js"
+      },
+      {
+        "url": "/csp/assert_undefined.py"
+      },
+      {
+        "url": "/csp/csp-inline-script.html.headers"
       },
       {
         "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html"
@@ -9344,9 +9347,6 @@
         "url": "/DOMEvents/tests/approved/DOM.event.flow.html"
       },
       {
-        "url": "/DOMEvents/tests/approved/Determined.candidate.EventListeners.html"
-      },
-      {
         "url": "/DOMEvents/tests/approved/EventListener.dispatch.new.event.html"
       },
       {
@@ -9360,12 +9360,6 @@
       },
       {
         "url": "/DOMEvents/tests/approved/ProcessingInstruction.DOMCharacterDataModified.html"
-      },
-      {
-        "url": "/DOMEvents/tests/approved/Propagation.path.target.moved.html"
-      },
-      {
-        "url": "/DOMEvents/tests/approved/Propagation.path.target.removed.html"
       },
       {
         "url": "/DOMEvents/tests/approved/dispatchEvent.click.checkbox.html"
@@ -9386,9 +9380,6 @@
         "url": "/DOMEvents/tests/submissions/Microsoft/converted/DOM.event.flow.html"
       },
       {
-        "url": "/DOMEvents/tests/submissions/Microsoft/converted/Determined.candidate.EventListeners.html"
-      },
-      {
         "url": "/DOMEvents/tests/submissions/Microsoft/converted/EventListener.dispatch.new.event.html"
       },
       {
@@ -9404,19 +9395,7 @@
         "url": "/DOMEvents/tests/submissions/Microsoft/converted/ProcessingInstruction.DOMCharacterDataModified.html"
       },
       {
-        "url": "/DOMEvents/tests/submissions/Microsoft/converted/Propagation.path.target.moved.html"
-      },
-      {
-        "url": "/DOMEvents/tests/submissions/Microsoft/converted/Propagation.path.target.removed.html"
-      },
-      {
         "url": "/DOMEvents/tests/submissions/Microsoft/converted/dispatchEvent.DISPATCH_REQUEST_ERR.html"
-      },
-      {
-        "url": "/DOMEvents/tests/submissions/Microsoft/converted/dispatchEvent.NOT_SUPPORTED_ERR.html"
-      },
-      {
-        "url": "/DOMEvents/tests/submissions/Microsoft/converted/dispatchEvent.UNSPECIFIED_EVENT_TYPE_ERR.html"
       },
       {
         "url": "/DOMEvents/tests/submissions/Microsoft/converted/dispatchEvent.click.checkbox.html"
@@ -10928,6 +10907,9 @@
         "url": "/cors/status.htm"
       },
       {
+        "url": "/csp/csp-inline-script.html"
+      },
+      {
         "url": "/custom-elements/concepts/custom-elements-type-allowed-chars-first-char.html"
       },
       {
@@ -11117,7 +11099,19 @@
         "url": "/dom/events/Event-dispatch-bubbles-false.html"
       },
       {
+        "url": "/dom/events/Event-dispatch-handlers-changed.html"
+      },
+      {
         "url": "/dom/events/Event-dispatch-omitted-capture.html"
+      },
+      {
+        "url": "/dom/events/Event-dispatch-redispatch.html"
+      },
+      {
+        "url": "/dom/events/Event-dispatch-target-moved.html"
+      },
+      {
+        "url": "/dom/events/Event-dispatch-target-removed.html"
       },
       {
         "url": "/dom/events/Event-initEvent.html"
@@ -12195,6 +12189,9 @@
       },
       {
         "url": "/html/browsers/windows/nested-browsing-contexts/frameElement.sub.html"
+      },
+      {
+        "url": "/html/dom/documents/dom-tree-accessors/Document.currentScript.html"
       },
       {
         "url": "/html/dom/documents/dom-tree-accessors/Document.getElementsByClassName-null-undef.html"
@@ -14462,6 +14459,9 @@
         "url": "/html/syntax/parsing/template/creating-an-element-for-the-token/template-owner-document.html"
       },
       {
+        "url": "/html/syntax/parsing/the-end.html"
+      },
+      {
         "url": "/html/syntax/serializing-html-fragments/outerHTML.html"
       },
       {
@@ -14913,6 +14913,9 @@
       },
       {
         "url": "/notifications/event-onshow.html"
+      },
+      {
+        "url": "/notifications/instance.html"
       },
       {
         "url": "/notifications/interfaces.html"
@@ -18160,6 +18163,6 @@
     "deleted": [],
     "items": {}
   },
-  "rev": "a44e574f5832d164472a7c26010bfd460f74d314",
+  "rev": "b92aaee483567e9af446a6c637ceb376efb9489e",
   "url_base": "/"
 }
