@@ -15,7 +15,7 @@ use encoding::types::EncodingRef;
 use encoding::{Encoding, DecoderTrap};
 use encoding::label::encoding_from_whatwg_label;
 
-// use js::jsfriendapi::bindgen::{JS_NewUint8Array, JS_GetUint8ArrayData};
+use js::jsfriendapi::bindgen::{JS_NewUint8Array, JS_GetUint8ArrayData};
 use js::jsapi::JSTracer;
 
 use util::str::DOMString;
@@ -26,22 +26,24 @@ use std::borrow::ToOwned;
 pub struct TextDecoder {
     reflector_: Reflector,
     encoding: EncodingRef,
-    fatal: bool
+    fatal: bool,
+    ignoreBOM: bool
 }
 
 no_jsmanaged_fields!(EncodingRef);
 
 impl TextDecoder {
-    fn new_inherited(encoding: EncodingRef, fatal: bool) -> TextDecoder {
+    fn new_inherited(encoding: EncodingRef, fatal: bool, ignoreBOM: bool) -> TextDecoder {
         TextDecoder {
             reflector_: Reflector::new(),
             encoding: encoding,
-            fatal: fatal
+            fatal: fatal,
+            ignoreBOM: ignoreBOM
         }
     }
 
-    pub fn new(global: GlobalRef, encoding: EncodingRef, fatal: bool) -> Temporary<TextDecoder> {
-        reflect_dom_object(box TextDecoder::new_inherited(encoding, fatal),
+    pub fn new(global: GlobalRef, encoding: EncodingRef, fatal: bool, ignoreBOM: bool) -> Temporary<TextDecoder> {
+        reflect_dom_object(box TextDecoder::new_inherited(encoding, fatal, ignoreBOM),
                            global,
                            TextDecoderBinding::Wrap)
     }
@@ -55,16 +57,19 @@ impl TextDecoder {
             Some(enc) => enc,
             None      => return Err(Syntax) // FIXME: Should throw a RangeError as per spec
         };
-        Ok(TextDecoder::new(global, encoding, options.fatal))
+        Ok(TextDecoder::new(global, encoding, options.fatal, options.ignoreBOM))
     }
 }
 
 impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
-    /*pub fn Decode(self,
+    pub fn Decode(self,
+                  cx: *mut JSContext,
                   input: *mut JSObject,
-                  stream: &TextDecoderBinding::TextDecodeOptions) -> DOMString {
-        
-    }*/
+                  options: &TextDecoderBinding::TextDecodeOptions) -> DOMString {
+        let stream: *const uint8_t = JS_GetUint8ArrayData(input, cx) as *const uint8_t;
+        let trap = if fatal { DecoderTrap::Strict } else { DecoderTrap::Replace };
+        unsafe { self.encoding.decode(stream as &[u8], trap).unwrap() };
+    }
 
     fn Encoding(self) -> DOMString {
         self.encoding.whatwg_name().unwrap().to_owned()
@@ -75,6 +80,6 @@ impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
     }
 
     fn IgnoreBOM(self) -> bool {
-        false
+        self.ignoreBOM
     }
 }
