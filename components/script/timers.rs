@@ -37,7 +37,7 @@ pub struct TimerId(i32);
 struct TimerHandle {
     handle: TimerId,
     data: TimerData,
-    cancel_chan: Option<Sender<()>>,
+    control_chan: Option<Sender<TimerControlMsg>>,
 }
 
 #[jstraceable]
@@ -56,7 +56,13 @@ impl<H: Writer + Hasher> Hash<H> for TimerId {
 
 impl TimerHandle {
     fn cancel(&mut self) {
-        self.cancel_chan.as_ref().map(|chan| chan.send(()).ok());
+        self.control_chan.as_ref().map(|chan| chan.send(TimerControlMsg::Cancel).ok());
+    }
+    fn suspend(&mut self) {
+        self.control_chan.as_ref().map(|chan| chan.send(TimerControlMsg::Suspend).ok());
+    }
+    fn resume(&mut self) {
+        self.control_chan.as_ref().map(|chan| chan.send(TimerControlMsg::Resume).ok());
     }
 }
 
@@ -85,6 +91,15 @@ pub enum IsInterval {
     NonInterval,
 }
 
+// Messages sent control timers from script task
+#[jstraceable]
+#[derive(PartialEq, Copy, Clone, Show)]
+pub enum TimerControlMsg {
+    Cancel,
+    Suspend,
+    Resume
+}
+
 // Holder for the various JS values associated with setTimeout
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
@@ -106,6 +121,17 @@ impl TimerManager {
         }
     }
 
+    pub fn suspend(&self) {
+        for (_, timer_handle) in self.active_timers.borrow_mut().iter_mut() {
+            timer_handle.suspend();
+        }
+    }
+    pub fn resume(&self) {
+        for (_, timer_handle) in self.active_timers.borrow_mut().iter_mut() {
+            timer_handle.resume();
+        }
+    }
+
     #[allow(unsafe_blocks)]
     pub fn set_timeout_or_interval(&self,
                                   callback: TimerCallback,
@@ -122,7 +148,7 @@ impl TimerManager {
         // Spawn a new timer task; it will dispatch the `ScriptMsg::FireTimer`
         // to the relevant script handler that will deal with it.
         let tm = Timer::new().unwrap();
-        let (cancel_chan, cancel_port) = channel();
+        let (control_chan, control_port) = channel();
         let spawn_name = match source {
             TimerSource::FromWindow(_) if is_interval == IsInterval::Interval => "Window:SetInterval",
             TimerSource::FromWorker if is_interval == IsInterval::Interval => "Worker:SetInterval",
@@ -137,16 +163,17 @@ impl TimerManager {
             } else {
                 tm.oneshot(duration)
             };
-            let cancel_port = cancel_port;
+            let control_port = control_port;
 
             let select = Select::new();
             let mut timeout_handle = select.handle(&timeout_port);
             unsafe { timeout_handle.add() };
-            let mut cancel_handle = select.handle(&cancel_port);
-            unsafe { cancel_handle.add() };
+            let mut control_handle = select.handle(&control_port);
+            unsafe { control_handle.add() };
 
             loop {
                 let id = select.wait();
+
                 if id == timeout_handle.id() {
                     timeout_port.recv().unwrap();
                     if script_chan.send(ScriptMsg::FireTimer(source, TimerId(handle))).is_err() {
@@ -156,15 +183,30 @@ impl TimerManager {
                     if is_interval == IsInterval::NonInterval {
                         break;
                     }
-                } else if id == cancel_handle.id() {
-                    break;
+                } else if id == control_handle.id() {;
+                    match control_port.recv().unwrap() {
+                        TimerControlMsg::Suspend => {
+                            let msg = control_port.recv().unwrap();
+                            match msg {
+                                TimerControlMsg::Suspend => panic!("Nothing to suspend!"),
+                                TimerControlMsg::Resume => {},
+                                TimerControlMsg::Cancel => {
+                                    break;
+                                },
+                            }
+                            },
+                        TimerControlMsg::Resume => panic!("Nothing to resume!"),
+                        TimerControlMsg::Cancel => {
+                            break;
+                        }
+                    }
                 }
             }
         });
         let timer_id = TimerId(handle);
         let timer = TimerHandle {
             handle: timer_id,
-            cancel_chan: Some(cancel_chan),
+            control_chan: Some(control_chan),
             data: TimerData {
                 is_interval: is_interval,
                 callback: callback,

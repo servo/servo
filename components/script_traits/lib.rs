@@ -70,6 +70,10 @@ pub enum ConstellationControlMsg {
     Viewport(PipelineId, Rect<f32>),
     /// Requests that the script task immediately send the constellation the title of a pipeline.
     GetTitle(PipelineId),
+    /// Notifies script task to suspend all its timers
+    Freeze(PipelineId),
+    /// Notifies script task to resume all its timers
+    Thaw(PipelineId)
 }
 
 unsafe impl Send for ConstellationControlMsg {
