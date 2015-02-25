@@ -188,8 +188,8 @@ pub enum Msg {
     /// Tells the compositor to create a descendant layer for a pipeline if necessary (i.e. if no
     /// layer with that ID exists).
     CreateOrUpdateDescendantLayer(LayerProperties),
-    /// Alerts the compositor that the specified layer's origin has changed.
-    SetLayerOrigin(PipelineId, LayerId, Point2D<f32>),
+    /// Alerts the compositor that the specified layer's rect has changed.
+    SetLayerRect(PipelineId, LayerId, Rect<f32>),
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
     /// Requests that the compositor assign the painted buffers to the given layers.
@@ -231,7 +231,7 @@ impl Debug for Msg {
             Msg::GetGraphicsMetadata(..) => write!(f, "GetGraphicsMetadata"),
             Msg::CreateOrUpdateBaseLayer(..) => write!(f, "CreateOrUpdateBaseLayer"),
             Msg::CreateOrUpdateDescendantLayer(..) => write!(f, "CreateOrUpdateDescendantLayer"),
-            Msg::SetLayerOrigin(..) => write!(f, "SetLayerOrigin"),
+            Msg::SetLayerRect(..) => write!(f, "SetLayerRect"),
             Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
             Msg::AssignPaintedBuffers(..) => write!(f, "AssignPaintedBuffers"),
             Msg::ChangeReadyState(..) => write!(f, "ChangeReadyState"),

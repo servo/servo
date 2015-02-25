@@ -315,9 +315,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 chan.send(Some(self.window.native_metadata())).unwrap();
             }
 
-            (Msg::SetLayerOrigin(pipeline_id, layer_id, origin),
+            (Msg::SetLayerRect(pipeline_id, layer_id, rect),
              ShutdownState::NotShuttingDown) => {
-                self.set_layer_origin(pipeline_id, layer_id, origin);
+                self.set_layer_rect(pipeline_id, layer_id, &rect);
             }
 
             (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies), ShutdownState::NotShuttingDown) => {
@@ -721,15 +721,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.composition_request = CompositionRequest::CompositeOnScrollTimeout(timestamp);
     }
 
-    fn set_layer_origin(&mut self,
-                        pipeline_id: PipelineId,
-                        layer_id: LayerId,
-                        new_origin: Point2D<f32>) {
+    fn set_layer_rect(&mut self,
+                      pipeline_id: PipelineId,
+                      layer_id: LayerId,
+                      new_rect: &Rect<f32>) {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
             Some(ref layer) => {
-                layer.bounds.borrow_mut().origin = Point2D::from_untyped(&new_origin)
+                *layer.bounds.borrow_mut() = Rect::from_untyped(new_rect)
             }
-            None => panic!("Compositor received SetLayerOrigin for nonexistent \
+            None => panic!("Compositor received SetLayerRect for nonexistent \
                             layer: {:?}", pipeline_id),
         };
 
