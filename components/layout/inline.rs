@@ -1118,6 +1118,7 @@ impl Flow for InlineFlow {
         debug!("InlineFlow::assign_inline_sizes: floats in: {:?}", self.base.floats);
 
         let inline_size = self.base.block_container_inline_size;
+        let container_mode = self.base.block_container_writing_mode;
         self.base.position.size.inline = inline_size;
 
         {
@@ -1137,6 +1138,7 @@ impl Flow for InlineFlow {
             let kid_base = flow::mut_base(kid);
 
             kid_base.block_container_inline_size = inline_size;
+            kid_base.block_container_writing_mode = container_mode;
             kid_base.block_container_explicit_block_size = block_container_explicit_block_size;
         }
     }

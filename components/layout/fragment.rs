@@ -1725,6 +1725,7 @@ impl Fragment {
                     max(block_flow.base.intrinsic_inline_sizes.minimum_inline_size,
                         block_flow.base.intrinsic_inline_sizes.preferred_inline_size);
                 block_flow.base.block_container_inline_size = self.border_box.size.inline;
+                block_flow.base.block_container_writing_mode = self.style.writing_mode;
             }
             SpecificFragmentInfo::ScannedText(ref info) => {
                 // Scanned text fragments will have already had their content inline-sizes assigned
@@ -1974,8 +1975,8 @@ impl Fragment {
                                         relative_containing_block_size: &LogicalSize<Au>,
                                         coordinate_system: CoordinateSystem)
                                         -> Rect<Au> {
-        // FIXME(pcwalton, #2795): Get the real container size.
-        let container_size = Size2D::zero();
+        // FIXME (mbrubeck): Get the real container size, taking vertical writing modes into account.
+        let container_size = Size2D(relative_containing_block_size.inline, relative_containing_block_size.block);
         let border_box = self.border_box.to_physical(self.style.writing_mode, container_size);
         if coordinate_system == CoordinateSystem::Self && self.establishes_stacking_context() {
             return Rect(ZERO_POINT, border_box.size)

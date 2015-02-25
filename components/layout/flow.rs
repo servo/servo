@@ -758,6 +758,13 @@ pub struct BaseFlow {
     /// automatic values for `width`.
     pub block_container_inline_size: Au,
 
+    /// The writing mode of the block container of this flow.
+    ///
+    /// FIXME (mbrubeck): Combine this and block_container_inline_size and maybe
+    /// block_container_explicit_block_size into a struct, to guarantee they are set at the same
+    /// time?  Or just store a link to the containing block flow.
+    pub block_container_writing_mode: WritingMode,
+
     /// The block-size of the block container of this flow, if it is an explicit size (does not
     /// depend on content heights).  Used for computing percentage values for `height`.
     pub block_container_explicit_block_size: Option<Au>,
@@ -924,6 +931,7 @@ impl BaseFlow {
             absolute_static_i_offset: Au(0),
             fixed_static_i_offset: Au(0),
             block_container_inline_size: Au(0),
+            block_container_writing_mode: writing_mode,
             block_container_explicit_block_size: None,
             absolute_cb: ContainingBlockLink::new(),
             display_list_building_result: DisplayListBuildingResult::None,
