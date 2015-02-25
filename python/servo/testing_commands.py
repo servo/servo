@@ -124,9 +124,6 @@ class MachCommands(CommandBase):
                 if c != "servo":
                     ret = ret or cargo_test(c)
 
-        print("WARNING: test-unit has probably destroyed your servo binary "
-              " (see https://github.com/rust-lang/cargo/issues/961 ). You "
-              " may want to rebuild now.")
         return ret
 
     @Command('test-ref',
