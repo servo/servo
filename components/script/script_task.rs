@@ -50,7 +50,7 @@ use script_traits::ScriptTaskFactory;
 use msg::compositor_msg::ReadyState::{FinishedLoading, Loading, PerformingLayout};
 use msg::compositor_msg::{LayerId, ScriptListener};
 use msg::constellation_msg::{ConstellationChan};
-use msg::constellation_msg::{LoadData, NavigationDirection, PipelineId, SubpageId};
+use msg::constellation_msg::{LoadData, PipelineId, SubpageId};
 use msg::constellation_msg::{Failure, Msg, WindowSizeData, Key, KeyState};
 use msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT};
 use msg::constellation_msg::{PipelineExitType};
@@ -108,9 +108,6 @@ pub enum ScriptMsg {
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptTask).
     TriggerLoad(PipelineId, LoadData),
-    /// Instructs the script task to send a navigate message to
-    /// the constellation (only dispatched to ScriptTask).
-    Navigate(NavigationDirection),
     /// Fires a JavaScript timeout
     /// TimerSource must be FromWindow when dispatched to ScriptTask and
     /// must be FromWorker when dispatched to a DedicatedGlobalWorkerScope
@@ -597,8 +594,6 @@ impl ScriptTask {
                 self.handle_fire_timer_msg(id, timer_id),
             ScriptMsg::FireTimer(TimerSource::FromWorker, _) =>
                 panic!("Worker timeouts must not be sent to script task"),
-            ScriptMsg::Navigate(direction) =>
-                self.handle_navigate_msg(direction),
             ScriptMsg::ExitWindow(id) =>
                 self.handle_exit_window_msg(id),
             ScriptMsg::DOMMessage(..) =>
@@ -701,13 +696,6 @@ impl ScriptTask {
         }
 
         self.compositor.borrow_mut().set_ready_state(pipeline_id, FinishedLoading);
-    }
-
-    /// Handles a navigate forward or backward message.
-    /// TODO(tkuehn): is it ever possible to navigate only on a subframe?
-    fn handle_navigate_msg(&self, direction: NavigationDirection) {
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::Navigate(direction)).unwrap();
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
