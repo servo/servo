@@ -246,7 +246,7 @@ impl<'a> EventMethods for JSRef<'a, Event> {
 
 pub trait EventHelpers {
     fn set_trusted(self, trusted: bool);
-    fn fire(self, target: JSRef<EventTarget>);
+    fn fire(self, target: JSRef<EventTarget>) -> bool;
 }
 
 impl<'a> EventHelpers for JSRef<'a, Event> {
@@ -255,8 +255,8 @@ impl<'a> EventHelpers for JSRef<'a, Event> {
     }
 
     // https://html.spec.whatwg.org/multipage/webappapis.html#fire-a-simple-event
-    fn fire(self, target: JSRef<EventTarget>) {
+    fn fire(self, target: JSRef<EventTarget>) -> bool {
         self.set_trusted(true);
-        target.dispatch_event(self);
+        target.dispatch_event(self)
     }
 }
