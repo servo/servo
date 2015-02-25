@@ -108,9 +108,6 @@ pub enum ScriptMsg {
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptTask).
     TriggerLoad(PipelineId, LoadData),
-    /// Instructs the script task to send a navigate message to
-    /// the constellation (only dispatched to ScriptTask).
-    Navigate(NavigationDirection),
     /// Fires a JavaScript timeout
     /// TimerSource must be FromWindow when dispatched to ScriptTask and
     /// must be FromWorker when dispatched to a DedicatedGlobalWorkerScope
@@ -597,8 +594,6 @@ impl ScriptTask {
                 self.handle_fire_timer_msg(id, timer_id),
             ScriptMsg::FireTimer(TimerSource::FromWorker, _) =>
                 panic!("Worker timeouts must not be sent to script task"),
-            ScriptMsg::Navigate(direction) =>
-                self.handle_navigate_msg(direction),
             ScriptMsg::ExitWindow(id) =>
                 self.handle_exit_window_msg(id),
             ScriptMsg::DOMMessage(..) =>
