@@ -21,7 +21,7 @@ use geom::SideOffsets2D;
 
 use values::specified::BorderStyle;
 use values::computed::{self, ToComputedValue};
-use selector_matching::DeclarationBlock;
+use selectors::matching::DeclarationBlock;
 use parser::{ParserContext, log_css_error};
 use stylesheets::Origin;
 use computed_values;
@@ -1443,7 +1443,7 @@ pub mod longhands {
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
-        #[derive(PartialEq, Eq, Copy, Clone)]
+        #[derive(PartialEq, Eq, Copy, Clone, Debug)]
         pub struct SpecifiedValue {
             pub underline: bool,
             pub overline: bool,
@@ -1495,8 +1495,8 @@ pub mod longhands {
             }
             let mut blink = false;
             let mut empty = true;
-            loop {
-                match_ignore_ascii_case! { try!(input.expect_ident()),
+            while let Ok(ident) = input.expect_ident() {
+                match_ignore_ascii_case! { ident,
                     "underline" => if result.underline { return Err(()) }
                                   else { empty = false; result.underline = true },
                     "overline" => if result.overline { return Err(()) }
@@ -1521,7 +1521,7 @@ pub mod longhands {
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
-        #[derive(Clone, PartialEq, Copy)]
+        #[derive(Clone, PartialEq, Copy, Debug)]
         pub struct SpecifiedValue {
             pub underline: Option<RGBA>,
             pub overline: Option<RGBA>,
@@ -1574,7 +1574,6 @@ pub mod longhands {
             if result.line_through.is_none() {
                 result.line_through = maybe(context.text_decoration.line_through, context)
             }
-
             result
         }
 
@@ -3180,7 +3179,7 @@ fn initial_writing_mode_is_empty() {
 
 /// Fast path for the function below. Only computes new inherited styles.
 #[allow(unused_mut)]
-fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock],
+fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
                                     shareable: bool,
                                     parent_style: &ComputedValues,
                                     cached_style: &ComputedValues,
@@ -3283,7 +3282,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock]
 ///     this is ignored.
 ///
 /// Returns the computed values and a boolean indicating whether the result is cacheable.
-pub fn cascade(applicable_declarations: &[DeclarationBlock],
+pub fn cascade(applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
                shareable: bool,
                parent_style: Option< &ComputedValues >,
                cached_style: Option< &ComputedValues >)

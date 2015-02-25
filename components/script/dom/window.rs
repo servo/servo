@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::global::global_object_for_js_object;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{report_pending_exception, Fallible};
 use dom::bindings::error::Error::InvalidCharacter;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
@@ -335,6 +335,8 @@ pub trait WindowHelpers {
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
     fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>>;
+    fn thaw(self);
+    fn freeze(self);
 }
 
 pub trait ScriptHelpers {
@@ -362,6 +364,7 @@ impl<'a, T: Reflectable> ScriptHelpers for JSRef<'a, T> {
                                        code.len() as libc::c_uint,
                                        filename.as_ptr(), 1, &mut rval) == 0 {
                     debug!("error evaluating JS string");
+                    report_pending_exception(cx, global);
                 }
                 rval
             }
@@ -404,6 +407,15 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>> {
         None
     }
+
+    fn thaw(self) {
+        self.timers.resume();
+    }
+
+    fn freeze(self) {
+        self.timers.suspend();
+    }
+
 }
 
 impl Window {

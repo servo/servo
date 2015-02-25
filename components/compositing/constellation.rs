@@ -834,6 +834,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                            pipeline.clone(),
                                            parent.borrow().clone())),
                     NavigationType::Load);
+        // Send message to ScriptTask that will suspend all timers
+        source_frame.pipeline.borrow().freeze();
         self.pipelines.insert(pipeline.id, pipeline);
     }
 
@@ -853,6 +855,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     let old = self.current_frame().as_ref().unwrap();
                     for frame in old.iter() {
                         frame.pipeline.borrow().revoke_paint_permission();
+                        frame.pipeline.borrow().freeze();
                     }
                 }
                 self.navigation_context.forward(&mut *self.compositor_proxy)
@@ -865,6 +868,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     let old = self.current_frame().as_ref().unwrap();
                     for frame in old.iter() {
                         frame.pipeline.borrow().revoke_paint_permission();
+                        frame.pipeline.borrow().freeze();
                     }
                 }
                 self.navigation_context.back(&mut *self.compositor_proxy)
@@ -873,6 +877,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         for frame in destination_frame.iter() {
             frame.pipeline.borrow().load();
+            frame.pipeline.borrow().thaw();
         }
         self.send_frame_tree_and_grant_paint_permission(destination_frame);
 

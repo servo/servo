@@ -1232,8 +1232,9 @@ impl BlockFlow {
         self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
     }
 
-    // Our inline-size was set to the inline-size of the containing block by the flow's parent.
-    // This computes the real value, and is run in the `AssignISizes` traversal.
+    /// Compute inline size based using the `block_container_inline_size` set by the parent flow.
+    ///
+    /// This is run in the `AssignISizes` traversal.
     pub fn propagate_and_compute_used_inline_size(&mut self, layout_context: &LayoutContext) {
         let containing_block_inline_size = self.base.block_container_inline_size;
         self.compute_used_inline_size(layout_context, containing_block_inline_size);

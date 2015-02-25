@@ -7,7 +7,6 @@
 #![feature(box_syntax)]
 #![feature(core)]
 #![feature(std_misc)]
-#![feature(hash)]
 #![feature(collections)]
 #![feature(rustc_private)]
 
@@ -30,6 +29,7 @@ extern crate matches;
 
 extern crate encoding;
 extern crate string_cache;
+extern crate selectors;
 
 #[macro_use]
 extern crate lazy_static;
@@ -41,7 +41,6 @@ extern crate util;
 
 pub mod stylesheets;
 pub mod parser;
-pub mod selectors;
 pub mod selector_matching;
 #[macro_use] pub mod values;
 

@@ -219,7 +219,7 @@ pub struct ScriptTask {
     /// The JSContext.
     js_context: DOMRefCell<Option<Rc<Cx>>>,
 
-    mouse_over_targets: DOMRefCell<Option<Vec<JS<Node>>>>
+    mouse_over_targets: DOMRefCell<Vec<JS<Node>>>
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
@@ -382,7 +382,7 @@ impl ScriptTask {
 
             js_runtime: js_runtime,
             js_context: DOMRefCell::new(Some(js_context)),
-            mouse_over_targets: DOMRefCell::new(None)
+            mouse_over_targets: DOMRefCell::new(vec!())
         }
     }
 
@@ -579,6 +579,10 @@ impl ScriptTask {
                 panic!("should have handled ExitPipeline already"),
             ConstellationControlMsg::GetTitle(pipeline_id) =>
                 self.handle_get_title_msg(pipeline_id),
+            ConstellationControlMsg::Freeze(pipeline_id) =>
+                self.handle_freeze_msg(pipeline_id),
+            ConstellationControlMsg::Thaw(pipeline_id) =>
+                self.handle_thaw_msg(pipeline_id)
         }
     }
 
@@ -660,6 +664,26 @@ impl ScriptTask {
         let frame = page.frame();
         let window = frame.as_ref().unwrap().window.root();
         window.r().handle_fire_timer(timer_id);
+    }
+
+    /// Handles freeze message
+    fn handle_freeze_msg(&self, id: PipelineId) {
+        let page = self.page.borrow_mut();
+        let page = page.find(id).expect("ScriptTask: received freeze msg for a
+                    pipeline ID not associated with this script task. This is a bug.");
+        let frame = page.frame();
+        let window = frame.as_ref().unwrap().window.root();
+        window.r().freeze();
+    }
+
+    /// Handles thaw message
+    fn handle_thaw_msg(&self, id: PipelineId) {
+        let page = self.page.borrow_mut();
+        let page = page.find(id).expect("ScriptTask: received thaw msg for a
+                            pipeline ID not associated with this script task. This is a bug.");
+        let frame = page.frame();
+        let window = frame.as_ref().unwrap().window.root();
+        window.r().thaw();
     }
 
     /// Handles a notification that reflow completed.
@@ -991,10 +1015,7 @@ impl ScriptTask {
                 let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();
 
                 if document.r().handle_mouse_move_event(self.js_runtime.ptr, point, mouse_over_targets) {
-
-                    if mouse_over_targets.is_some() {
-                        self.force_reflow(&page)
-                    }
+                    self.force_reflow(&page)
                 }
             }
 
@@ -1154,7 +1175,6 @@ impl ScriptTask {
             self.force_reflow(&*page);
         }
     }
-
 }
 
 /// Shuts down layout for the given page tree.

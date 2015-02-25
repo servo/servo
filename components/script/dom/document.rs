@@ -200,7 +200,8 @@ pub trait DocumentHelpers<'a> {
     fn send_title_to_compositor(self);
     fn dirty_all_nodes(self);
     fn handle_click_event(self, js_runtime: *mut JSRuntime, _button: uint, point: Point2D<f32>);
-    fn handle_mouse_move_event(self, js_runtime: *mut JSRuntime, point: Point2D<f32>, mouse_over_targets: &mut Option<Vec<JS<Node>>>) -> bool;
+    fn handle_mouse_move_event(self, js_runtime: *mut JSRuntime, point: Point2D<f32>,
+                               prev_mouse_over_targets: &mut Vec<JS<Node>>) -> bool;
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -453,89 +454,73 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         }
     }
 
-    fn handle_mouse_move_event (self, js_runtime: *mut JSRuntime, point: Point2D<f32>, mouse_over_targets: &mut Option<Vec<JS<Node>>>) -> bool{
+    fn handle_mouse_move_event(self, js_runtime: *mut JSRuntime, point: Point2D<f32>,
+                               prev_mouse_over_targets: &mut Vec<JS<Node>>) -> bool {
         let window = self.window.root();
         let window = window.r();
         let page = window.page();
-        match page.get_nodes_under_mouse(&point) {
-            Some(node_address) => {
-                let mut target_list = vec!();
-                let mut target_compare = false;
+        let mut needs_reflow = false;
+        // Build a list of elements that are currently under the mouse.
+        let mouse_over_addresses = page.get_nodes_under_mouse(&point);
+        let mouse_over_targets: Vec<JS<Node>> = mouse_over_addresses.iter()
+                                                                    .filter_map(|node_address| {
+            let node = node::from_untrusted_node_address(js_runtime, *node_address);
+            node.root().r().inclusive_ancestors().find(|node| node.is_element()).map(JS::from_rooted)
+        }).collect();
 
-                match *mouse_over_targets {
-                    Some(ref mut mouse_over_targets) => {
-                        for node in mouse_over_targets.iter_mut() {
-                            let node = node.root();
-                            node.r().set_hover_state(false);
-                        }
-                    }
-                    None => {}
-                }
-
-                if node_address.len() > 0 {
-                    let top_most_node =
-                        node::from_untrusted_node_address(js_runtime, node_address[0]).root();
-
-                    if let Some(ref frame) = *page.frame() {
-                        let window = frame.window.root();
-
-                        let x = point.x.to_i32().unwrap_or(0);
-                        let y = point.y.to_i32().unwrap_or(0);
-
-                        let mouse_event = MouseEvent::new(window.r(),
-                            "mousemove".to_owned(),
-                            true,
-                            true,
-                            Some(window.r()),
-                            0i32,
-                            x, y, x, y,
-                            false, false, false, false,
-                            0i16,
-                            None).root();
-
-                        let event: JSRef<Event> = EventCast::from_ref(mouse_event.r());
-                        let target: JSRef<EventTarget> = EventTargetCast::from_ref(top_most_node.r());
-                        event.fire(target);
-                    }
-                }
-
-                for node_address in node_address.iter() {
-                    let temp_node =
-                        node::from_untrusted_node_address(js_runtime, *node_address).root();
-
-                    let maybe_node = temp_node.r().ancestors().find(|node| node.is_element());
-                    match maybe_node {
-                        Some(node) => {
-                            node.set_hover_state(true);
-                            match *mouse_over_targets {
-                                Some(ref mouse_over_targets) if !target_compare => {
-                                    target_compare =
-                                        !mouse_over_targets.contains(&JS::from_rooted(node));
-                                }
-                                _ => {}
-                            }
-                            target_list.push(JS::from_rooted(node));
-                        }
-                        None => {}
-                    }
-                }
-                match *mouse_over_targets {
-                    Some(ref mouse_over_targets) => {
-                        if mouse_over_targets.len() != target_list.len() {
-                            target_compare = true
-                        }
-                    }
-                    None => target_compare = true,
-                }
-
-                if target_compare {
-                    *mouse_over_targets = Some(target_list);
-                }
-                target_compare
+        // Remove hover from any elements in the previous list that are no longer
+        // under the mouse.
+        //let prev_mouse_over_targets = &mut self.mouse_over_targets.borrow_mut();
+        for target in prev_mouse_over_targets.iter() {
+            if !mouse_over_targets.contains(target) {
+                target.root().r().set_hover_state(false);
+                needs_reflow = true;
             }
-
-            None => false
         }
+
+        // Set hover state for any elements in the current mouse over list.
+        // Check if any of them changed state to determine whether to
+        // force a reflow below.
+        for target in mouse_over_targets.iter() {
+            let target = target.root();
+            let target_ref = target.r();
+            if !target_ref.get_hover_state() {
+                target_ref.set_hover_state(true);
+                needs_reflow = true;
+            }
+        }
+
+        // Send mousemove event to topmost target
+        if mouse_over_addresses.len() > 0 {
+            let top_most_node =
+                node::from_untrusted_node_address(js_runtime, mouse_over_addresses[0]).root();
+
+            if let Some(ref frame) = *page.frame() {
+                let window = frame.window.root();
+
+                let x = point.x.to_i32().unwrap_or(0);
+                let y = point.y.to_i32().unwrap_or(0);
+
+                let mouse_event = MouseEvent::new(window.r(),
+                    "mousemove".to_owned(),
+                    true,
+                    true,
+                    Some(window.r()),
+                    0i32,
+                    x, y, x, y,
+                    false, false, false, false,
+                    0i16,
+                    None).root();
+
+                let event: JSRef<Event> = EventCast::from_ref(mouse_event.r());
+                let target: JSRef<EventTarget> = EventTargetCast::from_ref(top_most_node.r());
+                event.fire(target);
+            }
+        }
+
+        // Store the current mouse over targets for next frame
+        *prev_mouse_over_targets = mouse_over_targets;
+        needs_reflow
     }
 }
 
