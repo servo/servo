@@ -250,3 +250,4 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == text_align_complex_a.html text_align_complex_ref.html
 == percentage_height_root.html percentage_height_root_ref.html
 == canvas_transform_a.html canvas_transform_ref.html
+!= text_decoration_smoke_a.html text_decoration_smoke_ref.html
