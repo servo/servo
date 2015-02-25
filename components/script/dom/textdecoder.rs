@@ -67,7 +67,7 @@ impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
                   input: *mut JSObject,
                   options: &TextDecoderBinding::TextDecodeOptions) -> DOMString {
         let stream: *const uint8_t = JS_GetUint8ArrayData(input, cx) as *const uint8_t;
-        let trap = if fatal { DecoderTrap::Strict } else { DecoderTrap::Replace };
+        let trap = if self.fatal { DecoderTrap::Strict } else { DecoderTrap::Replace };
         unsafe { self.encoding.decode(stream as &[u8], trap).unwrap() };
     }
 
