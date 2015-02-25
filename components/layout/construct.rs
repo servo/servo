@@ -1170,8 +1170,9 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // results of children.
             (display::T::none, _, _) => {
                 for child in node.children() {
-                    drop(child.swap_out_construction_result())
+                    child.set_flow_construction_result(ConstructionResult::None);
                 }
+                node.set_flow_construction_result(ConstructionResult::None);
             }
 
             // Table items contribute table flow construction results.
