@@ -5,10 +5,11 @@
 //! Implements sequential traversals over the DOM and flow trees.
 
 use context::{LayoutContext, SharedLayoutContext};
-use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, PostorderFlowTraversal};
-use flow::{PreorderFlowTraversal};
+use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtils};
+use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow_ref::FlowRef;
 use fragment::FragmentBorderBoxIterator;
+use generated_content::ResolveGeneratedContent;
 use traversal::{BubbleISizes, RecalcStyleForNode, ConstructFlows};
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
 use traversal::{ComputeAbsolutePositions, BuildDisplayList};
@@ -37,6 +38,24 @@ pub fn traverse_dom_preorder(root: LayoutNode,
     let construct_flows = ConstructFlows     { layout_context: &layout_context };
 
     doit(root, recalc_style, construct_flows);
+}
+
+pub fn resolve_generated_content(root: &mut FlowRef, shared_layout_context: &SharedLayoutContext) {
+    fn doit(flow: &mut Flow, level: u32, traversal: &mut ResolveGeneratedContent) {
+        if !traversal.should_process(flow) {
+            return
+        }
+
+        traversal.process(flow, level);
+
+        for kid in flow::mut_base(flow).children.iter_mut() {
+            doit(kid, level + 1, traversal)
+        }
+    }
+
+    let layout_context = LayoutContext::new(shared_layout_context);
+    let mut traversal = ResolveGeneratedContent::new(&layout_context);
+    doit(&mut **root, 0, &mut traversal)
 }
 
 pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
@@ -119,3 +138,4 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
 
     doit(&mut **root, iterator, &ZERO_POINT);
 }
+

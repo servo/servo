@@ -250,3 +250,8 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == text_align_complex_a.html text_align_complex_ref.html
 == percentage_height_root.html percentage_height_root_ref.html
 == canvas_transform_a.html canvas_transform_ref.html
+== counters_simple_a.html counters_simple_ref.html
+== counters_nested_a.html counters_nested_ref.html
+== quotes_simple_a.html quotes_simple_ref.html
+== ol_simple_a.html ol_simple_ref.html
+== ol_japanese_iroha_a.html ol_japanese_iroha_ref.html
