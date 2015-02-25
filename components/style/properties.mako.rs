@@ -1443,7 +1443,7 @@ pub mod longhands {
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
-        #[derive(PartialEq, Eq, Copy, Clone)]
+        #[derive(PartialEq, Eq, Copy, Clone, Debug)]
         pub struct SpecifiedValue {
             pub underline: bool,
             pub overline: bool,
@@ -1495,8 +1495,8 @@ pub mod longhands {
             }
             let mut blink = false;
             let mut empty = true;
-            loop {
-                match_ignore_ascii_case! { try!(input.expect_ident()),
+            while let Ok(ident) = input.expect_ident() {
+                match_ignore_ascii_case! { ident,
                     "underline" => if result.underline { return Err(()) }
                                   else { empty = false; result.underline = true },
                     "overline" => if result.overline { return Err(()) }
@@ -1521,7 +1521,7 @@ pub mod longhands {
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
-        #[derive(Clone, PartialEq, Copy)]
+        #[derive(Clone, PartialEq, Copy, Debug)]
         pub struct SpecifiedValue {
             pub underline: Option<RGBA>,
             pub overline: Option<RGBA>,
@@ -1574,7 +1574,6 @@ pub mod longhands {
             if result.line_through.is_none() {
                 result.line_through = maybe(context.text_decoration.line_through, context)
             }
-
             result
         }
 
