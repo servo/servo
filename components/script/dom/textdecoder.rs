@@ -26,24 +26,22 @@ use std::borrow::ToOwned;
 pub struct TextDecoder {
     reflector_: Reflector,
     encoding: EncodingRef,
-    fatal: bool,
-    ignoreBOM: bool
+    fatal: bool
 }
 
 no_jsmanaged_fields!(EncodingRef);
 
 impl TextDecoder {
-    fn new_inherited(encoding: EncodingRef, fatal: bool, ignoreBOM: bool) -> TextDecoder {
+    fn new_inherited(encoding: EncodingRef, fatal: bool) -> TextDecoder {
         TextDecoder {
             reflector_: Reflector::new(),
             encoding: encoding,
-            fatal: fatal,
-            ignoreBOM: ignoreBOM
+            fatal: fatal
         }
     }
 
-    pub fn new(global: GlobalRef, encoding: EncodingRef, fatal: bool, ignoreBOM: bool) -> Temporary<TextDecoder> {
-        reflect_dom_object(box TextDecoder::new_inherited(encoding, fatal, ignoreBOM),
+    pub fn new(global: GlobalRef, encoding: EncodingRef, fatal: bool) -> Temporary<TextDecoder> {
+        reflect_dom_object(box TextDecoder::new_inherited(encoding, fatal),
                            global,
                            TextDecoderBinding::Wrap)
     }
@@ -57,18 +55,15 @@ impl TextDecoder {
             Some(enc) => enc,
             None      => return Err(Syntax) // FIXME: Should throw a RangeError as per spec
         };
-        Ok(TextDecoder::new(global, encoding, options.fatal, options.ignoreBOM))
+        Ok(TextDecoder::new(global, encoding, options.fatal))
     }
 }
 
 impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
-    pub fn Decode(self,
-                  cx: *mut JSContext,
-                  input: *mut JSObject,
-                  options: &TextDecoderBinding::TextDecodeOptions) -> DOMString {
+    pub fn Decode(self, cx: *mut JSContext, input: *mut JSObject) -> DOMString {
         let stream: *const uint8_t = JS_GetUint8ArrayData(input, cx) as *const uint8_t;
         let trap = if self.fatal { DecoderTrap::Strict } else { DecoderTrap::Replace };
-        unsafe { self.encoding.decode(stream as &[u8], trap).unwrap() };
+        unsafe { self.encoding.decode(stream as &[u8], trap).unwrap() }
     }
 
     fn Encoding(self) -> DOMString {
@@ -80,6 +75,6 @@ impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
     }
 
     fn IgnoreBOM(self) -> bool {
-        self.ignoreBOM
+        false
     }
 }
