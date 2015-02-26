@@ -74,7 +74,7 @@ use util::task_state;
 use geom::Rect;
 use geom::point::Point2D;
 use hyper::header::{LastModified, Headers};
-use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
+use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ};
 use js::jsapi::{JSContext, JSRuntime, JSObject};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
@@ -845,14 +845,16 @@ impl ScriptTask {
         let window = page.window().root();
         if window.r().pipeline() == id {
             debug!("shutting down layout for root page {:?}", id);
+            // To ensure the elements of the DOM tree remain usable (such as the window global),
+            // don't free the JS context until all interactions with it are finished.
+            shut_down_layout(&page, exit_type);
             *self.js_context.borrow_mut() = None;
-            shut_down_layout(&page, (*self.js_runtime).ptr, exit_type);
             return true
         }
 
         // otherwise find just the matching page and exit all sub-pages
         if let Some(ref mut child_page) = page.remove(id) {
-            shut_down_layout(&*child_page, (*self.js_runtime).ptr, exit_type);
+            shut_down_layout(&*child_page, exit_type);
         }
         return false;
     }
@@ -1167,7 +1169,7 @@ impl ScriptTask {
 }
 
 /// Shuts down layout for the given page tree.
-fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime, exit_type: PipelineExitType) {
+fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
     let mut channels = vec!();
 
     for page in page_tree.iter() {
@@ -1182,17 +1184,12 @@ fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime, exit_type: Pipelin
         }
     }
 
-    // Drop our references to the JSContext and DOM objects, potentially triggering a GC.
+    // Drop our references to the JSContext and DOM objects.
     for page in page_tree.iter() {
         let window = page.window().root();
         window.r().clear_js_context();
+        // Sever the connection between the global and the DOM tree
         page.set_frame(None);
-    }
-
-    // Force a GC to make sure that our DOM reflectors are released before we tell
-    // layout to exit.
-    unsafe {
-        JS_GC(rt);
     }
 
     // Destroy the layout task. If there were node leaks, layout will now crash safely.

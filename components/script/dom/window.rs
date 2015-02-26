@@ -461,6 +461,9 @@ impl<'a, T: Reflectable> ScriptHelpers for JSRef<'a, T> {
 
 impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn clear_js_context(self) {
+        let document = self.Document().root();
+        NodeCast::from_ref(document.r()).teardown();
+
         *self.js_context.borrow_mut() = None;
         *self.browser_context.borrow_mut() = None;
     }

@@ -490,9 +490,18 @@ pub trait NodeHelpers<'a> {
 
     fn get_unique_id(self) -> String;
     fn summarize(self) -> NodeInfo;
+
+    fn teardown(self);
 }
 
 impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
+    fn teardown(self) {
+        self.layout_data.dispose();
+        for kid in self.children() {
+            kid.teardown();
+        }
+    }
+
     /// Dumps the subtree rooted at this node, for debugging.
     fn dump(self) {
         self.dump_indent(0);
