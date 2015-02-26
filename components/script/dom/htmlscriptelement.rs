@@ -100,6 +100,12 @@ pub trait HTMLScriptElementHelpers {
     // Queues error event
     fn queue_error_event(self);
 
+    /// Dispatch beforescriptexecute event.
+    fn dispatch_before_script_execute_event(self) -> bool;
+
+    /// Dispatch afterscriptexecute event.
+    fn dispatch_after_script_execute_event(self);
+
     /// Dispatch load event.
     fn dispatch_load_event(self);
 
@@ -297,9 +303,9 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         };
 
         // Step 2.b.2.
-        // TODO: Fire a simple event named beforescriptexecute that bubbles and
-        // is cancelable at the script element.
-        // If the event is canceled, then abort these steps.
+        if !self.dispatch_before_script_execute_event() {
+            return;
+        }
 
         // Step 2.b.3.
         // TODO: If the script is from an external file, then increment the
@@ -330,8 +336,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         // doc, if it was incremented in the earlier step.
 
         // Step 2.b.9.
-        // TODO: Fire a simple event named afterscriptexecute that bubbles (but
-        // is not cancelable) at the script element.
+        self.dispatch_after_script_execute_event();
 
         // Step 2.b.10.
         if external {
@@ -359,26 +364,28 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         chan.send(ScriptMsg::RunnableMsg(dispatcher)).unwrap();
     }
 
+    fn dispatch_before_script_execute_event(self) -> bool {
+        self.dispatch_event("beforescriptexecute".to_owned(),
+                            EventBubbles::Bubbles,
+                            EventCancelable::Cancelable)
+    }
+
+    fn dispatch_after_script_execute_event(self) {
+        self.dispatch_event("afterscriptexecute".to_owned(),
+                            EventBubbles::Bubbles,
+                            EventCancelable::NotCancelable);
+    }
+
     fn dispatch_load_event(self) {
-        let window = window_from_node(self).root();
-        let window = window.r();
-        let event = Event::new(GlobalRef::Window(window),
-                               "load".to_owned(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        event.r().fire(target);
+        self.dispatch_event("load".to_owned(),
+                            EventBubbles::DoesNotBubble,
+                            EventCancelable::NotCancelable);
     }
 
     fn dispatch_error_event(self) {
-        let window = window_from_node(self).root();
-        let window = window.r();
-        let event = Event::new(GlobalRef::Window(window),
-                               "error".to_owned(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        event.r().fire(target);
+        self.dispatch_event("error".to_owned(),
+                            EventBubbles::DoesNotBubble,
+                            EventCancelable::NotCancelable);
     }
 
     fn is_javascript(self) -> bool {
@@ -417,6 +424,30 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
 
     fn mark_already_started(self) {
         self.already_started.set(true);
+    }
+}
+
+trait PrivateHTMLScriptElementHelpers {
+    fn dispatch_event(self,
+                      type_: DOMString,
+                      bubbles: EventBubbles,
+                      cancelable: EventCancelable) -> bool;
+}
+
+impl<'a> PrivateHTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
+    fn dispatch_event(self,
+                      type_: DOMString,
+                      bubbles: EventBubbles,
+                      cancelable: EventCancelable) -> bool {
+        let window = window_from_node(self).root();
+        let window = window.r();
+        let event = Event::new(GlobalRef::Window(window),
+                               type_,
+                               bubbles,
+                               cancelable).root();
+        let event = event.r();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        event.fire(target)
     }
 }
 
