@@ -98,6 +98,8 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetByteStringAttributeNullable(self, _: Option<ByteString>) {}
     fn GetStringAttributeNullable(self) -> Option<DOMString> { Some("".to_owned()) }
     fn SetStringAttributeNullable(self, _: Option<DOMString>) {}
+    fn SetBinaryRenamedAttribute(self, _: DOMString) {}
+    fn BinaryRenamedAttribute(self) -> DOMString { "".to_owned() }
     fn GetEnumAttributeNullable(self) -> Option<TestEnum> { Some(_empty) }
     fn GetInterfaceAttributeNullable(self) -> Option<Temporary<Blob>> {
         let global = self.global.root();
@@ -108,6 +110,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetUnionAttributeNullable(self, _: Option<HTMLElementOrLong>) {}
     fn GetUnion2AttributeNullable(self) -> Option<EventOrString> { Some(eString("".to_owned())) }
     fn SetUnion2AttributeNullable(self, _: Option<EventOrString>) {}
+    fn BinaryRenamedMethod(self) -> () {}
     fn ReceiveVoid(self) -> () {}
     fn ReceiveBoolean(self) -> bool { false }
     fn ReceiveByte(self) -> i8 { 0 }

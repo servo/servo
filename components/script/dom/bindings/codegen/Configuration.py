@@ -251,6 +251,20 @@ class Descriptor(DescriptorProvider):
                 else:
                     add('all', [config], attribute)
 
+        self._binaryNames = desc.get('binaryNames', {})
+        self._binaryNames.setdefault('__legacycaller', 'LegacyCall')
+        self._binaryNames.setdefault('__stringifier', 'Stringify')
+
+        for member in self.interface.members:
+            if not member.isAttr() and not member.isMethod():
+                continue
+            binaryName = member.getExtendedAttribute("BinaryName")
+            if binaryName:
+                assert isinstance(binaryName, list)
+                assert len(binaryName) == 1
+                self._binaryNames.setdefault(member.identifier.name,
+                                             binaryName[0])
+
         # Build the prototype chain.
         self.prototypeChain = []
         parent = interface
@@ -259,6 +273,9 @@ class Descriptor(DescriptorProvider):
             parent = parent.parent
         config.maxProtoChainLength = max(config.maxProtoChainLength,
                                          len(self.prototypeChain))
+
+    def binaryNameFor(self, name):
+        return self._binaryNames.get(name, name)
 
     def getExtendedAttributes(self, member, getter=False, setter=False):
         def maybeAppendInfallibleToAttrs(attrs, throws):

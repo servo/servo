@@ -68,13 +68,6 @@ def stripTrailingWhitespace(text):
     return '\n'.join(lines) + tail
 
 def MakeNativeName(name):
-    # The gecko counterpart to this file uses the BinaryName machinery
-    # for this purpose (#4435 is the servo issue for BinaryName).
-    replacements = {
-        "__stringifier": "Stringify",
-    }
-    if name in replacements:
-        return replacements[name]
     return name[0].upper() + name[1:]
 
 builtinNames = {
@@ -2569,7 +2562,8 @@ class CGSpecializedMethod(CGAbstractExternMethod):
 
     @staticmethod
     def makeNativeName(descriptor, method):
-        return MakeNativeName(method.identifier.name)
+        name = method.identifier.name
+        return MakeNativeName(descriptor.binaryNameFor(name))
 
 class CGStaticMethod(CGAbstractStaticBindingMethod):
     """
@@ -2635,7 +2629,8 @@ class CGSpecializedGetter(CGAbstractExternMethod):
 
     @staticmethod
     def makeNativeName(descriptor, attr):
-        nativeName = MakeNativeName(attr.identifier.name)
+        name = attr.identifier.name
+        nativeName = MakeNativeName(descriptor.binaryNameFor(name))
         infallible = ('infallible' in
                       descriptor.getExtendedAttributes(attr, getter=True))
         if attr.type.nullable() or not infallible:
@@ -2713,7 +2708,8 @@ class CGSpecializedSetter(CGAbstractExternMethod):
 
     @staticmethod
     def makeNativeName(descriptor, attr):
-        return "Set" + MakeNativeName(attr.identifier.name)
+        name = attr.identifier.name
+        return "Set" + MakeNativeName(descriptor.binaryNameFor(name))
 
 
 class CGStaticSetter(CGAbstractStaticBindingMethod):
@@ -3569,7 +3565,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
     (don't use this directly, use the derived classes below).
     """
     def __init__(self, descriptor, operation):
-        nativeName = MakeNativeName(operation)
+        nativeName = MakeNativeName(descriptor.binaryNameFor(operation))
         operation = descriptor.operations[operation]
         assert len(operation.signatures()) == 1
         signature = operation.signatures()[0]
@@ -3993,7 +3989,8 @@ class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
     def getBody(self):
         stringifier = self.descriptor.operations['Stringifier']
         if stringifier:
-            nativeName = MakeNativeName(stringifier.identifier.name)
+            name = self.descriptor.binaryNameFor(stringifier.identifier.name)
+            nativeName = MakeNativeName(name)
             signature = stringifier.signatures()[0]
             returnType = signature[0]
             extendedAttributes = self.descriptor.getExtendedAttributes(stringifier)
@@ -4077,7 +4074,8 @@ class CGClassConstructHook(CGAbstractExternMethod):
 let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
 let global = global.root();
 """)
-        nativeName = MakeNativeName(self._ctor.identifier.name)
+        name = self._ctor.identifier.name
+        nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
         callGenerator = CGMethodCall(["global.r()"], nativeName, True,
                                      self.descriptor, self._ctor)
         return CGList([preamble, callGenerator])
@@ -4848,11 +4846,15 @@ class CGCallback(CGClass):
         return self._deps
 
 # We're always fallible
-def callbackGetterName(attr):
-    return "Get" + MakeNativeName(attr.identifier.name)
+def callbackGetterName(attr, descriptor):
+    return "Get" + MakeNativeName(
+        descriptor.binaryNameFor(attr.identifier.name))
 
-def callbackSetterName(attr):
-    return "Set" + MakeNativeName(attr.identifier.name)
+
+def callbackSetterName(attr, descriptor):
+    return "Set" + MakeNativeName(
+        descriptor.binaryNameFor(attr.identifier.name))
+
 
 class CGCallbackFunction(CGCallback):
     def __init__(self, callback, descriptorProvider):
@@ -5179,7 +5181,8 @@ class CallbackOperation(CallbackOperationBase):
         self.ensureASCIIName(method)
         jsName = method.identifier.name
         CallbackOperationBase.__init__(self, signature,
-                                       jsName, MakeNativeName(jsName),
+                                       jsName,
+                                       MakeNativeName(descriptor.binaryNameFor(jsName)),
                                        descriptor, descriptor.interface.isSingleOperationInterface())
 
 class CallbackGetter(CallbackMember):
