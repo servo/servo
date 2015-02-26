@@ -709,6 +709,12 @@ impl LayoutTask {
                                                        color,
                                                        ScrollPolicy::Scrollable));
             let origin = Rect(Point2D(Au(0), Au(0)), root_size);
+
+            if opts::get().dump_display_list {
+                println!("#### start printing display list.");
+                display_list.print_items(String::from_str("#"));
+            }
+
             let stacking_context = Arc::new(StackingContext::new(display_list,
                                                                  &origin,
                                                                  &origin,

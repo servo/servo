@@ -148,6 +148,53 @@ impl DisplayList {
         }
         result
     }
+
+    // Print the display list. Only makes sense to call it after performing reflow.
+    pub fn print_items(&self, mut indentation: String) {
+        let min_length = 4;
+        // We cover the case of an empty string.
+        if indentation.len() == 0 {
+            indentation = String::from_str("####");
+        }
+
+        // We grow the indentation by 4 characters if needed.
+        // I wish to push it all as a slice, but it won't work if the string is a single char.
+        while indentation.len() < min_length {
+            let c = indentation.char_at(0);
+            indentation.push(c);
+        }
+
+        // Closures are so nice!
+        let doit = |items: &Vec<DisplayItem>| {
+            for item in items.iter() {
+                match *item {
+                    // TODO(savago): would be nice to have other information associated with
+                    // each display item (e.g. coordinates?).
+                    DisplayItem::SolidColorClass(ref solid_color) => println!("{} SolidColor.", indentation),
+                    DisplayItem::TextClass(ref text) => println!("{} TextClass.", indentation),
+                    DisplayItem::ImageClass(ref image_item) => println!("{} ImageClass.", indentation),
+                    DisplayItem::BorderClass(ref image_item) => println!("{} BorderClass.", indentation),
+                    DisplayItem::GradientClass(ref image_item) => println!("{} GradientClass.", indentation),
+                    DisplayItem::LineClass(ref line_item) => println!("{} LineClass.", indentation),
+                    DisplayItem::BoxShadowClass(ref box_shadow_item) => println!("{} BoxShadowClass.", indentation),
+                }
+            }
+            println!("\n");
+        };
+
+        doit(&(self.all_display_items()));
+        if self.children.len() != 0 {
+            println!("{} Children stacking contexts list length: {}", indentation, self.children.len());
+            for subitem in self.children.iter() {
+                doit(&subitem.display_list.all_display_items());
+                if subitem.display_list.children.len() != 0 {
+                    // Rant: String doesn't have a substr() method that won't overflow if the
+                    // selected range is bigger than the string length.
+                    subitem.display_list.print_items(indentation.clone()+indentation.slice(0, min_length));
+                }
+            }
+        }
+    }
 }
 
 /// Represents one CSS stacking context, which may or may not have a hardware layer.
