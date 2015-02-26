@@ -6,6 +6,7 @@ use dom::attr::{Attr, AttrHelpers, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -56,6 +57,10 @@ use dom::range::Range;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers};
+
+use msg::compositor_msg::ScriptListener;
+use msg::constellation_msg::{Key, KeyState, KeyModifiers};
+use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
 use net::resource_task::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
 use net::cookie_storage::CookieSource::NonHTTP;
 use script_task::Runnable;
@@ -199,6 +204,8 @@ pub trait DocumentHelpers<'a> {
     fn send_title_to_compositor(self);
     fn dirty_all_nodes(self);
     fn handle_click_event(self, js_runtime: *mut JSRuntime, _button: uint, point: Point2D<f32>);
+    fn dispatch_key_event(self, key: Key, state: KeyState,
+        modifiers: KeyModifiers, compositor: &mut Box<ScriptListener+'static>);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -449,6 +456,84 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             }
             None => {}
         }
+    }
+
+    /// The entry point for all key processing for web content
+    fn dispatch_key_event(self, key: Key,
+                          state: KeyState,
+                          modifiers: KeyModifiers,
+                          compositor: &mut Box<ScriptListener+'static>) {
+        let window = self.window.root();
+        let focused = self.get_focused_element().root();
+        let body = self.GetBody().root();
+
+        let target: JSRef<EventTarget> = match (&focused, &body) {
+            (&Some(ref focused), _) => EventTargetCast::from_ref(focused.r()),
+            (&None, &Some(ref body)) => EventTargetCast::from_ref(body.r()),
+            (&None, &None) => EventTargetCast::from_ref(window.r()),
+        };
+
+        let ctrl = modifiers.contains(CONTROL);
+        let alt = modifiers.contains(ALT);
+        let shift = modifiers.contains(SHIFT);
+        let meta = modifiers.contains(SUPER);
+
+        let is_composing = false;
+        let is_repeating = state == KeyState::Repeated;
+        let ev_type = match state {
+            KeyState::Pressed | KeyState::Repeated => "keydown",
+            KeyState::Released => "keyup",
+        }.to_owned();
+
+        let props = KeyboardEvent::key_properties(key, modifiers);
+
+        let keyevent = KeyboardEvent::new(window.r(), ev_type, true, true,
+                                          Some(window.r()), 0,
+                                          props.key.to_owned(), props.code.to_owned(),
+                                          props.location, is_repeating, is_composing,
+                                          ctrl, alt, shift, meta,
+                                          None, props.key_code).root();
+        let event = EventCast::from_ref(keyevent.r());
+        let _ = target.DispatchEvent(event);
+        let mut prevented = event.DefaultPrevented();
+
+        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
+        if state != KeyState::Released && props.is_printable() && !prevented {
+            // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
+            let event = KeyboardEvent::new(window.r(), "keypress".to_owned(),
+                                           true, true, Some(window.r()),
+                                           0, props.key.to_owned(), props.code.to_owned(),
+                                           props.location, is_repeating, is_composing,
+                                           ctrl, alt, shift, meta,
+                                           props.char_code, 0).root();
+            let ev = EventCast::from_ref(event.r());
+            let _ = target.DispatchEvent(ev);
+            prevented = ev.DefaultPrevented();
+            // TODO: if keypress event is canceled, prevent firing input events
+        }
+
+        if !prevented {
+            compositor.send_key_event(key, state, modifiers);
+        }
+
+        // This behavior is unspecced
+        // We are supposed to dispatch synthetic click activation for Space and/or Return,
+        // however *when* we do it is up to us
+        // I'm dispatching it after the key event so the script has a chance to cancel it
+        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
+        match key {
+            Key::Space if !prevented && state == KeyState::Released => {
+                let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(target);
+                maybe_elem.map(|el| el.as_maybe_activatable().map(|a| a.synthetic_click_activation(ctrl, alt, shift, meta)));
+            }
+            Key::Enter if !prevented && state == KeyState::Released => {
+                let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(target);
+                maybe_elem.map(|el| el.as_maybe_activatable().map(|a| a.implicit_submission(ctrl, alt, shift, meta)));
+            }
+            _ => ()
+        }
+
+        window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
     }
 }
 
