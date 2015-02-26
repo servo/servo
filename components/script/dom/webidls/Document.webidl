@@ -83,6 +83,7 @@ partial interface Document {
   readonly attribute HTMLCollection anchors;
   readonly attribute HTMLCollection applets;
   NodeList getElementsByName(DOMString elementName);
+  readonly attribute HTMLScriptElement? currentScript;
 
   // special event handler IDL attributes that only apply to Document objects
   [LenientThis] attribute EventHandler onreadystatechange;
