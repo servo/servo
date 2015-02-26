@@ -22,7 +22,7 @@ use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource};
-use dom::element::{Element, ActivationElementHelpers};
+use dom::element::{Element, ActivationElementHelpers, AttributeHandlers};
 use dom::event::{Event, EventHelpers};
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
@@ -59,6 +59,7 @@ use net::image_cache_task::ImageCacheTask;
 use net::resource_task::{ResourceTask, ControlMsg};
 use net::resource_task::LoadData as NetLoadData;
 use net::storage_task::StorageTask;
+use string_cache::Atom;
 use util::geometry::to_frac_px;
 use util::smallvec::SmallVec;
 use util::str::DOMString;
@@ -695,7 +696,13 @@ impl ScriptTask {
             *layout_join_port = None;
         }
 
-        self.compositor.borrow_mut().set_ready_state(pipeline_id, FinishedLoading);
+        let doc = page.frame().as_ref().unwrap().document.root();
+        let html_element = doc.r().GetDocumentElement().root();
+        let reftest_wait = html_element.r().map_or(false, |elem| elem.has_class(&Atom::from_slice("reftest-wait")));
+
+        if !reftest_wait {
+            self.compositor.borrow_mut().set_ready_state(pipeline_id, FinishedLoading);
+        }
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
