@@ -9,9 +9,6 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
-use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLIFrameElementCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
@@ -22,11 +19,10 @@ use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource};
-use dom::element::{Element, ActivationElementHelpers, AttributeHandlers};
+use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event, EventHelpers};
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
-use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
 use dom::node::{self, Node, NodeHelpers, NodeDamage};
 use dom::window::{Window, WindowHelpers, ScriptHelpers};
@@ -51,9 +47,7 @@ use msg::compositor_msg::ReadyState::{FinishedLoading, Loading, PerformingLayout
 use msg::compositor_msg::{LayerId, ScriptListener};
 use msg::constellation_msg::{ConstellationChan};
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId};
-use msg::constellation_msg::{Failure, Msg, WindowSizeData, Key, KeyState};
-use msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT};
-use msg::constellation_msg::{PipelineExitType};
+use msg::constellation_msg::{Failure, Msg, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::{ResourceTask, ControlMsg};
@@ -1009,90 +1003,13 @@ impl ScriptTask {
             }
 
             KeyEvent(key, state, modifiers) => {
-                self.dispatch_key_event(key, state, modifiers, pipeline_id);
+                let page = get_page(&*self.page.borrow(), pipeline_id);
+                let frame = page.frame();
+                let document = frame.as_ref().unwrap().document.root();
+                document.r().dispatch_key_event(
+                    key, state, modifiers, &mut *self.compositor.borrow_mut());
             }
         }
-    }
-
-    /// The entry point for all key processing for web content
-    fn dispatch_key_event(&self, key: Key,
-                          state: KeyState,
-                          modifiers: KeyModifiers,
-                          pipeline_id: PipelineId) {
-        let page = get_page(&*self.page.borrow(), pipeline_id);
-        let frame = page.frame();
-        let window = frame.as_ref().unwrap().window.root();
-        let doc = window.r().Document().root();
-        let focused = doc.r().get_focused_element().root();
-        let body = doc.r().GetBody().root();
-
-        let target: JSRef<EventTarget> = match (&focused, &body) {
-            (&Some(ref focused), _) => EventTargetCast::from_ref(focused.r()),
-            (&None, &Some(ref body)) => EventTargetCast::from_ref(body.r()),
-            (&None, &None) => EventTargetCast::from_ref(window.r()),
-        };
-
-        let ctrl = modifiers.contains(CONTROL);
-        let alt = modifiers.contains(ALT);
-        let shift = modifiers.contains(SHIFT);
-        let meta = modifiers.contains(SUPER);
-
-        let is_composing = false;
-        let is_repeating = state == KeyState::Repeated;
-        let ev_type = match state {
-            KeyState::Pressed | KeyState::Repeated => "keydown",
-            KeyState::Released => "keyup",
-        }.to_owned();
-
-        let props = KeyboardEvent::key_properties(key, modifiers);
-
-        let keyevent = KeyboardEvent::new(window.r(), ev_type, true, true,
-                                          Some(window.r()), 0,
-                                          props.key.to_owned(), props.code.to_owned(),
-                                          props.location, is_repeating, is_composing,
-                                          ctrl, alt, shift, meta,
-                                          None, props.key_code).root();
-        let event = EventCast::from_ref(keyevent.r());
-        let _ = target.DispatchEvent(event);
-        let mut prevented = event.DefaultPrevented();
-
-        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
-        if state != KeyState::Released && props.is_printable() && !prevented {
-            // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
-            let event = KeyboardEvent::new(window.r(), "keypress".to_owned(),
-                                           true, true, Some(window.r()),
-                                           0, props.key.to_owned(), props.code.to_owned(),
-                                           props.location, is_repeating, is_composing,
-                                           ctrl, alt, shift, meta,
-                                           props.char_code, 0).root();
-            let ev = EventCast::from_ref(event.r());
-            let _ = target.DispatchEvent(ev);
-            prevented = ev.DefaultPrevented();
-            // TODO: if keypress event is canceled, prevent firing input events
-        }
-
-        if !prevented {
-            self.compositor.borrow_mut().send_key_event(key, state, modifiers);
-        }
-
-        // This behavior is unspecced
-        // We are supposed to dispatch synthetic click activation for Space and/or Return,
-        // however *when* we do it is up to us
-        // I'm dispatching it after the key event so the script has a chance to cancel it
-        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-        match key {
-            Key::Space if !prevented && state == KeyState::Released => {
-                let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(target);
-                maybe_elem.map(|el| el.as_maybe_activatable().map(|a| a.synthetic_click_activation(ctrl, alt, shift, meta)));
-            }
-            Key::Enter if !prevented && state == KeyState::Released => {
-                let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(target);
-                maybe_elem.map(|el| el.as_maybe_activatable().map(|a| a.implicit_submission(ctrl, alt, shift, meta)));
-            }
-            _ => ()
-        }
-
-        window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
     }
 
     /// The entry point for content to notify that a new load has been requested
