@@ -999,7 +999,14 @@ impl ScriptTask {
             MouseDownEvent(..) => {}
             MouseUpEvent(..) => {}
             MouseMoveEvent(point) => {
-                self.handle_mouse_move_event(pipeline_id, point);
+                let page = get_page(&*self.page.borrow(), pipeline_id);
+                let frame = page.frame();
+                let document = frame.as_ref().unwrap().document.root();
+                let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();
+
+                if document.r().handle_mouse_move_event(self.js_runtime.ptr, point, mouse_over_targets) {
+                    self.force_reflow(&page)
+                }
             }
 
             KeyEvent(key, state, modifiers) => {
@@ -1078,78 +1085,6 @@ impl ScriptTask {
         let page = get_page(&*self.page.borrow(), pipeline_id);
         let frame = page.frame();
         if frame.is_some() {
-            self.force_reflow(&*page);
-        }
-    }
-
-
-    fn handle_mouse_move_event(&self, pipeline_id: PipelineId, point: Point2D<f32>) {
-        let page = get_page(&*self.page.borrow(), pipeline_id);
-        let mut needs_reflow = false;
-
-        // Build a list of elements that are currently under the mouse.
-        let mouse_over_addresses = page.get_nodes_under_mouse(&point);
-        let mouse_over_targets: Vec<JS<Node>> = mouse_over_addresses.iter()
-                                                                    .filter_map(|node_address| {
-            let node = node::from_untrusted_node_address(self.js_runtime.ptr, *node_address);
-            node.root().r().inclusive_ancestors().find(|node| node.is_element()).map(JS::from_rooted)
-        }).collect();
-
-        // Remove hover from any elements in the previous list that are no longer
-        // under the mouse.
-        let prev_mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();
-        for target in prev_mouse_over_targets.iter() {
-            if !mouse_over_targets.contains(target) {
-                target.root().r().set_hover_state(false);
-                needs_reflow = true;
-            }
-        }
-
-        // Set hover state for any elements in the current mouse over list.
-        // Check if any of them changed state to determine whether to
-        // force a reflow below.
-        for target in mouse_over_targets.iter() {
-            let target = target.root();
-            let target_ref = target.r();
-            if !target_ref.get_hover_state() {
-                target_ref.set_hover_state(true);
-                needs_reflow = true;
-            }
-        }
-
-        // Send mousemove event to topmost target
-        if mouse_over_addresses.len() > 0 {
-            let top_most_node =
-                node::from_untrusted_node_address(self.js_runtime.ptr, mouse_over_addresses[0]).root();
-
-            if let Some(ref frame) = *page.frame() {
-                let window = frame.window.root();
-
-                let x = point.x.to_i32().unwrap_or(0);
-                let y = point.y.to_i32().unwrap_or(0);
-
-                let mouse_event = MouseEvent::new(window.r(),
-                    "mousemove".to_owned(),
-                    true,
-                    true,
-                    Some(window.r()),
-                    0i32,
-                    x, y, x, y,
-                    false, false, false, false,
-                    0i16,
-                    None).root();
-
-                let event: JSRef<Event> = EventCast::from_ref(mouse_event.r());
-                let target: JSRef<EventTarget> = EventTargetCast::from_ref(top_most_node.r());
-                event.fire(target);
-            }
-        }
-
-        // Store the current mouse over targets for next frame
-        *prev_mouse_over_targets = mouse_over_targets;
-
-        // Reflow if hover state changed
-        if needs_reflow {
             self.force_reflow(&*page);
         }
     }
