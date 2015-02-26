@@ -170,13 +170,13 @@ impl DisplayList {
                 match *item {
                     // TODO(savago): would be nice to have other information associated with
                     // each display item (e.g. coordinates?).
-                    DisplayItem::SolidColorClass(ref solid_color) => println!("{} SolidColor.", indentation),
-                    DisplayItem::TextClass(ref text) => println!("{} TextClass.", indentation),
-                    DisplayItem::ImageClass(ref image_item) => println!("{} ImageClass.", indentation),
-                    DisplayItem::BorderClass(ref image_item) => println!("{} BorderClass.", indentation),
-                    DisplayItem::GradientClass(ref image_item) => println!("{} GradientClass.", indentation),
-                    DisplayItem::LineClass(ref line_item) => println!("{} LineClass.", indentation),
-                    DisplayItem::BoxShadowClass(ref box_shadow_item) => println!("{} BoxShadowClass.", indentation),
+                    DisplayItem::SolidColorClass(ref _solid_color) => println!("{} SolidColor.", indentation),
+                    DisplayItem::TextClass(ref _text) => println!("{} TextClass.", indentation),
+                    DisplayItem::ImageClass(ref _image) => println!("{} ImageClass.", indentation),
+                    DisplayItem::BorderClass(ref _border) => println!("{} BorderClass.", indentation),
+                    DisplayItem::GradientClass(ref _gradient) => println!("{} GradientClass.", indentation),
+                    DisplayItem::LineClass(ref _line) => println!("{} LineClass.", indentation),
+                    DisplayItem::BoxShadowClass(ref _box_shadow) => println!("{} BoxShadowClass.", indentation),
                 }
             }
             println!("\n");
@@ -190,7 +190,7 @@ impl DisplayList {
                 if subitem.display_list.children.len() != 0 {
                     // Rant: String doesn't have a substr() method that won't overflow if the
                     // selected range is bigger than the string length.
-                    subitem.display_list.print_items(indentation.clone()+indentation.slice(0, min_length));
+                    subitem.display_list.print_items(indentation.clone()+&indentation[0..min_length]);
                 }
             }
         }
