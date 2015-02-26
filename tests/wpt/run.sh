@@ -5,6 +5,11 @@
 set -e
 
 wpt_root=$(dirname $0)
+binary_dir=$wpt_root/../../components/servo/target
+if [[ $1 ==  "--release" ]]; then
+    binary_dir=$binary_dir/release
+    shift
+fi
 
 PYTHON=$(which python2 2> /dev/null || echo python)
 VIRTUALENV=$(which virtualenv2 2> /dev/null || echo virtualenv)
@@ -20,6 +25,6 @@ fi
 
 python $wpt_root/run.py \
   --config $wpt_root/config.ini \
-  --binary $wpt_root/../../components/servo/target/servo \
+  --binary $binary_dir/servo \
   --log-mach - \
   "$@"
