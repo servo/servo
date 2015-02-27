@@ -195,14 +195,17 @@ impl InlineFragmentsAccumulator {
             mut fragments,
             enclosing_style
         } = self;
+        if let Some(enclosing_style) = enclosing_style {
+            let frag_len = fragments.len();
+            for (idx, frag) in fragments.iter_mut().enumerate() {
 
-        match enclosing_style {
-            Some(enclosing_style) => {
-                for frag in fragments.iter_mut() {
-                    frag.add_inline_context_style(enclosing_style.clone());
-                }
+                // frag is first inline fragment in the inline node
+                let is_first = idx == 0;
+                // frag is the last inline fragment in the inline node
+                let is_last = idx == frag_len - 1;
+
+                frag.add_inline_context_style(enclosing_style.clone(), is_first, is_last);
             }
-            None => {}
         }
         fragments
     }
