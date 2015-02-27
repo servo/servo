@@ -208,6 +208,7 @@ class MachCommands(CommandBase):
         return not subprocess.call([
             "bash",
             path.join("tests", "wpt", "run.sh"),
+            "--no-pause-after-test",
             "--include",
             "infrastructure/failing-test.html"
         ], env=self.build_env())
