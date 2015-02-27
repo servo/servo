@@ -10,13 +10,13 @@
 //! with CORSRequest being expanded into FetchRequest (etc)
 
 use std::ascii::AsciiExt;
-use std::fmt::{self, Display};
-use std::str::from_utf8;
 use time;
 use time::{now, Timespec};
 
-use hyper::header::{Headers, Header, HeaderFormat, HeaderView};
-use hyper::header::parsing as header_parsing;
+use hyper::header::{AccessControlRequestMethod, AccessControlAllowMethods};
+use hyper::header::{AccessControlMaxAge, AccessControlAllowOrigin};
+use hyper::header::{AccessControlRequestHeaders, AccessControlAllowHeaders};
+use hyper::header::{Headers, HeaderView};
 use hyper::client::Request;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::header::{ContentType, Host};
@@ -381,150 +381,6 @@ fn is_simple_method(m: &Method) -> bool {
         _ => false
     }
 }
-
-//XXX(seanmonstar): worth uplifting to Hyper?
-#[derive(Clone)]
-struct AccessControlRequestMethod(pub Method);
-
-impl Header for AccessControlRequestMethod {
-    #[inline]
-    fn header_name() -> &'static str {
-        "Access-Control-Request-Method"
-    }
-
-    fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlRequestMethod> {
-        header_parsing::from_one_raw_str(raw).map(AccessControlRequestMethod)
-    }
-}
-
-impl HeaderFormat for AccessControlRequestMethod {
-    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let AccessControlRequestMethod(ref method) = *self;
-        <_ as Display>::fmt(method, f)
-    }
-}
-
-#[derive(Clone)]
-struct AccessControlRequestHeaders(pub Vec<String>);
-
-impl Header for AccessControlRequestHeaders {
-    #[inline]
-    fn header_name() -> &'static str {
-        "Access-Control-Request-Headers"
-    }
-
-    fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlRequestHeaders> {
-        header_parsing::from_comma_delimited(raw).map(AccessControlRequestHeaders)
-    }
-}
-
-impl HeaderFormat for AccessControlRequestHeaders {
-    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let AccessControlRequestHeaders(ref parts) = *self;
-        header_parsing::fmt_comma_delimited(f, parts.as_slice())
-    }
-}
-
-#[derive(Clone)]
-struct AccessControlAllowMethods(pub Vec<Method>);
-
-impl Header for AccessControlAllowMethods {
-    #[inline]
-    fn header_name() -> &'static str {
-        "Access-Control-Allow-Methods"
-    }
-
-    fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlAllowMethods> {
-        header_parsing::from_comma_delimited(raw).map(AccessControlAllowMethods)
-    }
-}
-
-impl HeaderFormat for AccessControlAllowMethods {
-    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let AccessControlAllowMethods(ref parts) = *self;
-        header_parsing::fmt_comma_delimited(f, parts.as_slice())
-    }
-}
-
-#[derive(Clone)]
-struct AccessControlAllowHeaders(pub Vec<String>);
-
-impl Header for AccessControlAllowHeaders {
-    #[inline]
-    fn header_name() -> &'static str {
-        "Access-Control-Allow-Headers"
-    }
-
-    fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlAllowHeaders> {
-        header_parsing::from_comma_delimited(raw).map(AccessControlAllowHeaders)
-    }
-}
-
-impl HeaderFormat for AccessControlAllowHeaders {
-    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let AccessControlAllowHeaders(ref parts) = *self;
-        header_parsing::fmt_comma_delimited(f, parts.as_slice())
-    }
-}
-
-#[derive(Clone)]
-enum AccessControlAllowOrigin {
-    AllowStar,
-    AllowOrigin(Url),
-}
-
-
-impl Header for AccessControlAllowOrigin {
-    #[inline]
-    fn header_name() -> &'static str {
-        "Access-Control-Allow-Origin"
-    }
-
-    fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlAllowOrigin> {
-        if raw.len() == 1 {
-            from_utf8(raw[0].as_slice()).ok().and_then(|s| {
-                if s == "*" {
-                    Some(AccessControlAllowOrigin::AllowStar)
-                } else {
-                    Url::parse(s).ok().map(|url| AccessControlAllowOrigin::AllowOrigin(url))
-                }
-            })
-        } else {
-            None
-        }
-    }
-}
-
-impl HeaderFormat for AccessControlAllowOrigin {
-    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            AccessControlAllowOrigin::AllowStar => <_ as Display>::fmt("*", f),
-            AccessControlAllowOrigin::AllowOrigin(ref url) => <_ as Display>::fmt(url, f)
-        }
-    }
-}
-
-#[derive(Clone)]
-struct AccessControlMaxAge(pub u32);
-
-impl Header for AccessControlMaxAge {
-    #[inline]
-    fn header_name() -> &'static str {
-        "Access-Control-Max-Age"
-    }
-
-    fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlMaxAge> {
-        header_parsing::from_one_raw_str(raw).map(AccessControlMaxAge)
-    }
-}
-
-impl HeaderFormat for AccessControlMaxAge {
-    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let AccessControlMaxAge(ref num) = *self;
-        <_ as Display>::fmt(num, f)
-    }
-}
-
 
 /// Perform a CORS check on a header list and CORS request
 /// http://fetch.spec.whatwg.org/#cors-check
