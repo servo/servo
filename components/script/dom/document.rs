@@ -45,6 +45,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
+use dom::htmlscriptelement::HTMLScriptElement;
 use dom::location::Location;
 use dom::mouseevent::MouseEvent;
 use dom::keyboardevent::KeyboardEvent;
@@ -116,6 +117,8 @@ pub struct Document {
     possibly_focused: MutNullableJS<Element>,
     /// The element that currently has the document focus context.
     focused: MutNullableJS<Element>,
+    /// The script element that is currently executing.
+    current_script: MutNullableJS<HTMLScriptElement>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -206,6 +209,7 @@ pub trait DocumentHelpers<'a> {
     fn handle_click_event(self, js_runtime: *mut JSRuntime, _button: uint, point: Point2D<f32>);
     fn dispatch_key_event(self, key: Key, state: KeyState,
         modifiers: KeyModifiers, compositor: &mut Box<ScriptListener+'static>);
+    fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -535,6 +539,10 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
         window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
     }
+
+    fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>) {
+        self.current_script.assign(script);
+    }
 }
 
 #[derive(PartialEq)]
@@ -601,6 +609,7 @@ impl Document {
             ready_state: Cell::new(ready_state),
             possibly_focused: Default::default(),
             focused: Default::default(),
+            current_script: Default::default(),
         }
     }
 
@@ -1000,6 +1009,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let node: JSRef<Node> = NodeCast::from_ref(root.r());
             node.children().filter_map(HTMLHeadElementCast::to_ref).next().map(Temporary::from_rooted)
         })
+    }
+
+    // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-currentscript
+    fn GetCurrentScript(self) -> Option<Temporary<HTMLScriptElement>> {
+        self.current_script.get()
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
