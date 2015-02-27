@@ -6,7 +6,7 @@
 //! interface helps reduce coupling between these two components, and enables
 //! the DOM to be placed in a separate crate from layout.
 
-use dom::node::LayoutDataRef;
+use dom::node::LayoutData;
 
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -41,7 +41,7 @@ pub enum Msg {
     /// Destroys layout data associated with a DOM node.
     ///
     /// TODO(pcwalton): Maybe think about batching to avoid message traffic.
-    ReapLayoutData(LayoutDataRef),
+    ReapLayoutData(LayoutData),
 
     /// Requests that the layout task enter a quiescent state in which no more messages are
     /// accepted except `ExitMsg`. A response message will be sent on the supplied channel when

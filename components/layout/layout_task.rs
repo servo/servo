@@ -35,7 +35,7 @@ use gfx::paint_task::Msg as PaintMsg;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
 use script::dom::bindings::js::LayoutJS;
-use script::dom::node::{LayoutDataRef, Node, NodeTypeId};
+use script::dom::node::{LayoutData, Node, NodeTypeId};
 use script::dom::element::ElementTypeId;
 use script::dom::htmlelement::HTMLElementTypeId;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse};
@@ -937,11 +937,10 @@ impl LayoutTask {
     }
 
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* task
-    /// because it contains local managed pointers.
-    unsafe fn handle_reap_layout_data(layout_data: LayoutDataRef) {
-        let mut layout_data_ref = layout_data.borrow_mut();
-        let _: Option<LayoutDataWrapper> = mem::transmute(
-            mem::replace(&mut *layout_data_ref, None));
+    /// because the struct type is transmuted to a different type on the script side.
+    unsafe fn handle_reap_layout_data(layout_data: LayoutData) {
+        let layout_data_wrapper: LayoutDataWrapper = mem::transmute(layout_data);
+        layout_data_wrapper.clear();
     }
 
     /// Returns profiling information which is passed to the time profiler.
