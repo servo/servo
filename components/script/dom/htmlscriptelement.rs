@@ -7,6 +7,7 @@ use std::ascii::AsciiExt;
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -14,15 +15,15 @@ use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLScriptE
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
+use dom::bindings::js::{JSRef, Temporary, OptionalRootable, RootedReference};
 use dom::bindings::refcounted::Trusted;
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers, ElementCreator};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node, CloneChildrenFlag};
+use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node, CloneChildrenFlag};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::ScriptHelpers;
 use script_task::{ScriptMsg, Runnable};
@@ -313,13 +314,12 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         // document. Let neutralised doc be that Document.
 
         // Step 2.b.4.
-        // TODO: Let old script element be the value to which the script
-        // element's node document's currentScript object was most recently
-        // initialised.
+        let document = document_from_node(self).root();
+        let document = document.r();
+        let old_script = document.GetCurrentScript().root();
 
         // Step 2.b.5.
-        // TODO: Initialise the script element's node document's currentScript
-        // object to the script element.
+        document.set_current_script(Some(self));
 
         // Step 2.b.6.
         // TODO: Create a script...
@@ -328,8 +328,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                                                          &*url.serialize());
 
         // Step 2.b.7.
-        // TODO: Initialise the script element's node document's currentScript
-        // object to old script element.
+        document.set_current_script(old_script.r());
 
         // Step 2.b.8.
         // TODO: Decrement the ignore-destructive-writes counter of neutralised
