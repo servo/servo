@@ -52,8 +52,8 @@ pub enum Error {
     DataClone,
     /// NoModificationAllowedError
     NoModificationAllowedError,
-    /// Unknown failure
-    FailureUnknown,
+    /// A JavaScript exception is already pending.
+    JSFailed,
 }
 
 /// The return type for IDL operations that can throw DOM exceptions.

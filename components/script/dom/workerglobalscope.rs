@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeCast;
 use dom::bindings::error::{ErrorResult, Fallible};
-use dom::bindings::error::Error::{Syntax, Network, FailureUnknown};
+use dom::bindings::error::Error::{Syntax, Network, JSFailed};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::Reflectable;
@@ -118,7 +118,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
                 Ok(_) => (),
                 Err(_) => {
                     println!("evaluate_script failed");
-                    return Err(FailureUnknown);
+                    return Err(JSFailed);
                 }
             }
         }
