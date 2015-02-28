@@ -77,11 +77,11 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     fn Length(self) -> u32 {
-        self.data.borrow().len() as u32
+        self.data.borrow().chars().count() as u32
     }
 
     fn SubstringData(self, offset: u32, count: u32) -> Fallible<DOMString> {
-        Ok(self.data.borrow()[offset as usize .. count as usize].to_owned())
+        Ok(self.data.borrow().slice_chars(offset as usize, (offset + count) as usize).to_owned())
     }
 
     fn AppendData(self, arg: DOMString) -> ErrorResult {
@@ -98,7 +98,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     fn ReplaceData(self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
-        let length = self.data.borrow().len() as u32;
+        let length = self.data.borrow().chars().count() as u32;
         if offset > length {
             return Err(IndexSize);
         }
@@ -107,9 +107,9 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
         } else {
             count
         };
-        let mut data = self.data.borrow()[..offset as usize].to_owned();
+        let mut data = self.data.borrow().slice_chars(0, offset as usize).to_owned();
         data.push_str(arg.as_slice());
-        data.push_str(&self.data.borrow()[(offset + count) as usize..]);
+        data.push_str(&self.data.borrow().slice_chars((offset + count) as usize, length as usize));
         *self.data.borrow_mut() = data;
         // FIXME: Once we have `Range`, we should implement step7 to step11
         Ok(())
