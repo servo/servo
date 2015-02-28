@@ -59,7 +59,7 @@ impl<K, V> HashCache<K,V>
 
 #[test]
 fn test_hashcache() {
-    let mut cache: HashCache<uint, Cell<&str>> = HashCache::new();
+    let mut cache: HashCache<usize, Cell<&str>> = HashCache::new();
 
     cache.insert(1, Cell::new("one"));
     assert!(cache.find(&1).is_some());
@@ -72,11 +72,11 @@ fn test_hashcache() {
 
 pub struct LRUCache<K, V> {
     entries: Vec<(K, V)>,
-    cache_size: uint,
+    cache_size: usize,
 }
 
 impl<K: Clone + PartialEq, V: Clone> LRUCache<K,V> {
-    pub fn new(size: uint) -> LRUCache<K, V> {
+    pub fn new(size: usize) -> LRUCache<K, V> {
         LRUCache {
           entries: vec!(),
           cache_size: size,
@@ -84,7 +84,7 @@ impl<K: Clone + PartialEq, V: Clone> LRUCache<K,V> {
     }
 
     #[inline]
-    pub fn touch(&mut self, pos: uint) -> V {
+    pub fn touch(&mut self, pos: usize) -> V {
         let last_index = self.entries.len() - 1;
         if pos != last_index {
             let entry = self.entries.remove(pos);
@@ -134,7 +134,7 @@ pub struct SimpleHashCache<K,V> {
 }
 
 impl<K:Clone+Eq+Hash<SipHasher>,V:Clone> SimpleHashCache<K,V> {
-    pub fn new(cache_size: uint) -> SimpleHashCache<K,V> {
+    pub fn new(cache_size: usize) -> SimpleHashCache<K,V> {
         let mut r = rand::thread_rng();
         SimpleHashCache {
             entries: repeat(None).take(cache_size).collect(),
@@ -144,15 +144,15 @@ impl<K:Clone+Eq+Hash<SipHasher>,V:Clone> SimpleHashCache<K,V> {
     }
 
     #[inline]
-    fn to_bucket(&self, h: uint) -> uint {
+    fn to_bucket(&self, h: usize) -> usize {
         h % self.entries.len()
     }
 
     #[inline]
-    fn bucket_for_key<Q:Hash<SipHasher>>(&self, key: &Q) -> uint {
+    fn bucket_for_key<Q:Hash<SipHasher>>(&self, key: &Q) -> usize {
         let mut hasher = SipHasher::new_with_keys(self.k0, self.k1);
         key.hash(&mut hasher);
-        self.to_bucket(hasher.finish() as uint)
+        self.to_bucket(hasher.finish() as usize)
     }
 
     pub fn insert(&mut self, key: K, value: V) {

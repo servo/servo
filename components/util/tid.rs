@@ -8,10 +8,10 @@ use std::cell::RefCell;
 
 static mut next_tid: AtomicUsize = ATOMIC_USIZE_INIT;
 
-thread_local!(static TASK_LOCAL_TID: Rc<RefCell<Option<uint>>> = Rc::new(RefCell::new(None)));
+thread_local!(static TASK_LOCAL_TID: Rc<RefCell<Option<usize>>> = Rc::new(RefCell::new(None)));
 
 /// Every task gets one, that's unique.
-pub fn tid() -> uint {
+pub fn tid() -> usize {
     TASK_LOCAL_TID.with(|ref k| {
         let ret =
             match *k.borrow() {

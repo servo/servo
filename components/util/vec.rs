@@ -16,11 +16,11 @@ pub trait Comparator<K,T> {
 
 pub trait BinarySearchMethods<'a, T: Ord + PartialOrd + PartialEq> {
     fn binary_search_(&self, key: &T) -> Option<&'a T>;
-    fn binary_search_index(&self, key: &T) -> Option<uint>;
+    fn binary_search_index(&self, key: &T) -> Option<usize>;
 }
 
 pub trait FullBinarySearchMethods<T> {
-    fn binary_search_index_by<K,C:Comparator<K,T>>(&self, key: &K, cmp: C) -> Option<uint>;
+    fn binary_search_index_by<K,C:Comparator<K,T>>(&self, key: &K, cmp: C) -> Option<usize>;
 }
 
 impl<'a, T: Ord + PartialOrd + PartialEq> BinarySearchMethods<'a, T> for &'a [T] {
@@ -28,28 +28,28 @@ impl<'a, T: Ord + PartialOrd + PartialEq> BinarySearchMethods<'a, T> for &'a [T]
         self.binary_search_index(key).map(|i| &self[i])
     }
 
-    fn binary_search_index(&self, key: &T) -> Option<uint> {
+    fn binary_search_index(&self, key: &T) -> Option<usize> {
         self.binary_search_index_by(key, DefaultComparator)
     }
 }
 
 impl<'a, T> FullBinarySearchMethods<T> for &'a [T] {
-    fn binary_search_index_by<K,C:Comparator<K,T>>(&self, key: &K, cmp: C) -> Option<uint> {
+    fn binary_search_index_by<K,C:Comparator<K,T>>(&self, key: &K, cmp: C) -> Option<usize> {
         if self.len() == 0 {
             return None;
         }
 
-        let mut low : int = 0;
-        let mut high : int = (self.len() as int) - 1;
+        let mut low : isize = 0;
+        let mut high : isize = (self.len() as isize) - 1;
 
         while low <= high {
             // http://googleresearch.blogspot.com/2006/06/extra-extra-read-all-about-it-nearly.html
-            let mid = ((low as uint) + (high as uint)) >> 1;
+            let mid = ((low as usize) + (high as usize)) >> 1;
             let midv = &self[mid];
 
             match cmp.compare(key, midv) {
-                Ordering::Greater => low = (mid as int) + 1,
-                Ordering::Less => high = (mid as int) - 1,
+                Ordering::Greater => low = (mid as isize) + 1,
+                Ordering::Less => high = (mid as isize) - 1,
                 Ordering::Equal => return Some(mid),
             }
         }
