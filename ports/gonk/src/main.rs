@@ -5,6 +5,11 @@
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 
+#![feature(int_uint)]
+#![feature(core, os, path, io, std_misc, env)]
+// For FFI
+#![allow(non_snake_case, dead_code)]
+
 extern crate servo;
 extern crate time;
 extern crate util;
@@ -22,7 +27,7 @@ use util::opts;
 use servo::Browser;
 use compositing::windowing::WindowEvent;
 
-use std::os;
+use std::env;
 
 mod window;
 mod input;
@@ -32,7 +37,8 @@ struct BrowserWrapper {
 }
 
 fn main() {
-    if opts::from_cmdline_args(os::args().as_slice()) {
+    if opts::from_cmdline_args(env::args().map(|a| a.into_string().unwrap())
+                                          .collect::<Vec<_>>().as_slice()) {
         let window = if opts::get().headless {
             None
         } else {

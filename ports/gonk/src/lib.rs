@@ -5,6 +5,10 @@
 #![feature(thread_local)]
 #![feature(box_syntax)]
 #![feature(int_uint)]
+#![feature(core, path, rustc_private)]
+#![feature(std_misc, env)]
+// For FFI
+#![allow(non_snake_case, dead_code)]
 
 #[macro_use]
 extern crate log;
@@ -51,7 +55,7 @@ use util::opts;
 use util::taskpool::TaskPool;
 
 #[cfg(not(test))]
-use std::os;
+use std::env;
 #[cfg(not(test))]
 use std::rc::Rc;
 #[cfg(not(test))]
@@ -113,7 +117,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                                                           storage_task);
 
             // Send the URL command to the constellation.
-            let cwd = os::getcwd().unwrap();
+            let cwd = env::current_dir().unwrap();
             for url in opts.urls.iter() {
                 let url = match url::Url::parse(url.as_slice()) {
                     Ok(url) => url,
@@ -123,11 +127,11 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 };
 
                 let ConstellationChan(ref chan) = constellation_chan;
-                chan.send(ConstellationMsg::InitLoadUrl(url));
+                chan.send(ConstellationMsg::InitLoadUrl(url)).ok().unwrap();
             }
 
             // Send the constallation Chan as the result
-            result_chan.send(constellation_chan);
+            result_chan.send(constellation_chan).ok().unwrap();
         });
 
         let constellation_chan = result_port.recv().unwrap();
