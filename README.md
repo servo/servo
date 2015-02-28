@@ -98,6 +98,9 @@ cp servobuild.example .servobuild
 
 ## Running
 
+Use `./mach run [url]` to run Servo.
+
+
 ### Commandline Arguments
 
 - `-p INTERVAL` turns on the profiler and dumps info to the console every
