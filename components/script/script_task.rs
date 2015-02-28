@@ -23,7 +23,6 @@ use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event, EventHelpers};
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
-use dom::mouseevent::MouseEvent;
 use dom::node::{self, Node, NodeHelpers, NodeDamage};
 use dom::window::{Window, WindowHelpers, ScriptHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
