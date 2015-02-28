@@ -4643,7 +4643,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::codegen::{PrototypeList, RegisterBindings, UnionTypes}',
             'dom::bindings::codegen::Bindings::*',
             'dom::bindings::error::{Fallible, Error, ErrorResult}',
-            'dom::bindings::error::Error::FailureUnknown',
+            'dom::bindings::error::Error::JSFailed',
             'dom::bindings::error::throw_dom_exception',
             'dom::bindings::error::throw_type_error',
             'dom::bindings::proxyhandler',
@@ -4812,14 +4812,14 @@ class CGCallback(CGClass):
 
         setupCall = ("let s = CallSetup::new(self, aExceptionHandling);\n"
                      "if s.get_context().is_null() {\n"
-                     "    return Err(FailureUnknown);\n"
+                     "    return Err(JSFailed);\n"
                      "}\n")
 
         bodyWithThis = string.Template(
             setupCall+
             "let thisObjJS = wrap_call_this_object(s.get_context(), thisObj);\n"
             "if thisObjJS.is_null() {\n"
-            "    return Err(FailureUnknown);\n"
+            "    return Err(JSFailed);\n"
             "}\n"
             "return ${methodName}(${callArgs});").substitute({
                 "callArgs" : ", ".join(argnamesWithThis),
@@ -4948,7 +4948,7 @@ class CallbackMember(CGNativeMember):
                                 jsObjectsArePtr=True)
         # We have to do all the generation of our body now, because
         # the caller relies on us throwing if we can't manage it.
-        self.exceptionCode= "return Err(FailureUnknown);"
+        self.exceptionCode = "return Err(JSFailed);"
         self.body = self.getImpl()
 
     def getImpl(self):
@@ -5078,7 +5078,7 @@ class CallbackMember(CGNativeMember):
             "CallSetup s(CallbackPreserveColor(), aRv, aExceptionHandling);\n"
             "JSContext* cx = s.get_context();\n"
             "if (!cx) {\n"
-            "    return Err(FailureUnknown);\n"
+            "    return Err(JSFailed);\n"
             "}\n")
 
     def getArgcDecl(self):
@@ -5123,7 +5123,7 @@ class CallbackMethod(CallbackMember):
                 "                         ${argc}, ${argv}, &mut rval)\n"
                 "};\n"
                 "if ok == 0 {\n"
-                "    return Err(FailureUnknown);\n"
+                "    return Err(JSFailed);\n"
                 "}\n").substitute(replacements)
 
 class CallCallback(CallbackMethod):
@@ -5160,7 +5160,7 @@ class CallbackOperationBase(CallbackMethod):
         }
         getCallableFromProp = string.Template(
                 'match self.parent.get_callable_property(cx, "${methodName}") {\n'
-                '    Err(_) => return Err(FailureUnknown),\n'
+                '    Err(_) => return Err(JSFailed),\n'
                 '    Ok(callable) => callable,\n'
                 '}').substitute(replacements)
         if not self.singleOperation:
@@ -5204,7 +5204,7 @@ class CallbackGetter(CallbackMember):
         }
         return string.Template(
             'if (!JS_GetProperty(cx, mCallback, "${attrName}", &rval)) {\n'
-            '    return Err(FailureUnknown);\n'
+            '    return Err(JSFailed);\n'
             '}\n').substitute(replacements);
 
 class CallbackSetter(CallbackMember):
@@ -5230,7 +5230,7 @@ class CallbackSetter(CallbackMember):
         return string.Template(
             'MOZ_ASSERT(argv.length() == 1);\n'
             'if (!JS_SetProperty(cx, mCallback, "${attrName}", ${argv})) {\n'
-            '    return Err(FailureUnknown);\n'
+            '    return Err(JSFailed);\n'
             '}\n').substitute(replacements)
 
     def getArgcDecl(self):

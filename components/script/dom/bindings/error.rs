@@ -6,7 +6,9 @@
 
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::GlobalRef;
-use dom::domexception::DOMException;
+use dom::domexception::{DOMException, DOMErrorName};
+
+use util::str::DOMString;
 
 use js::jsapi::{JSContext, JSBool, JSObject};
 use js::jsapi::{JS_IsExceptionPending, JS_SetPendingException, JS_ReportPendingException};
@@ -22,38 +24,42 @@ use std::ptr;
 /// DOM exceptions that can be thrown by a native DOM method.
 #[derive(Debug, Clone)]
 pub enum Error {
-    /// IndexSizeError
+    /// IndexSizeError DOMException
     IndexSize,
-    /// NotFoundError
+    /// NotFoundError DOMException
     NotFound,
-    /// HierarchyRequestError
+    /// HierarchyRequestError DOMException
     HierarchyRequest,
-    /// InvalidCharacterError
+    /// InvalidCharacterError DOMException
     InvalidCharacter,
-    /// NotSupportedError
+    /// NotSupportedError DOMException
     NotSupported,
-    /// InvalidStateError
+    /// InvalidStateError DOMException
     InvalidState,
-    /// SyntaxError
+    /// SyntaxError DOMException
     Syntax,
-    /// NamespaceError
+    /// NamespaceError DOMException
     NamespaceError,
-    /// InvalidAccessError
+    /// InvalidAccessError DOMException
     InvalidAccess,
-    /// SecurityError
+    /// SecurityError DOMException
     Security,
-    /// NetworkError
+    /// NetworkError DOMException
     Network,
-    /// AbortError
+    /// AbortError DOMException
     Abort,
-    /// TimeoutError
+    /// TimeoutError DOMException
     Timeout,
-    /// DataCloneError
+    /// DataCloneError DOMException
     DataClone,
-    /// NoModificationAllowedError
+    /// NoModificationAllowedError DOMException
     NoModificationAllowedError,
-    /// Unknown failure
-    FailureUnknown,
+
+    /// TypeError JavaScript Error
+    TypeError(DOMString),
+
+    /// A JavaScript exception is already pending.
+    JSFailed,
 }
 
 /// The return type for IDL operations that can throw DOM exceptions.
@@ -67,7 +73,29 @@ pub type ErrorResult = Fallible<()>;
 pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
                            result: Error) {
     assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
-    let exception = DOMException::new_from_error(global, result).root();
+    let code = match result {
+        Error::IndexSize => DOMErrorName::IndexSizeError,
+        Error::NotFound => DOMErrorName::NotFoundError,
+        Error::HierarchyRequest => DOMErrorName::HierarchyRequestError,
+        Error::InvalidCharacter => DOMErrorName::InvalidCharacterError,
+        Error::NotSupported => DOMErrorName::NotSupportedError,
+        Error::InvalidState => DOMErrorName::InvalidStateError,
+        Error::Syntax => DOMErrorName::SyntaxError,
+        Error::NamespaceError => DOMErrorName::NamespaceError,
+        Error::InvalidAccess => DOMErrorName::InvalidAccessError,
+        Error::Security => DOMErrorName::SecurityError,
+        Error::Network => DOMErrorName::NetworkError,
+        Error::Abort => DOMErrorName::AbortError,
+        Error::Timeout => DOMErrorName::TimeoutError,
+        Error::DataClone => DOMErrorName::DataCloneError,
+        Error::NoModificationAllowedError => DOMErrorName::NoModificationAllowedError,
+        Error::TypeError(message) => {
+            throw_type_error(cx, &message);
+            return;
+        }
+        Error::JSFailed => panic!(),
+    };
+    let exception = DOMException::new(global, code).root();
     let thrown = exception.to_jsval(cx);
     unsafe {
         JS_SetPendingException(cx, thrown);
