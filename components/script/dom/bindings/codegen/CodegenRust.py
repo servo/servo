@@ -5373,7 +5373,7 @@ impl ${name}Cast {
     }
 
     #[inline(always)]
-    pub fn from_actual<'a, T: ${fromBound}+Reflectable>(derived: &T) -> &'a ${name} {
+    pub fn from_actual<'a, T: ${fromBound}+Reflectable>(derived: &'a T) -> &'a ${name} {
         unsafe { mem::transmute(derived) }
     }
 }
