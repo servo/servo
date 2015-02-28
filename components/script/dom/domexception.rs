@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::DOMExceptionBinding;
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionConstants;
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
-use dom::bindings::error::Error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -40,29 +39,6 @@ pub enum DOMErrorName {
     EncodingError
 }
 
-impl DOMErrorName {
-    fn from_error(error: Error) -> DOMErrorName {
-        match error {
-            Error::IndexSize => DOMErrorName::IndexSizeError,
-            Error::NotFound => DOMErrorName::NotFoundError,
-            Error::HierarchyRequest => DOMErrorName::HierarchyRequestError,
-            Error::InvalidCharacter => DOMErrorName::InvalidCharacterError,
-            Error::NotSupported => DOMErrorName::NotSupportedError,
-            Error::InvalidState => DOMErrorName::InvalidStateError,
-            Error::Syntax => DOMErrorName::SyntaxError,
-            Error::NamespaceError => DOMErrorName::NamespaceError,
-            Error::InvalidAccess => DOMErrorName::InvalidAccessError,
-            Error::Security => DOMErrorName::SecurityError,
-            Error::Network => DOMErrorName::NetworkError,
-            Error::Abort => DOMErrorName::AbortError,
-            Error::Timeout => DOMErrorName::TimeoutError,
-            Error::DataClone => DOMErrorName::DataCloneError,
-            Error::NoModificationAllowedError => DOMErrorName::NoModificationAllowedError,
-            Error::FailureUnknown => panic!(),
-        }
-    }
-}
-
 #[dom_struct]
 pub struct DOMException {
     reflector_: Reflector,
@@ -79,10 +55,6 @@ impl DOMException {
 
     pub fn new(global: GlobalRef, code: DOMErrorName) -> Temporary<DOMException> {
         reflect_dom_object(box DOMException::new_inherited(code), global, DOMExceptionBinding::Wrap)
-    }
-
-    pub fn new_from_error(global: GlobalRef, code: Error) -> Temporary<DOMException> {
-        DOMException::new(global, DOMErrorName::from_error(code))
     }
 }
 
