@@ -909,6 +909,49 @@ impl ScriptTask {
             parent_page.children.borrow_mut().push(page.clone());
         }
 
+        enum PageToRemove {
+            Root,
+            Child(PipelineId),
+        }
+        struct AutoPageRemover<'a> {
+            page: PageToRemove,
+            script_task: &'a ScriptTask,
+            neutered: bool,
+        }
+        impl<'a> AutoPageRemover<'a> {
+            fn new(script_task: &'a ScriptTask, page: PageToRemove) -> AutoPageRemover<'a> {
+                AutoPageRemover {
+                    page: page,
+                    script_task: script_task,
+                    neutered: false,
+                }
+            }
+
+            fn neuter(&mut self) {
+                self.neutered = true;
+            }
+        }
+        #[unsafe_destructor]
+        impl<'a> Drop for AutoPageRemover<'a> {
+            fn drop(&mut self) {
+                if !self.neutered {
+                    match self.page {
+                        PageToRemove::Root => *self.script_task.page.borrow_mut() = None,
+                        PageToRemove::Child(id) => {
+                            let _ = self.script_task.root_page().remove(id);
+                        }
+                    }
+                }
+            }
+        }
+
+        let page_to_remove = if !root_page_exists {
+            PageToRemove::Root
+        } else {
+            PageToRemove::Child(incomplete.pipeline_id)
+        };
+        let mut page_remover = AutoPageRemover::new(self, page_to_remove);
+
         // Create the window and document objects.
         let window = Window::new(cx.clone(),
                                  page.clone(),
@@ -1000,6 +1043,8 @@ impl ScriptTask {
                                                         page_info)).unwrap();
             }
         }
+
+        page_remover.neuter();
     }
 
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: JSRef<Element>) {
