@@ -25,7 +25,7 @@ pub struct TaskPool {
 }
 
 impl TaskPool {
-    pub fn new(tasks: uint) -> TaskPool {
+    pub fn new(tasks: u32) -> TaskPool {
         assert!(tasks > 0);
         let (tx, rx) = channel();
 
