@@ -16,6 +16,7 @@ from mach.decorators import (
 
 from servo.command_base import CommandBase
 import tidy
+import multiprocessing
 
 
 @CommandProvider
@@ -214,9 +215,12 @@ class MachCommands(CommandBase):
              description='Run the web platform tests',
              category='testing')
     @CommandArgument(
-        'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to wpt/run.sh")
-    def test_wpt(self, params=None):
+        '--processes', default=None,
+        help="Number of servo processes to spawn")
+    @CommandArgument(
+        "params", default=None, nargs='...',
+        help="command-line arguments to be passed through to wpt/run.sh")
+    def test_wpt(self, processes=None, params=None):
         if params is None:
             params = []
         else:
@@ -227,7 +231,10 @@ class MachCommands(CommandBase):
 
             if path.exists(maybe_path) and wpt_path in maybe_path:
                 params = ["--include",
-                          path.relpath(maybe_path, wpt_path)] + params[1:]
+                          path.relpath(maybe_path, wpt_path)]
+
+        processes = str(multiprocessing.cpu_count()) if processes is None else processes
+        params = params + ["--processes", processes]
 
         return subprocess.call(
             ["bash", path.join("tests", "wpt", "run.sh")] + params,
