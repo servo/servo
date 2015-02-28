@@ -4674,9 +4674,9 @@ class CGBindingRoot(CGThing):
     def define(self):
         return stripTrailingWhitespace(self.root.define())
 
-def argument_type(descriptorProvdider, ty, optional=False, defaultValue=None, variadic=False):
+def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, variadic=False):
     info = getJSToNativeConversionInfo(
-        ty, descriptorProvdider, isArgument=True)
+        ty, descriptorProvider, isArgument=True)
     declType = info.declType
 
     if variadic:
