@@ -29,8 +29,9 @@ use net::resource_task::ResourceTask;
 use net::storage_task::StorageTask;
 use util::geometry::{Au, MAX_RECT};
 use util::geometry;
-use util::str::DOMString;
+use util::opts;
 use util::smallvec::SmallVec;
+use util::str::DOMString;
 use std::cell::{Cell, Ref, RefMut};
 use std::sync::mpsc::{channel, Receiver};
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
@@ -106,6 +107,16 @@ pub struct Page {
     pub devtools_chan: Option<DevtoolsControlChan>,
 }
 
+pub enum ReflowEvent {
+    FlushLayout,
+    ForcedReflow,
+    LoadPage,
+    MouseEvents,
+    WindowResize,
+    BoxQuery,
+    Viewport,
+}
+
 pub struct PageIterator {
     stack: Vec<Rc<Page>>,
 }
@@ -175,10 +186,10 @@ impl Page {
         }
     }
 
-    pub fn flush_layout(&self, goal: ReflowGoal, query: ReflowQueryType) {
+    pub fn flush_layout(&self, goal: ReflowGoal, query: ReflowQueryType, trigger: ReflowEvent) {
         let frame = self.frame();
         let window = frame.as_ref().unwrap().window.root();
-        self.reflow(goal, window.r().control_chan().clone(), &mut **window.r().compositor(), query);
+        self.reflow(goal, window.r().control_chan().clone(), &mut **window.r().compositor(), query, trigger);
     }
 
     pub fn layout(&self) -> &LayoutRPC {
@@ -186,14 +197,14 @@ impl Page {
     }
 
     pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Rect<Au> {
-        self.flush_layout(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxQuery(content_box_request));
+        self.flush_layout(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxQuery(content_box_request), ReflowEvent::BoxQuery);
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
         rect
     }
 
     pub fn content_boxes_query(&self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>> {
-        self.flush_layout(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxesQuery(content_boxes_request));
+        self.flush_layout(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxesQuery(content_boxes_request), ReflowEvent::BoxQuery);
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
@@ -352,7 +363,13 @@ impl Page {
                   goal: ReflowGoal,
                   script_chan: ScriptControlChan,
                   _: &mut ScriptListener,
-                  query_type: ReflowQueryType) {
+                  query_type: ReflowQueryType,
+                  trigger: ReflowEvent) {
+
+        if opts::get().relayout_event {
+            Page::debug_reflow_events(trigger);
+        }
+
         let root = match *self.frame() {
             None => return,
             Some(ref frame) => {
@@ -453,6 +470,18 @@ impl Page {
             None => {}
         }
         results
+    }
+
+    fn debug_reflow_events(trigger: ReflowEvent) {
+        match trigger {
+            ReflowEvent::FlushLayout => println!("**** Reflow: flush event."),
+            ReflowEvent::ForcedReflow => println!("**** Reflow: forced event."),
+            ReflowEvent::LoadPage => println!("**** Reflow: load event."),
+            ReflowEvent::MouseEvents => println!("**** Reflow: mouse event."),
+            ReflowEvent::WindowResize => println!("**** Reflow: Window resize event."),
+            ReflowEvent::BoxQuery => println!("**** Reflow: content box query."),
+            ReflowEvent::Viewport => println!("**** Reflow: viewport."),
+        }
     }
 }
 
