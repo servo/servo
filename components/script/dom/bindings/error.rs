@@ -6,7 +6,7 @@
 
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::GlobalRef;
-use dom::domexception::DOMException;
+use dom::domexception::{DOMException, DOMErrorName};
 
 use js::jsapi::{JSContext, JSBool, JSObject};
 use js::jsapi::{JS_IsExceptionPending, JS_SetPendingException, JS_ReportPendingException};
@@ -67,7 +67,25 @@ pub type ErrorResult = Fallible<()>;
 pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
                            result: Error) {
     assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
-    let exception = DOMException::new_from_error(global, result).root();
+    let code = match result {
+        Error::IndexSize => DOMErrorName::IndexSizeError,
+        Error::NotFound => DOMErrorName::NotFoundError,
+        Error::HierarchyRequest => DOMErrorName::HierarchyRequestError,
+        Error::InvalidCharacter => DOMErrorName::InvalidCharacterError,
+        Error::NotSupported => DOMErrorName::NotSupportedError,
+        Error::InvalidState => DOMErrorName::InvalidStateError,
+        Error::Syntax => DOMErrorName::SyntaxError,
+        Error::NamespaceError => DOMErrorName::NamespaceError,
+        Error::InvalidAccess => DOMErrorName::InvalidAccessError,
+        Error::Security => DOMErrorName::SecurityError,
+        Error::Network => DOMErrorName::NetworkError,
+        Error::Abort => DOMErrorName::AbortError,
+        Error::Timeout => DOMErrorName::TimeoutError,
+        Error::DataClone => DOMErrorName::DataCloneError,
+        Error::NoModificationAllowedError => DOMErrorName::NoModificationAllowedError,
+        Error::JSFailed => panic!(),
+    };
+    let exception = DOMException::new(global, code).root();
     let thrown = exception.to_jsval(cx);
     unsafe {
         JS_SetPendingException(cx, thrown);
