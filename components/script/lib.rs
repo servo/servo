@@ -53,6 +53,9 @@ extern crate string_cache;
 #[no_link] #[macro_use] #[plugin]
 extern crate string_cache_macros;
 
+#[macro_use]
+extern crate "util" as servo_util;
+
 pub mod cors;
 
 #[macro_use]

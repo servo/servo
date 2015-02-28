@@ -27,7 +27,7 @@ use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
 use layout_interface::{ReflowGoal, ReflowQueryType};
-use page::Page;
+use page::{Page, ReflowEvent};
 use script_task::{TimerSource, ScriptChan};
 use script_task::ScriptMsg;
 use script_traits::ScriptControlChan;
@@ -374,7 +374,7 @@ impl<'a, T: Reflectable> ScriptHelpers for JSRef<'a, T> {
 
 impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn flush_layout(self, goal: ReflowGoal, query: ReflowQueryType) {
-        self.page().flush_layout(goal, query);
+        self.page().flush_layout(goal, query, ReflowEvent::FlushLayout);
     }
 
     fn init_browser_context(self, doc: JSRef<Document>, frame_element: Option<JSRef<Element>>) {
