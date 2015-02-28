@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::DOMParserBinding;
 use dom::bindings::codegen::Bindings::DOMParserBinding::DOMParserMethods;
 use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::{Text_html, Text_xml};
 use dom::bindings::error::Fallible;
-use dom::bindings::error::Error::FailureUnknown;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -68,9 +67,6 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                                  IsHTMLDocument::NonHTMLDocument,
                                  Some(content_type),
                                  DocumentSource::NotFromParser))
-            }
-            _ => {
-                Err(FailureUnknown)
             }
         }
     }
