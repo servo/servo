@@ -91,7 +91,9 @@ interface TestBinding {
            attribute Blob? interfaceAttributeNullable;
            attribute (HTMLElement or long)? unionAttributeNullable;
            attribute (Event or DOMString)? union2AttributeNullable;
+  [BinaryName="BinaryRenamedAttribute"] attribute DOMString attrToBinaryRename;
 
+  [BinaryName="BinaryRenamedMethod"] void methToBinaryRename();
   void receiveVoid();
   boolean receiveBoolean();
   byte receiveByte();
