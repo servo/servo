@@ -74,7 +74,7 @@ const ABS_MT_POSITION_X: u16 = 0x35;
 const ABS_MT_POSITION_Y: u16 = 0x36;
 const ABS_MT_TRACKING_ID: u16 = 0x39;
 
-struct input_slot {
+struct InputSlot {
     tracking_id: i32,
     x: i32,
     y: i32,
@@ -97,30 +97,30 @@ fn read_input_device(device_path: &Path,
     };
     let fd = device.as_raw_fd();
 
-    let mut xInfo: linux_input_absinfo = unsafe { zeroed() };
-    let mut yInfo: linux_input_absinfo = unsafe { zeroed() };
+    let mut x_info: linux_input_absinfo = unsafe { zeroed() };
+    let mut y_info: linux_input_absinfo = unsafe { zeroed() };
     unsafe {
-        let ret = ioctl(fd, ev_ioc_g_abs(ABS_MT_POSITION_X), &xInfo);
+        let ret = ioctl(fd, ev_ioc_g_abs(ABS_MT_POSITION_X), &mut x_info);
         if ret < 0 {
             println!("Couldn't get ABS_MT_POSITION_X info {} {}", ret, errno());
         }
     }
     unsafe {
-        let ret = ioctl(fd, ev_ioc_g_abs(ABS_MT_POSITION_Y), &yInfo);
+        let ret = ioctl(fd, ev_ioc_g_abs(ABS_MT_POSITION_Y), &mut y_info);
         if ret < 0 {
             println!("Couldn't get ABS_MT_POSITION_Y info {} {}", ret, errno());
         }
     }
 
-    let touchWidth = xInfo.maximum - xInfo.minimum;
-    let touchHeight = yInfo.maximum - yInfo.minimum;
+    let touchWidth = x_info.maximum - x_info.minimum;
+    let touchHeight = y_info.maximum - y_info.minimum;
 
-    println!("xMin: {}, yMin: {}, touchWidth: {}, touchHeight: {}", xInfo.minimum, yInfo.minimum, touchWidth, touchHeight);
+    println!("xMin: {}, yMin: {}, touchWidth: {}, touchHeight: {}", x_info.minimum, y_info.minimum, touchWidth, touchHeight);
 
     // XXX: Why isn't size_of treated as constant?
     // let buf: [u8; (16 * size_of::<linux_input_event>())];
     let mut buf: [u8; (16 * 16)] = unsafe { zeroed() };
-    let mut slots: [input_slot; 10] = unsafe { zeroed() };
+    let mut slots: [InputSlot; 10] = unsafe { zeroed() };
     for slot in slots.iter_mut() {
         slot.tracking_id = -1;
     }
@@ -166,9 +166,9 @@ fn read_input_device(device_path: &Path,
                             if dist < 16 {
                                 let click_pt = TypedPoint2D(slotA.x as f32, slotA.y as f32);
                                 println!("Dispatching click!");
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(0, click_pt)));
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(0, click_pt)));
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(0, click_pt)));
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(0, click_pt))).ok().unwrap();
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(0, click_pt))).ok().unwrap();
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(0, click_pt))).ok().unwrap();
                             }
                         } else {
                             println!("Touch down");
@@ -183,14 +183,15 @@ fn read_input_device(device_path: &Path,
                         }
                     } else {
                         println!("Touch move x: {}, y: {}", slotA.x, slotA.y);
-                        sender.send(WindowEvent::Scroll(TypedPoint2D((slotA.x - last_x) as f32, (slotA.y - last_y) as f32), TypedPoint2D(slotA.x, slotA.y)));
+                        sender.send(WindowEvent::Scroll(TypedPoint2D((slotA.x - last_x) as f32, (slotA.y - last_y) as f32),
+                                                        TypedPoint2D(slotA.x, slotA.y))).ok().unwrap();
                         last_x = slotA.x;
                         last_y = slotA.y;
                         if touch_count >= 2 {
                             let slotB = &slots[1];
                             let cur_dist = dist(slotA.x, slotB.x, slotA.y, slotB.y);
                             println!("Zooming {} {} {} {}", cur_dist, last_dist, screen_dist, ((screen_dist + (cur_dist - last_dist))/screen_dist));
-                            sender.send(WindowEvent::Zoom((screen_dist + (cur_dist - last_dist))/screen_dist));
+                            sender.send(WindowEvent::Zoom((screen_dist + (cur_dist - last_dist))/screen_dist)).ok().unwrap();
                             last_dist = cur_dist;
                         }
                     }
@@ -209,10 +210,10 @@ fn read_input_device(device_path: &Path,
                 (EV_ABS, ABS_MT_WIDTH_MINOR) => (),
                 (EV_ABS, ABS_MT_ORIENTATION) => (),
                 (EV_ABS, ABS_MT_POSITION_X) => {
-                    slots[current_slot].x = event.value - xInfo.minimum;
+                    slots[current_slot].x = event.value - x_info.minimum;
                 },
                 (EV_ABS, ABS_MT_POSITION_Y) => {
-                    slots[current_slot].y = event.value - yInfo.minimum;
+                    slots[current_slot].y = event.value - y_info.minimum;
                 },
                 (EV_ABS, ABS_MT_TRACKING_ID) => {
                     let current_id = slots[current_slot].tracking_id;

@@ -439,12 +439,12 @@ extern fn api_disconnect(window: *mut GonkNativeWindow,
 }
 
 extern fn gnw_incRef(base: *mut ANativeBase) {
-    let mut win: &mut GonkNativeWindow = unsafe { transmute(base) };
+    let win: &mut GonkNativeWindow = unsafe { transmute(base) };
     win.count += 1;
 }
 
 extern fn gnw_decRef(base: *mut ANativeBase) {
-    let mut win: &mut GonkNativeWindow = unsafe { transmute(base) };
+    let win: &mut GonkNativeWindow = unsafe { transmute(base) };
     win.count -= 1;
     if win.count == 0 {
         unsafe { transmute::<_, Box<GonkNativeWindow>>(base) };
@@ -453,7 +453,7 @@ extern fn gnw_decRef(base: *mut ANativeBase) {
 
 impl GonkNativeWindow {
     pub fn new(alloc_dev: *mut alloc_device, hwc_dev: *mut hwc_composer_device, width: i32, height: i32, usage: c_int) -> *mut GonkNativeWindow {
-        let mut win = Box::new(GonkNativeWindow {
+        let win = Box::new(GonkNativeWindow {
             window: ANativeWindow {
                 common: ANativeBase {
                     magic: ANativeBase::magic('_', 'w', 'n', 'd'),
@@ -570,12 +570,12 @@ impl GonkNativeWindow {
 }
 
 extern fn gnwb_incRef(base: *mut ANativeBase) {
-    let mut buf: &mut GonkNativeWindowBuffer = unsafe { transmute(base) };
+    let buf: &mut GonkNativeWindowBuffer = unsafe { transmute(base) };
     buf.count += 1;
 }
 
 extern fn gnwb_decRef(base: *mut ANativeBase) {
-    let mut buf: &mut GonkNativeWindowBuffer = unsafe { transmute(base) };
+    let buf: &mut GonkNativeWindowBuffer = unsafe { transmute(base) };
     buf.count -= 1;
     if buf.count == 0 {
         unsafe { transmute::<_, Box<GonkNativeWindowBuffer>>(base) };
@@ -849,8 +849,8 @@ struct GonkCompositorProxy {
 impl CompositorProxy for GonkCompositorProxy {
     fn send(&mut self, msg: compositor_task::Msg) {
         // Send a message and kick the OS event loop awake.
-        self.sender.send(msg);
-        self.event_sender.send(WindowEvent::Idle);
+        self.sender.send(msg).ok().unwrap();
+        self.event_sender.send(WindowEvent::Idle).ok().unwrap();
     }
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
         Box::new(GonkCompositorProxy {
