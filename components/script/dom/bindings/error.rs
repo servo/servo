@@ -22,35 +22,35 @@ use std::ptr;
 /// DOM exceptions that can be thrown by a native DOM method.
 #[derive(Debug, Clone)]
 pub enum Error {
-    /// IndexSizeError
+    /// IndexSizeError DOMException
     IndexSize,
-    /// NotFoundError
+    /// NotFoundError DOMException
     NotFound,
-    /// HierarchyRequestError
+    /// HierarchyRequestError DOMException
     HierarchyRequest,
-    /// InvalidCharacterError
+    /// InvalidCharacterError DOMException
     InvalidCharacter,
-    /// NotSupportedError
+    /// NotSupportedError DOMException
     NotSupported,
-    /// InvalidStateError
+    /// InvalidStateError DOMException
     InvalidState,
-    /// SyntaxError
+    /// SyntaxError DOMException
     Syntax,
-    /// NamespaceError
+    /// NamespaceError DOMException
     NamespaceError,
-    /// InvalidAccessError
+    /// InvalidAccessError DOMException
     InvalidAccess,
-    /// SecurityError
+    /// SecurityError DOMException
     Security,
-    /// NetworkError
+    /// NetworkError DOMException
     Network,
-    /// AbortError
+    /// AbortError DOMException
     Abort,
-    /// TimeoutError
+    /// TimeoutError DOMException
     Timeout,
-    /// DataCloneError
+    /// DataCloneError DOMException
     DataClone,
-    /// NoModificationAllowedError
+    /// NoModificationAllowedError DOMException
     NoModificationAllowedError,
     /// A JavaScript exception is already pending.
     JSFailed,
