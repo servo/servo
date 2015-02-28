@@ -446,14 +446,25 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                 let doc = window.r().Document().root();
                 doc.r().begin_focus_transaction();
 
-                let event = Event::new(GlobalRef::Window(window.r()),
-                                       "click".to_owned(),
-                                       EventBubbles::Bubbles,
-                                       EventCancelable::Cancelable).root();
+                // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-click
+                let x = point.x as i32;
+                let y = point.y as i32;
+                let event = MouseEvent::new(window.r(),
+                                            "click".to_owned(),
+                                            true,
+                                            true,
+                                            Some(window.r()),
+                                            0i32,
+                                            x, y, x, y,
+                                            false, false, false, false,
+                                            0i16,
+                                            None).root();
+                let event: JSRef<Event> = EventCast::from_ref(event.r());
+
                 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
-                event.r().set_trusted(true);
+                event.set_trusted(true);
                 // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
-                el.authentic_click_activation(event.r());
+                el.authentic_click_activation(event);
 
                 doc.r().commit_focus_transaction();
                 window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
