@@ -8,6 +8,8 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::GlobalRef;
 use dom::domexception::{DOMException, DOMErrorName};
 
+use util::str::DOMString;
+
 use js::jsapi::{JSContext, JSBool, JSObject};
 use js::jsapi::{JS_IsExceptionPending, JS_SetPendingException, JS_ReportPendingException};
 use js::jsapi::{JS_ReportErrorNumber, JSErrorFormatString, JSEXN_TYPEERR};
@@ -52,6 +54,10 @@ pub enum Error {
     DataClone,
     /// NoModificationAllowedError DOMException
     NoModificationAllowedError,
+
+    /// TypeError JavaScript Error
+    TypeError(DOMString),
+
     /// A JavaScript exception is already pending.
     JSFailed,
 }
@@ -83,6 +89,10 @@ pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
         Error::Timeout => DOMErrorName::TimeoutError,
         Error::DataClone => DOMErrorName::DataCloneError,
         Error::NoModificationAllowedError => DOMErrorName::NoModificationAllowedError,
+        Error::TypeError(message) => {
+            throw_type_error(cx, &message);
+            return;
+        }
         Error::JSFailed => panic!(),
     };
     let exception = DOMException::new(global, code).root();
