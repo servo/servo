@@ -6,6 +6,7 @@
 
 use std::collections::DList;
 use std::mem;
+use std::ptr;
 
 /// Splits the head off a list in O(1) time, and returns the head.
 pub fn split_off_head<T>(list: &mut DList<T>) -> DList<T> {
@@ -23,3 +24,4 @@ pub fn prepend_from<T>(this: &mut DList<T>, other: &mut DList<T>) {
     other.append(this);
     mem::swap(this, other);
 }
+
