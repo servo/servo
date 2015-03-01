@@ -14,7 +14,9 @@ dictionary TestDictionary {
   unsigned long unsignedLongValue;
   long long longLongValue;
   unsigned long long unsignedLongLongValue;
+  unrestricted float unrestrictedFloatValue;
   float floatValue;
+  unrestricted double unrestrictedDoubleValue;
   double doubleValue;
   DOMString stringValue;
   TestEnum enumValue;
@@ -32,7 +34,9 @@ dictionary TestDictionaryDefaults {
   unsigned long unsignedLongValue = 7;
   long long longLongValue = 7;
   unsigned long long unsignedLongLongValue = 7;
+  // unrestricted float unrestrictedFloatValue = 7.0;
   // float floatValue = 7.0;
+  // unrestricted double UnrestrictedDoubleValue = 7.0;
   // double doubleValue = 7.0;
   DOMString stringValue = "foo";
   TestEnum enumValue = "bar";
@@ -47,7 +51,9 @@ dictionary TestDictionaryDefaults {
   unsigned long? nullableUnsignedLongValue = 7;
   long long? nullableLongLongValue = 7;
   unsigned long long? nullableUnsignedLongLongValue = 7;
+  // unrestricted float? nullableUnrestrictedFloatValue = 7.0;
   // float? nullableFloatValue = 7.0;
+  // unrestricted double? nullableUnrestrictedDoubleValue = 7.0;
   // double? nullableDoubleValue = 7.0;
   DOMString? nullableStringValue = "foo";
   // TestEnum? nullableEnumValue = "bar";
@@ -63,7 +69,9 @@ interface TestBinding {
            attribute unsigned long unsignedLongAttribute;
            attribute long long longLongAttribute;
            attribute unsigned long long unsignedLongLongAttribute;
+           attribute unrestricted float unrestrictedFloatAttribute;
            attribute float floatAttribute;
+           attribute unrestricted double unrestrictedDoubleAttribute;
            attribute double doubleAttribute;
            attribute DOMString stringAttribute;
            attribute ByteString byteStringAttribute;
@@ -83,7 +91,9 @@ interface TestBinding {
            attribute unsigned long? unsignedLongAttributeNullable;
            attribute long long? longLongAttributeNullable;
            attribute unsigned long long? unsignedLongLongAttributeNullable;
+           attribute unrestricted float? unrestrictedFloatAttributeNullable;
            attribute float? floatAttributeNullable;
+           attribute unrestricted double? unrestrictedDoubleAttributeNullable;
            attribute double? doubleAttributeNullable;
            attribute DOMString? stringAttributeNullable;
            attribute ByteString? byteStringAttributeNullable;
@@ -104,7 +114,9 @@ interface TestBinding {
   unsigned long receiveUnsignedLong();
   long long receiveLongLong();
   unsigned long long receiveUnsignedLongLong();
+  unrestricted float receiveUnrestrictedFloat();
   float receiveFloat();
+  unrestricted double receiveUnrestrictedDouble();
   double receiveDouble();
   DOMString receiveString();
   ByteString receiveByteString();
@@ -123,7 +135,9 @@ interface TestBinding {
   unsigned long? receiveNullableUnsignedLong();
   long long? receiveNullableLongLong();
   unsigned long long? receiveNullableUnsignedLongLong();
+  unrestricted float? receiveNullableUnrestrictedFloat();
   float? receiveNullableFloat();
+  unrestricted double? receiveNullableUnrestrictedDouble();
   double? receiveNullableDouble();
   DOMString? receiveNullableString();
   ByteString? receiveNullableByteString();
@@ -141,7 +155,9 @@ interface TestBinding {
   void passUnsignedLong(unsigned long arg);
   void passLongLong(long long arg);
   void passUnsignedLongLong(unsigned long long arg);
+  void passUnrestrictedFloat(unrestricted float arg);
   void passFloat(float arg);
+  void passUnrestrictedDouble(unrestricted double arg);
   void passDouble(double arg);
   void passString(DOMString arg);
   void passByteString(ByteString arg);
@@ -163,7 +179,9 @@ interface TestBinding {
   void passNullableUnsignedLong(unsigned long? arg);
   void passNullableLongLong(long long? arg);
   void passNullableUnsignedLongLong(unsigned long long? arg);
+  void passNullableUnrestrictedFloat(unrestricted float? arg);
   void passNullableFloat(float? arg);
+  void passNullableUnrestrictedDouble(unrestricted double? arg);
   void passNullableDouble(double? arg);
   void passNullableString(DOMString? arg);
   void passNullableByteString(ByteString? arg);
@@ -183,7 +201,9 @@ interface TestBinding {
   void passOptionalUnsignedLong(optional unsigned long arg);
   void passOptionalLongLong(optional long long arg);
   void passOptionalUnsignedLongLong(optional unsigned long long arg);
+  void passOptionalUnrestrictedFloat(optional unrestricted float arg);
   void passOptionalFloat(optional float arg);
+  void passOptionalUnrestrictedDouble(optional unrestricted double arg);
   void passOptionalDouble(optional double arg);
   void passOptionalString(optional DOMString arg);
   void passOptionalByteString(optional ByteString arg);
@@ -204,7 +224,9 @@ interface TestBinding {
   void passOptionalNullableUnsignedLong(optional unsigned long? arg);
   void passOptionalNullableLongLong(optional long long? arg);
   void passOptionalNullableUnsignedLongLong(optional unsigned long long? arg);
+  void passOptionalNullableUnrestrictedFloat(optional unrestricted float? arg);
   void passOptionalNullableFloat(optional float? arg);
+  void passOptionalNullableUnrestrictedDouble(optional unrestricted double? arg);
   void passOptionalNullableDouble(optional double? arg);
   void passOptionalNullableString(optional DOMString? arg);
   void passOptionalNullableByteString(optional ByteString? arg);
@@ -257,7 +279,9 @@ interface TestBinding {
   void passOptionalNullableUnsignedLongWithNonNullDefault(optional unsigned long? arg = 7);
   void passOptionalNullableLongLongWithNonNullDefault(optional long long? arg = 7);
   void passOptionalNullableUnsignedLongLongWithNonNullDefault(optional unsigned long long? arg = 7);
+  // void passOptionalNullableUnrestrictedFloatWithNonNullDefault(optional unrestricted float? arg = 0.0);
   // void passOptionalNullableFloatWithNonNullDefault(optional float? arg = 0.0);
+  // void passOptionalNullableUnrestrictedDoubleWithNonNullDefault(optional unrestricted double? arg = 0.0);
   // void passOptionalNullableDoubleWithNonNullDefault(optional double? arg = 0.0);
   void passOptionalNullableStringWithNonNullDefault(optional DOMString? arg = "x");
   // void passOptionalNullableEnumWithNonNullDefault(optional TestEnum? arg = "foo");
@@ -273,7 +297,9 @@ interface TestBinding {
   void passVariadicUnsignedLong(unsigned long... args);
   void passVariadicLongLong(long long... args);
   void passVariadicUnsignedLongLong(unsigned long long... args);
+  void passVariadicUnrestrictedFloat(unrestricted float... args);
   void passVariadicFloat(float... args);
+  void passVariadicUnrestrictedDouble(unrestricted double... args);
   void passVariadicDouble(double... args);
   void passVariadicString(DOMString... args);
   void passVariadicByteString(ByteString... args);
