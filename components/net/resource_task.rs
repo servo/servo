@@ -39,12 +39,12 @@ static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 
 pub fn global_init() {
     if let Ok(host_file_path) = env::var_string("HOST_FILE") {
-        //TODO: handle bad file path and corrupted file
+        //TODO: handle bad file path
         let path = Path::new(host_file_path);
         let mut file = BufferedReader::new(File::open(&path));
         if let Ok(lines) = file.read_to_string(){
             unsafe {
-                let host_table: *mut HashMap<String, String> =  mem::transmute(parse_hostfile(lines.as_slice()));
+                let host_table: *mut HashMap<String, String> =  mem::transmute(parse_hostsfile(lines.as_slice()));
                 HOST_TABLE = Some(host_table);
             }
         }
@@ -228,13 +228,24 @@ pub fn new_resource_task(user_agent: Option<String>) -> ResourceTask {
     setup_chan
 }
 
-pub fn parse_hostfile(hostfile_content: &str) -> Box<HashMap<String, String>> {
+pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> {
+    let ipv4_regex = regex!(r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+    let ipv6_regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
     let mut host_table = HashMap::new();
-    let lines: Vec<&str> = hostfile_content.split('\n').collect();
+    let lines: Vec<&str> = hostsfile_content.split('\n').collect();
+
     for line in lines.iter() {
-        let ip_host: Vec<&str> = line.split(' ').collect();
-        if ip_host.len() == 2 {
-            host_table.insert(ip_host[1].to_owned(), ip_host[0].to_owned());
+        let ip_host: Vec<&str> = line.trim().split(|c: char| c == ' ' || c == '\t').collect();
+        if ip_host.len() > 1 {
+            if !ipv4_regex.is_match(ip_host[0]) && !ipv6_regex.is_match(ip_host[0]) { continue; }
+            let address = ip_host[0].to_owned();
+
+            for token in ip_host.iter().skip(1) {
+                if token[].as_bytes()[0] == b'#' {
+                    break;
+                }
+                host_table.insert(token.to_owned().to_string(), address.clone());
+            }
         }
     }
     box host_table
@@ -389,15 +400,125 @@ fn test_bad_scheme() {
 }
 
 #[test]
-fn test_parse_hostfile() {
-    let mock_host_file_content = "127.0.0.1 foo.bar.com\n127.0.0.2 servo.test.server";
-    let host_table = parse_hostfile(mock_host_file_content);
-    assert_eq!(2, (*host_table).len());
-    assert_eq!("127.0.0.1".to_owned(), *host_table.get(&"foo.bar.com".to_owned()).unwrap());
-    assert_eq!("127.0.0.2".to_owned(), *host_table.get(&"servo.test.server".to_owned()).unwrap());
+fn test_parse_hostsfile() {
+    let mock_hosts_file_content = "127.0.0.1 foo.bar.com\n127.0.0.2 servo.test.server";
+    let hosts_table = parse_hostsfile(mock_hosts_file_content);
+    assert_eq!(2, (*hosts_table).len());
+    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"foo.bar.com".to_owned()).unwrap());
+    assert_eq!("127.0.0.2".to_owned(), *hosts_table.get(&"servo.test.server".to_owned()).unwrap());
 }
 
-//TODO: test mal-formed file content
+#[test]
+fn test_parse_malformed_hostsfile() {
+    let mock_hosts_file_content = "malformed file\n127.0.0.1 foo.bar.com\nservo.test.server 127.0.0.1";
+    let hosts_table = parse_hostsfile(mock_hosts_file_content);
+    assert_eq!(1, (*hosts_table).len());
+    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"foo.bar.com".to_owned()).unwrap());
+}
+
+#[test]
+fn test_parse_hostsfile_with_line_comment() {
+    let mock_hosts_file_content = "# this is a line comment\n127.0.0.1 foo.bar.com\n# anothercomment";
+    let hosts_table = parse_hostsfile(mock_hosts_file_content);
+    assert_eq!(1, (*hosts_table).len());
+    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"foo.bar.com".to_owned()).unwrap());
+}
+
+#[test]
+fn test_parse_hostsfile_with_end_of_line_comment() {
+    let mock_hosts_file_content = "127.0.0.1 foo.bar.com # line ending comment\n127.0.0.2 servo.test.server #comment";
+    let hosts_table = parse_hostsfile(mock_hosts_file_content);
+    assert_eq!(2, (*hosts_table).len());
+    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"foo.bar.com".to_owned()).unwrap());
+    assert_eq!("127.0.0.2".to_owned(), *hosts_table.get(&"servo.test.server".to_owned()).unwrap());
+}
+
+#[test]
+fn test_parse_hostsfile_with_2_hostnames_for_1_address() {
+    let mock_hosts_file_content = "127.0.0.1 foo.bar.com baz.bar.com";
+    let hosts_table = parse_hostsfile(mock_hosts_file_content);
+    assert_eq!(2, (*hosts_table).len());
+    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"foo.bar.com".to_owned()).unwrap());
+    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"baz.bar.com".to_owned()).unwrap());
+}
+
+#[test]
+fn test_parse_hostsfile_with_4_hostnames_for_1_address() {
+    let mock_hosts_file_content = "127.0.0.1 moz.foo.com moz.bar.com moz.baz.com moz.moz.com";
+    let hosts_table = parse_hostsfile(mock_hosts_file_content);
+    assert_eq!(4, (*hosts_table).len());
+    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"moz.foo.com".to_owned()).unwrap());
+    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"moz.bar.com".to_owned()).unwrap());
+    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"moz.baz.com".to_owned()).unwrap());
+    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"moz.moz.com".to_owned()).unwrap());
+}
+
+#[test]
+fn test_parse_hostsfile_with_tabs_instead_spaces() {
+    let mock_hosts_file_content = "127.0.0.1\tfoo.bar.com\n127.0.0.2\tservo.test.server";
+    let hosts_table = parse_hostsfile(mock_hosts_file_content);
+    assert_eq!(2, (*hosts_table).len());
+    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"foo.bar.com".to_owned()).unwrap());
+    assert_eq!("127.0.0.2".to_owned(), *hosts_table.get(&"servo.test.server".to_owned()).unwrap());
+}
+
+#[test]
+fn test_parse_hostsfile_with_valid_ipv4_addresses()
+{
+    let mock_hosts_file_content = "255.255.255.255 foo.bar.com\n169.0.1.201 servo.test.server\n192.168.5.0 servo.foo.com";
+    let hosts_table = parse_hostsfile(mock_hosts_file_content);
+    assert_eq!(3, (*hosts_table).len());
+}
+
+#[test]
+fn test_parse_hostsfile_with_invalid_ipv4_addresses()
+{
+    let mock_hosts_file_content = "256.255.255.255 foo.bar.com\n169.0.1000.201 servo.test.server \
+                                   \n192.168.5.500 servo.foo.com\n192.abc.100.2 test.servo.com";
+    let hosts_table = parse_hostsfile(mock_hosts_file_content);
+    assert_eq!(0, (*hosts_table).len());
+}
+
+#[test]
+fn test_parse_hostsfile_with_valid_ipv6_addresses()
+{
+    let mock_hosts_file_content = "2001:0db8:0000:0000:0000:ff00:0042:8329 foo.bar.com\n\
+                                   2001:db8:0:0:0:ff00:42:8329 moz.foo.com\n\
+                                   2001:db8::ff00:42:8329 foo.moz.com moz.moz.com\n\
+                                   0000:0000:0000:0000:0000:0000:0000:0001 bar.moz.com\n\
+                                   ::1 foo.bar.baz baz.foo.com\n\
+                                   2001:0DB8:85A3:0042:1000:8A2E:0370:7334 baz.bar.moz\n\
+                                   2002:0DB8:85A3:0042:1000:8A2E:0370:7334/96 baz2.bar.moz\n\
+                                   2002:0DB8:85A3:0042:1000:8A2E:0370:7334/128 baz3.bar.moz\n\
+                                   :: unspecified.moz.com\n\
+                                   ::/128 unspecified.address.com";
+    let hosts_table = parse_hostsfile(mock_hosts_file_content);
+    assert_eq!(12, (*hosts_table).len());
+}
+
+#[test]
+fn test_parse_hostsfile_with_invalid_ipv6_addresses()
+{
+    let mock_hosts_file_content = "12001:0db8:0000:0000:0000:ff00:0042:8329 foo.bar.com\n\
+                                   2001:zdb8:0:0:0:gg00:42:t329 moz.foo.com\n\
+                                   2001:db8::ff00:42:8329:1111:1111:42 foo.moz.com moz.moz.com\n\
+                                   2002:0DB8:85A3:0042:1000:8A2E:0370:7334/1289 baz3.bar.moz";
+    let hosts_table = parse_hostsfile(mock_hosts_file_content);
+    assert_eq!(0, (*hosts_table).len());
+}
+
+#[test]
+fn test_parse_hostsfile_with_end_of_line_whitespace()
+{
+    let mock_hosts_file_content = "127.0.0.1 foo.bar.com \n\
+                                   2001:db8:0:0:0:ff00:42:8329 moz.foo.com\n \
+                                   127.0.0.2 servo.test.server ";
+    let hosts_table = parse_hostsfile(mock_hosts_file_content);
+    assert_eq!(3, (*hosts_table).len());
+    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"foo.bar.com".to_owned()).unwrap());
+    assert_eq!("2001:db8:0:0:0:ff00:42:8329".to_owned(), *hosts_table.get(&"moz.foo.com".to_owned()).unwrap());
+    assert_eq!("127.0.0.2".to_owned(), *hosts_table.get(&"servo.test.server".to_owned()).unwrap());
+}
 
 #[test]
 fn test_replace_hosts() {
