@@ -80,7 +80,9 @@ builtinNames = {
     IDLType.Tags.uint16: 'u16',
     IDLType.Tags.uint32: 'u32',
     IDLType.Tags.uint64: 'u64',
+    IDLType.Tags.unrestricted_float: 'f32',
     IDLType.Tags.float: 'f32',
+    IDLType.Tags.unrestricted_double: 'f64',
     IDLType.Tags.double: 'f64'
 }
 
@@ -89,7 +91,8 @@ numericTags = [
     IDLType.Tags.int16, IDLType.Tags.uint16,
     IDLType.Tags.int32, IDLType.Tags.uint32,
     IDLType.Tags.int64, IDLType.Tags.uint64,
-    IDLType.Tags.float, IDLType.Tags.double
+    IDLType.Tags.unrestricted_float, IDLType.Tags.float,
+    IDLType.Tags.unrestricted_double, IDLType.Tags.double
     ]
 
 class CastableObjectUnwrapper():
@@ -962,7 +965,8 @@ def convertConstIDLValueToJSVal(value):
         return "DoubleVal(%s)" % (value.value)
     if tag == IDLType.Tags.bool:
         return "BoolVal(true)" if value.value else "BoolVal(false)"
-    if tag in [IDLType.Tags.float, IDLType.Tags.double]:
+    if tag in [IDLType.Tags.unrestricted_float, IDLType.Tags.float,
+               IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
         return "DoubleVal(%s)" % (value.value)
     raise TypeError("Const value of unhandled type: " + value.type)
 
@@ -2880,7 +2884,8 @@ def convertConstIDLValueToRust(value):
                IDLType.Tags.int16, IDLType.Tags.uint16,
                IDLType.Tags.int32, IDLType.Tags.uint32,
                IDLType.Tags.int64, IDLType.Tags.uint64,
-               IDLType.Tags.float, IDLType.Tags.double]:
+               IDLType.Tags.unrestricted_float, IDLType.Tags.float,
+               IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
         return str(value.value)
 
     if tag == IDLType.Tags.bool:

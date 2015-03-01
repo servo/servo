@@ -16,7 +16,9 @@
 //! | unsigned long           | `u32`                            |
 //! | long long               | `i64`                            |
 //! | unsigned long long      | `u64`                            |
+//! | unrestricted float      | `f32`                            |
 //! | float                   | `f32`                            |
+//! | unrestricted double     | `f64`                            |
 //! | double                  | `f64`                            |
 //! | DOMString               | `DOMString`                      |
 //! | USVString               | `USVString`                      |
