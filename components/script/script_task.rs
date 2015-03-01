@@ -381,7 +381,6 @@ impl ScriptTask {
 
     pub fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
         LiveDOMReferences::initialize();
-
         let js_runtime = js::rust::rt();
         assert!({
             let ptr: *mut JSRuntime = (*js_runtime).ptr;

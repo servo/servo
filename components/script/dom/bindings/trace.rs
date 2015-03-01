@@ -267,7 +267,7 @@ impl JSTraceable for Box<LayoutRPC+'static> {
 
 /// Holds a set of vectors that need to be rooted
 pub struct RootedCollectionSet {
-    set: Vec<HashSet<*const ()>>
+    set: Vec<HashSet<*const RootedVec<()>>>
 }
 
 /// TLV Holds a set of vectors that need to be rooted
@@ -288,11 +288,11 @@ impl RootedCollectionSet {
         }
     }
 
-    fn remove<T: VecRootableType>(collection: &mut RootedVec<T>) {
+    fn remove<T: VecRootableType>(collection: &RootedVec<T>) {
         ROOTED_COLLECTIONS.with(|ref collections| {
             let type_ = VecRootableType::tag(None::<T>);
             let mut collections = collections.borrow_mut();
-            assert!(collections.set[type_ as uint].remove(&(collection as *mut _ as *const _)));
+            assert!(collections.set[type_ as uint].remove(&(collection as *const _ as *const _)));
         });
     }
 
@@ -306,9 +306,10 @@ impl RootedCollectionSet {
 
     unsafe fn trace(&self, tracer: *mut JSTracer) {
         fn trace_collection_type<T: JSTraceable>(tracer: *mut JSTracer,
-                                                 collections: *const HashSet<*const RootedVec<T>>) {
-            unsafe {
-                for collection in (*collections).iter() {
+                                                 collections: &HashSet<*const RootedVec<()>>) {
+            for collection in collections.iter() {
+                let collection = &(*collection as *const RootedVec<T>);
+                unsafe {
                     let _ = (**collection).trace(tracer);
                 }
             }
@@ -321,10 +322,8 @@ impl RootedCollectionSet {
             }
         }
 
-        trace_collection_type(tracer,
-                              &self.set[CollectionType::JSVals as uint] as *const _ as *const HashSet<*const RootedVec<JSVal>>);
-        trace_collection_type(tracer,
-                              &self.set[CollectionType::JSObjects as uint] as *const _ as *const HashSet<*const RootedVec<*mut JSObject>>);
+        trace_collection_type::<JSVal>(tracer, &self.set[CollectionType::JSVals as uint]);
+        trace_collection_type::<*mut JSObject>(tracer, &self.set[CollectionType::JSObjects as uint]);
     }
 }
 
@@ -360,11 +359,10 @@ impl<T: VecRootableType> RootedVec<T> {
     /// Create a vector of items of type T that is rooted for
     /// the lifetime of this struct
     pub fn new() -> RootedVec<T> {
-        let ret = RootedVec::<T> { v: vec!() };
         unsafe {
             RootedCollectionSet::add::<T>(&*(return_address() as *const _));
         }
-        ret
+        RootedVec::<T> { v: vec!() }
     }
 
 }
