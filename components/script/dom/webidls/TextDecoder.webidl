@@ -24,5 +24,5 @@ interface TextDecoder {
   readonly attribute boolean ignoreBOM;
   // FIXME: decode should return a USVString instead, and ArrayBuffer should really be BufferSource
   [Throws]
-  DOMString decode(optional ArrayBuffer input, optional TextDecodeOptions options);
+  DOMString decode(optional ArrayBuffer input/*, optional TextDecodeOptions options*/);
 };

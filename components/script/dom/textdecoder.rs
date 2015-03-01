@@ -15,12 +15,13 @@ use encoding::types::EncodingRef;
 use encoding::{Encoding, DecoderTrap};
 use encoding::label::encoding_from_whatwg_label;
 
-use js::jsfriendapi::bindgen::{JS_NewUint8Array, JS_GetUint8ArrayData};
+use js::jsfriendapi::bindgen::{JS_GetUint8ArrayData, JS_GetArrayBufferByteLength};
 use js::jsapi::JSTracer;
 
 use util::str::DOMString;
 
 use std::borrow::ToOwned;
+use std::slice::from_raw_parts;
 
 #[dom_struct]
 pub struct TextDecoder {
@@ -60,14 +61,18 @@ impl TextDecoder {
 }
 
 impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
-    pub fn Decode(self, cx: *mut JSContext, input: *mut JSObject) -> DOMString {
+    pub fn Decode(self, cx: *mut JSContext, input: *mut JSObject) -> Fallible<DOMString> {
+        let length: usize = JS_GetArrayBufferByteLength(input, cx) as usize;
         let stream: *const uint8_t = JS_GetUint8ArrayData(input, cx) as *const uint8_t;
         let trap = if self.fatal { DecoderTrap::Strict } else { DecoderTrap::Replace };
-        unsafe { self.encoding.decode(stream as &[u8], trap).unwrap() }
+        unsafe { self.encoding.decode(from_raw_parts(stream, length), trap) }
     }
 
     fn Encoding(self) -> DOMString {
-        self.encoding.whatwg_name().unwrap().to_owned()
+        match self.encoding.whatwg_name() {
+            Some(enc) => enc.to_owned(),
+            None      => "Unknown"
+        }
     }
 
     fn Fatal(self) -> bool {
