@@ -288,6 +288,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                     response_chan,
                                     new_constellation_chan);
                 self.send_viewport_rects_for_all_layers();
+                self.get_title_for_main_frame();
             }
 
             (Msg::ChangeLayerPipelineAndRemoveChildren(old_pipeline, new_pipeline, response_channel),
@@ -431,8 +432,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn change_page_title(&mut self, _: PipelineId, title: Option<String>) {
-        self.window.set_page_title(title);
+    fn change_page_title(&mut self, pipeline_id: PipelineId, title: Option<String>) {
+        let set_title = self.root_pipeline.as_ref().map_or(false, |root_pipeline| {
+            root_pipeline.id == pipeline_id
+        });
+        if set_title {
+            self.window.set_page_title(title);
+        }
     }
 
     fn change_page_load_data(&mut self, _: FrameId, load_data: LoadData) {
