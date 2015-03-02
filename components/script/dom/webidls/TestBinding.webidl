@@ -34,7 +34,7 @@ dictionary TestDictionaryDefaults {
   unsigned long long unsignedLongLongValue = 7;
   // float floatValue = 7.0;
   // double doubleValue = 7.0;
-  DOMString stringValue = "";
+  DOMString stringValue = "foo";
   TestEnum enumValue = "bar";
   any anyValue = null;
 
@@ -49,7 +49,7 @@ dictionary TestDictionaryDefaults {
   unsigned long long? nullableUnsignedLongLongValue = 7;
   // float? nullableFloatValue = 7.0;
   // double? nullableDoubleValue = 7.0;
-  DOMString? nullableStringValue = "";
+  DOMString? nullableStringValue = "foo";
   // TestEnum? nullableEnumValue = "bar";
 };
 
@@ -224,7 +224,7 @@ interface TestBinding {
   void passOptionalUnsignedLongWithDefault(optional unsigned long arg = 6);
   void passOptionalLongLongWithDefault(optional long long arg = -12);
   void passOptionalUnsignedLongLongWithDefault(optional unsigned long long arg = 17);
-  void passOptionalStringWithDefault(optional DOMString arg = "");
+  void passOptionalStringWithDefault(optional DOMString arg = "x");
   void passOptionalEnumWithDefault(optional TestEnum arg = "foo");
   // void passOptionalUnionWithDefault(optional (HTMLElement or long) arg = 9);
   // void passOptionalUnion2WithDefault(optional(Event or DOMString)? data = "foo");
@@ -259,7 +259,7 @@ interface TestBinding {
   void passOptionalNullableUnsignedLongLongWithNonNullDefault(optional unsigned long long? arg = 7);
   // void passOptionalNullableFloatWithNonNullDefault(optional float? arg = 0.0);
   // void passOptionalNullableDoubleWithNonNullDefault(optional double? arg = 0.0);
-  void passOptionalNullableStringWithNonNullDefault(optional DOMString? arg = "");
+  void passOptionalNullableStringWithNonNullDefault(optional DOMString? arg = "x");
   // void passOptionalNullableEnumWithNonNullDefault(optional TestEnum? arg = "foo");
   // void passOptionalNullableUnionWithNonNullDefault(optional (HTMLElement or long)? arg = 7);
   // void passOptionalNullableUnion2WithNonNullDefault(optional (Event or DOMString)? data = "foo");
