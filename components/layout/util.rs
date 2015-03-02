@@ -78,6 +78,12 @@ pub struct LayoutDataWrapper {
     pub data: Box<PrivateLayoutData>,
 }
 
+impl LayoutDataWrapper {
+    pub fn clear(&self) {
+        // TODO: Clear items related to this node, e.g. compositor layers
+    }
+}
+
 #[allow(dead_code)]
 fn static_assertion(x: Option<LayoutDataWrapper>) {
     unsafe {
