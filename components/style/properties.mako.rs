@@ -2636,13 +2636,8 @@ pub mod shorthands {
 
                     // Parse background size, if applicable.
                     size = input.try(|input| {
-                        match input.next() {
-                            Err(()) => Err(()),
-                            Ok(Token::Delim('/')) => {
-                                input.try(|input| background_size::parse(context, input))
-                            }
-                            Ok(_) => Err(())
-                        }
+                        try!(input.expect_delim('/'));
+                        background_size::parse(context, input)
                     }).ok();
 
                     continue
