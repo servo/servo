@@ -340,18 +340,21 @@ impl FragmentDisplayListBuilding for Fragment {
                                      bounds: &Rect<Au>,
                                      image: &png::Image)
                                      -> Size2D<Au> {
-        // If `aspect_ratio` < 1.0, the image is tall; otherwise, it is wide.
-        let aspect_ratio = (image.width as f64) / (image.height as f64);
+        // If `image_aspect_ratio` < `bounds_aspect_ratio`, the image is tall; otherwise, it is
+        // wide.
+        let image_aspect_ratio = (image.width as f64) / (image.height as f64);
+        let bounds_aspect_ratio = bounds.size.width.to_subpx() / bounds.size.height.to_subpx();
         let intrinsic_size = Size2D(Au::from_px(image.width as int),
                                     Au::from_px(image.height as int));
-        match (style.get_background().background_size.clone(), aspect_ratio < 1.0) {
+        match (style.get_background().background_size.clone(),
+               image_aspect_ratio < bounds_aspect_ratio) {
             (background_size::T::Contain, false) | (background_size::T::Cover, true) => {
                 Size2D(bounds.size.width,
-                       Au::from_frac_px(bounds.size.width.to_subpx() / aspect_ratio))
+                       Au::from_frac_px(bounds.size.width.to_subpx() / image_aspect_ratio))
             }
 
             (background_size::T::Contain, true) | (background_size::T::Cover, false) => {
-                Size2D(Au::from_frac_px(bounds.size.height.to_subpx() * aspect_ratio),
+                Size2D(Au::from_frac_px(bounds.size.height.to_subpx() * image_aspect_ratio),
                        bounds.size.height)
             }
 
@@ -361,7 +364,16 @@ impl FragmentDisplayListBuilding for Fragment {
             }), _) => {
                 let width = MaybeAuto::from_style(width, bounds.size.width)
                                       .specified_or_default(intrinsic_size.width);
-                Size2D(width, Au::from_frac_px(width.to_subpx() / aspect_ratio))
+                Size2D(width, Au::from_frac_px(width.to_subpx() / image_aspect_ratio))
+            }
+
+            (background_size::T::Explicit(background_size::ExplicitSize {
+                width: LengthOrPercentageOrAuto::Auto,
+                height
+            }), _) => {
+                let height = MaybeAuto::from_style(height, bounds.size.height)
+                                       .specified_or_default(intrinsic_size.height);
+                Size2D(Au::from_frac_px(height.to_subpx() * image_aspect_ratio), height)
             }
 
             (background_size::T::Explicit(background_size::ExplicitSize {
