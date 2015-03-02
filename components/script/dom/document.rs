@@ -189,6 +189,7 @@ pub trait DocumentHelpers<'a> {
     fn window(self) -> Temporary<Window>;
     fn encoding_name(self) -> Ref<'a, DOMString>;
     fn is_html_document(self) -> bool;
+    fn is_fully_active(self) -> bool;
     fn url(self) -> Url;
     fn quirks_mode(self) -> QuirksMode;
     fn set_quirks_mode(self, mode: QuirksMode);
@@ -230,6 +231,21 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     #[inline]
     fn is_html_document(self) -> bool {
         self.is_html_document
+    }
+
+    // https://html.spec.whatwg.org/multipage/browsers.html#fully-active
+    fn is_fully_active(self) -> bool {
+        let window = self.window.root();
+        let window = window.r();
+        let browser_context = window.browser_context();
+        let browser_context = browser_context.as_ref().unwrap();
+        let active_document = browser_context.active_document().root();
+
+        if self.clone() != active_document.r() {
+            return false;
+        }
+        // FIXME: It should also check whether the browser context is top-level or not
+        true
     }
 
     // http://dom.spec.whatwg.org/#dom-document-url

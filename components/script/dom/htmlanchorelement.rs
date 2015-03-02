@@ -113,7 +113,11 @@ impl<'a> Activatable for JSRef<'a, HTMLAnchorElement> {
 
     //https://html.spec.whatwg.org/multipage/semantics.html#the-a-element:activation-behaviour
     fn activation_behavior(&self) {
-        //TODO: Step 1. If the node document is not fully active, abort.
+        //Step 1. If the node document is not fully active, abort.
+        let doc = document_from_node(*self).root();
+        if !doc.r().is_fully_active() {
+            return;
+        }
         //TODO: Step 2. Check if browsing context is specified and act accordingly.
         //TODO: Step 3. Handle <img ismap/>.
         //TODO: Step 4. Download the link is `download` attribute is set.
@@ -123,7 +127,6 @@ impl<'a> Activatable for JSRef<'a, HTMLAnchorElement> {
             Some(ref href) => {
                 let value = href.r().Value();
                 debug!("clicked on link to {}", value);
-                let doc = document_from_node(*self).root();
                 doc.r().load_anchor_href(value);
             }
             None => ()
