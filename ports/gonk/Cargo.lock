@@ -257,7 +257,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "geom"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-geom#6b079ba2738ed15bac2b6ec66850494afb9f2b4c"
+source = "git+https://github.com/servo/rust-geom#876c2fceee211130d1294eacdc1bd8742c52540e"
 dependencies = [
  "rustc-serialize 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

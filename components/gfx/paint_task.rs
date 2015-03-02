@@ -536,7 +536,7 @@ impl WorkerThread {
             // Build the paint context.
             let mut paint_context = PaintContext {
                 draw_target: draw_target.clone(),
-                font_ctx: &mut self.font_context,
+                font_context: &mut self.font_context,
                 page_rect: tile.page_rect,
                 screen_rect: tile.screen_rect,
                 clip_rect: None,

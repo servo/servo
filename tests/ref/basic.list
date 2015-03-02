@@ -254,3 +254,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == canvas_lineto_a.html canvas_lineto_ref.html
 != text_decoration_smoke_a.html text_decoration_smoke_ref.html
 == hide_after_create.html hide_after_create_ref.html
+== text_shadow_simple_a.html text_shadow_simple_ref.html
+== text_shadow_decorations_a.html text_shadow_decorations_ref.html
+== text_shadow_blur_a.html text_shadow_blur_ref.html
