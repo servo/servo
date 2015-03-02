@@ -681,10 +681,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                         initial_viewport: rect.size * ScaleFactor(1.0),
                         device_pixel_ratio: device_pixel_ratio,
                     })).unwrap();
-                    compositor_proxy.send(CompositorMsg::SetLayerOrigin(
+                    compositor_proxy.send(CompositorMsg::SetLayerRect(
                         pipeline.id,
                         LayerId::null(),
-                        rect.to_untyped().origin));
+                        rect.to_untyped()));
                 } else {
                     already_sent.insert(pipeline.id);
                 }
