@@ -706,16 +706,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             default = "None"
         else:
             assert defaultValue.type.tag() == IDLType.Tags.domstring
-            value = "str::from_utf8(&data).unwrap().to_owned()"
+            default = '"%s".to_owned()' % defaultValue.value
             if type.nullable():
-                value = "Some(%s)" % value
-
-            default = (
-                "const data: [u8; %s] = [ %s ];\n"
-                "%s" %
-                (len(defaultValue.value) + 1,
-                 ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
-                 value))
+                default = "Some(%s)" % default
 
         declType = "DOMString"
         if type.nullable():
