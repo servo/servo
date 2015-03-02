@@ -20,8 +20,9 @@ use layers::layers::LayerBufferSet;
 use pipeline::CompositionPipeline;
 use msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
 use msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
-use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId};
+use msg::constellation_msg::{ConstellationChan, PipelineId};
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
+use url::Url;
 use util::cursor::Cursor;
 use util::geometry::PagePx;
 use util::memory::MemoryProfilerChan;
@@ -200,8 +201,8 @@ pub enum Msg {
     ChangePaintState(PipelineId, PaintState),
     /// Alerts the compositor that the current page has changed its title.
     ChangePageTitle(PipelineId, Option<String>),
-    /// Alerts the compositor that the current page has changed its load data (including URL).
-    ChangePageLoadData(FrameId, LoadData),
+    /// Alerts the compositor that the current page has changed its URL.
+    ChangePageUrl(FrameId, Url),
     /// Alerts the compositor that a `PaintMsg` has been discarded.
     PaintMsgDiscarded,
     /// Replaces the current frame tree, typically called during main frame navigation.
@@ -237,7 +238,7 @@ impl Debug for Msg {
             Msg::ChangeReadyState(..) => write!(f, "ChangeReadyState"),
             Msg::ChangePaintState(..) => write!(f, "ChangePaintState"),
             Msg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
-            Msg::ChangePageLoadData(..) => write!(f, "ChangePageLoadData"),
+            Msg::ChangePageUrl(..) => write!(f, "ChangePageUrl"),
             Msg::PaintMsgDiscarded(..) => write!(f, "PaintMsgDiscarded"),
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
             Msg::CreateRootLayerForPipeline(..) => write!(f, "CreateRootLayerForPipeline"),

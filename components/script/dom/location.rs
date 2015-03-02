@@ -5,33 +5,31 @@
 use dom::bindings::codegen::Bindings::LocationBinding;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 use dom::window::Window;
 use dom::window::WindowHelpers;
-use page::Page;
 
 use util::str::DOMString;
-
-use std::rc::Rc;
+use url::Url;
 
 #[dom_struct]
 pub struct Location {
     reflector_: Reflector,
-    page: Rc<Page>,
+    window: JS<Window>,
 }
 
 impl Location {
-    fn new_inherited(page: Rc<Page>) -> Location {
+    fn new_inherited(window: JSRef<Window>) -> Location {
         Location {
             reflector_: Reflector::new(),
-            page: page
+            window: JS::from_rooted(window)
         }
     }
 
-    pub fn new(window: JSRef<Window>, page: Rc<Page>) -> Temporary<Location> {
-        reflect_dom_object(box Location::new_inherited(page),
+    pub fn new(window: JSRef<Window>) -> Temporary<Location> {
+        reflect_dom_object(box Location::new_inherited(window),
                            GlobalRef::Window(window),
                            LocationBinding::Wrap)
     }
@@ -40,11 +38,11 @@ impl Location {
 impl<'a> LocationMethods for JSRef<'a, Location> {
     // https://html.spec.whatwg.org/multipage/browsers.html#dom-location-assign
     fn Assign(self, url: DOMString) {
-        self.page.frame().as_ref().unwrap().window.root().r().load_url(url);
+        self.window.root().r().load_url(url);
     }
 
     fn Href(self) -> DOMString {
-        UrlHelper::Href(&self.page.get_url())
+        UrlHelper::Href(&self.get_url())
     }
 
     fn Stringify(self) -> DOMString {
@@ -52,11 +50,21 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
     }
 
     fn Search(self) -> DOMString {
-        UrlHelper::Search(&self.page.get_url())
+        UrlHelper::Search(&self.get_url())
     }
 
     fn Hash(self) -> DOMString {
-        UrlHelper::Hash(&self.page.get_url())
+        UrlHelper::Hash(&self.get_url())
     }
 }
 
+trait PrivateLocationHelpers {
+    fn get_url(self) -> Url;
+}
+
+impl<'a> PrivateLocationHelpers for JSRef<'a, Location> {
+    fn get_url(self) -> Url {
+        let window = self.window.root();
+        window.r().get_url()
+    }
+}

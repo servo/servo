@@ -16,6 +16,7 @@ use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
 use net::storage_task::StorageTask;
+use url::Url;
 use util::time::TimeProfilerChan;
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, channel};
@@ -29,8 +30,8 @@ pub struct Pipeline {
     pub paint_chan: PaintChan,
     pub layout_shutdown_port: Receiver<()>,
     pub paint_shutdown_port: Receiver<()>,
-    /// Load data corresponding to the most recently-loaded page.
-    pub load_data: LoadData,
+    /// URL corresponding to the most recently-loaded page.
+    pub url: Url,
     /// The title of the most recently-loaded page.
     pub title: Option<String>,
 }
@@ -88,7 +89,8 @@ impl Pipeline {
                                           storage_task.clone(),
                                           image_cache_task.clone(),
                                           devtools_chan,
-                                          window_size);
+                                          window_size,
+                                          load_data.clone());
                 ScriptControlChan(script_chan)
             }
             Some(spipe) => {
@@ -97,6 +99,7 @@ impl Pipeline {
                     new_pipeline_id: id,
                     subpage_id: parent.expect("script_pipeline != None but subpage_id == None").1,
                     layout_chan: ScriptTaskFactory::clone_layout_channel(None::<&mut STF>, &layout_pair),
+                    load_data: load_data.clone(),
                 };
 
                 let ScriptControlChan(ref chan) = spipe.script_chan;
@@ -135,7 +138,7 @@ impl Pipeline {
                       paint_chan,
                       layout_shutdown_port,
                       paint_shutdown_port,
-                      load_data)
+                      load_data.url)
     }
 
     pub fn new(id: PipelineId,
@@ -145,7 +148,7 @@ impl Pipeline {
                paint_chan: PaintChan,
                layout_shutdown_port: Receiver<()>,
                paint_shutdown_port: Receiver<()>,
-               load_data: LoadData)
+               url: Url)
                -> Pipeline {
         Pipeline {
             id: id,
@@ -155,16 +158,14 @@ impl Pipeline {
             paint_chan: paint_chan,
             layout_shutdown_port: layout_shutdown_port,
             paint_shutdown_port: paint_shutdown_port,
-            load_data: load_data,
+            url: url,
             title: None,
         }
     }
 
-    pub fn load(&self) {
+    pub fn activate(&self) {
         let ScriptControlChan(ref chan) = self.script_chan;
-        chan.send(ConstellationControlMsg::Load(self.id,
-                                                self.parent,
-                                                self.load_data.clone())).unwrap();
+        chan.send(ConstellationControlMsg::Activate(self.id)).unwrap();
     }
 
     pub fn grant_paint_permission(&self) {

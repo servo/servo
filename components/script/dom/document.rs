@@ -11,7 +11,6 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
@@ -59,12 +58,14 @@ use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers};
 
+use layout_interface::{HitTestResponse, MouseOverResponse};
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
 use net::resource_task::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
 use net::cookie_storage::CookieSource::NonHTTP;
 use script_task::Runnable;
+use script_traits::UntrustedNodeAddress;
 use util::namespace;
 use util::str::{DOMString, split_html_space_chars};
 use layout_interface::{ReflowGoal, ReflowQueryType};
@@ -201,6 +202,8 @@ pub trait DocumentHelpers<'a> {
     fn register_named_element(self, element: JSRef<Element>, id: Atom);
     fn load_anchor_href(self, href: DOMString);
     fn find_fragment_node(self, fragid: DOMString) -> Option<Temporary<Element>>;
+    fn hit_test(self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress>;
+    fn get_nodes_under_mouse(self, point: &Point2D<f32>) -> Vec<UntrustedNodeAddress>;
     fn set_ready_state(self, state: DocumentReadyState);
     fn get_focused_element(self) -> Option<Temporary<Element>>;
     fn begin_focus_transaction(self);
@@ -264,7 +267,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             Quirks => {
                 let window = self.window.root();
                 let window = window.r();
-                let LayoutChan(ref layout_chan) = window.page().layout_chan;
+                let LayoutChan(ref layout_chan) = window.layout_chan();
                 layout_chan.send(Msg::SetQuirksMode).unwrap();
             }
             NoQuirks | LimitedQuirks => {}
@@ -377,6 +380,44 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         })
     }
 
+    fn hit_test(self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
+        let root = self.GetDocumentElement().root();
+        let root = match root.r() {
+            Some(root) => root,
+            None => return None,
+        };
+        let root = NodeCast::from_ref(root);
+        let win = self.window.root();
+        let address = match win.r().layout().hit_test(root.to_trusted_node_address(), *point) {
+            Ok(HitTestResponse(node_address)) => {
+                Some(node_address)
+            }
+            Err(()) => {
+                debug!("layout query error");
+                None
+            }
+        };
+        address
+    }
+
+    fn get_nodes_under_mouse(self, point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
+        let root = self.GetDocumentElement().root();
+        let root = match root.r() {
+            Some(root) => root,
+            None => return vec!(),
+        };
+        let root: JSRef<Node> = NodeCast::from_ref(root);
+        let win = self.window.root();
+        match win.r().layout().mouse_over(root.to_trusted_node_address(), *point) {
+            Ok(MouseOverResponse(node_address)) => {
+                node_address
+            }
+            Err(()) => {
+                vec!()
+            }
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/dom.html#current-document-readiness
     fn set_ready_state(self, state: DocumentReadyState) {
         self.ready_state.set(state);
@@ -416,7 +457,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     /// Sends this document's title to the compositor.
     fn send_title_to_compositor(self) {
         let window = self.window().root();
-        window.r().page().send_title_to_compositor();
+        window.r().compositor().set_title(window.r().pipeline(), Some(self.Title()));
     }
 
     fn dirty_all_nodes(self) {
@@ -428,10 +469,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
     fn handle_click_event(self, js_runtime: *mut JSRuntime, _button: uint, point: Point2D<f32>) {
         debug!("ClickEvent: clicked at {:?}", point);
-        let window = self.window.root();
-        let window = window.r();
-        let page = window.page();
-        let node = match page.hit_test(&point) {
+        let node = match self.hit_test(&point) {
             Some(node_address) => {
                 debug!("node address is {:?}", node_address.0);
                 node::from_untrusted_node_address(js_runtime, node_address)
@@ -460,48 +498,40 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             return;
         }
 
-        match *page.frame() {
-            Some(ref frame) => {
-                let window = frame.window.root();
-                let doc = window.r().Document().root();
-                doc.r().begin_focus_transaction();
+        self.begin_focus_transaction();
 
-                // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-click
-                let x = point.x as i32;
-                let y = point.y as i32;
-                let event = MouseEvent::new(window.r(),
-                                            "click".to_owned(),
-                                            true,
-                                            true,
-                                            Some(window.r()),
-                                            0i32,
-                                            x, y, x, y,
-                                            false, false, false, false,
-                                            0i16,
-                                            None).root();
-                let event: JSRef<Event> = EventCast::from_ref(event.r());
+        let window = self.window.root();
 
-                // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
-                event.set_trusted(true);
-                // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
-                el.authentic_click_activation(event);
+        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-click
+        let x = point.x as i32;
+        let y = point.y as i32;
+        let event = MouseEvent::new(window.r(),
+                                    "click".to_owned(),
+                                    true,
+                                    true,
+                                    Some(window.r()),
+                                    0i32,
+                                    x, y, x, y,
+                                    false, false, false, false,
+                                    0i16,
+                                    None).root();
+        let event: JSRef<Event> = EventCast::from_ref(event.r());
 
-                doc.r().commit_focus_transaction();
-                window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
-            }
-            None => {}
-        }
+        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
+        event.set_trusted(true);
+        // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
+        el.authentic_click_activation(event);
+
+        self.commit_focus_transaction();
+        window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
     }
 
     /// Return need force reflow or not
     fn handle_mouse_move_event(self, js_runtime: *mut JSRuntime, point: Point2D<f32>,
                                prev_mouse_over_targets: &mut Vec<JS<Node>>) -> bool {
-        let window = self.window.root();
-        let window = window.r();
-        let page = window.page();
         let mut needs_reflow = false;
         // Build a list of elements that are currently under the mouse.
-        let mouse_over_addresses = page.get_nodes_under_mouse(&point);
+        let mouse_over_addresses = self.get_nodes_under_mouse(&point);
         let mouse_over_targets: Vec<JS<Node>> = mouse_over_addresses.iter()
                                                                     .filter_map(|node_address| {
             let node = node::from_untrusted_node_address(js_runtime, *node_address);
@@ -534,27 +564,24 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             let top_most_node =
                 node::from_untrusted_node_address(js_runtime, mouse_over_addresses[0]).root();
 
-            if let Some(ref frame) = *page.frame() {
-                let window = frame.window.root();
+            let x = point.x.to_i32().unwrap_or(0);
+            let y = point.y.to_i32().unwrap_or(0);
 
-                let x = point.x.to_i32().unwrap_or(0);
-                let y = point.y.to_i32().unwrap_or(0);
+            let window = self.window.root();
+            let mouse_event = MouseEvent::new(window.r(),
+                                              "mousemove".to_owned(),
+                                              true,
+                                              true,
+                                              Some(window.r()),
+                                              0i32,
+                                              x, y, x, y,
+                                              false, false, false, false,
+                                              0i16,
+                                              None).root();
 
-                let mouse_event = MouseEvent::new(window.r(),
-                    "mousemove".to_owned(),
-                    true,
-                    true,
-                    Some(window.r()),
-                    0i32,
-                    x, y, x, y,
-                    false, false, false, false,
-                    0i16,
-                    None).root();
-
-                let event: JSRef<Event> = EventCast::from_ref(mouse_event.r());
-                let target: JSRef<EventTarget> = EventTargetCast::from_ref(top_most_node.r());
-                event.fire(target);
-            }
+            let event: JSRef<Event> = EventCast::from_ref(mouse_event.r());
+            let target: JSRef<EventTarget> = EventTargetCast::from_ref(top_most_node.r());
+            event.fire(target);
         }
 
         // Store the current mouse over targets for next frame
@@ -1259,7 +1286,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn Location(self) -> Temporary<Location> {
         let window = self.window.root();
         let window = window.r();
-        self.location.or_init(|| Location::new(window, window.page_clone()))
+        self.location.or_init(|| Location::new(window))
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-children
@@ -1298,10 +1325,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             return Err(Security);
         }
         let window = self.window.root();
-        let window = window.r();
-        let page = window.page();
         let (tx, rx) = channel();
-        let _ = page.resource_task.send(GetCookiesForUrl(url, tx, NonHTTP));
+        let _ = window.r().resource_task().send(GetCookiesForUrl(url, tx, NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.unwrap_or("".to_owned()))
     }
@@ -1314,9 +1339,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             return Err(Security);
         }
         let window = self.window.root();
-        let window = window.r();
-        let page = window.page();
-        let _ = page.resource_task.send(SetCookiesForUrl(url, cookie, NonHTTP));
+        let _ = window.r().resource_task().send(SetCookiesForUrl(url, cookie, NonHTTP));
         Ok(())
     }
 
