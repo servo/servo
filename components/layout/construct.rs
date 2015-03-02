@@ -1329,6 +1329,13 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         let mut layout_data_ref = self.mutate_layout_data();
         let layout_data = layout_data_ref.as_mut().expect("no layout data");
 
+        match result {
+            ConstructionResult::None => {
+                layout_data.clear();
+            }
+            _ => {}
+        }
+
         let dst = self.get_construction_result(layout_data);
 
         *dst = result;

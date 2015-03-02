@@ -177,9 +177,7 @@ impl NodeFlags {
 impl Drop for Node {
     #[allow(unsafe_blocks)]
     fn drop(&mut self) {
-        unsafe {
-            self.reap_layout_data();
-        }
+        self.layout_data.dispose();
     }
 }
 
@@ -205,6 +203,8 @@ pub struct LayoutData {
     _data: NonZero<*const ()>,
 }
 
+unsafe impl Send for LayoutData {}
+
 pub struct LayoutDataRef {
     pub data_cell: RefCell<Option<LayoutData>>,
 }
@@ -218,18 +218,17 @@ impl LayoutDataRef {
         }
     }
 
-    /// Returns true if there is layout data present.
-    #[inline]
-    pub fn is_present(&self) -> bool {
-        self.data_cell.borrow().is_some()
-    }
-
-    /// Take the chan out of the layout data if it is present.
-    pub fn take_chan(&self) -> Option<LayoutChan> {
-        let mut layout_data = self.data_cell.borrow_mut();
-        match &mut *layout_data {
-            &mut None => None,
-            &mut Some(ref mut layout_data) => Some(layout_data.chan.take().unwrap()),
+    /// Sends layout data, if any, back to the layout task to be destroyed.
+    pub fn dispose(&self) {
+        if let Some(mut layout_data) = mem::replace(&mut *self.borrow_mut(), None) {
+            let layout_chan = layout_data.chan.take();
+            match layout_chan {
+                None => {}
+                Some(chan) => {
+                    let LayoutChan(chan) = chan;
+                    chan.send(Msg::ReapLayoutData(layout_data)).unwrap()
+                }
+            }
         }
     }
 
@@ -257,8 +256,6 @@ impl LayoutDataRef {
         self.data_cell.borrow_mut()
     }
 }
-
-unsafe impl Send for LayoutDataRef {}
 
 /// The different types of nodes.
 #[derive(Copy, PartialEq, Debug)]
@@ -302,6 +299,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         for node in self.traverse_preorder() {
             vtable_for(&node).unbind_from_tree(parent_in_doc);
         }
+        self.layout_data.dispose();
     }
 
     //
@@ -1646,21 +1644,6 @@ impl Node {
 
         // Step 7.
         Temporary::from_rooted(copy.r())
-    }
-
-    /// Sends layout data, if any, back to the layout task to be destroyed.
-    unsafe fn reap_layout_data(&mut self) {
-        if self.layout_data.is_present() {
-            let layout_data = mem::replace(&mut self.layout_data, LayoutDataRef::new());
-            let layout_chan = layout_data.take_chan();
-            match layout_chan {
-                None => {}
-                Some(chan) => {
-                    let LayoutChan(chan) = chan;
-                    chan.send(Msg::ReapLayoutData(layout_data)).unwrap()
-                },
-            }
-        }
     }
 
     pub fn collect_text_contents<'a, T: Iterator<Item=JSRef<'a, Node>>>(iterator: T) -> String {
