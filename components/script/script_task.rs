@@ -29,7 +29,7 @@ use dom::worker::{Worker, TrustedWorkerAddress};
 use parse::html::{HTMLInput, parse_html};
 use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
 use layout_interface;
-use page::{Page, IterablePage, Frame};
+use page::{Page, IterablePage, Frame, ReflowEvent};
 use timers::TimerId;
 use devtools;
 
@@ -510,8 +510,9 @@ impl ScriptTask {
                     let page = self.page.borrow_mut();
                     let inner_page = page.find(id).expect("Page rect message sent to nonexistent pipeline");
                     if inner_page.set_page_clip_rect_with_new_viewport(rect) {
+
                         let page = get_page(&*page, id);
-                        self.force_reflow(&*page);
+                        self.force_reflow(&*page, ReflowEvent::Viewport);
                     }
                 }
                 _ => {
@@ -802,7 +803,7 @@ impl ScriptTask {
                 _ => panic!("can't reload a page with no URL!")
             };
             if needed_reflow {
-                self.force_reflow(&*page);
+                self.force_reflow(&*page, ReflowEvent::LoadPage);
             }
             return
         }
@@ -947,12 +948,13 @@ impl ScriptTask {
     }
 
     /// Reflows non-incrementally.
-    fn force_reflow(&self, page: &Page) {
+    fn force_reflow(&self, page: &Page, trigger: ReflowEvent) {
         page.dirty_all_nodes();
         page.reflow(ReflowGoal::ForDisplay,
                     self.control_chan.clone(),
                     &mut **self.compositor.borrow_mut(),
-                    ReflowQueryType::NoQuery);
+                    ReflowQueryType::NoQuery,
+                    trigger);
     }
 
     /// This is the main entry point for receiving and dispatching DOM events.
@@ -1004,7 +1006,8 @@ impl ScriptTask {
                 let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();
 
                 if document.r().handle_mouse_move_event(self.js_runtime.ptr, point, mouse_over_targets) {
-                    self.force_reflow(&page)
+                    // Reflow if hover state changed
+                    self.force_reflow(&page, ReflowEvent::MouseEvents)
                 }
             }
 
@@ -1045,7 +1048,7 @@ impl ScriptTask {
 
             let frame = page.frame();
             if frame.is_some() {
-                self.force_reflow(&*page);
+                self.force_reflow(&*page, ReflowEvent::WindowResize);
             }
 
             let fragment_node =
@@ -1084,9 +1087,10 @@ impl ScriptTask {
         let page = get_page(&*self.page.borrow(), pipeline_id);
         let frame = page.frame();
         if frame.is_some() {
-            self.force_reflow(&*page);
+            self.force_reflow(&*page, ReflowEvent::ForcedReflow);
         }
     }
+
 }
 
 /// Shuts down layout for the given page tree.

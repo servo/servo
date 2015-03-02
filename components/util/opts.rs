@@ -113,6 +113,9 @@ pub struct Opts {
     /// Dumps the flow tree after a layout.
     pub dump_display_list: bool,
 
+    /// Emits notifications when there is a relayout.
+    pub relayout_event: bool,
+
     /// Whether to show an error when display list geometry escapes flow overflow regions.
     pub validate_display_list_geometry: bool,
 
@@ -136,6 +139,7 @@ pub fn print_debug_usage(app: &str)  {
     print_option("disable-text-aa", "Disable antialiasing of rendered text.");
     print_option("dump-flow-tree", "Print the flow tree after each layout.");
     print_option("dump-display-list", "Print the display list after each layout.");
+    print_option("relayout-event", "Print notifications when there is a relayout.");
     print_option("profile-tasks", "Instrument each task, writing the output to a file.");
     print_option("show-compositor-borders", "Paint borders along layer and tile boundaries.");
     print_option("show-fragment-borders", "Paint borders along fragment boundaries.");
@@ -188,6 +192,7 @@ pub fn default_opts() -> Opts {
         user_agent: None,
         dump_flow_tree: false,
         dump_display_list: false,
+        relayout_event: false,
         validate_display_list_geometry: false,
         profile_tasks: false,
         resources_path: None,
@@ -336,6 +341,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         enable_text_antialiasing: !debug_options.contains(&"disable-text-aa"),
         dump_flow_tree: debug_options.contains(&"dump-flow-tree"),
         dump_display_list: debug_options.contains(&"dump-display-list"),
+        relayout_event: debug_options.contains(&"relayout-event"),
         validate_display_list_geometry: debug_options.contains(&"validate-display-list-geometry"),
         resources_path: opt_match.opt_str("resources-path"),
     };
