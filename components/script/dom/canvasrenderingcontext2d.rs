@@ -150,6 +150,10 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.renderer.send(CanvasMsg::MoveTo(Point2D(x as f32, y as f32))).unwrap();
     }
 
+    fn LineTo(self, x: f64, y: f64) {
+        self.renderer.send(CanvasMsg::LineTo(Point2D(x as f32, y as f32)));
+    }
+
     fn BezierCurveTo(self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, x: f64, y: f64) {
         self.renderer.send(CanvasMsg::BezierCurveTo(Point2D(cp1x as f32, cp1y as f32),
                                                     Point2D(cp2x as f32, cp2y as f32),
