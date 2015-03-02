@@ -21,7 +21,6 @@ use list_item::ListItemFlow;
 use model;
 use util::{OpaqueNodeMethods, ToGfxColor};
 
-use geom::approxeq::ApproxEq;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
@@ -291,16 +290,14 @@ impl FragmentDisplayListBuilding for Fragment {
         // inefficient. What we really want is something like "nearest ancestor element that
         // doesn't have a fragment".
         let background_color = style.resolve_color(style.get_background().background_color);
-        if !background_color.alpha.approx_eq(&0.0) {
-            display_list.push(DisplayItem::SolidColorClass(box SolidColorDisplayItem {
-                base: BaseDisplayItem::new(*absolute_bounds,
-                                           DisplayItemMetadata::new(self.node,
-                                                                    style,
-                                                                    Cursor::DefaultCursor),
-                                           clip.clone()),
-                color: background_color.to_gfx_color(),
-            }), level);
-        }
+        display_list.push(DisplayItem::SolidColorClass(box SolidColorDisplayItem {
+            base: BaseDisplayItem::new(*absolute_bounds,
+                                       DisplayItemMetadata::new(self.node,
+                                                                style,
+                                                                Cursor::DefaultCursor),
+                                       clip.clone()),
+            color: background_color.to_gfx_color(),
+        }), level);
 
         // The background image is painted on top of the background color.
         // Implements background image, per spec:
