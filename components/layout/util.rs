@@ -4,7 +4,7 @@
 
 #![allow(unsafe_blocks)]
 
-use construct::ConstructionResult;
+use construct::{ConstructionItem, ConstructionResult};
 use incremental::RestyleDamage;
 use parallel::DomParallelInfo;
 use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
@@ -13,6 +13,7 @@ use azure::azure_hl::Color;
 use gfx::display_list::OpaqueNode;
 use gfx;
 use libc::{c_void, uintptr_t};
+use msg::constellation_msg::ConstellationChan;
 use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{Node, SharedLayoutData};
 use script::layout_interface::{LayoutChan, TrustedNodeAddress};
@@ -79,8 +80,26 @@ pub struct LayoutDataWrapper {
 }
 
 impl LayoutDataWrapper {
-    pub fn clear(&self) {
-        // TODO: Clear items related to this node, e.g. compositor layers
+    pub fn remove_compositor_layers(&self, constellation_chan: ConstellationChan) {
+        match self.data.flow_construction_result {
+            ConstructionResult::None => {}
+            ConstructionResult::Flow(ref flow_ref, _) => {
+                flow_ref.remove_compositor_layers(constellation_chan);
+            }
+            ConstructionResult::ConstructionItem(ref construction_item) => {
+                match construction_item {
+                    &ConstructionItem::InlineFragments(ref inline_fragments) => {
+                        for fragment in inline_fragments.fragments.iter() {
+                            fragment.remove_compositor_layers(constellation_chan.clone());
+                        }
+                    }
+                    &ConstructionItem::Whitespace(..) => {}
+                    &ConstructionItem::TableColumnFragment(ref fragment) => {
+                        fragment.remove_compositor_layers(constellation_chan.clone());
+                    }
+                }
+            }
+        }
     }
 }
 

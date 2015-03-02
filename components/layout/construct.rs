@@ -232,6 +232,20 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
+    #[inline]
+    fn set_flow_construction_result(&self, node: &ThreadSafeLayoutNode, result: ConstructionResult) {
+        match result {
+            ConstructionResult::None => {
+                let mut layout_data_ref = node.mutate_layout_data();
+                let layout_data = layout_data_ref.as_mut().expect("no layout data");
+                layout_data.remove_compositor_layers(self.layout_context.shared.constellation_chan.clone());
+            }
+            _ => {}
+        }
+
+        node.set_flow_construction_result(result);
+    }
+
     /// Builds the `ImageFragmentInfo` for the given image. This is out of line to guide inlining.
     fn build_fragment_info_for_image(&mut self, node: &ThreadSafeLayoutNode, url: Option<Url>)
                                 -> SpecificFragmentInfo {
@@ -380,7 +394,7 @@ impl<'a> FlowConstructor<'a> {
                 // If kid_flow is TableCaptionFlow, kid_flow should be added under
                 // TableWrapperFlow.
                 if flow.is_table() && kid_flow.is_table_caption() {
-                    kid.set_flow_construction_result(ConstructionResult::Flow(kid_flow,
+                    self.set_flow_construction_result(&kid, ConstructionResult::Flow(kid_flow,
                                                                             Descendants::new()))
                 } else if flow.need_anonymous_flow(&*kid_flow) {
                     consecutive_siblings.push(kid_flow)
@@ -561,7 +575,7 @@ impl<'a> FlowConstructor<'a> {
             // box, so don't construct them.
             if node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement))) {
                 for kid in node.children() {
-                    kid.set_flow_construction_result(ConstructionResult::None)
+                    self.set_flow_construction_result(&kid, ConstructionResult::None)
                 }
             }
             Some(Fragment::new_from_specific_info(
@@ -691,7 +705,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_fragments_for_replaced_inline_content(&mut self, node: &ThreadSafeLayoutNode)
                                                    -> ConstructionResult {
         for kid in node.children() {
-            kid.set_flow_construction_result(ConstructionResult::None)
+            self.set_flow_construction_result(&kid, ConstructionResult::None)
         }
 
         // If this node is ignorable whitespace, bail out now.
@@ -1045,7 +1059,7 @@ impl<'a> FlowConstructor<'a> {
                                         -> ConstructionResult {
         // CSS 2.1 § 17.2.1. Treat all child fragments of a `table-column` as `display: none`.
         for kid in node.children() {
-            kid.set_flow_construction_result(ConstructionResult::None)
+            self.set_flow_construction_result(&kid, ConstructionResult::None)
         }
 
         let specific = SpecificFragmentInfo::TableColumn(TableColumnFragmentInfo::new(node));
@@ -1173,15 +1187,15 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // results of children.
             (display::T::none, _, _) => {
                 for child in node.children() {
-                    child.set_flow_construction_result(ConstructionResult::None);
+                    self.set_flow_construction_result(&child, ConstructionResult::None);
                 }
-                node.set_flow_construction_result(ConstructionResult::None);
+                self.set_flow_construction_result(node, ConstructionResult::None);
             }
 
             // Table items contribute table flow construction results.
             (display::T::table, float_value, _) => {
                 let construction_result = self.build_flow_for_table_wrapper(node, float_value);
-                node.set_flow_construction_result(construction_result)
+                self.set_flow_construction_result(node, construction_result)
             }
 
             // Absolutely positioned elements will have computed value of
@@ -1192,13 +1206,14 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // below.
             (display::T::block, _, position::T::absolute) |
             (_, _, position::T::fixed) => {
-                node.set_flow_construction_result(self.build_flow_for_nonfloated_block(node))
+                let construction_result = self.build_flow_for_nonfloated_block(node);
+                self.set_flow_construction_result(node, construction_result)
             }
 
             // List items contribute their own special flows.
             (display::T::list_item, float_value, _) => {
-                node.set_flow_construction_result(self.build_flow_for_list_item(node,
-                                                                                float_value))
+                let construction_result = self.build_flow_for_list_item(node, float_value);
+                self.set_flow_construction_result(node, construction_result)
             }
 
             // Inline items that are absolutely-positioned contribute inline fragment construction
@@ -1206,7 +1221,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             (display::T::inline, _, position::T::absolute) => {
                 let construction_result =
                     self.build_fragment_for_absolutely_positioned_inline(node);
-                node.set_flow_construction_result(construction_result)
+                self.set_flow_construction_result(node, construction_result)
             }
 
             // Inline items contribute inline fragment construction results.
@@ -1214,31 +1229,31 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // FIXME(pcwalton, #3307): This is not sufficient to handle floated generated content.
             (display::T::inline, float::T::none, _) => {
                 let construction_result = self.build_fragments_for_inline(node);
-                node.set_flow_construction_result(construction_result)
+                self.set_flow_construction_result(node, construction_result)
             }
 
             // Inline-block items contribute inline fragment construction results.
             (display::T::inline_block, float::T::none, _) => {
                 let construction_result = self.build_fragment_for_inline_block(node);
-                node.set_flow_construction_result(construction_result)
+                self.set_flow_construction_result(node, construction_result)
             }
 
             // Table items contribute table flow construction results.
             (display::T::table_caption, _, _) => {
                 let construction_result = self.build_flow_for_table_caption(node);
-                node.set_flow_construction_result(construction_result)
+                self.set_flow_construction_result(node, construction_result)
             }
 
             // Table items contribute table flow construction results.
             (display::T::table_column_group, _, _) => {
                 let construction_result = self.build_flow_for_table_colgroup(node);
-                node.set_flow_construction_result(construction_result)
+                self.set_flow_construction_result(node, construction_result)
             }
 
             // Table items contribute table flow construction results.
             (display::T::table_column, _, _) => {
                 let construction_result = self.build_fragments_for_table_column(node);
-                node.set_flow_construction_result(construction_result)
+                self.set_flow_construction_result(node, construction_result)
             }
 
             // Table items contribute table flow construction results.
@@ -1246,19 +1261,19 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             (display::T::table_header_group, _, _) |
             (display::T::table_footer_group, _, _) => {
                 let construction_result = self.build_flow_for_table_rowgroup(node);
-                node.set_flow_construction_result(construction_result)
+                self.set_flow_construction_result(node, construction_result)
             }
 
             // Table items contribute table flow construction results.
             (display::T::table_row, _, _) => {
                 let construction_result = self.build_flow_for_table_row(node);
-                node.set_flow_construction_result(construction_result)
+                self.set_flow_construction_result(node, construction_result)
             }
 
             // Table items contribute table flow construction results.
             (display::T::table_cell, _, _) => {
                 let construction_result = self.build_flow_for_table_cell(node);
-                node.set_flow_construction_result(construction_result)
+                self.set_flow_construction_result(node, construction_result)
             }
 
             // Block flows that are not floated contribute block flow construction results.
@@ -1267,14 +1282,15 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // properties separately.
 
             (_, float::T::none, _) => {
-                node.set_flow_construction_result(self.build_flow_for_nonfloated_block(node))
+                let construction_result = self.build_flow_for_nonfloated_block(node);
+                self.set_flow_construction_result(node, construction_result)
             }
 
             // Floated flows contribute float flow construction results.
             (_, float_value, _) => {
                 let float_kind = FloatKind::from_property(float_value);
-                node.set_flow_construction_result(
-                    self.build_flow_for_floated_block(node, float_kind))
+                let construction_result = self.build_flow_for_floated_block(node, float_kind);
+                self.set_flow_construction_result(node, construction_result)
             }
         }
 
@@ -1328,13 +1344,6 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
     fn set_flow_construction_result(self, result: ConstructionResult) {
         let mut layout_data_ref = self.mutate_layout_data();
         let layout_data = layout_data_ref.as_mut().expect("no layout data");
-
-        match result {
-            ConstructionResult::None => {
-                layout_data.clear();
-            }
-            _ => {}
-        }
 
         let dst = self.get_construction_result(layout_data);
 
