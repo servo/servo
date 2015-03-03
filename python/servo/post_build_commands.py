@@ -8,6 +8,7 @@ import subprocess
 import SimpleHTTPServer
 import SocketServer
 import mozdebug
+import sys
 from shutil import copytree, rmtree, ignore_patterns, copy2
 
 from mach.registrar import Registrar
@@ -33,8 +34,22 @@ class MachCommands(CommandBase):
 
     def get_binary_path(self, release):
         base_path = path.join("components", "servo", "target")
-        if release:
-            return path.join(base_path, "release", "servo")
+        release_path= path.join(base_path, "release", "servo")
+
+        if not release:
+            if not os.path.exists(release_path):
+                if not os.path.exists(base_path):
+                    print("Servo Binary cannot be found, please run './mach build'"
+                        "and try again!")
+                    sys.exit()
+                print("Running Debug Build")
+                return path.join(base_path, "servo")
+            else:
+                if os.path.exists(base_path):
+                    print("You have multiple binaries present."
+                        " Please specify which binary is to be run")
+                    sys.exit()
+                return path.join(release_path, "servo")
         return path.join(base_path, "servo")
 
     @Command('run',
