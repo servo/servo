@@ -7,6 +7,7 @@
 use libc::{c_char,c_int,c_void,size_t};
 use std::borrow::ToOwned;
 use std::ffi::CString;
+use std::iter::AdditiveIterator;
 use std::old_io::timer::sleep;
 #[cfg(target_os="linux")]
 use std::old_io::File;
@@ -380,7 +381,7 @@ fn get_resident_segments() -> Vec<(String, u64)> {
     // from the "resident" measurement obtained via /proc/<pid>/statm in
     // get_resident(). It's unclear why this difference occurs; for some
     // processes the measurements match, but for Servo they do not.
-    let total = segs.iter().fold(0u64, |total, &(_, size)| total + size);
+    let total = segs.iter().map(|&(_, size)| size).sum();
     segs.push(("resident-according-to-smaps".to_owned(), total));
 
     // Sort by size; the total will be first.
