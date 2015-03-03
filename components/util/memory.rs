@@ -18,6 +18,99 @@ use task::spawn_named;
 #[cfg(target_os="macos")]
 use task_info::task_basic_info::{virtual_size,resident_size};
 
+extern {
+    // Get the size of a heap block.
+    //
+    // Ideally Rust would expose a function like this in std::rt::heap, which would avoid the
+    // jemalloc dependence.
+    //
+    // The C prototype is `je_malloc_usable_size(JEMALLOC_USABLE_SIZE_CONST void *ptr)`. On some
+    // platforms `JEMALLOC_USABLE_SIZE_CONST` is `const` and on some it is empty. But in practice
+    // this function doesn't modify the contents of the block that `ptr` points to, so we use
+    // `*const c_void` here.
+    fn je_malloc_usable_size(ptr: *const c_void) -> size_t;
+}
+
+// A wrapper for je_malloc_usable_size that handles `EMPTY` and returns `usize`.
+pub fn heap_size_of(ptr: *const c_void) -> usize {
+    if ptr == ::std::rt::heap::EMPTY as *const c_void {
+        0
+    } else {
+        unsafe { je_malloc_usable_size(ptr) as usize }
+    }
+}
+
+// The simplest trait for measuring the size of heap data structures. More complex traits that
+// return multiple measurements -- e.g. measure text separately from images -- are also possible,
+// and should be used when appropriate.
+//
+// njn: it would be nice if we could somehow automatically choose the right one, to avoid possibly
+// getting it wrong. In Firefox at least the deref operator helps -- e.g. you always want
+// x.SizeOfExcludingThis() or x->SizeOfIncludingThis(), never x->SizeOfExcludingThis() or
+// x.SizeOfIncludingThis() -- but Rust doesn't have that distinction.
+//
+// njn: it would also be nice to be able to derive this trait automatically, given that
+// implementations are mostly repetitive and mechanical.
+//
+pub trait SizeOf {
+    /// Measure the size of any heap-allocated structures that hang off this value. This method
+    /// should be used on non-boxed values.
+    fn size_of_excluding_self(&self) -> usize;
+
+    /// Measure the size of the value itself, as well as any heap-allocated structures that hang
+    /// off it. This method should be used on boxed values. The default implementation should
+    /// suffice in all cases.
+    ///
+    /// There are two possible ways to measure the size of `self`: compute it (e.g.
+    /// `heap::rt::usable_size(mem::size_of::<T>()), or measure it directly using the heap
+    /// allocator. We do the latter, for the following reasons.
+    /// 
+    /// * The heap allocator is the true authority for the sizes of heap blocks; the measurement is
+    ///   guaranteed to be correct. In comparison, size computations are error-prone.
+    ///
+    /// * If we measure something that isn't a heap block, we'll get a crash. This keeps us
+    ///   honest, which is important because this is easy to get wrong, e.g. by calling
+    ///   `size_of_including_self` instead of `size_of_excluding_self` on a value that's embedded
+    ///   in the middle of another value.
+    ///
+    /// * If we computed the size we couldn't use a default definition of this method, because
+    ///   that would require knowing size_of::<T> for all possible T.
+    ///
+    fn size_of_including_self(&self) -> usize {
+        let self_size = heap_size_of(self as *const Self as *const c_void) as usize;
+        self_size + self.size_of_excluding_self()
+    }
+}
+
+impl SizeOf for String {
+    fn size_of_excluding_self(&self) -> usize {
+        heap_size_of(self.as_ptr() as *const c_void)
+    }
+}
+
+impl<T: SizeOf> SizeOf for Option<T> {
+    fn size_of_excluding_self(&self) -> usize {
+        match *self {
+            None => 0,
+            Some(ref x) => x.size_of_excluding_self()
+        }
+    }
+}
+
+// Use this for Vec<T> when T implements `SizeOf`.
+impl<T: SizeOf> SizeOf for Vec<T> {
+    fn size_of_excluding_self(&self) -> usize {
+        size_of_vec_excluding_self(self) +
+            self.iter().fold(0, |n, elem| n + elem.size_of_excluding_self())
+    }
+}
+
+// Use this for Vec<T> when T does not implement `SizeOf`. Ideally we'd be able to implement the
+// `SizeOf` trait directly, but that implementation would conflict with the `Vec<T: SizeOf>` above.
+pub fn size_of_vec_excluding_self<T>(v: &Vec<T>) -> usize {
+    heap_size_of(v.as_ptr() as *const c_void)
+}
+
 pub struct MemoryProfilerChan(pub Sender<MemoryProfilerMsg>);
 
 impl MemoryProfilerChan {

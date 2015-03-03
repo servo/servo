@@ -18,6 +18,7 @@ use wrapper::ThreadSafeLayoutNode;
 use geom::{Point2D, Rect};
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalRect;
+use servo_util::memory::SizeOf;
 use std::fmt;
 use style::properties::ComputedValues;
 use std::sync::Arc;
@@ -164,6 +165,12 @@ impl Flow for TableRowGroupFlow {
                                              iterator: &mut FragmentBorderBoxIterator,
                                              stacking_context_position: &Point2D<Au>) {
         self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
+    }
+}
+
+impl SizeOf for TableRowGroupFlow {
+    fn size_of_excluding_self(&self) -> usize {
+        self.block_flow.size_of_excluding_self()
     }
 }
 

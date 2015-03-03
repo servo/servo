@@ -20,6 +20,7 @@ use geom::{Point2D, Rect};
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalRect;
+use servo_util::memory::SizeOf;
 use servo_util::opts;
 use style::properties::ComputedValues;
 use style::computed_values::list_style_type;
@@ -135,6 +136,13 @@ impl Flow for ListItemFlow {
                                              iterator: &mut FragmentBorderBoxIterator,
                                              stacking_context_position: &Point2D<Au>) {
         self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
+    }
+}
+
+impl SizeOf for ListItemFlow {
+    fn size_of_excluding_self(&self) -> usize {
+        self.block_flow.size_of_excluding_self() +
+            self.marker.size_of_excluding_self()
     }
 }
 

@@ -19,6 +19,7 @@ use inline::{InlineFragmentContext, InlineMetrics};
 use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use model;
+use servo_util::memory::{SizeOf, size_of_vec_excluding_self};
 use text;
 use util::OpaqueNodeMethods;
 use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
@@ -191,6 +192,32 @@ impl SpecificFragmentInfo {
             SpecificFragmentInfo::TableRow => "SpecificFragmentInfo::TableRow",
             SpecificFragmentInfo::TableWrapper => "SpecificFragmentInfo::TableWrapper",
             SpecificFragmentInfo::UnscannedText(_) => "SpecificFragmentInfo::UnscannedText",
+        }
+    }
+}
+
+impl SizeOf for SpecificFragmentInfo {
+    fn size_of_excluding_self(&self) -> usize {
+        match *self {
+            SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::TableWrapper => 0,
+
+            // XXX: todo
+            SpecificFragmentInfo::Iframe(_) => 0,
+            SpecificFragmentInfo::Image(_) => 0,
+            SpecificFragmentInfo::Canvas(_) => 0,
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => 0,
+            SpecificFragmentInfo::InlineBlock(_) => 0,
+
+            SpecificFragmentInfo::ScannedText(ref info) =>
+                info.size_of_including_self(),
+
+            // XXX: todo
+            SpecificFragmentInfo::TableColumn(_) => 0,
+            SpecificFragmentInfo::UnscannedText(_) => 0,
         }
     }
 }
@@ -584,6 +611,20 @@ impl ScannedTextFragmentInfo {
             original_new_line_pos: None,
             content_size: content_size,
         }
+    }
+}
+
+impl SizeOf for ScannedTextFragmentInfo {
+    fn size_of_excluding_self(&self) -> usize {
+        // `run` is an Arc<>, but the LayoutTask owns the TextRun, and so is the right thread to
+        // measure it.
+        self.run.size_of_including_self() +
+            size_of_vec_excluding_self(&self.new_line_pos) +
+            match self.original_new_line_pos {
+                None => 0,
+                Some(ref original_new_line_pos) =>
+                    size_of_vec_excluding_self(&original_new_line_pos),
+            }
     }
 }
 
@@ -2067,6 +2108,16 @@ impl fmt::Debug for Fragment {
         try!(write!(f, " "));
         try!(write!(f, "m {:?}", self.margin));
         write!(f, ")")
+    }
+}
+
+impl SizeOf for Fragment {
+    fn size_of_excluding_self(&self) -> usize {
+        self.specific.size_of_excluding_self()
+
+        // XXX: the following fields may be measured in the future:
+        // - style
+        // - inline_context
     }
 }
 
