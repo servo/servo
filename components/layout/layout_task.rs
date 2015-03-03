@@ -22,6 +22,7 @@ use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
+use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -63,16 +64,16 @@ use servo_util::time::{TimerMetadataFrameType, TimerMetadataReflowType, profile}
 use servo_util::workqueue::WorkQueue;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::ops::{Deref, DerefMut};
-use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::mem;
+use std::ops::{Deref, DerefMut};
 use std::ptr;
-use style::selector_matching::Stylist;
-use style::computed_values::{filter, mix_blend_mode};
-use style::stylesheets::{Origin, Stylesheet, iter_font_face_rules};
-use style::node::TNode;
-use style::media_queries::{MediaType, Device};
+use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
+use style::computed_values::{filter, mix_blend_mode};
+use style::media_queries::{MediaType, Device};
+use style::node::TNode;
+use style::selector_matching::Stylist;
+use style::stylesheets::{Origin, Stylesheet, iter_font_face_rules};
 use url::Url;
 
 /// Mutable data belonging to the LayoutTask.
@@ -719,6 +720,7 @@ impl LayoutTask {
                                                                  &origin,
                                                                  &origin,
                                                                  0,
+                                                                 &Matrix2D::identity(),
                                                                  filter::T::new(Vec::new()),
                                                                  mix_blend_mode::T::normal,
                                                                  Some(paint_layer)));

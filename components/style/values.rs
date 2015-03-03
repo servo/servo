@@ -55,6 +55,7 @@ pub mod specified {
     use std::f64::consts::PI;
     use std::fmt;
     use std::fmt::{Formatter, Debug};
+    use std::ops::{Add, Mul};
     use url::Url;
     use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
     use parser::ParserContext;
@@ -140,6 +141,23 @@ pub mod specified {
                 &Length::Rem(length) => write!(dest, "{}rem", length),
                 &Length::ServoCharacterWidth(_)
                 => panic!("internal CSS values should never be serialized"),
+            }
+        }
+    }
+
+    impl Mul<CSSFloat> for Length {
+        type Output = Length;
+
+        #[inline]
+        fn mul(self, scalar: CSSFloat) -> Length {
+            match self {
+                Length::Au(Au(v)) => Length::Au(Au(((v as f64) * scalar) as i32)),
+                Length::Em(v) => Length::Em(v * scalar),
+                Length::Ex(v) => Length::Ex(v * scalar),
+                Length::Rem(v) => Length::Rem(v * scalar),
+                Length::ServoCharacterWidth(v) => {
+                    Length::ServoCharacterWidth(((v as CSSFloat) * scalar) as i32)
+                }
             }
         }
     }
@@ -361,6 +379,81 @@ pub mod specified {
         #[inline]
         pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentageOrNone, ()> {
             LengthOrPercentageOrNone::parse_internal(input, /* negative_ok = */ false)
+        }
+    }
+
+    /// The sum of a series of lengths and a percentage. This is used in `calc()` and other things
+    /// that effectively work like it (e.g. transforms).
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct LengthAndPercentage {
+        /// The length components.
+        pub lengths: Vec<Length>,
+        /// The percentage component.
+        pub percentage: CSSFloat,
+    }
+
+    impl LengthAndPercentage {
+        pub fn new() -> LengthAndPercentage {
+            LengthAndPercentage {
+                lengths: Vec::new(),
+                percentage: 0.0,
+            }
+        }
+
+        pub fn from_length_or_percentage(length_or_percentage: &LengthOrPercentage)
+                                         -> LengthAndPercentage {
+            match *length_or_percentage {
+                LengthOrPercentage::Length(ref length) => {
+                    LengthAndPercentage::from_length(*length)
+                }
+                LengthOrPercentage::Percentage(percentage) => {
+                    LengthAndPercentage::from_percentage(percentage)
+                }
+            }
+        }
+
+        pub fn parse(input: &mut Parser) -> Result<LengthAndPercentage, ()> {
+            LengthOrPercentage::parse(input).map(|value| {
+                LengthAndPercentage::from_length_or_percentage(&value)
+            })
+        }
+
+        pub fn from_length(length: Length) -> LengthAndPercentage {
+            LengthAndPercentage {
+                lengths: vec![length],
+                percentage: 0.0,
+            }
+        }
+
+        pub fn from_percentage(percentage: CSSFloat) -> LengthAndPercentage {
+            LengthAndPercentage {
+                lengths: Vec::new(),
+                percentage: percentage,
+            }
+        }
+    }
+
+    impl Add<LengthAndPercentage> for LengthAndPercentage {
+        type Output = LengthAndPercentage;
+
+        fn add(self, other: LengthAndPercentage) -> LengthAndPercentage {
+            let mut new_lengths = self.lengths.clone();
+            new_lengths.push_all(other.lengths.as_slice());
+            LengthAndPercentage {
+                lengths: new_lengths,
+                percentage: self.percentage + other.percentage,
+            }
+        }
+    }
+
+    impl Mul<CSSFloat> for LengthAndPercentage {
+        type Output = LengthAndPercentage;
+
+        fn mul(self, scalar: CSSFloat) -> LengthAndPercentage {
+            LengthAndPercentage {
+                lengths: self.lengths.iter().map(|length| *length * scalar).collect(),
+                percentage: self.percentage * scalar,
+            }
         }
     }
 
@@ -839,6 +932,40 @@ pub mod computed {
         }
     }
 
+    /// The sum of a series of lengths and a percentage. This is used in `calc()` and other things
+    /// that effectively work like it (e.g. transforms).
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    pub struct LengthAndPercentage {
+        /// The length component.
+        pub length: Au,
+        /// The percentage component.
+        pub percentage: CSSFloat,
+    }
+
+    impl LengthAndPercentage {
+        #[inline]
+        pub fn new() -> LengthAndPercentage {
+            LengthAndPercentage {
+                length: Au(0),
+                percentage: 0.0,
+            }
+        }
+    }
+
+    impl ToComputedValue for specified::LengthAndPercentage {
+        type ComputedValue = LengthAndPercentage;
+
+        fn to_computed_value(&self, context: &Context) -> LengthAndPercentage {
+            let mut total_length = Au(0);
+            for length in self.lengths.iter() {
+                total_length = total_length + length.to_computed_value(context)
+            }
+            LengthAndPercentage {
+                length: total_length,
+                percentage: self.percentage,
+            }
+        }
+    }
 
     impl ToComputedValue for specified::Image {
         type ComputedValue = Image;

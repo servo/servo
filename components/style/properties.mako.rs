@@ -2264,6 +2264,7 @@ pub mod longhands {
             }
         }
     </%self:longhand>
+
     <%self:longhand name="filter">
         use values::specified::Angle;
         pub use self::computed_value::T as SpecifiedValue;
@@ -2407,6 +2408,409 @@ pub mod longhands {
                 Ok(Token::Number(value)) => Ok(value.value),
                 Ok(Token::Percentage(value)) => Ok(value.unit_value),
                 _ => Err(())
+            }
+        }
+    </%self:longhand>
+
+    <%self:longhand name="transform">
+        use values::CSSFloat;
+        use values::computed::{ToComputedValue, Context};
+
+        use cssparser::{ToCss, Token};
+        use std::f64;
+        use std::num::Float;
+        use std::ops::Mul;
+        use text_writer::{self, TextWriter};
+        use util::geometry::Au;
+
+        pub mod computed_value {
+            use values::CSSFloat;
+            use values::computed;
+
+
+            #[derive(Clone, Copy, Debug, PartialEq)]
+            pub struct ComputedMatrix {
+                pub m11: CSSFloat, pub m12: CSSFloat,
+                pub m21: CSSFloat, pub m22: CSSFloat,
+                pub m31: computed::LengthAndPercentage, pub m32: computed::LengthAndPercentage,
+            }
+
+            impl ComputedMatrix {
+                #[inline]
+                pub fn identity() -> ComputedMatrix {
+                    ComputedMatrix {
+                        m11: 1.0, m12: 0.0,
+                        m21: 0.0, m22: 1.0,
+                        m31: computed::LengthAndPercentage::new(),
+                        m32: computed::LengthAndPercentage::new(),
+                    }
+                }
+            }
+
+            pub type T = Option<ComputedMatrix>;
+
+        }
+
+        #[derive(Clone, Debug, PartialEq)]
+        pub struct SpecifiedMatrix {
+            m11: CSSFloat, m12: CSSFloat,
+            m21: CSSFloat, m22: CSSFloat,
+            m31: specified::LengthAndPercentage, m32: specified::LengthAndPercentage,
+        }
+
+        impl ToCss for Option<SpecifiedMatrix> {
+            fn to_css<W>(&self, _: &mut W) -> text_writer::Result where W: TextWriter {
+                // TODO(pcwalton)
+                Ok(())
+            }
+        }
+
+        impl Mul<SpecifiedMatrix> for SpecifiedMatrix {
+            type Output = SpecifiedMatrix;
+
+            fn mul(self, other: SpecifiedMatrix) -> SpecifiedMatrix {
+                SpecifiedMatrix {
+                    m11: self.m11*other.m11 + self.m12*other.m21,
+                    m12: self.m11*other.m12 + self.m12*other.m22,
+                    m21: self.m21*other.m11 + self.m22*other.m21,
+                    m22: self.m21*other.m12 + self.m22*other.m22,
+                    m31: self.m31.clone()*other.m11 + self.m32.clone()*other.m21 + other.m31,
+                    m32: self.m31*other.m12 + self.m32*other.m22 + other.m32,
+                }
+            }
+        }
+
+        impl SpecifiedMatrix {
+            #[inline]
+            fn new(m11: CSSFloat,
+                   m12: CSSFloat,
+                   m21: CSSFloat,
+                   m22: CSSFloat,
+                   m31: specified::LengthAndPercentage,
+                   m32: specified::LengthAndPercentage)
+                   -> SpecifiedMatrix {
+                SpecifiedMatrix {
+                    m11: m11, m12: m12,
+                    m21: m21, m22: m22,
+                    m31: m31, m32: m32,
+                }
+            }
+
+            #[inline]
+            fn identity() -> SpecifiedMatrix {
+                SpecifiedMatrix::new(1.0, 0.0,
+                                     0.0, 1.0,
+                                     specified::LengthAndPercentage::new(),
+                                     specified::LengthAndPercentage::new())
+            }
+
+            fn scale(&mut self, sx: CSSFloat, sy: CSSFloat) {
+                *self = SpecifiedMatrix::new(sx, 0.0,
+                                             0.0, sy,
+                                             specified::LengthAndPercentage::new(),
+                                             specified::LengthAndPercentage::new()) *
+                    (*self).clone()
+            }
+
+            fn skew(&mut self, sx: CSSFloat, sy: CSSFloat) {
+                *self = SpecifiedMatrix::new(1.0, sx,
+                                             sy, 1.0,
+                                             specified::LengthAndPercentage::new(),
+                                             specified::LengthAndPercentage::new()) *
+                    (*self).clone()
+            }
+
+            fn translate(&mut self,
+                         tx: specified::LengthAndPercentage,
+                         ty: specified::LengthAndPercentage) {
+                *self = SpecifiedMatrix::new(1.0, 0.0, 0.0, 1.0, tx, ty) * (*self).clone()
+            }
+
+            fn rotate(&mut self, theta: CSSFloat) {
+                *self = SpecifiedMatrix::new(theta.cos(), -theta.sin(),
+                                             theta.sin(), theta.cos(),
+                                             specified::LengthAndPercentage::new(),
+                                             specified::LengthAndPercentage::new()) *
+                    (*self).clone()
+            }
+        }
+
+        fn parse_two_lengths_or_percentages(input: &mut Parser)
+                                            -> Result<(specified::LengthAndPercentage,
+                                                       specified::LengthAndPercentage),()> {
+            let values = try!(input.parse_comma_separated(|input| {
+                specified::LengthAndPercentage::parse(input)
+            }));
+            match values.len() {
+                1 => {
+                    let first = values.into_iter().next().unwrap();
+                    Ok((first, specified::LengthAndPercentage::new()))
+                }
+                2 => {
+                    let mut iter = values.into_iter();
+                    let first = iter.next().unwrap();
+                    let second = iter.next().unwrap();
+                    Ok((first, second))
+                }
+                _ => Err(()),
+            }
+        }
+
+        fn parse_two_floats(input: &mut Parser) -> Result<(CSSFloat,CSSFloat),()> {
+            let values = try!(input.parse_comma_separated(|input| parse_float(input)));
+            match values.len() {
+                1 => Ok((values[0], values[0])),
+                2 => Ok((values[0], values[1])),
+                _ => Err(()),
+            }
+        }
+
+        fn parse_float(input: &mut Parser) -> Result<CSSFloat,()> {
+            match input.next() {
+                Ok(Token::Number(ref value)) => Ok(value.value),
+                _ => Err(())
+            }
+        }
+
+        pub type SpecifiedValue = Option<SpecifiedMatrix>;
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            None
+        }
+
+        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+                return Ok(None)
+            }
+
+            let mut result: SpecifiedMatrix = SpecifiedMatrix::identity();
+            loop {
+                try!(match input.next() {
+                    Ok(Token::Function(name)) => {
+                        match_ignore_ascii_case! {
+                            name,
+                            "matrix" => {
+                                input.parse_nested_block(|input| {
+                                    let values = try!(input.parse_comma_separated(|input| {
+                                        match input.next() {
+                                            Ok(Token::Number(ref value)) => Ok(value.value),
+                                            _ => Err(()),
+                                        }
+                                    }));
+                                    if values.len() != 6 {
+                                        return Err(())
+                                    }
+                                    let (tx, ty) =
+                                        (specified::Length::Au(Au::from_frac_px(values[4])),
+                                         specified::Length::Au(Au::from_frac_px(values[5])));
+                                    let (tx, ty) =
+                                        (specified::LengthAndPercentage::from_length(tx),
+                                         specified::LengthAndPercentage::from_length(ty));
+                                    result = SpecifiedMatrix::new(values[0], values[1],
+                                                                  values[2], values[3],
+                                                                  tx, ty) * result.clone();
+                                    Ok(())
+                                })
+                            },
+                            "translate" => {
+                                input.parse_nested_block(|input| {
+                                    let (tx, ty) = try!(parse_two_lengths_or_percentages(input));
+                                    result.translate(tx, ty);
+                                    Ok(())
+                                })
+                            },
+                            "translatex" => {
+                                input.parse_nested_block(|input| {
+                                    let tx = try!(specified::LengthOrPercentage::parse(input));
+                                    result.translate(
+                                        specified::LengthAndPercentage::from_length_or_percentage(
+                                            &tx),
+                                        specified::LengthAndPercentage::new());
+                                    Ok(())
+                                })
+                            },
+                            "translatey" => {
+                                input.parse_nested_block(|input| {
+                                    let ty = try!(specified::LengthOrPercentage::parse(input));
+                                    result.translate(
+                                        specified::LengthAndPercentage::new(),
+                                        specified::LengthAndPercentage::from_length_or_percentage(
+                                            &ty));
+                                    Ok(())
+                                })
+                            },
+                            "scale" => {
+                                input.parse_nested_block(|input| {
+                                    let (sx, sy) = try!(parse_two_floats(input));
+                                    result.scale(sx, sy);
+                                    Ok(())
+                                })
+                            },
+                            "scalex" => {
+                                input.parse_nested_block(|input| {
+                                    let sx = try!(parse_float(input));
+                                    result.scale(sx, 1.0);
+                                    Ok(())
+                                })
+                            },
+                            "scaley" => {
+                                input.parse_nested_block(|input| {
+                                    let sy = try!(parse_float(input));
+                                    result.scale(1.0, sy);
+                                    Ok(())
+                                })
+                            },
+                            "rotate" => {
+                                input.parse_nested_block(|input| {
+                                    let theta = try!(specified::Angle::parse(input));
+                                    result.rotate(f64::consts::PI_2 - theta.radians());
+                                    Ok(())
+                                })
+                            },
+                            "skew" => {
+                                input.parse_nested_block(|input| {
+                                    let (sx, sy) = try!(parse_two_floats(input));
+                                    result.skew(sx, sy);
+                                    Ok(())
+                                })
+                            },
+                            "skewx" => {
+                                input.parse_nested_block(|input| {
+                                    let sx = try!(parse_float(input));
+                                    result.skew(sx, 1.0);
+                                    Ok(())
+                                })
+                            },
+                            "skewy" => {
+                                input.parse_nested_block(|input| {
+                                    let sy = try!(parse_float(input));
+                                    result.skew(1.0, sy);
+                                    Ok(())
+                                })
+                            }
+                            _ => return Err(())
+                        }
+                    }
+                    _ => break,
+                })
+            }
+
+            Ok(Some(result))
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                self.as_ref().map(|value| {
+                    computed_value::ComputedMatrix {
+                        m11: value.m11, m12: value.m12,
+                        m21: value.m21, m22: value.m22,
+                        m31: value.m31.to_computed_value(context),
+                        m32: value.m32.to_computed_value(context),
+                    }
+                })
+            }
+        }
+    </%self:longhand>
+
+    <%self:longhand name="transform-origin">
+        use values::computed::{ToComputedValue, Context};
+        use values::specified::LengthOrPercentage;
+
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
+        pub mod computed_value {
+            use values::computed::LengthOrPercentage;
+
+            #[derive(Clone, Copy, Debug, PartialEq)]
+            pub struct T {
+                pub horizontal: LengthOrPercentage,
+                pub vertical: LengthOrPercentage,
+            }
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        pub struct SpecifiedValue {
+            horizontal: LengthOrPercentage,
+            vertical: LengthOrPercentage,
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                try!(self.horizontal.to_css(dest));
+                try!(dest.write_str(" "));
+                self.vertical.to_css(dest)
+            }
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T {
+                horizontal: computed::LengthOrPercentage::Percentage(0.5),
+                vertical: computed::LengthOrPercentage::Percentage(0.5),
+            }
+        }
+
+        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            let mut result = SpecifiedValue {
+                horizontal: LengthOrPercentage::Percentage(0.5),
+                vertical: LengthOrPercentage::Percentage(0.5),
+            };
+
+            match input.try(|input| {
+                let token = try!(input.expect_ident());
+                match_ignore_ascii_case! {
+                    token,
+                    "left" => result.horizontal = LengthOrPercentage::Percentage(0.0),
+                    "center" => result.horizontal = LengthOrPercentage::Percentage(0.5),
+                    "right" => result.horizontal = LengthOrPercentage::Percentage(1.0)
+                    _ => return Err(())
+                }
+                Ok(())
+            }) {
+                Ok(_) => {}
+                Err(_) => {
+                    if let Ok(value) = LengthOrPercentage::parse(input) {
+                        result.horizontal = value
+                    }
+                }
+            }
+
+            match input.try(|input| {
+                let token = try!(input.expect_ident());
+                match_ignore_ascii_case! {
+                    token,
+                    "top" => result.vertical = LengthOrPercentage::Percentage(0.0),
+                    "center" => result.vertical = LengthOrPercentage::Percentage(0.5),
+                    "bottom" => result.vertical = LengthOrPercentage::Percentage(1.0)
+                    _ => return Err(())
+                }
+                Ok(())
+            }) {
+                Ok(_) => {}
+                Err(_) => {
+                    if let Ok(value) = LengthOrPercentage::parse(input) {
+                        result.vertical = value
+                    }
+                }
+            }
+
+            Ok(result)
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                computed_value::T {
+                    horizontal: self.horizontal.to_computed_value(context),
+                    vertical: self.vertical.to_computed_value(context),
+                }
             }
         }
     </%self:longhand>
