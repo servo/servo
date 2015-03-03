@@ -27,6 +27,7 @@
 
 #![deny(unsafe_blocks)]
 
+use construct::FlowConstructor;
 use context::LayoutContext;
 use css::node_style::StyledNode;
 use display_list_builder::{BlockFlowDisplayListBuilding, FragmentDisplayListBuilding};
@@ -39,8 +40,7 @@ use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
 use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{CLEARS_LEFT, CLEARS_RIGHT};
-use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, FragmentMutator};
-use fragment::{SpecificFragmentInfo};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{IntrinsicISizes, MarginCollapseInfo};
@@ -569,6 +569,20 @@ impl Encodable for BlockFlowFlags {
 }
 
 impl BlockFlow {
+    pub fn from_node(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> BlockFlow {
+        let writing_mode = node.style().writing_mode;
+        BlockFlow {
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::ForceNonfloated),
+            fragment: Fragment::new(constructor, node),
+            static_b_offset: Au::new(0),
+            inline_size_of_preceding_left_floats: Au(0),
+            inline_size_of_preceding_right_floats: Au(0),
+            hypothetical_position: LogicalPoint::new(writing_mode, Au(0), Au(0)),
+            float: None,
+            flags: BlockFlowFlags::empty(),
+        }
+    }
+
     pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment) -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
@@ -579,6 +593,23 @@ impl BlockFlow {
             inline_size_of_preceding_right_floats: Au(0),
             hypothetical_position: LogicalPoint::new(writing_mode, Au(0), Au(0)),
             float: None,
+            flags: BlockFlowFlags::empty(),
+        }
+    }
+
+    pub fn float_from_node(constructor: &mut FlowConstructor,
+                           node: &ThreadSafeLayoutNode,
+                           float_kind: FloatKind)
+                           -> BlockFlow {
+        let writing_mode = node.style().writing_mode;
+        BlockFlow {
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::FloatIfNecessary),
+            fragment: Fragment::new(constructor, node),
+            static_b_offset: Au::new(0),
+            inline_size_of_preceding_left_floats: Au(0),
+            inline_size_of_preceding_right_floats: Au(0),
+            hypothetical_position: LogicalPoint::new(writing_mode, Au(0), Au(0)),
+            float: Some(box FloatedBlockInfo::new(float_kind)),
             flags: BlockFlowFlags::empty(),
         }
     }
@@ -1887,10 +1918,6 @@ impl Flow for BlockFlow {
                                                                  .relative_containing_block_size,
                                                             CoordinateSystem::Parent)
                               .translate(stacking_context_position));
-    }
-
-    fn mutate_fragments(&mut self, mutator: &mut FragmentMutator) {
-        mutator.process(&mut self.fragment)
     }
 }
 

@@ -758,241 +758,86 @@ pub mod longhands {
     ${switch_to_style_struct("Box")}
 
     <%self:longhand name="content">
-        use cssparser::{ToCss, Token};
-        use std::ascii::AsciiExt;
-        use std::borrow::ToOwned;
-        use values::computed::ComputedValueAsSpecified;
+            pub use self::computed_value::T as SpecifiedValue;
+            pub use self::computed_value::ContentItem;
+            use cssparser::Token;
+            use values::computed::ComputedValueAsSpecified;
 
-        use super::list_style_type;
+            impl ComputedValueAsSpecified for SpecifiedValue {}
 
-        pub use self::computed_value::T as SpecifiedValue;
-        pub use self::computed_value::ContentItem;
+            pub mod computed_value {
+                use std::borrow::IntoCow;
+                use cssparser::{ToCss, Token};
+                use text_writer::{self, TextWriter};
 
-        impl ComputedValueAsSpecified for SpecifiedValue {}
-
-        pub mod computed_value {
-            use super::super::list_style_type;
-
-            use cssparser::{ToCss, Token};
-            use std::borrow::IntoCow;
-            use text_writer::{self, TextWriter};
-
-            #[derive(PartialEq, Eq, Clone)]
-            pub enum ContentItem {
-                /// Literal string content.
-                String(String),
-                /// `counter(name, style)`.
-                Counter(String, list_style_type::computed_value::T),
-                /// `counters(name, separator, style)`.
-                Counters(String, String, list_style_type::computed_value::T),
-                /// `open-quote`.
-                OpenQuote,
-                /// `close-quote`.
-                CloseQuote,
-                /// `no-open-quote`.
-                NoOpenQuote,
-                /// `no-close-quote`.
-                NoCloseQuote,
-            }
-
-            impl ToCss for ContentItem {
-                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
-                    match self {
-                        &ContentItem::String(ref s) => {
-                            Token::QuotedString((&**s).into_cow()).to_css(dest)
-                        }
-                        &ContentItem::Counter(ref s, _) => {
-                            // FIXME(pcwalton)
-                            Token::QuotedString((&**s).into_cow()).to_css(dest)
-                        }
-                        &ContentItem::Counters(ref s, _, _) => {
-                            // FIXME(pcwalton)
-                            Token::QuotedString((&**s).into_cow()).to_css(dest)
-                        }
-                        &ContentItem::OpenQuote => dest.write_str("open-quote"),
-                        &ContentItem::CloseQuote => dest.write_str("close-quote"),
-                        &ContentItem::NoOpenQuote => dest.write_str("no-open-quote"),
-                        &ContentItem::NoCloseQuote => dest.write_str("no-close-quote"),
-                    }
+                #[derive(PartialEq, Eq, Clone)]
+                pub enum ContentItem {
+                    StringContent(String),
                 }
-            }
 
-            #[allow(non_camel_case_types)]
-            #[derive(PartialEq, Eq, Clone)]
-            pub enum T {
-                normal,
-                none,
-                Content(Vec<ContentItem>),
-            }
-
-            impl ToCss for T {
-                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
-                    match self {
-                        &T::normal => dest.write_str("normal"),
-                        &T::none => dest.write_str("none"),
-                        &T::Content(ref content) => {
-                            let mut iter = content.iter();
-                            try!(iter.next().unwrap().to_css(dest));
-                            for c in iter {
-                                try!(c.to_css(dest));
+                impl ToCss for ContentItem {
+                    fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                        match self {
+                            &ContentItem::StringContent(ref s) => {
+                                Token::QuotedString((&**s).into_cow()).to_css(dest)
                             }
-                            Ok(())
                         }
                     }
                 }
-            }
-        }
-        #[inline]
-        pub fn get_initial_value() -> computed_value::T  {
-            computed_value::T::normal
-        }
 
-        pub fn counter_name_is_illegal(name: &str) -> bool {
-            name.eq_ignore_ascii_case("none") || name.eq_ignore_ascii_case("inherit") ||
-                name.eq_ignore_ascii_case("initial")
-        }
+                #[allow(non_camel_case_types)]
+                #[derive(PartialEq, Eq, Clone)]
+                pub enum T {
+                    normal,
+                    none,
+                    Content(Vec<ContentItem>),
+                }
 
-        // normal | none | [ <string> | <counter> | open-quote | close-quote | no-open-quote |
-        // no-close-quote ]+
-        // TODO: <uri>, attr(<identifier>)
-        pub fn parse(context: &ParserContext, input: &mut Parser)
-                     -> Result<SpecifiedValue, ()> {
-            if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-                return Ok(SpecifiedValue::normal)
-            }
-            if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-                return Ok(SpecifiedValue::none)
-            }
-            let mut content = vec![];
-            loop {
-                match input.next() {
-                    Ok(Token::QuotedString(value)) => {
-                        content.push(ContentItem::String(value.into_owned()))
-                    }
-                    Ok(Token::Function(name)) => {
-                        if name.eq_ignore_ascii_case("counter") {
-                            let (mut counter_name, mut counter_style) = (None, None);
-                            match input.parse_nested_block(|input| {
-                                input.parse_comma_separated(|input| {
-                                    if counter_name.is_none() {
-                                        match input.next() {
-                                            Ok(Token::Ident(value)) => {
-                                                counter_name = Some((*value).to_owned());
-                                                Ok(())
-                                            }
-                                            _ => Err(())
-                                        }
-                                    } else if counter_style.is_none() {
-                                        match list_style_type::parse(context, input) {
-                                            Ok(style) => {
-                                                counter_style = Some(style);
-                                                Ok(())
-                                            }
-                                            _ => Err(())
-                                        }
-                                    } else {
-                                        Err(())
-                                    }
-                                })
-                            }) {
-                                Ok(_) => {
-                                    match (counter_name, counter_style) {
-                                        (Some(name), Some(style)) => {
-                                            content.push(ContentItem::Counter(name, style))
-                                        }
-                                        (Some(name), None) => {
-                                            content.push(ContentItem::Counter(
-                                                    name,
-                                                    list_style_type::computed_value::T::decimal))
-                                        }
-                                        _ => return Err(()),
-                                    }
+                impl ToCss for T {
+                    fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                        match self {
+                            &T::normal => dest.write_str("normal"),
+                            &T::none => dest.write_str("none"),
+                            &T::Content(ref content) => {
+                                let mut iter = content.iter();
+                                try!(iter.next().unwrap().to_css(dest));
+                                for c in iter {
+                                    try!(c.to_css(dest));
                                 }
-                                Err(_) => return Err(()),
+                                Ok(())
                             }
-                        } else if name.eq_ignore_ascii_case("counters") {
-                            let mut counter_name = None;
-                            let mut counter_separator = None;
-                            let mut counter_style = None;
-                            match input.parse_nested_block(|input| {
-                                input.parse_comma_separated(|input| {
-                                    if counter_name.is_none() {
-                                        match input.next() {
-                                            Ok(Token::Ident(value)) => {
-                                                counter_name = Some((*value).to_owned());
-                                                Ok(())
-                                            }
-                                            _ => Err(())
-                                        }
-                                    } else if counter_separator.is_none() {
-                                        match input.next() {
-                                            Ok(Token::QuotedString(value)) => {
-                                                counter_separator = Some((*value).to_owned());
-                                                Ok(())
-                                            }
-                                            _ => Err(())
-                                        }
-                                    } else if counter_style.is_none() {
-                                        match input.try(|input| {
-                                            list_style_type::parse(context, input)
-                                        }) {
-                                            Ok(style) => {
-                                                counter_style = Some(style);
-                                                Ok(())
-                                            }
-                                            _ => Err(()),
-                                        }
-                                    } else {
-                                        Err(())
-                                    }
-                                })
-                            }) {
-                                Ok(_) => {
-                                    match (counter_name, counter_separator, counter_style) {
-                                        (Some(name), Some(separator), Some(style)) => {
-                                            content.push(ContentItem::Counters(name,
-                                                                               separator,
-                                                                               style))
-                                        }
-                                        (Some(name), Some(separator), None) => {
-                                            content.push(ContentItem::Counters(
-                                                    name,
-                                                    separator,
-                                                    list_style_type::computed_value::T::decimal))
-                                        }
-                                        _ => return Err(()),
-                                    }
-                                }
-                                Err(_) => return Err(()),
-                            }
-                        } else {
-                            return Err(())
                         }
                     }
-                    Ok(Token::Ident(ident)) => {
-                        if ident.eq_ignore_ascii_case("open-quote") {
-                            content.push(ContentItem::OpenQuote)
-                        } else if ident.eq_ignore_ascii_case("close-quote") {
-                            content.push(ContentItem::CloseQuote)
-                        } else if ident.eq_ignore_ascii_case("no-open-quote") {
-                            content.push(ContentItem::NoOpenQuote)
-                        } else if ident.eq_ignore_ascii_case("no-close-quote") {
-                            content.push(ContentItem::NoCloseQuote)
-                        } else {
-                            return Err(())
-                        }
-                    }
-                    Err(()) if !content.is_empty() => {
-                        let mut result = String::new();
-                        for content in content.iter() {
-                            content.to_css(&mut result).unwrap()
-                        }
-                        return Ok(SpecifiedValue::Content(content))
-                    }
-                    _ => return Err(())
                 }
             }
-        }
+            #[inline]
+            pub fn get_initial_value() -> computed_value::T  {
+                computed_value::T::normal
+            }
+
+            // normal | none | [ <string> ]+
+            // TODO: <uri>, <counter>, attr(<identifier>), open-quote, close-quote, no-open-quote, no-close-quote
+            pub fn parse(_context: &ParserContext, input: &mut Parser)
+                         -> Result<SpecifiedValue, ()> {
+                if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+                    return Ok(SpecifiedValue::normal)
+                }
+                if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+                    return Ok(SpecifiedValue::none)
+                }
+                let mut content = vec![];
+                loop {
+                    match input.next() {
+                        Ok(Token::QuotedString(value)) => {
+                            content.push(ContentItem::StringContent(value.into_owned()))
+                        }
+                        Err(()) if !content.is_empty() => {
+                            return Ok(SpecifiedValue::Content(content))
+                        }
+                        _ => return Err(())
+                    }
+                }
+            }
     </%self:longhand>
 
     ${new_style_struct("List", is_inherited=True)}
@@ -1001,12 +846,14 @@ pub mod longhands {
 
     // TODO(pcwalton): Implement the full set of counter styles per CSS-COUNTER-STYLES [1] 6.1:
     //
-    //     decimal-leading-zero, armenian, upper-armenian, lower-armenian, georgian, lower-roman,
-    //     upper-roman
+    //     decimal, decimal-leading-zero, arabic-indic, armenian, upper-armenian, lower-armenian,
+    //     bengali, cambodian, khmer, cjk-decimal, devanagiri, georgian, gujarati, gurmukhi,
+    //     hebrew, kannada, lao, malayalam, mongolian, myanmar, oriya, persian, lower-roman,
+    //     upper-roman, telugu, thai, tibetan
     //
     // [1]: http://dev.w3.org/csswg/css-counter-styles/
     ${single_keyword("list-style-type",
-                     "disc none circle square decimal arabic-indic bengali cambodian cjk-decimal devanagari gujarati gurmukhi kannada khmer lao malayalam mongolian myanmar oriya persian telugu thai tibetan lower-alpha upper-alpha cjk-earthly-branch cjk-heavenly-stem lower-greek hiragana hiragana-iroha katakana katakana-iroha disclosure-open disclosure-closed")}
+                     "disc none circle square disclosure-open disclosure-closed")}
 
     <%self:longhand name="list-style-image">
         use std::borrow::IntoCow;
@@ -1060,144 +907,6 @@ pub mod longhands {
         pub fn get_initial_value() -> computed_value::T {
             None
         }
-    </%self:longhand>
-
-    <%self:longhand name="quotes">
-        use cssparser::{ToCss, Token};
-        use text_writer::{self, TextWriter};
-        use values::computed::{ToComputedValue, Context};
-
-        pub use self::computed_value::T as SpecifiedValue;
-
-        pub mod computed_value {
-            #[derive(Clone, PartialEq)]
-            pub struct T(pub Vec<(String,String)>);
-        }
-
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            fn to_computed_value(&self, _: &Context) -> computed_value::T {
-                (*self).clone()
-            }
-        }
-
-        impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
-                // TODO(pcwalton)
-                dest.write_str("")
-            }
-        }
-
-        #[inline]
-        pub fn get_initial_value() -> computed_value::T {
-            computed_value::T(vec![
-                ("\u{201c}".to_string(), "\u{201d}".to_string()),
-                ("\u{2018}".to_string(), "\u{2019}".to_string()),
-            ])
-        }
-
-        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-            if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-                return Ok(SpecifiedValue(Vec::new()))
-            }
-
-            let mut quotes = Vec::new();
-            loop {
-                let first = match input.next() {
-                    Ok(Token::QuotedString(value)) => value.into_owned(),
-                    Ok(_) => return Err(()),
-                    Err(()) => break,
-                };
-                let second = match input.next() {
-                    Ok(Token::QuotedString(value)) => value.into_owned(),
-                    _ => return Err(()),
-                };
-                quotes.push((first, second))
-            }
-            if !quotes.is_empty() {
-                Ok(SpecifiedValue(quotes))
-            } else {
-                Err(())
-            }
-        }
-    </%self:longhand>
-
-    ${new_style_struct("Counters", is_inherited=False)}
-
-    <%self:longhand name="counter-increment">
-        use cssparser::{NumericValue, ToCss, Token};
-        use super::content;
-        use text_writer::{self, TextWriter};
-        use values::computed::{ToComputedValue, Context};
-
-        use std::borrow::ToOwned;
-
-        pub use self::computed_value::T as SpecifiedValue;
-
-        pub mod computed_value {
-            #[derive(Clone, PartialEq)]
-            pub struct T(pub Vec<(String,i32)>);
-        }
-
-        #[inline]
-        pub fn get_initial_value() -> computed_value::T {
-            computed_value::T(Vec::new())
-        }
-
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            fn to_computed_value(&self, _: &Context) -> computed_value::T {
-                (*self).clone()
-            }
-        }
-
-        impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
-                // TODO(pcwalton)
-                dest.write_str("")
-            }
-        }
-
-        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-            if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-                return Ok(SpecifiedValue(Vec::new()))
-            }
-
-            let mut counters = Vec::new();
-            loop {
-                let counter_name = match input.next() {
-                    Ok(Token::Ident(ident)) => (*ident).to_owned(),
-                    Ok(_) => return Err(()),
-                    Err(_) => break,
-                };
-                if content::counter_name_is_illegal(counter_name.as_slice()) {
-                    return Err(())
-                }
-                let counter_delta = input.try(|input| {
-                    match input.next() {
-                        Ok(Token::Number(NumericValue {
-                            int_value: Some(int_value),
-                            ..
-                        })) => Ok(int_value as i32),
-                        _ => Err(()),
-                    }
-                }).unwrap_or(1);
-                counters.push((counter_name, counter_delta))
-            }
-
-            if !counters.is_empty() {
-                Ok(SpecifiedValue(counters))
-            } else {
-                Err(())
-            }
-        }
-    </%self:longhand>
-
-    <%self:longhand name="counter-reset">
-        pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
-        pub use super::counter_increment::{parse};
     </%self:longhand>
 
     // CSS 2.1, Section 13 - Paged media

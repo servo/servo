@@ -9,7 +9,7 @@
 use context::LayoutContext;
 use css::node_style::StyledNode;
 use flow::{BaseFlow, FlowClass, Flow, ForceNonfloatedFlag};
-use fragment::{Fragment, FragmentBorderBoxIterator, FragmentMutator, SpecificFragmentInfo};
+use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use layout_debug;
 use wrapper::ThreadSafeLayoutNode;
 
@@ -104,8 +104,6 @@ impl Flow for TableColGroupFlow {
     fn iterate_through_fragment_border_boxes(&self,
                                              _: &mut FragmentBorderBoxIterator,
                                              _: &Point2D<Au>) {}
-
-    fn mutate_fragments(&mut self, _: &mut FragmentMutator) {}
 }
 
 impl fmt::Debug for TableColGroupFlow {

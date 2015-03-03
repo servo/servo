@@ -8,11 +8,12 @@
 
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use block::{ISizeConstraintInput, ISizeConstraintSolution};
+use construct::FlowConstructor;
 use context::LayoutContext;
 use floats::FloatKind;
 use flow::{self, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
-use flow::{ImmutableFlowUtils};
-use fragment::{Fragment, FragmentBorderBoxIterator, FragmentMutator};
+use flow::ImmutableFlowUtils;
+use fragment::{Fragment, FragmentBorderBoxIterator};
 use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution};
 use table_row::CellIntrinsicInlineSize;
@@ -54,12 +55,12 @@ impl TableFlow {
                                   fragment: Fragment)
                                   -> TableFlow {
         let mut block_flow = BlockFlow::from_node_and_fragment(node, fragment);
-        let table_layout =
-            if block_flow.fragment().style().get_table().table_layout == table_layout::T::fixed {
-                TableLayout::Fixed
-            } else {
-                TableLayout::Auto
-            };
+        let table_layout = if block_flow.fragment().style().get_table().table_layout ==
+                              table_layout::T::fixed {
+            TableLayout::Fixed
+        } else {
+            TableLayout::Auto
+        };
         TableFlow {
             block_flow: block_flow,
             column_intrinsic_inline_sizes: Vec::new(),
@@ -68,17 +69,35 @@ impl TableFlow {
         }
     }
 
-    pub fn float_from_node_and_fragment(node: &ThreadSafeLayoutNode,
-                                        fragment: Fragment,
-                                        float_kind: FloatKind)
-                                        -> TableFlow {
-        let mut block_flow = BlockFlow::float_from_node_and_fragment(node, fragment, float_kind);
-        let table_layout =
-            if block_flow.fragment().style().get_table().table_layout == table_layout::T::fixed {
-                TableLayout::Fixed
-            } else {
-                TableLayout::Auto
-            };
+    pub fn from_node(constructor: &mut FlowConstructor,
+                     node: &ThreadSafeLayoutNode)
+                     -> TableFlow {
+        let mut block_flow = BlockFlow::from_node(constructor, node);
+        let table_layout = if block_flow.fragment().style().get_table().table_layout ==
+                              table_layout::T::fixed {
+            TableLayout::Fixed
+        } else {
+            TableLayout::Auto
+        };
+        TableFlow {
+            block_flow: block_flow,
+            column_intrinsic_inline_sizes: Vec::new(),
+            column_computed_inline_sizes: Vec::new(),
+            table_layout: table_layout
+        }
+    }
+
+    pub fn float_from_node(constructor: &mut FlowConstructor,
+                           node: &ThreadSafeLayoutNode,
+                           float_kind: FloatKind)
+                           -> TableFlow {
+        let mut block_flow = BlockFlow::float_from_node(constructor, node, float_kind);
+        let table_layout = if block_flow.fragment().style().get_table().table_layout ==
+                              table_layout::T::fixed {
+            TableLayout::Fixed
+        } else {
+            TableLayout::Auto
+        };
         TableFlow {
             block_flow: block_flow,
             column_intrinsic_inline_sizes: Vec::new(),
@@ -376,10 +395,6 @@ impl Flow for TableFlow {
                                              iterator: &mut FragmentBorderBoxIterator,
                                              stacking_context_position: &Point2D<Au>) {
         self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
-    }
-
-    fn mutate_fragments(&mut self, mutator: &mut FragmentMutator) {
-        self.block_flow.mutate_fragments(mutator)
     }
 }
 
