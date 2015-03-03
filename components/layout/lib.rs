@@ -66,7 +66,9 @@ pub mod flow;
 pub mod flow_list;
 pub mod flow_ref;
 pub mod fragment;
+pub mod generated_content;
 pub mod layout_task;
+pub mod incremental;
 pub mod inline;
 pub mod list_item;
 pub mod model;
@@ -82,7 +84,6 @@ pub mod table_cell;
 pub mod text;
 pub mod traversal;
 pub mod util;
-pub mod incremental;
 pub mod wrapper;
 
 pub mod css {
