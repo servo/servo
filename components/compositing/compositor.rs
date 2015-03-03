@@ -274,8 +274,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.change_page_title(pipeline_id, title);
             }
 
-            (Msg::ChangePageLoadData(frame_id, load_data), ShutdownState::NotShuttingDown) => {
-                self.change_page_load_data(frame_id, load_data);
+            (Msg::ChangePageUrl(frame_id, url), ShutdownState::NotShuttingDown) => {
+                self.change_page_url(frame_id, url);
             }
 
             (Msg::PaintMsgDiscarded, ShutdownState::NotShuttingDown) => {
@@ -441,8 +441,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn change_page_load_data(&mut self, _: FrameId, load_data: LoadData) {
-        self.window.set_page_load_data(load_data);
+    fn change_page_url(&mut self, _: FrameId, url: Url) {
+        self.window.set_page_url(url);
     }
 
     fn all_pipelines_in_idle_paint_state(&self) -> bool {

@@ -25,7 +25,7 @@ use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node, CloneChildrenFlag};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::ScriptHelpers;
+use dom::window::{WindowHelpers, ScriptHelpers};
 use script_task::{ScriptMsg, Runnable};
 
 use encoding::all::UTF_8;
@@ -214,8 +214,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         // Step 14.
         let window = window_from_node(self).root();
         let window = window.r();
-        let page = window.page();
-        let base_url = page.get_url();
+        let base_url = window.get_url();
 
         let load = match element.get_attribute(ns!(""), &atom!("src")).root() {
             // Step 14.
@@ -243,7 +242,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                         // state of the element's `crossorigin` content attribute, the origin being
                         // the origin of the script element's node document, and the default origin
                         // behaviour set to taint.
-                        ScriptOrigin::External(load_whole_resource(&page.resource_task, url))
+                        ScriptOrigin::External(load_whole_resource(&window.resource_task(), url))
                     }
                 }
             },

@@ -20,8 +20,8 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
-use dom::window::Window;
-use page::{IterablePage, Page};
+use dom::window::{Window, WindowHelpers};
+use page::IterablePage;
 
 use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan};
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -62,7 +62,7 @@ pub trait HTMLIFrameElementHelpers {
     fn get_url(self) -> Option<Url>;
     /// http://www.whatwg.org/html/#process-the-iframe-attributes
     fn process_the_iframe_attributes(self);
-    fn generate_new_subpage_id(self, page: &Page) -> (SubpageId, Option<SubpageId>);
+    fn generate_new_subpage_id(self) -> (SubpageId, Option<SubpageId>);
 }
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
@@ -78,15 +78,16 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
                 None
             } else {
                 let window = window_from_node(self).root();
-                UrlParser::new().base_url(&window.r().page().get_url())
+                UrlParser::new().base_url(&window.r().get_url())
                     .parse(url.as_slice()).ok()
             }
         })
     }
 
-    fn generate_new_subpage_id(self, page: &Page) -> (SubpageId, Option<SubpageId>) {
+    fn generate_new_subpage_id(self) -> (SubpageId, Option<SubpageId>) {
         let old_subpage_id = self.subpage_id.get();
-        let subpage_id = page.get_next_subpage_id();
+        let win = window_from_node(self).root();
+        let subpage_id = win.r().get_next_subpage_id();
         self.subpage_id.set(Some(subpage_id));
         (subpage_id, old_subpage_id)
     }
@@ -105,14 +106,13 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 
         let window = window_from_node(self).root();
         let window = window.r();
-        let page = window.page();
-        let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id(page);
+        let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
 
-        self.containing_page_pipeline_id.set(Some(page.id));
+        self.containing_page_pipeline_id.set(Some(window.pipeline()));
 
-        let ConstellationChan(ref chan) = page.constellation_chan;
+        let ConstellationChan(ref chan) = window.constellation_chan();
     chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(url,
-                                                        page.id,
+                                                        window.pipeline(),
                                                         new_subpage_id,
                                                         old_subpage_id,
                                                         sandboxed)).unwrap();
@@ -172,14 +172,10 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
             let window = window_from_node(self).root();
             let window = window.r();
             let children = window.page().children.borrow();
-            let child = children.iter().find(|child| {
-                child.subpage_id.unwrap() == subpage_id
-            });
-            child.and_then(|page| {
-                page.frame.borrow().as_ref().map(|frame| {
-                    Temporary::new(frame.window.clone())
-                })
-            })
+            children.iter().find(|page| {
+                let window = page.window().root();
+                window.r().subpage() == Some(subpage_id)
+            }).map(|page| page.window())
         })
     }
 
@@ -189,7 +185,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
                 Some(self_url) => self_url,
                 None => return None,
             };
-            let win_url = window_from_node(self).root().r().page().get_url();
+            let win_url = window_from_node(self).root().r().get_url();
 
             if UrlHelper::SameOrigin(&self_url, &win_url) {
                 Some(window.r().Document())

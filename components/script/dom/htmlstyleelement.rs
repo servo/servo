@@ -12,6 +12,7 @@ use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use dom::window::WindowHelpers;
 use layout_interface::{LayoutChan, Msg};
 use util::str::DOMString;
 use style::stylesheets::{Origin, Stylesheet};
@@ -52,11 +53,11 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
 
         let win = window_from_node(node).root();
         let win = win.r();
-        let url = win.page().get_url();
+        let url = win.get_url();
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
         let sheet = Stylesheet::from_str(data.as_slice(), url, Origin::Author);
-        let LayoutChan(ref layout_chan) = win.page().layout_chan;
+        let LayoutChan(ref layout_chan) = win.layout_chan();
         layout_chan.send(Msg::AddStylesheet(sheet)).unwrap();
     }
 }
