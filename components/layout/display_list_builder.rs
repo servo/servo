@@ -885,6 +885,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 }
             }
             SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::GeneratedContent(..) |
             SpecificFragmentInfo::Iframe(..) |
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
