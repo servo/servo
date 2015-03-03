@@ -20,7 +20,7 @@ use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use model;
 use text;
-use util::OpaqueNodeMethods;
+use opaque_node::OpaqueNodeMethods;
 use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
 use geom::num::Zero;

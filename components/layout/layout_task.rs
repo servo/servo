@@ -17,7 +17,8 @@ use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAI
 use layout_debug;
 use parallel::{self, UnsafeFlow};
 use sequential;
-use util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods, ToGfxColor};
+use util::{LayoutDataAccess, LayoutDataWrapper, ToGfxColor};
+use opaque_node::OpaqueNodeMethods;
 use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use encoding::EncodingRef;

@@ -36,8 +36,9 @@ use canvas::canvas_paint_task::CanvasMsg;
 use context::SharedLayoutContext;
 use css::node_style::StyledNode;
 use incremental::RestyleDamage;
-use util::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper, OpaqueNodeMethods};
+use util::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper};
 use util::{PrivateLayoutData};
+use opaque_node::OpaqueNodeMethods;
 
 use cssparser::RGBA;
 use gfx::display_list::OpaqueNode;

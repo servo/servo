@@ -19,7 +19,8 @@ use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
 use inline::InlineFlow;
 use list_item::ListItemFlow;
 use model;
-use util::{OpaqueNodeMethods, ToGfxColor};
+use util::ToGfxColor;
+use opaque_node::OpaqueNodeMethods;
 
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color;

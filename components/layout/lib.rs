@@ -70,6 +70,7 @@ pub mod layout_task;
 pub mod inline;
 pub mod list_item;
 pub mod model;
+pub mod opaque_node;
 pub mod parallel;
 pub mod sequential;
 pub mod table_wrapper;
