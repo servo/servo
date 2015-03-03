@@ -805,7 +805,7 @@ impl Fragment {
         Fragment {
             node: self.node,
             style: self.style.clone(),
-            restyle_damage: incremental::all(),
+            restyle_damage: incremental::rebuild_and_reflow(),
             border_box: new_border_box,
             border_padding: self.border_padding,
             margin: self.margin,
@@ -2117,11 +2117,5 @@ fn strip_trailing_whitespace(text_run: &TextRun, range: &mut Range<CharIndex>) -
 
     range.extend_by(-CharIndex(trailing_whitespace_character_count));
     return true
-}
-
-/// A mutable iterator over fragments.
-pub trait FragmentMutator {
-    /// The operation to perform.
-    fn process(&mut self, fragment: &mut Fragment);
 }
 

@@ -12,8 +12,7 @@ use context::LayoutContext;
 use display_list_builder::ListItemFlowDisplayListBuilding;
 use floats::FloatKind;
 use flow::{Flow, FlowClass};
-use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, FragmentMutator};
-use fragment::{GeneratedContentInfo};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedContentInfo};
 use generated_content;
 use incremental::RESOLVE_GENERATED_CONTENT;
 use wrapper::ThreadSafeLayoutNode;
@@ -169,11 +168,11 @@ impl Flow for ListItemFlow {
         }
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FragmentMutator) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator);
 
         if let Some(ref mut marker) = self.marker {
-            mutator.process(marker)
+            (*mutator)(marker)
         }
     }
 }
@@ -181,7 +180,7 @@ impl Flow for ListItemFlow {
 /// The kind of content that `list-style-type` results in.
 pub enum ListStyleTypeContent {
     None,
-    StaticText(&'static str),
+    StaticText(char),
     GeneratedContent(Box<GeneratedContentInfo>),
 }
 
@@ -194,7 +193,7 @@ impl ListStyleTypeContent {
             list_style_type::T::none => ListStyleTypeContent::None,
             list_style_type::T::disc | list_style_type::T::circle | list_style_type::T::square |
             list_style_type::T::disclosure_open | list_style_type::T::disclosure_closed => {
-                let text = generated_content::static_representation(list_style_type).unwrap();
+                let text = generated_content::static_representation(list_style_type);
                 ListStyleTypeContent::StaticText(text)
             }
             _ => ListStyleTypeContent::GeneratedContent(box GeneratedContentInfo::ListItem),

@@ -39,8 +39,7 @@ use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
 use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{CLEARS_LEFT, CLEARS_RIGHT};
-use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, FragmentMutator};
-use fragment::{SpecificFragmentInfo};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{IntrinsicISizes, MarginCollapseInfo};
@@ -1889,8 +1888,8 @@ impl Flow for BlockFlow {
                               .translate(stacking_context_position));
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FragmentMutator) {
-        mutator.process(&mut self.fragment)
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+        (*mutator)(&mut self.fragment)
     }
 }
 

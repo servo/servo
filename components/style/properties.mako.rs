@@ -758,9 +758,8 @@ pub mod longhands {
     ${switch_to_style_struct("Box")}
 
     <%self:longhand name="content">
-        use cssparser::{ToCss, Token};
+        use cssparser::Token;
         use std::ascii::AsciiExt;
-        use std::borrow::ToOwned;
         use values::computed::ComputedValueAsSpecified;
 
         use super::list_style_type;
@@ -801,13 +800,21 @@ pub mod longhands {
                         &ContentItem::String(ref s) => {
                             Token::QuotedString((&**s).into_cow()).to_css(dest)
                         }
-                        &ContentItem::Counter(ref s, _) => {
-                            // FIXME(pcwalton)
-                            Token::QuotedString((&**s).into_cow()).to_css(dest)
+                        &ContentItem::Counter(ref s, ref list_style_type) => {
+                            try!(dest.write_str("counter("));
+                            try!(Token::QuotedString((&**s).into_cow()).to_css(dest));
+                            try!(dest.write_str(", "));
+                            try!(list_style_type.to_css(dest));
+                            dest.write_str(")")
                         }
-                        &ContentItem::Counters(ref s, _, _) => {
-                            // FIXME(pcwalton)
-                            Token::QuotedString((&**s).into_cow()).to_css(dest)
+                        &ContentItem::Counters(ref s, ref separator, ref list_style_type) => {
+                            try!(dest.write_str("counter("));
+                            try!(Token::QuotedString((&**s).into_cow()).to_css(dest));
+                            try!(dest.write_str(", "));
+                            try!(Token::QuotedString((&**separator).into_cow()).to_css(dest));
+                            try!(dest.write_str(", "));
+                            try!(list_style_type.to_css(dest));
+                            dest.write_str(")")
                         }
                         &ContentItem::OpenQuote => dest.write_str("open-quote"),
                         &ContentItem::CloseQuote => dest.write_str("close-quote"),
@@ -834,6 +841,7 @@ pub mod longhands {
                             let mut iter = content.iter();
                             try!(iter.next().unwrap().to_css(dest));
                             for c in iter {
+                                try!(dest.write_str(" "));
                                 try!(c.to_css(dest));
                             }
                             Ok(())
@@ -901,15 +909,14 @@ pub mod longhands {
                             _ => return Err(())
                         }
                     }
-                    Err(()) if !content.is_empty() => {
-                        let mut result = String::new();
-                        for content in content.iter() {
-                            content.to_css(&mut result).unwrap()
-                        }
-                        return Ok(SpecifiedValue::Content(content))
-                    }
+                    Err(_) => break,
                     _ => return Err(())
                 }
+            }
+            if !content.is_empty() {
+                Ok(SpecifiedValue::Content(content))
+            } else {
+                Err(())
             }
         }
     </%self:longhand>
@@ -986,9 +993,11 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="quotes">
-        use cssparser::{ToCss, Token};
         use text_writer::{self, TextWriter};
-        use values::computed::{ToComputedValue, Context};
+        use values::computed::ComputedValueAsSpecified;
+
+        use cssparser::{ToCss, Token};
+        use std::borrow::IntoCow;
 
         pub use self::computed_value::T as SpecifiedValue;
 
@@ -997,18 +1006,21 @@ pub mod longhands {
             pub struct T(pub Vec<(String,String)>);
         }
 
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            fn to_computed_value(&self, _: &Context) -> computed_value::T {
-                (*self).clone()
-            }
-        }
+        impl ComputedValueAsSpecified for SpecifiedValue {}
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
-                // TODO(pcwalton)
-                dest.write_str("")
+                let mut first = true;
+                for pair in self.0.iter() {
+                    if !first {
+                        try!(dest.write_str(" "));
+                    }
+                    first = false;
+                    try!(Token::QuotedString(pair.0.as_slice().into_cow()).to_css(dest));
+                    try!(dest.write_str(" "));
+                    try!(Token::QuotedString(pair.1.as_slice().into_cow()).to_css(dest));
+                }
+                Ok(())
             }
         }
 
@@ -1049,12 +1061,12 @@ pub mod longhands {
     ${new_style_struct("Counters", is_inherited=False)}
 
     <%self:longhand name="counter-increment">
-        use cssparser::{NumericValue, ToCss, Token};
         use super::content;
         use text_writer::{self, TextWriter};
-        use values::computed::{ToComputedValue, Context};
+        use values::computed::ComputedValueAsSpecified;
 
-        use std::borrow::ToOwned;
+        use cssparser::{ToCss, Token};
+        use std::borrow::{IntoCow, ToOwned};
 
         pub use self::computed_value::T as SpecifiedValue;
 
@@ -1068,18 +1080,20 @@ pub mod longhands {
             computed_value::T(Vec::new())
         }
 
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            fn to_computed_value(&self, _: &Context) -> computed_value::T {
-                (*self).clone()
-            }
-        }
+        impl ComputedValueAsSpecified for SpecifiedValue {}
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
-                // TODO(pcwalton)
-                dest.write_str("")
+                let mut first = true;
+                for pair in self.0.iter() {
+                    if !first {
+                        try!(dest.write_str(" "));
+                    }
+                    first = false;
+                    try!(Token::QuotedString(pair.0.as_slice().into_cow()).to_css(dest));
+                    try!(dest.write_str(format!(" {}", pair.1).as_slice()));
+                }
+                Ok(())
             }
         }
 
@@ -1098,15 +1112,7 @@ pub mod longhands {
                 if content::counter_name_is_illegal(counter_name.as_slice()) {
                     return Err(())
                 }
-                let counter_delta = input.try(|input| {
-                    match input.next() {
-                        Ok(Token::Number(NumericValue {
-                            int_value: Some(int_value),
-                            ..
-                        })) => Ok(int_value as i32),
-                        _ => Err(()),
-                    }
-                }).unwrap_or(1);
+                let counter_delta = input.try(|input| input.expect_integer()).unwrap_or(1) as i32;
                 counters.push((counter_name, counter_delta))
             }
 
@@ -2900,8 +2906,6 @@ pub mod shorthands {
                      sub_properties="background-color background-position background-repeat background-attachment background-image background-size">
         use properties::longhands::{background_color, background_position, background_repeat};
         use properties::longhands::{background_attachment, background_image, background_size};
-
-        use cssparser::Token;
 
         let mut color = None;
         let mut image = None;

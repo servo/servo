@@ -673,7 +673,7 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
 fn get_content(content_list: &content::T) -> Vec<ContentItem> {
     match *content_list {
         content::T::Content(ref value) if !value.is_empty() => (*value).clone(),
-        _ => vec![ContentItem::String("".to_owned())],
+        _ => vec![],
     }
 }
 

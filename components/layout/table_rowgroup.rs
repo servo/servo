@@ -9,7 +9,7 @@
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
 use flow::{FlowClass, Flow};
-use fragment::{Fragment, FragmentBorderBoxIterator, FragmentMutator};
+use fragment::{Fragment, FragmentBorderBoxIterator};
 use layout_debug;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable};
 use wrapper::ThreadSafeLayoutNode;
@@ -156,7 +156,7 @@ impl Flow for TableRowGroupFlow {
         self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FragmentMutator) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
 }

@@ -10,7 +10,7 @@ use block::BlockFlow;
 use block::ISizeAndMarginsComputer;
 use context::LayoutContext;
 use flow::{self, FlowClass, Flow, ImmutableFlowUtils};
-use fragment::{Fragment, FragmentBorderBoxIterator, FragmentMutator};
+use fragment::{Fragment, FragmentBorderBoxIterator};
 use layout_debug;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable};
 use model::MaybeAuto;
@@ -319,7 +319,7 @@ impl Flow for TableRowFlow {
         self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FragmentMutator) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
 }

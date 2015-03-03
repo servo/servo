@@ -19,7 +19,7 @@ use context::LayoutContext;
 use floats::FloatKind;
 use flow::{FlowClass, Flow, ImmutableFlowUtils};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
-use fragment::{Fragment, FragmentBorderBoxIterator, FragmentMutator};
+use fragment::{Fragment, FragmentBorderBoxIterator};
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use wrapper::ThreadSafeLayoutNode;
 
@@ -367,7 +367,7 @@ impl Flow for TableWrapperFlow {
         self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FragmentMutator) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
 }

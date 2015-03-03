@@ -177,6 +177,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == quotes_simple_a.html quotes_simple_ref.html
 == ol_simple_a.html ol_simple_ref.html
 == ol_japanese_iroha_a.html ol_japanese_iroha_ref.html
+!= ol_japanese_iroha_bullet_styles.html ol_japanese_iroha_ref.html
 == vertical_align_top_a.html vertical_align_top_ref.html
 == vertical_align_bottom_a.html vertical_align_bottom_ref.html
 == vertical_align_top_span_a.html vertical_align_top_span_ref.html

@@ -11,9 +11,8 @@ use floats::{FloatKind, Floats, PlacementInfo};
 use flow::{BaseFlow, FlowClass, Flow, MutableFlowUtils, ForceNonfloatedFlag};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow;
-use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, FragmentMutator};
-use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
-use fragment::SplitInfo;
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, ScannedTextFragmentInfo};
+use fragment::{SpecificFragmentInfo, SplitInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
 use layout_debug;
 use model::IntrinsicISizesContribution;
@@ -1400,9 +1399,9 @@ impl Flow for InlineFlow {
         }
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FragmentMutator) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         for fragment in self.fragments.fragments.iter_mut() {
-            mutator.process(fragment)
+            (*mutator)(fragment)
         }
     }
 }

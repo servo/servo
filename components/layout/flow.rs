@@ -32,7 +32,7 @@ use display_list_builder::DisplayListBuildingResult;
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::FlowRef;
-use fragment::{Fragment, FragmentBorderBoxIterator, FragmentMutator, SpecificFragmentInfo};
+use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{self, RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
@@ -236,7 +236,7 @@ pub trait Flow: fmt::Debug + Sync {
                                              stacking_context_position: &Point2D<Au>);
 
     /// Mutably iterates through fragments in this flow.
-    fn mutate_fragments(&mut self, mutator: &mut FragmentMutator);
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment));
 
     fn compute_collapsible_block_start_margin(&mut self,
                                               _layout_context: &mut LayoutContext,
@@ -929,7 +929,7 @@ impl BaseFlow {
         }
 
         // New flows start out as fully damaged.
-        let mut damage = incremental::all();
+        let mut damage = incremental::rebuild_and_reflow();
         damage.remove(RECONSTRUCT_FLOW);
 
         BaseFlow {
