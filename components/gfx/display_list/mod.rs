@@ -28,6 +28,7 @@ use azure::azure_hl::{Color};
 
 use collections::dlist::{self, DList};
 use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
+use geom::approxeq::ApproxEq;
 use geom::num::Zero;
 use libc::uintptr_t;
 use paint_task::PaintLayer;
@@ -912,7 +913,9 @@ impl DisplayItem {
 
         match *self {
             DisplayItem::SolidColorClass(ref solid_color) => {
-                paint_context.draw_solid_color(&solid_color.base.bounds, solid_color.color)
+                if !solid_color.color.a.approx_eq(&0.0) {
+                    paint_context.draw_solid_color(&solid_color.base.bounds, solid_color.color)
+                }
             }
 
             DisplayItem::TextClass(ref text) => {
