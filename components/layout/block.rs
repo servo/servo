@@ -57,9 +57,10 @@ use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::cmp::{max, min};
 use std::fmt;
+use style::computed_values::{overflow_x, overflow_y, position, box_sizing, display, float};
 use style::properties::ComputedValues;
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use style::computed_values::{overflow, position, box_sizing, display, float};
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrPercentageOrNone};
 use std::sync::Arc;
 
 /// Information specific to floated blocks.
@@ -1431,7 +1432,10 @@ impl BlockFlow {
             display::T::inline_block => {
                 FormattingContextType::Other
             }
-            _ if style.get_box().overflow != overflow::T::visible => FormattingContextType::Block,
+            _ if style.get_box().overflow_x != overflow_x::T::visible ||
+                    style.get_box().overflow_y != overflow_y::T(overflow_x::T::visible) => {
+                FormattingContextType::Block
+            }
             _ => FormattingContextType::None,
         }
     }
