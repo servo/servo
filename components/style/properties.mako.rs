@@ -1286,6 +1286,126 @@ pub mod longhands {
 
     ${single_keyword("background-attachment", "scroll fixed")}
 
+    <%self:longhand name="background-size">
+        use cssparser::{ToCss, Token};
+        use std::ascii::AsciiExt;
+        use text_writer::{self, TextWriter};
+        use values::computed::{Context, ToComputedValue};
+
+        pub mod computed_value {
+            use values::computed::LengthOrPercentageOrAuto;
+
+            #[derive(PartialEq, Clone, Debug)]
+            pub struct ExplicitSize {
+                pub width: LengthOrPercentageOrAuto,
+                pub height: LengthOrPercentageOrAuto,
+            }
+
+            #[derive(PartialEq, Clone, Debug)]
+            pub enum T {
+                Explicit(ExplicitSize),
+                Cover,
+                Contain,
+            }
+        }
+
+        #[derive(Clone, PartialEq, Debug)]
+        pub struct SpecifiedExplicitSize {
+            pub width: specified::LengthOrPercentageOrAuto,
+            pub height: specified::LengthOrPercentageOrAuto,
+        }
+
+        impl ToCss for SpecifiedExplicitSize {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                try!(self.width.to_css(dest));
+                try!(dest.write_str(" "));
+                self.height.to_css(dest)
+            }
+        }
+
+        #[derive(Clone, PartialEq, Debug)]
+        pub enum SpecifiedValue {
+            Explicit(SpecifiedExplicitSize),
+            Cover,
+            Contain,
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                match *self {
+                    SpecifiedValue::Explicit(ref size) => size.to_css(dest),
+                    SpecifiedValue::Cover => dest.write_str("cover"),
+                    SpecifiedValue::Contain => dest.write_str("contain"),
+                }
+            }
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &computed::Context) -> computed_value::T {
+                match *self {
+                    SpecifiedValue::Explicit(ref size) => {
+                        computed_value::T::Explicit(computed_value::ExplicitSize {
+                            width: size.width.to_computed_value(context),
+                            height: size.height.to_computed_value(context),
+                        })
+                    }
+                    SpecifiedValue::Cover => computed_value::T::Cover,
+                    SpecifiedValue::Contain => computed_value::T::Contain,
+                }
+            }
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T::Explicit(computed_value::ExplicitSize {
+                width: computed::LengthOrPercentageOrAuto::Auto,
+                height: computed::LengthOrPercentageOrAuto::Auto,
+            })
+        }
+
+        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            let width;
+            if let Ok(value) = input.try(|input| {
+                match input.next() {
+                    Err(_) => Err(()),
+                    Ok(Token::Ident(ref ident)) if ident.as_slice()
+                                                        .eq_ignore_ascii_case("cover") => {
+                        Ok(SpecifiedValue::Cover)
+                    }
+                    Ok(Token::Ident(ref ident)) if ident.as_slice()
+                                                        .eq_ignore_ascii_case("contain") => {
+                        Ok(SpecifiedValue::Contain)
+                    }
+                    Ok(_) => Err(()),
+                }
+            }) {
+                return Ok(value)
+            } else {
+                width = try!(specified::LengthOrPercentageOrAuto::parse(input))
+            }
+
+            let height;
+            if let Ok(value) = input.try(|input| {
+                match input.next() {
+                    Err(_) => Ok(specified::LengthOrPercentageOrAuto::Auto),
+                    Ok(_) => Err(()),
+                }
+            }) {
+                height = value
+            } else {
+                height = try!(specified::LengthOrPercentageOrAuto::parse(input));
+            }
+
+            Ok(SpecifiedValue::Explicit(SpecifiedExplicitSize {
+                width: width,
+                height: height,
+            }))
+        }
+    </%self:longhand>
+
     ${new_style_struct("Color", is_inherited=True)}
 
     <%self:raw_longhand name="color">
@@ -2628,6 +2748,62 @@ pub mod longhands {
                      """normal multiply screen overlay darken lighten color-dodge
                         color-burn hard-light soft-light difference exclusion hue
                         saturation color luminosity""")}
+
+    <%self:longhand name="image-rendering">
+        use values::computed::{Context, ToComputedValue};
+
+        pub mod computed_value {
+            use cssparser::ToCss;
+            use text_writer::{self, TextWriter};
+
+            #[derive(Copy, Clone, Debug, PartialEq)]
+            pub enum T {
+                Auto,
+                CrispEdges,
+                Pixelated,
+            }
+
+            impl ToCss for T {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                    match *self {
+                        T::Auto => dest.write_str("auto"),
+                        T::CrispEdges => dest.write_str("crisp-edges"),
+                        T::Pixelated => dest.write_str("pixelated"),
+                    }
+                }
+            }
+        }
+
+        pub type SpecifiedValue = computed_value::T;
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T::Auto
+        }
+
+        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            // According to to CSS-IMAGES-3, `optimizespeed` and `optimizequality` are synonyms for
+            // `auto`.
+            match_ignore_ascii_case! {
+                try!(input.expect_ident()),
+                "auto" => Ok(computed_value::T::Auto),
+                "optimizespeed" => Ok(computed_value::T::Auto),
+                "optimizequality" => Ok(computed_value::T::Auto),
+                "crisp-edges" => Ok(computed_value::T::CrispEdges),
+                "pixelated" => Ok(computed_value::T::Pixelated)
+                _ => Err(())
+            }
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, _: &Context) -> computed_value::T {
+                *self
+            }
+        }
+    </%self:longhand>
 }
 
 
@@ -2720,14 +2896,17 @@ pub mod shorthands {
 
     // TODO: other background-* properties
     <%self:shorthand name="background"
-                     sub_properties="background-color background-position background-repeat background-attachment background-image">
-        use properties::longhands::{background_color, background_position, background_repeat,
-                                    background_attachment, background_image};
+                     sub_properties="background-color background-position background-repeat background-attachment background-image background-size">
+        use properties::longhands::{background_color, background_position, background_repeat};
+        use properties::longhands::{background_attachment, background_image, background_size};
+
+        use cssparser::Token;
 
         let mut color = None;
         let mut image = None;
         let mut position = None;
         let mut repeat = None;
+        let mut size = None;
         let mut attachment = None;
         let mut any = false;
 
@@ -2736,6 +2915,13 @@ pub mod shorthands {
                 if let Ok(value) = input.try(|input| background_position::parse(context, input)) {
                     position = Some(value);
                     any = true;
+
+                    // Parse background size, if applicable.
+                    size = input.try(|input| {
+                        try!(input.expect_delim('/'));
+                        background_size::parse(context, input)
+                    }).ok();
+
                     continue
                 }
             }
@@ -2777,6 +2963,7 @@ pub mod shorthands {
                 background_position: position,
                 background_repeat: repeat,
                 background_attachment: attachment,
+                background_size: size,
             })
         } else {
             Err(())

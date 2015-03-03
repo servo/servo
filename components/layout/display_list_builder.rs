@@ -18,7 +18,7 @@ use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
 use inline::InlineFlow;
 use list_item::ListItemFlow;
-use model;
+use model::{self, MaybeAuto};
 use util::{OpaqueNodeMethods, ToGfxColor};
 
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
@@ -31,8 +31,7 @@ use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
 use gfx::display_list::{OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
 use gfx::paint_task::{PaintLayer, THREAD_TINT_COLORS};
-use png;
-use png::PixelsByColorType;
+use png::{self, PixelsByColorType};
 use msg::compositor_msg::ScrollPolicy;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::ConstellationChan;
@@ -46,11 +45,11 @@ use std::default::Default;
 use std::iter::repeat;
 use std::num::Float;
 use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
-use style::values::computed::{Image, LinearGradient, LengthOrPercentage};
+use style::values::computed::{Image, LinearGradient, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::RGBA;
 use style::computed_values::filter::Filter;
-use style::computed_values::{background_attachment, background_repeat, border_style, overflow_x};
-use style::computed_values::{position, visibility};
+use style::computed_values::{background_attachment, background_repeat, background_size};
+use style::computed_values::{border_style, image_rendering, overflow_x, position, visibility};
 use style::properties::style_structs::Border;
 use style::properties::ComputedValues;
 use std::num::ToPrimitive;
@@ -92,6 +91,14 @@ pub trait FragmentDisplayListBuilding {
                                                        level: StackingLevel,
                                                        absolute_bounds: &Rect<Au>,
                                                        clip: &ClippingRegion);
+
+    /// Computes the background size for an image with the given background area according to the
+    /// rules in CSS-BACKGROUNDS § 3.9.
+    fn compute_background_image_size(&self,
+                                     style: &ComputedValues,
+                                     bounds: &Rect<Au>,
+                                     image: &png::Image)
+                                     -> Size2D<Au>;
 
     /// Adds the display items necessary to paint the background image of this fragment to the
     /// display list at the appropriate stacking level.
@@ -326,6 +333,59 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
+    fn compute_background_image_size(&self,
+                                     style: &ComputedValues,
+                                     bounds: &Rect<Au>,
+                                     image: &png::Image)
+                                     -> Size2D<Au> {
+        // If `image_aspect_ratio` < `bounds_aspect_ratio`, the image is tall; otherwise, it is
+        // wide.
+        let image_aspect_ratio = (image.width as f64) / (image.height as f64);
+        let bounds_aspect_ratio = bounds.size.width.to_subpx() / bounds.size.height.to_subpx();
+        let intrinsic_size = Size2D(Au::from_px(image.width as int),
+                                    Au::from_px(image.height as int));
+        match (style.get_background().background_size.clone(),
+               image_aspect_ratio < bounds_aspect_ratio) {
+            (background_size::T::Contain, false) | (background_size::T::Cover, true) => {
+                Size2D(bounds.size.width,
+                       Au::from_frac_px(bounds.size.width.to_subpx() / image_aspect_ratio))
+            }
+
+            (background_size::T::Contain, true) | (background_size::T::Cover, false) => {
+                Size2D(Au::from_frac_px(bounds.size.height.to_subpx() * image_aspect_ratio),
+                       bounds.size.height)
+            }
+
+            (background_size::T::Explicit(background_size::ExplicitSize {
+                width,
+                height: LengthOrPercentageOrAuto::Auto,
+            }), _) => {
+                let width = MaybeAuto::from_style(width, bounds.size.width)
+                                      .specified_or_default(intrinsic_size.width);
+                Size2D(width, Au::from_frac_px(width.to_subpx() / image_aspect_ratio))
+            }
+
+            (background_size::T::Explicit(background_size::ExplicitSize {
+                width: LengthOrPercentageOrAuto::Auto,
+                height
+            }), _) => {
+                let height = MaybeAuto::from_style(height, bounds.size.height)
+                                       .specified_or_default(intrinsic_size.height);
+                Size2D(Au::from_frac_px(height.to_subpx() * image_aspect_ratio), height)
+            }
+
+            (background_size::T::Explicit(background_size::ExplicitSize {
+                width,
+                height
+            }), _) => {
+                Size2D(MaybeAuto::from_style(width, bounds.size.width)
+                                 .specified_or_default(intrinsic_size.width),
+                       MaybeAuto::from_style(height, bounds.size.height)
+                                 .specified_or_default(intrinsic_size.height))
+            }
+        }
+    }
+
     fn build_display_list_for_background_image(&self,
                                                style: &ComputedValues,
                                                display_list: &mut DisplayList,
@@ -349,16 +409,16 @@ impl FragmentDisplayListBuilding for Fragment {
         };
         debug!("(building display list) building background image");
 
-        let image_width = Au::from_px(image.width as int);
-        let image_height = Au::from_px(image.height as int);
+        // Use `background-size` to get the size.
         let mut bounds = *absolute_bounds;
+        let image_size = self.compute_background_image_size(style, &bounds, &**image);
 
         // Clip.
         //
         // TODO: Check the bounds to see if a clip item is actually required.
         let clip = clip.clone().intersect_rect(&bounds);
 
-        // Use background-attachment to get the initial virtual origin
+        // Use `background-attachment` to get the initial virtual origin
         let (virtual_origin_x, virtual_origin_y) = match background.background_attachment {
             background_attachment::T::scroll => {
                 (absolute_bounds.origin.x, absolute_bounds.origin.y)
@@ -368,11 +428,11 @@ impl FragmentDisplayListBuilding for Fragment {
             }
         };
 
-        // Use background-position to get the offset
+        // Use `background-position` to get the offset.
         let horizontal_position = model::specified(background.background_position.horizontal,
-                                                   bounds.size.width - image_width);
+                                                   bounds.size.width - image_size.width);
         let vertical_position = model::specified(background.background_position.vertical,
-                                                 bounds.size.height - image_height);
+                                                 bounds.size.height - image_size.height);
 
         let abs_x = virtual_origin_x + horizontal_position;
         let abs_y = virtual_origin_y + vertical_position;
@@ -382,26 +442,34 @@ impl FragmentDisplayListBuilding for Fragment {
             background_repeat::T::no_repeat => {
                 bounds.origin.x = abs_x;
                 bounds.origin.y = abs_y;
-                bounds.size.width = image_width;
-                bounds.size.height = image_height;
+                bounds.size.width = image_size.width;
+                bounds.size.height = image_size.height;
             }
             background_repeat::T::repeat_x => {
                 bounds.origin.y = abs_y;
-                bounds.size.height = image_height;
-                ImageFragmentInfo::tile_image(&mut bounds.origin.x, &mut bounds.size.width,
-                                                abs_x, image.width);
+                bounds.size.height = image_size.height;
+                ImageFragmentInfo::tile_image(&mut bounds.origin.x,
+                                              &mut bounds.size.width,
+                                              abs_x,
+                                              image_size.width.to_nearest_px() as u32);
             }
             background_repeat::T::repeat_y => {
                 bounds.origin.x = abs_x;
-                bounds.size.width = image_width;
-                ImageFragmentInfo::tile_image(&mut bounds.origin.y, &mut bounds.size.height,
-                                                abs_y, image.height);
+                bounds.size.width = image_size.width;
+                ImageFragmentInfo::tile_image(&mut bounds.origin.y,
+                                              &mut bounds.size.height,
+                                              abs_y,
+                                              image_size.height.to_nearest_px() as u32);
             }
             background_repeat::T::repeat => {
-                ImageFragmentInfo::tile_image(&mut bounds.origin.x, &mut bounds.size.width,
-                                                abs_x, image.width);
-                ImageFragmentInfo::tile_image(&mut bounds.origin.y, &mut bounds.size.height,
-                                                abs_y, image.height);
+                ImageFragmentInfo::tile_image(&mut bounds.origin.x,
+                                              &mut bounds.size.width,
+                                              abs_x,
+                                              image_size.width.to_nearest_px() as u32);
+                ImageFragmentInfo::tile_image(&mut bounds.origin.y,
+                                              &mut bounds.size.height,
+                                              abs_y,
+                                              image_size.height.to_nearest_px() as u32);
             }
         };
 
@@ -413,8 +481,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                 Cursor::DefaultCursor),
                                        clip),
             image: image.clone(),
-            stretch_size: Size2D(Au::from_px(image.width as int),
-                                 Au::from_px(image.height as int)),
+            stretch_size: Size2D(image_size.width, image_size.height),
+            image_rendering: style.get_effects().image_rendering.clone(),
         }), level);
     }
 
@@ -913,6 +981,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                    (*clip).clone()),
                         image: image.clone(),
                         stretch_size: stacking_relative_content_box.size,
+                        image_rendering: self.style.get_effects().image_rendering.clone(),
                     }));
                 } else {
                     // No image data at all? Do nothing.
@@ -948,6 +1017,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         pixels: PixelsByColorType::RGBA8(canvas_data),
                     }),
                     stretch_size: stacking_relative_content_box.size,
+                    image_rendering: image_rendering::T::Auto,
                 };
 
                 display_list.content.push_back(DisplayItem::ImageClass(canvas_display_item));
