@@ -38,7 +38,7 @@ def download(desc, src, dst):
         sys.stdout.flush()
 
     print("Downloading %s..." % desc)
-    dumb = os.environ.get("TERM") == "dumb"
+    dumb = (os.environ.get("TERM") == "dumb") or (not sys.stdout.isatty())
     PanickyUrlOpener().retrieve(src, dst, None if dumb else report)
     if not dumb:
         print()
