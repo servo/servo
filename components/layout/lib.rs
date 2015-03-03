@@ -68,6 +68,7 @@ pub mod flow_ref;
 pub mod fragment;
 pub mod layout_task;
 pub mod inline;
+pub mod layout_data;
 pub mod list_item;
 pub mod model;
 pub mod opaque_node;
@@ -82,7 +83,6 @@ pub mod table_row;
 pub mod table_cell;
 pub mod text;
 pub mod traversal;
-pub mod util;
 pub mod incremental;
 pub mod wrapper;
 

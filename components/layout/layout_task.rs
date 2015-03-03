@@ -18,7 +18,7 @@ use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAI
 use layout_debug;
 use parallel::{self, UnsafeFlow};
 use sequential;
-use util::{LayoutDataAccess, LayoutDataWrapper};
+use layout_data::{LayoutDataAccess, LayoutDataWrapper};
 use opaque_node::OpaqueNodeMethods;
 use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 

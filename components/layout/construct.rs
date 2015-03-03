@@ -41,7 +41,7 @@ use table_rowgroup::TableRowGroupFlow;
 use table_row::TableRowFlow;
 use table_cell::TableCellFlow;
 use text::TextRunScanner;
-use util::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataAccess, LayoutDataWrapper};
+use layout_data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataAccess, LayoutDataWrapper};
 use opaque_node::OpaqueNodeMethods;
 use wrapper::{PostorderNodeMutTraversal, PseudoElementType, TLayoutNode, ThreadSafeLayoutNode};
 
