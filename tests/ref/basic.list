@@ -125,20 +125,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == alpha_png_a.html alpha_png_b.html
 == background_image_position_a.html background_image_position_ref.html
 == multiple_css_class_a.html multiple_css_class_b.html
-
-== iframe/bg_color.html iframe/bg_color_ref.html
-== iframe/simple.html iframe/simple_ref.html
-== iframe/simple_inline_default.html iframe/simple_inline_default_ref.html
-== iframe/simple_inline_width.html iframe/simple_inline_width_ref.html
-== iframe/simple_inline_width_height.html iframe/simple_inline_width_height_ref.html
-== iframe/simple_inline_height.html iframe/simple_inline_height_ref.html
-== iframe/simple_inline_width_percentage.html iframe/simple_inline_width_percentage_ref.html
-== iframe/simple_inline_min.html iframe/simple_inline_min_ref.html
-== iframe/simple_inline_max.html iframe/simple_inline_max_ref.html
-== iframe/multiple_external.html iframe/multiple_external_ref.html
-== iframe/overflow.html iframe/overflow_ref.html
-== iframe/positioning_margin.html iframe/positioning_margin_ref.html
-
 == floated_generated_content_a.html floated_generated_content_b.html
 == inline_block_margin_a.html inline_block_margin_ref.html
 == inline_block_img_a.html inline_block_img_ref.html
