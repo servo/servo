@@ -94,7 +94,9 @@ impl<T> DOMRefCell<T> {
 
 impl<T: JSTraceable> JSTraceable for DOMRefCell<T> {
     fn trace(&self, trc: *mut JSTracer) {
-        (*self).borrow().trace(trc)
+        unsafe {
+            (*self).borrow_for_gc_trace().trace(trc)
+        }
     }
 }
 
