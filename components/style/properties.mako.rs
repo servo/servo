@@ -923,12 +923,8 @@ pub mod longhands {
     //     upper-roman
     //
     // [1]: http://dev.w3.org/csswg/css-counter-styles/
-    ${single_keyword("list-style-type", """
-        disc none circle square decimal arabic-indic bengali cambodian cjk-decimal devanagari
-        gujarati gurmukhi kannada khmer lao malayalam mongolian myanmar oriya persian telugu thai
-        tibetan lower-alpha upper-alpha cjk-earthly-branch cjk-heavenly-stem lower-greek hiragana
-        hiragana-iroha katakana katakana-iroha disclosure-open disclosure-closed
-    """)}
+    ${single_keyword("list-style-type",
+                     "disc none circle square decimal arabic-indic bengali cambodian cjk-decimal devanagari gujarati gurmukhi kannada khmer lao malayalam mongolian myanmar oriya persian telugu thai tibetan lower-alpha upper-alpha cjk-earthly-branch cjk-heavenly-stem lower-greek hiragana hiragana-iroha katakana katakana-iroha disclosure-open disclosure-closed")}
 
     <%self:longhand name="list-style-image">
         use std::borrow::IntoCow;
