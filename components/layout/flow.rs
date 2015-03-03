@@ -49,6 +49,7 @@ use wrapper::ThreadSafeLayoutNode;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::ClippingRegion;
 use rustc_serialize::{Encoder, Encodable};
+use msg::constellation_msg::ConstellationChan;
 use msg::compositor_msg::LayerId;
 use servo_util::geometry::{Au, ZERO_RECT};
 use servo_util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
@@ -312,6 +313,9 @@ pub trait Flow: fmt::Debug + Sync {
     /// Attempts to perform incremental fixup of this flow by replacing its fragment's style with
     /// the new style. This can only succeed if the flow has exactly one fragment.
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>);
+
+    /// Remove any compositor layers associated with this flow
+    fn remove_compositor_layers(&self, _: ConstellationChan) {}
 }
 
 // Base access

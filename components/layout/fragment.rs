@@ -30,7 +30,7 @@ use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use script_traits::UntrustedNodeAddress;
 use rustc_serialize::{Encodable, Encoder};
-use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net::image::holder::ImageHolder;
 use net::local_image_cache::LocalImageCache;
 use servo_util::geometry::{self, Au, ZERO_POINT};
@@ -2057,6 +2057,23 @@ impl Fragment {
         // FIXME(pcwalton): Sometimes excessively fancy glyphs can make us draw outside our border
         // box too.
         overflow
+    }
+
+    /// Remove any compositor layers associated with this fragment - it is being
+    /// removed from the tree or had its display property set to none.
+    /// TODO(gw): This just hides the compositor layer for now. In the future
+    /// it probably makes sense to provide a hint to the compositor whether
+    /// the layers should be destroyed to free memory.
+    pub fn remove_compositor_layers(&self, constellation_chan: ConstellationChan) {
+        match self.specific {
+            SpecificFragmentInfo::Iframe(ref iframe_info) => {
+                let ConstellationChan(ref chan) = constellation_chan;
+                chan.send(Msg::FrameRect(iframe_info.pipeline_id,
+                                         iframe_info.subpage_id,
+                                         Rect::zero())).unwrap();
+            }
+            _ => {}
+        }
     }
 }
 

@@ -52,6 +52,7 @@ use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{ClippingRegion, DisplayList};
 use rustc_serialize::{Encoder, Encodable};
 use msg::compositor_msg::LayerId;
+use msg::constellation_msg::ConstellationChan;
 use servo_util::geometry::{Au, MAX_AU};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
@@ -1918,6 +1919,10 @@ impl Flow for BlockFlow {
                                                                  .relative_containing_block_size,
                                                             CoordinateSystem::Parent)
                               .translate(stacking_context_position));
+    }
+
+    fn remove_compositor_layers(&self, constellation_chan: ConstellationChan) {
+        self.fragment.remove_compositor_layers(constellation_chan);
     }
 }
 
