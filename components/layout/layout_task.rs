@@ -10,6 +10,7 @@
 use css::node_style::StyledNode;
 use construct::ConstructionResult;
 use context::{SharedLayoutContext, SharedLayoutContextWrapper};
+use display_list_builder::ToGfxColor;
 use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator};
@@ -17,7 +18,7 @@ use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAI
 use layout_debug;
 use parallel::{self, UnsafeFlow};
 use sequential;
-use util::{LayoutDataAccess, LayoutDataWrapper, ToGfxColor};
+use util::{LayoutDataAccess, LayoutDataWrapper};
 use opaque_node::OpaqueNodeMethods;
 use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 

@@ -9,14 +9,11 @@ use incremental::RestyleDamage;
 use parallel::DomParallelInfo;
 use wrapper::{LayoutNode, TLayoutNode};
 
-use azure::azure_hl::Color;
-use gfx;
 use script::dom::node::SharedLayoutData;
 use script::layout_interface::LayoutChan;
 use std::mem;
 use std::cell::{Ref, RefMut};
 use style::properties::ComputedValues;
-use style;
 use std::sync::Arc;
 
 /// Data that layout associates with a node.
@@ -116,17 +113,5 @@ impl<'ln> LayoutDataAccess for LayoutNode<'ln> {
         unsafe {
             mem::transmute(self.get().layout_data_mut())
         }
-    }
-}
-
-/// Allows a CSS color to be converted into a graphics color.
-pub trait ToGfxColor {
-    /// Converts a CSS color to a graphics color.
-    fn to_gfx_color(&self) -> Color;
-}
-
-impl ToGfxColor for style::values::RGBA {
-    fn to_gfx_color(&self) -> Color {
-        gfx::color::rgba(self.red, self.green, self.blue, self.alpha)
     }
 }
