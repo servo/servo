@@ -156,6 +156,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == img_block_display_a.html img_block_display_ref.html
 == after_block_iteration.html after_block_iteration_ref.html
 == inline_block_percentage_height_a.html inline_block_percentage_height_ref.html
+== inline_block_min_width.html inline_block_min_width_ref.html
 == percentage_height_float_a.html percentage_height_float_ref.html
 == img_block_maxwidth_a.html img_block_maxwidth_ref.html
 == img_block_maxwidth_b.html img_block_maxwidth_ref.html
