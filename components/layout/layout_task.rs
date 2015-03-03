@@ -124,6 +124,9 @@ pub struct LayoutTask {
     //// The channel to send messages to ourself.
     pub chan: LayoutChan,
 
+    /// The channel on which messages can be sent to the constellation.
+    pub constellation_chan: ConstellationChan,
+
     /// The channel on which messages can be sent to the script task.
     pub script_chan: ScriptControlChan,
 
@@ -272,6 +275,7 @@ impl LayoutTask {
             pipeline_port: pipeline_port,
             chan: chan,
             script_chan: script_chan,
+            constellation_chan: constellation_chan.clone(),
             paint_chan: paint_chan,
             time_profiler_chan: time_profiler_chan,
             resource_task: resource_task,
@@ -412,7 +416,7 @@ impl LayoutTask {
             },
             Msg::ReapLayoutData(dead_layout_data) => {
                 unsafe {
-                    LayoutTask::handle_reap_layout_data(dead_layout_data)
+                    self.handle_reap_layout_data(dead_layout_data)
                 }
             },
             Msg::PrepareToExit(response_chan) => {
@@ -441,7 +445,7 @@ impl LayoutTask {
             match self.port.recv().unwrap() {
                 Msg::ReapLayoutData(dead_layout_data) => {
                     unsafe {
-                        LayoutTask::handle_reap_layout_data(dead_layout_data)
+                        self.handle_reap_layout_data(dead_layout_data)
                     }
                 }
                 Msg::ExitNow(exit_type) => {
@@ -938,9 +942,9 @@ impl LayoutTask {
 
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* task
     /// because the struct type is transmuted to a different type on the script side.
-    unsafe fn handle_reap_layout_data(layout_data: LayoutData) {
+    unsafe fn handle_reap_layout_data(&self, layout_data: LayoutData) {
         let layout_data_wrapper: LayoutDataWrapper = mem::transmute(layout_data);
-        layout_data_wrapper.clear();
+        layout_data_wrapper.remove_compositor_layers(self.constellation_chan.clone());
     }
 
     /// Returns profiling information which is passed to the time profiler.
