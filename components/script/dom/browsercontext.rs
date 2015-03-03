@@ -71,14 +71,12 @@ impl BrowserContext {
     fn create_window_proxy(&mut self) {
         let win = self.active_window().root();
         let win = win.r();
-        let page = win.page();
-        let js_info = page.js_info();
 
-        let WindowProxyHandler(handler) = js_info.as_ref().unwrap().dom_static.windowproxy_handler;
+        let WindowProxyHandler(handler) = win.windowproxy_handler();
         assert!(!handler.is_null());
 
         let parent = win.reflector().get_jsobject();
-        let cx = js_info.as_ref().unwrap().js_context.ptr;
+        let cx = win.get_cx();
         let wrapper = with_compartment(cx, parent, || unsafe {
             WrapperNew(cx, parent, handler)
         });

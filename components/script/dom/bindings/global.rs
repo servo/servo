@@ -11,7 +11,7 @@ use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::js::{JS, JSRef, Root, Unrooted};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
-use dom::window;
+use dom::window::{self, WindowHelpers};
 use script_task::ScriptChan;
 
 use net::resource_task::ResourceTask;
@@ -84,7 +84,7 @@ impl<'a> GlobalRef<'a> {
     /// Get the `ResourceTask` for this global scope.
     pub fn resource_task(&self) -> ResourceTask {
         match *self {
-            GlobalRef::Window(ref window) => window.page().resource_task.clone(),
+            GlobalRef::Window(ref window) => window.resource_task().clone(),
             GlobalRef::Worker(ref worker) => worker.resource_task().clone(),
         }
     }

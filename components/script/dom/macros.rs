@@ -80,6 +80,7 @@ macro_rules! make_url_or_base_getter(
         fn $attr(self) -> DOMString {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
+            use dom::window::WindowHelpers;
             #[allow(unused_imports)]
             use std::ascii::AsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);

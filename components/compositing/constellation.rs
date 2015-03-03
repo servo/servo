@@ -334,9 +334,9 @@ impl NavigationContext {
     /// compositor of the new URLs.
     fn set_current(&mut self, new_frame: Rc<FrameTree>, compositor_proxy: &mut CompositorProxy) {
         self.current = Some(new_frame.clone());
-        compositor_proxy.send(CompositorMsg::ChangePageLoadData(
+        compositor_proxy.send(CompositorMsg::ChangePageUrl(
             new_frame.id,
-            new_frame.pipeline.borrow().load_data.clone()));
+            new_frame.pipeline.borrow().url.clone()));
     }
 }
 
@@ -407,8 +407,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                 self.time_profiler_chan.clone(),
                                                 self.window_size,
                                                 script_pipeline,
-                                                load_data.clone());
-        pipe.load();
+                                                load_data);
         Rc::new(pipe)
     }
 
@@ -763,7 +762,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             source Id of ScriptLoadedURLInIFrameMsg does have an associated pipeline in
             constellation. This should be impossible.").clone();
 
-        let source_url = source_pipeline.load_data.url.clone();
+        let source_url = source_pipeline.url.clone();
 
         let same_script = (source_url.host() == url.host() &&
                            source_url.port() == url.port()) &&
@@ -876,7 +875,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         };
 
         for frame in destination_frame.iter() {
-            frame.pipeline.borrow().load();
+            frame.pipeline.borrow().activate();
             frame.pipeline.borrow().thaw();
         }
         self.send_frame_tree_and_grant_paint_permission(destination_frame);

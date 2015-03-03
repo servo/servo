@@ -41,7 +41,7 @@ use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
-use dom::window::Window;
+use dom::window::{Window, WindowHelpers};
 use geom::rect::Rect;
 use layout_interface::{LayoutChan, Msg};
 use devtools_traits::NodeInfo;
@@ -490,9 +490,18 @@ pub trait NodeHelpers<'a> {
 
     fn get_unique_id(self) -> String;
     fn summarize(self) -> NodeInfo;
+
+    fn teardown(self);
 }
 
 impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
+    fn teardown(self) {
+        self.layout_data.dispose();
+        for kid in self.children() {
+            kid.teardown();
+        }
+    }
+
     /// Dumps the subtree rooted at this node, for debugging.
     fn dump(self) {
         self.dump_indent(0);
@@ -737,11 +746,11 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn get_bounding_content_box(self) -> Rect<Au> {
-        window_from_node(self).root().r().page().content_box_query(self.to_trusted_node_address())
+        window_from_node(self).root().r().content_box_query(self.to_trusted_node_address())
     }
 
     fn get_content_boxes(self) -> Vec<Rect<Au>> {
-        window_from_node(self).root().r().page().content_boxes_query(self.to_trusted_node_address())
+        window_from_node(self).root().r().content_boxes_query(self.to_trusted_node_address())
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
