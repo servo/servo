@@ -258,3 +258,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == text_shadow_simple_a.html text_shadow_simple_ref.html
 == text_shadow_decorations_a.html text_shadow_decorations_ref.html
 == text_shadow_blur_a.html text_shadow_blur_ref.html
+!= image_rendering_auto_a.html image_rendering_pixelated_a.html
+== image_rendering_pixelated_a.html image_rendering_pixelated_ref.html
+== background_size_a.html background_size_ref.html
+== background_size_shorthand_a.html background_size_shorthand_ref.html
