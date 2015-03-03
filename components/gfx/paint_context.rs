@@ -37,7 +37,7 @@ use std::mem;
 use std::num::Float;
 use std::ptr;
 use std::sync::Arc;
-use style::computed_values::{border_style, filter, mix_blend_mode};
+use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
 use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
 use util::opts;
 use util::range::Range;
@@ -127,7 +127,10 @@ impl<'a> PaintContext<'a> {
         self.draw_target.pop_clip();
     }
 
-    pub fn draw_image(&self, bounds: &Rect<Au>, image: Arc<Box<Image>>) {
+    pub fn draw_image(&self,
+                      bounds: &Rect<Au>,
+                      image: Arc<Box<Image>>,
+                      image_rendering: image_rendering::T) {
         let size = Size2D(image.width as i32, image.height as i32);
         let (pixel_width, pixels, source_format) = match image.pixels {
             PixelsByColorType::RGBA8(ref pixels) => (4, pixels.as_slice(), SurfaceFormat::B8G8R8A8),
@@ -146,7 +149,17 @@ impl<'a> PaintContext<'a> {
         let source_rect = Rect(Point2D(0.0, 0.0),
                                Size2D(image.width as AzFloat, image.height as AzFloat));
         let dest_rect = bounds.to_azure_rect();
-        let draw_surface_options = DrawSurfaceOptions::new(Filter::Linear, true);
+
+        // TODO(pcwalton): According to CSS-IMAGES-3 § 5.3, nearest-neighbor interpolation is a
+        // conforming implementation of `crisp-edges`, but it is not the best we could do.
+        // Something like Scale2x would be ideal.
+        let draw_surface_options = match image_rendering {
+            image_rendering::T::Auto => DrawSurfaceOptions::new(Filter::Linear, true),
+            image_rendering::T::CrispEdges | image_rendering::T::Pixelated => {
+                DrawSurfaceOptions::new(Filter::Point, true)
+            }
+        };
+
         let draw_options = DrawOptions::new(1.0, 0);
         draw_target_ref.draw_surface(azure_surface,
                                      dest_rect,
