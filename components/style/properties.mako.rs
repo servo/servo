@@ -676,8 +676,77 @@ pub mod longhands {
 
 
     // CSS 2.1, Section 11 - Visual effects
-    // FIXME: Implement scrolling for `scroll` and `auto` (#2742).
-    ${single_keyword("overflow", "visible hidden scroll auto")}
+
+    // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
+    <%self:single_keyword_computed name="overflow-x" values="visible hidden scroll auto">
+        use values::computed::{Context, ToComputedValue};
+
+        pub fn compute_with_other_overflow_direction(value: SpecifiedValue,
+                                                     other_direction: SpecifiedValue)
+                                                     -> computed_value::T {
+            // CSS-OVERFLOW 3 states "Otherwise, if one cascaded values is one of the scrolling
+            // values and the other is `visible`, then computed values are the cascaded values with
+            // `visible` changed to `auto`."
+            match (value, other_direction) {
+                (SpecifiedValue::visible, SpecifiedValue::hidden) |
+                (SpecifiedValue::visible, SpecifiedValue::scroll) |
+                (SpecifiedValue::visible, SpecifiedValue::auto) => computed_value::T::auto,
+                _ => value,
+            }
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                compute_with_other_overflow_direction(*self, context.overflow_y.0)
+            }
+        }
+    </%self:single_keyword_computed>
+
+    // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
+    <%self:longhand name="overflow-y">
+        use super::overflow_x;
+        use values::computed::{Context, ToComputedValue};
+
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
+        pub use self::computed_value::T as SpecifiedValue;
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                self.0.to_css(dest)
+            }
+        }
+
+        pub mod computed_value {
+            #[derive(Clone, Copy, PartialEq)]
+            pub struct T(pub super::super::overflow_x::computed_value::T);
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                let computed_value::T(this) = *self;
+                computed_value::T(overflow_x::compute_with_other_overflow_direction(
+                        this,
+                        context.overflow_x))
+            }
+        }
+
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T(overflow_x::get_initial_value())
+        }
+
+        pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            overflow_x::parse(context, input).map(|value| SpecifiedValue(value))
+        }
+    </%self:longhand>
+
 
     ${switch_to_style_struct("InheritedBox")}
 
@@ -2830,6 +2899,16 @@ pub mod shorthands {
             _ => Err(()),
         }
     </%self:shorthand>
+
+    <%self:shorthand name="overflow" sub_properties="overflow-x overflow-y">
+        use properties::longhands::{overflow_x, overflow_y};
+
+        let overflow = try!(overflow_x::parse(context, input));
+        Ok(Longhands {
+            overflow_x: Some(overflow),
+            overflow_y: Some(overflow_y::SpecifiedValue(overflow)),
+        })
+    </%self:shorthand>
 }
 
 
@@ -3474,6 +3553,8 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclarati
             display: longhands::display::get_initial_value(),
             color: inherited_style.get_color().color,
             text_decoration: longhands::text_decoration::get_initial_value(),
+            overflow_x: longhands::overflow_x::get_initial_value(),
+            overflow_y: longhands::overflow_y::get_initial_value(),
             positioned: false,
             floated: false,
             border_top_present: false,
@@ -3527,6 +3608,12 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclarati
                         longhands::position::SpecifiedValue::fixed => true,
                         _ => false,
                     }
+                }
+                PropertyDeclaration::OverflowX(ref value) => {
+                    context.overflow_x = get_specified!(get_box, overflow_x, value);
+                }
+                PropertyDeclaration::OverflowY(ref value) => {
+                    context.overflow_y = get_specified!(get_box, overflow_y, value);
                 }
                 PropertyDeclaration::Float(ref value) => {
                     context.floated = get_specified!(get_box, float, value)

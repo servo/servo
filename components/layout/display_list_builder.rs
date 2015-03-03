@@ -41,6 +41,7 @@ use servo_util::cursor::Cursor;
 use servo_util::geometry::{self, Au, ZERO_POINT, to_px, to_frac_px};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
+use std::cmp;
 use std::default::Default;
 use std::iter::repeat;
 use std::num::Float;
@@ -48,7 +49,7 @@ use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirec
 use style::values::computed::{Image, LinearGradient, LengthOrPercentage};
 use style::values::RGBA;
 use style::computed_values::filter::Filter;
-use style::computed_values::{background_attachment, background_repeat, border_style, overflow};
+use style::computed_values::{background_attachment, background_repeat, border_style, overflow_x};
 use style::computed_values::{position, visibility};
 use style::properties::style_structs::Border;
 use style::properties::ComputedValues;
@@ -990,17 +991,37 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         // Account for style-specified `clip`.
-        let current_clip = self.calculate_style_specified_clip(current_clip,
-                                                               stacking_relative_border_box);
+        let mut current_clip = self.calculate_style_specified_clip(current_clip,
+                                                                   stacking_relative_border_box);
 
-        // Only clip if `overflow` tells us to.
-        match self.style.get_box().overflow {
-            overflow::T::hidden | overflow::T::auto | overflow::T::scroll => {
-                // Create a new clip rect.
-                current_clip.intersect_rect(stacking_relative_border_box)
+        // Clip according to the values of `overflow-x` and `overflow-y`.
+        //
+        // TODO(pcwalton): Support scrolling.
+        // FIXME(pcwalton): This may be more complex than it needs to be, since it seems to be
+        // impossible with the computed value rules as they are to have `overflow-x: visible` with
+        // `overflow-y: <scrolling>` or vice versa!
+        match self.style.get_box().overflow_x {
+            overflow_x::T::hidden | overflow_x::T::auto | overflow_x::T::scroll => {
+                let mut bounds = current_clip.bounding_rect();
+                let max_x = cmp::min(bounds.max_x(), stacking_relative_border_box.max_x());
+                bounds.origin.x = cmp::max(bounds.origin.x, stacking_relative_border_box.origin.x);
+                bounds.size.width = max_x - bounds.origin.x;
+                current_clip = current_clip.intersect_rect(&bounds)
             }
-            _ => current_clip,
+            _ => {}
         }
+        match self.style.get_box().overflow_y.0 {
+            overflow_x::T::hidden | overflow_x::T::auto | overflow_x::T::scroll => {
+                let mut bounds = current_clip.bounding_rect();
+                let max_y = cmp::min(bounds.max_y(), stacking_relative_border_box.max_y());
+                bounds.origin.y = cmp::max(bounds.origin.y, stacking_relative_border_box.origin.y);
+                bounds.size.height = max_y - bounds.origin.y;
+                current_clip = current_clip.intersect_rect(&bounds)
+            }
+            _ => {}
+        }
+
+        current_clip
     }
 
     fn build_display_list_for_text_fragment(&self,
