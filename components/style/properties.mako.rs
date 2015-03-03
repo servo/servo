@@ -760,6 +760,7 @@ pub mod longhands {
     <%self:longhand name="content">
         use cssparser::{ToCss, Token};
         use std::ascii::AsciiExt;
+        use std::borrow::ToOwned;
         use values::computed::ComputedValueAsSpecified;
 
         use super::list_style_type;
@@ -869,35 +870,116 @@ pub mod longhands {
                         content.push(ContentItem::String(value.into_owned()))
                     }
                     Ok(Token::Function(name)) => {
-                        content.push(try!(match_ignore_ascii_case! { name,
-                            "counter" => input.parse_nested_block(|input| {
-                                let name = try!(input.expect_ident()).into_owned();
-                                let style = input.try(|input| {
-                                    try!(input.expect_comma());
-                                    list_style_type::parse(context, input)
-                                }).unwrap_or(list_style_type::computed_value::T::decimal);
-                                Ok(ContentItem::Counter(name, style))
-                            }),
-                            "counters" => input.parse_nested_block(|input| {
-                                let name = try!(input.expect_ident()).into_owned();
-                                try!(input.expect_comma());
-                                let separator = try!(input.expect_string()).into_owned();
-                                let style = input.try(|input| {
-                                    try!(input.expect_comma());
-                                    list_style_type::parse(context, input)
-                                }).unwrap_or(list_style_type::computed_value::T::decimal);
-                                Ok(ContentItem::Counters(name, separator, style))
-                            })
-                            _ => return Err(())
-                        }));
+                        if name.eq_ignore_ascii_case("counter") {
+                            let (mut counter_name, mut counter_style) = (None, None);
+                            match input.parse_nested_block(|input| {
+                                input.parse_comma_separated(|input| {
+                                    if counter_name.is_none() {
+                                        match input.next() {
+                                            Ok(Token::Ident(value)) => {
+                                                counter_name = Some((*value).to_owned());
+                                                Ok(())
+                                            }
+                                            _ => Err(())
+                                        }
+                                    } else if counter_style.is_none() {
+                                        match list_style_type::parse(context, input) {
+                                            Ok(style) => {
+                                                counter_style = Some(style);
+                                                Ok(())
+                                            }
+                                            _ => Err(())
+                                        }
+                                    } else {
+                                        Err(())
+                                    }
+                                })
+                            }) {
+                                Ok(_) => {
+                                    match (counter_name, counter_style) {
+                                        (Some(name), Some(style)) => {
+                                            content.push(ContentItem::Counter(name, style))
+                                        }
+                                        (Some(name), None) => {
+                                            content.push(ContentItem::Counter(
+                                                    name,
+                                                    list_style_type::computed_value::T::decimal))
+                                        }
+                                        _ => return Err(()),
+                                    }
+                                }
+                                Err(_) => return Err(()),
+                            }
+                        } else if name.eq_ignore_ascii_case("counters") {
+                            let mut counter_name = None;
+                            let mut counter_separator = None;
+                            let mut counter_style = None;
+                            match input.parse_nested_block(|input| {
+                                input.parse_comma_separated(|input| {
+                                    if counter_name.is_none() {
+                                        match input.next() {
+                                            Ok(Token::Ident(value)) => {
+                                                counter_name = Some((*value).to_owned());
+                                                Ok(())
+                                            }
+                                            _ => Err(())
+                                        }
+                                    } else if counter_separator.is_none() {
+                                        match input.next() {
+                                            Ok(Token::QuotedString(value)) => {
+                                                counter_separator = Some((*value).to_owned());
+                                                Ok(())
+                                            }
+                                            _ => Err(())
+                                        }
+                                    } else if counter_style.is_none() {
+                                        match input.try(|input| {
+                                            list_style_type::parse(context, input)
+                                        }) {
+                                            Ok(style) => {
+                                                counter_style = Some(style);
+                                                Ok(())
+                                            }
+                                            _ => Err(()),
+                                        }
+                                    } else {
+                                        Err(())
+                                    }
+                                })
+                            }) {
+                                Ok(_) => {
+                                    match (counter_name, counter_separator, counter_style) {
+                                        (Some(name), Some(separator), Some(style)) => {
+                                            content.push(ContentItem::Counters(name,
+                                                                               separator,
+                                                                               style))
+                                        }
+                                        (Some(name), Some(separator), None) => {
+                                            content.push(ContentItem::Counters(
+                                                    name,
+                                                    separator,
+                                                    list_style_type::computed_value::T::decimal))
+                                        }
+                                        _ => return Err(()),
+                                    }
+                                }
+                                Err(_) => return Err(()),
+                            }
+                        } else {
+                            return Err(())
+                        }
                     }
                     Ok(Token::Ident(ident)) => {
-                        match_ignore_ascii_case! { ident,
-                            "open-quote" => content.push(ContentItem::OpenQuote),
-                            "close-quote" => content.push(ContentItem::CloseQuote),
-                            "no-open-quote" => content.push(ContentItem::NoOpenQuote),
-                            "no-close-quote" => content.push(ContentItem::NoCloseQuote)
-                            _ => return Err(())
+                        if ident.eq_ignore_ascii_case("open-quote") {
+                            content.push(ContentItem::OpenQuote)
+                        } else if ident.eq_ignore_ascii_case("close-quote") {
+                            content.push(ContentItem::CloseQuote)
+                        } else if ident.eq_ignore_ascii_case("no-open-quote") {
+                            content.push(ContentItem::NoOpenQuote)
+                        } else if ident.eq_ignore_ascii_case("no-close-quote") {
+                            content.push(ContentItem::NoCloseQuote)
+                        } else {
+                            return Err(())
                         }
                     }
                     Err(()) if !content.is_empty() => {
