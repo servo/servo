@@ -31,7 +31,7 @@ use fragment::{Fragment, IframeFragmentInfo};
 use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo};
 use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
 use inline::InlineFlow;
-use layout_data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataAccess, LayoutDataWrapper};
+use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataAccess, LayoutDataWrapper};
 use list_item::{self, ListItemFlow};
 use opaque_node::OpaqueNodeMethods;
 use parallel;

@@ -15,7 +15,7 @@ use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUti
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
-use layout_data::{LayoutDataAccess, LayoutDataWrapper};
+use data::{LayoutDataAccess, LayoutDataWrapper};
 use layout_debug;
 use opaque_node::OpaqueNodeMethods;
 use parallel::{self, UnsafeFlow};

@@ -8,7 +8,7 @@
 
 use css::node_style::StyledNode;
 use incremental::{self, RestyleDamage};
-use layout_data::{LayoutDataAccess, LayoutDataWrapper};
+use data::{LayoutDataAccess, LayoutDataWrapper};
 use wrapper::{LayoutElement, LayoutNode, TLayoutNode};
 
 use script::dom::node::NodeTypeId;
