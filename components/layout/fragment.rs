@@ -982,10 +982,11 @@ impl Fragment {
     fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizesContribution {
         let flags = self.quantities_included_in_intrinsic_inline_size();
         let style = self.style();
-        let specified = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
-            MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero()
+        let (min_inline_size, specified) = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
+            (model::specified(style.min_inline_size(), Au(0)),
+             MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero())
         } else {
-            Au(0)
+            (Au(0), Au(0))
         };
 
         // FIXME(#2261, pcwalton): This won't work well for inlines: is this OK?
@@ -993,7 +994,7 @@ impl Fragment {
 
         IntrinsicISizesContribution {
             content_intrinsic_sizes: IntrinsicISizes {
-                minimum_inline_size: specified,
+                minimum_inline_size: min_inline_size,
                 preferred_inline_size: specified,
             },
             surrounding_size: surrounding_inline_size,
@@ -1721,7 +1722,8 @@ impl Fragment {
             SpecificFragmentInfo::InlineBlock(ref mut info) => {
                 let block_flow = info.flow_ref.as_block();
                 self.border_box.size.inline =
-                    block_flow.base.intrinsic_inline_sizes.preferred_inline_size;
+                    max(block_flow.base.intrinsic_inline_sizes.minimum_inline_size,
+                        block_flow.base.intrinsic_inline_sizes.preferred_inline_size);
                 block_flow.base.block_container_inline_size = self.border_box.size.inline;
             }
             SpecificFragmentInfo::ScannedText(ref info) => {
