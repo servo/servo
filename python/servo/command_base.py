@@ -202,7 +202,7 @@ class CommandBase(object):
         if self.context.bootstrapped:
             return
 
-        subprocess.check_call(["git", "submodule", "sync"])
+        subprocess.check_call(["git", "submodule", "--quiet", "sync", "--recursive"])
         submodules = subprocess.check_output(["git", "submodule", "status"])
         for line in submodules.split('\n'):
             components = line.strip().split(' ')
