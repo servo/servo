@@ -6,12 +6,13 @@ use dom::bindings::codegen::Bindings::PerformanceBinding;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::performancetiming::{PerformanceTiming, PerformanceTimingHelpers};
 use dom::window::Window;
 use time;
 
-pub type DOMHighResTimeStamp = f64;
+pub type DOMHighResTimeStamp = Finite<f64>;
 
 #[dom_struct]
 pub struct Performance {
@@ -50,7 +51,8 @@ impl<'a> PerformanceMethods for JSRef<'a, Performance> {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
     fn Now(self) -> DOMHighResTimeStamp {
         let navStart = self.timing.root().r().NavigationStartPrecise();
-        (time::precise_time_ns() as f64 - navStart) * 1000000u as DOMHighResTimeStamp
+        let now = (time::precise_time_ns() as f64 - navStart) * 1000000u as f64;
+        Finite::wrap(now)
     }
 }
 

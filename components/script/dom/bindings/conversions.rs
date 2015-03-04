@@ -256,7 +256,7 @@ impl FromJSValConvertible for f32 {
 
 impl ToJSValConvertible for Finite<f32> {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-        let value = self.clone().unwrap();
+        let value = **self;
         value.to_jsval(cx)
     }
 }
@@ -290,7 +290,7 @@ impl FromJSValConvertible for f64 {
 impl ToJSValConvertible for Finite<f64> {
     #[inline]
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-        let value = self.clone().unwrap();
+        let value = **self;
         value.to_jsval(cx)
     }
 }

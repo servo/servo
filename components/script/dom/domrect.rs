@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::DOMRectBinding;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
 use util::geometry::Au;
@@ -41,28 +42,30 @@ impl DOMRect {
 }
 
 impl<'a> DOMRectMethods for JSRef<'a, DOMRect> {
-    fn Top(self) -> f32 {
-        self.top
+    fn Top(self) -> Finite<f32> {
+        Finite::wrap(self.top)
     }
 
-    fn Bottom(self) -> f32 {
-        self.bottom
+    fn Bottom(self) -> Finite<f32> {
+        Finite::wrap(self.bottom)
     }
 
-    fn Left(self) -> f32 {
-        self.left
+    fn Left(self) -> Finite<f32> {
+        Finite::wrap(self.left)
     }
 
-    fn Right(self) -> f32 {
-        self.right
+    fn Right(self) -> Finite<f32> {
+        Finite::wrap(self.right)
     }
 
-    fn Width(self) -> f32 {
-        (self.right - self.left).abs()
+    fn Width(self) -> Finite<f32> {
+        let result = (self.right - self.left).abs();
+        Finite::wrap(result)
     }
 
-    fn Height(self) -> f32 {
-        (self.bottom - self.top).abs()
+    fn Height(self) -> Finite<f32> {
+        let result = (self.bottom - self.top).abs();
+        Finite::wrap(result)
     }
 }
 

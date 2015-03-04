@@ -11,6 +11,7 @@ use dom::bindings::error::Error::IndexSize;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};
+use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::htmlcanvaselement::{HTMLCanvasElement, HTMLCanvasElementHelpers};
 use dom::imagedata::{ImageData, ImageDataHelpers};
@@ -89,17 +90,31 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         Temporary::new(self.canvas)
     }
 
-    fn Scale(self, x: f64, y: f64) {
-        self.transform.set(self.transform.get().scale(x as f32, y as f32));
+    fn Scale(self, x: Finite<f64>, y: Finite<f64>) {
+        let x = *x;
+        let y = *y;
+
+        self.transform.set(self.transform.get().scale(x as f32,
+                                                      y as f32));
         self.update_transform()
     }
 
-    fn Translate(self, x: f64, y: f64) {
+    fn Translate(self, x: Finite<f64>, y: Finite<f64>) {
+        let x = *x;
+        let y = *y;
+
         self.transform.set(self.transform.get().translate(x as f32, y as f32));
         self.update_transform()
     }
 
-    fn Transform(self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
+    fn Transform(self, a: Finite<f64>, b: Finite<f64>, c: Finite<f64>, d: Finite<f64>, e: Finite<f64>, f: Finite<f64>) {
+        let a = *a;
+        let b = *b;
+        let c = *c;
+        let d = *d;
+        let e = *e;
+        let f = *f;
+
         self.transform.set(self.transform.get().mul(&Matrix2D::new(a as f32,
                                                                    b as f32,
                                                                    c as f32,
@@ -109,7 +124,14 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.update_transform()
     }
 
-    fn SetTransform(self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
+    fn SetTransform(self, a: Finite<f64>, b: Finite<f64>, c: Finite<f64>, d: Finite<f64>, e: Finite<f64>, f: Finite<f64>) {
+        let a = *a;
+        let b = *b;
+        let c = *c;
+        let d = *d;
+        let e = *e;
+        let f = *f;
+
         self.transform.set(Matrix2D::new(a as f32,
                                          b as f32,
                                          c as f32,
@@ -119,17 +141,32 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.update_transform()
     }
 
-    fn FillRect(self, x: f64, y: f64, width: f64, height: f64) {
+    fn FillRect(self, x: Finite<f64>, y: Finite<f64>, width: Finite<f64>, height: Finite<f64>) {
+        let x = *x;
+        let y = *y;
+        let width = *width;
+        let height = *height;
+
         let rect = Rect(Point2D(x as f32, y as f32), Size2D(width as f32, height as f32));
         self.renderer.send(CanvasMsg::FillRect(rect)).unwrap();
     }
 
-    fn ClearRect(self, x: f64, y: f64, width: f64, height: f64) {
+    fn ClearRect(self, x: Finite<f64>, y: Finite<f64>, width: Finite<f64>, height: Finite<f64>) {
+        let x = *x;
+        let y = *y;
+        let width = *width;
+        let height = *height;
+
         let rect = Rect(Point2D(x as f32, y as f32), Size2D(width as f32, height as f32));
         self.renderer.send(CanvasMsg::ClearRect(rect)).unwrap();
     }
 
-    fn StrokeRect(self, x: f64, y: f64, width: f64, height: f64) {
+    fn StrokeRect(self, x: Finite<f64>, y: Finite<f64>, width: Finite<f64>, height: Finite<f64>) {
+        let x = *x;
+        let y = *y;
+        let width = *width;
+        let height = *height;
+
         let rect = Rect(Point2D(x as f32, y as f32), Size2D(width as f32, height as f32));
         self.renderer.send(CanvasMsg::StrokeRect(rect)).unwrap();
     }
@@ -146,15 +183,28 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.renderer.send(CanvasMsg::Fill).unwrap();
     }
 
-    fn MoveTo(self, x: f64, y: f64) {
+    fn MoveTo(self, x: Finite<f64>, y: Finite<f64>) {
+        let x = *x;
+        let y = *y;
+
         self.renderer.send(CanvasMsg::MoveTo(Point2D(x as f32, y as f32))).unwrap();
     }
 
-    fn LineTo(self, x: f64, y: f64) {
+    fn LineTo(self, x: Finite<f64>, y: Finite<f64>) {
+        let x = *x;
+        let y = *y;
+
         self.renderer.send(CanvasMsg::LineTo(Point2D(x as f32, y as f32))).unwrap();
     }
 
-    fn BezierCurveTo(self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, x: f64, y: f64) {
+    fn BezierCurveTo(self, cp1x: Finite<f64>, cp1y: Finite<f64>, cp2x: Finite<f64>, cp2y: Finite<f64>, x: Finite<f64>, y: Finite<f64>) {
+        let cp1x = *cp1x;
+        let cp1y = *cp1y;
+        let cp2x = *cp2x;
+        let cp2y = *cp2y;
+        let x = *x;
+        let y = *y;
+
         self.renderer.send(CanvasMsg::BezierCurveTo(Point2D(cp1x as f32, cp1y as f32),
                                                     Point2D(cp2x as f32, cp2y as f32),
                                                     Point2D(x as f32, y as f32))).unwrap();
@@ -214,7 +264,10 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         }
     }
 
-    fn CreateImageData(self, sw: f64, sh: f64) -> Fallible<Temporary<ImageData>> {
+    fn CreateImageData(self, sw: Finite<f64>, sh: Finite<f64>) -> Fallible<Temporary<ImageData>> {
+        let sw = *sw;
+        let sh = *sh;
+
         if sw == 0.0 || sh == 0.0 {
             return Err(IndexSize)
         }
@@ -226,7 +279,10 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         Ok(ImageData::new(self.global.root().r(), imagedata.Width(), imagedata.Height(), None))
     }
 
-    fn GetImageData(self, sx: f64, sy: f64, sw: f64, sh: f64) -> Fallible<Temporary<ImageData>> {
+    fn GetImageData(self, sx: Finite<f64>, sy: Finite<f64>, sw: Finite<f64>, sh: Finite<f64>) -> Fallible<Temporary<ImageData>> {
+        let sw = *sw;
+        let sh = *sh;
+
         if sw == 0.0 || sh == 0.0 {
             return Err(IndexSize)
         }
@@ -239,7 +295,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         Ok(ImageData::new(self.global.root().r(), sw.abs().to_u32().unwrap(), sh.abs().to_u32().unwrap(), Some(data)))
     }
 
-    fn PutImageData(self, imagedata: JSRef<ImageData>, dx: f64, dy: f64) {
+    fn PutImageData(self, imagedata: JSRef<ImageData>, dx: Finite<f64>, dy: Finite<f64>) {
         let data = imagedata.get_data_array(&self.global.root().r());
         let image_data_rect = Rect(Point2D(dx.to_i32().unwrap(), dy.to_i32().unwrap()), imagedata.get_size());
         let dirty_rect = None;
@@ -247,8 +303,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.renderer.send(CanvasMsg::PutImageData(data, image_data_rect, dirty_rect, canvas_size)).unwrap()
     }
 
-    fn PutImageData_(self, imagedata: JSRef<ImageData>, dx: f64, dy: f64,
-                     dirtyX: f64, dirtyY: f64, dirtyWidth: f64, dirtyHeight: f64) {
+    fn PutImageData_(self, imagedata: JSRef<ImageData>, dx: Finite<f64>, dy: Finite<f64>,
+                     dirtyX: Finite<f64>, dirtyY: Finite<f64>, dirtyWidth: Finite<f64>, dirtyHeight: Finite<f64>) {
         let data = imagedata.get_data_array(&self.global.root().r());
         let image_data_rect = Rect(Point2D(dx.to_i32().unwrap(), dy.to_i32().unwrap()),
                                    Size2D(imagedata.Width().to_i32().unwrap(),

@@ -87,7 +87,9 @@ pub fn handle_get_layout(page: &Rc<Page>, pipeline: PipelineId, node_id: String,
     let node = find_node_by_unique_id(&*page, pipeline, node_id).root();
     let elem: JSRef<Element> = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect().root();
-    reply.send((rect.r().Width(), rect.r().Height())).unwrap();
+    let width = *rect.r().Width();
+    let height = *rect.r().Height();
+    reply.send((width, height)).unwrap();
 }
 
 pub fn handle_modify_attribute(page: &Rc<Page>, pipeline: PipelineId, node_id: String, modifications: Vec<Modification>) {
