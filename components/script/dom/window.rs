@@ -394,7 +394,6 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 pub trait WindowHelpers {
     fn clear_js_context(self);
     fn clear_js_context_for_script_deallocation(self);
-    fn flush_layout(self, goal: ReflowGoal, query: ReflowQueryType);
     fn init_browser_context(self, doc: JSRef<Document>, frame_element: Option<JSRef<Element>>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
@@ -474,10 +473,6 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             *self.js_context.borrow_for_script_deallocation() = None;
             *self.browser_context.borrow_for_script_deallocation() = None;
         }
-    }
-
-    fn flush_layout(self, goal: ReflowGoal, query: ReflowQueryType) {
-        self.reflow(goal, query);
     }
 
     /// Reflows the page if it's possible to do so and the page is dirty. This method will wait
@@ -567,14 +562,14 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn content_box_query(self, content_box_request: TrustedNodeAddress) -> Rect<Au> {
-        self.flush_layout(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxQuery(content_box_request));
+        self.reflow(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxQuery(content_box_request));
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
         rect
     }
 
     fn content_boxes_query(self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>> {
-        self.flush_layout(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxesQuery(content_boxes_request));
+        self.reflow(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxesQuery(content_boxes_request));
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
@@ -614,7 +609,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 
     fn handle_fire_timer(self, timer_id: TimerId) {
         self.timers.fire_timer(timer_id, self);
-        self.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+        self.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
     }
 
     fn set_fragment_name(self, fragment: Option<String>) {

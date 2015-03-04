@@ -1007,7 +1007,7 @@ impl ScriptTask {
         debug!("kicking off initial reflow of {:?}", final_url);
         document.r().content_changed(NodeCast::from_ref(document.r()),
                                      NodeDamage::OtherNodeDamage);
-        window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
 
         // No more reflow required
         page.set_reflow_status(false);
