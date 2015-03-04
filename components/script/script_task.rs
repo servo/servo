@@ -85,7 +85,7 @@ use url::Url;
 use libc;
 use std::any::Any;
 use std::borrow::ToOwned;
-use std::cell::Cell;
+use std::cell::{RefCell, Cell};
 use std::num::ToPrimitive;
 use std::rc::Rc;
 use std::result::Result;
@@ -94,6 +94,7 @@ use std::u32;
 use time::Tm;
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
+thread_local!(static SCRIPT_TASK_ROOT: RefCell<Option<*const ScriptTask>> = RefCell::new(None));
 
 /// A document load that is in the process of fetching the requested resource. Contains
 /// data that will need to be present when the document and frame tree entry are created,
@@ -347,6 +348,11 @@ impl ScriptTaskFactory for ScriptTask {
                                               storage_task,
                                               image_cache_task,
                                               devtools_chan);
+            SCRIPT_TASK_ROOT.with(|root| {
+                let mut root = root.borrow_mut();
+                *root = Some(&script_task as *const _);
+            });
+
             let mut failsafe = ScriptMemoryFailsafe::new(&script_task);
 
             let new_load = InProgressLoad::new(id, None, layout_chan, window_size,
@@ -1209,6 +1215,15 @@ impl ScriptTask {
         });
 
         self.incomplete_loads.borrow_mut().push(incomplete);
+    }
+}
+
+impl Drop for ScriptTask {
+    fn drop(&mut self) {
+        SCRIPT_TASK_ROOT.with(|root| {
+            let mut root = root.borrow_mut();
+            *root = None;
+        });
     }
 }
 
