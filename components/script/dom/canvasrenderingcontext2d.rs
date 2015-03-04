@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasWindingRule;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
+use dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::Error::{IndexSize, TypeError};
 use dom::bindings::error::Fallible;
@@ -37,6 +38,7 @@ pub struct CanvasRenderingContext2D {
     global: GlobalField,
     renderer: Sender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
+    image_smoothing_enabled: Cell<bool>,
     stroke_color: Cell<RGBA>,
     fill_color: Cell<RGBA>,
     transform: Cell<Matrix2D<f32>>,
@@ -56,6 +58,7 @@ impl CanvasRenderingContext2D {
             global: GlobalField::from_rooted(&global),
             renderer: CanvasPaintTask::start(size),
             canvas: JS::from_rooted(canvas),
+            image_smoothing_enabled: Cell::new(true),
             stroke_color: Cell::new(black),
             fill_color: Cell::new(black),
             transform: Cell::new(Matrix2D::identity()),
@@ -74,6 +77,120 @@ impl CanvasRenderingContext2D {
 
     fn update_transform(&self) {
         self.renderer.send(CanvasMsg::SetTransform(self.transform.get())).unwrap()
+    }
+
+    // It is used by DrawImage to calculate the size of the source and destination rectangles based
+    // on the drawImage call arguments
+    // source rectangle = area of the original image to be copied
+    // destination rectangle = area of the destination canvas where the source image is going to be drawn
+    fn adjust_source_dest_rects(&self,
+                  canvas: JSRef<HTMLCanvasElement>,
+                  sx: f64, sy: f64, sw: f64, sh: f64,
+                  dx: f64, dy: f64, dw: f64, dh: f64) -> (Rect<i32>, Rect<i32>) {
+        let image_size = canvas.get_size();
+        let image_rect = Rect(Point2D(0f64, 0f64),
+                              Size2D(image_size.width as f64, image_size.height as f64));
+
+        // The source rectangle is the rectangle whose corners are the four points (sx, sy),
+        // (sx+sw, sy), (sx+sw, sy+sh), (sx, sy+sh).
+        let source_rect = Rect(Point2D(sx, sy),
+                               Size2D(sw, sh));
+
+        // When the source rectangle is outside the source image,
+        // the source rectangle must be clipped to the source image
+        let source_rect_clipped = source_rect.intersection(&image_rect).unwrap_or(Rect::zero());
+
+        // Width and height ratios between the non clipped and clipped source rectangles
+        let width_ratio: f64 = source_rect_clipped.size.width / source_rect.size.width;
+        let height_ratio: f64 = source_rect_clipped.size.height / source_rect.size.height;
+
+        // When the source rectangle is outside the source image,
+        // the destination rectangle must be clipped in the same proportion.
+        let dest_rect_width_scaled: f64 = dw * width_ratio;
+        let dest_rect_height_scaled: f64 = dh * height_ratio;
+
+        // The destination rectangle is the rectangle whose corners are the four points (dx, dy),
+        // (dx+dw, dy), (dx+dw, dy+dh), (dx, dy+dh).
+        let dest_rect = Rect(Point2D(dx.to_i32().unwrap(),
+                                     dy.to_i32().unwrap()),
+                             Size2D(dest_rect_width_scaled.to_i32().unwrap(),
+                                    dest_rect_height_scaled.to_i32().unwrap()));
+
+        let source_rect = Rect(Point2D(source_rect_clipped.origin.x.to_i32().unwrap(),
+                                     source_rect_clipped.origin.y.to_i32().unwrap()),
+                             Size2D(source_rect_clipped.size.width.to_i32().unwrap(),
+                                    source_rect_clipped.size.height.to_i32().unwrap()));
+
+        return (source_rect, dest_rect)
+    }
+
+    //
+    // drawImage coordinates explained
+    //
+    //  Source Image      Destination Canvas
+    // +-------------+     +-------------+
+    // |             |     |             |
+    // |(sx,sy)      |     |(dx,dy)      |
+    // |   +----+    |     |   +----+    |
+    // |   |    |    |     |   |    |    |
+    // |   |    |sh  |---->|   |    |dh  |
+    // |   |    |    |     |   |    |    |
+    // |   +----+    |     |   +----+    |
+    // |     sw      |     |     dw      |
+    // |             |     |             |
+    // +-------------+     +-------------+
+    //
+    //
+    // The rectangle (sx, sy, sw, sh) from the source image
+    // is copied on the rectangle (dx, dy, dh, dw) of the destination canvas
+    //
+    // https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-drawimage
+    fn draw_html_canvas_element(&self,
+                  canvas: JSRef<HTMLCanvasElement>,
+                  sx: f64, sy: f64, sw: f64, sh: f64,
+                  dx: f64, dy: f64, dw: f64, dh: f64) -> Fallible<()> {
+
+        // 1. Check the usability of the image argument
+        if !canvas.is_valid() {
+            return Ok(())
+        }
+
+        // 2. Establish the source and destination rectangles
+        let (source_rect, dest_rect) = self.adjust_source_dest_rects(canvas, sx, sy, sw, sh, dx, dy, dw, dh);
+
+        if !is_rect_valid(source_rect) || !is_rect_valid(dest_rect) {
+            return Err(IndexSize)
+        }
+
+        let smoothing_enabled = self.image_smoothing_enabled.get();
+        let canvas_size = canvas.get_size();
+
+        // If the source and target canvas are the same
+        let msg = if self.canvas.root().r() == canvas {
+            CanvasMsg::DrawImageSelf(canvas_size, dest_rect, source_rect, smoothing_enabled)
+        } else { // Source and target canvases are different
+            let context = canvas.get_2d_context().root();
+            let renderer = context.r().get_renderer();
+            let (sender, receiver) = channel::<Vec<u8>>();
+            // Reads pixels from source image
+            renderer.send(CanvasMsg::GetImageData(source_rect, canvas_size, sender)).unwrap();
+            let imagedata = receiver.recv().unwrap();
+            // Writes pixels to destination canvas
+            CanvasMsg::DrawImage(imagedata, dest_rect, source_rect, smoothing_enabled)
+        };
+
+        self.renderer.send(msg).unwrap();
+        Ok(())
+    }
+}
+
+pub trait CanvasRenderingContext2DHelpers {
+    fn get_renderer(&self) -> Sender<CanvasMsg>;
+}
+
+impl CanvasRenderingContext2DHelpers for CanvasRenderingContext2D {
+    fn get_renderer(&self) -> Sender<CanvasMsg> {
+        self.renderer.clone()
     }
 }
 
@@ -151,6 +268,102 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.renderer.send(CanvasMsg::Fill).unwrap();
     }
 
+    // https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-drawimage
+    fn DrawImage(self, image: HTMLCanvasElementOrCanvasRenderingContext2D,
+                 dx: f64, dy: f64) -> Fallible<()> {
+
+        // From rules described in the spec:
+        // If the sx, sy, sw, and sh arguments are omitted, they must default to 0, 0,
+        // the image's intrinsic width in image pixels,
+        // and the image's intrinsic height in image pixels, respectively
+        let sx: f64 = 0f64;
+        let sy: f64 = 0f64;
+
+        match image {
+            HTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(image) => {
+                let canvas = image.root();
+                let canvas_size = canvas.r().get_size();
+                let dw: f64 = canvas_size.width as f64;
+                let dh: f64 = canvas_size.height as f64;
+                let sw: f64 = dw;
+                let sh: f64 = dh;
+                return self.draw_html_canvas_element(canvas.r(),
+                                                     sx, sy, sw, sh,
+                                                     dx, dy, dw, dh)
+            }
+            HTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(image) => {
+                let image = image.root();
+                let context = image.r();
+                let canvas = context.Canvas().root();
+                let canvas_size = canvas.r().get_size();
+                let dw: f64 = canvas_size.width as f64;
+                let dh: f64 = canvas_size.height as f64;
+                let sw: f64 = dw;
+                let sh: f64 = dh;
+                return self.draw_html_canvas_element(canvas.r(),
+                                                     sx, sy, sw, sh,
+                                                     dx, dy, dw, dh)
+            }
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-drawimage
+    fn DrawImage_(self, image: HTMLCanvasElementOrCanvasRenderingContext2D,
+                  dx: f64, dy: f64, dw: f64, dh: f64) -> Fallible<()> {
+
+        // From rules described in the spec:
+        // If the sx, sy, sw, and sh arguments are omitted, they must default to 0, 0,
+        // the image's intrinsic width in image pixels,
+        // and the image's intrinsic height in image pixels, respectively
+        let sx: f64 = 0f64;
+        let sy: f64 = 0f64;
+
+        match image {
+            HTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(image) => {
+                let canvas = image.root();
+                let canvas_size = canvas.r().get_size();
+                let sw: f64 = canvas_size.width as f64;
+                let sh: f64 = canvas_size.height as f64;
+                return self.draw_html_canvas_element(canvas.r(),
+                                                     sx, sy, sw, sh,
+                                                     dx, dy, dw, dh)
+            }
+            HTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(image) => {
+                let image = image.root();
+                let context = image.r();
+                let canvas = context.Canvas().root();
+                let canvas_size = canvas.r().get_size();
+                let sw: f64 = canvas_size.width as f64;
+                let sh: f64 = canvas_size.height as f64;
+                return self.draw_html_canvas_element(canvas.r(),
+                                                     sx, sy, sw, sh,
+                                                     dx, dy, dw, dh)
+            }
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-drawimage
+    fn DrawImage__(self, image: HTMLCanvasElementOrCanvasRenderingContext2D,
+                         sx: f64, sy: f64, sw: f64, sh: f64,
+                         dx: f64, dy: f64, dw: f64, dh: f64) -> Fallible<()> {
+        match image {
+            HTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(image) => {
+                let canvas = image.root();
+                return self.draw_html_canvas_element(canvas.r(),
+                                                     sx, sy, sw, sh,
+                                                     dx, dy, dw, dh)
+            }
+            HTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(image) => {
+                let image = image.root();
+                let context = image.r();
+                let canvas = context.Canvas().root();
+                return self.draw_html_canvas_element(canvas.r(),
+                                                     sx, sy, sw, sh,
+                                                     dx, dy, dw, dh)
+            }
+        }
+    }
+
     fn MoveTo(self, x: f64, y: f64) {
         self.renderer.send(CanvasMsg::MoveTo(Point2D(x as f32, y as f32))).unwrap();
     }
@@ -173,6 +386,16 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
     fn Arc(self, x: f64, y: f64, r: f64, start: f64, end: f64, ccw: bool) {
         self.renderer.send(CanvasMsg::Arc(Point2D(x as f32, y as f32), r as f32,
                                           start as f32, end as f32, ccw)).unwrap();
+    }
+
+    // https://html.spec.whatwg.org/#dom-context-2d-imagesmoothingenabled
+    fn ImageSmoothingEnabled(self) -> bool {
+        self.image_smoothing_enabled.get()
+    }
+
+    // https://html.spec.whatwg.org/#dom-context-2d-imagesmoothingenabled
+    fn SetImageSmoothingEnabled(self, value: bool) -> () {
+        self.image_smoothing_enabled.set(value);
     }
 
     fn StrokeStyle(self) -> StringOrCanvasGradientOrCanvasPattern {
@@ -261,8 +484,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         let data = imagedata.get_data_array(&self.global.root().r());
         let image_data_rect = Rect(Point2D(dx.to_i32().unwrap(), dy.to_i32().unwrap()), imagedata.get_size());
         let dirty_rect = None;
-        let canvas_size = self.canvas.root().r().get_size();
-        self.renderer.send(CanvasMsg::PutImageData(data, image_data_rect, dirty_rect, canvas_size)).unwrap()
+        self.renderer.send(CanvasMsg::PutImageData(data, image_data_rect, dirty_rect)).unwrap()
     }
 
     fn PutImageData_(self, imagedata: JSRef<ImageData>, dx: f64, dy: f64,
@@ -274,8 +496,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         let dirty_rect = Some(Rect(Point2D(dirtyX.to_i32().unwrap(), dirtyY.to_i32().unwrap()),
                                    Size2D(dirtyWidth.to_i32().unwrap(),
                                           dirtyHeight.to_i32().unwrap())));
-        let canvas_size = self.canvas.root().r().get_size();
-        self.renderer.send(CanvasMsg::PutImageData(data, image_data_rect, dirty_rect, canvas_size)).unwrap()
+        self.renderer.send(CanvasMsg::PutImageData(data, image_data_rect, dirty_rect)).unwrap()
     }
 
     fn CreateLinearGradient(self, x0: f64, y0: f64, x1: f64, y1: f64) -> Fallible<Temporary<CanvasGradient>> {
@@ -309,3 +530,8 @@ pub fn parse_color(string: &str) -> Result<RGBA,()> {
     }
 }
 
+// Used by drawImage to determine if a source or destination rectangle is valid
+// Origin coordinates and size cannot be negative. Size has to be greater than zero
+fn is_rect_valid(rect: Rect<i32>) -> bool {
+    rect.origin.x >= 0 && rect.origin.y >= 0 && rect.size.width > 0 && rect.size.height > 0
+}
