@@ -31,21 +31,21 @@ interface CanvasRenderingContext2D {
 
   // transformations (default transform is the identity matrix)
   //         attribute SVGMatrix currentTransform;
-  void scale(/*unrestricted*/ double x, /*unrestricted*/ double y);
+  void scale(unrestricted double x, unrestricted double y);
   //void rotate(unrestricted double angle);
-  void translate(/*unrestricted*/ double x, /*unrestricted*/ double y);
-  void transform(/*unrestricted*/ double a,
-                 /*unrestricted*/ double b,
-                 /*unrestricted*/ double c,
-                 /*unrestricted*/ double d,
-                 /*unrestricted*/ double e,
-                 /*unrestricted*/ double f);
-  void setTransform(/*unrestricted*/ double a,
-                    /*unrestricted*/ double b,
-                    /*unrestricted*/ double c,
-                    /*unrestricted*/ double d,
-                    /*unrestricted*/ double e,
-                    /*unrestricted*/ double f);
+  void translate(unrestricted double x, unrestricted double y);
+  void transform(unrestricted double a,
+                 unrestricted double b,
+                 unrestricted double c,
+                 unrestricted double d,
+                 unrestricted double e,
+                 unrestricted double f);
+  void setTransform(unrestricted double a,
+                    unrestricted double b,
+                    unrestricted double c,
+                    unrestricted double d,
+                    unrestricted double e,
+                    unrestricted double f);
   //void resetTransform();
 
   // compositing
@@ -71,15 +71,12 @@ interface CanvasRenderingContext2D {
   //         attribute DOMString shadowColor; // (default transparent black)
 
   // rects
-  //void clearRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
   //[LenientFloat]
-  void clearRect(double x, double y, double w, double h);
-  //void fillRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
+  void clearRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
   //[LenientFloat]
-  void fillRect(double x, double y, double w, double h);
-  //void strokeRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
+  void fillRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
   //[LenientFloat]
-  void strokeRect(double x, double y, double w, double h);
+  void strokeRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
 
   // path API (see also CanvasPathMethods)
   void beginPath();
@@ -108,11 +105,15 @@ interface CanvasRenderingContext2D {
 
   // drawing images
   [Throws]
-  void drawImage(CanvasImageSource image, /* unrestricted */ double dx, /* unrestricted */ double dy);
+  void drawImage(CanvasImageSource image, unrestricted double dx, unrestricted double dy);
   [Throws]
-  void drawImage(CanvasImageSource image, /* unrestricted */ double dx, /* unrestricted */ double dy, /* unrestricted */ double dw, /* unrestricted */ double dh);
+  void drawImage(CanvasImageSource image, unrestricted double dx, unrestricted double dy,
+                                          unrestricted double dw, unrestricted double dh);
   [Throws]
-  void drawImage(CanvasImageSource image, /* unrestricted */ double sx, /* unrestricted */ double sy, /* unrestricted */ double sw, /* unrestricted */ double sh, /* unrestricted */ double dx, /* unrestricted */ double dy, /* unrestricted */ double dw, /* unrestricted */ double dh);
+  void drawImage(CanvasImageSource image, unrestricted double sx, unrestricted double sy,
+                                          unrestricted double sw, unrestricted double sh,
+                                          unrestricted double dx, unrestricted double dy,
+                                          unrestricted double dw, unrestricted double dh);
 
   // hit regions
   //void addHitRegion(optional HitRegionOptions options);
@@ -120,7 +121,7 @@ interface CanvasRenderingContext2D {
 
   // pixel manipulation
   [Throws]
-  ImageData createImageData(double sw, double sh);
+  ImageData createImageData(unrestricted double sw, unrestricted double sh);
   [Throws]
   ImageData createImageData(ImageData imagedata);
   [Throws]
@@ -133,16 +134,16 @@ interface CanvasRenderingContext2D {
 interface CanvasPathMethods {
   // shared path API methods
   void closePath();
-  void moveTo(/*unrestricted*/ double x, /*unrestricted*/ double y);
-  void lineTo(double x, double y);
-  void quadraticCurveTo(double cpx, double cpy, double x, double y);
+  void moveTo(unrestricted double x, unrestricted double y);
+  void lineTo(unrestricted double x, unrestricted double y);
+  void quadraticCurveTo(unrestricted double cpx, unrestricted double cpy, unrestricted double x, unrestricted double y);
 
-  void bezierCurveTo(/*unrestricted*/ double cp1x,
-                     /*unrestricted*/ double cp1y,
-                     /*unrestricted*/ double cp2x,
-                     /*unrestricted*/ double cp2y,
-                     /*unrestricted*/ double x,
-                     /*unrestricted*/ double y);
+  void bezierCurveTo(unrestricted double cp1x,
+                     unrestricted double cp1y,
+                     unrestricted double cp2x,
+                     unrestricted double cp2y,
+                     unrestricted double x,
+                     unrestricted double y);
 
   //void arcTo(double x1, double y1, double x2, double y2, double radius);
 // NOT IMPLEMENTED  [LenientFloat] void arcTo(double x1, double y1, double x2, double y2, double radiusX, double radiusY, double rotation);

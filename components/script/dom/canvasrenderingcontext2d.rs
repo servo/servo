@@ -12,6 +12,7 @@ use dom::bindings::error::Error::{IndexSize, TypeError};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};
+use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::htmlcanvaselement::{HTMLCanvasElement, HTMLCanvasElementHelpers};
@@ -383,7 +384,13 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                                                     Point2D(x as f32, y as f32))).unwrap();
     }
 
-    fn Arc(self, x: f64, y: f64, r: f64, start: f64, end: f64, ccw: bool) {
+    fn Arc(self, x: Finite<f64>, y: Finite<f64>, r: Finite<f64>, start: Finite<f64>, end: Finite<f64>, ccw: bool) {
+        let x = *x;
+        let y = *y;
+        let r = *r;
+        let start = *start;
+        let end = *end;
+
         self.renderer.send(CanvasMsg::Arc(Point2D(x as f32, y as f32), r as f32,
                                           start as f32, end as f32, ccw)).unwrap();
     }
@@ -467,7 +474,10 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         Ok(ImageData::new(self.global.root().r(), imagedata.Width(), imagedata.Height(), None))
     }
 
-    fn GetImageData(self, sx: f64, sy: f64, sw: f64, sh: f64) -> Fallible<Temporary<ImageData>> {
+    fn GetImageData(self, sx: Finite<f64>, sy: Finite<f64>, sw: Finite<f64>, sh: Finite<f64>) -> Fallible<Temporary<ImageData>> {
+        let sw = *sw;
+        let sh = *sh;
+
         if sw == 0.0 || sh == 0.0 {
             return Err(IndexSize)
         }
@@ -480,15 +490,15 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         Ok(ImageData::new(self.global.root().r(), sw.abs().to_u32().unwrap(), sh.abs().to_u32().unwrap(), Some(data)))
     }
 
-    fn PutImageData(self, imagedata: JSRef<ImageData>, dx: f64, dy: f64) {
+    fn PutImageData(self, imagedata: JSRef<ImageData>, dx: Finite<f64>, dy: Finite<f64>) {
         let data = imagedata.get_data_array(&self.global.root().r());
         let image_data_rect = Rect(Point2D(dx.to_i32().unwrap(), dy.to_i32().unwrap()), imagedata.get_size());
         let dirty_rect = None;
         self.renderer.send(CanvasMsg::PutImageData(data, image_data_rect, dirty_rect)).unwrap()
     }
 
-    fn PutImageData_(self, imagedata: JSRef<ImageData>, dx: f64, dy: f64,
-                     dirtyX: f64, dirtyY: f64, dirtyWidth: f64, dirtyHeight: f64) {
+    fn PutImageData_(self, imagedata: JSRef<ImageData>, dx: Finite<f64>, dy: Finite<f64>,
+                     dirtyX: Finite<f64>, dirtyY: Finite<f64>, dirtyWidth: Finite<f64>, dirtyHeight: Finite<f64>) {
         let data = imagedata.get_data_array(&self.global.root().r());
         let image_data_rect = Rect(Point2D(dx.to_i32().unwrap(), dy.to_i32().unwrap()),
                                    Size2D(imagedata.Width().to_i32().unwrap(),
@@ -499,7 +509,13 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.renderer.send(CanvasMsg::PutImageData(data, image_data_rect, dirty_rect)).unwrap()
     }
 
-    fn CreateLinearGradient(self, x0: f64, y0: f64, x1: f64, y1: f64) -> Fallible<Temporary<CanvasGradient>> {
+    fn CreateLinearGradient(self, x0: Finite<f64>, y0: Finite<f64>,
+                                  x1: Finite<f64>, y1: Finite<f64>) -> Fallible<Temporary<CanvasGradient>> {
+        let x0 = *x0;
+        let y0 = *y0;
+        let x1 = *x1;
+        let y1 = *y1;
+
         if [x0, y0, x1, y1].iter().any(|x| x.is_nan() || x.is_infinite()) {
             return Err(TypeError("One of the arguments of createLinearGradient() is not a finite floating-point value.".to_owned()));
         }
@@ -507,7 +523,15 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                                CanvasGradientStyle::Linear(LinearGradientStyle::new(x0, y0, x1, y1, Vec::new()))))
     }
 
-    fn CreateRadialGradient(self, x0: f64, y0: f64, r0: f64, x1: f64, y1: f64, r1: f64) -> Fallible<Temporary<CanvasGradient>> {
+    fn CreateRadialGradient(self, x0: Finite<f64>, y0: Finite<f64>, r0: Finite<f64>,
+                                  x1: Finite<f64>, y1: Finite<f64>, r1: Finite<f64>) -> Fallible<Temporary<CanvasGradient>> {
+        let x0 = *x0;
+        let y0 = *y0;
+        let r0 = *r0;
+        let x1 = *x1;
+        let y1 = *y1;
+        let r1 = *r1;
+
         if [x0, y0, r0, x1, y1, r1].iter().any(|x| x.is_nan() || x.is_infinite()) {
             return Err(TypeError("One of the arguments of createRadialGradient() is not a finite floating-point value.".to_owned()));
         }
