@@ -81,9 +81,9 @@ builtinNames = {
     IDLType.Tags.uint32: 'u32',
     IDLType.Tags.uint64: 'u64',
     IDLType.Tags.unrestricted_float: 'f32',
-    IDLType.Tags.float: 'f32',
+    IDLType.Tags.float: 'Finite<f32>',
     IDLType.Tags.unrestricted_double: 'f64',
-    IDLType.Tags.double: 'f64'
+    IDLType.Tags.double: 'Finite<f64>'
 }
 
 numericTags = [
@@ -4647,6 +4647,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::proxyhandler',
             'dom::bindings::proxyhandler::{fill_property_descriptor, get_expando_object}',
             'dom::bindings::proxyhandler::{get_property_descriptor}',
+            'dom::bindings::num::Finite',
             'dom::bindings::str::ByteString',
             'libc',
             'util::str::DOMString',
