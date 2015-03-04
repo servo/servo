@@ -78,24 +78,6 @@ enum XMLHttpRequestState {
     XHRDone = 4, // So as not to conflict with the ProgressMsg `Done`
 }
 
-struct XHRProgressHandler {
-    addr: TrustedXHRAddress,
-    progress: XHRProgress,
-}
-
-impl XHRProgressHandler {
-    fn new(addr: TrustedXHRAddress, progress: XHRProgress) -> XHRProgressHandler {
-        XHRProgressHandler { addr: addr, progress: progress }
-    }
-}
-
-impl Runnable for XHRProgressHandler {
-    fn handler(self: Box<XHRProgressHandler>) {
-        let this = *self;
-        XMLHttpRequest::handle_progress(this.addr, this.progress);
-    }
-}
-
 #[derive(PartialEq, Clone, Copy)]
 #[jstraceable]
 pub struct GenerationId(uint);
@@ -121,11 +103,6 @@ impl XHRProgress {
             XHRProgress::Errored(id, _) => id
         }
     }
-}
-
-enum SyncOrAsync<'a> {
-    Sync(JSRef<'a, XMLHttpRequest>),
-    Async(TrustedXHRAddress, Box<ScriptChan+Send>)
 }
 
 enum TerminateReason {
@@ -209,11 +186,6 @@ impl XMLHttpRequest {
         Ok(XMLHttpRequest::new(global))
     }
 
-    pub fn handle_progress(addr: TrustedXHRAddress, progress: XHRProgress) {
-        let xhr = addr.to_temporary().root();
-        xhr.r().process_partial_response(progress);
-    }
-
     #[allow(unsafe_blocks)]
     fn fetch2(xhr: TrustedXHRAddress, script_chan: Box<ScriptChan+Send>,
               resource_task: ResourceTask, load_data: LoadData, sync: bool,
@@ -221,8 +193,10 @@ impl XMLHttpRequest {
         let cors_request = match cors_request {
             Err(_) => {
                 // Happens in case of cross-origin non-http URIs
-                //notify_error_and_return!(Network);
-                return; //XXXjdm
+                let xhr = xhr.to_temporary().root();
+                xhr.r().process_partial_response(XHRProgress::Errored(
+                    xhr.r().generation_id.get(), Network));
+                return; //XXXjdm Err(Network)
             }
             Ok(req) => req,
         };
@@ -393,25 +367,14 @@ impl XMLHttpRequest {
     }
 
     #[allow(unsafe_blocks)]
-    fn fetch(fetch_type: &SyncOrAsync, resource_task: ResourceTask,
+    fn fetch(xhr: JSRef<XMLHttpRequest>, resource_task: ResourceTask,
              mut load_data: LoadData, terminate_receiver: Receiver<TerminateReason>,
              cors_request: Result<Option<CORSRequest>,()>, gen_id: GenerationId)
              -> ErrorResult {
 
-        fn notify_partial_progress(fetch_type: &SyncOrAsync, msg: XHRProgress) {
-            match *fetch_type {
-                SyncOrAsync::Sync(xhr) => {
-                    xhr.process_partial_response(msg);
-                },
-                SyncOrAsync::Async(ref addr, ref script_chan) => {
-                    script_chan.send(ScriptMsg::RunnableMsg(box XHRProgressHandler::new(addr.clone(), msg))).unwrap();
-                }
-            }
-        }
-
         macro_rules! notify_error_and_return(
             ($err:expr) => ({
-                notify_partial_progress(fetch_type, XHRProgress::Errored(gen_id, $err));
+                xhr.process_partial_response(XHRProgress::Errored(gen_id, $err));
                 return Err($err)
             });
         );
@@ -484,7 +447,7 @@ impl XMLHttpRequest {
                     _ => {}
                 };
                 // XXXManishearth Clear cache entries in case of a network error
-                notify_partial_progress(fetch_type, XHRProgress::HeadersReceived(gen_id,
+                xhr.process_partial_response(XHRProgress::HeadersReceived(gen_id,
                     response.metadata.headers.clone(), response.metadata.status.clone()));
 
                 progress_port = response.progress_port;
@@ -509,11 +472,11 @@ impl XMLHttpRequest {
                 progress = progress_port.recv() => match progress.unwrap() {
                     Payload(data) => {
                         buf.push_all(data.as_slice());
-                        notify_partial_progress(fetch_type,
-                                                XHRProgress::Loading(gen_id, ByteString::new(buf.clone())));
+                        xhr.process_partial_response(XHRProgress::Loading(
+                            gen_id, ByteString::new(buf.clone())));
                     },
                     Done(Ok(()))  => {
-                        notify_partial_progress(fetch_type, XHRProgress::Done(gen_id));
+                        xhr.process_partial_response(XHRProgress::Done(gen_id));
                         return Ok(());
                     },
                     Done(Err(_))  => {
@@ -810,7 +773,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
         let gen_id = self.generation_id.get();
         if self.sync.get() {
-            return XMLHttpRequest::fetch(&mut SyncOrAsync::Sync(self), resource_task, load_data,
+            return XMLHttpRequest::fetch(self, resource_task, load_data,
                                          terminate_receiver, cors_request, gen_id);
         } else {
             self.fetch_time.set(time::now().to_timespec().sec);
