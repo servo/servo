@@ -676,8 +676,77 @@ pub mod longhands {
 
 
     // CSS 2.1, Section 11 - Visual effects
-    // FIXME: Implement scrolling for `scroll` and `auto` (#2742).
-    ${single_keyword("overflow", "visible hidden scroll auto")}
+
+    // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
+    <%self:single_keyword_computed name="overflow-x" values="visible hidden scroll auto">
+        use values::computed::{Context, ToComputedValue};
+
+        pub fn compute_with_other_overflow_direction(value: SpecifiedValue,
+                                                     other_direction: SpecifiedValue)
+                                                     -> computed_value::T {
+            // CSS-OVERFLOW 3 states "Otherwise, if one cascaded values is one of the scrolling
+            // values and the other is `visible`, then computed values are the cascaded values with
+            // `visible` changed to `auto`."
+            match (value, other_direction) {
+                (SpecifiedValue::visible, SpecifiedValue::hidden) |
+                (SpecifiedValue::visible, SpecifiedValue::scroll) |
+                (SpecifiedValue::visible, SpecifiedValue::auto) => computed_value::T::auto,
+                _ => value,
+            }
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                compute_with_other_overflow_direction(*self, context.overflow_y.0)
+            }
+        }
+    </%self:single_keyword_computed>
+
+    // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
+    <%self:longhand name="overflow-y">
+        use super::overflow_x;
+        use values::computed::{Context, ToComputedValue};
+
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
+        pub use self::computed_value::T as SpecifiedValue;
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                self.0.to_css(dest)
+            }
+        }
+
+        pub mod computed_value {
+            #[derive(Clone, Copy, PartialEq)]
+            pub struct T(pub super::super::overflow_x::computed_value::T);
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                let computed_value::T(this) = *self;
+                computed_value::T(overflow_x::compute_with_other_overflow_direction(
+                        this,
+                        context.overflow_x))
+            }
+        }
+
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T(overflow_x::get_initial_value())
+        }
+
+        pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            overflow_x::parse(context, input).map(|value| SpecifiedValue(value))
+        }
+    </%self:longhand>
+
 
     ${switch_to_style_struct("InheritedBox")}
 
@@ -689,7 +758,7 @@ pub mod longhands {
     ${switch_to_style_struct("Box")}
 
     <%self:longhand name="content">
-        use cssparser::{ToCss, Token};
+        use cssparser::Token;
         use std::ascii::AsciiExt;
         use values::computed::ComputedValueAsSpecified;
 
@@ -731,13 +800,21 @@ pub mod longhands {
                         &ContentItem::String(ref s) => {
                             Token::QuotedString((&**s).into_cow()).to_css(dest)
                         }
-                        &ContentItem::Counter(ref s, _) => {
-                            // FIXME(pcwalton)
-                            Token::QuotedString((&**s).into_cow()).to_css(dest)
+                        &ContentItem::Counter(ref s, ref list_style_type) => {
+                            try!(dest.write_str("counter("));
+                            try!(Token::QuotedString((&**s).into_cow()).to_css(dest));
+                            try!(dest.write_str(", "));
+                            try!(list_style_type.to_css(dest));
+                            dest.write_str(")")
                         }
-                        &ContentItem::Counters(ref s, _, _) => {
-                            // FIXME(pcwalton)
-                            Token::QuotedString((&**s).into_cow()).to_css(dest)
+                        &ContentItem::Counters(ref s, ref separator, ref list_style_type) => {
+                            try!(dest.write_str("counter("));
+                            try!(Token::QuotedString((&**s).into_cow()).to_css(dest));
+                            try!(dest.write_str(", "));
+                            try!(Token::QuotedString((&**separator).into_cow()).to_css(dest));
+                            try!(dest.write_str(", "));
+                            try!(list_style_type.to_css(dest));
+                            dest.write_str(")")
                         }
                         &ContentItem::OpenQuote => dest.write_str("open-quote"),
                         &ContentItem::CloseQuote => dest.write_str("close-quote"),
@@ -764,6 +841,7 @@ pub mod longhands {
                             let mut iter = content.iter();
                             try!(iter.next().unwrap().to_css(dest));
                             for c in iter {
+                                try!(dest.write_str(" "));
                                 try!(c.to_css(dest));
                             }
                             Ok(())
@@ -831,15 +909,14 @@ pub mod longhands {
                             _ => return Err(())
                         }
                     }
-                    Err(()) if !content.is_empty() => {
-                        let mut result = String::new();
-                        for content in content.iter() {
-                            content.to_css(&mut result).unwrap()
-                        }
-                        return Ok(SpecifiedValue::Content(content))
-                    }
+                    Err(_) => break,
                     _ => return Err(())
                 }
+            }
+            if !content.is_empty() {
+                Ok(SpecifiedValue::Content(content))
+            } else {
+                Err(())
             }
         }
     </%self:longhand>
@@ -916,9 +993,11 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="quotes">
-        use cssparser::{ToCss, Token};
         use text_writer::{self, TextWriter};
-        use values::computed::{ToComputedValue, Context};
+        use values::computed::ComputedValueAsSpecified;
+
+        use cssparser::{ToCss, Token};
+        use std::borrow::IntoCow;
 
         pub use self::computed_value::T as SpecifiedValue;
 
@@ -927,18 +1006,21 @@ pub mod longhands {
             pub struct T(pub Vec<(String,String)>);
         }
 
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            fn to_computed_value(&self, _: &Context) -> computed_value::T {
-                (*self).clone()
-            }
-        }
+        impl ComputedValueAsSpecified for SpecifiedValue {}
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
-                // TODO(pcwalton)
-                dest.write_str("")
+                let mut first = true;
+                for pair in self.0.iter() {
+                    if !first {
+                        try!(dest.write_str(" "));
+                    }
+                    first = false;
+                    try!(Token::QuotedString(pair.0.as_slice().into_cow()).to_css(dest));
+                    try!(dest.write_str(" "));
+                    try!(Token::QuotedString(pair.1.as_slice().into_cow()).to_css(dest));
+                }
+                Ok(())
             }
         }
 
@@ -979,12 +1061,12 @@ pub mod longhands {
     ${new_style_struct("Counters", is_inherited=False)}
 
     <%self:longhand name="counter-increment">
-        use cssparser::{NumericValue, ToCss, Token};
         use super::content;
         use text_writer::{self, TextWriter};
-        use values::computed::{ToComputedValue, Context};
+        use values::computed::ComputedValueAsSpecified;
 
-        use std::borrow::ToOwned;
+        use cssparser::{ToCss, Token};
+        use std::borrow::{IntoCow, ToOwned};
 
         pub use self::computed_value::T as SpecifiedValue;
 
@@ -998,18 +1080,20 @@ pub mod longhands {
             computed_value::T(Vec::new())
         }
 
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            fn to_computed_value(&self, _: &Context) -> computed_value::T {
-                (*self).clone()
-            }
-        }
+        impl ComputedValueAsSpecified for SpecifiedValue {}
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
-                // TODO(pcwalton)
-                dest.write_str("")
+                let mut first = true;
+                for pair in self.0.iter() {
+                    if !first {
+                        try!(dest.write_str(" "));
+                    }
+                    first = false;
+                    try!(Token::QuotedString(pair.0.as_slice().into_cow()).to_css(dest));
+                    try!(dest.write_str(format!(" {}", pair.1).as_slice()));
+                }
+                Ok(())
             }
         }
 
@@ -1028,15 +1112,7 @@ pub mod longhands {
                 if content::counter_name_is_illegal(counter_name.as_slice()) {
                     return Err(())
                 }
-                let counter_delta = input.try(|input| {
-                    match input.next() {
-                        Ok(Token::Number(NumericValue {
-                            int_value: Some(int_value),
-                            ..
-                        })) => Ok(int_value as i32),
-                        _ => Err(()),
-                    }
-                }).unwrap_or(1);
+                let counter_delta = input.try(|input| input.expect_integer()).unwrap_or(1) as i32;
                 counters.push((counter_name, counter_delta))
             }
 
@@ -1216,6 +1292,126 @@ pub mod longhands {
     ${single_keyword("background-repeat", "repeat repeat-x repeat-y no-repeat")}
 
     ${single_keyword("background-attachment", "scroll fixed")}
+
+    <%self:longhand name="background-size">
+        use cssparser::{ToCss, Token};
+        use std::ascii::AsciiExt;
+        use text_writer::{self, TextWriter};
+        use values::computed::{Context, ToComputedValue};
+
+        pub mod computed_value {
+            use values::computed::LengthOrPercentageOrAuto;
+
+            #[derive(PartialEq, Clone, Debug)]
+            pub struct ExplicitSize {
+                pub width: LengthOrPercentageOrAuto,
+                pub height: LengthOrPercentageOrAuto,
+            }
+
+            #[derive(PartialEq, Clone, Debug)]
+            pub enum T {
+                Explicit(ExplicitSize),
+                Cover,
+                Contain,
+            }
+        }
+
+        #[derive(Clone, PartialEq, Debug)]
+        pub struct SpecifiedExplicitSize {
+            pub width: specified::LengthOrPercentageOrAuto,
+            pub height: specified::LengthOrPercentageOrAuto,
+        }
+
+        impl ToCss for SpecifiedExplicitSize {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                try!(self.width.to_css(dest));
+                try!(dest.write_str(" "));
+                self.height.to_css(dest)
+            }
+        }
+
+        #[derive(Clone, PartialEq, Debug)]
+        pub enum SpecifiedValue {
+            Explicit(SpecifiedExplicitSize),
+            Cover,
+            Contain,
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                match *self {
+                    SpecifiedValue::Explicit(ref size) => size.to_css(dest),
+                    SpecifiedValue::Cover => dest.write_str("cover"),
+                    SpecifiedValue::Contain => dest.write_str("contain"),
+                }
+            }
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &computed::Context) -> computed_value::T {
+                match *self {
+                    SpecifiedValue::Explicit(ref size) => {
+                        computed_value::T::Explicit(computed_value::ExplicitSize {
+                            width: size.width.to_computed_value(context),
+                            height: size.height.to_computed_value(context),
+                        })
+                    }
+                    SpecifiedValue::Cover => computed_value::T::Cover,
+                    SpecifiedValue::Contain => computed_value::T::Contain,
+                }
+            }
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T::Explicit(computed_value::ExplicitSize {
+                width: computed::LengthOrPercentageOrAuto::Auto,
+                height: computed::LengthOrPercentageOrAuto::Auto,
+            })
+        }
+
+        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            let width;
+            if let Ok(value) = input.try(|input| {
+                match input.next() {
+                    Err(_) => Err(()),
+                    Ok(Token::Ident(ref ident)) if ident.as_slice()
+                                                        .eq_ignore_ascii_case("cover") => {
+                        Ok(SpecifiedValue::Cover)
+                    }
+                    Ok(Token::Ident(ref ident)) if ident.as_slice()
+                                                        .eq_ignore_ascii_case("contain") => {
+                        Ok(SpecifiedValue::Contain)
+                    }
+                    Ok(_) => Err(()),
+                }
+            }) {
+                return Ok(value)
+            } else {
+                width = try!(specified::LengthOrPercentageOrAuto::parse(input))
+            }
+
+            let height;
+            if let Ok(value) = input.try(|input| {
+                match input.next() {
+                    Err(_) => Ok(specified::LengthOrPercentageOrAuto::Auto),
+                    Ok(_) => Err(()),
+                }
+            }) {
+                height = value
+            } else {
+                height = try!(specified::LengthOrPercentageOrAuto::parse(input));
+            }
+
+            Ok(SpecifiedValue::Explicit(SpecifiedExplicitSize {
+                width: width,
+                height: height,
+            }))
+        }
+    </%self:longhand>
 
     ${new_style_struct("Color", is_inherited=True)}
 
@@ -2559,6 +2755,62 @@ pub mod longhands {
                      """normal multiply screen overlay darken lighten color-dodge
                         color-burn hard-light soft-light difference exclusion hue
                         saturation color luminosity""")}
+
+    <%self:longhand name="image-rendering">
+        use values::computed::{Context, ToComputedValue};
+
+        pub mod computed_value {
+            use cssparser::ToCss;
+            use text_writer::{self, TextWriter};
+
+            #[derive(Copy, Clone, Debug, PartialEq)]
+            pub enum T {
+                Auto,
+                CrispEdges,
+                Pixelated,
+            }
+
+            impl ToCss for T {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                    match *self {
+                        T::Auto => dest.write_str("auto"),
+                        T::CrispEdges => dest.write_str("crisp-edges"),
+                        T::Pixelated => dest.write_str("pixelated"),
+                    }
+                }
+            }
+        }
+
+        pub type SpecifiedValue = computed_value::T;
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T::Auto
+        }
+
+        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            // According to to CSS-IMAGES-3, `optimizespeed` and `optimizequality` are synonyms for
+            // `auto`.
+            match_ignore_ascii_case! {
+                try!(input.expect_ident()),
+                "auto" => Ok(computed_value::T::Auto),
+                "optimizespeed" => Ok(computed_value::T::Auto),
+                "optimizequality" => Ok(computed_value::T::Auto),
+                "crisp-edges" => Ok(computed_value::T::CrispEdges),
+                "pixelated" => Ok(computed_value::T::Pixelated)
+                _ => Err(())
+            }
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, _: &Context) -> computed_value::T {
+                *self
+            }
+        }
+    </%self:longhand>
 }
 
 
@@ -2651,14 +2903,15 @@ pub mod shorthands {
 
     // TODO: other background-* properties
     <%self:shorthand name="background"
-                     sub_properties="background-color background-position background-repeat background-attachment background-image">
-        use properties::longhands::{background_color, background_position, background_repeat,
-                                    background_attachment, background_image};
+                     sub_properties="background-color background-position background-repeat background-attachment background-image background-size">
+        use properties::longhands::{background_color, background_position, background_repeat};
+        use properties::longhands::{background_attachment, background_image, background_size};
 
         let mut color = None;
         let mut image = None;
         let mut position = None;
         let mut repeat = None;
+        let mut size = None;
         let mut attachment = None;
         let mut any = false;
 
@@ -2667,6 +2920,13 @@ pub mod shorthands {
                 if let Ok(value) = input.try(|input| background_position::parse(context, input)) {
                     position = Some(value);
                     any = true;
+
+                    // Parse background size, if applicable.
+                    size = input.try(|input| {
+                        try!(input.expect_delim('/'));
+                        background_size::parse(context, input)
+                    }).ok();
+
                     continue
                 }
             }
@@ -2708,6 +2968,7 @@ pub mod shorthands {
                 background_position: position,
                 background_repeat: repeat,
                 background_attachment: attachment,
+                background_size: size,
             })
         } else {
             Err(())
@@ -3042,6 +3303,16 @@ pub mod shorthands {
             }
             _ => Err(()),
         }
+    </%self:shorthand>
+
+    <%self:shorthand name="overflow" sub_properties="overflow-x overflow-y">
+        use properties::longhands::{overflow_x, overflow_y};
+
+        let overflow = try!(overflow_x::parse(context, input));
+        Ok(Longhands {
+            overflow_x: Some(overflow),
+            overflow_y: Some(overflow_y::SpecifiedValue(overflow)),
+        })
     </%self:shorthand>
 }
 
@@ -3687,6 +3958,8 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclarati
             display: longhands::display::get_initial_value(),
             color: inherited_style.get_color().color,
             text_decoration: longhands::text_decoration::get_initial_value(),
+            overflow_x: longhands::overflow_x::get_initial_value(),
+            overflow_y: longhands::overflow_y::get_initial_value(),
             positioned: false,
             floated: false,
             border_top_present: false,
@@ -3740,6 +4013,12 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclarati
                         longhands::position::SpecifiedValue::fixed => true,
                         _ => false,
                     }
+                }
+                PropertyDeclaration::OverflowX(ref value) => {
+                    context.overflow_x = get_specified!(get_box, overflow_x, value);
+                }
+                PropertyDeclaration::OverflowY(ref value) => {
+                    context.overflow_y = get_specified!(get_box, overflow_y, value);
                 }
                 PropertyDeclaration::Float(ref value) => {
                     context.floated = get_specified!(get_box, float, value)

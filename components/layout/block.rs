@@ -39,8 +39,7 @@ use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
 use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{CLEARS_LEFT, CLEARS_RIGHT};
-use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, FragmentMutator};
-use fragment::{SpecificFragmentInfo};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{IntrinsicISizes, MarginCollapseInfo};
@@ -57,9 +56,10 @@ use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::cmp::{max, min};
 use std::fmt;
+use style::computed_values::{overflow_x, overflow_y, position, box_sizing, display, float};
 use style::properties::ComputedValues;
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use style::computed_values::{overflow, position, box_sizing, display, float};
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrPercentageOrNone};
 use std::sync::Arc;
 
 /// Information specific to floated blocks.
@@ -1400,7 +1400,10 @@ impl BlockFlow {
             display::T::inline_block => {
                 FormattingContextType::Other
             }
-            _ if style.get_box().overflow != overflow::T::visible => FormattingContextType::Block,
+            _ if style.get_box().overflow_x != overflow_x::T::visible ||
+                    style.get_box().overflow_y != overflow_y::T(overflow_x::T::visible) => {
+                FormattingContextType::Block
+            }
             _ => FormattingContextType::None,
         }
     }
@@ -1885,8 +1888,8 @@ impl Flow for BlockFlow {
                               .translate(stacking_context_position));
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FragmentMutator) {
-        mutator.process(&mut self.fragment)
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+        (*mutator)(&mut self.fragment)
     }
 }
 

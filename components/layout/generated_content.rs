@@ -11,8 +11,7 @@
 use context::LayoutContext;
 use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, ImmutableFlowUtils};
 use flow::{InorderFlowTraversal};
-use fragment::{Fragment, FragmentMutator, GeneratedContentInfo, SpecificFragmentInfo};
-use fragment::{UnscannedTextFragmentInfo};
+use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use incremental::{self, RESOLVE_GENERATED_CONTENT};
 use text::TextRunScanner;
 
@@ -127,7 +126,7 @@ impl<'a> InorderFlowTraversal for ResolveGeneratedContent<'a> {
             is_block: flow.is_block_like(),
             incremented: false,
         };
-        flow.mutate_fragments(&mut mutator);
+        flow.mutate_fragments(&mut |fragment| mutator.mutate_fragment(fragment))
     }
 
     #[inline]
@@ -149,8 +148,8 @@ struct ResolveGeneratedContentFragmentMutator<'a,'b:'a> {
     incremented: bool,
 }
 
-impl<'a,'b> FragmentMutator for ResolveGeneratedContentFragmentMutator<'a,'b> {
-    fn process(&mut self, fragment: &mut Fragment) {
+impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
+    fn mutate_fragment(&mut self, fragment: &mut Fragment) {
         // We only reset and/or increment counters once per flow. This avoids double-incrementing
         // counters on list items (once for the main fragment and once for the marker).
         if !self.incremented {
@@ -183,7 +182,7 @@ impl<'a,'b> FragmentMutator for ResolveGeneratedContentFragmentMutator<'a,'b> {
                     // Nothing to do here.
                 }
                 GeneratedContentInfo::ContentItem(ContentItem::Counter(ref counter_name,
-                                                                       list_style_type)) => {
+                                                                       counter_style)) => {
                     let mut temporary_counter = Counter::new();
                     let counter = self.traversal
                                       .counters
@@ -192,12 +191,12 @@ impl<'a,'b> FragmentMutator for ResolveGeneratedContentFragmentMutator<'a,'b> {
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
                                               fragment.style.clone(),
-                                              list_style_type,
+                                              counter_style,
                                               RenderingMode::Plain)
                 }
                 GeneratedContentInfo::ContentItem(ContentItem::Counters(ref counter_name,
                                                                         ref separator,
-                                                                        list_style_type)) => {
+                                                                        counter_style)) => {
                     let mut temporary_counter = Counter::new();
                     let counter = self.traversal
                                       .counters
@@ -206,8 +205,8 @@ impl<'a,'b> FragmentMutator for ResolveGeneratedContentFragmentMutator<'a,'b> {
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
                                               fragment.style.clone(),
-                                              list_style_type,
-                                              RenderingMode::All(separator.as_slice()))
+                                              counter_style,
+                                              RenderingMode::All(separator.as_slice()));
                 }
                 GeneratedContentInfo::ContentItem(ContentItem::OpenQuote) => {
                     new_info = Some(render_text(self.traversal.layout_context,
@@ -241,9 +240,7 @@ impl<'a,'b> FragmentMutator for ResolveGeneratedContentFragmentMutator<'a,'b> {
             fragment.specific = new_info
         }
     }
-}
 
-impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
     fn reset_and_increment_counters_as_necessary(&mut self, fragment: &mut Fragment) {
         let mut list_style_type = fragment.style().get_list().list_style_type;
         if !self.is_block || fragment.style().get_box().display != display::T::list_item {
@@ -324,12 +321,11 @@ impl Counter {
 
     fn reset(&mut self, level: u32, value: i32) {
         // Do we have an instance of the counter at this level? If so, just mutate it.
-        match self.values.last_mut() {
-            Some(ref mut existing_value) if level == existing_value.level => {
+        if let Some(ref mut existing_value) = self.values.last_mut() {
+            if level == existing_value.level {
                 existing_value.value = value;
                 return
             }
-            _ => {}
         }
 
         // Otherwise, push a new instance of the counter.
@@ -340,15 +336,7 @@ impl Counter {
     }
 
     fn truncate_to_level(&mut self, level: u32) {
-        let mut position = None;
-        for (i, value) in self.values.iter().enumerate() {
-            if value.level > level {
-                position = Some(i);
-                break
-            }
-        }
-
-        if let Some(position) = position {
+        if let Some(position) = self.values.iter().position(|value| value.level > level) {
             self.values.truncate(position)
         }
     }
@@ -437,7 +425,7 @@ fn render_text(layout_context: &LayoutContext,
     let info = SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(string));
     fragments.push_back(Fragment::from_opaque_node_and_style(node,
                                                              style,
-                                                             incremental::all(),
+                                                             incremental::rebuild_and_reflow(),
                                                              info));
     let fragments = TextRunScanner::new().scan_for_runs(layout_context.font_context(), fragments);
     debug_assert!(fragments.len() == 1);
@@ -454,7 +442,8 @@ fn push_representation(value: i32, list_style_type: list_style_type::T, accumula
         list_style_type::T::square |
         list_style_type::T::disclosure_open |
         list_style_type::T::disclosure_closed => {
-            accumulator.push_str(static_representation(list_style_type).unwrap())
+            accumulator.push(static_representation(list_style_type));
+            accumulator.push('\u{a0}');
         }
         list_style_type::T::decimal => push_numeric_representation(value, &DECIMAL, accumulator),
         list_style_type::T::arabic_indic => {
@@ -516,16 +505,16 @@ fn push_representation(value: i32, list_style_type: list_style_type::T, accumula
     }
 }
 
-/// Returns the static string that represents the value rendered using the given list-style, if
+/// Returns the static character that represents the value rendered using the given list-style, if
 /// possible.
-pub fn static_representation(list_style_type: list_style_type::T) -> Option<&'static str> {
+pub fn static_representation(list_style_type: list_style_type::T) -> char {
     match list_style_type {
-        list_style_type::T::disc => Some("•\u{00a0}"),
-        list_style_type::T::circle => Some("◦\u{00a0}"),
-        list_style_type::T::square => Some("▪\u{00a0}"),
-        list_style_type::T::disclosure_open => Some("▾\u{00a0}"),
-        list_style_type::T::disclosure_closed => Some("‣\u{00a0}"),
-        _ => None,
+        list_style_type::T::disc => '•',
+        list_style_type::T::circle => '◦',
+        list_style_type::T::square => '▪',
+        list_style_type::T::disclosure_open => '▾',
+        list_style_type::T::disclosure_closed => '‣',
+        _ => panic!("No static representation for this list-style-type!"),
     }
 }
 
@@ -566,8 +555,8 @@ fn push_numeric_representation(mut value: i32, system: &[char], accumulator: &mu
     }
 
     // Step 3.
-    for i in range(0, string.len()).rev() {
-        accumulator.push(*string.get(i))
+    for &ch in string.iter().rev() {
+        accumulator.push(ch)
     }
 }
 

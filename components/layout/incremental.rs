@@ -130,18 +130,18 @@ macro_rules! add_if_not_equal(
     })
 );
 
-/// Returns a bitmask that represents a fully damaged flow.
+/// Returns a bitmask that represents a flow that needs to be rebuilt and reflowed.
 ///
 /// Use this instead of `RestyleDamage::all()` because `RestyleDamage::all()` will result in
 /// unnecessary sequential resolution of generated content.
-pub fn all() -> RestyleDamage {
+pub fn rebuild_and_reflow() -> RestyleDamage {
     REPAINT | BUBBLE_ISIZES | REFLOW_OUT_OF_FLOW | REFLOW | RECONSTRUCT_FLOW
 }
 
 pub fn compute_damage(old: &Option<Arc<ComputedValues>>, new: &ComputedValues) -> RestyleDamage {
     let old: &ComputedValues =
         match old.as_ref() {
-            None => return all(),
+            None => return rebuild_and_reflow(),
             Some(cv) => &**cv,
         };
 
@@ -239,7 +239,7 @@ impl<'a> LayoutDamageComputation for &'a mut (Flow + 'a) {
 
     fn reflow_entire_document(self) {
         let self_base = flow::mut_base(self);
-        self_base.restyle_damage.insert(all());
+        self_base.restyle_damage.insert(rebuild_and_reflow());
         self_base.restyle_damage.remove(RECONSTRUCT_FLOW);
         for kid in self_base.children.iter_mut() {
             kid.reflow_entire_document();

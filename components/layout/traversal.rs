@@ -171,7 +171,8 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                                         &mut applicable_declarations,
                                         &mut shareable);
                     } else {
-                        ThreadSafeLayoutNode::new(&node).set_restyle_damage(incremental::all())
+                        ThreadSafeLayoutNode::new(&node).set_restyle_damage(
+                            incremental::rebuild_and_reflow())
                     }
 
                     // Perform the CSS cascade.

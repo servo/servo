@@ -9,7 +9,7 @@
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
 use flow::{Flow, FlowClass};
-use fragment::{Fragment, FragmentBorderBoxIterator, FragmentMutator};
+use fragment::{Fragment, FragmentBorderBoxIterator};
 use model::{MaybeAuto};
 use layout_debug;
 use table::InternalTable;
@@ -179,7 +179,7 @@ impl Flow for TableCellFlow {
         self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FragmentMutator) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
 }

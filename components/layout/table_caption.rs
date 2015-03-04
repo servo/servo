@@ -9,7 +9,7 @@
 use block::BlockFlow;
 use context::LayoutContext;
 use flow::{FlowClass, Flow};
-use fragment::{Fragment, FragmentBorderBoxIterator, FragmentMutator};
+use fragment::{Fragment, FragmentBorderBoxIterator};
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
@@ -95,7 +95,7 @@ impl Flow for TableCaptionFlow {
         self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FragmentMutator) {
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
 }

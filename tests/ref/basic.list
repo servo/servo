@@ -177,6 +177,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == quotes_simple_a.html quotes_simple_ref.html
 == ol_simple_a.html ol_simple_ref.html
 == ol_japanese_iroha_a.html ol_japanese_iroha_ref.html
+!= ol_japanese_iroha_bullet_styles.html ol_japanese_iroha_ref.html
 == vertical_align_top_a.html vertical_align_top_ref.html
 == vertical_align_bottom_a.html vertical_align_bottom_ref.html
 == vertical_align_top_span_a.html vertical_align_top_span_ref.html
@@ -260,6 +261,16 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == canvas_lineto_a.html canvas_lineto_ref.html
 != text_decoration_smoke_a.html text_decoration_smoke_ref.html
 == hide_after_create.html hide_after_create_ref.html
+== overflow_xy_a.html overflow_xy_ref.html
 == text_shadow_simple_a.html text_shadow_simple_ref.html
 == text_shadow_decorations_a.html text_shadow_decorations_ref.html
 == text_shadow_blur_a.html text_shadow_blur_ref.html
+!= image_rendering_auto_a.html image_rendering_pixelated_a.html
+== image_rendering_pixelated_a.html image_rendering_pixelated_ref.html
+== background_size_a.html background_size_ref.html
+== background_size_shorthand_a.html background_size_shorthand_ref.html
+== counters_simple_a.html counters_simple_ref.html
+== counters_nested_a.html counters_nested_ref.html
+== quotes_simple_a.html quotes_simple_ref.html
+== ol_simple_a.html ol_simple_ref.html
+== ol_japanese_iroha_a.html ol_japanese_iroha_ref.html

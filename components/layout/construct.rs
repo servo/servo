@@ -44,6 +44,7 @@ use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlobjectelement::is_image_data;
 use script::dom::node::NodeTypeId;
 use servo_util::opts;
+use servo_util::smallvec::SmallVec;
 use std::borrow::ToOwned;
 use std::collections::DList;
 use std::mem;
@@ -480,25 +481,20 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
-    /// Constructs a block flow, beginning with the given `initial_fragment` if present and then
+    /// Constructs a block flow, beginning with the given `initial_fragments` if present and then
     /// appending the construction results of children to the child list of the block flow. {ib}
     /// splits and absolutely-positioned descendants are handled correctly.
-    fn build_flow_for_block_starting_with_fragment(&mut self,
-                                                   mut flow: FlowRef,
-                                                   node: &ThreadSafeLayoutNode,
-                                                   initial_fragment: Option<Fragment>)
-                                                   -> ConstructionResult {
+    fn build_flow_for_block_starting_with_fragments(&mut self,
+                                                    mut flow: FlowRef,
+                                                    node: &ThreadSafeLayoutNode,
+                                                    mut initial_fragments: DList<Fragment>)
+                                                    -> ConstructionResult {
         // Gather up fragments for the inline flows we might need to create.
         let mut inline_fragment_accumulator = InlineFragmentsAccumulator::new();
         let mut consecutive_siblings = vec!();
 
-        let mut first_fragment = match initial_fragment {
-            None => true,
-            Some(initial_fragment) => {
-                inline_fragment_accumulator.fragments.push_back(initial_fragment);
-                false
-            }
-        };
+        inline_fragment_accumulator.fragments.append(&mut initial_fragments);
+        let mut first_fragment = inline_fragment_accumulator.fragments.is_empty();
 
         // List of absolute descendants, in tree order.
         let mut abs_descendants = Descendants::new();
@@ -550,7 +546,7 @@ impl<'a> FlowConstructor<'a> {
 
     /// Constructs a flow for the given block node and its children. This method creates an
     /// initial fragment as appropriate and then dispatches to
-    /// `build_flow_for_block_starting_with_fragment`. Currently the following kinds of flows get
+    /// `build_flow_for_block_starting_with_fragments`. Currently the following kinds of flows get
     /// initial content:
     ///
     /// * Generated content gets the initial content specified by the `content` attribute of the
@@ -561,7 +557,8 @@ impl<'a> FlowConstructor<'a> {
     /// `<textarea>`.
     fn build_flow_for_block(&mut self, flow: FlowRef, node: &ThreadSafeLayoutNode)
                             -> ConstructionResult {
-        let initial_fragment = if node.get_pseudo_element_type() != PseudoElementType::Normal ||
+        let mut initial_fragments = DList::new();
+        if node.get_pseudo_element_type() != PseudoElementType::Normal ||
            node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                        HTMLElementTypeId::HTMLInputElement))) ||
            node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
@@ -575,14 +572,10 @@ impl<'a> FlowConstructor<'a> {
                 }
             }
 
-            let mut fragments = DList::new();
-            self.create_fragments_for_node_text_content(&mut fragments, node, node.style());
-            fragments.into_iter().next()
-        } else {
-            None
-        };
+            self.create_fragments_for_node_text_content(&mut initial_fragments, node, node.style());
+        }
 
-        self.build_flow_for_block_starting_with_fragment(flow, node, initial_fragment)
+        self.build_flow_for_block_starting_with_fragments(flow, node, initial_fragments)
     }
 
     /// Pushes fragments appropriate for the content of the given node onto the given list.
@@ -1027,8 +1020,8 @@ impl<'a> FlowConstructor<'a> {
                                                                      .get_list()
                                                                      .list_style_type) {
                     ListStyleTypeContent::None => None,
-                    ListStyleTypeContent::StaticText(text) => {
-                        let text = text.to_owned();
+                    ListStyleTypeContent::StaticText(ch) => {
+                        let text = format!("{}\u{a0}", ch);
                         let mut unscanned_marker_fragments = DList::new();
                         unscanned_marker_fragments.push_back(Fragment::new(
                             node,
@@ -1052,29 +1045,29 @@ impl<'a> FlowConstructor<'a> {
         // we adopt Gecko's behavior rather than WebKit's when the marker causes an {ib} split,
         // which has caused some malaise (Bugzilla #36854) but CSS 2.1 § 12.5.1 lets me do it, so
         // there.
-        let flow;
-        let initial_fragment;
+        let mut initial_fragments = DList::new();
         let main_fragment = self.build_fragment_for_block(node);
-        match node.style().get_list().list_style_position {
+        let flow = match node.style().get_list().list_style_position {
             list_style_position::T::outside => {
-                flow = box ListItemFlow::from_node_fragments_and_flotation(node,
-                                                                           main_fragment,
-                                                                           marker_fragment,
-                                                                           flotation);
-                initial_fragment = None;
+                box ListItemFlow::from_node_fragments_and_flotation(node,
+                                                                    main_fragment,
+                                                                    marker_fragment,
+                                                                    flotation)
             }
             list_style_position::T::inside => {
-                flow = box ListItemFlow::from_node_fragments_and_flotation(node,
-                                                                           main_fragment,
-                                                                           None,
-                                                                           flotation);
-                initial_fragment = marker_fragment;
+                if let Some(marker_fragment) = marker_fragment {
+                    initial_fragments.push_back(marker_fragment)
+                }
+                box ListItemFlow::from_node_fragments_and_flotation(node,
+                                                                    main_fragment,
+                                                                    None,
+                                                                    flotation)
             }
-        }
+        };
 
-        self.build_flow_for_block_starting_with_fragment(FlowRef::new(flow as Box<Flow>),
-                                                         node,
-                                                         initial_fragment)
+        self.build_flow_for_block_starting_with_fragments(FlowRef::new(flow as Box<Flow>),
+                                                          node,
+                                                          initial_fragments)
     }
 
     /// Creates a fragment for a node with `display: table-column`.
