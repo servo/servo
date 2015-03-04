@@ -217,7 +217,6 @@ impl XMLHttpRequest {
     #[allow(unsafe_blocks)]
     fn fetch2(xhr: TrustedXHRAddress, script_chan: Box<ScriptChan+Send>,
               resource_task: ResourceTask, load_data: LoadData, sync: bool,
-              terminate_receiver: Receiver<TerminateReason>,
               cors_request: Result<Option<CORSRequest>,()>, gen_id: GenerationId) {
         let cors_request = match cors_request {
             Err(_) => {
@@ -228,13 +227,11 @@ impl XMLHttpRequest {
             Ok(req) => req,
         };
 
-        #[derive(Clone)]
         struct XHRContext {
             xhr: TrustedXHRAddress,
             gen_id: GenerationId,
             cors_request: Option<CORSRequest>,
             buf: DOMRefCell<Vec<u8>>,
-            terminate_receiver: Arc<Mutex<Receiver<TerminateReason>>>,
             got_response_complete: Cell<bool>,
         }
 
@@ -242,7 +239,6 @@ impl XMLHttpRequest {
             xhr: xhr,
             cors_request: cors_request.clone(),
             gen_id: gen_id,
-            terminate_receiver: Arc::new(Mutex::new(terminate_receiver)),
             buf: DOMRefCell::new(vec!()),
             got_response_complete: Cell::new(false),
         }));
@@ -259,8 +255,10 @@ impl XMLHttpRequest {
             impl AsyncCORSResponseListener for CORSContext {
                 fn response_available(&self, response: CORSResponse) {
                     if response.network_error {
-                        //notify_error_and_return!(Network);
-                        return; //XXXjdm
+                        let context = self.xhr.lock().unwrap();
+                        let xhr = context.xhr.to_temporary().root();
+                        xhr.r().process_partial_response(XHRProgress::Errored(context.gen_id, Network));
+                        return; //XXXjdm Err(Network)
                     }
 
                     let mut load_data = self.load_data.borrow_mut().take().unwrap();
@@ -351,25 +349,10 @@ impl XMLHttpRequest {
             fn handler(self: Box<XHRRunnable>) {
                 let this = *self;
 
-                let context = this.context.lock();
-                let context = context.unwrap();
+                let context = this.context.lock().unwrap();
                 let xhr = context.xhr.to_temporary().root();
                 if xhr.r().generation_id.get() != context.gen_id {
                     return;
-                }
-
-                {
-                    let terminate_receiver = context.terminate_receiver.lock().unwrap();
-                    if let Ok(reason) = terminate_receiver.try_recv() {
-                        match reason {
-                            TerminateReason::AbortedOrReopened => return, //Err(Abort)
-                            TerminateReason::TimedOut => {
-                                xhr.r().process_partial_response(
-                                    XHRProgress::Errored(context.gen_id, Network));
-                                return; //Err(Network)
-                            }
-                        }
-                    }
                 }
 
                 this.listener.invoke(&*context);
@@ -838,7 +821,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             let addr = Trusted::new(self.global.root().r().get_cx(), self,
                                     script_chan.clone());
             XMLHttpRequest::fetch2(addr, script_chan, resource_task, load_data, self.sync.get(),
-                                   terminate_receiver, cors_request, gen_id);
+                                   cors_request, gen_id);
             let timeout = self.timeout.get();
             if timeout > 0 {
                 self.set_timeout(timeout);
@@ -973,6 +956,7 @@ trait PrivateXMLHttpRequestHelpers {
     fn set_timeout(self, timeout:u32);
     fn cancel_timeout(self);
     fn filter_response_headers(self) -> Headers;
+    fn discard_subsequent_responses(self);
 }
 
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
@@ -1036,7 +1020,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         // Ignore message if it belongs to a terminated fetch
         return_if_fetch_was_terminated!();
 
-        // Ignore messages coming from previously-errored responses
+        // Ignore messages coming from previously-errored responses or requests that have timed out
         if self.response_status.get().is_err() {
             return;
         }
@@ -1092,6 +1076,8 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                         self.ready_state.get() == XMLHttpRequestState::Loading ||
                         self.sync.get());
 
+                self.cancel_timeout();
+
                 // Part of step 11, send() (processing response end of file)
                 // XXXManishearth handle errors, if any (substep 2)
 
@@ -1107,7 +1093,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 self.dispatch_response_progress_event("loadend".to_owned());
             },
             XHRProgress::Errored(_, e) => {
-                self.response_status.set(Err(()));
+                self.cancel_timeout();
+
+                self.discard_subsequent_responses();
                 self.send_flag.set(false);
                 // XXXManishearth set response to NetworkError
                 self.change_ready_state(XMLHttpRequestState::XHRDone);
@@ -1180,14 +1168,37 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         self.dispatch_progress_event(false, type_, len, total);
     }
     fn set_timeout(self, timeout: u32) {
+        struct XHRTimeout {
+            xhr: TrustedXHRAddress,
+            gen_id: GenerationId,
+        }
+
+        impl Runnable for XHRTimeout {
+            fn handler(self: Box<XHRTimeout>) {
+                let this = *self;
+                let xhr = this.xhr.to_temporary().root();
+                if xhr.r().ready_state.get() != XMLHttpRequestState::XHRDone {
+                    xhr.r().process_partial_response(XHRProgress::Errored(this.gen_id, Timeout));
+                }
+            }
+        }
+
         // Sets up the object to timeout in a given number of milliseconds
         // This will cancel all previous timeouts
         let oneshot = self.timer.borrow_mut()
                           .oneshot(Duration::milliseconds(timeout as i64));
         let terminate_sender = (*self.terminate_sender.borrow()).clone();
+        let global = self.global.root();
+        let script_chan = global.r().script_chan();
+        let xhr = Trusted::new(global.r().get_cx(), self, global.r().script_chan());
+        let gen_id = self.generation_id.get();
         spawn_named("XHR:Timer".to_owned(), move || {
             match oneshot.recv() {
                 Ok(_) => {
+                    script_chan.send(ScriptMsg::RunnableMsg(box XHRTimeout {
+                        xhr: xhr,
+                        gen_id: gen_id,
+                    }));
                     terminate_sender.map(|s| s.send(TerminateReason::TimedOut));
                 },
                 Err(_) => {
@@ -1251,6 +1262,10 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         headers.remove::<SetCookie2>();
         // XXXManishearth additional CORS filtering goes here
         headers
+    }
+
+    fn discard_subsequent_responses(self) {
+        self.response_status.set(Err(()));
     }
 }
 

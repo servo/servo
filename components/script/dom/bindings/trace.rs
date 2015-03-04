@@ -275,6 +275,6 @@ impl JSTraceable for Box<LayoutRPC+'static> {
 
 impl JSTraceable for () {
     #[inline]
-    fn trace(&self, trc: *mut JSTracer) {
+    fn trace(&self, _: *mut JSTracer) {
     }
 }
