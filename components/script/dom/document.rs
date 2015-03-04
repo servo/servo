@@ -523,7 +523,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         el.authentic_click_activation(event);
 
         self.commit_focus_transaction();
-        window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
     }
 
     /// Return need force reflow or not
@@ -664,7 +664,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             _ => ()
         }
 
-        window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
     }
 
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>) {
