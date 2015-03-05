@@ -130,8 +130,9 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// `ScriptChan` used to send messages to the event loop of this global's
-    /// thread.
+    /// Create a new sender/receiver pair that can be used to implement an on-demand
+    /// event loop. Used for implementing web APIs that require blocking semantics
+    /// without resorting to nested event loops.
     pub fn new_script_pair(&self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>) {
         match *self {
             GlobalRef::Window(ref window) => window.new_script_pair(),
