@@ -120,7 +120,6 @@ pub mod specified {
     pub enum FontRelativeLength {
         Em(CSSFloat),
         Ex(CSSFloat),
-        Ch(CSSFloat),
         Rem(CSSFloat)
     }
 
@@ -133,7 +132,6 @@ pub mod specified {
             match self {
                 &FontRelativeLength::Em(length) => write!(dest, "{}em", length),
                 &FontRelativeLength::Ex(length) => write!(dest, "{}ex", length),
-                &FontRelativeLength::Ch(length) => write!(dest, "{}ch", length),
                 &FontRelativeLength::Rem(length) => write!(dest, "{}rem", length)
             }
         }
@@ -151,7 +149,6 @@ pub mod specified {
                     let x_height = 0.5;  // TODO: find that from the font
                     reference_font_size.scale_by(length * x_height)
                 },
-                &FontRelativeLength::Ch(_) => unimplemented!(),
                 &FontRelativeLength::Rem(length) => root_font_size.scale_by(length)
             }
         }
@@ -281,7 +278,6 @@ pub mod specified {
                 // font-relative
                 "em" => Ok(Length::FontRelative(FontRelativeLength::Em(value))),
                 "ex" => Ok(Length::FontRelative(FontRelativeLength::Ex(value))),
-                "ch" => Err(()),
                 "rem" => Ok(Length::FontRelative(FontRelativeLength::Rem(value))),
                 // viewport percentages
                 "vw" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vw(value))),
