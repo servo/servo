@@ -2687,8 +2687,6 @@ pub mod shorthands {
         use properties::longhands::{background_color, background_position, background_repeat};
         use properties::longhands::{background_attachment, background_image, background_size};
 
-        use cssparser::Token;
-
         let mut color = None;
         let mut image = None;
         let mut position = None;
