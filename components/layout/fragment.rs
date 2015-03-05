@@ -19,7 +19,7 @@ use inline::{InlineFragmentContext, InlineMetrics};
 use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use model;
-use servo_util::memory::{SizeOf, size_of_vec_excluding_self};
+use servo_util::memory::SizeOf;
 use text;
 use util::OpaqueNodeMethods;
 use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
@@ -619,11 +619,10 @@ impl SizeOf for ScannedTextFragmentInfo {
         // `run` is an Arc<>, but the LayoutTask owns the TextRun, and so is the right thread to
         // measure it.
         self.run.size_of_including_self() +
-            size_of_vec_excluding_self(&self.new_line_pos) +
+            self.new_line_pos.size_of_excluding_self() +
             match self.original_new_line_pos {
                 None => 0,
-                Some(ref original_new_line_pos) =>
-                    size_of_vec_excluding_self(&original_new_line_pos),
+                Some(ref original_new_line_pos) => original_new_line_pos.size_of_excluding_self(),
             }
     }
 }

@@ -27,7 +27,7 @@ use gfx::text::glyph::CharIndex;
 use servo_util::arc_ptr_eq;
 use servo_util::geometry::{Au, ZERO_RECT};
 use servo_util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use servo_util::memory::{SizeOf, size_of_vec_excluding_self};
+use servo_util::memory::SizeOf;
 use servo_util::range::{Range, RangeIndex};
 use std::cmp::max;
 use std::fmt;
@@ -151,6 +151,12 @@ pub struct Line {
     /// FFF float
     /// ~~~
     pub green_zone: LogicalSize<Au>,
+}
+
+impl SizeOf for Line {
+    fn size_of_excluding_self(&self) -> usize {
+        0
+    }
 }
 
 int_range_index! {
@@ -1404,7 +1410,7 @@ impl SizeOf for InlineFlow {
     fn size_of_excluding_self(&self) -> usize {
         self.base.size_of_excluding_self() +
             self.fragments.size_of_excluding_self() +
-            size_of_vec_excluding_self(&self.lines)
+            self.lines.size_of_excluding_self()
     }
 }
 

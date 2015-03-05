@@ -97,18 +97,11 @@ impl<T: SizeOf> SizeOf for Option<T> {
     }
 }
 
-// Use this for Vec<T> when T implements `SizeOf`.
 impl<T: SizeOf> SizeOf for Vec<T> {
     fn size_of_excluding_self(&self) -> usize {
-        size_of_vec_excluding_self(self) +
+        heap_size_of(self.as_ptr() as *const c_void) +
             self.iter().fold(0, |n, elem| n + elem.size_of_excluding_self())
     }
-}
-
-// Use this for Vec<T> when T does not implement `SizeOf`. Ideally we'd be able to implement the
-// `SizeOf` trait directly, but that implementation would conflict with the `Vec<T: SizeOf>` above.
-pub fn size_of_vec_excluding_self<T>(v: &Vec<T>) -> usize {
-    heap_size_of(v.as_ptr() as *const c_void)
 }
 
 pub struct MemoryProfilerChan(pub Sender<MemoryProfilerMsg>);

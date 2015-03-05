@@ -184,6 +184,12 @@ macro_rules! int_range_index {
                 $Self(self.get() >> n)
             }
         }
+
+        impl SizeOf for $Self {
+            fn size_of_excluding_self(&self) -> usize {
+                0
+            }
+        }
     )
 }
 

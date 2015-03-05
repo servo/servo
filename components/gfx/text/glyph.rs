@@ -11,6 +11,7 @@ use std::ops::{Add, Sub, Mul, Neg, Div, Rem, BitAnd, BitOr, BitXor, Shl, Shr, No
 use std::u16;
 use std::vec::Vec;
 use util::geometry::Au;
+use util::memory::SizeOf;
 use util::range::{self, Range, RangeIndex, EachIndex};
 use util::vec::*;
 

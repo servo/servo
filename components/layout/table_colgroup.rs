@@ -15,7 +15,7 @@ use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
 use servo_util::geometry::{Au, ZERO_RECT};
-use servo_util::memory::{SizeOf, size_of_vec_excluding_self};
+use servo_util::memory::SizeOf;
 use std::cmp::max;
 use std::fmt;
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -112,7 +112,7 @@ impl SizeOf for TableColGroupFlow {
         self.base.size_of_excluding_self() +
             self.fragment.size_of_excluding_self() +
             self.cols.size_of_excluding_self() +
-            size_of_vec_excluding_self(&self.inline_sizes)
+            self.inline_sizes.size_of_excluding_self()
     }
 }
 
