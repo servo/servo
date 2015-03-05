@@ -26,7 +26,7 @@ use dom::urlsearchparams::URLSearchParamsHelpers;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
-use script_task::{ScriptChan, ScriptMsg, Runnable};
+use script_task::{ScriptChan, ScriptMsg, Runnable, ScriptPort};
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
@@ -80,6 +80,16 @@ enum XMLHttpRequestState {
 #[derive(PartialEq, Clone, Copy)]
 #[jstraceable]
 pub struct GenerationId(u32);
+
+/// Closure of required data for each async network event that comprises the
+/// XHR's response.
+struct XHRContext {
+    xhr: TrustedXHRAddress,
+    gen_id: GenerationId,
+    cors_request: Option<CORSRequest>,
+    buf: DOMRefCell<Vec<u8>>,
+    sync_status: DOMRefCell<Option<ErrorResult>>,
+}
 
 #[derive(Clone)]
 pub enum XHRProgress {
@@ -138,6 +148,7 @@ pub struct XMLHttpRequest {
     timer: DOMRefCell<Timer>,
     fetch_time: Cell<i64>,
     terminate_sender: DOMRefCell<Option<Sender<TerminateReason>>>,
+    timeout_target: DOMRefCell<Option<Box<ScriptChan+Send>>>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
 }
@@ -172,6 +183,7 @@ impl XMLHttpRequest {
             timer: DOMRefCell::new(Timer::new().unwrap()),
             fetch_time: Cell::new(0),
             terminate_sender: DOMRefCell::new(None),
+            timeout_target: DOMRefCell::new(None),
             generation_id: Cell::new(GenerationId(0)),
             response_status: Cell::new(Ok(())),
         }
@@ -187,120 +199,94 @@ impl XMLHttpRequest {
         Ok(XMLHttpRequest::new(global))
     }
 
-    pub fn handle_progress(addr: TrustedXHRAddress, progress: XHRProgress) {
-        let xhr = addr.to_temporary().root();
-        xhr.r().process_partial_response(progress);
-    }
-
-    #[allow(unsafe_code)]
-    fn fetch2(xhr: TrustedXHRAddress, script_chan: Box<ScriptChan+Send>,
-              resource_task: ResourceTask, load_data: LoadData, sync: bool,
-              cors_request: Result<Option<CORSRequest>,()>, gen_id: GenerationId) {
-        let cors_request = match cors_request {
-            Err(_) => {
-                // Happens in case of cross-origin non-http URIs
-                let xhr = xhr.to_temporary().root();
-                xhr.r().process_partial_response(XHRProgress::Errored(
-                    xhr.r().generation_id.get(), Network));
-                return; //XXXjdm Err(Network)
-            }
-            Ok(req) => req,
-        };
-
-        struct XHRContext {
-            xhr: TrustedXHRAddress,
-            gen_id: GenerationId,
-            cors_request: Option<CORSRequest>,
-            buf: DOMRefCell<Vec<u8>>,
-            got_response_complete: Cell<bool>,
+    fn check_cors(context: Arc<Mutex<XHRContext>>,
+                  load_data: LoadData,
+                  req: CORSRequest,
+                  script_chan: Box<ScriptChan+Send>,
+                  resource_task: ResourceTask) {
+        struct CORSContext {
+            xhr: Arc<Mutex<XHRContext>>,
+            load_data: RefCell<Option<LoadData>>,
+            req: CORSRequest,
+            script_chan: Box<ScriptChan+Send>,
+            resource_task: ResourceTask,
         }
 
-        let context = Arc::new(Mutex::new(XHRContext {
-            xhr: xhr,
-            cors_request: cors_request.clone(),
-            gen_id: gen_id,
-            buf: DOMRefCell::new(vec!()),
-            got_response_complete: Cell::new(false),
+        impl AsyncCORSResponseListener for CORSContext {
+            fn response_available(&self, response: CORSResponse) {
+                if response.network_error {
+                    let mut context = self.xhr.lock().unwrap();
+                    let xhr = context.xhr.to_temporary().root();
+                    xhr.r().process_partial_response(XHRProgress::Errored(context.gen_id, Network));
+                    *context.sync_status.borrow_mut() = Some(Err(Network));
+                    return;
+                }
+
+                let mut load_data = self.load_data.borrow_mut().take().unwrap();
+                load_data.cors = Some(ResourceCORSData {
+                    preflight: self.req.preflight_flag,
+                    origin: self.req.origin.clone()
+                });
+
+                XMLHttpRequest::initiate_async_xhr(self.xhr.clone(), self.script_chan.clone(),
+                                                   self.resource_task.clone(), load_data);
+            }
+        }
+
+        struct CORSListener {
+            context: Arc<Mutex<CORSContext>>,
+            script_chan: Box<ScriptChan+Send>,
+        }
+
+        impl AsyncCORSResponseTarget for CORSListener {
+            fn invoke_with_listener(&self, response: CORSResponse) {
+                self.script_chan.send(ScriptMsg::RunnableMsg(box CORSRunnable {
+                    context: self.context.clone(),
+                    response: response,
+                })).unwrap();
+            }
+        }
+
+        struct CORSRunnable {
+            context: Arc<Mutex<CORSContext>>,
+            response: CORSResponse,
+        }
+
+        impl Runnable for CORSRunnable {
+            fn handler(self: Box<CORSRunnable>) {
+                let this = *self;
+                let context = this.context.lock().unwrap();
+                context.response_available(this.response);
+            }
+        }
+
+        let cors_context = Arc::new(Mutex::new(CORSContext {
+            xhr: context,
+            load_data: RefCell::new(Some(load_data)),
+            req: req.clone(),
+            script_chan: script_chan.clone(),
+            resource_task: resource_task,
         }));
 
-        if let Some(req) = cors_request {
-            struct CORSContext {
-                xhr: Arc<Mutex<XHRContext>>,
-                load_data: RefCell<Option<LoadData>>,
-                req: CORSRequest,
-                script_chan: Box<ScriptChan+Send>,
-                resource_task: ResourceTask,
-            }
+        req.http_fetch_async(box CORSListener {
+            context: cors_context,
+            script_chan: script_chan
+        });
+    }
 
-            impl AsyncCORSResponseListener for CORSContext {
-                fn response_available(&self, response: CORSResponse) {
-                    if response.network_error {
-                        let context = self.xhr.lock().unwrap();
-                        let xhr = context.xhr.to_temporary().root();
-                        xhr.r().process_partial_response(XHRProgress::Errored(context.gen_id, Network));
-                        return; //XXXjdm Err(Network)
-                    }
-
-                    let mut load_data = self.load_data.borrow_mut().take().unwrap();
-                    load_data.cors = Some(ResourceCORSData {
-                        preflight: self.req.preflight_flag,
-                        origin: self.req.origin.clone()
-                    });
-
-                    initiate_async_xhr(self.xhr.clone(), self.script_chan.clone(),
-                                       self.resource_task.clone(), load_data);
-                }
-            }
-
-            struct CORSListener {
-                context: Arc<Mutex<CORSContext>>,
-                script_chan: Box<ScriptChan+Send>,
-            }
-
-            impl AsyncCORSResponseTarget for CORSListener {
-                fn invoke_with_listener(&self, response: CORSResponse) {
-                    self.script_chan.send(ScriptMsg::RunnableMsg(box CORSRunnable {
-                        context: self.context.clone(),
-                        response: response,
-                    })).unwrap();
-                }
-            }
-
-            struct CORSRunnable {
-                context: Arc<Mutex<CORSContext>>,
-                response: CORSResponse,
-            }
-
-            impl Runnable for CORSRunnable {
-                fn handler(self: Box<CORSRunnable>) {
-                    let this = *self;
-                    let context = this.context.lock().unwrap();
-                    context.response_available(this.response);
-                }
-            }
-
-            let cors_context = Arc::new(Mutex::new(CORSContext {
-                xhr: context.clone(),
-                load_data: RefCell::new(Some(load_data)),
-                req: req.clone(),
-                script_chan: script_chan.clone(),
-                resource_task: resource_task,
-            }));
-
-            req.http_fetch_async(box CORSListener {
-                context: cors_context,
-                script_chan: script_chan
-            });
-        } else {
-            initiate_async_xhr(context.clone(), script_chan, resource_task, load_data);
-        }
-
+    fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
+                          script_chan: Box<ScriptChan+Send>,
+                          resource_task: ResourceTask,
+                          load_data: LoadData) {
         impl AsyncResponseListener for XHRContext {
             fn headers_available(&self, metadata: Metadata) {
                 let xhr = self.xhr.to_temporary().root();
-                let _decision = xhr.r().process_headers_available(self.cors_request.clone(),
-                                                                  self.gen_id,
-                                                                  metadata);
+                let rv = xhr.r().process_headers_available(self.cors_request.clone(),
+                                                           self.gen_id,
+                                                           metadata);
+                if rv.is_err() {
+                    *self.sync_status.borrow_mut() = Some(rv);
+                }
             }
 
             fn data_available(&self, payload: Vec<u8>) {
@@ -311,8 +297,8 @@ impl XMLHttpRequest {
 
             fn response_complete(&self, status: Result<(), String>) {
                 let xhr = self.xhr.to_temporary().root();
-                xhr.r().process_response_complete(self.gen_id, status);
-                self.got_response_complete.set(true);
+                let rv = xhr.r().process_response_complete(self.gen_id, status);
+                *self.sync_status.borrow_mut() = Some(rv);
             }
         }
 
@@ -349,23 +335,11 @@ impl XMLHttpRequest {
             }
         }
 
-        fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
-                              script_chan: Box<ScriptChan+Send>,
-                              resource_task: ResourceTask,
-                              load_data: LoadData) {
-            let listener = box XHRListener {
-                context: context,
-                script_chan: script_chan,
-            };
-            resource_task.send(Load(load_data, LoadConsumer::Listener(listener))).unwrap();
-        }
-
-        if sync {
-            while !context.lock().unwrap().got_response_complete.get() {
-                //TODO: spin the event loop
-                panic!("don't know how to spin the event loop yet");
-            }
-        }
+        let listener = box XHRListener {
+            context: context,
+            script_chan: script_chan,
+        };
+        resource_task.send(Load(load_data, LoadConsumer::Listener(listener))).unwrap();
     }
 
     #[allow(unsafe_code)]
@@ -725,8 +699,6 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
         }
 
-        let global = self.global.root();
-        let resource_task = global.r().resource_task();
         let mut load_data = LoadData::new(self.request_url.borrow().clone().unwrap());
         load_data.data = extracted;
 
@@ -764,6 +736,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         *self.terminate_sender.borrow_mut() = Some(terminate_sender);
 
         // CORS stuff
+        let global = self.global.root();
         let referer_url = self.global.root().r().get_url();
         let mode = if self.upload_events.get() {
             RequestMode::ForcedPreflight
@@ -794,24 +767,15 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
         debug!("request_headers = {:?}", *self.request_headers.borrow());
 
-        let gen_id = self.generation_id.get();
+        self.fetch_time.set(time::now().to_timespec().sec);
+        let rv = self.fetch2(load_data, cors_request, global.r());
         if self.sync.get() {
-            return XMLHttpRequest::fetch(self, resource_task, load_data,
-                                         terminate_receiver, cors_request, gen_id);
-        } else {
-            self.fetch_time.set(time::now().to_timespec().sec);
-            let script_chan = global.r().script_chan();
-            // Pin the object before launching the fetch task. This is to ensure that
-            // the object will stay alive as long as there are (possibly cancelled)
-            // inflight events queued up in the script task's port.
-            let addr = Trusted::new(self.global.root().r().get_cx(), self,
-                                    script_chan.clone());
-            XMLHttpRequest::fetch2(addr, script_chan, resource_task, load_data, self.sync.get(),
-                                   cors_request, gen_id);
-            let timeout = self.timeout.get();
-            if timeout > 0 {
-                self.set_timeout(timeout);
-            }
+            return rv;
+        }
+
+        let timeout = self.timeout.get();
+        if timeout > 0 {
+            self.set_timeout(timeout);
         }
         Ok(())
     }
@@ -955,7 +919,7 @@ trait PrivateXMLHttpRequestHelpers {
     fn process_headers_available(&self, cors_request: Option<CORSRequest>,
                                  gen_id: GenerationId, metadata: Metadata) -> Result<(), Error>;
     fn process_data_available(self, gen_id: GenerationId, payload: Vec<u8>);
-    fn process_response_complete(self, gen_id: GenerationId, status: Result<(), String>);
+    fn process_response_complete(self, gen_id: GenerationId, status: Result<(), String>) -> ErrorResult;
     fn process_partial_response(self, progress: XHRProgress);
     fn terminate_ongoing_fetch(self);
     fn insert_trusted_header(self, name: String, value: String);
@@ -967,6 +931,8 @@ trait PrivateXMLHttpRequestHelpers {
     fn cancel_timeout(self);
     fn filter_response_headers(self) -> Headers;
     fn discard_subsequent_responses(self);
+    fn fetch2(self, load_data: LoadData, cors_request: Result<Option<CORSRequest>,()>,
+              global: GlobalRef) -> ErrorResult;
 }
 
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
@@ -1007,10 +973,17 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         self.process_partial_response(XHRProgress::Loading(gen_id, ByteString::new(payload)));
     }
 
-    fn process_response_complete(self, gen_id: GenerationId, status: Result<(), String>) {
+    fn process_response_complete(self, gen_id: GenerationId, status: Result<(), String>)
+                                 -> ErrorResult {
         match status {
-            Ok(()) => self.process_partial_response(XHRProgress::Done(gen_id)),
-            Err(_) => self.process_partial_response(XHRProgress::Errored(gen_id, Network)),
+            Ok(()) => {
+                self.process_partial_response(XHRProgress::Done(gen_id));
+                Ok(())
+            },
+            Err(_) => {
+                self.process_partial_response(XHRProgress::Errored(gen_id, Network));
+                Err(Network)
+            }
         }
     }
 
@@ -1140,6 +1113,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
         self.terminate_sender.borrow().as_ref().map(|s| s.send(TerminateReason::AbortedOrReopened));
+        *self.timeout_target.borrow_mut() = None;
         self.response_status.set(Ok(()));
     }
 
@@ -1198,14 +1172,14 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         let oneshot = self.timer.borrow_mut()
                           .oneshot(Duration::milliseconds(timeout as i64));
         let terminate_sender = (*self.terminate_sender.borrow()).clone();
+        let timeout_target = (*self.timeout_target.borrow().as_ref().unwrap()).clone();
         let global = self.global.root();
-        let script_chan = global.r().script_chan();
         let xhr = Trusted::new(global.r().get_cx(), self, global.r().script_chan());
         let gen_id = self.generation_id.get();
         spawn_named("XHR:Timer".to_owned(), move || {
             match oneshot.recv() {
                 Ok(_) => {
-                    script_chan.send(ScriptMsg::RunnableMsg(box XHRTimeout {
+                    timeout_target.send(ScriptMsg::RunnableMsg(box XHRTimeout {
                         xhr: xhr,
                         gen_id: gen_id,
                     })).unwrap();
@@ -1279,6 +1253,61 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn discard_subsequent_responses(self) {
         self.response_status.set(Err(()));
+    }
+
+    #[allow(unsafe_code)]
+    fn fetch2(self,
+              load_data: LoadData,
+              cors_request: Result<Option<CORSRequest>,()>,
+              global: GlobalRef) -> ErrorResult {
+        let cors_request = match cors_request {
+            Err(_) => {
+                // Happens in case of cross-origin non-http URIs
+                self.process_partial_response(XHRProgress::Errored(
+                    self.generation_id.get(), Network));
+                return Err(Network);
+            }
+            Ok(req) => req,
+        };
+
+        let xhr = Trusted::new(global.get_cx(), self, global.script_chan());
+
+        let context = Arc::new(Mutex::new(XHRContext {
+            xhr: xhr,
+            cors_request: cors_request.clone(),
+            gen_id: self.generation_id.get(),
+            buf: DOMRefCell::new(vec!()),
+            sync_status: DOMRefCell::new(None),
+        }));
+
+        let (script_chan, script_port) = if self.sync.get() {
+            let (tx, rx) = global.new_script_pair();
+            (tx, Some(rx))
+        } else {
+            (global.script_chan(), None)
+        };
+        *self.timeout_target.borrow_mut() = Some(script_chan.clone());
+
+        let resource_task = global.resource_task();
+        if let Some(req) = cors_request {
+            XMLHttpRequest::check_cors(context.clone(), load_data, req.clone(),
+                                       script_chan.clone(), resource_task);
+        } else {
+            XMLHttpRequest::initiate_async_xhr(context.clone(), script_chan,
+                                               resource_task, load_data);
+        }
+
+        if let Some(script_port) = script_port {
+            loop {
+                global.process_event(script_port.recv());
+                let context = context.lock().unwrap();
+                let sync_status = context.sync_status.borrow();
+                if let Some(ref status) = *sync_status {
+                    return status.clone();
+                }
+            }
+        }
+        Ok(())
     }
 }
 

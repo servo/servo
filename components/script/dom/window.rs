@@ -29,7 +29,7 @@ use dom::storage::Storage;
 use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflow, Msg};
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ScriptReflow};
 use page::Page;
-use script_task::{TimerSource, ScriptChan};
+use script_task::{TimerSource, ScriptChan, ScriptPort, NonWorkerScriptChan};
 use script_task::ScriptMsg;
 use script_traits::ScriptControlChan;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
@@ -196,6 +196,11 @@ impl Window {
 
     pub fn parent_info(&self) -> Option<(PipelineId, SubpageId)> {
         self.parent_info
+    }
+
+    pub fn new_script_pair(&self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>) {
+        let (tx, rx) = channel();
+        (box NonWorkerScriptChan(tx), box rx)
     }
 
     pub fn control_chan<'a>(&'a self) -> &'a ScriptControlChan {

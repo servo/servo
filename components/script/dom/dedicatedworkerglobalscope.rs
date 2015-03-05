@@ -21,7 +21,7 @@ use dom::messageevent::MessageEvent;
 use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, WorkerErrorHandler};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
-use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
+use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource, ScriptPort};
 use script_task::StackRootTLS;
 
 use msg::constellation_msg::PipelineId;
@@ -38,7 +38,7 @@ use js::jsval::JSVal;
 use js::rust::Cx;
 
 use std::rc::Rc;
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::{Sender, Receiver, channel};
 use url::Url;
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
@@ -198,6 +198,8 @@ impl DedicatedWorkerGlobalScope {
 pub trait DedicatedWorkerGlobalScopeHelpers {
     fn script_chan(self) -> Box<ScriptChan+Send>;
     fn pipeline(self) -> PipelineId;
+    fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>);
+    fn process_event(self, msg: ScriptMsg);
 }
 
 impl<'a> DedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
@@ -212,6 +214,19 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalSc
 
     fn pipeline(self) -> PipelineId {
         self.id
+    }
+
+    fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>) {
+        let (tx, rx) = channel();
+        let chan = box SendableWorkerScriptChan {
+            sender: tx,
+            worker: self.worker.borrow().as_ref().unwrap().clone(),
+        };
+        (chan, box rx)
+    }
+
+    fn process_event(self, msg: ScriptMsg) {
+        self.handle_event(msg);
     }
 }
 

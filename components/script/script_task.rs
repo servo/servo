@@ -38,6 +38,7 @@ use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
 use dom::node::{self, Node, NodeHelpers, NodeDamage, window_from_node};
 use dom::window::{Window, WindowHelpers, ScriptHelpers, ReflowReason};
+use dom::worker::TrustedWorkerAddress;
 use parse::html::{HTMLInput, parse_html};
 use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
 use layout_interface;
@@ -198,6 +199,22 @@ pub trait ScriptChan {
     fn send(&self, msg: ScriptMsg) -> Result<(), ()>;
     /// Clone this handle.
     fn clone(&self) -> Box<ScriptChan+Send>;
+}
+
+pub trait ScriptPort {
+    fn recv(&self) -> ScriptMsg;
+}
+
+impl ScriptPort for Receiver<ScriptMsg> {
+    fn recv(&self) -> ScriptMsg {
+        self.recv().unwrap()
+    }
+}
+
+impl ScriptPort for Receiver<(TrustedWorkerAddress, ScriptMsg)> {
+    fn recv(&self) -> ScriptMsg {
+        self.recv().unwrap().1
+    }
 }
 
 /// Encapsulates internal communication within the script task.
@@ -403,6 +420,15 @@ unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus) 
 }
 
 impl ScriptTask {
+    pub fn process_event(msg: ScriptMsg) {
+        SCRIPT_TASK_ROOT.with(|root| {
+            if let Some(script_task) = *root.borrow() {
+                let script_task = unsafe { &*script_task };
+                script_task.handle_msg_from_script(msg);
+            }
+        });
+    }
+
     /// Creates a new script task.
     pub fn new(compositor: Box<ScriptListener+'static>,
                port: Receiver<ScriptMsg>,
