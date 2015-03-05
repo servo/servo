@@ -51,25 +51,37 @@ pub fn global_init() {
     }
 }
 
-pub struct ListenerWrapper(pub Box<for<'r> Invoke<(&'r (AsyncResponseListener+'r))> + Send>);
+/// Wrapper for closures that operate on AsyncResponseListener objects, for use in
+/// values that get passed between threads.
+pub struct ListenerWrapper(Box<for<'r> Invoke<(&'r (AsyncResponseListener+'r))> + Send>);
 
 impl ListenerWrapper {
+    /// Create a new ListenerWrapper for the provided closure.
     pub fn new<F>(f: Box<F>) -> ListenerWrapper
                   where F: for <'r> FnOnce(&'r (AsyncResponseListener+'r)) + Send {
         ListenerWrapper(f)
     }
 
+    /// Invoke the wrapped closure, passing the provided listener.
     pub fn invoke(self, listener: &AsyncResponseListener) {
         (self.0).invoke(listener)
     }
 }
 
+/// A listener for asynchronous network events. Cancelling the underlying request is unsupported.
 pub trait AsyncResponseListener {
+    /// The response headers for a request have been received.
     fn headers_available(&self, metadata: Metadata);
+    /// A portion of the response body has been received. This data is unavailable after
+    /// this method returned, and must be stored accordingly.
     fn data_available(&self, payload: Vec<u8>);
+    /// The response is complete. If the provided status is an Err value, there is no guarantee
+    /// tht the response body was completely read.
     fn response_complete(&self, status: Result<(), String>);
 }
 
+/// A target for async networking events. Commonly used to dispatch a runnable event to another
+/// thread storing the wrapped closure for later execution.
 pub trait AsyncResponseTarget {
     fn invoke_with_listener(&self, listener: ListenerWrapper);
 }
