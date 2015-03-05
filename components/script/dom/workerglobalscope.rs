@@ -16,7 +16,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use dom::window::{base64_atob, base64_btoa};
-use script_task::{ScriptChan, TimerSource};
+use script_task::{ScriptChan, TimerSource, ScriptPort, ScriptMsg};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
 use net::resource_task::{ResourceTask, load_whole_resource};
@@ -190,6 +190,8 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
 pub trait WorkerGlobalScopeHelpers {
     fn handle_fire_timer(self, timer_id: TimerId);
     fn script_chan(self) -> Box<ScriptChan+Send>;
+    fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>);
+    fn process_event(self, msg: ScriptMsg);
     fn get_cx(self) -> *mut JSContext;
 }
 
@@ -200,6 +202,24 @@ impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
         match dedicated {
             Some(dedicated) => dedicated.script_chan(),
             None => panic!("need to implement a sender for SharedWorker"),
+        }
+    }
+
+    fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>) {
+        let dedicated: Option<JSRef<DedicatedWorkerGlobalScope>> =
+            DedicatedWorkerGlobalScopeCast::to_ref(self);
+        match dedicated {
+            Some(dedicated) => dedicated.new_script_pair(),
+            None => panic!("need to implement creating isolated event loops for SharedWorker"),
+        }
+    }
+
+    fn process_event(self, msg: ScriptMsg) {
+        let dedicated: Option<JSRef<DedicatedWorkerGlobalScope>> =
+            DedicatedWorkerGlobalScopeCast::to_ref(self);
+        match dedicated {
+            Some(dedicated) => dedicated.process_event(msg),
+            None => panic!("need to implement processing single events for SharedWorker"),
         }
     }
 

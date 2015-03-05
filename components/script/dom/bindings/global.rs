@@ -12,7 +12,7 @@ use dom::bindings::js::{JS, JSRef, Root, Unrooted};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::window::{self, WindowHelpers};
-use script_task::ScriptChan;
+use script_task::{ScriptChan, ScriptPort, ScriptMsg, ScriptTask};
 
 use net::resource_task::ResourceTask;
 
@@ -103,6 +103,24 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(ref window) => window.script_chan(),
             GlobalRef::Worker(ref worker) => worker.script_chan(),
+        }
+    }
+
+    /// `ScriptChan` used to send messages to the event loop of this global's
+    /// thread.
+    pub fn new_script_pair(&self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>) {
+        match *self {
+            GlobalRef::Window(ref window) => window.new_script_pair(),
+            GlobalRef::Worker(ref worker) => worker.new_script_pair(),
+        }
+    }
+
+    /// Process a single event as if it were the next event in the task queue for
+    /// this global.
+    pub fn process_event(&self, msg: ScriptMsg) {
+        match *self {
+            GlobalRef::Window(_) => ScriptTask::process_event(msg),
+            GlobalRef::Worker(ref worker) => worker.process_event(msg),
         }
     }
 }

@@ -51,12 +51,6 @@ pub fn global_init() {
     }
 }
 
-#[must_use]
-pub enum AsyncResponseResult {
-    ContinueNormalResponse,
-    AbortResponse,
-}
-
 pub struct ListenerWrapper(pub Box<for<'r> Invoke<(&'r (AsyncResponseListener+'r))> + Send>);
 
 impl ListenerWrapper {
@@ -71,7 +65,7 @@ impl ListenerWrapper {
 }
 
 pub trait AsyncResponseListener {
-    fn headers_available(&self, metadata: Metadata) -> AsyncResponseResult;
+    fn headers_available(&self, metadata: Metadata);
     fn data_available(&self, payload: Vec<u8>);
     fn response_complete(&self, status: Result<(), String>);
 }
