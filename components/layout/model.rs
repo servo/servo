@@ -11,8 +11,8 @@ use fragment::Fragment;
 use geom::SideOffsets2D;
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, LengthOrPercentage};
 use style::properties::ComputedValues;
-use servo_util::geometry::Au;
-use servo_util::logical_geometry::LogicalMargin;
+use util::geometry::Au;
+use util::logical_geometry::LogicalMargin;
 use std::cmp::{max, min};
 use std::fmt;
 

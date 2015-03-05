@@ -8,14 +8,14 @@
 
 use css::node_style::StyledNode;
 use incremental::{self, RestyleDamage};
-use util::{LayoutDataAccess, LayoutDataWrapper};
+use data::{LayoutDataAccess, LayoutDataWrapper};
 use wrapper::{LayoutElement, LayoutNode, TLayoutNode};
 
 use script::dom::node::NodeTypeId;
 use selectors::bloom::BloomFilter;
-use servo_util::cache::{LRUCache, SimpleHashCache};
-use servo_util::smallvec::{SmallVec, SmallVec16};
-use servo_util::arc_ptr_eq;
+use util::cache::{LRUCache, SimpleHashCache};
+use util::smallvec::{SmallVec, SmallVec16};
+use util::arc_ptr_eq;
 use std::borrow::ToOwned;
 use std::mem;
 use std::hash::{Hash, Hasher, Writer};

@@ -36,8 +36,8 @@ use canvas::canvas_paint_task::CanvasMsg;
 use context::SharedLayoutContext;
 use css::node_style::StyledNode;
 use incremental::RestyleDamage;
-use util::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper, OpaqueNodeMethods};
-use util::{PrivateLayoutData};
+use data::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
+use opaque_node::OpaqueNodeMethods;
 
 use cssparser::RGBA;
 use gfx::display_list::OpaqueNode;
@@ -60,7 +60,7 @@ use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DES
 use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
 use msg::constellation_msg::{PipelineId, SubpageId};
-use servo_util::str::{LengthOrPercentageOrAuto, is_whitespace};
+use util::str::{LengthOrPercentageOrAuto, is_whitespace};
 use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
 use std::marker::ContravariantLifetime;

@@ -43,7 +43,7 @@ extern crate net;
 extern crate msg;
 extern crate selectors;
 #[macro_use]
-extern crate "util" as servo_util;
+extern crate util;
 
 #[no_link] #[macro_use] #[plugin]
 extern crate string_cache_macros;
@@ -60,6 +60,7 @@ pub mod layout_debug;
 pub mod block;
 pub mod construct;
 pub mod context;
+pub mod data;
 pub mod display_list_builder;
 pub mod floats;
 pub mod flow;
@@ -70,6 +71,7 @@ pub mod layout_task;
 pub mod inline;
 pub mod list_item;
 pub mod model;
+pub mod opaque_node;
 pub mod parallel;
 pub mod sequential;
 pub mod table_wrapper;
@@ -81,7 +83,6 @@ pub mod table_row;
 pub mod table_cell;
 pub mod text;
 pub mod traversal;
-pub mod util;
 pub mod incremental;
 pub mod wrapper;
 

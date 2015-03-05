@@ -14,7 +14,7 @@ use layout_debug;
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
-use servo_util::geometry::{Au, ZERO_RECT};
+use util::geometry::{Au, ZERO_RECT};
 use std::cmp::max;
 use std::fmt;
 use style::values::computed::LengthOrPercentageOrAuto;
