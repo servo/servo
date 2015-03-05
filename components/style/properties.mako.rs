@@ -21,7 +21,7 @@ use geom::num::Zero;
 use geom::SideOffsets2D;
 use geom::size::Size2D;
 
-use values::specified::BorderStyle;
+use values::specified::{Length, BorderStyle};
 use values::computed::{self, ToComputedValue};
 use selectors::matching::DeclarationBlock;
 use parser::{ParserContext, log_css_error};
@@ -3775,7 +3775,14 @@ pub fn cascade(viewport_size: Size2D<Au>,
             match *declaration {
                 PropertyDeclaration::FontSize(ref value) => {
                     context.font_size = match *value {
-                        DeclaredValue::SpecifiedValue(ref specified_value) => specified_value.0.to_computed_value(&context),
+                        DeclaredValue::SpecifiedValue(ref specified_value) => {
+                            match specified_value.0 {
+                                Length::FontRelative(value) => value.to_computed_value(context.inherited_font_size,
+                                                                                       context.root_font_size),
+                                Length::ServoCharacterWidth(value) => value.to_computed_value(context.inherited_font_size),
+                                _ => specified_value.0.to_computed_value(&context)
+                            }
+                        }
                         DeclaredValue::Initial => longhands::font_size::get_initial_value(),
                         DeclaredValue::Inherit => context.inherited_font_size,
                     }
