@@ -727,7 +727,7 @@ impl<'a, T> Clone for JSRef<'a, T> {
     }
 }
 
-impl<'a, T> PartialEq for JSRef<'a, T> {
+impl<'a, 'b, T> PartialEq<JSRef<'b, T>> for JSRef<'a, T> {
     fn eq(&self, other: &JSRef<T>) -> bool {
         self.ptr == other.ptr
     }

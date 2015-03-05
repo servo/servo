@@ -130,7 +130,7 @@ struct Reftest {
     name: String,
     kind: ReftestKind,
     files: [Path; 2],
-    id: uint,
+    id: usize,
     servo_args: Vec<String>,
     render_mode: RenderMode,
     is_flaky: bool,
@@ -145,7 +145,7 @@ struct TestLine<'a> {
     file_right: &'a str,
 }
 
-fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_offset: uint) -> Vec<TestDescAndFn> {
+fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_offset: usize) -> Vec<TestDescAndFn> {
     let mut tests = Vec::new();
     let contents = File::open_mode(file, io::Open, io::Read)
                        .and_then(|mut f| f.read_to_string())
@@ -240,7 +240,7 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
     }
 }
 
-fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
+fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
     let png_filename = format!("/tmp/servo-reftest-{:06}-{}.png", reftest.id, side);
     let mut command = Command::new(os::self_exe_path().unwrap().join("servo"));
     command

@@ -4643,7 +4643,6 @@ class CGBindingRoot(CGThing):
             'dom::bindings::proxyhandler::{fill_property_descriptor, get_expando_object}',
             'dom::bindings::proxyhandler::{get_property_descriptor}',
             'dom::bindings::str::ByteString',
-            'page::JSPageInfo',
             'libc',
             'util::str::DOMString',
             'std::borrow::ToOwned',

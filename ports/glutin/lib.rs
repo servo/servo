@@ -22,6 +22,7 @@ extern crate msg;
 extern crate time;
 extern crate util;
 extern crate egl;
+extern crate url;
 
 use compositing::windowing::WindowEvent;
 use geom::scale_factor::ScaleFactor;

@@ -52,14 +52,16 @@ use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{ClippingRegion, DisplayList};
 use rustc_serialize::{Encoder, Encodable};
 use msg::compositor_msg::LayerId;
+use msg::constellation_msg::ConstellationChan;
 use servo_util::geometry::{Au, MAX_AU};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::cmp::{max, min};
 use std::fmt;
+use style::computed_values::{overflow_x, overflow_y, position, box_sizing, display, float};
 use style::properties::ComputedValues;
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use style::computed_values::{overflow, position, box_sizing, display, float};
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrPercentageOrNone};
 use std::sync::Arc;
 
 /// Information specific to floated blocks.
@@ -1431,7 +1433,10 @@ impl BlockFlow {
             display::T::inline_block => {
                 FormattingContextType::Other
             }
-            _ if style.get_box().overflow != overflow::T::visible => FormattingContextType::Block,
+            _ if style.get_box().overflow_x != overflow_x::T::visible ||
+                    style.get_box().overflow_y != overflow_y::T(overflow_x::T::visible) => {
+                FormattingContextType::Block
+            }
             _ => FormattingContextType::None,
         }
     }
@@ -1914,6 +1919,10 @@ impl Flow for BlockFlow {
                                                                  .relative_containing_block_size,
                                                             CoordinateSystem::Parent)
                               .translate(stacking_context_position));
+    }
+
+    fn remove_compositor_layers(&self, constellation_chan: ConstellationChan) {
+        self.fragment.remove_compositor_layers(constellation_chan);
     }
 }
 

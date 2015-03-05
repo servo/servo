@@ -30,7 +30,7 @@ use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use script_traits::UntrustedNodeAddress;
 use rustc_serialize::{Encodable, Encoder};
-use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net::image::holder::ImageHolder;
 use net::local_image_cache::LocalImageCache;
 use servo_util::geometry::{self, Au, ZERO_POINT};
@@ -982,10 +982,11 @@ impl Fragment {
     fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizesContribution {
         let flags = self.quantities_included_in_intrinsic_inline_size();
         let style = self.style();
-        let specified = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
-            MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero()
+        let (min_inline_size, specified) = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
+            (model::specified(style.min_inline_size(), Au(0)),
+             MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero())
         } else {
-            Au(0)
+            (Au(0), Au(0))
         };
 
         // FIXME(#2261, pcwalton): This won't work well for inlines: is this OK?
@@ -993,7 +994,7 @@ impl Fragment {
 
         IntrinsicISizesContribution {
             content_intrinsic_sizes: IntrinsicISizes {
-                minimum_inline_size: specified,
+                minimum_inline_size: min_inline_size,
                 preferred_inline_size: specified,
             },
             surrounding_size: surrounding_inline_size,
@@ -1721,7 +1722,8 @@ impl Fragment {
             SpecificFragmentInfo::InlineBlock(ref mut info) => {
                 let block_flow = info.flow_ref.as_block();
                 self.border_box.size.inline =
-                    block_flow.base.intrinsic_inline_sizes.preferred_inline_size;
+                    max(block_flow.base.intrinsic_inline_sizes.minimum_inline_size,
+                        block_flow.base.intrinsic_inline_sizes.preferred_inline_size);
                 block_flow.base.block_container_inline_size = self.border_box.size.inline;
             }
             SpecificFragmentInfo::ScannedText(ref info) => {
@@ -2057,6 +2059,23 @@ impl Fragment {
         // FIXME(pcwalton): Sometimes excessively fancy glyphs can make us draw outside our border
         // box too.
         overflow
+    }
+
+    /// Remove any compositor layers associated with this fragment - it is being
+    /// removed from the tree or had its display property set to none.
+    /// TODO(gw): This just hides the compositor layer for now. In the future
+    /// it probably makes sense to provide a hint to the compositor whether
+    /// the layers should be destroyed to free memory.
+    pub fn remove_compositor_layers(&self, constellation_chan: ConstellationChan) {
+        match self.specific {
+            SpecificFragmentInfo::Iframe(ref iframe_info) => {
+                let ConstellationChan(ref chan) = constellation_chan;
+                chan.send(Msg::FrameRect(iframe_info.pipeline_id,
+                                         iframe_info.subpage_id,
+                                         Rect::zero())).unwrap();
+            }
+            _ => {}
+        }
     }
 }
 

@@ -113,7 +113,7 @@ impl CompositorEventListener for NullCompositor {
             Msg::PaintMsgDiscarded(..) |
             Msg::ScrollTimeout(..) |
             Msg::ChangePageTitle(..) |
-            Msg::ChangePageLoadData(..) |
+            Msg::ChangePageUrl(..) |
             Msg::KeyEvent(..) |
             Msg::SetCursor(..) => {}
             Msg::PaintTaskExited(..) => {}

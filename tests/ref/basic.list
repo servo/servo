@@ -139,6 +139,8 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == iframe/overflow.html iframe/overflow_ref.html
 == iframe/positioning_margin.html iframe/positioning_margin_ref.html
 == iframe/hide_and_show.html iframe/hide_and_show_ref.html
+== iframe/hide_layers1.html iframe/hide_layers_ref.html
+== iframe/hide_layers2.html iframe/hide_layers_ref.html
 
 == floated_generated_content_a.html floated_generated_content_b.html
 == inline_block_margin_a.html inline_block_margin_ref.html
@@ -146,6 +148,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == inline_block_baseline_a.html inline_block_baseline_ref.html
 == inline_block_parent_width.html inline_block_parent_width_ref.html
 == inline_block_parent_width_percentage.html inline_block_parent_width_ref.html
+== inline_block_overflow.html inline_block_overflow_ref.html
 == float_table_a.html float_table_ref.html
 == table_containing_block_a.html table_containing_block_ref.html
 == link_style_order.html link_style_order_ref.html
@@ -157,6 +160,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == img_block_display_a.html img_block_display_ref.html
 == after_block_iteration.html after_block_iteration_ref.html
 == inline_block_percentage_height_a.html inline_block_percentage_height_ref.html
+== inline_block_min_width.html inline_block_min_width_ref.html
 == percentage_height_float_a.html percentage_height_float_ref.html
 == img_block_maxwidth_a.html img_block_maxwidth_ref.html
 == img_block_maxwidth_b.html img_block_maxwidth_ref.html
@@ -255,6 +259,11 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == canvas_lineto_a.html canvas_lineto_ref.html
 != text_decoration_smoke_a.html text_decoration_smoke_ref.html
 == hide_after_create.html hide_after_create_ref.html
+== overflow_xy_a.html overflow_xy_ref.html
 == text_shadow_simple_a.html text_shadow_simple_ref.html
 == text_shadow_decorations_a.html text_shadow_decorations_ref.html
 == text_shadow_blur_a.html text_shadow_blur_ref.html
+!= image_rendering_auto_a.html image_rendering_pixelated_a.html
+== image_rendering_pixelated_a.html image_rendering_pixelated_ref.html
+== background_size_a.html background_size_ref.html
+== background_size_shorthand_a.html background_size_shorthand_ref.html

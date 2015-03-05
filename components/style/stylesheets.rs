@@ -435,6 +435,7 @@ fn test_parse_stylesheet() {
                 ],
                 declarations: PropertyDeclarationBlock {
                     normal: Arc::new(vec![
+                        PropertyDeclaration::BackgroundSize(DeclaredValue::Initial),
                         PropertyDeclaration::BackgroundImage(DeclaredValue::Initial),
                         PropertyDeclaration::BackgroundAttachment(DeclaredValue::Initial),
                         PropertyDeclaration::BackgroundRepeat(DeclaredValue::Initial),

@@ -22,6 +22,7 @@ extern crate msg;
 extern crate gleam;
 extern crate layers;
 extern crate egl;
+extern crate url;
 
 use util::opts;
 use servo::Browser;

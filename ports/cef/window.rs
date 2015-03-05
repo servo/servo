@@ -23,7 +23,7 @@ use layers::platform::surface::NativeGraphicsMetadata;
 use libc::{c_char, c_void};
 use msg::constellation_msg::{Key, KeyModifiers};
 use msg::compositor_msg::{ReadyState, PaintState};
-use msg::constellation_msg::LoadData;
+use std_url::Url;
 use util::cursor::Cursor;
 use util::geometry::ScreenPx;
 use std::cell::RefCell;
@@ -286,7 +286,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn set_page_load_data(&self, load_data: LoadData) {
+    fn set_page_url(&self, url: Url) {
         let browser = self.cef_browser.borrow();
         let browser = match *browser {
             None => return,
@@ -294,7 +294,7 @@ impl WindowMethods for Window {
         };
         let frame = browser.get_main_frame();
         let frame = frame.downcast();
-        *frame.url.borrow_mut() = load_data.url.to_string()
+        *frame.url.borrow_mut() = url.to_string()
     }
 
     fn handle_key(&self, _: Key, _: KeyModifiers) {

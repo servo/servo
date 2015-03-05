@@ -4,17 +4,17 @@
 
 #![allow(unsafe_blocks)]
 
-use construct::ConstructionResult;
+use construct::{ConstructionItem, ConstructionResult};
 use incremental::RestyleDamage;
+use msg::constellation_msg::ConstellationChan;
 use parallel::DomParallelInfo;
-use wrapper::{LayoutNode, TLayoutNode};
-
 use script::dom::node::SharedLayoutData;
 use script::layout_interface::LayoutChan;
-use std::mem;
 use std::cell::{Ref, RefMut};
-use style::properties::ComputedValues;
+use std::mem;
 use std::sync::Arc;
+use style::properties::ComputedValues;
+use wrapper::{LayoutNode, TLayoutNode};
 
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {
@@ -72,8 +72,26 @@ pub struct LayoutDataWrapper {
 }
 
 impl LayoutDataWrapper {
-    pub fn clear(&self) {
-        // TODO: Clear items related to this node, e.g. compositor layers
+    pub fn remove_compositor_layers(&self, constellation_chan: ConstellationChan) {
+        match self.data.flow_construction_result {
+            ConstructionResult::None => {}
+            ConstructionResult::Flow(ref flow_ref, _) => {
+                flow_ref.remove_compositor_layers(constellation_chan);
+            }
+            ConstructionResult::ConstructionItem(ref construction_item) => {
+                match construction_item {
+                    &ConstructionItem::InlineFragments(ref inline_fragments) => {
+                        for fragment in inline_fragments.fragments.iter() {
+                            fragment.remove_compositor_layers(constellation_chan.clone());
+                        }
+                    }
+                    &ConstructionItem::Whitespace(..) => {}
+                    &ConstructionItem::TableColumnFragment(ref fragment) => {
+                        fragment.remove_compositor_layers(constellation_chan.clone());
+                    }
+                }
+            }
+        }
     }
 }
 

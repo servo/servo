@@ -14,7 +14,7 @@ use dom::document::DocumentHelpers;
 use dom::element::{Element, ElementHelpers, StylePriority};
 use dom::htmlelement::HTMLElement;
 use dom::node::{window_from_node, document_from_node, NodeDamage, Node};
-use dom::window::Window;
+use dom::window::{Window, WindowHelpers};
 use util::str::DOMString;
 use string_cache::Atom;
 use style::properties::{is_supported_property, longhands_from_shorthand, parse_style_attribute};
@@ -221,10 +221,8 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
         let owner = self.owner.root();
         let window = window_from_node(owner.r()).root();
-        let window = window.r();
-        let page = window.page();
         let decl_block = parse_style_attribute(synthesized_declaration.as_slice(),
-                                               &page.get_url());
+                                               &window.r().get_url());
 
         // Step 7
         if decl_block.normal.len() == 0 {
@@ -270,10 +268,8 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
         let owner = self.owner.root();
         let window = window_from_node(owner.r()).root();
-        let window = window.r();
-        let page = window.page();
         let decl_block = parse_style_attribute(property.as_slice(),
-                                               &page.get_url());
+                                               &window.r().get_url());
         let element: JSRef<Element> = ElementCast::from_ref(owner.r());
 
         // Step 5

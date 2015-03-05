@@ -38,6 +38,7 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString backgroundRepeat;
   [TreatNullAs=EmptyString] attribute DOMString backgroundImage;
   [TreatNullAs=EmptyString] attribute DOMString backgroundAttachment;
+  [TreatNullAs=EmptyString] attribute DOMString backgroundSize;
 
   [TreatNullAs=EmptyString] attribute DOMString border;
   [TreatNullAs=EmptyString] attribute DOMString borderColor;
@@ -103,6 +104,8 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString listStyleImage;
 
   [TreatNullAs=EmptyString] attribute DOMString overflow;
+  [TreatNullAs=EmptyString] attribute DOMString overflowX;
+  [TreatNullAs=EmptyString] attribute DOMString overflowY;
   [TreatNullAs=EmptyString] attribute DOMString overflowWrap;
 
   [TreatNullAs=EmptyString] attribute DOMString tableLayout;
@@ -171,4 +174,6 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString maxWidth;
 
   [TreatNullAs=EmptyString] attribute DOMString zIndex;
+
+  [TreatNullAs=EmptyString] attribute DOMString imageRendering;
 };
