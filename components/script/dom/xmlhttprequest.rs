@@ -43,7 +43,6 @@ use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
 use net_traits::ControlMsg::Load;
-use net_traits::ProgressMsg::{Payload, Done};
 use net_traits::{ResourceTask, ResourceCORSData, LoadData, LoadConsumer, AsyncResponseTarget};
 use net_traits::{AsyncResponseListener, ResponseAction, Metadata};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode, AsyncCORSResponseListener};
@@ -54,7 +53,6 @@ use util::task::spawn_named;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{RefCell, Cell};
-use std::sync::mpsc::{Sender, Receiver, channel};
 use std::default::Default;
 use std::old_io::Timer;
 use std::str::FromStr;
@@ -114,11 +112,6 @@ impl XHRProgress {
     }
 }
 
-enum TerminateReason {
-    AbortedOrReopened,
-    TimedOut,
-}
-
 #[dom_struct]
 pub struct XMLHttpRequest {
     eventtarget: XMLHttpRequestEventTarget,
@@ -147,7 +140,6 @@ pub struct XMLHttpRequest {
     global: GlobalField,
     timer: DOMRefCell<Timer>,
     fetch_time: Cell<i64>,
-    terminate_sender: DOMRefCell<Option<Sender<TerminateReason>>>,
     timeout_target: DOMRefCell<Option<Box<ScriptChan+Send>>>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
@@ -182,7 +174,6 @@ impl XMLHttpRequest {
             global: GlobalField::from_rooted(&global),
             timer: DOMRefCell::new(Timer::new().unwrap()),
             fetch_time: Cell::new(0),
-            terminate_sender: DOMRefCell::new(None),
             timeout_target: DOMRefCell::new(None),
             generation_id: Cell::new(GenerationId(0)),
             response_status: Cell::new(Ok(())),
@@ -340,128 +331,6 @@ impl XMLHttpRequest {
             script_chan: script_chan,
         };
         resource_task.send(Load(load_data, LoadConsumer::Listener(listener))).unwrap();
-    }
-
-    #[allow(unsafe_code)]
-    fn fetch(xhr: JSRef<XMLHttpRequest>, resource_task: ResourceTask,
-             mut load_data: LoadData, terminate_receiver: Receiver<TerminateReason>,
-             cors_request: Result<Option<CORSRequest>,()>, gen_id: GenerationId)
-             -> ErrorResult {
-
-        macro_rules! notify_error_and_return(
-            ($err:expr) => ({
-                xhr.process_partial_response(XHRProgress::Errored(gen_id, $err));
-                return Err($err)
-            });
-        );
-
-        macro_rules! terminate(
-            ($reason:expr) => (
-                match $reason {
-                    TerminateReason::AbortedOrReopened => {
-                        return Err(Abort)
-                    }
-                    TerminateReason::TimedOut => {
-                        notify_error_and_return!(Timeout);
-                    }
-                }
-            );
-        );
-
-
-        match cors_request {
-            Err(_) => {
-                // Happens in case of cross-origin non-http URIs
-                notify_error_and_return!(Network);
-            }
-
-            Ok(Some(ref req)) => {
-                let (chan, cors_port) = channel();
-                let req2 = req.clone();
-                // TODO: this exists only to make preflight check non-blocking
-                // perhaps should be handled by the resource_loader?
-                spawn_named("XHR:Cors".to_owned(), move || {
-                    let response = req2.http_fetch();
-                    chan.send(response).unwrap();
-                });
-
-                select! (
-                    response = cors_port.recv() => {
-                        let response = response.unwrap();
-                        if response.network_error {
-                            notify_error_and_return!(Network);
-                        } else {
-                            load_data.cors = Some(ResourceCORSData {
-                                preflight: req.preflight_flag,
-                                origin: req.origin.clone()
-                            });
-                        }
-                    },
-                    reason = terminate_receiver.recv() => terminate!(reason.unwrap())
-                );
-            }
-            _ => {}
-        }
-
-        // Step 10, 13
-        let (start_chan, start_port) = channel();
-        resource_task.send(Load(load_data, LoadConsumer::Channel(start_chan))).unwrap();
-
-
-        let progress_port;
-        select! (
-            response = start_port.recv() => {
-                let response = response.unwrap();
-                match cors_request {
-                    Ok(Some(ref req)) => {
-                        match response.metadata.headers {
-                            Some(ref h) if allow_cross_origin_request(req, h) => {},
-                            _ => notify_error_and_return!(Network)
-                        }
-                    },
-
-                    _ => {}
-                };
-                // XXXManishearth Clear cache entries in case of a network error
-                xhr.process_partial_response(XHRProgress::HeadersReceived(gen_id,
-                    response.metadata.headers.clone(), response.metadata.status.clone()));
-
-                progress_port = response.progress_port;
-            },
-            reason = terminate_receiver.recv() => terminate!(reason.unwrap())
-        );
-
-        let mut buf = vec!();
-        loop {
-            // Under most circumstances, progress_port will contain lots of Payload
-            // events. Since select! does not have any fairness or priority, it
-            // might always remove the progress_port event, even when there is
-            // a terminate event waiting in the terminate_receiver. If this happens,
-            // a timeout or abort will take too long to be processed. To avoid this,
-            // in each iteration, we check for a terminate event before we block.
-            match terminate_receiver.try_recv() {
-                Ok(reason) => terminate!(reason),
-                Err(_) => ()
-            };
-
-            select! (
-                progress = progress_port.recv() => match progress.unwrap() {
-                    Payload(data) => {
-                        buf.push_all(data.as_slice());
-                        xhr.process_partial_response(XHRProgress::Loading(
-                            gen_id, ByteString::new(buf.clone())));
-                    },
-                    Done(Ok(()))  => {
-                        xhr.process_partial_response(XHRProgress::Done(gen_id));
-                        return Ok(());
-                    },
-                    Done(Err(_))  => {
-                        notify_error_and_return!(Network);
-                    }
-                },
-                reason = terminate_receiver.recv() => terminate!(reason.unwrap())
-            );
-        }
     }
 }
 
@@ -732,8 +601,6 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         }
 
         load_data.method = (*self.request_method.borrow()).clone();
-        let (terminate_sender, terminate_receiver) = channel();
-        *self.terminate_sender.borrow_mut() = Some(terminate_sender);
 
         // CORS stuff
         let global = self.global.root();
@@ -1112,7 +979,6 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     fn terminate_ongoing_fetch(self) {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
-        self.terminate_sender.borrow().as_ref().map(|s| s.send(TerminateReason::AbortedOrReopened));
         *self.timeout_target.borrow_mut() = None;
         self.response_status.set(Ok(()));
     }
@@ -1171,7 +1037,6 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         // This will cancel all previous timeouts
         let oneshot = self.timer.borrow_mut()
                           .oneshot(Duration::milliseconds(timeout as i64));
-        let terminate_sender = (*self.terminate_sender.borrow()).clone();
         let timeout_target = (*self.timeout_target.borrow().as_ref().unwrap()).clone();
         let global = self.global.root();
         let xhr = Trusted::new(global.r().get_cx(), self, global.r().script_chan());
@@ -1183,7 +1048,6 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                         xhr: xhr,
                         gen_id: gen_id,
                     })).unwrap();
-                    terminate_sender.map(|s| s.send(TerminateReason::TimedOut));
                 },
                 Err(_) => {
                     // This occurs if xhr.timeout (the sender) goes out of scope (i.e, xhr went out of scope)
