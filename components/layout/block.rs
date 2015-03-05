@@ -55,6 +55,7 @@ use msg::compositor_msg::LayerId;
 use msg::constellation_msg::ConstellationChan;
 use servo_util::geometry::{Au, MAX_AU};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
+use servo_util::memory::SizeOf;
 use servo_util::opts;
 use std::cmp::{max, min};
 use std::fmt;
@@ -1923,6 +1924,16 @@ impl Flow for BlockFlow {
 
     fn remove_compositor_layers(&self, constellation_chan: ConstellationChan) {
         self.fragment.remove_compositor_layers(constellation_chan);
+    }
+}
+
+impl SizeOf for BlockFlow {
+    fn size_of_excluding_self(&self) -> usize {
+        self.base.size_of_excluding_self() +
+            self.fragment.size_of_excluding_self()
+
+        // XXX: the following fields may be measured in the future:
+        // - float
     }
 }
 

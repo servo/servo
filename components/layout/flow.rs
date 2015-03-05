@@ -35,6 +35,7 @@ use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
+use list_item::ListItemFlow;
 use model::{CollapsibleMargins, IntrinsicISizes};
 use parallel::FlowParallelInfo;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
@@ -53,6 +54,7 @@ use msg::constellation_msg::ConstellationChan;
 use msg::compositor_msg::LayerId;
 use servo_util::geometry::{Au, ZERO_RECT};
 use servo_util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
+use servo_util::memory::SizeOf;
 use std::mem;
 use std::fmt;
 use std::iter::Zip;
@@ -68,7 +70,7 @@ use std::sync::Arc;
 ///
 /// Note that virtual methods have a cost; we should not overuse them in Servo. Consider adding
 /// methods to `ImmutableFlowUtils` or `MutableFlowUtils` before adding more methods here.
-pub trait Flow: fmt::Debug + Sync {
+pub trait Flow: fmt::Debug + SizeOf + Sync {
     // RTTI
     //
     // TODO(pcwalton): Use Rust's RTTI, once that works.
@@ -854,6 +856,22 @@ impl Drop for BaseFlow {
         if self.ref_count.load(Ordering::SeqCst) != 0 {
             panic!("Flow destroyed before its ref count hit zero—this is unsafe!")
         }
+    }
+}
+
+impl SizeOf for BaseFlow {
+    fn size_of_excluding_self(&self) -> usize {
+        self.children.iter().fold(0, |n, kid| n + kid.size_of_including_self())
+
+        // XXX: other fields may be measured in the future
+    }
+
+    fn size_of_including_self(&self) -> usize {
+        // This should never be called; only size_of_excluding_self() should be
+        // called. That's because BaseFlow is always embedded within another
+        // struct (e.g. BlockFlow), and so that surrounding struct's `self`
+        // should be the one getting measured.
+        panic!("BaseFlow::size_of_excluding_self() called");
     }
 }
 

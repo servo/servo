@@ -7,6 +7,7 @@ use font::{ShapingOptions};
 use platform::font_template::FontTemplateData;
 use util::geometry::Au;
 use util::range::Range;
+use util::memory::SizeOf;
 use util::vec::{Comparator, FullBinarySearchMethods};
 use std::cmp::Ordering;
 use std::slice::Iter;
@@ -31,6 +32,13 @@ pub struct GlyphRun {
     pub glyph_store: Arc<GlyphStore>,
     /// The range of characters in the containing run.
     pub range: Range<CharIndex>,
+}
+
+impl SizeOf for GlyphRun {
+    fn size_of_excluding_self(&self) -> usize {
+        // `glyph_store` is not an owning reference so don't measure it.
+        0
+    }
 }
 
 pub struct NaturalWordSliceIterator<'a> {
@@ -371,5 +379,16 @@ impl<'a> TextRun {
             clump: None,
             slices: self.natural_word_slices_in_range(range),
         }
+    }
+}
+
+impl SizeOf for TextRun {
+    fn size_of_excluding_self(&self) -> usize {
+        // This assumes that the TextRun owns `text` and `glyphs`.
+        self.text.size_of_excluding_self() +
+            self.glyphs.size_of_excluding_self()
+
+        // XXX: the following fields may be measured in the future:
+        // - font_metrics
     }
 }

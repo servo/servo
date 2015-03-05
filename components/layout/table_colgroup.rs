@@ -15,6 +15,7 @@ use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
 use servo_util::geometry::{Au, ZERO_RECT};
+use servo_util::memory::{SizeOf, size_of_vec_excluding_self};
 use std::cmp::max;
 use std::fmt;
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -104,6 +105,15 @@ impl Flow for TableColGroupFlow {
     fn iterate_through_fragment_border_boxes(&self,
                                              _: &mut FragmentBorderBoxIterator,
                                              _: &Point2D<Au>) {}
+}
+
+impl SizeOf for TableColGroupFlow {
+    fn size_of_excluding_self(&self) -> usize {
+        self.base.size_of_excluding_self() +
+            self.fragment.size_of_excluding_self() +
+            self.cols.size_of_excluding_self() +
+            size_of_vec_excluding_self(&self.inline_sizes)
+    }
 }
 
 impl fmt::Debug for TableColGroupFlow {

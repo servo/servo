@@ -892,6 +892,11 @@ impl LayoutTask {
             layout_root.dump();
         }
 
+        // njn: currently just measuring the size and printing every time a reflow happens. The
+        // meaurement should instead be done in response to a message from the MemoryProfiler task,
+        // and the result passed back for presentation.
+        println!("total-size = {}", layout_root.size_of_excluding_self());
+
         rw_data.generation += 1;
 
         // Tell script that we're done.
