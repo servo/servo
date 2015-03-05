@@ -34,6 +34,8 @@ impl Range<specified::Length> {
                     let initial_font_size = longhands::font_size::get_initial_value();
                     value.to_computed_value(initial_font_size, initial_font_size)
                 }
+                &specified::Length::ViewportPercentage(value) =>
+                    value.to_computed_value(viewport_size),
                 _ => unreachable!()
             }
         };

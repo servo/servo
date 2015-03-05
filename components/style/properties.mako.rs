@@ -19,6 +19,7 @@ use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
                 DeclarationListParser, parse_important, ToCss};
 use geom::num::Zero;
 use geom::SideOffsets2D;
+use geom::size::Size2D;
 
 use values::specified::BorderStyle;
 use values::computed::{self, ToComputedValue};
@@ -3732,6 +3733,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
         let inherited_font_style = inherited_style.get_font();
         computed::Context {
             is_root_element: is_root_element,
+            viewport_size: viewport_size,
             inherited_font_weight: inherited_font_style.font_weight,
             inherited_font_size: inherited_font_style.font_size,
             inherited_height: inherited_style.get_box().height,
