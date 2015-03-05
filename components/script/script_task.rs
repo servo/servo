@@ -201,6 +201,9 @@ pub trait ScriptChan {
     fn clone(&self) -> Box<ScriptChan+Send>;
 }
 
+/// An interface for receiving ScriptMsg values in an event loop. Used for synchronous DOM
+/// APIs that need to abstract over multiple kinds of event loops (worker/main thread) with
+/// different Receiver interfaces.
 pub trait ScriptPort {
     fn recv(&self) -> ScriptMsg;
 }
