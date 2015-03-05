@@ -81,6 +81,7 @@ pub enum TimeProfilerCategory {
     LayoutSelectorMatch,
     LayoutTreeBuilder,
     LayoutDamagePropagate,
+    LayoutGeneratedContent,
     LayoutMain,
     LayoutParallelWarmup,
     LayoutShaping,
@@ -99,6 +100,7 @@ impl Formatable for TimeProfilerCategory {
             TimeProfilerCategory::LayoutStyleRecalc |
             TimeProfilerCategory::LayoutRestyleDamagePropagation |
             TimeProfilerCategory::LayoutNonIncrementalReset |
+            TimeProfilerCategory::LayoutGeneratedContent |
             TimeProfilerCategory::LayoutMain |
             TimeProfilerCategory::LayoutDispListBuild |
             TimeProfilerCategory::LayoutShaping |
@@ -119,6 +121,7 @@ impl Formatable for TimeProfilerCategory {
             TimeProfilerCategory::LayoutSelectorMatch => "Selector Matching",
             TimeProfilerCategory::LayoutTreeBuilder => "Tree Building",
             TimeProfilerCategory::LayoutDamagePropagate => "Damage Propagation",
+            TimeProfilerCategory::LayoutGeneratedContent => "Generated Content Resolution",
             TimeProfilerCategory::LayoutMain => "Primary Layout Pass",
             TimeProfilerCategory::LayoutParallelWarmup => "Parallel Warmup",
             TimeProfilerCategory::LayoutShaping => "Shaping",

@@ -33,9 +33,9 @@ use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use incremental::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
+use incremental::{self, RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
-use model::{CollapsibleMargins, IntrinsicISizes};
+use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use parallel::FlowParallelInfo;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
 use table_caption::TableCaptionFlow;
@@ -235,6 +235,15 @@ pub trait Flow: fmt::Debug + Sync {
     fn iterate_through_fragment_border_boxes(&self,
                                              iterator: &mut FragmentBorderBoxIterator,
                                              stacking_context_position: &Point2D<Au>);
+
+    /// Mutably iterates through fragments in this flow.
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment));
+
+    fn compute_collapsible_block_start_margin(&mut self,
+                                              _layout_context: &mut LayoutContext,
+                                              _margin_collapse_info: &mut MarginCollapseInfo) {
+        // The default implementation is a no-op.
+    }
 
     /// Marks this flow as the root flow. The default implementation is a no-op.
     fn mark_as_root(&mut self) {}
@@ -478,51 +487,67 @@ pub trait PostorderFlowTraversal {
     }
 }
 
+/// An in-order (sequential only) traversal.
+pub trait InorderFlowTraversal {
+    /// The operation to perform. Returns the level of the tree we're at.
+    fn process(&mut self, flow: &mut Flow, level: u32);
+
+    /// Returns true if this node should be processed and false if neither this node nor its
+    /// descendants should be processed.
+    fn should_process(&mut self, flow: &mut Flow) -> bool;
+}
+
 bitflags! {
     #[doc = "Flags used in flows."]
-    flags FlowFlags: u16 {
+    flags FlowFlags: u32 {
         // floated descendants flags
         #[doc = "Whether this flow has descendants that float left in the same block formatting"]
         #[doc = "context."]
-        const HAS_LEFT_FLOATED_DESCENDANTS = 0b0000_0000_0000_0001,
+        const HAS_LEFT_FLOATED_DESCENDANTS = 0b0000_0000_0000_0000_0001,
         #[doc = "Whether this flow has descendants that float right in the same block formatting"]
         #[doc = "context."]
-        const HAS_RIGHT_FLOATED_DESCENDANTS = 0b0000_0000_0000_0010,
+        const HAS_RIGHT_FLOATED_DESCENDANTS = 0b0000_0000_0000_0000_0010,
         #[doc = "Whether this flow is impacted by floats to the left in the same block formatting"]
         #[doc = "context (i.e. its height depends on some prior flows with `float: left`)."]
-        const IMPACTED_BY_LEFT_FLOATS = 0b0000_0000_0000_0100,
+        const IMPACTED_BY_LEFT_FLOATS = 0b0000_0000_0000_0000_0100,
         #[doc = "Whether this flow is impacted by floats to the right in the same block"]
         #[doc = "formatting context (i.e. its height depends on some prior flows with `float:"]
         #[doc = "right`)."]
-        const IMPACTED_BY_RIGHT_FLOATS = 0b0000_0000_0000_1000,
+        const IMPACTED_BY_RIGHT_FLOATS = 0b0000_0000_0000_0000_1000,
 
         // text align flags
         #[doc = "Whether this flow contains a flow that has its own layer within the same absolute"]
         #[doc = "containing block."]
-        const LAYERS_NEEDED_FOR_DESCENDANTS = 0b0000_0000_0001_0000,
+        const LAYERS_NEEDED_FOR_DESCENDANTS = 0b0000_0000_0000_0001_0000,
         #[doc = "Whether this flow must have its own layer. Even if this flag is not set, it might"]
         #[doc = "get its own layer if it's deemed to be likely to overlap flows with their own"]
         #[doc = "layer."]
-        const NEEDS_LAYER = 0b0000_0000_0010_0000,
+        const NEEDS_LAYER = 0b0000_0000_0000_0010_0000,
         #[doc = "Whether this flow is absolutely positioned. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const IS_ABSOLUTELY_POSITIONED = 0b0000_0000_0100_0000,
+        const IS_ABSOLUTELY_POSITIONED = 0b0000_0000_0000_0100_0000,
         #[doc = "Whether this flow clears to the left. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const CLEARS_LEFT = 0b0000_0000_1000_0000,
+        const CLEARS_LEFT = 0b0000_0000_0000_1000_0000,
         #[doc = "Whether this flow clears to the right. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const CLEARS_RIGHT = 0b0000_0001_0000_0000,
+        const CLEARS_RIGHT = 0b0000_0000_0001_0000_0000,
         #[doc = "Whether this flow is left-floated. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const FLOATS_LEFT = 0b0000_0010_0000_0000,
+        const FLOATS_LEFT = 0b0000_0000_0010_0000_0000,
         #[doc = "Whether this flow is right-floated. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const FLOATS_RIGHT = 0b0000_0100_0000_0000,
+        const FLOATS_RIGHT = 0b0000_0000_0100_0000_0000,
         #[doc = "Text alignment. \
 
                  NB: If you update this, update `TEXT_ALIGN_SHIFT` below."]
-        const TEXT_ALIGN = 0b0111_1000_0000_0000,
+        const TEXT_ALIGN = 0b0000_0111_1000_0000_0000,
+        #[doc = "Whether this flow has a fragment with `counter-reset` or `counter-increment` \
+                 styles."]
+        const AFFECTS_COUNTERS = 0b0000_1000_0000_0000_0000,
+        #[doc = "Whether this flow's descendants have fragments that affect `counter-reset` or \
+                 `counter-increment` styles."]
+        const HAS_COUNTER_AFFECTING_CHILDREN = 0b0001_0000_0000_0000_0000
     }
 }
 
@@ -548,13 +573,13 @@ impl FlowFlags {
 
     #[inline]
     pub fn text_align(self) -> text_align::T {
-        FromPrimitive::from_u16((self & TEXT_ALIGN).bits() >> TEXT_ALIGN_SHIFT).unwrap()
+        FromPrimitive::from_u32((self & TEXT_ALIGN).bits() >> TEXT_ALIGN_SHIFT).unwrap()
     }
 
     #[inline]
     pub fn set_text_align(&mut self, value: text_align::T) {
         *self = (*self & !TEXT_ALIGN) |
-            FlowFlags::from_bits((value as u16) << TEXT_ALIGN_SHIFT).unwrap();
+            FlowFlags::from_bits((value as u32) << TEXT_ALIGN_SHIFT).unwrap();
     }
 
     #[inline]
@@ -885,39 +910,41 @@ impl BaseFlow {
                force_nonfloated: ForceNonfloatedFlag)
                -> BaseFlow {
         let mut flags = FlowFlags::empty();
-        match node {
-            None => {}
-            Some(node) => {
-                let node_style = node.style();
-                match node_style.get_box().position {
-                    position::T::absolute | position::T::fixed => {
-                        flags.insert(IS_ABSOLUTELY_POSITIONED)
-                    }
-                    _ => {}
+        if let Some(node) = node {
+            let node_style = node.style();
+            match node_style.get_box().position {
+                position::T::absolute | position::T::fixed => {
+                    flags.insert(IS_ABSOLUTELY_POSITIONED)
                 }
+                _ => {}
+            }
 
-                if force_nonfloated == ForceNonfloatedFlag::FloatIfNecessary {
-                    match node_style.get_box().float {
-                        float::T::none => {}
-                        float::T::left => flags.insert(FLOATS_LEFT),
-                        float::T::right => flags.insert(FLOATS_RIGHT),
-                    }
+            if force_nonfloated == ForceNonfloatedFlag::FloatIfNecessary {
+                match node_style.get_box().float {
+                    float::T::none => {}
+                    float::T::left => flags.insert(FLOATS_LEFT),
+                    float::T::right => flags.insert(FLOATS_RIGHT),
                 }
+            }
 
-                match node_style.get_box().clear {
-                    clear::T::none => {}
-                    clear::T::left => flags.insert(CLEARS_LEFT),
-                    clear::T::right => flags.insert(CLEARS_RIGHT),
-                    clear::T::both => {
-                        flags.insert(CLEARS_LEFT);
-                        flags.insert(CLEARS_RIGHT);
-                    }
+            match node_style.get_box().clear {
+                clear::T::none => {}
+                clear::T::left => flags.insert(CLEARS_LEFT),
+                clear::T::right => flags.insert(CLEARS_RIGHT),
+                clear::T::both => {
+                    flags.insert(CLEARS_LEFT);
+                    flags.insert(CLEARS_RIGHT);
                 }
+            }
+
+            if !node_style.get_counters().counter_reset.0.is_empty() ||
+                    !node_style.get_counters().counter_increment.0.is_empty() {
+                flags.insert(AFFECTS_COUNTERS)
             }
         }
 
         // New flows start out as fully damaged.
-        let mut damage = RestyleDamage::all();
+        let mut damage = incremental::rebuild_and_reflow();
         damage.remove(RECONSTRUCT_FLOW);
 
         BaseFlow {
@@ -992,10 +1019,12 @@ impl BaseFlow {
 }
 
 impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
-    /// Returns true if this flow is a block flow.
+    /// Returns true if this flow is a block flow or subclass thereof.
     fn is_block_like(self) -> bool {
         match self.class() {
-            FlowClass::Block => true,
+            FlowClass::Block | FlowClass::ListItem | FlowClass::Table | FlowClass::TableRowGroup |
+            FlowClass::TableRow | FlowClass::TableCaption | FlowClass::TableCell |
+            FlowClass::TableWrapper => true,
             _ => false,
         }
     }

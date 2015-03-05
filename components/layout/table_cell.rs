@@ -178,6 +178,10 @@ impl Flow for TableCellFlow {
                                              stacking_context_position: &Point2D<Au>) {
         self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
     }
+
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+        self.block_flow.mutate_fragments(mutator)
+    }
 }
 
 impl fmt::Debug for TableCellFlow {

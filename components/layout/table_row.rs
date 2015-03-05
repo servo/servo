@@ -8,10 +8,8 @@
 
 use block::BlockFlow;
 use block::ISizeAndMarginsComputer;
-use construct::FlowConstructor;
 use context::LayoutContext;
-use flow::{FlowClass, Flow, ImmutableFlowUtils};
-use flow;
+use flow::{self, FlowClass, Flow, ImmutableFlowUtils};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use layout_debug;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable};
@@ -49,23 +47,12 @@ pub struct CellIntrinsicInlineSize {
 }
 
 impl TableRowFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
-                                  fragment: Fragment)
+    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment)
                                   -> TableRowFlow {
         TableRowFlow {
             block_flow: BlockFlow::from_node_and_fragment(node, fragment),
             cell_intrinsic_inline_sizes: Vec::new(),
             column_computed_inline_sizes: Vec::new(),
-        }
-    }
-
-    pub fn from_node(constructor: &mut FlowConstructor,
-                     node: &ThreadSafeLayoutNode)
-                     -> TableRowFlow {
-        TableRowFlow {
-            block_flow: BlockFlow::from_node(constructor, node),
-            cell_intrinsic_inline_sizes: Vec::new(),
-            column_computed_inline_sizes: Vec::new()
         }
     }
 
@@ -330,6 +317,10 @@ impl Flow for TableRowFlow {
                                              iterator: &mut FragmentBorderBoxIterator,
                                              stacking_context_position: &Point2D<Au>) {
         self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
+    }
+
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+        self.block_flow.mutate_fragments(mutator)
     }
 }
 

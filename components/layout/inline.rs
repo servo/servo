@@ -12,9 +12,8 @@ use flow::{BaseFlow, FlowClass, Flow, MutableFlowUtils, ForceNonfloatedFlag};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, ScannedTextFragmentInfo};
-use fragment::{SpecificFragmentInfo};
-use fragment::SplitInfo;
-use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
+use fragment::{SpecificFragmentInfo, SplitInfo};
+use incremental::{REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use text;
@@ -789,14 +788,22 @@ pub struct InlineFlow {
 
 impl InlineFlow {
     pub fn from_fragments(fragments: InlineFragments, writing_mode: WritingMode) -> InlineFlow {
-        InlineFlow {
+        let mut flow = InlineFlow {
             base: BaseFlow::new(None, writing_mode, ForceNonfloatedFlag::ForceNonfloated),
             fragments: fragments,
             lines: Vec::new(),
             minimum_block_size_above_baseline: Au(0),
             minimum_depth_below_baseline: Au(0),
             first_line_indentation: Au(0),
+        };
+
+        for fragment in flow.fragments.fragments.iter() {
+            if fragment.is_generated_content() {
+                flow.base.restyle_damage.insert(RESOLVE_GENERATED_CONTENT)
+            }
         }
+
+        flow
     }
 
     /// Returns the distance from the baseline for the logical block-start inline-start corner of
@@ -1397,6 +1404,12 @@ impl Flow for InlineFlow {
                                                                     relative_containing_block_mode,
                                                                     CoordinateSystem::Parent)
                                       .translate(stacking_context_position))
+        }
+    }
+
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+        for fragment in self.fragments.fragments.iter_mut() {
+            (*mutator)(fragment)
         }
     }
 }

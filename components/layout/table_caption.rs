@@ -7,10 +7,9 @@
 #![deny(unsafe_blocks)]
 
 use block::BlockFlow;
-use construct::FlowConstructor;
 use context::LayoutContext;
 use flow::{FlowClass, Flow};
-use fragment::FragmentBorderBoxIterator;
+use fragment::{Fragment, FragmentBorderBoxIterator};
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
@@ -26,11 +25,10 @@ pub struct TableCaptionFlow {
 }
 
 impl TableCaptionFlow {
-    pub fn from_node(constructor: &mut FlowConstructor,
-                     node: &ThreadSafeLayoutNode)
-                     -> TableCaptionFlow {
+    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment)
+                                  -> TableCaptionFlow {
         TableCaptionFlow {
-            block_flow: BlockFlow::from_node(constructor, node)
+            block_flow: BlockFlow::from_node_and_fragment(node, fragment)
         }
     }
 }
@@ -95,6 +93,10 @@ impl Flow for TableCaptionFlow {
                                              iterator: &mut FragmentBorderBoxIterator,
                                              stacking_context_position: &Point2D<Au>) {
         self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
+    }
+
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+        self.block_flow.mutate_fragments(mutator)
     }
 }
 

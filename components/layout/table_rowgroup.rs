@@ -7,7 +7,6 @@
 #![deny(unsafe_blocks)]
 
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
-use construct::FlowConstructor;
 use context::LayoutContext;
 use flow::{FlowClass, Flow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
@@ -40,15 +39,6 @@ impl TableRowGroupFlow {
                                   -> TableRowGroupFlow {
         TableRowGroupFlow {
             block_flow: BlockFlow::from_node_and_fragment(node, fragment),
-            column_intrinsic_inline_sizes: Vec::new(),
-            column_computed_inline_sizes: Vec::new(),
-        }
-    }
-
-    pub fn from_node(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode)
-                     -> TableRowGroupFlow {
-        TableRowGroupFlow {
-            block_flow: BlockFlow::from_node(constructor, node),
             column_intrinsic_inline_sizes: Vec::new(),
             column_computed_inline_sizes: Vec::new(),
         }
@@ -164,6 +154,10 @@ impl Flow for TableRowGroupFlow {
                                              iterator: &mut FragmentBorderBoxIterator,
                                              stacking_context_position: &Point2D<Au>) {
         self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
+    }
+
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+        self.block_flow.mutate_fragments(mutator)
     }
 }
 
