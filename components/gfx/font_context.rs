@@ -97,7 +97,7 @@ impl FontContext {
     /// Create a font for use in layout calculations.
     fn create_layout_font(&self, template: Arc<FontTemplateData>,
                             descriptor: FontTemplateDescriptor, pt_size: Au,
-                            variant: font_variant::T) -> Font {
+                            variant: font_variant::T) -> Result<Font, ()> {
         // TODO: (Bug #3463): Currently we only support fake small-caps
         // painting. We should also support true small-caps (where the
         // font supports it) in the future.
@@ -106,21 +106,25 @@ impl FontContext {
             font_variant::T::normal => pt_size,
         };
 
-        let handle: FontHandle = FontHandleMethods::new_from_template(&self.platform_handle,
-                                    template, Some(actual_pt_size)).unwrap();
-        let metrics = handle.get_metrics();
+        let handle: Result<FontHandle, _> =
+            FontHandleMethods::new_from_template(&self.platform_handle, template,
+                                                 Some(actual_pt_size));
 
-        Font {
-            handle: handle,
-            shaper: None,
-            variant: variant,
-            descriptor: descriptor,
-            requested_pt_size: pt_size,
-            actual_pt_size: actual_pt_size,
-            metrics: metrics,
-            shape_cache: HashCache::new(),
-            glyph_advance_cache: HashCache::new(),
-        }
+        handle.map(|handle| {
+            let metrics = handle.get_metrics();
+
+            Font {
+                handle: handle,
+                shaper: None,
+                variant: variant,
+                descriptor: descriptor,
+                requested_pt_size: pt_size,
+                actual_pt_size: actual_pt_size,
+                metrics: metrics,
+                shape_cache: HashCache::new(),
+                glyph_advance_cache: HashCache::new(),
+            }
+        })
     }
 
     /// Create a group of fonts for use in layout calculations. May return
@@ -179,12 +183,20 @@ impl FontContext {
                                                                   desc.clone(),
                                                                   style.font_size,
                                                                   style.font_variant);
-                        let layout_font = Rc::new(RefCell::new(layout_font));
+                        let font = match layout_font {
+                            Ok(layout_font) => {
+                                let layout_font = Rc::new(RefCell::new(layout_font));
+                                fonts.push(layout_font.clone());
+
+                                Some(layout_font)
+                            }
+                            Err(_) => None
+                        };
+
                         self.layout_font_cache.push(LayoutFontCacheEntry {
                             family: family.name().to_owned(),
-                            font: Some(layout_font.clone()),
+                            font: font
                         });
-                        fonts.push(layout_font);
                     }
                     None => {
                         self.layout_font_cache.push(LayoutFontCacheEntry {
@@ -217,11 +229,16 @@ impl FontContext {
                                                           desc.clone(),
                                                           style.font_size,
                                                           style.font_variant);
-                let layout_font = Rc::new(RefCell::new(layout_font));
-                self.fallback_font_cache.push(FallbackFontCacheEntry {
-                    font: layout_font.clone(),
-                });
-                fonts.push(layout_font);
+                match layout_font {
+                    Ok(layout_font) => {
+                        let layout_font = Rc::new(RefCell::new(layout_font));
+                        self.fallback_font_cache.push(FallbackFontCacheEntry {
+                            font: layout_font.clone(),
+                        });
+                        fonts.push(layout_font);
+                    }
+                    Err(_) => debug!("Failed to create fallback layout font!")
+                }
             }
         }
 
