@@ -946,7 +946,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                     timeout_target.send(ScriptMsg::RunnableMsg(box XHRTimeout {
                         xhr: xhr,
                         gen_id: gen_id,
-                    }));
+                    })).unwrap();
                 },
                 Err(_) => {
                     // This occurs if xhr.timeout (the sender) goes out of scope (i.e, xhr went out of scope)

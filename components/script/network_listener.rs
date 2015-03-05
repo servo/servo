@@ -18,7 +18,7 @@ impl<T: AsyncResponseListener + PreInvoke + Send> AsyncResponseTarget for Networ
         self.script_chan.send(ScriptMsg::RunnableMsg(box ListenerRunnable {
             context: self.context.clone(),
             listener: listener,
-        }));
+        })).unwrap();
     }
 }
 
