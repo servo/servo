@@ -117,11 +117,20 @@ def check_reftest_order(files_to_check):
                 if line[0] == '#' or next_line[0] == '#':
                     continue
 
-                # ignore != and ==
-                current = line[3:] if line[1] == '=' else line
-                next = next_line[3:] if next_line[1] == '=' else next_line
-                if current > next:
+                current = get_reftest_names(line)
+                next = get_reftest_names(next_line)
+                if current is not None and next is not None and current > next:
                     yield (file_name, idx + 1, "line not in alphabetical order")
+
+
+def get_reftest_names(line):
+    tokens = line.split()
+    if (len(tokens) == 3):
+        return tokens[1] + tokens[2]
+    if (len(tokens) == 4):
+        return tokens[2] + tokens[3]
+    return None
+
 
 def scan():
     all_files = collect_file_names(directories_to_check)
