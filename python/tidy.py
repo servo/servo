@@ -16,7 +16,8 @@ from licenseck import licenses
 
 directories_to_check = ["ports/gonk", "components"]
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py"]
-reftest_filename = "tests/ref/basic.list"
+reftest_directories = ["tests/ref"]
+reftest_filetype = ".list"
 
 ignored_files = [
     # Upstream
@@ -50,6 +51,12 @@ def should_check(file_name):
     for pattern in ignored_files:
         if fnmatch.fnmatch(file_name, pattern):
             return False
+    return True
+
+
+def should_check_reftest(file_name):
+    if os.path.splitext(file_name)[1] != reftest_filetype:
+        return False
     return True
 
 
@@ -94,25 +101,27 @@ def collect_errors_for_files(files_to_check, checking_functions):
                     # filename, line, message
                     yield (file_name, error[0], error[1])
 
-def check_reftest_order():
-    with open(reftest_filename, "r") as fp:
-        lines = contents = fp.read().splitlines()
-        for idx, line in enumerate(lines[:-1]):
-            next_line = lines[idx+1]
 
-            # ignore empty lines
-            if len(line) == 0 or len(next_line) == 0:
-                continue
+def check_reftest_order(files_to_check):
+    for file_name in files_to_check:
+        with open(file_name, "r") as fp:
+            lines = contents = fp.read().splitlines()
+            for idx, line in enumerate(lines[:-1]):
+                next_line = lines[idx+1]
 
-            # ignore commented out lines
-            if line[0] == '#' or next_line[0] == '#':
-                continue
+                # ignore empty lines
+                if len(line) == 0 or len(next_line) == 0:
+                    continue
 
-            # ignore != and ==
-            current = line[3:] if line[1] == '=' else line
-            next = next_line[3:] if next_line[1] == '=' else next_line
-            if current > next:
-                yield (reftest_filename, idx + 1, "line not in alphabetical order")
+                # ignore commented out lines
+                if line[0] == '#' or next_line[0] == '#':
+                    continue
+
+                # ignore != and ==
+                current = line[3:] if line[1] == '=' else line
+                next = next_line[3:] if next_line[1] == '=' else next_line
+                if current > next:
+                    yield (file_name, idx + 1, "line not in alphabetical order")
 
 def scan():
     all_files = collect_file_names(directories_to_check)
@@ -120,7 +129,11 @@ def scan():
 
     checking_functions = [check_license, check_length, check_whitespace]
     errors = collect_errors_for_files(files_to_check, checking_functions)
-    r_errors = check_reftest_order()
+
+    reftest_files = collect_file_names(reftest_directories)
+    reftest_to_check = filter(should_check_reftest, reftest_files)
+    r_errors = check_reftest_order(reftest_to_check)
+
     errors = list(itertools.chain(errors, r_errors))
 
     if errors:
