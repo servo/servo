@@ -9,9 +9,14 @@
 //! This library will eventually become the core of the Fetch crate
 //! with CORSRequest being expanded into FetchRequest (etc)
 
+use network_listener::{NetworkListener, PreInvoke};
+use script_task::ScriptChan;
+use net::resource_task::{AsyncResponseTarget, AsyncResponseListener, ListenerWrapper, Metadata};
+
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::thunk::Invoke;
+use std::cell::RefCell;
+use std::sync::{Arc, Mutex};
 use time;
 use time::{now, Timespec};
 
@@ -28,25 +33,10 @@ use hyper::status::StatusClass::Success;
 use url::{SchemeData, Url};
 use util::task::spawn_named;
 
+/// Interface for network listeners concerned with CORS checks. Proper network requests
+/// should be initiated from this method, based on the response provided.
 pub trait AsyncCORSResponseListener {
     fn response_available(&self, response: CORSResponse);
-}
-
-pub trait AsyncCORSResponseTarget {
-    fn invoke_with_listener(&self, listener: CORSListenerWrapper);
-}
-
-pub struct CORSListenerWrapper(pub Box<for<'r> Invoke<(&'r (AsyncCORSResponseListener+'r))> + Send>);
-
-impl CORSListenerWrapper {
-    fn new<F>(f: Box<F>) -> CORSListenerWrapper
-              where F: for <'r> FnOnce(&'r (AsyncCORSResponseListener+'r)) + Send {
-        CORSListenerWrapper(f)
-    }
-
-    pub fn invoke(self, listener: &AsyncCORSResponseListener) {
-        (self.0).invoke(listener)
-    }
 }
 
 #[derive(Clone)]
@@ -112,14 +102,47 @@ impl CORSRequest {
         }
     }
 
-    pub fn http_fetch_async(&self, listener: Box<AsyncCORSResponseTarget + Send>) {
+    pub fn http_fetch_async(&self,
+                            listener: Box<AsyncCORSResponseListener+Send>,
+                            script_chan: Box<ScriptChan+Send>) {
+        struct CORSContext {
+            listener: Box<AsyncCORSResponseListener+Send>,
+            response: RefCell<Option<CORSResponse>>,
+        }
+
+        // This is shoe-horning the CORSReponse stuff into the rest of the async network
+        // framework right now. It would be worth redesigning http_fetch to do this properly.
+        impl AsyncResponseListener for CORSContext {
+            fn headers_available(&self, _metadata: Metadata) {
+            }
+
+            fn data_available(&self, _payload: Vec<u8>) {
+            }
+
+            fn response_complete(&self, _status: Result<(), String>) {
+                let response = self.response.borrow_mut().take().unwrap();
+                self.listener.response_available(response);
+            }
+        }
+        impl PreInvoke for CORSContext {}
+
+        let context = CORSContext {
+            listener: listener,
+            response: RefCell::new(None),
+        };
+        let listener = NetworkListener {
+            context: Arc::new(Mutex::new(context)),
+            script_chan: script_chan,
+        };
+
         // TODO: this exists only to make preflight check non-blocking
         // perhaps should be handled by the resource task?
         let req = self.clone();
         spawn_named("cors".to_owned(), move || {
             let response = req.http_fetch();
-            listener.invoke_with_listener(CORSListenerWrapper::new(box move |listener: &AsyncCORSResponseListener| {
-                listener.response_available(response);
+            *listener.context.lock().unwrap().response.borrow_mut() = Some(response);
+            listener.invoke_with_listener(ListenerWrapper::new(box move |listener: &AsyncResponseListener| {
+                listener.response_complete(Ok(()));
             }));
         });
     }

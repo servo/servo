@@ -26,6 +26,7 @@ use dom::urlsearchparams::URLSearchParamsHelpers;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
+use network_listener::{NetworkListener, PreInvoke};
 use script_task::{ScriptChan, ScriptMsg, Runnable, ScriptPort};
 
 use encoding::all::UTF_8;
@@ -43,12 +44,11 @@ use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
 use net::resource_task::{ResourceTask, ResourceCORSData, LoadData, LoadConsumer, Metadata};
-use net::resource_task::{AsyncResponseListener, AsyncResponseTarget};
-use net::resource_task::ListenerWrapper;
+use net::resource_task::AsyncResponseListener;
 use net::resource_task::ControlMsg::Load;
 use net::resource_task::ProgressMsg::Done;
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode, AsyncCORSResponseListener};
-use cors::{AsyncCORSResponseTarget, CORSListenerWrapper, CORSResponse};
+use cors::CORSResponse;
 use util::str::DOMString;
 use util::task::spawn_named;
 
@@ -224,44 +224,15 @@ impl XMLHttpRequest {
             }
         }
 
-        struct CORSListener {
-            context: Arc<Mutex<CORSContext>>,
-            script_chan: Box<ScriptChan+Send>,
-        }
-
-        impl AsyncCORSResponseTarget for CORSListener {
-            fn invoke_with_listener(&self, listener: CORSListenerWrapper) {
-                self.script_chan.send(ScriptMsg::RunnableMsg(box CORSRunnable {
-                    context: self.context.clone(),
-                    listener: listener,
-                }));
-            }
-        }
-
-        struct CORSRunnable {
-            context: Arc<Mutex<CORSContext>>,
-            listener: CORSListenerWrapper,
-        }
-
-        impl Runnable for CORSRunnable {
-            fn handler(self: Box<CORSRunnable>) {
-                let this = *self;
-                this.listener.invoke(&*this.context.lock().unwrap());
-            }
-        }
-
-        let cors_context = Arc::new(Mutex::new(CORSContext {
+        let cors_context = CORSContext {
             xhr: context,
             load_data: RefCell::new(Some(load_data)),
             req: req.clone(),
             script_chan: script_chan.clone(),
             resource_task: resource_task,
-        }));
+        };
 
-        req.http_fetch_async(box CORSListener {
-            context: cors_context,
-            script_chan: script_chan
-        });
+        req.http_fetch_async(box cors_context, script_chan);
     }
 
     fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
@@ -292,40 +263,14 @@ impl XMLHttpRequest {
             }
         }
 
-        struct XHRRunnable {
-            context: Arc<Mutex<XHRContext>>,
-            listener: ListenerWrapper,
-        }
-
-        impl Runnable for XHRRunnable {
-            fn handler(self: Box<XHRRunnable>) {
-                let this = *self;
-
-                let context = this.context.lock().unwrap();
-                let xhr = context.xhr.to_temporary().root();
-                if xhr.r().generation_id.get() != context.gen_id {
-                    return;
-                }
-
-                this.listener.invoke(&*context);
+        impl PreInvoke for XHRContext {
+            fn should_invoke(&self) -> bool {
+                let xhr = self.xhr.to_temporary().root();
+                xhr.r().generation_id.get() == self.gen_id
             }
         }
 
-        struct XHRListener {
-            context: Arc<Mutex<XHRContext>>,
-            script_chan: Box<ScriptChan+Send>,
-        }
-
-        impl AsyncResponseTarget for XHRListener {
-            fn invoke_with_listener(&self, listener: ListenerWrapper) {
-                self.script_chan.send(ScriptMsg::RunnableMsg(box XHRRunnable {
-                    context: self.context.clone(),
-                    listener: listener,
-                }));
-            }
-        }
-
-        let listener = box XHRListener {
+        let listener = box NetworkListener {
             context: context,
             script_chan: script_chan,
         };
@@ -613,7 +558,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         debug!("request_headers = {:?}", *self.request_headers.borrow());
 
         self.fetch_time.set(time::now().to_timespec().sec);
-        let rv = self.fetch2(load_data, cors_request, global.r());
+        let rv = self.fetch(load_data, cors_request, global.r());
         if self.sync.get() {
             return rv;
         }
@@ -752,8 +697,8 @@ trait PrivateXMLHttpRequestHelpers {
     fn cancel_timeout(self);
     fn filter_response_headers(self) -> Headers;
     fn discard_subsequent_responses(self);
-    fn fetch2(self, load_data: LoadData, cors_request: Result<Option<CORSRequest>,()>,
-              global: GlobalRef) -> ErrorResult;
+    fn fetch(self, load_data: LoadData, cors_request: Result<Option<CORSRequest>,()>,
+             global: GlobalRef) -> ErrorResult;
 }
 
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
@@ -1070,8 +1015,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         self.response_status.set(Err(()));
     }
 
-    #[allow(unsafe_blocks)]
-    fn fetch2(self,
+    fn fetch(self,
               load_data: LoadData,
               cors_request: Result<Option<CORSRequest>,()>,
               global: GlobalRef) -> ErrorResult {

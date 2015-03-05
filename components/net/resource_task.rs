@@ -54,8 +54,8 @@ pub fn global_init() {
 pub struct ListenerWrapper(pub Box<for<'r> Invoke<(&'r (AsyncResponseListener+'r))> + Send>);
 
 impl ListenerWrapper {
-    fn new<F>(f: Box<F>) -> ListenerWrapper
-              where F: for <'r> FnOnce(&'r (AsyncResponseListener+'r)) + Send {
+    pub fn new<F>(f: Box<F>) -> ListenerWrapper
+                  where F: for <'r> FnOnce(&'r (AsyncResponseListener+'r)) + Send {
         ListenerWrapper(f)
     }
 
