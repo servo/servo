@@ -35,7 +35,6 @@ use std::thunk::Invoke;
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 
 pub fn global_init() {
-<<<<<<< HEAD
     //TODO: handle bad file path
     let path = match env::var("HOST_FILE") {
         Ok(host_file_path) => host_file_path,
