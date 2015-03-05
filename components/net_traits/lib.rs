@@ -66,19 +66,31 @@ impl LoadData {
     }
 }
 
+/// A listener for asynchronous network events. Cancelling the underlying request is unsupported.
 pub trait AsyncResponseListener {
+    /// The response headers for a request have been received.
     fn headers_available(&self, metadata: Metadata);
+    /// A portion of the response body has been received. This data is unavailable after
+    /// this method returned, and must be stored accordingly.
     fn data_available(&self, payload: Vec<u8>);
+    /// The response is complete. If the provided status is an Err value, there is no guarantee
+    /// that the response body was completely read.
     fn response_complete(&self, status: Result<(), String>);
 }
 
+/// Data for passing between threads/processes to indicate a particular action to
+/// take on a provided network listener.
 pub enum ResponseAction {
+    /// Invoke headers_available
     HeadersAvailable(Metadata),
+    /// Invoke data_available
     DataAvailable(Vec<u8>),
+    /// Invoke response_complete
     ResponseComplete(Result<(), String>)
 }
 
 impl ResponseAction {
+    /// Execute the default action on a provided listener.
     pub fn process(self, listener: &AsyncResponseListener) {
         match self {
             ResponseAction::HeadersAvailable(m) => listener.headers_available(m),
@@ -88,10 +100,13 @@ impl ResponseAction {
     }
 }
 
+/// A target for async networking events. Commonly used to dispatch a runnable event to another
+/// thread storing the wrapped closure for later execution.
 pub trait AsyncResponseTarget {
     fn invoke_with_listener(&self, action: ResponseAction);
 }
 
+/// A wrapper for a network load that can either be channel or event-based.
 pub enum LoadConsumer {
     Channel(Sender<LoadResponse>),
     Listener(Box<AsyncResponseTarget + Send>),
