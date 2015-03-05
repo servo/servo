@@ -244,7 +244,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let browser_context = browser_context.as_ref().unwrap();
         let active_document = browser_context.active_document().root();
 
-        if self.clone() != active_document.r() {
+        if self != active_document.r() {
             return false;
         }
         // FIXME: It should also check whether the browser context is top-level or not
