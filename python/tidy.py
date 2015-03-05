@@ -105,22 +105,15 @@ def collect_errors_for_files(files_to_check, checking_functions):
 def check_reftest_order(files_to_check):
     for file_name in files_to_check:
         with open(file_name, "r") as fp:
-            lines = contents = fp.read().splitlines()
+            split_lines = fp.read().splitlines()
+            lines = contents = filter(lambda l: len(l) > 0 and l[0] != '#', split_lines)
             for idx, line in enumerate(lines[:-1]):
                 next_line = lines[idx+1]
-
-                # ignore empty lines
-                if len(line) == 0 or len(next_line) == 0:
-                    continue
-
-                # ignore commented out lines
-                if line[0] == '#' or next_line[0] == '#':
-                    continue
 
                 current = get_reftest_names(line)
                 next = get_reftest_names(next_line)
                 if current is not None and next is not None and current > next:
-                    yield (file_name, idx + 1, "line not in alphabetical order")
+                    yield (file_name, split_lines.index(next_line) + 1, "line not in alphabetical order")
 
 
 def get_reftest_names(line):
