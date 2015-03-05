@@ -13,35 +13,36 @@
 
 #![deny(unsafe_blocks)]
 
-use css::node_style::StyledNode;
 use block::BlockFlow;
 use context::LayoutContext;
+use css::node_style::StyledNode;
 use floats::FloatKind;
-use flow::{Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use flow::{Descendants, AbsDescendants};
+use flow::{Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow;
 use flow_ref::FlowRef;
-use fragment::{Fragment, IframeFragmentInfo};
-use fragment::ImageFragmentInfo;
 use fragment::CanvasFragmentInfo;
+use fragment::ImageFragmentInfo;
 use fragment::InlineAbsoluteHypotheticalFragmentInfo;
-use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo};
 use fragment::TableColumnFragmentInfo;
 use fragment::UnscannedTextFragmentInfo;
+use fragment::{Fragment, IframeFragmentInfo};
+use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo};
 use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
 use inline::InlineFlow;
+use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataAccess, LayoutDataWrapper};
 use list_item::{self, ListItemFlow};
+use opaque_node::OpaqueNodeMethods;
 use parallel;
-use table_wrapper::TableWrapperFlow;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
-use table_colgroup::TableColGroupFlow;
-use table_rowgroup::TableRowGroupFlow;
-use table_row::TableRowFlow;
 use table_cell::TableCellFlow;
+use table_colgroup::TableColGroupFlow;
+use table_row::TableRowFlow;
+use table_rowgroup::TableRowGroupFlow;
+use table_wrapper::TableWrapperFlow;
 use text::TextRunScanner;
-use util::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataAccess, OpaqueNodeMethods, LayoutDataWrapper};
 use wrapper::{PostorderNodeMutTraversal, PseudoElementType, TLayoutNode, ThreadSafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
@@ -49,7 +50,7 @@ use script::dom::element::ElementTypeId;
 use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlobjectelement::is_image_data;
 use script::dom::node::NodeTypeId;
-use servo_util::opts;
+use util::opts;
 use std::borrow::ToOwned;
 use std::collections::DList;
 use std::mem;

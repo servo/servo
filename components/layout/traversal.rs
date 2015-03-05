@@ -19,8 +19,8 @@ use wrapper::{PostorderNodeMutTraversal, ThreadSafeLayoutNode, UnsafeLayoutNode}
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
 use selectors::bloom::BloomFilter;
-use servo_util::opts;
-use servo_util::tid::tid;
+use util::opts;
+use util::tid::tid;
 use style::node::TNode;
 
 use std::cell::RefCell;

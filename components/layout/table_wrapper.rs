@@ -24,7 +24,7 @@ use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
-use servo_util::geometry::Au;
+use util::geometry::Au;
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;

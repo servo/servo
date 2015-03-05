@@ -7,17 +7,19 @@
 
 #![allow(unsafe_blocks)]
 
-use css::node_style::StyledNode;
 use construct::ConstructionResult;
 use context::{SharedLayoutContext, SharedLayoutContextWrapper};
+use css::node_style::StyledNode;
+use display_list_builder::ToGfxColor;
 use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
+use data::{LayoutDataAccess, LayoutDataWrapper};
 use layout_debug;
+use opaque_node::OpaqueNodeMethods;
 use parallel::{self, UnsafeFlow};
 use sequential;
-use util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods, ToGfxColor};
 use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use encoding::EncodingRef;
@@ -51,16 +53,16 @@ use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, Pipel
 use net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use net::local_image_cache::{ImageResponder, LocalImageCache};
 use net::resource_task::{ResourceTask, load_bytes_iter};
-use servo_util::cursor::Cursor;
-use servo_util::geometry::Au;
-use servo_util::logical_geometry::LogicalPoint;
-use servo_util::opts;
-use servo_util::smallvec::{SmallVec, SmallVec1, VecLike};
-use servo_util::task::spawn_named_with_send_on_failure;
-use servo_util::task_state;
-use servo_util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan};
-use servo_util::time::{TimerMetadataFrameType, TimerMetadataReflowType, profile};
-use servo_util::workqueue::WorkQueue;
+use util::cursor::Cursor;
+use util::geometry::Au;
+use util::logical_geometry::LogicalPoint;
+use util::opts;
+use util::smallvec::{SmallVec, SmallVec1, VecLike};
+use util::task::spawn_named_with_send_on_failure;
+use util::task_state;
+use util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan};
+use util::time::{TimerMetadataFrameType, TimerMetadataReflowType, profile};
+use util::workqueue::WorkQueue;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ops::{Deref, DerefMut};

@@ -10,6 +10,7 @@
 
 #![deny(unsafe_blocks)]
 
+use azure::azure_hl::Color;
 use block::BlockFlow;
 use canvas::canvas_paint_task::CanvasMsg::SendPixelContents;
 use context::LayoutContext;
@@ -19,7 +20,7 @@ use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
 use inline::InlineFlow;
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto};
-use util::{OpaqueNodeMethods, ToGfxColor};
+use opaque_node::OpaqueNodeMethods;
 
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color;
@@ -36,10 +37,10 @@ use msg::compositor_msg::ScrollPolicy;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::ConstellationChan;
 use net::image::holder::ImageHolder;
-use servo_util::cursor::Cursor;
-use servo_util::geometry::{self, Au, ZERO_POINT, to_px, to_frac_px};
-use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
-use servo_util::opts;
+use util::cursor::Cursor;
+use util::geometry::{self, Au, ZERO_POINT, to_px, to_frac_px};
+use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
+use util::opts;
 use std::cmp;
 use std::default::Default;
 use std::iter::repeat;
@@ -1572,3 +1573,14 @@ fn shadow_bounds(content_rect: &Rect<Au>, blur_radius: Au, spread_radius: Au) ->
     content_rect.inflate(inflation, inflation)
 }
 
+/// Allows a CSS color to be converted into a graphics color.
+pub trait ToGfxColor {
+    /// Converts a CSS color to a graphics color.
+    fn to_gfx_color(&self) -> Color;
+}
+
+impl ToGfxColor for RGBA {
+    fn to_gfx_color(&self) -> Color {
+        color::rgba(self.red, self.green, self.blue, self.alpha)
+    }
+}

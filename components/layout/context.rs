@@ -16,7 +16,7 @@ use script::layout_interface::LayoutChan;
 use script_traits::UntrustedNodeAddress;
 use msg::constellation_msg::ConstellationChan;
 use net::local_image_cache::LocalImageCache;
-use servo_util::geometry::Au;
+use util::geometry::Au;
 use std::boxed;
 use std::cell::Cell;
 use std::ptr;
