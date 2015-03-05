@@ -1332,6 +1332,9 @@ impl Flow for InlineFlow {
                                                       &self.base
                                                            .absolute_position_info
                                                            .relative_containing_block_size,
+                                                      self.base
+                                                          .absolute_position_info
+                                                          .relative_containing_block_mode,
                                                       CoordinateSystem::Self);
             let clip = fragment.clipping_region_for_children(&self.base.clip,
                                                              &stacking_relative_border_box);
@@ -1386,9 +1389,12 @@ impl Flow for InlineFlow {
             let stacking_relative_position = &self.base.stacking_relative_position;
             let relative_containing_block_size =
                 &self.base.absolute_position_info.relative_containing_block_size;
+            let relative_containing_block_mode =
+                self.base.absolute_position_info.relative_containing_block_mode;
             iterator.process(fragment,
                              &fragment.stacking_relative_border_box(stacking_relative_position,
                                                                     relative_containing_block_size,
+                                                                    relative_containing_block_mode,
                                                                     CoordinateSystem::Parent)
                                       .translate(stacking_context_position))
         }

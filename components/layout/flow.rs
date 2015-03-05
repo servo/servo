@@ -683,6 +683,9 @@ pub struct AbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
     pub relative_containing_block_size: LogicalSize<Au>,
 
+    /// The writing mode for `relative_containing_block_size`.
+    pub relative_containing_block_mode: WritingMode,
+
     /// The position of the absolute containing block relative to the nearest ancestor stacking
     /// context. If the absolute containing block establishes the stacking context for this flow,
     /// and this flow is not itself absolutely-positioned, then this is (0, 0).
@@ -700,6 +703,7 @@ impl AbsolutePositionInfo {
         // of the root layer.
         AbsolutePositionInfo {
             relative_containing_block_size: LogicalSize::zero(writing_mode),
+            relative_containing_block_mode: writing_mode,
             stacking_relative_position_of_absolute_containing_block: Point2D::zero(),
             layers_needed_for_positioned_flows: false,
         }

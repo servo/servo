@@ -34,7 +34,7 @@ use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net::image::holder::ImageHolder;
 use net::local_image_cache::LocalImageCache;
 use util::geometry::{self, Au, ZERO_POINT};
-use util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin};
+use util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin, WritingMode};
 use util::range::*;
 use util::smallvec::SmallVec;
 use util::str::is_whitespace;
@@ -1973,10 +1973,11 @@ impl Fragment {
     pub fn stacking_relative_border_box(&self,
                                         stacking_relative_flow_origin: &Point2D<Au>,
                                         relative_containing_block_size: &LogicalSize<Au>,
+                                        relative_containing_block_mode: WritingMode,
                                         coordinate_system: CoordinateSystem)
                                         -> Rect<Au> {
-        // FIXME (mbrubeck): Get the real container size, taking vertical writing modes into account.
-        let container_size = Size2D(relative_containing_block_size.inline, relative_containing_block_size.block);
+        let container_size =
+            relative_containing_block_size.to_physical(relative_containing_block_mode);
         let border_box = self.border_box.to_physical(self.style.writing_mode, container_size);
         if coordinate_system == CoordinateSystem::Self && self.establishes_stacking_context() {
             return Rect(ZERO_POINT, border_box.size)

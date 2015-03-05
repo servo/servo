@@ -1804,6 +1804,7 @@ impl Flow for BlockFlow {
             stacking_relative_position_of_absolute_containing_block:
                 stacking_relative_position_of_absolute_containing_block_for_children,
             relative_containing_block_size: self.fragment.content_box().size,
+            relative_containing_block_mode: self.base.writing_mode,
             layers_needed_for_positioned_flows: self.base
                                                     .flags
                                                     .contains(LAYERS_NEEDED_FOR_DESCENDANTS),
@@ -1836,6 +1837,9 @@ impl Flow for BlockFlow {
                                               &self.base
                                                    .absolute_position_info
                                                    .relative_containing_block_size,
+                                              self.base
+                                                  .absolute_position_info
+                                                  .relative_containing_block_mode,
                                               CoordinateSystem::Self);
         let clip = self.fragment.clipping_region_for_children(&clip_in_child_coordinate_system,
                                                               &stacking_relative_border_box);
@@ -1939,6 +1943,9 @@ impl Flow for BlockFlow {
                                                             &self.base
                                                                  .absolute_position_info
                                                                  .relative_containing_block_size,
+                                                            self.base
+                                                                .absolute_position_info
+                                                                .relative_containing_block_mode,
                                                             CoordinateSystem::Parent)
                               .translate(stacking_context_position));
     }
