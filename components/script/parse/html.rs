@@ -148,11 +148,11 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         }
     }
 
-    fn remove_from_parent(&mut self, _target: JS<Node>) {
-        let node: Root<Node> = _target.root();
-        let parent: JSRef<Node> = node.r();
-        for child in parent.children() {
-            parent.RemoveChild(child).ok().expect("tried to remove an non-Node in HTML parsing");
+    fn remove_from_parent(&mut self, target: JS<Node>) {
+        let node: Root<Node> = target.root();
+        let parent = node.r();
+        while let Some(child) = parent.GetFirstChild() {
+            parent.RemoveChild(child.root().r()).unwrap();
         }
     }
 
@@ -168,17 +168,15 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         script.map(|script| script.prepare());
     }
 
-    fn reparent_children(&mut self, _node: JS<Node>, _new_parent: JS<Node>) {
-        let n_parent: Root<Node> = _node.root();
-        let new_parent: JSRef<Node> = n_parent.r();
-        let node: Root<Node> = _node.root();
-        let old_parent: JSRef<Node> = node.r();
-        for child in old_parent.children() {
-            if new_parent.AppendChild(child).is_err() { 
-                println!("tried to reparent an non-Node in HTML parsing");
-                continue; 
+    fn reparent_children(&mut self, node: JS<Node>, new_parent: JS<Node>) {
+        let new_parent: Root<Node> = new_parent.root();
+        let new_parent = new_parent.r();        
+        let old_parent: Root<Node> = node.root();
+        let old_parent = old_parent.r();
+        while let Some(child) = old_parent.GetFirstChild() {
+            if new_parent.AppendChild(child.root().r()).is_err() { 
+                panic!("tried to reparent an non-Node in HTML parsing");
             }
-            old_parent.RemoveChild(child).ok().expect("tried to reparent an non-Node in HTML parsing");
         }
 
     }
