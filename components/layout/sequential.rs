@@ -17,8 +17,8 @@ use wrapper::{PostorderNodeMutTraversal};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
 use geom::point::Point2D;
-use servo_util::geometry::{Au, ZERO_POINT};
-use servo_util::opts;
+use util::geometry::{Au, ZERO_POINT};
+use util::opts;
 
 pub fn traverse_dom_preorder(root: LayoutNode,
                              shared_layout_context: &SharedLayoutContext) {

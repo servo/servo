@@ -43,7 +43,7 @@ extern crate net;
 extern crate msg;
 extern crate selectors;
 #[macro_use]
-extern crate "util" as servo_util;
+extern crate util;
 
 #[no_link] #[macro_use] #[plugin]
 extern crate string_cache_macros;

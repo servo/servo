@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use servo_util::geometry::Au;
-use servo_util::logical_geometry::WritingMode;
-use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
-use servo_util::persistent_list::PersistentList;
+use util::geometry::Au;
+use util::logical_geometry::WritingMode;
+use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
+use util::persistent_list::PersistentList;
 use std::cmp::{max, min};
 use std::i32;
 use std::fmt;

@@ -20,9 +20,9 @@ use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_
 use wrapper::{PostorderNodeMutTraversal, UnsafeLayoutNode};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
-use servo_util::opts;
-use servo_util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan, profile};
-use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
+use util::opts;
+use util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan, profile};
+use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicInt, Ordering};

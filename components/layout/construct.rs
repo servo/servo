@@ -50,7 +50,7 @@ use script::dom::element::ElementTypeId;
 use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlobjectelement::is_image_data;
 use script::dom::node::NodeTypeId;
-use servo_util::opts;
+use util::opts;
 use std::borrow::ToOwned;
 use std::collections::DList;
 use std::mem;

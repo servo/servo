@@ -21,8 +21,8 @@ use table_wrapper::TableLayout;
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
-use servo_util::geometry::Au;
-use servo_util::logical_geometry::LogicalRect;
+use util::geometry::Au;
+use util::logical_geometry::LogicalRect;
 use std::cmp::max;
 use std::fmt;
 use style::properties::ComputedValues;

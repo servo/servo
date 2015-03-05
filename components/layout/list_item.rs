@@ -18,9 +18,9 @@ use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
 use gfx::display_list::DisplayList;
-use servo_util::geometry::Au;
-use servo_util::logical_geometry::LogicalRect;
-use servo_util::opts;
+use util::geometry::Au;
+use util::logical_geometry::LogicalRect;
+use util::opts;
 use style::properties::ComputedValues;
 use style::computed_values::list_style_type;
 use std::sync::Arc;
