@@ -3701,6 +3701,8 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock<
 /// Performs the CSS cascade, computing new styles for an element from its parent style and
 /// optionally a cached related style. The arguments are:
 ///
+///   * `viewport_size`: The size of the initial viewport.
+///
 ///   * `applicable_declarations`: The list of CSS rules that matched.
 ///
 ///   * `shareable`: Whether the `ComputedValues` structure to be constructed should be considered
@@ -3714,7 +3716,8 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock<
 ///     this is ignored.
 ///
 /// Returns the computed values and a boolean indicating whether the result is cacheable.
-pub fn cascade(applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
+pub fn cascade(viewport_size: Size2D<Au>,
+               applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
                shareable: bool,
                parent_style: Option< &ComputedValues >,
                cached_style: Option< &ComputedValues >)
