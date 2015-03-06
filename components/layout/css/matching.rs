@@ -6,6 +6,7 @@
 
 #![allow(unsafe_blocks)]
 
+use context::SharedLayoutContext;
 use css::node_style::StyledNode;
 use incremental::{self, RestyleDamage};
 use data::{LayoutDataAccess, LayoutDataWrapper};
@@ -391,6 +392,7 @@ pub trait MatchMethods {
                                       -> StyleSharingResult;
 
     unsafe fn cascade_node(&self,
+                           layout_context: &SharedLayoutContext,
                            parent: Option<LayoutNode>,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache);
@@ -398,6 +400,7 @@ pub trait MatchMethods {
 
 trait PrivateMatchMethods {
     fn cascade_node_pseudo_element(&self,
+                                   layout_context: &SharedLayoutContext,
                                    parent_style: Option<&Arc<ComputedValues>>,
                                    applicable_declarations: &[DeclarationBlock],
                                    style: &mut Option<Arc<ComputedValues>>,
@@ -414,6 +417,7 @@ trait PrivateMatchMethods {
 
 impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
     fn cascade_node_pseudo_element(&self,
+                                   layout_context: &SharedLayoutContext,
                                    parent_style: Option<&Arc<ComputedValues>>,
                                    applicable_declarations: &[DeclarationBlock],
                                    style: &mut Option<Arc<ComputedValues>>,
@@ -430,7 +434,8 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                     None => None,
                     Some(ref style) => Some(&**style),
                 };
-                let (the_style, is_cacheable) = cascade(applicable_declarations,
+                let (the_style, is_cacheable) = cascade(layout_context.screen_size,
+                                                        applicable_declarations,
                                                         shareable,
                                                         Some(&***parent_style),
                                                         cached_computed_values);
@@ -438,7 +443,8 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                 this_style = Arc::new(the_style);
             }
             None => {
-                let (the_style, is_cacheable) = cascade(applicable_declarations,
+                let (the_style, is_cacheable) = cascade(layout_context.screen_size,
+                                                        applicable_declarations,
                                                         shareable,
                                                         None,
                                                         None);
@@ -602,6 +608,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
     }
 
     unsafe fn cascade_node(&self,
+                           layout_context: &SharedLayoutContext,
                            parent: Option<LayoutNode>,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache) {
@@ -635,26 +642,29 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                     }
                     _ => {
                         let mut damage = self.cascade_node_pseudo_element(
+                            layout_context,
                             parent_style,
                             applicable_declarations.normal.as_slice(),
                             &mut layout_data.shared_data.style,
                             applicable_declarations_cache,
                             applicable_declarations.normal_shareable);
                         if applicable_declarations.before.len() > 0 {
-                           damage = damage | self.cascade_node_pseudo_element(
-                               Some(layout_data.shared_data.style.as_ref().unwrap()),
-                               &*applicable_declarations.before,
-                               &mut layout_data.data.before_style,
-                               applicable_declarations_cache,
-                               false);
+                            damage = damage | self.cascade_node_pseudo_element(
+                                layout_context,
+                                Some(layout_data.shared_data.style.as_ref().unwrap()),
+                                &*applicable_declarations.before,
+                                &mut layout_data.data.before_style,
+                                applicable_declarations_cache,
+                                false);
                         }
                         if applicable_declarations.after.len() > 0 {
-                           damage = damage | self.cascade_node_pseudo_element(
-                               Some(layout_data.shared_data.style.as_ref().unwrap()),
-                               &*applicable_declarations.after,
-                               &mut layout_data.data.after_style,
-                               applicable_declarations_cache,
-                               false);
+                            damage = damage | self.cascade_node_pseudo_element(
+                                layout_context,
+                                Some(layout_data.shared_data.style.as_ref().unwrap()),
+                                &*applicable_declarations.after,
+                                &mut layout_data.data.after_style,
+                                applicable_declarations_cache,
+                                false);
                         }
                         layout_data.data.restyle_damage = damage;
                     }

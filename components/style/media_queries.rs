@@ -5,7 +5,7 @@
 use std::ascii::AsciiExt;
 use cssparser::{Token, Parser, Delimiter};
 
-use geom::size::TypedSize2D;
+use geom::size::{Size2D, TypedSize2D};
 use properties::longhands;
 use util::geometry::{Au, ViewportPx};
 use values::specified;
@@ -23,6 +23,31 @@ pub enum Range<T> {
     //Eq(T),    // FIXME: Implement parsing support for equality then re-enable this.
 }
 
+impl Range<specified::Length> {
+    fn to_computed_range(&self, viewport_size: Size2D<Au>) -> Range<Au> {
+        let compute_width = |width| {
+            match width {
+                &specified::Length::Absolute(value) => value,
+                &specified::Length::FontRelative(value) => {
+                    // http://dev.w3.org/csswg/mediaqueries3/ - Section 6
+                    // em units are relative to the initial font-size.
+                    let initial_font_size = longhands::font_size::get_initial_value();
+                    value.to_computed_value(initial_font_size, initial_font_size)
+                }
+                &specified::Length::ViewportPercentage(value) =>
+                    value.to_computed_value(viewport_size),
+                _ => unreachable!()
+            }
+        };
+
+        match *self {
+            Range::Min(ref width) => Range::Min(compute_width(width)),
+            Range::Max(ref width) => Range::Max(compute_width(width)),
+            //Range::Eq(ref width) => Range::Eq(compute_width(width))
+        }
+    }
+}
+
 impl<T: Ord> Range<T> {
     fn evaluate(&self, value: T) -> bool {
         match *self {
@@ -33,9 +58,9 @@ impl<T: Ord> Range<T> {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Debug)]
+#[derive(PartialEq, Copy, Debug)]
 pub enum Expression {
-    Width(Range<Au>),
+    Width(Range<specified::Length>),
 }
 
 #[derive(PartialEq, Eq, Copy, Debug)]
@@ -91,17 +116,6 @@ impl Device {
     }
 }
 
-
-fn parse_non_negative_length(input: &mut Parser) -> Result<Au, ()> {
-    let length = try!(specified::Length::parse_non_negative(input));
-
-    // http://dev.w3.org/csswg/mediaqueries3/ - Section 6
-    // em units are relative to the initial font-size.
-    let initial_font_size = longhands::font_size::get_initial_value();
-    Ok(length.to_computed_value_with_font_size(initial_font_size, initial_font_size))
-}
-
-
 impl Expression {
     fn parse(input: &mut Parser) -> Result<Expression, ()> {
         try!(input.expect_parenthesis_block());
@@ -111,10 +125,10 @@ impl Expression {
             // TODO: Handle other media features
             match_ignore_ascii_case! { name,
                 "min-width" => {
-                    Ok(Expression::Width(Range::Min(try!(parse_non_negative_length(input)))))
+                    Ok(Expression::Width(Range::Min(try!(specified::Length::parse_non_negative(input)))))
                 },
                 "max-width" => {
-                    Ok(Expression::Width(Range::Max(try!(parse_non_negative_length(input)))))
+                    Ok(Expression::Width(Range::Max(try!(specified::Length::parse_non_negative(input)))))
                 }
                 _ => Err(())
             }
@@ -186,6 +200,9 @@ pub fn parse_media_query_list(input: &mut Parser) -> MediaQueryList {
 
 impl MediaQueryList {
     pub fn evaluate(&self, device: &Device) -> bool {
+        let viewport_size = Size2D(Au::from_frac32_px(device.viewport_size.width.get()),
+                                   Au::from_frac32_px(device.viewport_size.height.get()));
+
         // Check if any queries match (OR condition)
         self.media_queries.iter().any(|mq| {
             // Check if media matches. Unknown media never matches.
@@ -198,8 +215,8 @@ impl MediaQueryList {
             // Check if all conditions match (AND condition)
             let query_match = media_match && mq.expressions.iter().all(|expression| {
                 match expression {
-                    &Expression::Width(value) => value.evaluate(
-                        Au::from_frac_px(device.viewport_size.to_untyped().width as f64)),
+                    &Expression::Width(value) =>
+                        value.to_computed_range(viewport_size).evaluate(viewport_size.width),
                 }
             });
 
@@ -220,6 +237,7 @@ mod tests {
     use stylesheets::Origin;
     use super::*;
     use url::Url;
+    use values::specified;
     use std::borrow::ToOwned;
 
     fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str) {
@@ -385,7 +403,7 @@ mod tests {
             assert!(q.media_type == MediaQueryType::All, css.to_owned());
             assert!(q.expressions.len() == 1, css.to_owned());
             match q.expressions[0] {
-                Expression::Width(Range::Min(w)) => assert!(w == Au::from_px(100)),
+                Expression::Width(Range::Min(w)) => assert!(w == specified::Length::Absolute(Au::from_px(100))),
                 _ => panic!("wrong expression type"),
             }
         });
@@ -397,7 +415,7 @@ mod tests {
             assert!(q.media_type == MediaQueryType::All, css.to_owned());
             assert!(q.expressions.len() == 1, css.to_owned());
             match q.expressions[0] {
-                Expression::Width(Range::Max(w)) => assert!(w == Au::from_px(43)),
+                Expression::Width(Range::Max(w)) => assert!(w == specified::Length::Absolute(Au::from_px(43))),
                 _ => panic!("wrong expression type"),
             }
         });
@@ -412,7 +430,7 @@ mod tests {
             assert!(q.media_type == MediaQueryType::MediaType(MediaType::Screen), css.to_owned());
             assert!(q.expressions.len() == 1, css.to_owned());
             match q.expressions[0] {
-                Expression::Width(Range::Min(w)) => assert!(w == Au::from_px(100)),
+                Expression::Width(Range::Min(w)) => assert!(w == specified::Length::Absolute(Au::from_px(100))),
                 _ => panic!("wrong expression type"),
             }
         });
@@ -424,7 +442,7 @@ mod tests {
             assert!(q.media_type == MediaQueryType::MediaType(MediaType::Print), css.to_owned());
             assert!(q.expressions.len() == 1, css.to_owned());
             match q.expressions[0] {
-                Expression::Width(Range::Max(w)) => assert!(w == Au::from_px(43)),
+                Expression::Width(Range::Max(w)) => assert!(w == specified::Length::Absolute(Au::from_px(43))),
                 _ => panic!("wrong expression type"),
             }
         });
@@ -436,7 +454,7 @@ mod tests {
             assert!(q.media_type == MediaQueryType::MediaType(MediaType::Unknown), css.to_owned());
             assert!(q.expressions.len() == 1, css.to_owned());
             match q.expressions[0] {
-                Expression::Width(Range::Max(w)) => assert!(w == Au::from_px(52)),
+                Expression::Width(Range::Max(w)) => assert!(w == specified::Length::Absolute(Au::from_px(52))),
                 _ => panic!("wrong expression type"),
             }
         });
@@ -451,11 +469,11 @@ mod tests {
             assert!(q.media_type == MediaQueryType::All, css.to_owned());
             assert!(q.expressions.len() == 2, css.to_owned());
             match q.expressions[0] {
-                Expression::Width(Range::Min(w)) => assert!(w == Au::from_px(100)),
+                Expression::Width(Range::Min(w)) => assert!(w == specified::Length::Absolute(Au::from_px(100))),
                 _ => panic!("wrong expression type"),
             }
             match q.expressions[1] {
-                Expression::Width(Range::Max(w)) => assert!(w == Au::from_px(200)),
+                Expression::Width(Range::Max(w)) => assert!(w == specified::Length::Absolute(Au::from_px(200))),
                 _ => panic!("wrong expression type"),
             }
         });
@@ -467,11 +485,11 @@ mod tests {
             assert!(q.media_type == MediaQueryType::MediaType(MediaType::Screen), css.to_owned());
             assert!(q.expressions.len() == 2, css.to_owned());
             match q.expressions[0] {
-                Expression::Width(Range::Min(w)) => assert!(w == Au::from_px(100)),
+                Expression::Width(Range::Min(w)) => assert!(w == specified::Length::Absolute(Au::from_px(100))),
                 _ => panic!("wrong expression type"),
             }
             match q.expressions[1] {
-                Expression::Width(Range::Max(w)) => assert!(w == Au::from_px(200)),
+                Expression::Width(Range::Max(w)) => assert!(w == specified::Length::Absolute(Au::from_px(200))),
                 _ => panic!("wrong expression type"),
             }
         });

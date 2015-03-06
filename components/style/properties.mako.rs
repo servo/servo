@@ -19,8 +19,9 @@ use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
                 DeclarationListParser, parse_important, ToCss};
 use geom::num::Zero;
 use geom::SideOffsets2D;
+use geom::size::Size2D;
 
-use values::specified::BorderStyle;
+use values::specified::{Length, BorderStyle};
 use values::computed::{self, ToComputedValue};
 use selectors::matching::DeclarationBlock;
 use parser::{ParserContext, log_css_error};
@@ -566,7 +567,7 @@ pub mod longhands {
                     SpecifiedValue::Number(value) => computed_value::T::Number(value),
                     SpecifiedValue::Percentage(value) => {
                         computed_value::T::Length(
-                            specified::Length::Em(value).to_computed_value(context))
+                            specified::Length::FontRelative(specified::FontRelativeLength::Em(value)).to_computed_value(context))
                     }
                 }
             }
@@ -1475,21 +1476,21 @@ pub mod longhands {
             input.try(specified::LengthOrPercentage::parse_non_negative)
             .map(|value| match value {
                 specified::LengthOrPercentage::Length(value) => value,
-                specified::LengthOrPercentage::Percentage(value) => specified::Length::Em(value)
+                specified::LengthOrPercentage::Percentage(value) => specified::Length::FontRelative(specified::FontRelativeLength::Em(value))
             })
             .or_else(|()| {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
-                    "xx-small" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX) * 3 / 5)),
-                    "x-small" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX) * 3 / 4)),
-                    "small" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX) * 8 / 9)),
-                    "medium" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX))),
-                    "large" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX) * 6 / 5)),
-                    "x-large" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX) * 3 / 2)),
-                    "xx-large" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX) * 2)),
+                    "xx-small" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 5)),
+                    "x-small" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 4)),
+                    "small" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 8 / 9)),
+                    "medium" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX))),
+                    "large" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 6 / 5)),
+                    "x-large" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 2)),
+                    "xx-large" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 2)),
 
                     // https://github.com/servo/servo/issues/3423#issuecomment-56321664
-                    "smaller" => Ok(specified::Length::Em(0.85)),
-                    "larger" => Ok(specified::Length::Em(1.2))
+                    "smaller" => Ok(specified::Length::FontRelative(specified::FontRelativeLength::Em(0.85))),
+                    "larger" => Ok(specified::Length::FontRelative(specified::FontRelativeLength::Em(1.2)))
 
                     _ => Err(())
                 }
@@ -2038,7 +2039,7 @@ pub mod longhands {
 
         pub fn parse_one_box_shadow(input: &mut Parser) -> Result<SpecifiedBoxShadow, ()> {
             use util::geometry::Au;
-            let mut lengths = [specified::Length::Au(Au(0)); 4];
+            let mut lengths = [specified::Length::Absolute(Au(0)); 4];
             let mut lengths_parsed = false;
             let mut color = None;
             let mut inset = false;
@@ -2208,10 +2209,10 @@ pub mod longhands {
             }));
             if sides.len() == 4 {
                 Ok(Some(SpecifiedClipRect {
-                    top: sides[0].unwrap_or(Length::Au(Au(0))),
+                    top: sides[0].unwrap_or(Length::Absolute(Au(0))),
                     right: sides[1],
                     bottom: sides[2],
-                    left: sides[3].unwrap_or(Length::Au(Au(0))),
+                    left: sides[3].unwrap_or(Length::Absolute(Au(0))),
                 }))
             } else {
                 Err(())
@@ -2317,7 +2318,7 @@ pub mod longhands {
 
         fn parse_one_text_shadow(input: &mut Parser) -> Result<SpecifiedTextShadow,()> {
             use util::geometry::Au;
-            let mut lengths = [specified::Length::Au(Au(0)); 3];
+            let mut lengths = [specified::Length::Absolute(Au(0)); 3];
             let mut lengths_parsed = false;
             let mut color = None;
 
@@ -2855,7 +2856,7 @@ pub mod shorthands {
         fn parse_one_set_of_border_radii(mut input: &mut Parser)
                                          -> Result<[LengthOrPercentage; 4], ()> {
             let mut count = 0;
-            let mut values = [LengthOrPercentage::Length(Length::Au(Au(0))); 4];
+            let mut values = [LengthOrPercentage::Length(Length::Absolute(Au(0))); 4];
             while count < 4 {
                 if let Ok(value) = input.try(LengthOrPercentage::parse) {
                     values[count] = value;
@@ -3699,6 +3700,8 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock<
 /// Performs the CSS cascade, computing new styles for an element from its parent style and
 /// optionally a cached related style. The arguments are:
 ///
+///   * `viewport_size`: The size of the initial viewport.
+///
 ///   * `applicable_declarations`: The list of CSS rules that matched.
 ///
 ///   * `shareable`: Whether the `ComputedValues` structure to be constructed should be considered
@@ -3712,7 +3715,8 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock<
 ///     this is ignored.
 ///
 /// Returns the computed values and a boolean indicating whether the result is cacheable.
-pub fn cascade(applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
+pub fn cascade(viewport_size: Size2D<Au>,
+               applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
                shareable: bool,
                parent_style: Option< &ComputedValues >,
                cached_style: Option< &ComputedValues >)
@@ -3727,6 +3731,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclarati
         let inherited_font_style = inherited_style.get_font();
         computed::Context {
             is_root_element: is_root_element,
+            viewport_size: viewport_size,
             inherited_font_weight: inherited_font_style.font_weight,
             inherited_font_size: inherited_font_style.font_size,
             inherited_height: inherited_style.get_box().height,
@@ -3769,9 +3774,12 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclarati
                 PropertyDeclaration::FontSize(ref value) => {
                     context.font_size = match *value {
                         DeclaredValue::SpecifiedValue(ref specified_value) => {
-                            specified_value.0.to_computed_value_with_font_size(
-                                context.inherited_font_size, context.root_font_size
-                            )
+                            match specified_value.0 {
+                                Length::FontRelative(value) => value.to_computed_value(context.inherited_font_size,
+                                                                                       context.root_font_size),
+                                Length::ServoCharacterWidth(value) => value.to_computed_value(context.inherited_font_size),
+                                _ => specified_value.0.to_computed_value(&context)
+                            }
                         }
                         DeclaredValue::Initial => longhands::font_size::get_initial_value(),
                         DeclaredValue::Inherit => context.inherited_font_size,
