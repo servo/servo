@@ -54,6 +54,7 @@ use net::resource_task::{ResourceTask, load_bytes_iter};
 use servo_util::cursor::Cursor;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalPoint;
+use servo_util::memory::{MemoryProfilerChan, MemoryProfilerMsg, MemoryReport};
 use servo_util::opts;
 use servo_util::smallvec::{SmallVec, SmallVec1, VecLike};
 use servo_util::task::spawn_named_with_send_on_failure;
@@ -133,6 +134,9 @@ pub struct LayoutTask {
     /// The channel on which messages can be sent to the time profiler.
     pub time_profiler_chan: TimeProfilerChan,
 
+    /// The channel on which messages can be sent to the memory profiler.
+    pub memory_profiler_chan: MemoryProfilerChan,
+
     /// The channel on which messages can be sent to the resource task.
     pub resource_task: ResourceTask,
 
@@ -186,6 +190,7 @@ impl LayoutTaskFactory for LayoutTask {
                   img_cache_task: ImageCacheTask,
                   font_cache_task: FontCacheTask,
                   time_profiler_chan: TimeProfilerChan,
+                  memory_profiler_chan: MemoryProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
         spawn_named_with_send_on_failure("LayoutTask", task_state::LAYOUT, move || {
@@ -203,7 +208,8 @@ impl LayoutTaskFactory for LayoutTask {
                         resource_task,
                         img_cache_task,
                         font_cache_task,
-                        time_profiler_chan);
+                        time_profiler_chan,
+                        memory_profiler_chan);
                 layout.start();
             }
             shutdown_chan.send(()).unwrap();
@@ -253,7 +259,8 @@ impl LayoutTask {
            resource_task: ResourceTask,
            image_cache_task: ImageCacheTask,
            font_cache_task: FontCacheTask,
-           time_profiler_chan: TimeProfilerChan)
+           time_profiler_chan: TimeProfilerChan,
+           memory_profiler_chan: MemoryProfilerChan)
            -> LayoutTask {
         let local_image_cache =
             Arc::new(Mutex::new(LocalImageCache::new(image_cache_task.clone())));
@@ -266,6 +273,11 @@ impl LayoutTask {
             None
         };
 
+        // Register this thread as a memory reporter, via its own channel.
+        let reporter = Box::new(chan.clone());
+        let register_msg = MemoryProfilerMsg::RegisterMemoryReporter("layout".to_owned(), reporter);
+        memory_profiler_chan.send(register_msg);
+
         LayoutTask {
             id: id,
             port: port,
@@ -274,6 +286,7 @@ impl LayoutTask {
             script_chan: script_chan,
             paint_chan: paint_chan,
             time_profiler_chan: time_profiler_chan,
+            memory_profiler_chan: memory_profiler_chan,
             resource_task: resource_task,
             image_cache_task: image_cache_task.clone(),
             font_cache_task: font_cache_task,
@@ -415,6 +428,11 @@ impl LayoutTask {
                     LayoutTask::handle_reap_layout_data(dead_layout_data)
                 }
             },
+            Msg::CollectMemoryReports(reports_chan) => {
+                // njn: do this properly
+                let reports = vec![MemoryReport { name: "flow tree".to_owned(), size: 9999 }];
+                reports_chan.send(reports);
+            },
             Msg::PrepareToExit(response_chan) => {
                 debug!("layout: PrepareToExitMsg received");
                 self.prepare_to_exit(response_chan, possibly_locked_rw_data);
@@ -472,6 +490,9 @@ impl LayoutTask {
             }
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
+
+        let unregister_msg = MemoryProfilerMsg::UnregisterMemoryReporter("layout".to_owned());
+        self.memory_profiler_chan.send(unregister_msg);
 
         self.paint_chan.send(PaintMsg::Exit(Some(response_chan), exit_type));
         response_port.recv().unwrap()
@@ -888,9 +909,7 @@ impl LayoutTask {
             layout_root.dump();
         }
 
-        // njn: currently just measuring the size and printing every time a reflow happens. The
-        // meaurement should instead be done in response to a message from the MemoryProfiler task,
-        // and the result passed back for presentation.
+        // njn: remove this
         println!("total-size = {}", layout_root.size_of_excluding_self());
 
         rw_data.generation += 1;

@@ -82,6 +82,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
         let opts_clone = opts.clone();
         let time_profiler_chan_clone = time_profiler_chan.clone();
+        let memory_profiler_chan_clone = memory_profiler_chan.clone();
 
         let (result_chan, result_port) = channel();
         let compositor_proxy_for_constellation = compositor_proxy.clone_compositor_proxy();
@@ -109,6 +110,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                                                           image_cache_task,
                                                           font_cache_task,
                                                           time_profiler_chan_clone,
+                                                          memory_profiler_chan_clone,
                                                           devtools_chan,
                                                           storage_task);
 

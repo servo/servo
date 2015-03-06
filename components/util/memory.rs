@@ -6,6 +6,7 @@
 
 use libc::{c_char,c_int,c_void,size_t};
 use std::borrow::ToOwned;
+use std::collections::HashMap;
 use std::ffi::CString;
 use std::old_io::timer::sleep;
 #[cfg(target_os="linux")]
@@ -104,6 +105,7 @@ impl<T: SizeOf> SizeOf for Vec<T> {
     }
 }
 
+#[derive(Clone)]
 pub struct MemoryProfilerChan(pub Sender<MemoryProfilerMsg>);
 
 impl MemoryProfilerChan {
@@ -113,15 +115,57 @@ impl MemoryProfilerChan {
     }
 }
 
+pub struct MemoryReport {
+    /// The identifying name for this report.
+    pub name: String,
+
+    /// The size, in bytes.
+    pub size: u64,
+}
+
+/// A channel through which memory reports can be sent.
+#[derive(Clone)]
+pub struct MemoryReportsChan(pub Sender<Vec<MemoryReport>>);
+
+impl MemoryReportsChan {
+    pub fn send(&self, report: Vec<MemoryReport>) {
+        let MemoryReportsChan(ref c) = *self;
+        c.send(report).unwrap();
+    }
+}
+
+/// A memory reporter is capable of measuring some data structure of interest. Because it needs
+/// to be passed to and registered with the MemoryProfiler, it's typically a "small" (i.e. easily
+/// cloneable) value that provides access to a "large" data structure, e.g. a channel that can
+/// inject a request for measurements into the event queue associated with the "large" data
+/// structure.
+pub trait MemoryReporter {
+    fn collect_reports(&self, reports_chan: MemoryReportsChan);
+}
+
+/// Messages that can be sent to the memory profiler thread.
 pub enum MemoryProfilerMsg {
-    /// Message used to force print the memory profiling metrics.
+    /// Register a MemoryReporter with the memory profiler. The String is only used to identify the
+    /// reporter so it can be unregistered later.
+    RegisterMemoryReporter(String, Box<MemoryReporter + Send>),
+
+    /// Unregister a MemoryReporter with the memory profiler. The String must match the name given
+    /// when the reporter was registered.
+    UnregisterMemoryReporter(String),
+
+    /// Triggers printing of the memory profiling metrics.
     Print,
+
     /// Tells the memory profiler to shut down.
     Exit,
 }
 
 pub struct MemoryProfiler {
+    /// The port through which messages are received.
     pub port: Receiver<MemoryProfilerMsg>,
+
+    /// Registered memory reporters.
+    reporters: HashMap<String, Box<MemoryReporter + Send>>,
 }
 
 impl MemoryProfiler {
@@ -141,7 +185,7 @@ impl MemoryProfiler {
                 });
                 // Spawn the memory profiler.
                 spawn_named("Memory profiler".to_owned(), move || {
-                    let memory_profiler = MemoryProfiler::new(port);
+                    let mut memory_profiler = MemoryProfiler::new(port);
                     memory_profiler.start();
                 });
             }
@@ -164,11 +208,12 @@ impl MemoryProfiler {
 
     pub fn new(port: Receiver<MemoryProfilerMsg>) -> MemoryProfiler {
         MemoryProfiler {
-            port: port
+            port: port,
+            reporters: HashMap::new(),
         }
     }
 
-    pub fn start(&self) {
+    pub fn start(&mut self) {
         loop {
             match self.port.recv() {
                Ok(msg) => {
@@ -181,12 +226,23 @@ impl MemoryProfiler {
         }
     }
 
-    fn handle_msg(&self, msg: MemoryProfilerMsg) -> bool {
+    fn handle_msg(&mut self, msg: MemoryProfilerMsg) -> bool {
         match msg {
+            MemoryProfilerMsg::RegisterMemoryReporter(name, reporter) => {
+                self.reporters.insert(name, reporter);
+                true
+            },
+
+            MemoryProfilerMsg::UnregisterMemoryReporter(name) => {
+                self.reporters.remove(&name);
+                true
+            },
+
             MemoryProfilerMsg::Print => {
                 self.handle_print_msg();
                 true
             },
+
             MemoryProfilerMsg::Exit => false
         }
     }
@@ -204,7 +260,10 @@ impl MemoryProfiler {
     }
 
     fn handle_print_msg(&self) {
+
         println!("{:12}: {}", "_size (MiB)_", "_category_");
+
+        // Collect global measurements from the OS and heap allocators.
 
         // Virtual and physical memory usage, as reported by the OS.
         MemoryProfiler::print_measurement("vsize", get_vsize());
@@ -237,6 +296,19 @@ impl MemoryProfiler {
         // |stats.active|. This does not include inactive chunks."
         MemoryProfiler::print_measurement("jemalloc-heap-mapped",
                                           get_jemalloc_stat("stats.mapped"));
+
+        // Collect reports from memory reporters.
+
+        // This serializes the report-gathering. It might be worth creating a new scoped thread for
+        // each reporter once we have enough of them.
+        for reporter in self.reporters.values() {
+            let (chan, port) = channel();
+            reporter.collect_reports(MemoryReportsChan(chan)); 
+            let reports = port.recv().unwrap();
+            for report in reports {
+                MemoryProfiler::print_measurement(report.name.as_slice(), Some(report.size));
+            }
+        }
 
         println!("");
     }

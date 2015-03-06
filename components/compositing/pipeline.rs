@@ -16,6 +16,7 @@ use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
 use net::storage_task::StorageTask;
+use util::memory::MemoryProfilerChan;
 use util::time::TimeProfilerChan;
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, channel};
@@ -57,6 +58,7 @@ impl Pipeline {
                            resource_task: ResourceTask,
                            storage_task: StorageTask,
                            time_profiler_chan: TimeProfilerChan,
+                           memory_profiler_chan: MemoryProfilerChan,
                            window_size: WindowSizeData,
                            script_pipeline: Option<Rc<Pipeline>>,
                            load_data: LoadData)
@@ -126,6 +128,7 @@ impl Pipeline {
                                   image_cache_task,
                                   font_cache_task,
                                   time_profiler_chan,
+                                  memory_profiler_chan,
                                   layout_shutdown_chan);
 
         Pipeline::new(id,
