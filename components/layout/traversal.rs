@@ -176,7 +176,8 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
 
                     // Perform the CSS cascade.
                     unsafe {
-                        node.cascade_node(parent_opt,
+                        node.cascade_node(self.layout_context.shared,
+                                          parent_opt,
                                           &applicable_declarations,
                                           self.layout_context.applicable_declarations_cache());
                     }

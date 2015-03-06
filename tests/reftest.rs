@@ -136,6 +136,7 @@ struct Reftest {
     is_flaky: bool,
     experimental: bool,
     fragment_identifier: Option<String>,
+    resolution: Option<String>,
 }
 
 struct TestLine<'a> {
@@ -195,6 +196,7 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
         let mut flakiness = RenderMode::empty();
         let mut experimental = false;
         let mut fragment_identifier = None;
+        let mut resolution = None;
         for condition in conditions_list {
             match condition {
                 "flaky_cpu" => flakiness.insert(CPU_RENDERING),
@@ -206,6 +208,9 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
             }
             if condition.starts_with("fragment=") {
                 fragment_identifier = Some(condition.slice_from("fragment=".len()).to_string());
+            }
+            if condition.starts_with("resolution=") {
+                resolution = Some(condition.slice_from("resolution=".len()).to_string());
             }
         }
 
@@ -219,6 +224,7 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
             is_flaky: render_mode.intersects(flakiness),
             experimental: experimental,
             fragment_identifier: fragment_identifier,
+            resolution: resolution,
         };
 
         tests.push(make_test(reftest));
@@ -264,6 +270,10 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
     }
     if reftest.experimental {
         command.arg("--experimental");
+    }
+    if let Some(ref resolution) = reftest.resolution {
+        command.arg("--resolution");
+        command.arg(resolution);
     }
     let retval = match command.status() {
         Ok(status) => status,

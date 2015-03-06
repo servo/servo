@@ -119,7 +119,7 @@ impl PresentationalHintSynthesis for Stylist {
                         *shareable = false
                     }
                     LengthOrPercentageOrAuto::Length(length) => {
-                        let width_value = specified::LengthOrPercentageOrAuto::Length(specified::Length::Au(length));
+                        let width_value = specified::LengthOrPercentageOrAuto::Length(specified::Length::Absolute(length));
                         matching_rules_list.vec_push(from_declaration(
                                 PropertyDeclaration::Width(SpecifiedValue(width_value))));
                         *shareable = false
@@ -160,9 +160,9 @@ impl PresentationalHintSynthesis for Stylist {
                         // FIXME(pcwalton): More use of atoms, please!
                         let value = match element.get_attr(&ns!(""), &atom!("type")) {
                             Some("text") | Some("password") => {
-                                specified::Length::ServoCharacterWidth(value)
+                                specified::Length::ServoCharacterWidth(specified::CharacterWidth(value))
                             }
-                            _ => specified::Length::Au(Au::from_px(value as int)),
+                            _ => specified::Length::Absolute(Au::from_px(value as int)),
                         };
                         matching_rules_list.vec_push(from_declaration(
                                 PropertyDeclaration::Width(SpecifiedValue(
@@ -180,7 +180,7 @@ impl PresentationalHintSynthesis for Stylist {
                         // scrollbar size into consideration (but we don't have a scrollbar yet!)
                         //
                         // https://html.spec.whatwg.org/multipage/rendering.html#textarea-effective-width
-                        let value = specified::Length::ServoCharacterWidth(value);
+                        let value = specified::Length::ServoCharacterWidth(specified::CharacterWidth(value));
                         matching_rules_list.vec_push(from_declaration(
                                 PropertyDeclaration::Width(SpecifiedValue(
                                     specified::LengthOrPercentageOrAuto::Length(value)))));
@@ -193,7 +193,7 @@ impl PresentationalHintSynthesis for Stylist {
                         // TODO(mttr) This should take scrollbar size into consideration.
                         //
                         // https://html.spec.whatwg.org/multipage/rendering.html#textarea-effective-height
-                        let value = specified::Length::Em(value as CSSFloat);
+                        let value = specified::Length::FontRelative(specified::FontRelativeLength::Em(value as CSSFloat));
                         matching_rules_list.vec_push(from_declaration(
                                 PropertyDeclaration::Height(SpecifiedValue(
                                     longhands::height::SpecifiedValue(
@@ -241,7 +241,7 @@ impl PresentationalHintSynthesis for Stylist {
         match element.get_unsigned_integer_attribute(UnsignedIntegerAttribute::Border) {
             None => {}
             Some(length) => {
-                let width_value = specified::Length::Au(Au::from_px(length as int));
+                let width_value = specified::Length::Absolute(Au::from_px(length as int));
                 matching_rules_list.vec_push(from_declaration(
                         PropertyDeclaration::BorderTopWidth(SpecifiedValue(
                             longhands::border_top_width::SpecifiedValue(width_value)))));
