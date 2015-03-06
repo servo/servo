@@ -74,8 +74,8 @@ use util::task_state;
 use geom::Rect;
 use geom::point::Point2D;
 use hyper::header::{LastModified, Headers};
-use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ};
-use js::jsapi::{JSContext, JSRuntime, JSObject};
+use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_SetExtraGCRootsTracer, JS_DEFAULT_ZEAL_FREQ};
+use js::jsapi::{JSContext, JSRuntime, JSObject, JSTracer};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
 use js::rust::{Cx, RtUtils};
@@ -85,8 +85,10 @@ use url::Url;
 use libc;
 use std::any::Any;
 use std::borrow::ToOwned;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::num::ToPrimitive;
+use std::option::Option;
+use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
@@ -94,11 +96,21 @@ use std::u32;
 use time::Tm;
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
+thread_local!(static SCRIPT_TASK_ROOT: RefCell<Option<*const ScriptTask>> = RefCell::new(None));
+
+unsafe extern fn trace_script_tasks(tr: *mut JSTracer, _data: *mut libc::c_void) {
+    SCRIPT_TASK_ROOT.with(|root| {
+        if let Some(script_task) = *root.borrow() {
+            (*script_task).trace(tr);
+        }
+    });
+}
 
 /// A document load that is in the process of fetching the requested resource. Contains
 /// data that will need to be present when the document and frame tree entry are created,
 /// but is only easily available at initiation of the load and on a push basis (so some
 /// data will be updated according to future resize events, viewport changes, etc.)
+#[jstraceable]
 struct InProgressLoad {
     /// The pipeline which requested this load.
     pipeline_id: PipelineId,
@@ -224,6 +236,7 @@ impl Drop for StackRootTLS {
 /// frames.
 ///
 /// FIXME: Rename to `Page`, following WebKit?
+#[jstraceable]
 pub struct ScriptTask {
     /// A handle to the information pertaining to page layout
     page: DOMRefCell<Option<Rc<Page>>>,
@@ -347,6 +360,10 @@ impl ScriptTaskFactory for ScriptTask {
                                               storage_task,
                                               image_cache_task,
                                               devtools_chan);
+
+            SCRIPT_TASK_ROOT.with(|root| {
+                *root.borrow_mut() = Some(&script_task as *const _);
+            });
             let mut failsafe = ScriptMemoryFailsafe::new(&script_task);
 
             let new_load = InProgressLoad::new(id, None, layout_chan, window_size,
@@ -455,6 +472,7 @@ impl ScriptTask {
         js_context.set_logging_error_reporter();
         unsafe {
             JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
+            JS_SetExtraGCRootsTracer((*js_runtime).ptr, Some(trace_script_tasks), ptr::null_mut());
         }
 
         // Needed for debug assertions about whether GC is running.
@@ -1210,6 +1228,14 @@ impl ScriptTask {
         });
 
         self.incomplete_loads.borrow_mut().push(incomplete);
+    }
+}
+
+impl Drop for ScriptTask {
+    fn drop(&mut self) {
+        SCRIPT_TASK_ROOT.with(|root| {
+            *root.borrow_mut() = None;
+        });
     }
 }
 
