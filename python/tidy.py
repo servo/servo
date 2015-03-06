@@ -55,9 +55,7 @@ def should_check(file_name):
 
 
 def should_check_reftest(file_name):
-    if os.path.splitext(file_name)[1] != reftest_filetype:
-        return False
-    return True
+    return file_name.endswith(reftest_filetype)
 
 
 def check_license(contents):
@@ -106,10 +104,9 @@ def check_reftest_order(files_to_check):
     for file_name in files_to_check:
         with open(file_name, "r") as fp:
             split_lines = fp.read().splitlines()
-            lines = contents = filter(lambda l: len(l) > 0 and l[0] != '#', split_lines)
+            lines = filter(lambda l: len(l) > 0 and l[0] != '#', split_lines)
             for idx, line in enumerate(lines[:-1]):
                 next_line = lines[idx+1]
-
                 current = get_reftest_names(line)
                 next = get_reftest_names(next_line)
                 if current is not None and next is not None and current > next:
