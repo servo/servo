@@ -127,6 +127,11 @@ version = "0.1.0"
 source = "git+https://github.com/servo/rust-core-foundation#da9a52655fce4727dcf261d6ed9a49eeddc7b131"
 
 [[package]]
+name = "core_foundation"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-core-foundation?rev=da9a52655fce4727dcf261d6ed9a49eeddc7b131#da9a52655fce4727dcf261d6ed9a49eeddc7b131"
+
+[[package]]
 name = "core_graphics"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-core-graphics#9434e2bda65d259f825104170b5fa6cc6dbaf5a9"
@@ -325,6 +330,11 @@ dependencies = [
  "url 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
+
+[[package]]
+name = "giflib-sys"
+version = "0.1.0"
+source = "git+https://github.com/pcwalton/giflib#7cce2d216f68ad2ae773fde15c53e90b6687429b"
 
 [[package]]
 name = "gl_common"
@@ -556,6 +566,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "libvpx-sys"
+version = "0.1.0"
+source = "git+https://github.com/pcwalton/libvpx?branch=servo#90d2750900d72ee20b2f99bdfb33b2c725e585b8"
+
+[[package]]
+name = "libwebm-sys"
+version = "0.1.0"
+source = "git+https://github.com/pcwalton/libwebm?branch=servo#a3f20c3da760c6c423840a9d8ddad66f9fdfb37a"
+
+[[package]]
 name = "log"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -564,6 +584,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "matches"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "media"
+version = "0.0.1"
+dependencies = [
+ "rust-media 0.1.0 (git+https://github.com/pcwalton/rust-media)",
+]
 
 [[package]]
 name = "mime"
@@ -582,6 +609,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "mozjs-sys"
 version = "0.0.0"
 source = "git+https://github.com/servo/mozjs#056e1d953b95d7a9545d514cf95772a0a1c69bb2"
+
+[[package]]
+name = "mp4v2-sys"
+version = "0.1.0"
+source = "git+https://github.com/pcwalton/mp4v2?branch=servo#08458b72a063b5fbd0e7398edd19d17f348a946b"
 
 [[package]]
 name = "msg"
@@ -619,6 +651,11 @@ dependencies = [
  "url 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
+
+[[package]]
+name = "ogg-sys"
+version = "0.1.0"
+source = "git+https://github.com/pcwalton/ogg?branch=servo#3c1758b277863d198926cc9d59e8c37c9a784bd1"
 
 [[package]]
 name = "openssl"
@@ -698,6 +735,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-media"
+version = "0.1.0"
+source = "git+https://github.com/pcwalton/rust-media#8a428094b529de2d5b86b9246934def039dc0f4d"
+dependencies = [
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation?rev=da9a52655fce4727dcf261d6ed9a49eeddc7b131)",
+ "giflib-sys 0.1.0 (git+https://github.com/pcwalton/giflib)",
+ "libvpx-sys 0.1.0 (git+https://github.com/pcwalton/libvpx?branch=servo)",
+ "libwebm-sys 0.1.0 (git+https://github.com/pcwalton/libwebm?branch=servo)",
+ "mp4v2-sys 0.1.0 (git+https://github.com/pcwalton/mp4v2?branch=servo)",
+ "ogg-sys 0.1.0 (git+https://github.com/pcwalton/ogg?branch=servo)",
+ "vorbis-sys 0.1.0 (git+https://github.com/pcwalton/vorbis?branch=servo)",
+]
+
+[[package]]
 name = "regex"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -722,6 +773,7 @@ dependencies = [
  "hyper 0.1.10 (git+https://github.com/servo/hyper?branch=servo)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
  "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "media 0.0.1",
  "msg 0.0.1",
  "net 0.0.1",
  "plugins 0.0.1",
@@ -891,6 +943,14 @@ source = "git+https://github.com/rust-lang/uuid#3128649cde7c4ba390b31298093d6c18
 dependencies = [
  "rand 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "vorbis-sys"
+version = "0.1.0"
+source = "git+https://github.com/pcwalton/vorbis?branch=servo#82fcb8dc370f29e0c2a2ce22914adc7e60679ed1"
+dependencies = [
+ "ogg-sys 0.1.0 (git+https://github.com/pcwalton/ogg?branch=servo)",
 ]
 
 [[package]]
