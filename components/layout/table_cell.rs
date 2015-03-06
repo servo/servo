@@ -128,12 +128,17 @@ impl Flow for TableCellFlow {
         let inline_start_content_edge =
             self.block_flow.fragment.border_box.start.i +
             self.block_flow.fragment.border_padding.inline_start;
+        let inline_end_content_edge =
+            self.block_flow.base.block_container_inline_size -
+            self.block_flow.fragment.border_padding.inline_start_end() -
+            self.block_flow.fragment.border_box.size.inline;
         let padding_and_borders = self.block_flow.fragment.border_padding.inline_start_end();
         let content_inline_size =
             self.block_flow.fragment.border_box.size.inline - padding_and_borders;
 
         self.block_flow.propagate_assigned_inline_size_to_children(layout_context,
                                                                    inline_start_content_edge,
+                                                                   inline_end_content_edge,
                                                                    content_inline_size,
                                                                    None);
     }

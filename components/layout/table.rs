@@ -300,6 +300,7 @@ impl Flow for TableFlow {
                                                       containing_block_inline_size);
 
         let inline_start_content_edge = self.block_flow.fragment.border_padding.inline_start;
+        let inline_end_content_edge = self.block_flow.fragment.border_padding.inline_end;
         let padding_and_borders = self.block_flow.fragment.border_padding.inline_start_end();
         let spacing_per_cell = self.spacing();
         let spacing = spacing_per_cell.horizontal *
@@ -352,6 +353,7 @@ impl Flow for TableFlow {
         };
         self.block_flow.propagate_assigned_inline_size_to_children(layout_context,
                                                                    inline_start_content_edge,
+                                                                   inline_end_content_edge,
                                                                    content_inline_size,
                                                                    Some(info));
     }
