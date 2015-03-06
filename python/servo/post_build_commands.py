@@ -32,31 +32,51 @@ def read_file(filename, if_exists=False):
 @CommandProvider
 class MachCommands(CommandBase):
 
-    def get_binary_path(self, release):
+    def get_binary_path(self, release, dev):
         base_path = path.join("components", "servo", "target")
-        release_path= path.join(base_path, "release", "servo")
+        release_path = path.join(base_path, "release", "servo")
+        dev_path = path.join(base_path, "servo")
 
-        if not release:
-            if not os.path.exists(release_path):
-                if not os.path.exists(base_path):
-                    print("Servo Binary cannot be found, please run './mach build'"
-                        "and try again!")
-                    sys.exit()
-                print("Running Debug Build")
-                return path.join(base_path, "servo")
+        # Prefer release if both given
+        if release and dev:
+            dev = False
+
+        release_exists = path.exists(release_path)
+        dev_exists = path.exists(dev_path)
+
+        if not release_exists and not dev_exists:
+            print("No Servo binary found. Please run './mach build' and try again.")
+            sys.exit()
+
+        if release and release_exists:
+            return release_path
+
+        if dev and dev_exists:
+            return dev_path
+
+        if not dev and not release and release_exists and dev_exists:
+            print("You have multiple profiles built. Please specify which "
+                  "one to run with '--release' or '--dev'.")
+            sys.exit()
+
+        if not dev and not release:
+            if release_exists:
+                return release_path
             else:
-                if os.path.exists(base_path):
-                    print("You have multiple binaries present."
-                        " Please specify which binary is to be run")
-                    sys.exit()
-                return path.join(release_path, "servo")
-        return path.join(base_path, "servo")
+                return dev_path
+
+        print("The %s profile is not built. Please run './mach build%s' "
+              "and try again." % ("release" if release else "dev",
+                                   "--release" if release else ""))
+        sys.exit()
 
     @Command('run',
              description='Run Servo',
              category='post-build')
     @CommandArgument('--release', '-r', action='store_true',
-                     help='Running release builds')
+                     help='Run the release build')
+    @CommandArgument('--dev', action='store_true',
+                     help='Run the dev build')
     @CommandArgument('--debug', action='store_true',
                      help='Enable the debugger. Not specifying a '
                           '--debugger option will result in the default '
@@ -67,12 +87,11 @@ class MachCommands(CommandBase):
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def run(self, params, release=False, debug=False, debugger=None):
+    def run(self, params, release=False, dev=False, debug=False, debugger=None):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
-        args = [self.get_binary_path(release)]
-
+        args = [self.get_binary_path(release, dev)]
         # Borrowed and modified from:
         # http://hg.mozilla.org/mozilla-central/file/c9cfa9b91dea/python/mozbuild/mozbuild/mach_commands.py#l883
         if debug:
@@ -107,15 +126,17 @@ class MachCommands(CommandBase):
              description='Run Servo whilst recording execution with rr',
              category='post-build')
     @CommandArgument('--release', '-r', action='store_true',
-                     help='Running release builds')
+                     help='Use release build')
+    @CommandArgument('--dev', action='store_true',
+                     help='Use dev build')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def rr_record(self, release=False, params=[]):
+    def rr_record(self, release=False, dev=False, params=[]):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
-        servo_cmd = [self.get_binary_path(release)] + params
+        servo_cmd = [self.get_binary_path(release, dev)] + params
         rr_cmd = ['rr', '--fatal-errors', 'record']
         try:
             subprocess.check_call(rr_cmd + servo_cmd)
