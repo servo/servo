@@ -9,6 +9,7 @@
 #![feature(int_uint)]
 #![feature(io)]
 #![feature(path)]
+#![feature(plugin)]
 #![feature(rustc_private)]
 #![feature(std_misc)]
 #![feature(unboxed_closures)]
@@ -28,6 +29,10 @@ extern crate util;
 extern crate stb_image;
 extern crate time;
 extern crate url;
+
+#[plugin] #[no_link]
+extern crate regex_macros;
+extern crate regex;
 
 /// Image handling.
 ///
