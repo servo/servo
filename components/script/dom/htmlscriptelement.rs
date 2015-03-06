@@ -6,6 +6,7 @@ use std::ascii::AsciiExt;
 
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
@@ -15,8 +16,9 @@ use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLScriptE
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary, OptionalRootable, RootedReference};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, RootedReference};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::trace::JSTraceable;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers, ElementCreator};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -29,7 +31,8 @@ use dom::window::{WindowHelpers, ScriptHelpers};
 use script_task::{ScriptMsg, Runnable};
 
 use encoding::all::UTF_8;
-use encoding::types::{Encoding, DecoderTrap};
+use encoding::label::encoding_from_whatwg_label;
+use encoding::types::{Encoding, EncodingRef, DecoderTrap};
 use net::resource_task::{load_whole_resource, Metadata};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use std::borrow::ToOwned;
@@ -56,6 +59,12 @@ pub struct HTMLScriptElement {
     ///
     /// (currently unused)
     ready_to_be_parser_executed: Cell<bool>,
+
+    /// Document of the parser that created this element
+    parser_document: JS<Document>,
+
+    /// https://html.spec.whatwg.org/multipage/scripting.html#concept-script-encoding
+    block_character_encoding: DOMRefCell<EncodingRef>,
 }
 
 impl HTMLScriptElementDerived for EventTarget {
@@ -73,6 +82,8 @@ impl HTMLScriptElement {
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
             ready_to_be_parser_executed: Cell::new(false),
+            parser_document: JS::from_rooted(document),
+            block_character_encoding: DOMRefCell::new(UTF_8 as EncodingRef),
         }
     }
 
@@ -179,12 +190,16 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         self.already_started.set(true);
 
         // Step 10.
-        // TODO: If the element is flagged as "parser-inserted", but the element's node document is
-        // not the Document of the parser that created the element, then abort these steps.
+        let document_from_node_ref = document_from_node(self).root();
+        let document_from_node_ref = document_from_node_ref.r();
+        if self.parser_inserted.get() && self.parser_document.root().r() != document_from_node_ref {
+            return;
+        }
 
         // Step 11.
-        // TODO: If scripting is disabled for the script element, then the user agent must abort
-        // these steps at this point. The script is not executed.
+        if !document_from_node_ref.is_scripting_enabled() {
+            return;
+        }
 
         // Step 12.
         match element.get_attribute(ns!(""), &atom!("for")).root() {
@@ -207,9 +222,11 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             _ => { }
         }
         // Step 13.
-        // TODO: If the script element has a `charset` attribute, then let the script block's
-        // character encoding for this script element be the result of getting an encoding from the
-        // value of the `charset` attribute.
+        if let Some(charset) = element.get_attribute(ns!(""), &Atom::from_slice("charset")).root() {
+            if let Some(encodingRef) = encoding_from_whatwg_label(&charset.r().Value()) {
+                *self.block_character_encoding.borrow_mut() = encodingRef;
+            }
+        }
 
         // Step 14.
         let window = window_from_node(self).root();
