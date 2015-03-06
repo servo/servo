@@ -36,7 +36,7 @@ use dom::event::{Event, EventHelpers};
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
 use dom::node::{self, Node, NodeHelpers, NodeDamage, window_from_node};
-use dom::window::{Window, WindowHelpers, ScriptHelpers};
+use dom::window::{Window, WindowHelpers, ScriptHelpers, ReflowReason};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use parse::html::{HTMLInput, parse_html};
 use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
@@ -715,7 +715,7 @@ impl ScriptTask {
                 let window = inner_page.window().root();
                 if window.r().set_page_clip_rect_with_new_viewport(rect) {
                     let page = get_page(page, id);
-                    self.force_reflow(&*page);
+                    self.force_reflow(&*page, ReflowReason::Viewport);
                 }
                 return;
             }
@@ -789,7 +789,7 @@ impl ScriptTask {
 
         let needed_reflow = page.set_reflow_status(false);
         if needed_reflow {
-            self.force_reflow(&*page);
+            self.force_reflow(&*page, ReflowReason::CachedPageNeededReflow);
         }
     }
 
@@ -1025,7 +1025,7 @@ impl ScriptTask {
         debug!("kicking off initial reflow of {:?}", final_url);
         document.r().content_changed(NodeCast::from_ref(document.r()),
                                      NodeDamage::OtherNodeDamage);
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
 
         // No more reflow required
         page.set_reflow_status(false);
@@ -1078,11 +1078,11 @@ impl ScriptTask {
     }
 
     /// Reflows non-incrementally.
-    fn force_reflow(&self, page: &Page) {
+    fn force_reflow(&self, page: &Page, reason: ReflowReason) {
         let document = page.document().root();
         document.r().dirty_all_nodes();
         let window = window_from_node(document.r()).root();
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, reason);
     }
 
     /// This is the main entry point for receiving and dispatching DOM events.
@@ -1131,7 +1131,7 @@ impl ScriptTask {
                 let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();
 
                 if document.r().handle_mouse_move_event(self.js_runtime.ptr, point, mouse_over_targets) {
-                    self.force_reflow(&page)
+                    self.force_reflow(&page, ReflowReason::MouseEvent)
                 }
             }
 
@@ -1169,7 +1169,7 @@ impl ScriptTask {
         let page = get_page(&self.root_page(), pipeline_id);
         let window = page.window().root();
         window.r().set_window_size(new_size);
-        self.force_reflow(&*page);
+        self.force_reflow(&*page, ReflowReason::WindowResize);
 
         let document = page.document().root();
         let fragment_node = window.r().steal_fragment_name()
@@ -1195,7 +1195,7 @@ impl ScriptTask {
     fn handle_reflow_event(&self, pipeline_id: PipelineId) {
         debug!("script got reflow event");
         let page = get_page(&self.root_page(), pipeline_id);
-        self.force_reflow(&*page);
+        self.force_reflow(&*page, ReflowReason::ReceivedReflowEvent);
     }
 
     /// Initiate a non-blocking fetch for a specified resource. Stores the InProgressLoad
