@@ -44,41 +44,41 @@ pub fn heap_size_of(ptr: *const c_void) -> usize {
 // return multiple measurements -- e.g. measure text separately from images -- are also possible,
 // and should be used when appropriate.
 //
-// njn: it would be nice if we could somehow automatically choose the right one, to avoid possibly
-// getting it wrong. In Firefox at least the deref operator helps -- e.g. you always want
-// x.SizeOfExcludingThis() or x->SizeOfIncludingThis(), never x->SizeOfExcludingThis() or
-// x.SizeOfIncludingThis() -- but Rust doesn't have that distinction.
-//
-// njn: it would also be nice to be able to derive this trait automatically, given that
-// implementations are mostly repetitive and mechanical.
+// XXX: it would be nice to be able to derive this trait automatically, given that implementations
+// are mostly repetitive and mechanical.
 //
 pub trait SizeOf {
-    /// Measure the size of any heap-allocated structures that hang off this value. This method
-    /// should be used on non-boxed values.
+    /// Measure the size of any heap-allocated structures that hang off this value, but not the
+    /// space taken up by the value itself (i.e. what size_of::<T> measures, more or less); that
+    /// space is handled by the implementation of SizeOf for Box<T> below.
     fn size_of_excluding_self(&self) -> usize;
+}
 
-    /// Measure the size of the value itself, as well as any heap-allocated structures that hang
-    /// off it. This method should be used on boxed values. The default implementation should
-    /// suffice in all cases.
-    ///
-    /// There are two possible ways to measure the size of `self`: compute it (e.g.
-    /// `heap::rt::usable_size(mem::size_of::<T>()), or measure it directly using the heap
-    /// allocator. We do the latter, for the following reasons.
-    /// 
-    /// * The heap allocator is the true authority for the sizes of heap blocks; the measurement is
-    ///   guaranteed to be correct. In comparison, size computations are error-prone.
-    ///
-    /// * If we measure something that isn't a heap block, we'll get a crash. This keeps us
-    ///   honest, which is important because this is easy to get wrong, e.g. by calling
-    ///   `size_of_including_self` instead of `size_of_excluding_self` on a value that's embedded
-    ///   in the middle of another value.
-    ///
-    /// * If we computed the size we couldn't use a default definition of this method, because
-    ///   that would require knowing size_of::<T> for all possible T.
-    ///
-    fn size_of_including_self(&self) -> usize {
-        let self_size = heap_size_of(self as *const Self as *const c_void) as usize;
-        self_size + self.size_of_excluding_self()
+// There are two possible ways to measure the size of `self` when it's on the heap: compute it
+// (e.g. with `mem::size_of` and `rt::heap::usable_size`, or measure it directly using the heap
+// allocator. We do the latter, for the following reasons.
+// 
+// * The heap allocator is the true authority for the sizes of heap blocks; its measurement is
+//   guaranteed to be correct. In comparison, size computations are error-prone. (For example, the
+//   `rt::heap::usable_size` function used in some of Rust's non-default allocator implementations
+//   underestimate the true usable size of heap blocks, which is safe in general but would cause
+//   under-measurement here.)
+//
+// * If we measure something that isn't a heap block, we'll get a crash. This keeps us honest,
+//   which is important because unsafe code is involved and this can be gotten wrong.
+//
+// However, in the best case, the two approaches should give the same results. The computation code
+// is given below (commented out) for easy comparison.
+//
+impl<T: SizeOf> SizeOf for Box<T> {
+    fn size_of_excluding_self(&self) -> usize {
+        // Measure size of `self`.
+        let self_size = heap_size_of(&**self as *const T as *const c_void);
+
+        // Compute size of `self`.
+        //let self_size = ::std::rt::heap::usable_size(::std::mem::size_of::<T>(), 0)
+
+        self_size + (**self).size_of_excluding_self()
     }
 }
 

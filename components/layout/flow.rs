@@ -857,17 +857,9 @@ impl Drop for BaseFlow {
 
 impl SizeOf for BaseFlow {
     fn size_of_excluding_self(&self) -> usize {
-        self.children.iter().fold(0, |n, kid| n + kid.size_of_including_self())
+        self.children.iter().fold(0, |n, kid| n + kid.size_of_excluding_self())
 
         // XXX: other fields may be measured in the future
-    }
-
-    fn size_of_including_self(&self) -> usize {
-        // This should never be called; only size_of_excluding_self() should be
-        // called. That's because BaseFlow is always embedded within another
-        // struct (e.g. BlockFlow), and so that surrounding struct's `self`
-        // should be the one getting measured.
-        panic!("BaseFlow::size_of_excluding_self() called");
     }
 }
 

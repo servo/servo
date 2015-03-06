@@ -212,8 +212,7 @@ impl SizeOf for SpecificFragmentInfo {
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => 0,
             SpecificFragmentInfo::InlineBlock(_) => 0,
 
-            SpecificFragmentInfo::ScannedText(ref info) =>
-                info.size_of_including_self(),
+            SpecificFragmentInfo::ScannedText(ref info) => info.size_of_excluding_self(),
 
             // XXX: todo
             SpecificFragmentInfo::TableColumn(_) => 0,
@@ -618,7 +617,7 @@ impl SizeOf for ScannedTextFragmentInfo {
     fn size_of_excluding_self(&self) -> usize {
         // `run` is an Arc<>, but the LayoutTask owns the TextRun, and so is the right thread to
         // measure it.
-        self.run.size_of_including_self() +
+        self.run.size_of_excluding_self() +
             self.new_line_pos.size_of_excluding_self() +
             match self.original_new_line_pos {
                 None => 0,
