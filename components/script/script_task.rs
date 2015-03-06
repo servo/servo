@@ -28,7 +28,7 @@ use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, RootedReference}
 use dom::bindings::js::{RootCollection, RootCollectionPtr};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::bindings::trace::JSTraceable;
+use dom::bindings::trace::{JSTraceable, trace_collections};
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource};
 use dom::element::{Element, AttributeHandlers};
@@ -76,7 +76,7 @@ use geom::point::Point2D;
 use hyper::header::{LastModified, Headers};
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ};
 use js::jsapi::{JSContext, JSRuntime, JSObject};
-use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
+use js::jsapi::{JS_SetExtraGCRootsTracer, JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
 use js::rust::{Cx, RtUtils};
 use js;
@@ -87,6 +87,7 @@ use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::num::ToPrimitive;
+use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
@@ -437,6 +438,10 @@ impl ScriptTask {
             !ptr.is_null()
         });
 
+
+        unsafe {
+            JS_SetExtraGCRootsTracer((*js_runtime).ptr, Some(trace_collections), ptr::null_mut());
+        }
         // Unconstrain the runtime's threshold on nominal heap size, to avoid
         // triggering GC too often if operating continuously near an arbitrary
         // finite threshold. This leaves the maximum-JS_malloc-bytes threshold

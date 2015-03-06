@@ -4,8 +4,9 @@
 
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, NodeDerived};
-use dom::bindings::js::{JS, JSRef, OptionalRootable, Root};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast};
+use dom::bindings::js::{JS, JSRef, OptionalRootable};
+use dom::bindings::trace::RootedVec;
 use dom::eventtarget::{EventTarget, ListenerPhase};
 use dom::event::{Event, EventPhase};
 use dom::node::{Node, NodeHelpers};
@@ -27,15 +28,13 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
     let type_ = event.Type();
 
     //TODO: no chain if not participating in a tree
-    let mut chain: Vec<Root<EventTarget>> = if target.is_node() {
-        let target_node: JSRef<Node> = NodeCast::to_ref(target).unwrap();
-        target_node.ancestors().map(|ancestor| {
+    let mut chain: RootedVec<JS<EventTarget>> = RootedVec::new();
+    if let Some(target_node) = NodeCast::to_ref(target) {
+        for ancestor in target_node.ancestors() {
             let ancestor_target: JSRef<EventTarget> = EventTargetCast::from_ref(ancestor);
-            JS::from_rooted(ancestor_target).root()
-        }).collect()
-    } else {
-        vec!()
-    };
+            chain.push(JS::from_rooted(ancestor_target))
+        }
+    }
 
     event.set_phase(EventPhase::Capturing);
 
@@ -43,6 +42,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
 
     /* capturing */
     for cur_target in chain.as_slice().iter().rev() {
+        let cur_target = cur_target.root();
         let stopped = match cur_target.r().get_listeners_for(type_.as_slice(), ListenerPhase::Capturing) {
             Some(listeners) => {
                 event.set_current_target(cur_target.r());
@@ -88,6 +88,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
         event.set_phase(EventPhase::Bubbling);
 
         for cur_target in chain.iter() {
+            let cur_target = cur_target.root();
             let stopped = match cur_target.r().get_listeners_for(type_.as_slice(), ListenerPhase::Bubbling) {
                 Some(listeners) => {
                     event.set_current_target(cur_target.r());
