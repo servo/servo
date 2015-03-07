@@ -41,6 +41,7 @@ use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
 use net::storage_task::StorageTask;
 use util::geometry::{self, Au, MAX_RECT};
+use util::opts;
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};
 
 use geom::{Point2D, Rect, Size2D};
@@ -62,6 +63,19 @@ use std::rc::Rc;
 use std::sync::mpsc::{channel, Receiver};
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
 use time;
+
+/// Extra information concerning the reason for reflowing.
+pub enum ReflowReason {
+    CachedPageNeededReflow,
+    FirstLoad,
+    KeyEvent,
+    MouseEvent,
+    Query,
+    ReceivedReflowEvent,
+    Timer,
+    Viewport,
+    WindowResize,
+}
 
 #[dom_struct]
 pub struct Window {
@@ -397,7 +411,7 @@ pub trait WindowHelpers {
     fn init_browser_context(self, doc: JSRef<Document>, frame_element: Option<JSRef<Element>>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
-    fn reflow(self, goal: ReflowGoal, query_type: ReflowQueryType);
+    fn reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason);
     fn join_layout(self);
     fn layout(&self) -> &LayoutRPC;
     fn content_box_query(self, content_box_request: TrustedNodeAddress) -> Rect<Au>;
@@ -480,7 +494,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     /// yet, the page is presumed invisible and no reflow is performed.
     ///
     /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
-    fn reflow(self, goal: ReflowGoal, query_type: ReflowQueryType) {
+    fn reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
         let document = self.Document().root();
         let root = document.r().GetDocumentElement().root();
         let root = match root.r() {
@@ -510,6 +524,11 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         last_reflow_id.set(last_reflow_id.get() + 1);
 
         let window_size = self.window_size.get();
+
+        // On debug mode, print the reflow event information.
+        if opts::get().relayout_event {
+            debug_reflow_events(&goal, &query_type, &reason);
+        }
 
         // Send new document and relevant styles to layout.
         let reflow = box Reflow {
@@ -562,14 +581,14 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn content_box_query(self, content_box_request: TrustedNodeAddress) -> Rect<Au> {
-        self.reflow(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxQuery(content_box_request));
+        self.reflow(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxQuery(content_box_request), ReflowReason::Query);
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
         rect
     }
 
     fn content_boxes_query(self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>> {
-        self.reflow(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxesQuery(content_boxes_request));
+        self.reflow(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxesQuery(content_boxes_request), ReflowReason::Query);
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
@@ -609,7 +628,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 
     fn handle_fire_timer(self, timer_id: TimerId) {
         self.timers.fire_timer(timer_id, self);
-        self.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+        self.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::Timer);
     }
 
     fn set_fragment_name(self, fragment: Option<String>) {
@@ -715,7 +734,6 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn freeze(self) {
         self.timers.suspend();
     }
-
 }
 
 impl Window {
@@ -797,4 +815,32 @@ fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool{
     (clip_rect.max_x() - new_viewport.max_x()).abs() <= viewport_scroll_margin.width ||
     (clip_rect.origin.y - new_viewport.origin.y).abs() <= viewport_scroll_margin.height ||
     (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
+}
+
+fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: &ReflowReason) {
+    let mut debug_msg = String::from_str("****");
+    match *goal {
+        ReflowGoal::ForDisplay => debug_msg.push_str("\tForDisplay"),
+        ReflowGoal::ForScriptQuery => debug_msg.push_str("\tForScriptQuery"),
+    }
+
+    match *query_type {
+        ReflowQueryType::NoQuery => debug_msg.push_str("\tNoQuery"),
+        ReflowQueryType::ContentBoxQuery(_n) => debug_msg.push_str("\tContentBoxQuery"),
+        ReflowQueryType::ContentBoxesQuery(_n) => debug_msg.push_str("\tContentBoxesQuery"),
+    }
+
+    match *reason {
+        ReflowReason::CachedPageNeededReflow => debug_msg.push_str("\tCachedPageNeededReflow"),
+        ReflowReason::FirstLoad => debug_msg.push_str("\tFirstLoad"),
+        ReflowReason::KeyEvent => debug_msg.push_str("\tKeyEvent"),
+        ReflowReason::MouseEvent => debug_msg.push_str("\tMouseEvent"),
+        ReflowReason::Query => debug_msg.push_str("\tQuery"),
+        ReflowReason::ReceivedReflowEvent => debug_msg.push_str("\tReceivedReflowEvent"),
+        ReflowReason::Timer => debug_msg.push_str("\tTimer"),
+        ReflowReason::Viewport => debug_msg.push_str("\tViewport"),
+        ReflowReason::WindowResize => debug_msg.push_str("\tWindowResize"),
+    }
+
+    println!("{}", debug_msg);
 }

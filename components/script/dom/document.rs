@@ -56,7 +56,7 @@ use dom::processinginstruction::ProcessingInstruction;
 use dom::range::Range;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
-use dom::window::{Window, WindowHelpers};
+use dom::window::{Window, WindowHelpers, ReflowReason};
 
 use layout_interface::{HitTestResponse, MouseOverResponse};
 use msg::compositor_msg::ScriptListener;
@@ -532,7 +532,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         el.authentic_click_activation(event);
 
         self.commit_focus_transaction();
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::MouseEvent);
     }
 
     /// Return need force reflow or not
@@ -673,7 +673,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             _ => ()
         }
 
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::KeyEvent);
     }
 
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>) {
