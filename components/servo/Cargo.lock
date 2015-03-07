@@ -76,7 +76,7 @@ dependencies = [
 [[package]]
 name = "cocoa"
 version = "0.1.1"
-source = "git+https://github.com/servo/rust-cocoa#458971cb1199cd25fd31f9c17852e76926622b92"
+source = "git+https://github.com/servo/rust-cocoa?branch=backport-20150306#c9b0a66dedd93d696e7281c9a3d743e54b502b96"
 dependencies = [
  "bitflags 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -358,10 +358,10 @@ dependencies = [
 [[package]]
 name = "glutin"
 version = "0.0.4"
-source = "git+https://github.com/servo/glutin?branch=servo#40591806dc7382ddb75d90f2289127f5f28f9825"
+source = "git+https://github.com/servo/glutin?branch=backport-20150306#89fbec47145eef519e2f3d7e0ad84e5f905f7295"
 dependencies = [
  "android_glue 0.0.1 (git+https://github.com/tomaka/android-rs-glue)",
- "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
+ "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa?branch=backport-20150306)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "gdi32-sys 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -384,7 +384,7 @@ dependencies = [
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
- "glutin 0.0.4 (git+https://github.com/servo/glutin?branch=servo)",
+ "glutin 0.0.4 (git+https://github.com/servo/glutin?branch=backport-20150306)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
