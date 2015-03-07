@@ -1,3 +1,7 @@
+# This file is must be sorted alphabetically.
+# Please run `./mach test-tidy` to check your changes.
+
+
 # Should be != with expected failure:
 # FIXME: use the real test when pixel-snapping for scrolling is fixed.
 #fragment=top == ../html/acid2.html acid2_ref_broken.html
@@ -264,3 +268,7 @@ flaky_cpu,experimental == vertical-lr-blocks.html vertical-lr-blocks_ref.html
 == width_nonreplaced_block_simple_a.html width_nonreplaced_block_simple_b.html
 == word_break_a.html word_break_ref.html
 == word_spacing_a.html word_spacing_ref.html
+
+
+# This file is must be sorted alphabetically.
+# Please run `./mach test-tidy` to check your changes.
