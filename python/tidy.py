@@ -11,10 +11,13 @@
 
 import os
 import fnmatch
+import itertools
 from licenseck import licenses
 
 directories_to_check = ["ports/gonk", "components"]
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py"]
+reftest_directories = ["tests/ref"]
+reftest_filetype = ".list"
 
 ignored_files = [
     # Upstream
@@ -49,6 +52,10 @@ def should_check(file_name):
         if fnmatch.fnmatch(file_name, pattern):
             return False
     return True
+
+
+def should_check_reftest(file_name):
+    return file_name.endswith(reftest_filetype)
 
 
 def check_license(contents):
@@ -93,17 +100,45 @@ def collect_errors_for_files(files_to_check, checking_functions):
                     yield (file_name, error[0], error[1])
 
 
+def check_reftest_order(files_to_check):
+    for file_name in files_to_check:
+        with open(file_name, "r") as fp:
+            split_lines = fp.read().splitlines()
+            lines = filter(lambda l: len(l) > 0 and l[0] != '#', split_lines)
+            for idx, line in enumerate(lines[:-1]):
+                next_line = lines[idx+1]
+                current = get_reftest_names(line)
+                next = get_reftest_names(next_line)
+                if current is not None and next is not None and current > next:
+                    yield (file_name, split_lines.index(next_line) + 1, "line not in alphabetical order")
+
+
+def get_reftest_names(line):
+    tokens = line.split()
+    if (len(tokens) == 3):
+        return tokens[1] + tokens[2]
+    if (len(tokens) == 4):
+        return tokens[2] + tokens[3]
+    return None
+
+
 def scan():
     all_files = collect_file_names(directories_to_check)
     files_to_check = filter(should_check, all_files)
 
     checking_functions = [check_license, check_length, check_whitespace]
     errors = collect_errors_for_files(files_to_check, checking_functions)
-    errors = list(errors)
+
+    reftest_files = collect_file_names(reftest_directories)
+    reftest_to_check = filter(should_check_reftest, reftest_files)
+    r_errors = check_reftest_order(reftest_to_check)
+
+    errors = list(itertools.chain(errors, r_errors))
 
     if errors:
         for error in errors:
             print("{}:{}: {}".format(*error))
         return 1
     else:
+        print("tidy reported no errors.")
         return 0
