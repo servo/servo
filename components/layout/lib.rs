@@ -78,6 +78,7 @@ pub mod incremental;
 pub mod inline;
 pub mod list_item;
 pub mod model;
+pub mod multicol;
 pub mod opaque_node;
 pub mod parallel;
 pub mod sequential;

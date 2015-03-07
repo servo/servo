@@ -4988,6 +4988,12 @@ impl ComputedValues {
     }
 
     #[inline]
+    pub fn is_multicol(&self) -> bool {
+        let style = self.get_column();
+        style.column_count.is_some() || style.column_width.is_some()
+    }
+
+    #[inline]
     pub fn get_font_arc(&self) -> Arc<style_structs::Font> {
         self.font.clone()
     }

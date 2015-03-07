@@ -1420,7 +1420,8 @@ impl BlockFlow {
                 FormattingContextType::Other
             }
             _ if style.get_box().overflow_x != overflow_x::T::visible ||
-                    style.get_box().overflow_y != overflow_y::T(overflow_x::T::visible) => {
+                    style.get_box().overflow_y != overflow_y::T(overflow_x::T::visible) ||
+                    style.is_multicol() => {
                 FormattingContextType::Block
             }
             _ => FormattingContextType::None,

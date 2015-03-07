@@ -33,6 +33,7 @@ use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo};
 use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
 use inline::InlineFlow;
 use list_item::{ListItemFlow, ListStyleTypeContent};
+use multicol::MulticolFlow;
 use opaque_node::OpaqueNodeMethods;
 use parallel;
 use table::TableFlow;
@@ -631,8 +632,12 @@ impl<'a> FlowConstructor<'a> {
     /// to happen.
     fn build_flow_for_nonfloated_block(&mut self, node: &ThreadSafeLayoutNode)
                                        -> ConstructionResult {
-        let flow = box BlockFlow::from_node_and_fragment(node, self.build_fragment_for_block(node))
-            as Box<Flow>;
+        let fragment = self.build_fragment_for_block(node);
+        let flow = if node.style().is_multicol() {
+            box MulticolFlow::from_node_and_fragment(node, fragment) as Box<Flow>
+        } else {
+            box BlockFlow::from_node_and_fragment(node, fragment) as Box<Flow>
+        };
         self.build_flow_for_block(FlowRef::new(flow), node)
     }
 
