@@ -27,7 +27,7 @@ use hyper::header::ContentType;
 use hyper::mime;
 use msg::constellation_msg::LoadData;
 use util::str::DOMString;
-use script_task::{ScriptChan, ScriptMsg};
+use script_task::{ScriptChan, MainThreadScriptMsg};
 use std::ascii::OwnedAsciiExt;
 use url::UrlParser;
 use url::form_urlencoded::serialize;
@@ -215,7 +215,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         }
 
         // This is wrong. https://html.spec.whatwg.org/multipage/forms.html#planned-navigation
-        win.r().script_chan().send(ScriptMsg::TriggerLoad(win.r().pipeline(), load_data)).unwrap();
+        win.r().script_chan().send(MainThreadScriptMsg::TriggerLoad(win.r().pipeline(), load_data)).unwrap();
     }
 
     fn get_form_dataset<'b>(self, submitter: Option<FormSubmitter<'b>>) -> Vec<FormDatum> {

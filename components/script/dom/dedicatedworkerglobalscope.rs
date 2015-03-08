@@ -12,7 +12,7 @@ use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCas
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
-use dom::bindings::refcounted::LiveDOMReferences;
+use dom::bindings::refcounted::{LiveDOMReferences, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;
 use dom::errorevent::ErrorEvent;
@@ -21,14 +21,15 @@ use dom::messageevent::MessageEvent;
 use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, Worker};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
-use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
-use script_task::ScriptMsg::WorkerDispatchErrorEvent;
+use script_task::{CommonScriptMsg, MainThreadScriptMsg, ScriptTask, ScriptChan, TimerSource, Runnable};
 use script_task::StackRootTLS;
+use timers::TimerId;
 
 use net::resource_task::{ResourceTask, load_whole_resource};
 use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
+use util::str::DOMString;
 
 use js::jsapi::JSContext;
 use js::jsval::JSVal;
@@ -44,12 +45,12 @@ use url::Url;
 #[derive(Clone)]
 #[jstraceable]
 pub struct SendableWorkerScriptChan {
-    sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+    sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
     worker: TrustedWorkerAddress,
 }
 
 impl ScriptChan for SendableWorkerScriptChan {
-    fn send(&self, msg: ScriptMsg) -> Result<(), ()> {
+    fn send(&self, msg: WorkerScriptMsg) -> Result<(), ()> {
         return self.sender.send((self.worker.clone(), msg)).map_err(|_| ());
     }
 
@@ -59,6 +60,16 @@ impl ScriptChan for SendableWorkerScriptChan {
             worker: self.worker.clone(),
         }
     }
+}
+
+/// Messages used to control worker script event loops, such as ScriptTask and
+/// DedicatedWorkerGlobalScope.
+pub enum WorkerScriptMsg {
+    /// Message sent through Worker.postMessage (only dispatched to
+    /// DedicatedWorkerGlobalScope).
+    DOMMessage(StructuredCloneData),
+    /// Common Variants to all ScriptMsg types
+    Common(CommonScriptMsg),
 }
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
@@ -91,8 +102,8 @@ impl<'a> Drop for AutoWorkerReset<'a> {
 #[dom_struct]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
-    receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>,
-    own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+    receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
+    own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
     worker: DOMRefCell<Option<TrustedWorkerAddress>>,
     /// Sender to the parent thread.
     parent_sender: Box<ScriptChan+Send>,
@@ -103,8 +114,8 @@ impl DedicatedWorkerGlobalScope {
                          cx: Rc<Cx>,
                          resource_task: ResourceTask,
                          parent_sender: Box<ScriptChan+Send>,
-                         own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
-                         receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
+                         own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+                         receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>)
                          -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -120,8 +131,8 @@ impl DedicatedWorkerGlobalScope {
                cx: Rc<Cx>,
                resource_task: ResourceTask,
                parent_sender: Box<ScriptChan+Send>,
-               own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
-               receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
+               own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+               receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>)
                -> Temporary<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
             worker_url, cx.clone(), resource_task, parent_sender,
@@ -135,8 +146,8 @@ impl DedicatedWorkerGlobalScope {
                             worker: TrustedWorkerAddress,
                             resource_task: ResourceTask,
                             parent_sender: Box<ScriptChan+Send>,
-                            own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
-                            receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>) {
+                            own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+                            receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>) {
         spawn_named(format!("WebWorker for {}", worker_url.serialize()), move || {
             task_state::initialize(SCRIPT | IN_WORKER);
 
@@ -146,8 +157,9 @@ impl DedicatedWorkerGlobalScope {
             let (url, source) = match load_whole_resource(&resource_task, worker_url.clone()) {
                 Err(_) => {
                     println!("error loading script {}", worker_url.serialize());
-                    parent_sender.send(ScriptMsg::RunnableMsg(
-                        box WorkerEventHandler::new(worker))).unwrap();
+                    parent_sender.send(MainThreadScriptMsg::Common(
+                        CommonScriptMsg::RunnableMsg(
+                            box WorkerEventHandler::new(worker)))).unwrap();
                     return;
                 }
                 Ok((metadata, bytes)) => {
@@ -197,30 +209,30 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalSc
 }
 
 trait PrivateDedicatedWorkerGlobalScopeHelpers {
-    fn handle_event(self, msg: ScriptMsg);
+    fn handle_event(self, msg: WorkerScriptMsg);
     fn dispatch_error_to_worker(self, JSRef<ErrorEvent>);
 }
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
-    fn handle_event(self, msg: ScriptMsg) {
+    fn handle_event(self, msg: WorkerScriptMsg) {
         match msg {
-            ScriptMsg::DOMMessage(data) => {
+            WorkerScriptMsg::DOMMessage(data) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
                 let message = data.read(GlobalRef::Worker(scope));
                 MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message);
             },
-            ScriptMsg::RunnableMsg(runnable) => {
+            WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(runnable)) => {
                 runnable.handler()
             },
-            ScriptMsg::RefcountCleanup(addr) => {
+            WorkerScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr)) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 LiveDOMReferences::cleanup(scope.get_cx(), addr);
             }
-            ScriptMsg::WorkerDispatchErrorEvent(addr, msg, file_name, line_num, col_num) => {
+            WorkerScriptMsg::Common(CommonScriptMsg::WorkerDispatchErrorEvent(addr, msg, file_name, line_num, col_num)) => {
                 Worker::handle_error_message(addr, msg, file_name, line_num, col_num);
             },
-            ScriptMsg::FireTimer(TimerSource::FromWorker, timer_id) => {
+            WorkerScriptMsg::Common(CommonScriptMsg::FireTimer(TimerSource::FromWorker, timer_id)) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 scope.handle_fire_timer(timer_id);
             }
@@ -234,8 +246,8 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
         let line_num = errorevent.Lineno();
         let col_num = errorevent.Colno();
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(ScriptMsg::WorkerDispatchErrorEvent(worker, msg, file_name,
-                                                                    line_num, col_num)).unwrap();
+        self.parent_sender.send(MainThreadScriptMsg::Common(CommonScriptMsg::WorkerDispatchErrorEvent(worker, msg, file_name,
+                                                                    line_num, col_num))).unwrap();
  }
 }
 
@@ -243,8 +255,8 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(ScriptMsg::RunnableMsg(
-            box WorkerMessageHandler::new(worker, data))).unwrap();
+        self.parent_sender.send(MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(
+            box WorkerMessageHandler::new(worker, data)))).unwrap();
         Ok(())
     }
 

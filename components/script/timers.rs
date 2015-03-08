@@ -10,7 +10,7 @@ use dom::bindings::utils::Reflectable;
 
 use dom::window::ScriptHelpers;
 
-use script_task::{ScriptChan, ScriptMsg, TimerSource};
+use script_task::{ScriptChan, MainThreadScriptMsg, CommonScriptMsg, TimerSource};
 
 use util::task::spawn_named;
 use util::str::DOMString;
@@ -176,7 +176,7 @@ impl TimerManager {
 
                 if id == timeout_handle.id() {
                     timeout_port.recv().unwrap();
-                    if script_chan.send(ScriptMsg::FireTimer(source, TimerId(handle))).is_err() {
+                    if script_chan.send(MainThreadScriptMsg::Common(CommonScriptMsg::FireTimer(source, TimerId(handle)))).is_err() {
                         break;
                     }
 

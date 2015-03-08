@@ -14,12 +14,12 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
-use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
+use dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, WorkerScriptMsg};
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use script_task::{ScriptChan, ScriptMsg, Runnable};
+use script_task::{ScriptChan, Runnable};
 
 use util::str::DOMString;
 
@@ -38,11 +38,11 @@ pub struct Worker {
     global: GlobalField,
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
-    sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+    sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
 }
 
 impl Worker {
-    fn new_inherited(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Worker {
+    fn new_inherited(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::Worker),
             global: GlobalField::from_rooted(&global),
@@ -50,7 +50,7 @@ impl Worker {
         }
     }
 
-    pub fn new(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Temporary<Worker> {
+    pub fn new(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>) -> Temporary<Worker> {
         reflect_dom_object(box Worker::new_inherited(global, sender),
                            global,
                            WorkerBinding::Wrap)
@@ -119,7 +119,7 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
-        self.sender.send((address, ScriptMsg::DOMMessage(data))).unwrap();
+        self.sender.send((address, WorkerScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
     }
 

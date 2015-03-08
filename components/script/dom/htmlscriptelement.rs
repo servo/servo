@@ -28,7 +28,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node, CloneChildrenFlag};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{WindowHelpers, ScriptHelpers};
-use script_task::{ScriptMsg, Runnable};
+use script_task::{MainThreadScriptMsg, CommonScriptMsg, Runnable};
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
@@ -363,7 +363,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                 element: handler,
                 is_error: false,
             });
-            chan.send(ScriptMsg::RunnableMsg(dispatcher)).unwrap();
+            chan.send(MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(dispatcher))).unwrap();
         }
     }
 
@@ -376,7 +376,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             element: handler,
             is_error: true,
         });
-        chan.send(ScriptMsg::RunnableMsg(dispatcher)).unwrap();
+        chan.send(MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(dispatcher))).unwrap();
     }
 
     fn dispatch_before_script_execute_event(self) -> bool {
