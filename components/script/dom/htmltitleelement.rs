@@ -71,9 +71,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTitleElement> {
     }
 
     fn child_inserted(&self, child: JSRef<Node>) {
-        match self.super_type() {
-            Some(ref s) => s.child_inserted(child),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.child_inserted(child);
         }
 
         let node: JSRef<Node> = NodeCast::from_ref(*self);

@@ -224,23 +224,16 @@ fn create_interface_object(cx: *mut JSContext, global: *mut JSObject,
         let constructor = JS_GetFunctionObject(fun);
         assert!(!constructor.is_null());
 
-        match members.static_methods {
-            Some(static_methods) => {
-                define_methods(cx, constructor, static_methods)
-            },
-            _ => (),
+        if let Some(static_methods) = members.static_methods {
+            define_methods(cx, constructor, static_methods);
         }
 
-        match members.static_attrs {
-            Some(static_properties) => {
-                define_properties(cx, constructor, static_properties)
-            },
-            _ => (),
+        if let Some(static_properties) = members.static_attrs {
+            define_properties(cx, constructor, static_properties);
         }
 
-        match members.consts {
-            Some(constants) => define_constants(cx, constructor, constants),
-            _ => (),
+        if let Some(constants) = members.consts {
+            define_constants(cx, constructor, constants);
         }
 
         if !proto.is_null() {
@@ -304,19 +297,16 @@ fn create_interface_prototype_object(cx: *mut JSContext, global: *mut JSObject,
                                                    &*parent_proto, &*global);
         assert!(!our_proto.is_null());
 
-        match members.methods {
-            Some(methods) => define_methods(cx, our_proto, methods),
-            _ => (),
+        if let Some(methods) = members.methods {
+            define_methods(cx, our_proto, methods);
         }
 
-        match members.attrs {
-            Some(properties) => define_properties(cx, our_proto, properties),
-            _ => (),
+        if let Some(properties) = members.attrs {
+            define_properties(cx, our_proto, properties);
         }
 
-        match members.consts {
-            Some(constants) => define_constants(cx, our_proto, constants),
-            _ => (),
+        if let Some(constants) = members.consts {
+            define_constants(cx, our_proto, constants);
         }
 
         return our_proto;

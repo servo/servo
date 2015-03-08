@@ -116,9 +116,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr);
         }
 
         match attr.local_name() {
@@ -132,9 +131,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     fn before_remove_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.before_remove_attr(attr),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.before_remove_attr(attr);
         }
 
         match attr.local_name() {
@@ -149,9 +147,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
-        match self.super_type() {
-            Some(ref s) => s.bind_to_tree(tree_in_doc),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
         }
 
         let node: JSRef<Node> = NodeCast::from_ref(*self);
@@ -159,9 +156,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
-        match self.super_type() {
-            Some(ref s) => s.unbind_from_tree(tree_in_doc),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.unbind_from_tree(tree_in_doc);
         }
 
         let node: JSRef<Node> = NodeCast::from_ref(*self);
@@ -209,7 +205,7 @@ impl<'a> Activatable for JSRef<'a, HTMLButtonElement> {
                     o.root().r().submit(SubmittedFrom::NotFromFormSubmitMethod,
                                         FormSubmitter::ButtonElement(self.clone()))
                 });
-            }
+            },
             _ => ()
         }
     }

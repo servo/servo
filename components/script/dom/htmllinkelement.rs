@@ -76,9 +76,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr);
         }
 
         let element: JSRef<Element> = ElementCast::from_ref(*self);
@@ -102,9 +101,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
-        match self.super_type() {
-            Some(ref s) => s.bind_to_tree(tree_in_doc),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
         }
 
         if tree_in_doc {

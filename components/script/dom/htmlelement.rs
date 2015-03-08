@@ -126,9 +126,10 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     // https://html.spec.whatwg.org/multipage/interaction.html#dom-click
     fn Click(self) {
         let maybe_input: Option<JSRef<HTMLInputElement>> = HTMLInputElementCast::to_ref(self);
-        match maybe_input {
-            Some(i) if i.Disabled() => return,
-            _ => ()
+        if let Some(i) = maybe_input {
+            if i.Disabled() {
+                return;
+            }
         }
         let element: JSRef<Element> = ElementCast::from_ref(self);
         // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27430 ?
@@ -188,9 +189,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr);
         }
 
         let name = attr.local_name().as_slice();
