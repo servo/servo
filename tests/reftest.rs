@@ -7,18 +7,19 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![feature(collections, core, env, io, hash, os, path, std_misc, test)]
 #[macro_use] extern crate bitflags;
 extern crate png;
 extern crate test;
 extern crate url;
 
 use std::ascii::AsciiExt;
+use std::env;
 use std::old_io as io;
 use std::old_io::{File, Reader, Command, IoResult};
 use std::old_io::process::ExitStatus;
 use std::old_io::fs::PathExtensions;
 use std::old_path::Path;
-use std::os;
 use std::thunk::Thunk;
 use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldFail};
 use test::run_tests_console;
@@ -37,7 +38,7 @@ bitflags!(
 
 
 fn main() {
-    let args = os::args();
+    let args: Vec<String> = env::args().map(|arg| arg.into_string().ok().expect("argument ws not a String")).collect();
     let mut parts = args.tail().split(|e| "--" == e.as_slice());
 
     let harness_args = parts.next().unwrap();  // .split() is never empty
@@ -67,7 +68,7 @@ fn main() {
     let mut all_tests = vec!();
     println!("Scanning {} for manifests\n", base_path);
 
-    for file in io::fs::walk_dir(&Path::new(base_path.as_slice())).unwrap() {
+    for file in io::fs::walk_dir(&Path::new(base_path)).unwrap() {
         let maybe_extension = file.extension_str();
         match maybe_extension {
             Some(extension) => {
@@ -94,8 +95,8 @@ fn main() {
     match run(test_opts,
               all_tests,
               servo_args.iter().map(|x| x.clone()).collect()) {
-        Ok(false) => os::set_exit_status(1), // tests failed
-        Err(_) => os::set_exit_status(2),    // I/O-related failure
+        Ok(false) => env::set_exit_status(1), // tests failed
+        Err(_) => env::set_exit_status(2),    // I/O-related failure
         _ => (),
     }
 }
@@ -105,7 +106,7 @@ fn run(test_opts: TestOpts, all_tests: Vec<TestDescAndFn>,
     // Verify that we're passing in valid servo arguments. Otherwise, servo
     // will exit before we've run any tests, and it will appear to us as if
     // all the tests are failing.
-    let mut command = match Command::new(os::self_exe_path().unwrap().join("servo"))
+    let mut command = match Command::new(servo_path())
                             .args(servo_args.as_slice()).spawn() {
         Ok(p) => p,
         Err(e) => panic!("failed to execute process: {}", e),
@@ -185,14 +186,14 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
         // If we're running this directly, file.dir_path() might be relative.
         // (see issue #3521)
         let base = match file.dir_path().is_relative() {
-            true  => os::getcwd().unwrap().join(file.dir_path()),
+            true  => env::current_dir().unwrap().join(file.dir_path()),
             false => file.dir_path()
         };
 
         let file_left =  base.join(test_line.file_left);
         let file_right = base.join(test_line.file_right);
 
-        let mut conditions_list = test_line.conditions.split(',');
+        let conditions_list = test_line.conditions.split(',');
         let mut flakiness = RenderMode::empty();
         let mut experimental = false;
         let mut fragment_identifier = None;
@@ -207,10 +208,10 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
                 _ => (),
             }
             if condition.starts_with("fragment=") {
-                fragment_identifier = Some(condition.slice_from("fragment=".len()).to_string());
+                fragment_identifier = Some(condition["fragment=".len()..].to_string());
             }
             if condition.starts_with("resolution=") {
-                resolution = Some(condition.slice_from("resolution=".len()).to_string());
+                resolution = Some(condition["resolution=".len() ..].to_string());
             }
         }
 
@@ -220,7 +221,7 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
             files: [file_left, file_right],
             id: id_offset + tests.len(),
             render_mode: render_mode,
-            servo_args: servo_args.iter().map(|x| x.clone()).collect(),
+            servo_args: servo_args.to_vec(),
             is_flaky: render_mode.intersects(flakiness),
             experimental: experimental,
             fragment_identifier: fragment_identifier,
@@ -248,9 +249,9 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
 
 fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
     let png_filename = format!("/tmp/servo-reftest-{:06}-{}.png", reftest.id, side);
-    let mut command = Command::new(os::self_exe_path().unwrap().join("servo"));
+    let mut command = Command::new(servo_path());
     command
-        .args(reftest.servo_args.as_slice())
+        .args(&reftest.servo_args[..])
         // Allows pixel perfect rendering of Ahem font for reftests.
         .arg("-Z")
         .arg("disable-text-aa")
@@ -288,6 +289,11 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
         _ => panic!(),
     };
     (image.width, image.height, rgba8_bytes)
+}
+
+fn servo_path() -> Path {
+    let current_exe = env::current_exe().ok().expect("Could not locate current executable");
+    current_exe.dir_path().join("servo")
 }
 
 fn check_reftest(reftest: Reftest) {
