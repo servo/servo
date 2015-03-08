@@ -41,6 +41,10 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext) -> *
                 style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
             };
             r.set(unsafe { boxed::into_raw(context) });
+        } else if shared_layout_context.screen_size_changed {
+            unsafe {
+                (*r.get()).applicable_declarations_cache.evict_all();
+            }
         }
 
         r.get()
@@ -53,6 +57,9 @@ pub struct SharedLayoutContext {
 
     /// The current screen size.
     pub screen_size: Size2D<Au>,
+
+    /// Screen sized changed?
+    pub screen_size_changed: bool,
 
     /// A channel up to the constellation.
     pub constellation_chan: ConstellationChan,

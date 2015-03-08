@@ -311,12 +311,14 @@ impl LayoutTask {
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_shared_layout_context(&self,
                                    rw_data: &LayoutTaskData,
+                                   screen_size_changed: bool,
                                    reflow_root: &LayoutNode,
                                    url: &Url)
                                    -> SharedLayoutContext {
         SharedLayoutContext {
             image_cache: rw_data.local_image_cache.clone(),
             screen_size: rw_data.screen_size.clone(),
+            screen_size_changed: screen_size_changed,
             constellation_chan: rw_data.constellation_chan.clone(),
             layout_chan: self.chan.clone(),
             font_cache_task: self.font_cache_task.clone(),
@@ -774,11 +776,6 @@ impl LayoutTask {
                                          Au::from_frac32_px(viewport_size.height.get()));
         rw_data.screen_size = current_screen_size;
 
-        // Create a layout context for use throughout the following passes.
-        let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
-                                                                         node,
-                                                                         &data.url);
-
         // Handle conditions where the entire flow tree is invalid.
         let screen_size_changed = current_screen_size != old_screen_size;
 
@@ -802,6 +799,12 @@ impl LayoutTask {
             self.try_get_layout_root(*node).map(
                 |mut flow| LayoutTask::reflow_all_nodes(&mut *flow));
         }
+
+        // Create a layout context for use throughout the following passes.
+        let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
+                                                                         screen_size_changed,
+                                                                         node,
+                                                                         &data.url);
 
         let mut layout_root = profile(TimeProfilerCategory::LayoutStyleRecalc,
                                       self.profiler_metadata(data),
