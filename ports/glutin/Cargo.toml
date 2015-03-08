@@ -28,7 +28,7 @@ path = "../../components/util"
 
 [dependencies.glutin]
 git = "https://github.com/servo/glutin"
-branch = "servo"
+branch = "backport-20150306"
 
 [dependencies.gleam]
 git = "https://github.com/servo/gleam"
