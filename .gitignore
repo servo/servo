@@ -1,4 +1,4 @@
-/.cargo/config
+/.cargo/
 /Cargo.lock
 /target
 /components/servo/target
