@@ -51,6 +51,13 @@ class CommandBase(object):
     def __init__(self, context):
         self.context = context
 
+        def resolverelative(category, key):
+            # Allow ~
+            self.config[category][key] = path.expanduser(self.config[category][key])
+            # Resolve relative paths
+            self.config[category][key] = path.join(context.topdir,
+                                                   self.config[category][key])
+
         if not hasattr(self.context, "bootstrapped"):
             self.context.bootstrapped = False
 
@@ -64,8 +71,13 @@ class CommandBase(object):
         self.config.setdefault("tools", {})
         self.config["tools"].setdefault("cache-dir",
                                         path.join(context.topdir, ".servo"))
-        # Allow "~" in cache-dir
-        context.sharedir = path.expanduser(self.config["tools"]["cache-dir"])
+        resolverelative("tools", "cache-dir")
+
+        self.config["tools"].setdefault("cargo-home-dir",
+                                        path.join(context.topdir, ".cargo"))
+        resolverelative("tools", "cargo-home-dir")
+
+        context.sharedir = self.config["tools"]["cache-dir"]
 
         self.config["tools"].setdefault("system-rust", False)
         self.config["tools"].setdefault("system-cargo", False)
@@ -126,6 +138,10 @@ class CommandBase(object):
         if extra_path:
             env["PATH"] = "%s%s%s" % (
                 os.pathsep.join(extra_path), os.pathsep, env["PATH"])
+
+        if "CARGO_HOME" not in env:
+            env["CARGO_HOME"] = self.config["tools"]["cargo-home-dir"]
+
         if extra_lib:
             if sys.platform == "darwin":
                 env["DYLD_LIBRARY_PATH"] = "%s%s%s" % \

@@ -7,13 +7,15 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![feature(collections, core, io, os, path, rustc_private, std_misc, test)]
+
 extern crate getopts;
 extern crate test;
 
 use test::{AutoColor, TestOpts, run_tests_console, TestDesc, TestDescAndFn, DynTestFn, DynTestName};
 use test::ShouldFail;
 use getopts::{getopts, reqopt};
-use std::{os, str};
+use std::{os, str, env};
 use std::old_io::fs;
 use std::old_io::Reader;
 use std::old_io::process::{Command, Ignored, CreatePipe, InheritFd, ExitStatus};
@@ -27,13 +29,13 @@ struct Config {
 }
 
 fn main() {
-    let args = os::args();
-    let config = parse_config(args.into_iter().collect());
+    let args = env::args();
+    let config = parse_config(args.map(|x| x.into_string().unwrap()).collect());
     let opts = test_options(config.clone());
     let tests = find_tests(config);
     match run_tests_console(&opts, tests) {
-        Ok(false) => os::set_exit_status(1), // tests failed
-        Err(_) => os::set_exit_status(2),    // I/O-related failure
+        Ok(false) => env::set_exit_status(1), // tests failed
+        Err(_) => env::set_exit_status(2),    // I/O-related failure
         _ => (),
     }
 }
