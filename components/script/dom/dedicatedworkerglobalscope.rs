@@ -12,7 +12,7 @@ use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCas
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
-use dom::bindings::refcounted::{LiveDOMReferences, TrustedReference};
+use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;
 use dom::errorevent::ErrorEvent;
@@ -23,13 +23,11 @@ use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use script_task::{ScriptMsg, ScriptTask, ScriptChan, TimerSource, Runnable};
 use script_task::StackRootTLS;
-use timers::TimerId;
 
 use net::resource_task::{ResourceTask, load_whole_resource};
 use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
-use util::str::DOMString;
 
 use js::jsapi::JSContext;
 use js::jsval::JSVal;
