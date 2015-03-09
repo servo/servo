@@ -24,7 +24,7 @@
 
 use dom::bindings::js::{Temporary, JSRef, Unrooted};
 use dom::bindings::utils::{Reflector, Reflectable};
-use script_task::{MainThreadScriptMsg, CommonScriptMsg, ScriptChan};
+use script_task::{ScriptMsg, ScriptChan};
 
 use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSContext};
 
@@ -114,7 +114,7 @@ impl<T: Reflectable> Drop for Trusted<T> {
         *refcount -= 1;
         if *refcount == 0 {
             self.script_chan.send(
-                MainThreadScriptMsg::Common(CommonScriptMsg::RefcountCleanup(TrustedReference(self.ptr)))).unwrap();
+                ScriptMsg::RefcountCleanup(TrustedReference(self.ptr))).unwrap();
         }
     }
 }

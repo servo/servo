@@ -26,7 +26,7 @@ use dom::urlsearchparams::URLSearchParamsHelpers;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
-use script_task::{ScriptChan, MainThreadScriptMsg, CommonScriptMsg, Runnable};
+use script_task::{ScriptChan, ScriptMsg, Runnable};
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
@@ -220,7 +220,7 @@ impl XMLHttpRequest {
                     xhr.process_partial_response(msg);
                 },
                 SyncOrAsync::Async(ref addr, ref script_chan) => {
-                    script_chan.send(MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(box XHRProgressHandler::new(addr.clone(), msg)))).unwrap();
+                    script_chan.send(ScriptMsg::RunnableMsg(box XHRProgressHandler::new(addr.clone(), msg))).unwrap();
                 }
             }
         }

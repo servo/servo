@@ -30,6 +30,7 @@ use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
+use dom::dedicatedworkerglobalscope::WorkerScriptMsg;
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event, EventHelpers};
@@ -156,7 +157,19 @@ pub trait Runnable {
 
 /// Messages used to control script event loops, such as ScriptTask and
 /// DedicatedWorkerGlobalScope.
-pub enum CommonScriptMsg {
+pub enum MainThreadScriptMsg {
+    /// Acts on a fragment URL load on the specified pipeline (only dispatched
+    /// to ScriptTask).
+    TriggerFragment(PipelineId, String),
+    /// Begins a content-initiated load on the specified pipeline (only
+    /// dispatched to ScriptTask).
+    TriggerLoad(PipelineId, LoadData),
+    /// Notifies the script that a window associated with a particular pipeline
+    /// should be closed (only dispatched to ScriptTask).
+    ExitWindow(PipelineId),
+}
+
+pub enum ScriptMsg {
     /// Fires a JavaScript timeout
     /// TimerSource must be FromWindow when dispatched to ScriptTask and
     /// must be FromWorker when dispatched to a DedicatedGlobalWorkerScope
@@ -169,36 +182,24 @@ pub enum CommonScriptMsg {
     RefcountCleanup(TrustedReference),
     /// The final network response for a page has arrived.
     PageFetchComplete(PipelineId, Option<SubpageId>, LoadResponse),
-}
-
-pub enum MainThreadScriptMsg {
-    /// Acts on a fragment URL load on the specified pipeline (only dispatched
-    /// to ScriptTask).
-    TriggerFragment(PipelineId, String),
-    /// Begins a content-initiated load on the specified pipeline (only
-    /// dispatched to ScriptTask).
-    TriggerLoad(PipelineId, LoadData),
-    /// Notifies the script that a window associated with a particular pipeline
-    /// should be closed (only dispatched to ScriptTask).
-    ExitWindow(PipelineId),
-    /// Common Variants to all ScriptMsg types
-    Common(CommonScriptMsg),
+    MainThreadMsg(MainThreadScriptMsg),
+    WorkerMsg(WorkerScriptMsg),
 }
 
 /// A cloneable interface for communicating with an event loop.
 pub trait ScriptChan {
     /// Send a message to the associated event loop.
-    fn send(&self, msg: MainThreadScriptMsg) -> Result<(), ()>;
+    fn send(&self, msg: ScriptMsg) -> Result<(), ()>;
     /// Clone this handle.
     fn clone(&self) -> Box<ScriptChan+Send>;
 }
 
 /// Encapsulates internal communication within the script task.
 #[jstraceable]
-pub struct NonWorkerScriptChan(pub Sender<MainThreadScriptMsg>);
+pub struct NonWorkerScriptChan(pub Sender<ScriptMsg>);
 
 impl ScriptChan for NonWorkerScriptChan {
-    fn send(&self, msg: MainThreadScriptMsg) -> Result<(), ()> {
+    fn send(&self, msg: ScriptMsg) -> Result<(), ()> {
         let NonWorkerScriptChan(ref chan) = *self;
         return chan.send(msg).map_err(|_| ());
     }
@@ -211,7 +212,7 @@ impl ScriptChan for NonWorkerScriptChan {
 
 impl NonWorkerScriptChan {
     /// Creates a new script chan.
-    pub fn new() -> (Receiver<MainThreadScriptMsg>, Box<NonWorkerScriptChan>) {
+    pub fn new() -> (Receiver<ScriptMsg>, Box<NonWorkerScriptChan>) {
         let (chan, port) = channel();
         (port, box NonWorkerScriptChan(chan))
     }
@@ -252,7 +253,7 @@ pub struct ScriptTask {
     storage_task: StorageTask,
 
     /// The port on which the script task receives messages (load URL, exit, etc.)
-    port: Receiver<MainThreadScriptMsg>,
+    port: Receiver<ScriptMsg>,
     /// A channel to hand out to script task-based entities that need to be able to enqueue
     /// events in the event queue.
     chan: NonWorkerScriptChan,
@@ -391,7 +392,7 @@ unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus) 
 impl ScriptTask {
     /// Creates a new script task.
     pub fn new(compositor: Box<ScriptListener+'static>,
-               port: Receiver<MainThreadScriptMsg>,
+               port: Receiver<ScriptMsg>,
                chan: NonWorkerScriptChan,
                control_chan: ScriptControlChan,
                control_port: Receiver<ConstellationControlMsg>,
@@ -537,7 +538,7 @@ impl ScriptTask {
 
         enum MixedMessage {
             FromConstellation(ConstellationControlMsg),
-            FromScript(MainThreadScriptMsg),
+            FromScript(ScriptMsg),
             FromDevtools(DevtoolScriptControlMsg),
         }
 
@@ -648,25 +649,27 @@ impl ScriptTask {
         }
     }
 
-    fn handle_msg_from_script(&self, msg: MainThreadScriptMsg) {
+    fn handle_msg_from_script(&self, msg: ScriptMsg) {
         match msg {
-            MainThreadScriptMsg::TriggerLoad(id, load_data) =>
+            ScriptMsg::MainThreadMsg(MainThreadScriptMsg::TriggerLoad(id, load_data)) =>
                 self.trigger_load(id, load_data),
-            MainThreadScriptMsg::TriggerFragment(id, fragment) =>
+            ScriptMsg::MainThreadMsg(MainThreadScriptMsg::TriggerFragment(id, fragment)) =>
                 self.trigger_fragment(id, fragment),
-            MainThreadScriptMsg::Common(CommonScriptMsg::FireTimer(TimerSource::FromWindow(id), timer_id)) =>
+            ScriptMsg::FireTimer(TimerSource::FromWindow(id), timer_id) =>
                 self.handle_fire_timer_msg(id, timer_id),
-            MainThreadScriptMsg::Common(CommonScriptMsg::FireTimer(TimerSource::FromWorker, _)) =>
+            ScriptMsg::FireTimer(TimerSource::FromWorker, _) =>
                 panic!("Worker timeouts must not be sent to script task"),
-            MainThreadScriptMsg::ExitWindow(id) =>
+            ScriptMsg::MainThreadMsg(MainThreadScriptMsg::ExitWindow(id)) =>
                 self.handle_exit_window_msg(id),
-            MainThreadScriptMsg::Common(CommonScriptMsg::WorkerDispatchErrorEvent(addr, msg, file_name,line_num, col_num)) =>
+            ScriptMsg::WorkerMsg(WorkerScriptMsg::DOMMessage(..)) =>
+                panic!("unexpected message"),
+            ScriptMsg::WorkerDispatchErrorEvent(addr, msg, file_name,line_num, col_num) =>
                 Worker::handle_error_message(addr, msg, file_name, line_num, col_num),
-            MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(runnable)) =>
+            ScriptMsg::RunnableMsg(runnable) =>
                 runnable.handler(),
-            MainThreadScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr)) =>
+            ScriptMsg::RefcountCleanup(addr) =>
                 LiveDOMReferences::cleanup(self.get_cx(), addr),
-            MainThreadScriptMsg::Common(CommonScriptMsg::PageFetchComplete(id, subpage, response)) =>
+            ScriptMsg::PageFetchComplete(id, subpage, response) =>
                 self.handle_page_fetch_complete(id, subpage, response),
         }
     }
@@ -1033,7 +1036,7 @@ impl ScriptTask {
         // https://html.spec.whatwg.org/multipage/#the-end step 4
         let addr: Trusted<Document> = Trusted::new(self.get_cx(), document.r(), self.chan.clone());
         let handler = Box::new(DocumentProgressHandler::new(addr.clone(), DocumentProgressTask::DOMContentLoaded));
-        self.chan.send(MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(handler))).unwrap();
+        self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
 
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
@@ -1041,7 +1044,7 @@ impl ScriptTask {
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let handler = Box::new(DocumentProgressHandler::new(addr, DocumentProgressTask::Load));
-        self.chan.send(MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(handler))).unwrap();
+        self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
 
         window.r().set_fragment_name(final_url.fragment.clone());
 
@@ -1224,7 +1227,7 @@ impl ScriptTask {
             })).unwrap();
 
             let load_response = input_port.recv().unwrap();
-            script_chan.send(MainThreadScriptMsg::Common(CommonScriptMsg::PageFetchComplete(id, subpage, load_response))).unwrap();
+            script_chan.send(ScriptMsg::PageFetchComplete(id, subpage, load_response)).unwrap();
         });
 
         self.incomplete_loads.borrow_mut().push(incomplete);

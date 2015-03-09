@@ -21,7 +21,7 @@ use dom::messageevent::MessageEvent;
 use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, Worker};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
-use script_task::{CommonScriptMsg, MainThreadScriptMsg, ScriptTask, ScriptChan, TimerSource, Runnable};
+use script_task::{ScriptMsg, ScriptTask, ScriptChan, TimerSource, Runnable};
 use script_task::StackRootTLS;
 use timers::TimerId;
 
@@ -45,12 +45,12 @@ use url::Url;
 #[derive(Clone)]
 #[jstraceable]
 pub struct SendableWorkerScriptChan {
-    sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+    sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
     worker: TrustedWorkerAddress,
 }
 
 impl ScriptChan for SendableWorkerScriptChan {
-    fn send(&self, msg: WorkerScriptMsg) -> Result<(), ()> {
+    fn send(&self, msg: ScriptMsg) -> Result<(), ()> {
         return self.sender.send((self.worker.clone(), msg)).map_err(|_| ());
     }
 
@@ -68,8 +68,6 @@ pub enum WorkerScriptMsg {
     /// Message sent through Worker.postMessage (only dispatched to
     /// DedicatedWorkerGlobalScope).
     DOMMessage(StructuredCloneData),
-    /// Common Variants to all ScriptMsg types
-    Common(CommonScriptMsg),
 }
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
@@ -102,8 +100,8 @@ impl<'a> Drop for AutoWorkerReset<'a> {
 #[dom_struct]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
-    receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
-    own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+    receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>,
+    own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
     worker: DOMRefCell<Option<TrustedWorkerAddress>>,
     /// Sender to the parent thread.
     parent_sender: Box<ScriptChan+Send>,
@@ -114,8 +112,8 @@ impl DedicatedWorkerGlobalScope {
                          cx: Rc<Cx>,
                          resource_task: ResourceTask,
                          parent_sender: Box<ScriptChan+Send>,
-                         own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-                         receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>)
+                         own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+                         receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
                          -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -131,8 +129,8 @@ impl DedicatedWorkerGlobalScope {
                cx: Rc<Cx>,
                resource_task: ResourceTask,
                parent_sender: Box<ScriptChan+Send>,
-               own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-               receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>)
+               own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+               receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
                -> Temporary<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
             worker_url, cx.clone(), resource_task, parent_sender,
@@ -146,8 +144,8 @@ impl DedicatedWorkerGlobalScope {
                             worker: TrustedWorkerAddress,
                             resource_task: ResourceTask,
                             parent_sender: Box<ScriptChan+Send>,
-                            own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-                            receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>) {
+                            own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+                            receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>) {
         spawn_named(format!("WebWorker for {}", worker_url.serialize()), move || {
             task_state::initialize(SCRIPT | IN_WORKER);
 
@@ -157,9 +155,8 @@ impl DedicatedWorkerGlobalScope {
             let (url, source) = match load_whole_resource(&resource_task, worker_url.clone()) {
                 Err(_) => {
                     println!("error loading script {}", worker_url.serialize());
-                    parent_sender.send(MainThreadScriptMsg::Common(
-                        CommonScriptMsg::RunnableMsg(
-                            box WorkerEventHandler::new(worker)))).unwrap();
+                    parent_sender.send(ScriptMsg::RunnableMsg(
+                        box WorkerEventHandler::new(worker))).unwrap();
                     return;
                 }
                 Ok((metadata, bytes)) => {
@@ -209,30 +206,30 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalSc
 }
 
 trait PrivateDedicatedWorkerGlobalScopeHelpers {
-    fn handle_event(self, msg: WorkerScriptMsg);
+    fn handle_event(self, msg: ScriptMsg);
     fn dispatch_error_to_worker(self, JSRef<ErrorEvent>);
 }
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
-    fn handle_event(self, msg: WorkerScriptMsg) {
+    fn handle_event(self, msg: ScriptMsg) {
         match msg {
-            WorkerScriptMsg::DOMMessage(data) => {
+            ScriptMsg::WorkerMsg(WorkerScriptMsg::DOMMessage(data)) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
                 let message = data.read(GlobalRef::Worker(scope));
                 MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message);
             },
-            WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(runnable)) => {
+            ScriptMsg::RunnableMsg(runnable) => {
                 runnable.handler()
             },
-            WorkerScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr)) => {
+            ScriptMsg::RefcountCleanup(addr) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 LiveDOMReferences::cleanup(scope.get_cx(), addr);
             }
-            WorkerScriptMsg::Common(CommonScriptMsg::WorkerDispatchErrorEvent(addr, msg, file_name, line_num, col_num)) => {
+            ScriptMsg::WorkerDispatchErrorEvent(addr, msg, file_name, line_num, col_num) => {
                 Worker::handle_error_message(addr, msg, file_name, line_num, col_num);
             },
-            WorkerScriptMsg::Common(CommonScriptMsg::FireTimer(TimerSource::FromWorker, timer_id)) => {
+            ScriptMsg::FireTimer(TimerSource::FromWorker, timer_id) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 scope.handle_fire_timer(timer_id);
             }
@@ -246,8 +243,8 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
         let line_num = errorevent.Lineno();
         let col_num = errorevent.Colno();
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(MainThreadScriptMsg::Common(CommonScriptMsg::WorkerDispatchErrorEvent(worker, msg, file_name,
-                                                                    line_num, col_num))).unwrap();
+        self.parent_sender.send(ScriptMsg::WorkerDispatchErrorEvent(worker, msg, file_name,
+                                                                    line_num, col_num)).unwrap();
  }
 }
 
@@ -255,8 +252,8 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(
-            box WorkerMessageHandler::new(worker, data)))).unwrap();
+        self.parent_sender.send(ScriptMsg::RunnableMsg(
+            box WorkerMessageHandler::new(worker, data))).unwrap();
         Ok(())
     }
 
