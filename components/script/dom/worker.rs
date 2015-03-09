@@ -165,3 +165,30 @@ impl Runnable for WorkerEventHandler {
         Worker::dispatch_simple_error(this.addr);
     }
 }
+
+pub struct WorkerErrorHandler {
+    addr: TrustedWorkerAddress,
+    msg: DOMString,
+    file_name: DOMString,
+    line_num: u32,
+    col_num: u32,
+}
+
+impl WorkerErrorHandler {
+    pub fn new(addr: TrustedWorkerAddress, msg: DOMString, file_name: DOMString, line_num: u32, col_num: u32) -> WorkerErrorHandler {
+        WorkerErrorHandler {
+            addr: addr,
+            msg: msg,
+            file_name: file_name,
+            line_num: line_num,
+            col_num: col_num,
+        }
+    }
+}
+
+impl Runnable for WorkerErrorHandler {
+    fn handler(self: Box<WorkerErrorHandler>) {
+        let this = *self;
+        Worker::handle_error_message(this.addr, this.msg, this.file_name, this.line_num, this.col_num);
+    }
+}
