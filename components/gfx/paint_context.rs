@@ -290,11 +290,7 @@ impl<'a> PaintContext<'a> {
                         radii: &BorderRadii<AzFloat>,
                         color: Color) {
         let mut path_builder = self.draw_target.create_path_builder();
-        self.create_border_path_segment(&mut path_builder,
-                                        bounds,
-                                        direction,
-                                        border,
-                                        radii);
+        self.create_border_path_segment(&mut path_builder, bounds, direction, border, radii);
         let draw_options = DrawOptions::new(1.0, 0);
         self.draw_target.fill(&path_builder.finish(), &ColorPattern::new(color), &draw_options);
     }
@@ -693,7 +689,8 @@ impl<'a> PaintContext<'a> {
         let scaled_left_top = left_top + Point2D(scaled_border.left,
                                                  scaled_border.top);
         return Rect(scaled_left_top,
-                    Size2D(rect.size.width - 2.0 * scaled_border.right, rect.size.height - 2.0 * scaled_border.bottom));
+                    Size2D(rect.size.width - 2.0 * scaled_border.right,
+                           rect.size.height - 2.0 * scaled_border.bottom));
     }
 
     fn scale_color(&self, color: Color, scale_factor: f32) -> Color {
@@ -1129,6 +1126,7 @@ impl ToAzureRect for Rect<Au> {
     fn to_azure_rect(&self) -> Rect<AzFloat> {
         Rect(self.origin.to_azure_point(), Size2D(self.size.width.to_nearest_px() as AzFloat,
                                                   self.size.height.to_nearest_px() as AzFloat))
+
     }
     fn to_subpx_azure_rect(&self) -> Rect<AzFloat> {
         Rect(self.origin.to_subpx_azure_point(), Size2D(self.size.width.to_subpx() as AzFloat,
