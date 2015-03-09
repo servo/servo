@@ -18,11 +18,10 @@ use dom::bindings::utils::Reflectable;
 use dom::errorevent::ErrorEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, Worker};
+use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, WorkerErrorHandler};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
-use script_task::ScriptMsg::WorkerDispatchErrorEvent;
 use script_task::StackRootTLS;
 
 use net::resource_task::{ResourceTask, load_whole_resource};
@@ -217,9 +216,6 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 LiveDOMReferences::cleanup(scope.get_cx(), addr);
             }
-            ScriptMsg::WorkerDispatchErrorEvent(addr, msg, file_name, line_num, col_num) => {
-                Worker::handle_error_message(addr, msg, file_name, line_num, col_num);
-            },
             ScriptMsg::FireTimer(TimerSource::FromWorker, timer_id) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 scope.handle_fire_timer(timer_id);
@@ -234,8 +230,8 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
         let line_num = errorevent.Lineno();
         let col_num = errorevent.Colno();
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(ScriptMsg::WorkerDispatchErrorEvent(worker, msg, file_name,
-                                                                    line_num, col_num)).unwrap();
+        self.parent_sender.send(ScriptMsg::RunnableMsg(
+            box WorkerErrorHandler::new(worker, msg, file_name, line_num, col_num))).unwrap();
  }
 }
 
