@@ -39,7 +39,7 @@ use msg::constellation_msg::ConstellationChan;
 use net::image::holder::ImageHolder;
 use util::cursor::Cursor;
 use util::geometry::{self, Au, ZERO_POINT, to_px, to_frac_px};
-use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
+use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
 use std::cmp;
 use std::default::Default;
@@ -181,6 +181,7 @@ pub trait FragmentDisplayListBuilding {
                           layout_context: &LayoutContext,
                           stacking_relative_flow_origin: &Point2D<Au>,
                           relative_containing_block_size: &LogicalSize<Au>,
+                          relative_containing_block_mode: WritingMode,
                           background_and_border_level: BackgroundAndBorderLevel,
                           clip: &ClippingRegion);
 
@@ -785,6 +786,7 @@ impl FragmentDisplayListBuilding for Fragment {
                           layout_context: &LayoutContext,
                           stacking_relative_flow_origin: &Point2D<Au>,
                           relative_containing_block_size: &LogicalSize<Au>,
+                          relative_containing_block_mode: WritingMode,
                           background_and_border_level: BackgroundAndBorderLevel,
                           clip: &ClippingRegion) {
         // Compute the fragment position relative to the parent stacking context. If the fragment
@@ -793,6 +795,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let stacking_relative_border_box =
             self.stacking_relative_border_box(stacking_relative_flow_origin,
                                               relative_containing_block_size,
+                                              relative_containing_block_mode,
                                               CoordinateSystem::Self);
 
         debug!("Fragment::build_display_list at rel={:?}, abs={:?}, dirty={:?}, flow origin={:?}: \
@@ -1254,6 +1257,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                          &self.base
                                               .absolute_position_info
                                               .relative_containing_block_size,
+                                         self.base
+                                             .absolute_position_info
+                                             .relative_containing_block_mode,
                                          background_border_level,
                                          &self.base.clip);
 
@@ -1357,6 +1363,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                            &self.base
                                                                 .absolute_position_info
                                                                 .relative_containing_block_size,
+                                                           self.base
+                                                               .absolute_position_info
+                                                               .relative_containing_block_mode,
                                                            CoordinateSystem::Parent);
 
         // FIXME(pcwalton): Is this vertical-writing-direction-safe?
@@ -1399,6 +1408,9 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                         &self.base
                                              .absolute_position_info
                                              .relative_containing_block_size,
+                                        self.base
+                                            .absolute_position_info
+                                            .relative_containing_block_mode,
                                         BackgroundAndBorderLevel::Content,
                                         &self.base.clip);
             match fragment.specific {
@@ -1448,6 +1460,10 @@ impl ListItemFlowDisplayListBuilding for ListItemFlow {
                                            .base
                                            .absolute_position_info
                                            .relative_containing_block_size,
+                                      self.block_flow
+                                          .base
+                                          .absolute_position_info
+                                          .relative_containing_block_mode,
                                       BackgroundAndBorderLevel::Content,
                                       &self.block_flow.base.clip);
         }
