@@ -30,7 +30,7 @@ use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflo
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse};
 use page::Page;
 use script_task::{TimerSource, ScriptChan};
-use script_task::ScriptMsg;
+use script_task::{ScriptMsg, MainThreadScriptMsg};
 use script_traits::ScriptControlChan;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
@@ -274,7 +274,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Close(self) {
-        self.script_chan.send(ScriptMsg::ExitWindow(self.id.clone())).unwrap();
+        self.script_chan.send(ScriptMsg::MainThreadMsg(MainThreadScriptMsg::ExitWindow(self.id.clone()))).unwrap();
     }
 
     fn Document(self) -> Temporary<Document> {
@@ -618,10 +618,10 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         let url = url.unwrap();
         match url.fragment {
             Some(fragment) => {
-                self.script_chan.send(ScriptMsg::TriggerFragment(self.id, fragment)).unwrap();
+                self.script_chan.send(ScriptMsg::MainThreadMsg(MainThreadScriptMsg::TriggerFragment(self.id, fragment))).unwrap();
             },
             None => {
-                self.script_chan.send(ScriptMsg::TriggerLoad(self.id, LoadData::new(url))).unwrap();
+                self.script_chan.send(ScriptMsg::MainThreadMsg(MainThreadScriptMsg::TriggerLoad(self.id, LoadData::new(url)))).unwrap();
             }
         }
     }

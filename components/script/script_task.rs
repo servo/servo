@@ -30,6 +30,7 @@ use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
+use dom::dedicatedworkerglobalscope::WorkerScriptMsg;
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event, EventHelpers};
@@ -156,23 +157,23 @@ pub trait Runnable {
 
 /// Messages used to control script event loops, such as ScriptTask and
 /// DedicatedWorkerGlobalScope.
-pub enum ScriptMsg {
+pub enum MainThreadScriptMsg {
     /// Acts on a fragment URL load on the specified pipeline (only dispatched
     /// to ScriptTask).
     TriggerFragment(PipelineId, String),
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptTask).
     TriggerLoad(PipelineId, LoadData),
+    /// Notifies the script that a window associated with a particular pipeline
+    /// should be closed (only dispatched to ScriptTask).
+    ExitWindow(PipelineId),
+}
+
+pub enum ScriptMsg {
     /// Fires a JavaScript timeout
     /// TimerSource must be FromWindow when dispatched to ScriptTask and
     /// must be FromWorker when dispatched to a DedicatedGlobalWorkerScope
     FireTimer(TimerSource, TimerId),
-    /// Notifies the script that a window associated with a particular pipeline
-    /// should be closed (only dispatched to ScriptTask).
-    ExitWindow(PipelineId),
-    /// Message sent through Worker.postMessage (only dispatched to
-    /// DedicatedWorkerGlobalScope).
-    DOMMessage(StructuredCloneData),
     /// Sends a message to the Worker object (dispatched to all tasks) regarding error.
     WorkerDispatchErrorEvent(TrustedWorkerAddress, DOMString, DOMString, u32, u32),
     /// Generic message that encapsulates event handling.
@@ -181,6 +182,8 @@ pub enum ScriptMsg {
     RefcountCleanup(TrustedReference),
     /// The final network response for a page has arrived.
     PageFetchComplete(PipelineId, Option<SubpageId>, LoadResponse),
+    MainThreadMsg(MainThreadScriptMsg),
+    WorkerMsg(WorkerScriptMsg),
 }
 
 /// A cloneable interface for communicating with an event loop.
@@ -648,17 +651,17 @@ impl ScriptTask {
 
     fn handle_msg_from_script(&self, msg: ScriptMsg) {
         match msg {
-            ScriptMsg::TriggerLoad(id, load_data) =>
+            ScriptMsg::MainThreadMsg(MainThreadScriptMsg::TriggerLoad(id, load_data)) =>
                 self.trigger_load(id, load_data),
-            ScriptMsg::TriggerFragment(id, fragment) =>
+            ScriptMsg::MainThreadMsg(MainThreadScriptMsg::TriggerFragment(id, fragment)) =>
                 self.trigger_fragment(id, fragment),
             ScriptMsg::FireTimer(TimerSource::FromWindow(id), timer_id) =>
                 self.handle_fire_timer_msg(id, timer_id),
             ScriptMsg::FireTimer(TimerSource::FromWorker, _) =>
                 panic!("Worker timeouts must not be sent to script task"),
-            ScriptMsg::ExitWindow(id) =>
+            ScriptMsg::MainThreadMsg(MainThreadScriptMsg::ExitWindow(id)) =>
                 self.handle_exit_window_msg(id),
-            ScriptMsg::DOMMessage(..) =>
+            ScriptMsg::WorkerMsg(WorkerScriptMsg::DOMMessage(..)) =>
                 panic!("unexpected message"),
             ScriptMsg::WorkerDispatchErrorEvent(addr, msg, file_name,line_num, col_num) =>
                 Worker::handle_error_message(addr, msg, file_name, line_num, col_num),

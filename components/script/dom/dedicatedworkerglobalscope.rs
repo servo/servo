@@ -21,8 +21,7 @@ use dom::messageevent::MessageEvent;
 use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, Worker};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
-use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
-use script_task::ScriptMsg::WorkerDispatchErrorEvent;
+use script_task::{ScriptMsg, ScriptTask, ScriptChan, TimerSource, Runnable};
 use script_task::StackRootTLS;
 
 use net::resource_task::{ResourceTask, load_whole_resource};
@@ -59,6 +58,14 @@ impl ScriptChan for SendableWorkerScriptChan {
             worker: self.worker.clone(),
         }
     }
+}
+
+/// Messages used to control worker script event loops, such as ScriptTask and
+/// DedicatedWorkerGlobalScope.
+pub enum WorkerScriptMsg {
+    /// Message sent through Worker.postMessage (only dispatched to
+    /// DedicatedWorkerGlobalScope).
+    DOMMessage(StructuredCloneData),
 }
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
@@ -204,7 +211,7 @@ trait PrivateDedicatedWorkerGlobalScopeHelpers {
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
     fn handle_event(self, msg: ScriptMsg) {
         match msg {
-            ScriptMsg::DOMMessage(data) => {
+            ScriptMsg::WorkerMsg(WorkerScriptMsg::DOMMessage(data)) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
                 let message = data.read(GlobalRef::Worker(scope));

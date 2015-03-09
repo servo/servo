@@ -14,7 +14,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
-use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
+use dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, WorkerScriptMsg};
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
@@ -119,7 +119,7 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
-        self.sender.send((address, ScriptMsg::DOMMessage(data))).unwrap();
+        self.sender.send((address, ScriptMsg::WorkerMsg(WorkerScriptMsg::DOMMessage(data)))).unwrap();
         Ok(())
     }
 
