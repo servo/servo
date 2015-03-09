@@ -54,7 +54,7 @@ use rustc_serialize::{Encoder, Encodable};
 use msg::compositor_msg::LayerId;
 use msg::constellation_msg::ConstellationChan;
 use util::geometry::{Au, MAX_AU};
-use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
+use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
 use std::cmp::{max, min};
 use std::fmt;
@@ -1329,6 +1329,8 @@ impl BlockFlow {
         } else {
             content_inline_size
         };
+        // FIXME (mbrubeck): Get correct mode for absolute containing block
+        let containing_block_mode = self.base.writing_mode;
 
         for (i, kid) in self.base.child_iter().enumerate() {
             {
@@ -1352,16 +1354,30 @@ impl BlockFlow {
 
             // The inline-start margin edge of the child flow is at our inline-start content edge,
             // and its inline-size is our content inline-size.
+            let kid_mode = flow::base(kid).writing_mode;
             {
                 let kid_base = flow::mut_base(kid);
                 if !kid_base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
                         !kid_base.flags.is_float() {
-                    kid_base.position.start.i = inline_start_content_edge
+                    kid_base.position.start.i =
+                        if kid_mode.is_bidi_ltr() == containing_block_mode.is_bidi_ltr() {
+                            inline_start_content_edge
+                        } else {
+                            // The kid's inline 'start' is at the parent's 'end'
+                            inline_start_content_edge + content_inline_size
+                        }
                 }
                 kid_base.block_container_inline_size = content_inline_size;
+                kid_base.block_container_writing_mode = containing_block_mode;
             }
             if kid.is_block_like() {
-                kid.as_block().hypothetical_position.i = inline_start_content_edge
+                kid.as_block().hypothetical_position.i =
+                    if kid_mode.is_bidi_ltr() == containing_block_mode.is_bidi_ltr() {
+                        inline_start_content_edge
+                    } else {
+                        // The kid's inline 'start' is at the parent's 'end'
+                        inline_start_content_edge + content_inline_size
+                    }
             }
 
             // Determine float impaction.
@@ -1398,6 +1414,7 @@ impl BlockFlow {
                     propagate_column_inline_sizes_to_child(kid,
                                                            i,
                                                            content_inline_size,
+                                                           containing_block_mode,
                                                            *column_computed_inline_sizes,
                                                            &mut inline_start_margin_edge)
                 }
@@ -1610,6 +1627,7 @@ impl Flow for BlockFlow {
             self.base.position.start = LogicalPoint::zero(self.base.writing_mode);
             self.base.block_container_inline_size = LogicalSize::from_physical(
                 self.base.writing_mode, layout_context.shared.screen_size).inline;
+            self.base.block_container_writing_mode = self.base.writing_mode;
 
             // The root element is never impacted by floats.
             self.base.flags.remove(IMPACTED_BY_LEFT_FLOATS);
@@ -1717,8 +1735,9 @@ impl Flow for BlockFlow {
     }
 
     fn compute_absolute_position(&mut self) {
-        // FIXME(#2795): Get the real container size
-        let container_size = Size2D::zero();
+        // FIXME (mbrubeck): Get the real container size, taking the container writing mode into
+        // account.  Must handle vertical writing modes.
+        let container_size = Size2D(self.base.block_container_inline_size, Au(0));
 
         if self.is_root() {
             self.base.clip = ClippingRegion::max()
@@ -1785,10 +1804,13 @@ impl Flow for BlockFlow {
             stacking_relative_position_of_absolute_containing_block:
                 stacking_relative_position_of_absolute_containing_block_for_children,
             relative_containing_block_size: self.fragment.content_box().size,
+            relative_containing_block_mode: self.base.writing_mode,
             layers_needed_for_positioned_flows: self.base
                                                     .flags
                                                     .contains(LAYERS_NEEDED_FOR_DESCENDANTS),
         };
+        let container_size_for_children =
+            self.fragment.content_box().size.to_physical(self.base.writing_mode);
 
         // Compute the origin and clipping rectangle for children.
         let relative_offset = relative_offset.to_physical(self.base.writing_mode);
@@ -1815,6 +1837,9 @@ impl Flow for BlockFlow {
                                               &self.base
                                                    .absolute_position_info
                                                    .relative_containing_block_size,
+                                              self.base
+                                                  .absolute_position_info
+                                                  .relative_containing_block_mode,
                                               CoordinateSystem::Self);
         let clip = self.fragment.clipping_region_for_children(&clip_in_child_coordinate_system,
                                                               &stacking_relative_border_box);
@@ -1824,7 +1849,8 @@ impl Flow for BlockFlow {
             if !flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 let kid_base = flow::mut_base(kid);
                 kid_base.stacking_relative_position = origin_for_children +
-                    kid_base.position.start.to_physical(kid_base.writing_mode, container_size);
+                    kid_base.position.start.to_physical(kid_base.writing_mode,
+                                                        container_size_for_children);
             }
 
             flow::mut_base(kid).absolute_position_info = absolute_position_info_for_children;
@@ -1917,6 +1943,9 @@ impl Flow for BlockFlow {
                                                             &self.base
                                                                  .absolute_position_info
                                                                  .relative_containing_block_size,
+                                                            self.base
+                                                                .absolute_position_info
+                                                                .relative_containing_block_mode,
                                                             CoordinateSystem::Parent)
                               .translate(stacking_context_position));
     }
@@ -2074,16 +2103,29 @@ pub trait ISizeAndMarginsComputer {
         let inline_size;
         let extra_inline_size_from_margin;
         {
+            let block_mode = block.base.writing_mode;
+
+            // FIXME (mbrubeck): Get correct containing block for positioned blocks?
+            let container_mode = block.base.block_container_writing_mode;
+            let container_size = block.base.block_container_inline_size;
+
             let fragment = block.fragment();
             fragment.margin.inline_start = solution.margin_inline_start;
             fragment.margin.inline_end = solution.margin_inline_end;
 
-            // Left border edge.
-            fragment.border_box.start.i = fragment.margin.inline_start;
-
             // The associated fragment has the border box of this flow.
             inline_size = solution.inline_size + fragment.border_padding.inline_start_end();
             fragment.border_box.size.inline = inline_size;
+
+            // Start border edge.
+            // FIXME (mbrubeck): Handle vertical writing modes.
+            fragment.border_box.start.i =
+                if container_mode.is_bidi_ltr() == block_mode.is_bidi_ltr() {
+                    fragment.margin.inline_start
+                } else {
+                    // The parent's "start" direction is the child's "end" direction.
+                    container_size - inline_size - fragment.margin.inline_end
+                };
 
             // To calculate the total size of this block, we also need to account for any additional
             // size contribution from positive margins. Negative margins means the block isn't made
@@ -2186,6 +2228,13 @@ pub trait ISizeAndMarginsComputer {
              input.inline_end_margin,
              input.available_inline_size);
 
+        // Check for direction of parent flow (NOT Containing Block)
+        let block_mode = block.base.writing_mode;
+        let container_mode = block.base.block_container_writing_mode;
+
+        // FIXME (mbrubeck): Handle vertical writing modes.
+        let parent_has_same_direction = container_mode.is_bidi_ltr() == block_mode.is_bidi_ltr();
+
         // If inline-size is not 'auto', and inline-size + margins > available_inline-size, all
         // 'auto' margins are treated as 0.
         let (inline_start_margin, inline_end_margin) = match computed_inline_size {
@@ -2208,10 +2257,14 @@ pub trait ISizeAndMarginsComputer {
             match (inline_start_margin, computed_inline_size, inline_end_margin) {
                 // If all have a computed value other than 'auto', the system is
                 // over-constrained so we discard the end margin.
-                (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(inline_size), MaybeAuto::Specified(_margin_end)) =>
-                    (margin_start, inline_size, available_inline_size -
-                     (margin_start + inline_size)),
-
+                (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(inline_size), MaybeAuto::Specified(margin_end)) => {
+                    if parent_has_same_direction {
+                        (margin_start, inline_size, available_inline_size -
+                         (margin_start + inline_size))
+                    } else {
+                        (available_inline_size - (margin_end + inline_size), inline_size, margin_end)
+                    }
+                }
                 // If exactly one value is 'auto', solve for it
                 (MaybeAuto::Auto, MaybeAuto::Specified(inline_size), MaybeAuto::Specified(margin_end)) =>
                     (available_inline_size - (inline_size + margin_end), inline_size, margin_end),
@@ -2284,9 +2337,12 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
             ..
         } = input;
 
-        // TODO: Check for direction of parent flow (NOT Containing Block)
-        // when right-to-left is implemented.
-        // Assume direction is 'ltr' for now
+        // Check for direction of parent flow (NOT Containing Block)
+        let block_mode = block.base.writing_mode;
+        let container_mode = block.base.block_container_writing_mode;
+
+        // FIXME (mbrubeck): Handle vertical writing modes.
+        let parent_has_same_direction = container_mode.is_bidi_ltr() == block_mode.is_bidi_ltr();
 
         // Distance from the inline-start edge of the Absolute Containing Block to the
         // inline-start margin edge of a hypothetical box that would have been the
@@ -2312,9 +2368,14 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
                     (MaybeAuto::Auto, MaybeAuto::Auto) => {
                         let total_margin_val = available_inline_size - inline_start - inline_end - inline_size;
                         if total_margin_val < Au(0) {
-                            // margin-inline-start becomes 0 because direction is 'ltr'.
-                            // TODO: Handle 'rtl' when it is implemented.
-                            (inline_start, inline_end, inline_size, Au(0), total_margin_val)
+                            if parent_has_same_direction {
+                                // margin-inline-start becomes 0
+                                (inline_start, inline_end, inline_size, Au(0), total_margin_val)
+                            } else {
+                                // margin-inline-end becomes 0, because it's toward the parent's
+                                // inline-start edge.
+                                (inline_start, inline_end, inline_size, total_margin_val, Au(0))
+                            }
                         } else {
                             // Equal margins
                             (inline_start, inline_end, inline_size,
@@ -2332,10 +2393,14 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
                     }
                     (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(margin_end)) => {
                         // Values are over-constrained.
-                        // Ignore value for 'inline-end' cos direction is 'ltr'.
-                        // TODO: Handle 'rtl' when it is implemented.
                         let sum = inline_start + inline_size + margin_start + margin_end;
-                        (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
+                        if parent_has_same_direction {
+                            // Ignore value for 'inline-end'
+                            (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
+                        } else {
+                            // Ignore value for 'inline-start'
+                            (available_inline_size - sum, inline_end, inline_size, margin_start, margin_end)
+                        }
                     }
                 }
             }
@@ -2633,6 +2698,7 @@ fn propagate_column_inline_sizes_to_child(
         kid: &mut Flow,
         child_index: uint,
         content_inline_size: Au,
+        writing_mode: WritingMode,
         column_computed_inline_sizes: &[ColumnComputedInlineSize],
         inline_start_margin_edge: &mut Au) {
     // If kid is table_rowgroup or table_row, the column inline-sizes info should be copied from
@@ -2656,6 +2722,7 @@ fn propagate_column_inline_sizes_to_child(
         let kid_base = flow::mut_base(kid);
         kid_base.position.start.i = *inline_start_margin_edge;
         kid_base.block_container_inline_size = inline_size;
+        kid_base.block_container_writing_mode = writing_mode;
     }
 
     if kid.is_table_cell() {

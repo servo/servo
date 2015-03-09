@@ -187,7 +187,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == outset.html outset_ref.html
 != outset_blackborder.html blackborder_ref.html
 # Should be == with expected failure. See #2797
-!= overconstrained_block.html overconstrained_block_ref.html
+experimental != overconstrained_block.html overconstrained_block_ref.html
 == overflow_auto.html overflow_simple_b.html
 == overflow_scroll.html overflow_simple_b.html
 == overflow_simple_a.html overflow_simple_b.html
@@ -223,6 +223,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == root_height_a.html root_height_b.html
 == root_margin_collapse_a.html root_margin_collapse_b.html
 == root_pseudo_a.html root_pseudo_b.html
+experimental == rtl_simple.html rtl_simple_ref.html
 == setattribute_id_restyle_a.html setattribute_id_restyle_b.html
 == stacking_context_overflow_a.html stacking_context_overflow_ref.html
 == stacking_context_overflow_relative_outline_a.html stacking_context_overflow_relative_outline_ref.html
