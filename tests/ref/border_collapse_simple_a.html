@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!--
+    Tests that border collapse override and border collapse positioning works. All border widths
+    are even numbers to avoid subpixel rounding issues (the handling of which is not spec'd).
+
+    FIXME(pcwalton): This is currently offset by -2px in block and inline directions because we
+    don't correctly handle collapsed borders when calculating `table_border_padding` in
+    `table_wrapper.rs`.
+-->
+<style>
+html, body {
+    margin: 0;
+}
+html {
+    padding: 0;
+}
+body {
+    /* See `FIXME` above. */
+    padding: 2px;
+}
+table {
+    border-collapse: collapse;
+    border: 4px solid black;
+}
+td {
+    border: 2px solid black;
+    padding: 16px;
+    width: 32px;
+    height: 32px;
+}
+td.cell5 {
+    border: 30px solid black;
+}
+td.cell6 {
+    border: 4px solid black;
+}
+</style>
+</head>
+<body>
+<table>
+<tr id="row1">
+    <td>
+    <td>
+    <td>
+</tr>
+<tr id="row2">
+    <td>
+    <td class="cell5">
+    <td class="cell6">
+</tr>
+<tr id="row3">
+    <td>
+    <td>
+    <td>
+</tr>
+<tr id="row4">
+    <td>
+    <td>
+    <td>
+</tr>
+<tr id="row5">
+    <td>
+    <td>
+    <td>
+</tr>
+</table>
+
+</body>
+</html>
+

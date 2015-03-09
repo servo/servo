@@ -2020,11 +2020,11 @@ pub mod longhands {
 
     ${new_style_struct("InheritedTable", is_inherited=True)}
 
+    ${single_keyword("border-collapse", "separate collapse")}
+
     ${single_keyword("empty-cells", "show hide")}
 
     ${single_keyword("caption-side", "top bottom")}
-
-    ${single_keyword("border-collapse", "separate collapse", experimental=True)}
 
     <%self:longhand name="border-spacing">
         use values::computed::{Context, ToComputedValue};

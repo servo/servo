@@ -46,6 +46,10 @@ impl Flow for TableCaptionFlow {
         &mut self.block_flow
     }
 
+    fn as_immutable_block(&self) -> &BlockFlow {
+        &self.block_flow
+    }
+
     fn bubble_inline_sizes(&mut self) {
         self.block_flow.bubble_inline_sizes();
     }
@@ -105,3 +109,4 @@ impl fmt::Debug for TableCaptionFlow {
         write!(f, "TableCaptionFlow: {:?}", self.block_flow)
     }
 }
+

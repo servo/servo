@@ -48,14 +48,12 @@ use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::ClippingRegion;
-use rustc_serialize::{Encoder, Encodable};
-use msg::constellation_msg::ConstellationChan;
 use msg::compositor_msg::LayerId;
-use util::geometry::{Au, ZERO_RECT};
-use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use std::mem;
+use msg::constellation_msg::ConstellationChan;
+use rustc_serialize::{Encoder, Encodable};
 use std::fmt;
 use std::iter::Zip;
+use std::mem;
 use std::num::FromPrimitive;
 use std::raw;
 use std::slice::IterMut;
@@ -64,6 +62,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use style::computed_values::{clear, empty_cells, float, position, text_align};
 use style::properties::ComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
+use util::geometry::{Au, ZERO_RECT};
+use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 
 /// Virtual methods that make up a float context.
 ///
@@ -358,7 +358,7 @@ pub fn child_iter<'a>(flow: &'a mut Flow) -> MutFlowListIterator<'a> {
 pub trait ImmutableFlowUtils {
     // Convenience functions
 
-    /// Returns true if this flow is a block or a float flow.
+    /// Returns true if this flow is a block flow or subclass thereof.
     fn is_block_like(self) -> bool;
 
     /// Returns true if this flow is a table flow.
