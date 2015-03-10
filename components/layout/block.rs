@@ -27,7 +27,6 @@
 
 #![deny(unsafe_blocks)]
 
-use construct::FlowConstructor;
 use context::LayoutContext;
 use css::node_style::StyledNode;
 use display_list_builder::{BlockFlowDisplayListBuilding, FragmentDisplayListBuilding};
@@ -50,12 +49,8 @@ use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{ClippingRegion, DisplayList};
-use rustc_serialize::{Encoder, Encodable};
 use msg::compositor_msg::LayerId;
-use msg::constellation_msg::ConstellationChan;
-use util::geometry::{Au, MAX_AU};
-use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
-use util::opts;
+use rustc_serialize::{Encoder, Encodable};
 use std::cmp::{max, min};
 use std::fmt;
 use style::computed_values::{overflow_x, overflow_y, position, box_sizing, display, float};
@@ -63,6 +58,9 @@ use style::properties::ComputedValues;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
 use std::sync::Arc;
+use util::geometry::{Au, MAX_AU};
+use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
+use util::opts;
 
 /// Information specific to floated blocks.
 #[derive(Clone, RustcEncodable)]
@@ -570,20 +568,6 @@ impl Encodable for BlockFlowFlags {
 }
 
 impl BlockFlow {
-    pub fn from_node(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> BlockFlow {
-        let writing_mode = node.style().writing_mode;
-        BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::ForceNonfloated),
-            fragment: Fragment::new(constructor, node),
-            static_b_offset: Au::new(0),
-            inline_size_of_preceding_left_floats: Au(0),
-            inline_size_of_preceding_right_floats: Au(0),
-            hypothetical_position: LogicalPoint::new(writing_mode, Au(0), Au(0)),
-            float: None,
-            flags: BlockFlowFlags::empty(),
-        }
-    }
-
     pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment) -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
@@ -594,23 +578,6 @@ impl BlockFlow {
             inline_size_of_preceding_right_floats: Au(0),
             hypothetical_position: LogicalPoint::new(writing_mode, Au(0), Au(0)),
             float: None,
-            flags: BlockFlowFlags::empty(),
-        }
-    }
-
-    pub fn float_from_node(constructor: &mut FlowConstructor,
-                           node: &ThreadSafeLayoutNode,
-                           float_kind: FloatKind)
-                           -> BlockFlow {
-        let writing_mode = node.style().writing_mode;
-        BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::FloatIfNecessary),
-            fragment: Fragment::new(constructor, node),
-            static_b_offset: Au::new(0),
-            inline_size_of_preceding_left_floats: Au(0),
-            inline_size_of_preceding_right_floats: Au(0),
-            hypothetical_position: LogicalPoint::new(writing_mode, Au(0), Au(0)),
-            float: Some(box FloatedBlockInfo::new(float_kind)),
             flags: BlockFlowFlags::empty(),
         }
     }
@@ -1950,8 +1917,8 @@ impl Flow for BlockFlow {
                               .translate(stacking_context_position));
     }
 
-    fn remove_compositor_layers(&self, constellation_chan: ConstellationChan) {
-        self.fragment.remove_compositor_layers(constellation_chan);
+    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+        (*mutator)(&mut self.fragment)
     }
 }
 

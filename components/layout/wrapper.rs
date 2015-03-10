@@ -67,9 +67,11 @@ use std::marker::ContravariantLifetime;
 use std::mem;
 use std::sync::mpsc::Sender;
 use string_cache::{Atom, Namespace};
+use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
 use selectors::parser::{NamespaceConstraint, AttrSelector};
-use style::legacy::{LengthAttribute, SimpleColorAttribute, UnsignedIntegerAttribute, IntegerAttribute};
+use style::legacy::{IntegerAttribute, LengthAttribute, SimpleColorAttribute};
+use style::legacy::{UnsignedIntegerAttribute};
 use style::node::{TElement, TElementAttributes, TNode};
 use style::properties::PropertyDeclarationBlock;
 use url::Url;
@@ -154,10 +156,11 @@ pub trait TLayoutNode {
         }
     }
 
-    /// If this is a text node, copies out the text. If this is not a text node, fails.
+    /// If this is a text node or generated content, copies out its content. If this is not a text
+    /// node, fails.
     ///
-    /// FIXME(pcwalton): Don't copy text. Atomically reference count instead.
-    fn text(&self) -> String;
+    /// FIXME(pcwalton): This might have too much copying and/or allocation. Profile this.
+    fn text_content(&self) -> Vec<ContentItem>;
 
     /// Returns the first child of this node.
     fn first_child(&self) -> Option<Self>;
@@ -214,19 +217,25 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
         }
     }
 
-    fn text(&self) -> String {
+    fn text_content(&self) -> Vec<ContentItem> {
         unsafe {
             let text: Option<LayoutJS<Text>> = TextCast::to_layout_js(self.get_jsmanaged());
             if let Some(text) = text {
-                return (*text.unsafe_get()).characterdata().data_for_layout().to_owned();
+                return vec![
+                    ContentItem::String((*text.unsafe_get()).characterdata()
+                                                            .data_for_layout()
+                                                            .to_owned())
+                ];
             }
-            let input: Option<LayoutJS<HTMLInputElement>> = HTMLInputElementCast::to_layout_js(self.get_jsmanaged());
+            let input: Option<LayoutJS<HTMLInputElement>> =
+                HTMLInputElementCast::to_layout_js(self.get_jsmanaged());
             if let Some(input) = input {
-                return input.get_value_for_layout();
+                return vec![ContentItem::String(input.get_value_for_layout())];
             }
-            let area: Option<LayoutJS<HTMLTextAreaElement>> = HTMLTextAreaElementCast::to_layout_js(self.get_jsmanaged());
+            let area: Option<LayoutJS<HTMLTextAreaElement>> =
+                HTMLTextAreaElementCast::to_layout_js(self.get_jsmanaged());
             if let Some(area) = area {
-                return area.get_value_for_layout();
+                return vec![ContentItem::String(area.get_value_for_layout())];
             }
 
             panic!("not text!")
@@ -661,16 +670,10 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
     }
 }
 
-fn get_content(content_list: &content::T) -> String {
+fn get_content(content_list: &content::T) -> Vec<ContentItem> {
     match *content_list {
-        content::T::Content(ref value) => {
-            let iter = &mut value.clone().into_iter().peekable();
-            match iter.next() {
-                Some(content::ContentItem::StringContent(content)) => content,
-                _ => "".to_owned(),
-            }
-        }
-        _ => "".to_owned(),
+        content::T::Content(ref value) if !value.is_empty() => (*value).clone(),
+        _ => vec![],
     }
 }
 
@@ -762,7 +765,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    fn text(&self) -> String {
+    fn text_content(&self) -> Vec<ContentItem> {
         if self.pseudo != PseudoElementType::Normal {
             let layout_data_ref = self.borrow_layout_data();
             let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
@@ -775,7 +778,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
                 return get_content(&after_style.get_box().content)
             }
         }
-        self.node.text()
+        self.node.text_content()
     }
 }
 

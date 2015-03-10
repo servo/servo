@@ -103,6 +103,11 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString listStyleType;
   [TreatNullAs=EmptyString] attribute DOMString listStyleImage;
 
+  [TreatNullAs=EmptyString] attribute DOMString quotes;
+
+  [TreatNullAs=EmptyString] attribute DOMString counterIncrement;
+  [TreatNullAs=EmptyString] attribute DOMString counterReset;
+
   [TreatNullAs=EmptyString] attribute DOMString overflow;
   [TreatNullAs=EmptyString] attribute DOMString overflowX;
   [TreatNullAs=EmptyString] attribute DOMString overflowY;

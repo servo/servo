@@ -65,6 +65,8 @@ flaky_cpu == append_style_a.html append_style_b.html
 == case-insensitive-font-family.html case-insensitive-font-family-ref.html
 == clear_generated_content_table_a.html clear_generated_content_table_ref.html
 == clip_a.html clip_ref.html
+== counters_nested_a.html counters_nested_ref.html
+== counters_simple_a.html counters_simple_ref.html
 == data_img_a.html data_img_b.html
 == empty_cells_a.html empty_cells_ref.html
 == filter_opacity_a.html filter_opacity_ref.html
@@ -177,6 +179,9 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == nth_last_of_type_pseudo_a.html nth_last_of_type_pseudo_b.html
 == nth_of_type_pseudo_a.html nth_of_type_pseudo_b.html
 == object_element_a.html object_element_b.html
+== ol_japanese_iroha_a.html ol_japanese_iroha_ref.html
+!= ol_japanese_iroha_bullet_styles.html ol_japanese_iroha_ref.html
+== ol_simple_a.html ol_simple_ref.html
 == only_child_pseudo_a.html only_child_pseudo_b.html
 == only_of_type_pseudo_a.html only_of_type_pseudo_b.html
 == opacity_simple_a.html opacity_simple_ref.html
@@ -220,6 +225,7 @@ experimental != overconstrained_block.html overconstrained_block_ref.html
 == pre_ignorable_whitespace_a.html pre_ignorable_whitespace_ref.html
 == pseudo_element_a.html pseudo_element_b.html
 == pseudo_inherit.html pseudo_inherit_ref.html
+== quotes_simple_a.html quotes_simple_ref.html
 == root_height_a.html root_height_b.html
 == root_margin_collapse_a.html root_margin_collapse_b.html
 == root_pseudo_a.html root_pseudo_b.html

@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use flow::{self, Flow};
-use flow::{IS_ABSOLUTELY_POSITIONED};
+use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, IS_ABSOLUTELY_POSITIONED};
 
 use std::fmt;
 use std::sync::Arc;
@@ -32,8 +31,12 @@ bitflags! {
         #[doc = "top-down."]
         const REFLOW = 0x08,
 
+        #[doc = "Re-resolve generated content. \
+                 Propagates up the flow tree because the computation is inorder."]
+        const RESOLVE_GENERATED_CONTENT = 0x10,
+
         #[doc = "The entire flow needs to be reconstructed."]
-        const RECONSTRUCT_FLOW = 0x10
+        const RECONSTRUCT_FLOW = 0x20
     }
 }
 
@@ -50,9 +53,9 @@ impl RestyleDamage {
     /// we should add to the *parent* of this flow.
     pub fn damage_for_parent(self, child_is_absolutely_positioned: bool) -> RestyleDamage {
         if child_is_absolutely_positioned {
-            self & (REPAINT | REFLOW_OUT_OF_FLOW)
+            self & (REPAINT | REFLOW_OUT_OF_FLOW | RESOLVE_GENERATED_CONTENT)
         } else {
-            self & (REPAINT | REFLOW | REFLOW_OUT_OF_FLOW)
+            self & (REPAINT | REFLOW | REFLOW_OUT_OF_FLOW | RESOLVE_GENERATED_CONTENT)
         }
     }
 
@@ -91,10 +94,11 @@ impl fmt::Debug for RestyleDamage {
         let mut first_elem = true;
 
         let to_iter =
-            [ (REPAINT,         "Repaint")
-            , (BUBBLE_ISIZES,    "BubbleISizes")
+            [ (REPAINT, "Repaint")
+            , (BUBBLE_ISIZES, "BubbleISizes")
             , (REFLOW_OUT_OF_FLOW, "ReflowOutOfFlow")
-            , (REFLOW,          "Reflow")
+            , (REFLOW, "Reflow")
+            , (RESOLVE_GENERATED_CONTENT, "ResolveGeneratedContent")
             , (RECONSTRUCT_FLOW, "ReconstructFlow")
             ];
 
@@ -126,10 +130,18 @@ macro_rules! add_if_not_equal(
     })
 );
 
+/// Returns a bitmask that represents a flow that needs to be rebuilt and reflowed.
+///
+/// Use this instead of `RestyleDamage::all()` because `RestyleDamage::all()` will result in
+/// unnecessary sequential resolution of generated content.
+pub fn rebuild_and_reflow() -> RestyleDamage {
+    REPAINT | BUBBLE_ISIZES | REFLOW_OUT_OF_FLOW | REFLOW | RECONSTRUCT_FLOW
+}
+
 pub fn compute_damage(old: &Option<Arc<ComputedValues>>, new: &ComputedValues) -> RestyleDamage {
     let old: &ComputedValues =
         match old.as_ref() {
-            None => return RestyleDamage::all(),
+            None => return rebuild_and_reflow(),
             Some(cv) => &**cv,
         };
 
@@ -186,6 +198,9 @@ impl<'a> LayoutDamageComputation for &'a mut (Flow + 'a) {
         let mut special_damage = SpecialRestyleDamage::empty();
         let is_absolutely_positioned = flow::base(self).flags.contains(IS_ABSOLUTELY_POSITIONED);
 
+        // In addition to damage, we use this phase to compute whether nodes affect CSS counters.
+        let mut has_counter_affecting_children = false;
+
         {
             let self_base = flow::mut_base(self);
             for kid in self_base.children.iter_mut() {
@@ -199,13 +214,24 @@ impl<'a> LayoutDamageComputation for &'a mut (Flow + 'a) {
                 self_base.restyle_damage
                          .insert(flow::base(kid).restyle_damage.damage_for_parent(
                                  child_is_absolutely_positioned));
+
+                has_counter_affecting_children = has_counter_affecting_children ||
+                    flow::base(kid).flags.intersects(AFFECTS_COUNTERS |
+                                                     HAS_COUNTER_AFFECTING_CHILDREN);
+
             }
         }
 
-        let self_base = flow::base(self);
+        let self_base = flow::mut_base(self);
         if self_base.flags.float_kind() != float::T::none &&
                 self_base.restyle_damage.intersects(REFLOW) {
             special_damage.insert(REFLOW_ENTIRE_DOCUMENT);
+        }
+
+        if has_counter_affecting_children {
+            self_base.flags.insert(HAS_COUNTER_AFFECTING_CHILDREN)
+        } else {
+            self_base.flags.remove(HAS_COUNTER_AFFECTING_CHILDREN)
         }
 
         special_damage
@@ -213,7 +239,7 @@ impl<'a> LayoutDamageComputation for &'a mut (Flow + 'a) {
 
     fn reflow_entire_document(self) {
         let self_base = flow::mut_base(self);
-        self_base.restyle_damage.insert(RestyleDamage::all());
+        self_base.restyle_damage.insert(rebuild_and_reflow());
         self_base.restyle_damage.remove(RECONSTRUCT_FLOW);
         for kid in self_base.children.iter_mut() {
             kid.reflow_entire_document();
