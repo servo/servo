@@ -425,9 +425,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr);
         }
 
         match attr.local_name() {
@@ -485,9 +484,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn before_remove_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.before_remove_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.before_remove_attr(attr);
         }
 
         match attr.local_name() {
@@ -540,9 +538,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
-        match self.super_type() {
-            Some(ref s) => s.bind_to_tree(tree_in_doc),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
         }
 
         let node: JSRef<Node> = NodeCast::from_ref(*self);
@@ -550,9 +547,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
-        match self.super_type() {
-            Some(ref s) => s.unbind_from_tree(tree_in_doc),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.unbind_from_tree(tree_in_doc);
         }
 
         let node: JSRef<Node> = NodeCast::from_ref(*self);
@@ -564,11 +560,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
     }
 
     fn handle_event(&self, event: JSRef<Event>) {
-        match self.super_type() {
-            Some(s) => {
-                s.handle_event(event);
-            }
-            _ => (),
+        if let Some(s) = self.super_type() {
+            s.handle_event(event);
         }
 
         if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
