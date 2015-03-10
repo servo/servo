@@ -1387,6 +1387,8 @@ impl DocumentProgressHandler {
                                EventCancelable::NotCancelable).root();
         let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
         let _ = doctarget.DispatchEvent(event.r());
+
+        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::DOMContentLoaded);
     }
 
     fn set_ready_state_complete(&self) {
@@ -1418,6 +1420,8 @@ impl DocumentProgressHandler {
             let target: JSRef<EventTarget> = EventTargetCast::from_ref(frame_element.r());
             event.r().fire(target);
         });
+
+        window_ref.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::DocumentLoaded);
     }
 }
 
