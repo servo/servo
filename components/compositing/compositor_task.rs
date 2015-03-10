@@ -202,7 +202,7 @@ pub enum Msg {
     /// Alerts the compositor that the current page has changed its title.
     ChangePageTitle(PipelineId, Option<String>),
     /// Alerts the compositor that the current page has changed its URL.
-    ChangePageUrl(FrameId, Url),
+    ChangePageUrl(PipelineId, Url),
     /// Alerts the compositor that a `PaintMsg` has been discarded.
     PaintMsgDiscarded,
     /// Replaces the current frame tree, typically called during main frame navigation.

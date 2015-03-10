@@ -5,7 +5,7 @@
 use compositor_layer::{CompositorData, CompositorLayer, WantsScrollEventsFlag};
 use compositor_task::{CompositorEventListener, CompositorProxy, CompositorReceiver};
 use compositor_task::{CompositorTask, LayerProperties, Msg};
-use constellation::{FrameId, SendableFrameTree};
+use constellation::SendableFrameTree;
 use pipeline::CompositionPipeline;
 use scrolling::ScrollingTimerProxy;
 use windowing;
@@ -274,8 +274,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.change_page_title(pipeline_id, title);
             }
 
-            (Msg::ChangePageUrl(frame_id, url), ShutdownState::NotShuttingDown) => {
-                self.change_page_url(frame_id, url);
+            (Msg::ChangePageUrl(pipeline_id, url), ShutdownState::NotShuttingDown) => {
+                self.change_page_url(pipeline_id, url);
             }
 
             (Msg::PaintMsgDiscarded, ShutdownState::NotShuttingDown) => {
@@ -441,7 +441,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn change_page_url(&mut self, _: FrameId, url: Url) {
+    fn change_page_url(&mut self, _: PipelineId, url: Url) {
         self.window.set_page_url(url);
     }
 
