@@ -29,6 +29,7 @@ pub enum CanvasMsg {
     MoveTo(Point2D<f32>),
     LineTo(Point2D<f32>),
     BezierCurveTo(Point2D<f32>, Point2D<f32>, Point2D<f32>),
+    Arc(Point2D<f32>, f32, f32, f32, bool),
     SetFillStyle(FillOrStrokeStyle),
     SetStrokeStyle(FillOrStrokeStyle),
     SetTransform(Matrix2D<f32>),
@@ -81,6 +82,9 @@ impl<'a> CanvasPaintTask<'a> {
                     CanvasMsg::LineTo(ref point) => painter.line_to(point),
                     CanvasMsg::BezierCurveTo(ref cp1, ref cp2, ref pt) => {
                         painter.bezier_curve_to(cp1, cp2, pt)
+                    }
+                    CanvasMsg::Arc(ref center, radius, start, end, ccw) => {
+                        painter.arc(center, radius, start, end, ccw)
                     }
                     CanvasMsg::SetFillStyle(style) => painter.set_fill_style(style),
                     CanvasMsg::SetStrokeStyle(style) => painter.set_stroke_style(style),
@@ -151,6 +155,15 @@ impl<'a> CanvasPaintTask<'a> {
                        cp2: &Point2D<AzFloat>,
                        endpoint: &Point2D<AzFloat>) {
         self.path_builder.bezier_curve_to(cp1, cp2, endpoint)
+    }
+
+    fn arc(&self,
+           center: &Point2D<AzFloat>,
+           radius: AzFloat,
+           start_angle: AzFloat,
+           end_angle: AzFloat,
+           ccw: bool) {
+        self.path_builder.arc(*center, radius, start_angle, end_angle, ccw)
     }
 
     fn set_fill_style(&mut self, style: FillOrStrokeStyle) {

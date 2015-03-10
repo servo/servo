@@ -160,6 +160,11 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                                                     Point2D(x as f32, y as f32))).unwrap();
     }
 
+    fn Arc(self, x: f64, y: f64, r: f64, start: f64, end: f64, ccw: bool) {
+        self.renderer.send(CanvasMsg::Arc(Point2D(x as f32, y as f32), r as f32,
+                                          start as f32, end as f32, ccw)).unwrap();
+    }
+
     fn StrokeStyle(self) -> StringOrCanvasGradientOrCanvasPattern {
         // FIXME(pcwalton, #4761): This is not spec-compliant. See:
         //
