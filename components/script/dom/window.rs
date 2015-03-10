@@ -75,6 +75,8 @@ pub enum ReflowReason {
     Timer,
     Viewport,
     WindowResize,
+    DOMContentLoaded,
+    DocumentLoaded,
 }
 
 #[dom_struct]
@@ -510,8 +512,6 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             return
         }
 
-        debug!("script: performing reflow for goal {:?}", goal);
-
         // Layout will let us know when it's done.
         let (join_chan, join_port) = channel();
 
@@ -840,6 +840,8 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowReason::Timer => debug_msg.push_str("\tTimer"),
         ReflowReason::Viewport => debug_msg.push_str("\tViewport"),
         ReflowReason::WindowResize => debug_msg.push_str("\tWindowResize"),
+        ReflowReason::DOMContentLoaded => debug_msg.push_str("\tDOMContentLoaded"),
+        ReflowReason::DocumentLoaded => debug_msg.push_str("\tDocumentLoaded"),
     }
 
     println!("{}", debug_msg);
