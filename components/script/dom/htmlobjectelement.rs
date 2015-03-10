@@ -102,9 +102,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr);
         }
 
         match attr.local_name() {

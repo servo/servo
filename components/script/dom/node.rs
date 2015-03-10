@@ -1284,9 +1284,10 @@ impl Node {
         }
 
         // Step 3.
-        match child {
-            Some(child) if !parent.is_parent_of(child) => return Err(NotFound),
-            _ => ()
+        if let Some(child) = child {
+            if !parent.is_parent_of(child) {
+                return Err(NotFound);
+            }
         }
 
         // Step 4-5.
@@ -1325,14 +1326,11 @@ impl Node {
                                 if !parent.child_elements().is_empty() {
                                     return Err(HierarchyRequest);
                                 }
-                                match child {
-                                    Some(child) => {
-                                        if child.inclusively_following_siblings()
-                                            .any(|child| child.is_doctype()) {
-                                                return Err(HierarchyRequest)
-                                            }
+                                if let Some(child) = child {
+                                    if child.inclusively_following_siblings()
+                                        .any(|child| child.is_doctype()) {
+                                            return Err(HierarchyRequest);
                                     }
-                                    _ => (),
                                 }
                             },
                             // Step 6.1.1(a)
@@ -1344,14 +1342,11 @@ impl Node {
                         if !parent.child_elements().is_empty() {
                             return Err(HierarchyRequest);
                         }
-                        match child {
-                            Some(ref child) => {
-                                if child.inclusively_following_siblings()
-                                    .any(|child| child.is_doctype()) {
-                                        return Err(HierarchyRequest)
-                                    }
+                        if let Some(ref child) = child {
+                            if child.inclusively_following_siblings()
+                                .any(|child| child.is_doctype()) {
+                                    return Err(HierarchyRequest);
                             }
-                            _ => (),
                         }
                     },
                     // Step 6.3
@@ -2368,12 +2363,11 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
 
     fn check_parent_disabled_state_for_option(self) {
         if self.get_disabled_state() { return; }
-        match self.parent_node().root() {
-            Some(ref parent) if parent.r().is_htmloptgroupelement() && parent.r().get_disabled_state() => {
+        if let Some(ref parent) = self.parent_node().root() {
+            if parent.r().is_htmloptgroupelement() && parent.r().get_disabled_state() {
                 self.set_disabled_state(true);
                 self.set_enabled_state(false);
-            },
-            _ => ()
+            }
         }
     }
 
