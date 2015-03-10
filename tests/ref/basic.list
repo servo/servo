@@ -73,6 +73,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 != block_image.html noteq_500x300_white.html
 == block_replaced_content_a.html block_replaced_content_ref.html
 == block_replaced_content_b.html block_replaced_content_ref.html
+== blur_a.html blur_ref.html
 != border_black_groove.html border_black_solid.html
 != border_black_ridge.html border_black_groove.html
 != border_black_ridge.html border_black_solid.html
