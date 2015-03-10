@@ -8,13 +8,12 @@
 
 use canvas::canvas_paint_task::CanvasMsg;
 use css::node_style::StyledNode;
-use construct::FlowConstructor;
 use context::LayoutContext;
 use floats::ClearType;
 use flow;
 use flow::Flow;
 use flow_ref::FlowRef;
-use incremental::RestyleDamage;
+use incremental::{self, RestyleDamage};
 use inline::{InlineFragmentContext, InlineMetrics};
 use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
@@ -44,15 +43,17 @@ use std::collections::DList;
 use std::fmt;
 use std::num::ToPrimitive;
 use std::str::FromStr;
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex};
 use string_cache::Atom;
-use style::properties::{ComputedValues, cascade_anonymous, make_border};
-use style::node::{TElement, TNode};
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use style::computed_values::content::ContentItem;
 use style::computed_values::{clear, mix_blend_mode, overflow_wrap};
 use style::computed_values::{position, text_align, text_decoration, vertical_align, white_space};
 use style::computed_values::{word_break};
+use style::node::{TElement, TNode};
+use style::properties::{ComputedValues, cascade_anonymous, make_border};
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrPercentageOrNone};
 use text::TextRunScanner;
 use url::Url;
 
@@ -136,6 +137,11 @@ impl Encodable for Fragment {
 #[derive(Clone)]
 pub enum SpecificFragmentInfo {
     Generic,
+
+    /// A piece of generated content that cannot be resolved into `ScannedText` until the generated
+    /// content resolution phase (e.g. an ordered list item marker).
+    GeneratedContent(Box<GeneratedContentInfo>),
+
     Iframe(Box<IframeFragmentInfo>),
     Image(Box<ImageFragmentInfo>),
     Canvas(Box<CanvasFragmentInfo>),
@@ -158,17 +164,18 @@ impl SpecificFragmentInfo {
     fn restyle_damage(&self) -> RestyleDamage {
         let flow =
             match *self {
-                SpecificFragmentInfo::Iframe(_)
-                | SpecificFragmentInfo::Image(_)
-                | SpecificFragmentInfo::ScannedText(_)
-                | SpecificFragmentInfo::Table
-                | SpecificFragmentInfo::TableCell
-                | SpecificFragmentInfo::TableColumn(_)
-                | SpecificFragmentInfo::TableRow
-                | SpecificFragmentInfo::TableWrapper
-                | SpecificFragmentInfo::UnscannedText(_)
-                | SpecificFragmentInfo::Canvas(_)
-                | SpecificFragmentInfo::Generic => return RestyleDamage::empty(),
+                SpecificFragmentInfo::Canvas(_) |
+                SpecificFragmentInfo::GeneratedContent(_) |
+                SpecificFragmentInfo::Iframe(_) |
+                SpecificFragmentInfo::Image(_) |
+                SpecificFragmentInfo::ScannedText(_) |
+                SpecificFragmentInfo::Table |
+                SpecificFragmentInfo::TableCell |
+                SpecificFragmentInfo::TableColumn(_) |
+                SpecificFragmentInfo::TableRow |
+                SpecificFragmentInfo::TableWrapper |
+                SpecificFragmentInfo::UnscannedText(_) |
+                SpecificFragmentInfo::Generic => return RestyleDamage::empty(),
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref info) => &info.flow_ref,
                 SpecificFragmentInfo::InlineBlock(ref info) => &info.flow_ref,
             };
@@ -180,9 +187,12 @@ impl SpecificFragmentInfo {
         match *self {
             SpecificFragmentInfo::Canvas(_) => "SpecificFragmentInfo::Canvas",
             SpecificFragmentInfo::Generic => "SpecificFragmentInfo::Generic",
+            SpecificFragmentInfo::GeneratedContent(_) => "SpecificFragmentInfo::GeneratedContent",
             SpecificFragmentInfo::Iframe(_) => "SpecificFragmentInfo::Iframe",
             SpecificFragmentInfo::Image(_) => "SpecificFragmentInfo::Image",
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => "SpecificFragmentInfo::InlineAbsoluteHypothetical",
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
+                "SpecificFragmentInfo::InlineAbsoluteHypothetical"
+            }
             SpecificFragmentInfo::InlineBlock(_) => "SpecificFragmentInfo::InlineBlock",
             SpecificFragmentInfo::ScannedText(_) => "SpecificFragmentInfo::ScannedText",
             SpecificFragmentInfo::Table => "SpecificFragmentInfo::Table",
@@ -196,8 +206,11 @@ impl SpecificFragmentInfo {
 }
 
 /// Clamp a value obtained from style_length, based on min / max lengths.
-fn clamp_size(size: Au, min_size: LengthOrPercentage, max_size: LengthOrPercentageOrNone,
-                    container_inline_size: Au) -> Au {
+fn clamp_size(size: Au,
+              min_size: LengthOrPercentage,
+              max_size: LengthOrPercentageOrNone,
+              container_inline_size: Au)
+              -> Au {
     let min_size = model::specified(min_size, container_inline_size);
     let max_size = model::specified_or_none(max_size, container_inline_size);
 
@@ -205,6 +218,13 @@ fn clamp_size(size: Au, min_size: LengthOrPercentage, max_size: LengthOrPercenta
         None => size,
         Some(max_size) => Au::min(size, max_size),
     })
+}
+
+/// Information for generated content.
+#[derive(Clone)]
+pub enum GeneratedContentInfo {
+    ListItem,
+    ContentItem(ContentItem),
 }
 
 /// A hypothetical box (see CSS 2.1 § 10.3.7) for an absolutely-positioned block that was declared
@@ -637,14 +657,6 @@ pub struct UnscannedTextFragmentInfo {
 }
 
 impl UnscannedTextFragmentInfo {
-    /// Creates a new instance of `UnscannedTextFragmentInfo` from the given DOM node.
-    pub fn new(node: &ThreadSafeLayoutNode) -> UnscannedTextFragmentInfo {
-        // FIXME(pcwalton): Don't copy text; atomically reference count it instead.
-        UnscannedTextFragmentInfo {
-            text: box node.text(),
-        }
-    }
-
     /// Creates a new instance of `UnscannedTextFragmentInfo` from the given text.
     #[inline]
     pub fn from_text(text: String) -> UnscannedTextFragmentInfo {
@@ -678,34 +690,8 @@ impl TableColumnFragmentInfo {
 }
 
 impl Fragment {
-    /// Constructs a new `Fragment` instance for the given node.
-    ///
-    /// This does *not* construct the text for generated content. See comments in
-    /// `FlowConstructor::build_specific_fragment_info_for_node()` for more details.
-    ///
-    /// Arguments:
-    ///
-    ///   * `constructor`: The flow constructor.
-    ///   * `node`: The node to create a fragment for.
-    pub fn new(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> Fragment {
-        let style = node.style().clone();
-        let writing_mode = style.writing_mode;
-        Fragment {
-            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
-            style: style,
-            restyle_damage: node.restyle_damage(),
-            border_box: LogicalRect::zero(writing_mode),
-            border_padding: LogicalMargin::zero(writing_mode),
-            margin: LogicalMargin::zero(writing_mode),
-            specific: constructor.build_specific_fragment_info_for_node(node),
-            inline_context: None,
-            debug_id: layout_debug::generate_unique_debug_id(),
-        }
-    }
-
-    /// Constructs a new `Fragment` instance from a specific info.
-    pub fn new_from_specific_info(node: &ThreadSafeLayoutNode, specific: SpecificFragmentInfo)
-                                  -> Fragment {
+    /// Constructs a new `Fragment` instance.
+    pub fn new(node: &ThreadSafeLayoutNode, specific: SpecificFragmentInfo) -> Fragment {
         let style = node.style().clone();
         let writing_mode = style.writing_mode;
         Fragment {
@@ -716,24 +702,6 @@ impl Fragment {
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
-            inline_context: None,
-            debug_id: layout_debug::generate_unique_debug_id(),
-        }
-    }
-
-    /// Constructs a new `Fragment` instance for an anonymous object.
-    pub fn new_anonymous(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode)
-                         -> Fragment {
-        let node_style = cascade_anonymous(&**node.style());
-        let writing_mode = node_style.writing_mode;
-        Fragment {
-            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
-            style: Arc::new(node_style),
-            restyle_damage: node.restyle_damage(),
-            border_box: LogicalRect::zero(writing_mode),
-            border_padding: LogicalMargin::zero(writing_mode),
-            margin: LogicalMargin::zero(writing_mode),
-            specific: constructor.build_specific_fragment_info_for_node(node),
             inline_context: None,
             debug_id: layout_debug::generate_unique_debug_id(),
         }
@@ -837,7 +805,7 @@ impl Fragment {
         Fragment {
             node: self.node,
             style: self.style.clone(),
-            restyle_damage: RestyleDamage::all(),
+            restyle_damage: incremental::rebuild_and_reflow(),
             border_box: new_border_box,
             border_padding: self.border_padding,
             margin: self.margin,
@@ -912,6 +880,7 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::Canvas(_) |
             SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::GeneratedContent(_) |
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Image(_) |
             SpecificFragmentInfo::InlineBlock(_) => {
@@ -931,7 +900,9 @@ impl Fragment {
                 INTRINSIC_INLINE_SIZE_INCLUDES_BORDER |
                     INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED
             }
-            SpecificFragmentInfo::ScannedText(_) | SpecificFragmentInfo::TableColumn(_) | SpecificFragmentInfo::UnscannedText(_) |
+            SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::TableColumn(_) |
+            SpecificFragmentInfo::UnscannedText(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
                 QuantitiesIncludedInIntrinsicInlineSizes::empty()
             }
@@ -1221,6 +1192,14 @@ impl Fragment {
         }
     }
 
+    /// Returns true if and only if this fragment is a generated content fragment.
+    pub fn is_generated_content(&self) -> bool {
+        match self.specific {
+            SpecificFragmentInfo::GeneratedContent(..) => true,
+            _ => false,
+        }
+    }
+
     /// Returns true if and only if this is a scanned text fragment.
     pub fn is_scanned_text_fragment(&self) -> bool {
         match self.specific {
@@ -1234,6 +1213,7 @@ impl Fragment {
         let mut result = self.style_specified_intrinsic_inline_size();
         match self.specific {
             SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::GeneratedContent(_) |
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
@@ -1303,6 +1283,7 @@ impl Fragment {
     pub fn content_inline_size(&self) -> Au {
         match self.specific {
             SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::GeneratedContent(_) |
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
@@ -1334,6 +1315,7 @@ impl Fragment {
     pub fn content_block_size(&self, layout_context: &LayoutContext) -> Au {
         match self.specific {
             SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::GeneratedContent(_) |
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
@@ -1352,7 +1334,7 @@ impl Fragment {
                 self.calculate_line_height(layout_context)
             }
             SpecificFragmentInfo::TableColumn(_) => {
-                panic!("Table column fragments do not have block_size")
+                panic!("Table column fragments do not have block size")
             }
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
@@ -1382,6 +1364,7 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::Canvas(_) |
             SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::GeneratedContent(_) |
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Image(_) |
             SpecificFragmentInfo::Table |
@@ -1689,22 +1672,23 @@ impl Fragment {
     pub fn assign_replaced_inline_size_if_necessary<'a>(&'a mut self, container_inline_size: Au) {
         match self.specific {
             SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::GeneratedContent(_) |
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::TableWrapper => return,
             SpecificFragmentInfo::TableColumn(_) => {
-                panic!("Table column fragments do not have inline_size")
+                panic!("Table column fragments do not have inline size")
             }
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
             }
             SpecificFragmentInfo::Canvas(_) |
             SpecificFragmentInfo::Image(_) |
-            SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
-            SpecificFragmentInfo::Iframe(_) => {}
+            SpecificFragmentInfo::ScannedText(_) => {}
         };
 
         let style = self.style().clone();
@@ -1770,22 +1754,23 @@ impl Fragment {
     pub fn assign_replaced_block_size_if_necessary(&mut self, containing_block_block_size: Au) {
         match self.specific {
             SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::GeneratedContent(_) |
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::TableWrapper => return,
             SpecificFragmentInfo::TableColumn(_) => {
-                panic!("Table column fragments do not have block_size")
+                panic!("Table column fragments do not have block size")
             }
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
             }
             SpecificFragmentInfo::Canvas(_) |
+            SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Image(_) |
-            SpecificFragmentInfo::ScannedText(_) |
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
-            SpecificFragmentInfo::Iframe(_) => {}
+            SpecificFragmentInfo::ScannedText(_) => {}
         }
 
         let style = self.style().clone();
@@ -1923,6 +1908,7 @@ impl Fragment {
             SpecificFragmentInfo::TableWrapper => false,
             SpecificFragmentInfo::Canvas(_) |
             SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::GeneratedContent(_) |
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Image(_) |
             SpecificFragmentInfo::ScannedText(_) |

@@ -13,7 +13,7 @@ use context::LayoutContext;
 use flow::{Flow, MutableFlowUtils};
 use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
-use incremental::{RestyleDamage, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
+use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use wrapper::{layout_node_to_unsafe_layout_node, LayoutNode};
 use wrapper::{PostorderNodeMutTraversal, ThreadSafeLayoutNode, UnsafeLayoutNode};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
@@ -171,7 +171,8 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                                         &mut applicable_declarations,
                                         &mut shareable);
                     } else {
-                        ThreadSafeLayoutNode::new(&node).set_restyle_damage(RestyleDamage::all())
+                        ThreadSafeLayoutNode::new(&node).set_restyle_damage(
+                            incremental::rebuild_and_reflow())
                     }
 
                     // Perform the CSS cascade.
@@ -377,3 +378,4 @@ impl<'a> PostorderFlowTraversal for BuildDisplayList<'a> {
         flow.build_display_list(self.layout_context);
     }
 }
+
