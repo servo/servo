@@ -2695,22 +2695,38 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="filter">
-        use values::specified::Angle;
-        pub use self::computed_value::T as SpecifiedValue;
-        pub use self::computed_value::Filter;
-        use values::computed::ComputedValueAsSpecified;
+        //pub use self::computed_value::T as SpecifiedValue;
+        use values::computed::{Context, ToComputedValue};
+        use values::specified::{Angle, Length};
+        use values::CSSFloat;
+        use cssparser::{self, ToCss};
+        use text_writer::{self, TextWriter};
 
-        impl ComputedValueAsSpecified for SpecifiedValue {}
+        #[derive(Clone, PartialEq)]
+        pub struct SpecifiedValue(Vec<SpecifiedFilter>);
+
+        // TODO(pcwalton): `drop-shadow`
+        #[derive(Clone, PartialEq, Debug)]
+        pub enum SpecifiedFilter {
+            Blur(Length),
+            Brightness(CSSFloat),
+            Contrast(CSSFloat),
+            Grayscale(CSSFloat),
+            HueRotate(Angle),
+            Invert(CSSFloat),
+            Opacity(CSSFloat),
+            Saturate(CSSFloat),
+            Sepia(CSSFloat),
+        }
 
         pub mod computed_value {
-            use values::specified::Angle;
+            use util::geometry::Au;
             use values::CSSFloat;
-            use cssparser::ToCss;
-            use text_writer::{self, TextWriter};
+            use values::specified::{Angle};
 
-            // TODO(pcwalton): `blur`, `drop-shadow`
             #[derive(Clone, PartialEq, Debug)]
             pub enum Filter {
+                Blur(Au),
                 Brightness(CSSFloat),
                 Contrast(CSSFloat),
                 Grayscale(CSSFloat),
@@ -2721,54 +2737,16 @@ pub mod longhands {
                 Sepia(CSSFloat),
             }
 
-            impl ToCss for Filter {
-                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
-                    match *self {
-                        Filter::Brightness(value) => try!(write!(dest, "brightness({})", value)),
-                        Filter::Contrast(value) => try!(write!(dest, "contrast({})", value)),
-                        Filter::Grayscale(value) => try!(write!(dest, "grayscale({})", value)),
-                        Filter::HueRotate(value) => {
-                            try!(dest.write_str("hue-rotate("));
-                            try!(value.to_css(dest));
-                            try!(dest.write_str(")"));
-                        }
-                        Filter::Invert(value) => try!(write!(dest, "invert({})", value)),
-                        Filter::Opacity(value) => try!(write!(dest, "opacity({})", value)),
-                        Filter::Saturate(value) => try!(write!(dest, "saturate({})", value)),
-                        Filter::Sepia(value) => try!(write!(dest, "sepia({})", value)),
-                    }
-                    Ok(())
-                }
-            }
-
             #[derive(Clone, PartialEq, Debug)]
-            pub struct T {
-                pub filters: Vec<Filter>,
-            }
-
-            impl ToCss for T {
-                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
-                    let mut iter = self.filters.iter();
-                    if let Some(filter) = iter.next() {
-                        try!(filter.to_css(dest));
-                    } else {
-                        try!(dest.write_str("none"));
-                        return Ok(())
-                    }
-                    for filter in iter {
-                        try!(dest.write_str(" "));
-                        try!(filter.to_css(dest));
-                    }
-                    Ok(())
-                }
-            }
+            pub struct T { pub filters: Vec<Filter> }
 
             impl T {
                 /// Creates a new filter pipeline.
                 #[inline]
                 pub fn new(filters: Vec<Filter>) -> T {
-                    T {
-                        filters: filters,
+                    T
+                    {
+                       filters: filters,
                     }
                 }
 
@@ -2788,6 +2766,7 @@ pub mod longhands {
                 #[inline]
                 pub fn opacity(&self) -> CSSFloat {
                     let mut opacity = 1.0;
+
                     for filter in self.filters.iter() {
                         if let Filter::Opacity(ref opacity_value) = *filter {
                             opacity *= *opacity_value
@@ -2795,6 +2774,48 @@ pub mod longhands {
                     }
                     opacity
                 }
+            }
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                let mut iter = self.0.iter();
+                if let Some(filter) = iter.next() {
+                    try!(filter.to_css(dest));
+                } else {
+                    try!(dest.write_str("none"));
+                    return Ok(())
+                }
+                for filter in iter {
+                    try!(dest.write_str(" "));
+                    try!(filter.to_css(dest));
+                }
+                Ok(())
+            }
+        }
+
+        impl ToCss for SpecifiedFilter {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                match *self {
+                    SpecifiedFilter::Blur(value) => {
+                        try!(dest.write_str("blur("));
+                        try!(value.to_css(dest));
+                        try!(dest.write_str(")"));
+                    }
+                    SpecifiedFilter::Brightness(value) => try!(write!(dest, "brightness({})", value)),
+                    SpecifiedFilter::Contrast(value) => try!(write!(dest, "contrast({})", value)),
+                    SpecifiedFilter::Grayscale(value) => try!(write!(dest, "grayscale({})", value)),
+                    SpecifiedFilter::HueRotate(value) => {
+                        try!(dest.write_str("hue-rotate("));
+                        try!(value.to_css(dest));
+                        try!(dest.write_str(")"));
+                    }
+                    SpecifiedFilter::Invert(value) => try!(write!(dest, "invert({})", value)),
+                    SpecifiedFilter::Opacity(value) => try!(write!(dest, "opacity({})", value)),
+                    SpecifiedFilter::Saturate(value) => try!(write!(dest, "saturate({})", value)),
+                    SpecifiedFilter::Sepia(value) => try!(write!(dest, "sepia({})", value)),
+                }
+                Ok(())
             }
         }
 
@@ -2806,27 +2827,28 @@ pub mod longhands {
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             let mut filters = Vec::new();
             if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-                return Ok(SpecifiedValue::new(filters))
+                return Ok(SpecifiedValue(filters))
             }
             loop {
                 if let Ok(function_name) = input.try(|input| input.expect_function()) {
                     filters.push(try!(input.parse_nested_block(|input| {
                         match_ignore_ascii_case! { function_name,
-                            "brightness" => parse_factor(input).map(Filter::Brightness),
-                            "contrast" => parse_factor(input).map(Filter::Contrast),
-                            "grayscale" => parse_factor(input).map(Filter::Grayscale),
-                            "hue-rotate" => Angle::parse(input).map(Filter::HueRotate),
-                            "invert" => parse_factor(input).map(Filter::Invert),
-                            "opacity" => parse_factor(input).map(Filter::Opacity),
-                            "saturate" => parse_factor(input).map(Filter::Saturate),
-                            "sepia" => parse_factor(input).map(Filter::Sepia)
+                            "blur" => specified::Length::parse_non_negative(input).map(SpecifiedFilter::Blur),
+                            "brightness" => parse_factor(input).map(SpecifiedFilter::Brightness),
+                            "contrast" => parse_factor(input).map(SpecifiedFilter::Contrast),
+                            "grayscale" => parse_factor(input).map(SpecifiedFilter::Grayscale),
+                            "hue-rotate" => Angle::parse(input).map(SpecifiedFilter::HueRotate),
+                            "invert" => parse_factor(input).map(SpecifiedFilter::Invert),
+                            "opacity" => parse_factor(input).map(SpecifiedFilter::Opacity),
+                            "saturate" => parse_factor(input).map(SpecifiedFilter::Saturate),
+                            "sepia" => parse_factor(input).map(SpecifiedFilter::Sepia)
                             _ => Err(())
                         }
                     })));
                 } else if filters.is_empty() {
                     return Err(())
                 } else {
-                    return Ok(SpecifiedValue::new(filters))
+                    return Ok(SpecifiedValue(filters))
                 }
             }
         }
@@ -2837,6 +2859,26 @@ pub mod longhands {
                 Ok(Token::Number(value)) => Ok(value.value),
                 Ok(Token::Percentage(value)) => Ok(value.unit_value),
                 _ => Err(())
+            }
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            fn to_computed_value(&self, context: &computed::Context) -> computed_value::T {
+                computed_value::T{ filters: self.0.iter().map(|value| {
+                    match value {
+                        &SpecifiedFilter::Blur(factor) => computed_value::Filter::Blur(factor.to_computed_value(context)),
+                        &SpecifiedFilter::Brightness(factor) => computed_value::Filter::Brightness(factor),
+                        &SpecifiedFilter::Contrast(factor) => computed_value::Filter::Contrast(factor),
+                        &SpecifiedFilter::Grayscale(factor) => computed_value::Filter::Grayscale(factor),
+                        &SpecifiedFilter::HueRotate(factor) => computed_value::Filter::HueRotate(factor),
+                        &SpecifiedFilter::Invert(factor) => computed_value::Filter::Invert(factor),
+                        &SpecifiedFilter::Opacity(factor) => computed_value::Filter::Opacity(factor),
+                        &SpecifiedFilter::Saturate(factor) => computed_value::Filter::Saturate(factor),
+                        &SpecifiedFilter::Sepia(factor) => computed_value::Filter::Sepia(factor),
+                    }
+                }).collect() }
             }
         }
     </%self:longhand>
