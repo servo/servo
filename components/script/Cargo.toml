@@ -51,10 +51,6 @@ git = "https://github.com/servo/rust-geom"
 [dependencies.html5ever]
 git = "https://github.com/servo/html5ever"
 
-[dependencies.hyper]
-git = "https://github.com/servo/hyper"
-branch = "servo"
-
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
 
@@ -74,3 +70,4 @@ time = "0.1.12"
 bitflags = "*"
 rustc-serialize = "*"
 libc = "*"
+hyper = "0.3"

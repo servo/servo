@@ -13,10 +13,6 @@ path = "../util"
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
-[dependencies.hyper]
-git = "https://github.com/servo/hyper"
-branch = "servo"
-
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
 
@@ -31,3 +27,4 @@ rustc-serialize = "0.2"
 cookie="*"
 regex = "0.1.14"
 regex_macros = "0.1.8"
+hyper = "0.3"
