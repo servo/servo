@@ -21,6 +21,8 @@
 #![allow(unrooted_must_root)]
 #![allow(missing_copy_implementations)]
 
+#![plugin(string_cache_plugin)]
+
 #[macro_use]
 extern crate log;
 
@@ -45,8 +47,6 @@ extern crate selectors;
 #[macro_use]
 extern crate util;
 
-#[no_link] #[macro_use] #[plugin]
-extern crate string_cache_macros;
 extern crate string_cache;
 
 extern crate alloc;

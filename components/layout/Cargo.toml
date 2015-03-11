@@ -52,7 +52,7 @@ git = "https://github.com/servo/rust-geom"
 [dependencies.string_cache]
 git = "https://github.com/servo/string-cache"
 
-[dependencies.string_cache_macros]
+[dependencies.string_cache_plugin]
 git = "https://github.com/servo/string-cache"
 
 [dependencies.png]

@@ -12,9 +12,10 @@
 
 #![allow(missing_copy_implementations)]
 
+#![plugin(string_cache_plugin)]
+
 #[macro_use] extern crate log;
 #[macro_use] extern crate bitflags;
-#[no_link] #[macro_use] #[plugin] extern crate string_cache_macros;
 
 extern crate collections;
 extern crate geom;

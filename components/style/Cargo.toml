@@ -30,7 +30,7 @@ git = "https://github.com/Kimundi/lazy-static.rs"
 [dependencies.string_cache]
 git = "https://github.com/servo/string-cache"
 
-[dependencies.string_cache_macros]
+[dependencies.string_cache_plugin]
 git = "https://github.com/servo/string-cache"
 
 [dependencies]

@@ -20,6 +20,8 @@
 
 #![allow(missing_copy_implementations)]
 
+#![plugin(string_cache_plugin)]
+
 #[macro_use] extern crate log;
 
 extern crate alloc;
@@ -44,8 +46,6 @@ extern crate string_cache;
 extern crate unicode;
 extern crate url;
 
-#[no_link] #[macro_use] #[plugin]
-extern crate string_cache_macros;
 extern crate lazy_static;
 
 pub use selectors::smallvec;
