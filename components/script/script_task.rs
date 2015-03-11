@@ -909,8 +909,7 @@ impl ScriptTask {
         let cx = cx.as_ref().unwrap();
 
         // Create a new frame tree entry.
-        let page = Rc::new(Page::new(incomplete.pipeline_id, incomplete.subpage_id.map(|p| p.1),
-                                     final_url.clone()));
+        let page = Rc::new(Page::new(incomplete.pipeline_id, final_url.clone()));
         if !root_page_exists {
             // We have a new root frame tree.
             *self.page.borrow_mut() = Some(page.clone());
