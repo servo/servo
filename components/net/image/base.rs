@@ -59,7 +59,12 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
         match stb_image::load_from_memory_with_depth(buffer, FORCE_DEPTH, true) {
             stb_image::LoadResult::ImageU8(mut image) => {
                 assert!(image.depth == 4);
-                byte_swap(image.data.as_mut_slice());
+                // handle gif separately because the alpha-channel has to be premultiplied
+                if is_gif(buffer) {
+                    byte_swap_and_premultiply(image.data.as_mut_slice());
+                } else {
+                    byte_swap(image.data.as_mut_slice());
+                }
                 Some(png::Image {
                     width: image.width as u32,
                     height: image.height as u32,
@@ -75,5 +80,12 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                 None
             }
         }
+    }
+}
+
+fn is_gif(buffer: &[u8]) -> bool {
+    match buffer {
+        [b'G',b'I',b'F',b'8', n, b'a', ..] if n == b'7' || n == b'9' => true,
+        _ => false
     }
 }
