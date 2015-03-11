@@ -157,11 +157,11 @@ fn get_args() -> Vec<String> {
 mod android {
     extern crate libc;
 
-    use libc::c_int;
+    use self::libc::c_int;
     use std::borrow::ToOwned;
 
     pub fn setup_logging() {
-        use libc::consts::os::posix88::{STDERR_FILENO, STDOUT_FILENO};
+        use self::libc::consts::os::posix88::{STDERR_FILENO, STDOUT_FILENO};
         //os::setenv("RUST_LOG", "servo,gfx,msg,util,layers,js,std,rt,extra");
         redirect_output(STDERR_FILENO);
         redirect_output(STDOUT_FILENO);
@@ -169,14 +169,14 @@ mod android {
 
     android_start!(main);
 
-    struct FilePtr(*mut libc::types::common::c95::FILE);
+    struct FilePtr(*mut self::libc::types::common::c95::FILE);
 
     unsafe impl Send for FilePtr {}
 
     fn redirect_output(file_no: c_int) {
-        use libc::funcs::posix88::unistd::{pipe, dup2};
-        use libc::funcs::posix88::stdio::fdopen;
-        use libc::funcs::c95::stdio::fgets;
+        use self::libc::funcs::posix88::unistd::{pipe, dup2};
+        use self::libc::funcs::posix88::stdio::fdopen;
+        use self::libc::funcs::c95::stdio::fgets;
         use util::task::spawn_named;
         use std::mem;
         use std::ffi::CString;
