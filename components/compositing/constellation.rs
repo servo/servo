@@ -335,7 +335,7 @@ impl NavigationContext {
     fn set_current(&mut self, new_frame: Rc<FrameTree>, compositor_proxy: &mut CompositorProxy) {
         self.current = Some(new_frame.clone());
         compositor_proxy.send(CompositorMsg::ChangePageUrl(
-            new_frame.id,
+            new_frame.pipeline.borrow().id,
             new_frame.pipeline.borrow().url.clone()));
     }
 }
