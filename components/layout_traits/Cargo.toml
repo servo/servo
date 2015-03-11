@@ -21,3 +21,6 @@ path = "../net"
 
 [dependencies.util]
 path = "../util"
+
+[dependencies]
+url = "0.2.16"

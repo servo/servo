@@ -27,6 +27,7 @@ use net::resource_task;
 use net::storage_task::{StorageTask, StorageTaskMsg};
 use util::cursor::Cursor;
 use util::geometry::PagePx;
+use util::memory::MemoryProfilerChan;
 use util::opts;
 use util::task::spawn_named;
 use util::time::TimeProfilerChan;
@@ -90,6 +91,9 @@ pub struct Constellation<LTF, STF> {
 
     /// A channel through which messages can be sent to the time profiler.
     pub time_profiler_chan: TimeProfilerChan,
+
+    /// A channel through which messages can be sent to the memory profiler.
+    pub memory_profiler_chan: MemoryProfilerChan,
 
     pub window_size: WindowSizeData,
 }
@@ -167,6 +171,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                  image_cache_task: ImageCacheTask,
                  font_cache_task: FontCacheTask,
                  time_profiler_chan: TimeProfilerChan,
+                 memory_profiler_chan: MemoryProfilerChan,
                  devtools_chan: Option<DevtoolsControlChan>,
                  storage_task: StorageTask)
                  -> ConstellationChan {
@@ -191,6 +196,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 root_frame_id: None,
                 next_frame_id: FrameId(0),
                 time_profiler_chan: time_profiler_chan,
+                memory_profiler_chan: memory_profiler_chan,
                 window_size: WindowSizeData {
                     visible_viewport: opts::get().initial_window_size.as_f32() * ScaleFactor(1.0),
                     initial_viewport: opts::get().initial_window_size.as_f32() * ScaleFactor(1.0),
@@ -240,6 +246,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                     self.resource_task.clone(),
                                                     self.storage_task.clone(),
                                                     self.time_profiler_chan.clone(),
+                                                    self.memory_profiler_chan.clone(),
                                                     window_size,
                                                     script_channel,
                                                     load_data);

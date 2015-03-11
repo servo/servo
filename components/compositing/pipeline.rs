@@ -19,6 +19,7 @@ use net::resource_task::ResourceTask;
 use net::storage_task::StorageTask;
 use url::Url;
 use util::geometry::{PagePx};
+use util::memory::MemoryProfilerChan;
 use util::time::TimeProfilerChan;
 use std::sync::mpsc::{Receiver, channel};
 
@@ -61,6 +62,7 @@ impl Pipeline {
                            resource_task: ResourceTask,
                            storage_task: StorageTask,
                            time_profiler_chan: TimeProfilerChan,
+                           memory_profiler_chan: MemoryProfilerChan,
                            window_size: Option<WindowSizeData>,
                            script_chan: Option<ScriptControlChan>,
                            load_data: LoadData)
@@ -123,6 +125,7 @@ impl Pipeline {
 
         LayoutTaskFactory::create(None::<&mut LTF>,
                                   id,
+                                  load_data.url.clone(),
                                   layout_pair,
                                   pipeline_port,
                                   constellation_chan,
@@ -133,6 +136,7 @@ impl Pipeline {
                                   image_cache_task,
                                   font_cache_task,
                                   time_profiler_chan,
+                                  memory_profiler_chan,
                                   layout_shutdown_chan);
 
         Pipeline::new(id,
