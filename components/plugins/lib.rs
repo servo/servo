@@ -16,10 +16,8 @@
 
 #![allow(missing_copy_implementations)]
 
-#[plugin]
 #[macro_use]
 extern crate syntax;
-#[plugin]
 #[macro_use]
 extern crate rustc;
 
