@@ -26,17 +26,22 @@ use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node, CloneChildrenFlag};
+use dom::servohtmlparser::ServoHTMLParserHelpers;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{WindowHelpers, ScriptHelpers};
-use script_task::{ScriptMsg, Runnable};
+use network_listener::{NetworkListener, PreInvoke};
+use script_task::{ScriptChan, ScriptMsg, Runnable};
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{Encoding, EncodingRef, DecoderTrap};
-use net_traits::{load_whole_resource, Metadata};
+use net_traits::{Metadata, AsyncResponseListener, ControlMsg, LoadConsumer, LoadData};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
+use html5ever::tree_builder::NextParserState;
 use std::borrow::ToOwned;
-use std::cell::Cell;
+use std::cell::{RefCell, Cell};
+use std::mem;
+use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use url::{Url, UrlParser};
 
@@ -97,7 +102,7 @@ impl HTMLScriptElement {
 
 pub trait HTMLScriptElementHelpers {
     /// Prepare a script (<https://www.whatwg.org/html/#prepare-a-script>)
-    fn prepare(self);
+    fn prepare(self) -> NextParserState;
 
     /// [Execute a script block]
     /// (https://html.spec.whatwg.org/multipage/#execute-the-script-block)
@@ -151,12 +156,52 @@ pub enum ScriptOrigin {
     External(Result<(Metadata, Vec<u8>), String>),
 }
 
+/// The context required for asynchronously loading an external script source.
+struct ScriptContext {
+    /// The element that initiated the request.
+    elem: Trusted<HTMLScriptElement>,
+    /// The response body received to date.
+    data: RefCell<Vec<u8>>,
+    /// The response metadata received to date.
+    metadata: RefCell<Option<Metadata>>,
+    /// Whether the owning document's parser should resume once the response completes.
+    resume_on_completion: bool,
+}
+
+impl AsyncResponseListener for ScriptContext {
+    fn headers_available(&self, metadata: Metadata) {
+        *self.metadata.borrow_mut() = Some(metadata);
+    }
+
+    fn data_available(&self, payload: Vec<u8>) {
+        self.data.borrow_mut().extend(payload.into_iter());
+    }
+
+    fn response_complete(&self, status: Result<(), String>) {
+        let load = status.map(|_| {
+            let data = mem::replace(&mut *self.data.borrow_mut(), vec!());
+            let metadata = self.metadata.borrow_mut().take().unwrap();
+            (metadata, data)
+        });
+        let elem = self.elem.to_temporary().root();
+
+        elem.r().execute(ScriptOrigin::External(load));
+
+        if self.resume_on_completion {
+            let document = document_from_node(elem.r()).root();
+            document.r().get_current_parser().unwrap().root().r().resume();
+        }
+    }
+}
+
+impl PreInvoke for ScriptContext {}
+
 impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
-    fn prepare(self) {
+    fn prepare(self) -> NextParserState {
         // https://html.spec.whatwg.org/multipage/scripting.html#prepare-a-script
         // Step 1.
         if self.already_started.get() {
-            return;
+            return NextParserState::Continue;
         }
         // Step 2.
         let was_parser_inserted = self.parser_inserted.get();
@@ -170,16 +215,16 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         // Step 4.
         let text = self.Text();
         if text.len() == 0 && !element.has_attribute(&atom!("src")) {
-            return;
+            return NextParserState::Continue;
         }
         // Step 5.
         let node: JSRef<Node> = NodeCast::from_ref(self);
         if !node.is_in_doc() {
-            return;
+            return NextParserState::Continue;
         }
         // Step 6, 7.
         if !self.is_javascript() {
-            return;
+            return NextParserState::Continue;
         }
         // Step 8.
         if was_parser_inserted {
@@ -193,12 +238,12 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         let document_from_node_ref = document_from_node(self).root();
         let document_from_node_ref = document_from_node_ref.r();
         if self.parser_inserted.get() && self.parser_document.root().r() != document_from_node_ref {
-            return;
+            return NextParserState::Continue;
         }
 
         // Step 11.
         if !document_from_node_ref.is_scripting_enabled() {
-            return;
+            return NextParserState::Continue;
         }
 
         // Step 12.
@@ -210,13 +255,13 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                                              .to_ascii_lowercase();
                 let for_value = for_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if for_value != "window" {
-                    return;
+                    return NextParserState::Continue;
                 }
 
                 let event_value = event_attribute.Value().to_ascii_lowercase();
                 let event_value = event_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if event_value != "onload" && event_value != "onload()" {
-                    return;
+                    return NextParserState::Continue;
                 }
             },
             (_, _) => (),
@@ -243,7 +288,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                 // Step 14.2
                 if src.is_empty() {
                     self.queue_error_event();
-                    return;
+                    return NextParserState::Continue;
                 }
 
                 // Step 14.3
@@ -252,7 +297,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                         // Step 14.4
                         error!("error parsing URL for script {}", src);
                         self.queue_error_event();
-                        return;
+                        return NextParserState::Continue;
                     }
                     Ok(url) => {
                         // Step 14.5
@@ -260,7 +305,30 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                         // state of the element's `crossorigin` content attribute, the origin being
                         // the origin of the script element's node document, and the default origin
                         // behaviour set to taint.
-                        ScriptOrigin::External(load_whole_resource(&window.resource_task(), url))
+                        let script_chan = window.script_chan();
+                        let elem = Trusted::new(window.get_cx(), self, script_chan.clone());
+
+                        let context = Arc::new(Mutex::new(ScriptContext {
+                            elem: elem,
+                            data: RefCell::new(vec!()),
+                            metadata: RefCell::new(None),
+                            resume_on_completion: self.parser_inserted.get(),
+                        }));
+
+                        let listener = box NetworkListener {
+                            context: context,
+                            script_chan: script_chan,
+                        };
+
+                        let load_data = LoadData::new(url);
+                        window.resource_task().send(
+                            ControlMsg::Load(load_data, LoadConsumer::Listener(listener))).unwrap();
+
+                        let document = document_from_node(self).root();
+                        if self.parser_inserted.get() {
+                            document.r().get_current_parser().unwrap().root().r().suspend();
+                        }
+                        return NextParserState::Suspend;
                     }
                 }
             },
@@ -271,6 +339,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         // TODO: Add support for the `defer` and `async` attributes.  (For now, we fetch all
         // scripts synchronously and execute them immediately.)
         self.execute(load);
+        NextParserState::Continue
     }
 
     fn execute(self, load: ScriptOrigin) {

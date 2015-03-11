@@ -24,7 +24,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLIFrameElementCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
-use dom::bindings::js::{JS, JSRef, OptionalRootable, RootedReference};
+use dom::bindings::js::{JS, JSRef, OptionalRootable, RootedReference, Temporary};
 use dom::bindings::js::{RootCollection, RootCollectionPtr};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
@@ -37,11 +37,13 @@ use dom::htmliframeelement::HTMLIFrameElementHelpers;
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
 use dom::node::{self, Node, NodeHelpers, NodeDamage, window_from_node};
+use dom::servohtmlparser::{ServoHTMLParser, ParserContext};
 use dom::window::{Window, WindowHelpers, ScriptHelpers, ReflowReason};
 use dom::worker::TrustedWorkerAddress;
-use parse::html::{HTMLInput, parse_html};
+use parse::html::{ParseContext, parse_html};
 use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
 use layout_interface;
+use network_listener::NetworkListener;
 use page::{Page, IterablePage, Frame};
 use timers::TimerId;
 use devtools;
@@ -62,7 +64,7 @@ use msg::constellation_msg::{ConstellationChan};
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent, WorkerId};
 use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::{ResourceTask, ControlMsg, LoadResponse, LoadConsumer};
+use net_traits::{ResourceTask, ControlMsg, LoadConsumer, Metadata};
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
@@ -70,7 +72,7 @@ use string_cache::Atom;
 use util::geometry::to_frac_px;
 use util::smallvec::SmallVec;
 use util::str::DOMString;
-use util::task::{spawn_named, spawn_named_with_send_on_failure};
+use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 
 use geom::Rect;
@@ -93,6 +95,7 @@ use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use time::Tm;
 
@@ -189,8 +192,6 @@ pub enum ScriptMsg {
     MainThreadRunnableMsg(Box<MainThreadRunnable+Send>),
     /// A DOM object's last pinned reference was removed (dispatched to all tasks).
     RefcountCleanup(TrustedReference),
-    /// The final network response for a page has arrived.
-    PageFetchComplete(PipelineId, Option<SubpageId>, LoadResponse),
 }
 
 /// A cloneable interface for communicating with an event loop.
@@ -423,6 +424,21 @@ unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus) 
 }
 
 impl ScriptTask {
+    pub fn page_fetch_complete(id: PipelineId, subpage: Option<SubpageId>, metadata: Metadata)
+                               -> Temporary<ServoHTMLParser> {
+        SCRIPT_TASK_ROOT.with(|root| {
+            let script_task = unsafe { &*root.borrow().unwrap() };
+            script_task.handle_page_fetch_complete(id, subpage, metadata)
+        })
+    }
+
+    pub fn parsing_complete(id: PipelineId) {
+        SCRIPT_TASK_ROOT.with(|root| {
+            let script_task = unsafe { &*root.borrow().unwrap() };
+            script_task.handle_parsing_complete(id);
+        });
+    }
+
     pub fn process_event(msg: ScriptMsg) {
         SCRIPT_TASK_ROOT.with(|root| {
             if let Some(script_task) = *root.borrow() {
@@ -717,8 +733,6 @@ impl ScriptTask {
                 runnable.handler(self),
             ScriptMsg::RefcountCleanup(addr) =>
                 LiveDOMReferences::cleanup(self.get_cx(), addr),
-            ScriptMsg::PageFetchComplete(id, subpage, response) =>
-                self.handle_page_fetch_complete(id, subpage, response),
         }
     }
 
@@ -927,13 +941,13 @@ impl ScriptTask {
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
     fn handle_page_fetch_complete(&self, id: PipelineId, subpage: Option<SubpageId>,
-                                  response: LoadResponse) {
+                                  metadata: Metadata) -> Temporary<ServoHTMLParser> {
         // Any notification received should refer to an existing, in-progress load that is tracked.
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
             load.pipeline_id == id && load.parent_info.map(|info| info.1) == subpage
         }).unwrap();
         let load = self.incomplete_loads.borrow_mut().remove(idx);
-        self.load(response, load);
+        self.load(metadata, load)
     }
 
     /// Handles a request for the window title.
@@ -967,8 +981,8 @@ impl ScriptTask {
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-    fn load(&self, response: LoadResponse, incomplete: InProgressLoad) {
-        let final_url = response.metadata.final_url.clone();
+    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> Temporary<ServoHTMLParser> {
+        let final_url = metadata.final_url.clone();
         debug!("ScriptTask: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
 
         // We should either be initializing a root page or loading a child page of an
@@ -1078,11 +1092,11 @@ impl ScriptTask {
                                  incomplete.parent_info,
                                  incomplete.window_size).root();
 
-        let last_modified: Option<DOMString> = response.metadata.headers.as_ref().and_then(|headers| {
+        let last_modified: Option<DOMString> = metadata.headers.as_ref().and_then(|headers| {
             headers.get().map(|&LastModified(ref tm)| dom_last_modified(tm))
         });
 
-        let content_type = match response.metadata.content_type {
+        let content_type = match metadata.content_type {
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => Some("text/plain".to_owned()),
             _ => None
         };
@@ -1108,47 +1122,16 @@ impl ScriptTask {
             let jsval = window.r().evaluate_js_on_global_with_result(evalstr);
             let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval,
                                                           StringificationBehavior::Empty);
-            HTMLInput::InputString(strval.unwrap_or("".to_owned()))
+            strval.unwrap_or("".to_owned())
         } else {
-            HTMLInput::InputUrl(response)
+            "".to_owned()
         };
 
-        parse_html(document.r(), parse_input, &final_url, None);
-
-        document.r().set_ready_state(DocumentReadyState::Interactive);
-        self.compositor.borrow_mut().set_ready_state(incomplete.pipeline_id, PerformingLayout);
-
-        // Kick off the initial reflow of the page.
-        debug!("kicking off initial reflow of {:?}", final_url);
-        document.r().content_changed(NodeCast::from_ref(document.r()),
-                                     NodeDamage::OtherNodeDamage);
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
-
-        // No more reflow required
-        page.set_reflow_status(false);
-
-        // https://html.spec.whatwg.org/multipage/#the-end step 4
-        let addr: Trusted<Document> = Trusted::new(self.get_cx(), document.r(), self.chan.clone());
-        let handler = box DocumentProgressHandler::new(addr.clone(), DocumentProgressTask::DOMContentLoaded);
-        self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
-
-        // We have no concept of a document loader right now, so just dispatch the
-        // "load" event as soon as we've finished executing all scripts parsed during
-        // the initial load.
-
-        // https://html.spec.whatwg.org/multipage/#the-end step 7
-        let handler = box DocumentProgressHandler::new(addr, DocumentProgressTask::Load);
-        self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
-
-        window.r().set_fragment_name(final_url.fragment.clone());
-
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::LoadComplete).unwrap();
-
-        // Notify devtools that a new script global exists.
-        self.notify_devtools(document.r().Title(), final_url, (incomplete.pipeline_id, None));
+        parse_html(document.r(), parse_input, &final_url, ParseContext::Owner(Some(incomplete.pipeline_id)));
 
         page_remover.neuter();
+
+        document.r().get_current_parser().unwrap()
     }
 
     fn notify_devtools(&self, title: DOMString, url: Url, ids: (PipelineId, Option<WorkerId>)) {
@@ -1347,24 +1330,25 @@ impl ScriptTask {
         let script_chan = self.chan.clone();
         let resource_task = self.resource_task.clone();
 
-        spawn_named(format!("fetch for {:?}", load_data.url.serialize()), move || {
-            if load_data.url.scheme == "javascript" {
-                load_data.url = Url::parse("about:blank").unwrap();
-            }
+        let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, script_chan.clone(),
+                                                             load_data.url.clone())));
+        let listener = box NetworkListener {
+            context: context,
+            script_chan: script_chan.clone(),
+        };
 
-            let (input_chan, input_port) = channel();
-            resource_task.send(ControlMsg::Load(NetLoadData {
-                url: load_data.url,
-                method: load_data.method,
-                headers: Headers::new(),
-                preserved_headers: load_data.headers,
-                data: load_data.data,
-                cors: None,
-            }, LoadConsumer::Channel(input_chan))).unwrap();
+        if load_data.url.scheme == "javascript" {
+            load_data.url = Url::parse("about:blank").unwrap();
+        }
 
-            let load_response = input_port.recv().unwrap();
-            script_chan.send(ScriptMsg::PageFetchComplete(id, subpage, load_response)).unwrap();
-        });
+        resource_task.send(ControlMsg::Load(NetLoadData {
+            url: load_data.url,
+            method: load_data.method,
+            headers: Headers::new(),
+            preserved_headers: load_data.headers,
+            data: load_data.data,
+            cors: None,
+        }, LoadConsumer::Listener(listener))).unwrap();
 
         self.incomplete_loads.borrow_mut().push(incomplete);
     }
@@ -1387,6 +1371,50 @@ impl ScriptTask {
     pub fn drop_devtools_timeline_markers(&self) {
         self.devtools_markers.borrow_mut().clear();
         *self.devtools_marker_sender.borrow_mut() = None;
+    }
+
+    fn handle_parsing_complete(&self, id: PipelineId) {
+        let parent_page = self.root_page();
+        let page = match parent_page.find(id) {
+            Some(page) => page,
+            None => return,
+        };
+
+        let document = page.document().root();
+
+        document.r().set_ready_state(DocumentReadyState::Interactive);
+        self.compositor.borrow_mut().set_ready_state(id, PerformingLayout);
+
+        // Kick off the initial reflow of the page.
+        debug!("kicking off initial reflow of {:?}", document.r().url());
+        document.r().content_changed(NodeCast::from_ref(document.r()),
+                                     NodeDamage::OtherNodeDamage);
+        let window = window_from_node(document.r()).root();
+        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
+
+        // No more reflow required
+        page.set_reflow_status(false);
+
+        // https://html.spec.whatwg.org/multipage/#the-end step 4
+        let addr: Trusted<Document> = Trusted::new(self.get_cx(), document.r(), self.chan.clone());
+        let handler = Box::new(DocumentProgressHandler::new(addr.clone(), DocumentProgressTask::DOMContentLoaded));
+        self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
+
+        // We have no concept of a document loader right now, so just dispatch the
+        // "load" event as soon as we've finished executing all scripts parsed during
+        // the initial load.
+
+        // https://html.spec.whatwg.org/multipage/#the-end step 7
+        let handler = Box::new(DocumentProgressHandler::new(addr, DocumentProgressTask::Load));
+        self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
+
+        window.r().set_fragment_name(document.r().url().fragment.clone());
+
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(ConstellationMsg::LoadComplete).unwrap();
+
+        // Notify devtools that a new script global exists.
+        self.notify_devtools(document.r().Title(), document.r().url(), (id, None));
     }
 }
 

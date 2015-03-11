@@ -5,6 +5,6 @@
 pub mod html;
 
 pub trait Parser {
-    fn parse_chunk(&self,input: String);
-    fn finish(&self);
+    fn parse_chunk(self, input: String);
+    fn finish(self);
 }

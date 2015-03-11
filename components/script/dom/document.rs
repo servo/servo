@@ -56,6 +56,7 @@ use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::Range;
+use dom::servohtmlparser::ServoHTMLParser;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers, ReflowReason};
@@ -128,6 +129,8 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: Cell<bool>,
+    /// The current active HTML parser, to allow resuming after interruptions.
+    current_parser: MutNullableJS<ServoHTMLParser>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -232,6 +235,8 @@ pub trait DocumentHelpers<'a> {
 
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>);
     fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
+    fn set_current_parser(self, script: Option<JSRef<ServoHTMLParser>>);
+    fn get_current_parser(self) -> Option<Temporary<ServoHTMLParser>>;
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -719,6 +724,14 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             }
         }
     }
+
+    fn set_current_parser(self, script: Option<JSRef<ServoHTMLParser>>) {
+        self.current_parser.assign(script);
+    }
+
+    fn get_current_parser(self) -> Option<Temporary<ServoHTMLParser>> {
+        self.current_parser.get()
+    }
 }
 
 #[derive(PartialEq)]
@@ -790,6 +803,7 @@ impl Document {
             focused: Default::default(),
             current_script: Default::default(),
             scripting_enabled: Cell::new(true),
+            current_parser: Default::default(),
         }
     }
 
