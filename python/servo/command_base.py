@@ -133,7 +133,7 @@ class CommandBase(object):
         if not self.config["tools"]["system-cargo"] \
                 or self.config["tools"]["cargo-root"]:
             extra_path += [
-                path.join(self.config["tools"]["cargo-root"], "bin")]
+                path.join(self.config["tools"]["cargo-root"], "cargo", "bin")]
 
         if extra_path:
             env["PATH"] = "%s%s%s" % (
@@ -237,7 +237,7 @@ class CommandBase(object):
             Registrar.dispatch("bootstrap-rust", context=self.context)
         if not self.config["tools"]["system-cargo"] and \
            not path.exists(path.join(
-                self.config["tools"]["cargo-root"], "bin", "cargo")):
+                self.config["tools"]["cargo-root"], "cargo", "bin", "cargo")):
             Registrar.dispatch("bootstrap-cargo", context=self.context)
 
         self.context.bootstrapped = True
