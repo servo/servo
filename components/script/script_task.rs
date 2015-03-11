@@ -831,7 +831,7 @@ impl ScriptTask {
     fn handle_page_fetch_complete(&self, id: PipelineId, subpage: Option<SubpageId>,
                                   response: LoadResponse) {
         // Any notification received should refer to an existing, in-progress load that is tracked.
-        let idx = self.incomplete_loads.borrow().iter().position(|&:load| {
+        let idx = self.incomplete_loads.borrow().iter().position(|load| {
             load.pipeline_id == id && load.subpage_id.map(|sub| sub.1) == subpage
         }).unwrap();
         let load = self.incomplete_loads.borrow_mut().remove(idx);

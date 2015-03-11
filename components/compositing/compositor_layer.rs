@@ -307,8 +307,8 @@ impl CompositorLayer for Layer<CompositorData> {
         let min_x = (layer_size.width - content_size.width).get().min(0.0);
         let min_y = (layer_size.height - content_size.height).get().min(0.0);
         let new_offset : TypedPoint2D<LayerPixel, f32> =
-            Point2D(Length(new_offset.x.get().clamp(&min_x, &0.0)),
-                    Length(new_offset.y.get().clamp(&min_y, &0.0)));
+            Point2D(Length::new(new_offset.x.get().clamp(&min_x, &0.0)),
+                    Length::new(new_offset.y.get().clamp(&min_y, &0.0)));
 
         if self.extra_data.borrow().scroll_offset == new_offset {
             return ScrollEventResult::ScrollPositionUnchanged;

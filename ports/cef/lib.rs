@@ -15,10 +15,10 @@
 
 #![allow(non_camel_case_types)]
 
+#![plugin(plugins)]
+
 #[macro_use]
 extern crate log;
-#[plugin] #[no_link]
-extern crate "plugins" as servo_plugins;
 
 extern crate servo;
 extern crate compositing;

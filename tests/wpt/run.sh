@@ -9,6 +9,8 @@ binary_dir=$wpt_root/../../components/servo/target
 if [[ $1 ==  "--release" ]]; then
     binary_dir=$binary_dir/release
     shift
+else
+    binary_dir=$binary_dir/debug
 fi
 
 PYTHON=$(which python2 2> /dev/null || echo python)

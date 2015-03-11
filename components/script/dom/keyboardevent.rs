@@ -85,15 +85,17 @@ impl KeyboardEvent {
         let ev = KeyboardEvent::new_uninitialized(window).root();
         ev.r().InitKeyboardEvent(type_, canBubble, cancelable, view, key, location,
                                  "".to_owned(), repeat, "".to_owned());
-        *ev.r().code.borrow_mut() = code;
-        ev.r().ctrl.set(ctrlKey);
-        ev.r().alt.set(altKey);
-        ev.r().shift.set(shiftKey);
-        ev.r().meta.set(metaKey);
-        ev.r().char_code.set(char_code);
-        ev.r().key_code.set(key_code);
-        ev.r().is_composing.set(isComposing);
-        Temporary::from_rooted(ev.r())
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let ev = ev.r();
+        *ev.code.borrow_mut() = code;
+        ev.ctrl.set(ctrlKey);
+        ev.alt.set(altKey);
+        ev.shift.set(shiftKey);
+        ev.meta.set(metaKey);
+        ev.char_code.set(char_code);
+        ev.key_code.set(key_code);
+        ev.is_composing.set(isComposing);
+        Temporary::from_rooted(ev)
     }
 
     pub fn Constructor(global: GlobalRef,
@@ -571,11 +573,15 @@ impl<'a> KeyboardEventMethods for JSRef<'a, KeyboardEvent> {
     }
 
     fn Key(self) -> DOMString {
-        self.key.borrow().clone()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let key = self.key.borrow();
+        key.clone()
     }
 
     fn Code(self) -> DOMString {
-        self.code.borrow().clone()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let code = self.code.borrow();
+        code.clone()
     }
 
     fn Location(self) -> u32 {

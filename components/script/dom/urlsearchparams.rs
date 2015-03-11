@@ -53,7 +53,10 @@ impl URLSearchParams {
                 let u = u.root();
                 let usp = usp.r();
                 let mut map = usp.data.borrow_mut();
-                *map = u.r().data.borrow().clone();
+                // FIXME(https://github.com/rust-lang/rust/issues/23338)
+                let r = u.r();
+                let data = r.data.borrow();
+                *map = data.clone();
             },
             None => {}
         }
@@ -81,11 +84,15 @@ impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
     }
 
     fn Get(self, name: DOMString) -> Option<DOMString> {
-        self.data.borrow().get(&name).map(|v| v[0].clone())
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let data = self.data.borrow();
+        data.get(&name).map(|v| v[0].clone())
     }
 
     fn Has(self, name: DOMString) -> bool {
-        self.data.borrow().contains_key(&name)
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let data = self.data.borrow();
+        data.contains_key(&name)
     }
 
     fn Set(self, name: DOMString, value: DOMString) {

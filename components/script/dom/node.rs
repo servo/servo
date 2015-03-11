@@ -856,7 +856,9 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn get_unique_id(self) -> String {
-        self.unique_id.borrow().clone()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let id = self.unique_id.borrow();
+        id.clone()
     }
 
     fn summarize(self) -> NodeInfo {
@@ -865,8 +867,10 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             *unique_id = uuid::Uuid::new_v4().to_simple_string();
         }
 
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let unique_id = self.unique_id.borrow();
         NodeInfo {
-            uniqueId: self.unique_id.borrow().clone(),
+            uniqueId: unique_id.clone(),
             baseURI: self.GetBaseURI().unwrap_or("".to_owned()),
             parent: self.GetParentNode().root().map(|node| node.r().get_unique_id()).unwrap_or("".to_owned()),
             nodeType: self.NodeType() as uint,
@@ -1122,7 +1126,7 @@ impl NodeIterator {
     }
 
     fn next_child<'b>(&self, node: JSRef<'b, Node>) -> Option<JSRef<'b, Node>> {
-        let skip = |&:element: JSRef<Element>| {
+        let skip = |element: JSRef<Element>| {
             !self.include_descendants_of_void && element.is_void()
         };
 
@@ -1163,10 +1167,10 @@ impl<'a> Iterator for NodeIterator {
                                                          .expect("Got to root without reaching start node")
                                                          .root()
                                                          .get_unsound_ref_forever();
-                                    self.depth -= 1;
                                     if JS::from_rooted(candidate) == self.start_node {
                                         break;
                                     }
+                                    self.depth -= 1;
                                 }
                                 if JS::from_rooted(candidate) != self.start_node {
                                     candidate.next_sibling().map(|node| JS::from_rooted(node.root().r()))
@@ -2058,13 +2062,18 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         fn is_equal_characterdata(node: JSRef<Node>, other: JSRef<Node>) -> bool {
             let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(node).unwrap();
             let other_characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(other).unwrap();
-            *characterdata.data() == *other_characterdata.data()
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let own_data = characterdata.data();
+            let other_data = other_characterdata.data();
+            *own_data == *other_data
         }
         fn is_equal_element_attrs(node: JSRef<Node>, other: JSRef<Node>) -> bool {
             let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
             let other_element: JSRef<Element> = ElementCast::to_ref(other).unwrap();
             assert!(element.attrs().len() == other_element.attrs().len());
-            element.attrs().iter().map(|attr| attr.root()).all(|attr| {
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let attrs = element.attrs();
+            attrs.iter().map(|attr| attr.root()).all(|attr| {
                 other_element.attrs().iter().map(|attr| attr.root()).any(|other_attr| {
                     (*attr.r().namespace() == *other_attr.r().namespace()) &&
                     (attr.r().local_name() == other_attr.r().local_name()) &&
@@ -2217,7 +2226,9 @@ impl<'a> VirtualMethods for JSRef<'a, Node> {
     }
 }
 
-impl<'a> style::node::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
+impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
+    type Element = JSRef<'a, Element>;
+
     fn parent_node(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
@@ -2305,12 +2316,22 @@ impl<'a> style::node::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
         match attr.namespace {
             NamespaceConstraint::Specific(ref ns) => {
                 self.as_element().get_attribute(ns.clone(), name).root()
-                    .map_or(false, |attr| test(attr.r().value().as_slice()))
+                    .map_or(false, |attr| {
+                        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+                        let attr = attr.r();
+                        let value = attr.value();
+                        test(value.as_slice())
+                    })
             },
             NamespaceConstraint::Any => {
                 self.as_element().get_attributes(name).into_iter()
                     .map(|attr| attr.root())
-                    .any(|attr| test(attr.r().value().as_slice()))
+                    .any(|attr| {
+                        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+                        let attr = attr.r();
+                        let value = attr.value();
+                        test(value.as_slice())
+                    })
             }
         }
     }

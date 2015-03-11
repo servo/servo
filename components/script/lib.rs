@@ -14,12 +14,15 @@
 #![feature(std_misc)]
 #![feature(unicode)]
 #![feature(unsafe_destructor)]
+#![feature(custom_attribute)]
 
 #![deny(unsafe_blocks)]
 #![allow(non_snake_case)]
-#![allow(missing_copy_implementations)]
 
 #![doc="The script crate contains all matters DOM."]
+
+#![plugin(string_cache_plugin)]
+#![plugin(plugins)]
 
 #[macro_use]
 extern crate log;
@@ -42,16 +45,12 @@ extern crate time;
 extern crate canvas;
 extern crate script_traits;
 extern crate selectors;
-#[no_link] #[plugin] #[macro_use]
-extern crate "plugins" as servo_plugins;
 extern crate util;
 #[macro_use]
 extern crate style;
 extern crate url;
 extern crate uuid;
 extern crate string_cache;
-#[no_link] #[macro_use] #[plugin]
-extern crate string_cache_macros;
 
 pub mod cors;
 

@@ -39,7 +39,7 @@ use util::smallvec::SmallVec;
 use util::str::is_whitespace;
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
-use std::collections::DList;
+use std::collections::LinkedList;
 use std::fmt;
 use std::num::ToPrimitive;
 use std::str::FromStr;
@@ -829,7 +829,7 @@ impl Fragment {
 
     /// Transforms this fragment into an ellipsis fragment, preserving all the other data.
     pub fn transform_into_ellipsis(&self, layout_context: &LayoutContext) -> Fragment {
-        let mut unscanned_ellipsis_fragments = DList::new();
+        let mut unscanned_ellipsis_fragments = LinkedList::new();
         unscanned_ellipsis_fragments.push_back(self.transform(
                 self.border_box.size,
                 SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(
@@ -1950,7 +1950,7 @@ impl Fragment {
     /// into account.
     ///
     /// If `coordinate_system` is `Parent`, this returns the border box in the parent stacking
-    /// context's coordinate system. Otherwise, if `coordinate_system` is `Self` and this fragment
+    /// context's coordinate system. Otherwise, if `coordinate_system` is `Own` and this fragment
     /// establishes a stacking context itself, this returns a border box anchored at (0, 0). (If
     /// this fragment does not establish a stacking context, then it always belongs to its parent
     /// stacking context and thus `coordinate_system` is ignored.)
@@ -1966,7 +1966,7 @@ impl Fragment {
         let container_size =
             relative_containing_block_size.to_physical(relative_containing_block_mode);
         let border_box = self.border_box.to_physical(self.style.writing_mode, container_size);
-        if coordinate_system == CoordinateSystem::Self && self.establishes_stacking_context() {
+        if coordinate_system == CoordinateSystem::Own && self.establishes_stacking_context() {
             return Rect(ZERO_POINT, border_box.size)
         }
 
@@ -2119,7 +2119,7 @@ pub enum CoordinateSystem {
     /// The border box returned is relative to the fragment's parent stacking context.
     Parent,
     /// The border box returned is relative to the fragment's own stacking context, if applicable.
-    Self,
+    Own,
 }
 
 /// Given a range and a text run, adjusts the range to eliminate trailing whitespace. Returns true

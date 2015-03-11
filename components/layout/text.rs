@@ -20,7 +20,7 @@ use util::geometry::Au;
 use util::logical_geometry::{LogicalSize, WritingMode};
 use util::range::Range;
 use util::smallvec::{SmallVec, SmallVec1};
-use std::collections::DList;
+use std::collections::LinkedList;
 use std::mem;
 use style::computed_values::{line_height, text_orientation, text_rendering, text_transform};
 use style::computed_values::{white_space};
@@ -30,17 +30,17 @@ use std::sync::Arc;
 
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextFragment`s.
 pub struct TextRunScanner {
-    pub clump: DList<Fragment>,
+    pub clump: LinkedList<Fragment>,
 }
 
 impl TextRunScanner {
     pub fn new() -> TextRunScanner {
         TextRunScanner {
-            clump: DList::new(),
+            clump: LinkedList::new(),
         }
     }
 
-    pub fn scan_for_runs(&mut self, font_context: &mut FontContext, mut fragments: DList<Fragment>)
+    pub fn scan_for_runs(&mut self, font_context: &mut FontContext, mut fragments: LinkedList<Fragment>)
                          -> InlineFragments {
         debug!("TextRunScanner: scanning {} fragments for text runs...", fragments.len());
 
@@ -160,7 +160,7 @@ impl TextRunScanner {
             // TextRuns contain a cycle which is usually resolved by the teardown sequence.
             // If no clump takes ownership, however, it will leak.
             if run_text.len() == 0 {
-                self.clump = DList::new();
+                self.clump = LinkedList::new();
                 return last_whitespace
             }
 
@@ -183,15 +183,15 @@ impl TextRunScanner {
                 flags: flags,
             };
 
-            Arc::new(box TextRun::new(&mut *fontgroup.fonts.get(0).borrow_mut(),
-                                      run_text,
-                                      &options))
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let mut font = fontgroup.fonts.get(0).borrow_mut();
+            Arc::new(box TextRun::new(&mut *font, run_text, &options))
         };
 
         // Make new fragments with the run and adjusted text indices.
         debug!("TextRunScanner: pushing {} fragment(s)", self.clump.len());
         for (logical_offset, old_fragment) in
-                mem::replace(&mut self.clump, DList::new()).into_iter().enumerate() {
+                mem::replace(&mut self.clump, LinkedList::new()).into_iter().enumerate() {
             let range = *new_ranges.get(logical_offset);
             if range.is_empty() {
                 debug!("Elided an `SpecificFragmentInfo::UnscannedText` because it was \
@@ -304,7 +304,9 @@ fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
 pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: Arc<FontStyle>)
                               -> FontMetrics {
     let fontgroup = font_context.get_layout_font_group_for_style(font_style);
-    fontgroup.fonts.get(0).borrow().metrics.clone()
+    // FIXME(https://github.com/rust-lang/rust/issues/23338)
+    let font = fontgroup.fonts.get(0).borrow();
+    font.metrics.clone()
 }
 
 /// Returns the line block-size needed by the given computed style and font size.

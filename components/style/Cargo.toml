@@ -30,13 +30,13 @@ git = "https://github.com/Kimundi/lazy-static.rs"
 [dependencies.string_cache]
 git = "https://github.com/servo/string-cache"
 
-[dependencies.string_cache_macros]
+[dependencies.string_cache_plugin]
 git = "https://github.com/servo/string-cache"
 
 [dependencies]
 text_writer = "0.1.1"
 encoding = "0.2"
-rustc-serialize = "0.2"
+rustc-serialize = "0.3"
 matches = "0.1"
 url = "0.2.16"
 mod_path = "0.1"

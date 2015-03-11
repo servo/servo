@@ -18,7 +18,7 @@ use layout_debug;
 use model::IntrinsicISizesContribution;
 use text;
 
-use collections::{RingBuf};
+use collections::{VecDeque};
 use geom::{Point2D, Rect};
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
@@ -171,7 +171,7 @@ struct LineBreaker {
     /// The resulting fragment list for the flow, consisting of possibly-broken fragments.
     new_fragments: Vec<Fragment>,
     /// The next fragment or fragments that we need to work on.
-    work_list: RingBuf<Fragment>,
+    work_list: VecDeque<Fragment>,
     /// The line we're currently working on.
     pending_line: Line,
     /// The lines we've already committed.
@@ -187,7 +187,7 @@ impl LineBreaker {
     fn new(float_context: Floats, first_line_indentation: Au) -> LineBreaker {
         LineBreaker {
             new_fragments: Vec::new(),
-            work_list: RingBuf::new(),
+            work_list: VecDeque::new(),
             pending_line: Line {
                 range: Range::empty(),
                 bounds: LogicalRect::zero(float_context.writing_mode),
@@ -513,7 +513,7 @@ impl LineBreaker {
                        .expect("LineBreaker: this split case makes no sense!");
         let writing_mode = self.floats.writing_mode;
 
-        let split_fragment = |&: split: SplitInfo| {
+        let split_fragment = |split: SplitInfo| {
             let size = LogicalSize::new(writing_mode,
                                         split.inline_size,
                                         in_fragment.border_box.size.block);
@@ -1342,7 +1342,7 @@ impl Flow for InlineFlow {
                                                       self.base
                                                           .absolute_position_info
                                                           .relative_containing_block_mode,
-                                                      CoordinateSystem::Self);
+                                                      CoordinateSystem::Own);
             let clip = fragment.clipping_region_for_children(&self.base.clip,
                                                              &stacking_relative_border_box);
             match fragment.specific {

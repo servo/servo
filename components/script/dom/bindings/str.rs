@@ -5,7 +5,7 @@
 //! The `ByteString` struct.
 
 use std::borrow::ToOwned;
-use std::hash::{Hash, SipHasher};
+use std::hash::{Hash, Hasher};
 use std::str;
 use std::str::FromStr;
 
@@ -144,8 +144,8 @@ impl ByteString {
     }
 }
 
-impl Hash<SipHasher> for ByteString {
-    fn hash(&self, state: &mut SipHasher) {
+impl Hash for ByteString {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         let ByteString(ref vec) = *self;
         vec.hash(state);
     }

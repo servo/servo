@@ -19,7 +19,7 @@ use util::smallvec::{SmallVec, SmallVec16};
 use util::arc_ptr_eq;
 use std::borrow::ToOwned;
 use std::mem;
-use std::hash::{Hash, Hasher, Writer};
+use std::hash::{Hash, Hasher};
 use std::slice::Iter;
 use string_cache::{Atom, Namespace};
 use selectors::parser::PseudoElement;
@@ -78,8 +78,8 @@ impl PartialEq for ApplicableDeclarationsCacheEntry {
 }
 impl Eq for ApplicableDeclarationsCacheEntry {}
 
-impl<H: Hasher+Writer> Hash<H> for ApplicableDeclarationsCacheEntry {
-    fn hash(&self, state: &mut H) {
+impl Hash for ApplicableDeclarationsCacheEntry {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         let tmp = ApplicableDeclarationsCacheQuery::new(&*self.declarations);
         tmp.hash(state);
     }
@@ -119,8 +119,8 @@ impl<'a> PartialEq<ApplicableDeclarationsCacheEntry> for ApplicableDeclarationsC
     }
 }
 
-impl<'a, H: Hasher+Writer> Hash<H> for ApplicableDeclarationsCacheQuery<'a> {
-    fn hash(&self, state: &mut H) {
+impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         for declaration in self.declarations.iter() {
             let ptr: uint = unsafe {
                 mem::transmute_copy(declaration)
@@ -357,7 +357,7 @@ impl StyleSharingCandidateCache {
 }
 
 /// The results of attempting to share a style.
-pub enum StyleSharingResult<'ln> {
+pub enum StyleSharingResult {
     /// We didn't find anybody to share the style with. The boolean indicates whether the style
     /// is shareable at all.
     CannotShare(bool),

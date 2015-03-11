@@ -134,7 +134,7 @@ macro_rules! native_graphics_context(
     )
 );
 
-impl<C> PaintTask<C> where C: PaintListener + Send {
+impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
     pub fn create(id: PipelineId,
                   port: Receiver<Msg>,
                   compositor: C,

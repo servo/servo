@@ -96,6 +96,7 @@ pub struct LayoutTaskData {
     /// The root stacking context.
     pub stacking_context: Option<Arc<StackingContext>>,
 
+    /// Performs CSS selector matching and style resolution.
     pub stylist: Box<Stylist>,
 
     /// The workers that we use for parallel operation.
@@ -178,7 +179,7 @@ impl ImageResponder<UntrustedNodeAddress> for LayoutImageResponder {
     fn respond(&self) -> Box<Fn(ImageResponseMsg, UntrustedNodeAddress)+Send> {
         let id = self.id.clone();
         let script_chan = self.script_chan.clone();
-        box move |&:_, node_address| {
+        box move |_, node_address| {
             let ScriptControlChan(ref chan) = script_chan;
             debug!("Dirtying {:x}", node_address.0 as uint);
             let mut nodes = SmallVec1::new();
@@ -281,10 +282,13 @@ impl LayoutTask {
         let local_image_cache =
             Arc::new(Mutex::new(LocalImageCache::new(image_cache_task.clone())));
         let screen_size = Size2D(Au(0), Au(0));
-        let device = Device::new(MediaType::Screen, opts::get().initial_window_size.as_f32() * ScaleFactor(1.0));
+        let device = Device::new(
+            MediaType::Screen,
+            opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0));
         let parallel_traversal = if opts::get().layout_threads != 1 {
             Some(WorkQueue::new("LayoutWorker", task_state::LAYOUT,
-                                opts::get().layout_threads, SharedLayoutContextWrapper(ptr::null())))
+                                opts::get().layout_threads,
+                                SharedLayoutContextWrapper(ptr::null())))
         } else {
             None
         };
@@ -568,7 +572,7 @@ impl LayoutTask {
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
 
         if mq.evaluate(&rw_data.stylist.device) {
-            iter_font_face_rules(&sheet, &rw_data.stylist.device, &|&:family, src| {
+            iter_font_face_rules(&sheet, &rw_data.stylist.device, &|family, src| {
                 self.font_cache_task.add_web_font(family.to_owned(), (*src).clone());
             });
             rw_data.stylist.add_stylesheet(sheet);

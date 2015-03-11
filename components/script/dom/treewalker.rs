@@ -344,7 +344,7 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
     }
 }
 
-pub trait TreeWalkerHelpers<'a> {
+pub trait TreeWalkerHelpers {
     fn parent_node(self) -> Fallible<Option<Temporary<Node>>>;
     fn first_child(self) -> Fallible<Option<Temporary<Node>>>;
     fn last_child(self) -> Fallible<Option<Temporary<Node>>>;
@@ -354,7 +354,7 @@ pub trait TreeWalkerHelpers<'a> {
     fn prev_node(self) -> Fallible<Option<Temporary<Node>>>;
 }
 
-impl<'a> TreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
+impl<'a> TreeWalkerHelpers for JSRef<'a, TreeWalker> {
     // http://dom.spec.whatwg.org/#dom-treewalker-parentnode
     fn parent_node(self) -> Fallible<Option<Temporary<Node>>> {
         // "1. Let node be the value of the currentNode attribute."
