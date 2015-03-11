@@ -27,7 +27,7 @@ use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId}
 use dom::node::{document_from_node, window_from_node};
 use textinput::{TextInput, Lines, KeyReaction};
 use dom::virtualmethods::VirtualMethods;
-use script_task::{Runnable};
+use script_task::{ScriptMsg, Runnable};
 
 use util::str::DOMString;
 use string_cache::Atom;
@@ -345,8 +345,18 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
                 match self.textinput.borrow_mut().handle_keydown(event) {
                     KeyReaction::TriggerDefaultAction => (),
                     KeyReaction::DispatchInput => {
-                        self.force_relayout();
                         self.value_changed.set(true);
+
+                        let window = window_from_node(*self).root();
+                        let window = window.r();
+                        let chan = window.script_chan();
+                        let handler = Trusted::new(window.get_cx(), *self , chan.clone());
+                        let dispatcher = TrustedHTMLTextAreaElement {
+                            element: handler,
+                        };
+                        chan.send(ScriptMsg::RunnableMsg(box dispatcher));
+
+                        self.force_relayout();
                     }
                     KeyReaction::Nothing => (),
                 }
