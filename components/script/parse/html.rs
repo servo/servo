@@ -20,23 +20,14 @@ use dom::servohtmlparser::ServoHTMLParser;
 use dom::text::Text;
 use parse::Parser;
 
-use encoding::all::UTF_8;
-use encoding::types::{Encoding, DecoderTrap};
+use encoding::types::Encoding;
 
-use net::resource_task::{ProgressMsg, LoadResponse};
-use util::task_state;
-use util::task_state::IN_HTML_PARSER;
-use std::ascii::AsciiExt;
+use msg::constellation_msg::PipelineId;
 use std::string::CowString;
 use url::Url;
 use html5ever::Attribute;
-use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText};
+use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText, NextParserState};
 use string_cache::QualName;
-
-pub enum HTMLInput {
-    InputString(String),
-    InputUrl(LoadResponse),
-}
 
 trait SinkHelpers {
     fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Temporary<Node>;
@@ -158,10 +149,13 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         script.map(|script| script.mark_already_started());
     }
 
-    fn complete_script(&mut self, node: JS<Node>) {
+    fn complete_script(&mut self, node: JS<Node>) -> NextParserState {
         let node: Root<Node> = node.root();
         let script: Option<JSRef<HTMLScriptElement>> = HTMLScriptElementCast::to_ref(node.r());
-        script.map(|script| script.prepare());
+        if let Some(script) = script {
+            return script.prepare();
+        }
+        NextParserState::Continue
     }
 
     fn reparent_children(&mut self, _node: JS<Node>, _new_parent: JS<Node>) {
@@ -169,51 +163,10 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     }
 }
 
-pub fn parse_html(document: JSRef<Document>,
-                  input: HTMLInput,
+pub fn parse_html(owning_pipeline: Option<PipelineId>,
+                  document: JSRef<Document>,
+                  input: String,
                   url: &Url) {
-    let parser = ServoHTMLParser::new(Some(url.clone()), document).root();
-    let parser: JSRef<ServoHTMLParser> = parser.r();
-
-    let nested_parse = task_state::get().contains(task_state::IN_HTML_PARSER);
-    if !nested_parse {
-        task_state::enter(IN_HTML_PARSER);
-    }
-
-    match input {
-        HTMLInput::InputString(s) => {
-            parser.parse_chunk(s);
-        }
-        HTMLInput::InputUrl(load_response) => {
-            match load_response.metadata.content_type {
-                Some((ref t, _)) if t.as_slice().eq_ignore_ascii_case("image") => {
-                    let page = format!("<html><body><img src='{}' /></body></html>", url.serialize());
-                    parser.parse_chunk(page);
-                },
-                _ => {
-                    for msg in load_response.progress_port.iter() {
-                        match msg {
-                            ProgressMsg::Payload(data) => {
-                                // FIXME: use Vec<u8> (html5ever #34)
-                                let data = UTF_8.decode(data.as_slice(), DecoderTrap::Replace).unwrap();
-                                parser.parse_chunk(data);
-                            }
-                            ProgressMsg::Done(Err(err)) => {
-                                panic!("Failed to load page URL {}, error: {}", url.serialize(), err);
-                            }
-                            ProgressMsg::Done(Ok(())) => break,
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    parser.finish();
-
-    if !nested_parse {
-        task_state::exit(IN_HTML_PARSER);
-    }
-
-    debug!("finished parsing");
+    let parser = ServoHTMLParser::new(Some(url.clone()), document, owning_pipeline).root();
+    parser.r().parse_chunk(input);
 }

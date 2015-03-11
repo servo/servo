@@ -54,6 +54,7 @@ use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::Range;
+use dom::servohtmlparser::ServoHTMLParser;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers};
@@ -121,6 +122,8 @@ pub struct Document {
     focused: MutNullableJS<Element>,
     /// The script element that is currently executing.
     current_script: MutNullableJS<HTMLScriptElement>,
+    /// The current active HTML parser, to allow resuming after interruptions.
+    current_parser: MutNullableJS<ServoHTMLParser>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -218,6 +221,8 @@ pub trait DocumentHelpers<'a> {
     fn handle_mouse_move_event(self, js_runtime: *mut JSRuntime, point: Point2D<f32>,
                                prev_mouse_over_targets: &mut Vec<JS<Node>>) -> bool;
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>);
+    fn set_current_parser(self, script: Option<JSRef<ServoHTMLParser>>);
+    fn get_current_parser(self) -> Option<Temporary<ServoHTMLParser>>;
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -670,6 +675,14 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>) {
         self.current_script.assign(script);
     }
+
+    fn set_current_parser(self, script: Option<JSRef<ServoHTMLParser>>) {
+        self.current_parser.assign(script);
+    }
+
+    fn get_current_parser(self) -> Option<Temporary<ServoHTMLParser>> {
+        self.current_parser.get()
+    }
 }
 
 #[derive(PartialEq)]
@@ -737,6 +750,7 @@ impl Document {
             possibly_focused: Default::default(),
             focused: Default::default(),
             current_script: Default::default(),
+            current_parser: Default::default(),
         }
     }
 
