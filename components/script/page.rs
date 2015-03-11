@@ -8,7 +8,7 @@ use dom::document::{Document, DocumentHelpers};
 use dom::node::NodeHelpers;
 use dom::window::Window;
 
-use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::PipelineId;
 use util::smallvec::SmallVec;
 use std::cell::Cell;
 use std::rc::Rc;
@@ -19,9 +19,6 @@ use url::Url;
 pub struct Page {
     /// Pipeline id associated with this page.
     id: PipelineId,
-
-    /// Subpage id associated with this page, if any.
-    subpage_id: Option<SubpageId>,
 
     /// The outermost frame containing the document and window.
     frame: DOMRefCell<Option<Frame>>,
@@ -65,10 +62,9 @@ impl IterablePage for Rc<Page> {
 }
 
 impl Page {
-    pub fn new(id: PipelineId, subpage_id: Option<SubpageId>, url: Url) -> Page {
+    pub fn new(id: PipelineId, url: Url) -> Page {
         Page {
             id: id,
-            subpage_id: subpage_id,
             frame: DOMRefCell::new(None),
             url: url,
             needs_reflow: Cell::new(true),
