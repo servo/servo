@@ -79,7 +79,7 @@ class MachCommands(CommandBase):
     def bootstrap_rustc(self, force=False):
         rust_dir = path.join(
             self.context.sharedir, "rust", *self.rust_snapshot_path().split("/"))
-        if not force and path.exists(path.join(rust_dir, "bin", "rustc")):
+        if not force and path.exists(path.join(rust_dir, "rustc", "bin", "rustc")):
             print("Snapshot Rust compiler already downloaded.", end=" ")
             print("Use |bootstrap-rust --force| to download again.")
             return

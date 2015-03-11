@@ -233,7 +233,7 @@ class CommandBase(object):
 
         if not self.config["tools"]["system-rust"] and \
            not path.exists(path.join(
-                self.config["tools"]["rust-root"], "bin", "rustc")):
+                self.config["tools"]["rust-root"], "rustc", "bin", "rustc")):
             Registrar.dispatch("bootstrap-rust", context=self.context)
         if not self.config["tools"]["system-cargo"] and \
            not path.exists(path.join(
