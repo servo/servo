@@ -361,13 +361,13 @@ impl LayoutTask {
             PortToRead::Pipeline => {
                 match self.pipeline_port.recv().unwrap() {
                     LayoutControlMsg::ExitNowMsg(exit_type) => {
-                        self.handle_script_request(Msg::ExitNow(exit_type), possibly_locked_rw_data)
+                        self.handle_request_helper(Msg::ExitNow(exit_type), possibly_locked_rw_data)
                     }
                 }
             },
             PortToRead::Script => {
                 let msg = self.port.recv().unwrap();
-                self.handle_script_request(msg, possibly_locked_rw_data)
+                self.handle_request_helper(msg, possibly_locked_rw_data)
             }
         }
     }
@@ -398,8 +398,8 @@ impl LayoutTask {
         }
     }
 
-    /// Receives and dispatches messages from the script task.
-    fn handle_script_request<'a>(&'a self,
+    /// Receives and dispatches messages from other tasks.
+    fn handle_request_helper<'a>(&'a self,
                                  request: Msg,
                                  possibly_locked_rw_data: &mut Option<MutexGuard<'a,
                                                                                  LayoutTaskData>>)
