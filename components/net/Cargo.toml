@@ -26,7 +26,7 @@ git = "https://github.com/servo/rust-stb-image"
 [dependencies]
 url = "0.2.16"
 time = "0.1.17"
-openssl="0.3.1"
+openssl="0.5.1"
 rustc-serialize = "0.2"
 cookie="*"
 regex = "0.1.14"

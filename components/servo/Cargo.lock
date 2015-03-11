@@ -273,11 +273,6 @@ source = "git+https://github.com/servo/libfreetype2#a488dfd86872bf9c163d54a7f73a
 
 [[package]]
 name = "gcc"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "gcc"
 version = "0.3.1"
 source = "git+https://github.com/alexcrichton/gcc-rs#564247d019449ba46f25f64ffdefade5968b6ae7"
 
@@ -626,10 +621,10 @@ dependencies = [
  "cookie 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "hyper 0.1.10 (git+https://github.com/servo/hyper?branch=servo)",
- "openssl 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
- "regex 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "regex_macros 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex_macros 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "time 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -639,29 +634,11 @@ dependencies = [
 
 [[package]]
 name = "openssl"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "openssl-sys 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "openssl"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl-sys 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "openssl-sys"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "gcc 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "libressl-pnacl-sys 2.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "pkg-config 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -704,11 +681,6 @@ dependencies = [
 [[package]]
 name = "phf_shared"
 version = "0.6.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "pkg-config"
-version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -759,15 +731,15 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "0.1.19"
+version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "regex_macros"
-version = "0.1.12"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "regex 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -838,7 +810,7 @@ dependencies = [
 [[package]]
 name = "skia"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia?branch=upstream-2014-06-16#387777643df6df6ce8fb61ce069c7c60b32ab38c"
+source = "git+https://github.com/servo/skia?branch=upstream-2014-06-16#db5b5393c83da9ff5b8fb2076481e98fb2b659f2"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
@@ -948,7 +920,7 @@ dependencies = [
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "rand 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "regex 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
