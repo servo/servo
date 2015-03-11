@@ -51,6 +51,8 @@ extern crate style;
 extern crate url;
 extern crate uuid;
 extern crate string_cache;
+#[no_link] #[macro_use] #[plugin]
+extern crate string_cache_macros;
 
 pub mod cors;
 
