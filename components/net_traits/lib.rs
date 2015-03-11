@@ -132,8 +132,6 @@ pub struct PendingAsyncLoad {
     resource_task: ResourceTask,
     url: Url,
     pipeline: Option<PipelineId>,
-    input_sender: Sender<LoadResponse>,
-    input_receiver: Receiver<LoadResponse>,
     guard: PendingLoadGuard,
 }
 
@@ -156,13 +154,10 @@ impl Drop for PendingLoadGuard {
 impl PendingAsyncLoad {
     pub fn new(resource_task: ResourceTask, url: Url, pipeline: Option<PipelineId>)
                -> PendingAsyncLoad {
-        let (sender, receiver) = channel();
         PendingAsyncLoad {
             resource_task: resource_task,
             url: url,
             pipeline: pipeline,
-            input_sender: sender,
-            input_receiver: receiver,
             guard: PendingLoadGuard { loaded: false, },
         }
     }
@@ -171,9 +166,18 @@ impl PendingAsyncLoad {
     pub fn load(mut self) -> Receiver<LoadResponse> {
         self.guard.neuter();
         let load_data = LoadData::new(self.url, self.pipeline);
-        let consumer = LoadConsumer::Channel(self.input_sender);
+        let (sender, receiver) = channel();
+        let consumer = LoadConsumer::Channel(sender);
         self.resource_task.send(ControlMsg::Load(load_data, consumer)).unwrap();
-        self.input_receiver
+        receiver
+    }
+
+    /// Initiate the network request associated with this pending load, using the provided target.
+    pub fn load_async(mut self, listener: Box<AsyncResponseTarget + Send>) {
+        self.guard.neuter();
+        let load_data = LoadData::new(self.url, self.pipeline);
+        let consumer = LoadConsumer::Listener(listener);
+        self.resource_task.send(ControlMsg::Load(load_data, consumer)).unwrap();
     }
 }
 

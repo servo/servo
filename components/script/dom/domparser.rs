@@ -15,7 +15,7 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::window::{Window, WindowHelpers};
-use parse::html::{HTMLInput, parse_html};
+use parse::html::{ParseContext, parse_html};
 use util::str::DOMString;
 
 use std::borrow::ToOwned;
@@ -64,7 +64,7 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                                              None,
                                              DocumentSource::FromParser,
                                              loader).root();
-                parse_html(document.r(), HTMLInput::InputString(s), &url, None);
+                parse_html(document.r(), s, &url, ParseContext::Owner(None));
                 document.r().set_ready_state(DocumentReadyState::Complete);
                 Ok(Temporary::from_rooted(document.r()))
             }

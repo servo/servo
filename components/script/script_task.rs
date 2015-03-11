@@ -39,11 +39,13 @@ use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementHelpers};
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
 use dom::node::{Node, NodeHelpers, NodeDamage, window_from_node};
+use dom::servohtmlparser::{ServoHTMLParser, ParserContext};
 use dom::window::{Window, WindowHelpers, ScriptHelpers, ReflowReason};
 use dom::worker::TrustedWorkerAddress;
-use parse::html::{HTMLInput, parse_html};
+use parse::html::{ParseContext, parse_html};
 use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
 use layout_interface;
+use network_listener::NetworkListener;
 use page::{Page, IterablePage, Frame};
 use timers::TimerId;
 use devtools;
@@ -65,13 +67,13 @@ use msg::constellation_msg::{ConstellationChan, FocusType};
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent, WorkerId};
 use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::{ResourceTask, LoadResponse, LoadConsumer, ControlMsg};
+use net_traits::{ResourceTask, LoadConsumer, ControlMsg, Metadata};
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
 use string_cache::Atom;
 use util::str::DOMString;
-use util::task::{spawn_named, spawn_named_with_send_on_failure};
+use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 
 use geom::Rect;
@@ -92,6 +94,7 @@ use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use time::Tm;
 
@@ -188,8 +191,6 @@ pub enum ScriptMsg {
     MainThreadRunnableMsg(Box<MainThreadRunnable+Send>),
     /// A DOM object's last pinned reference was removed (dispatched to all tasks).
     RefcountCleanup(TrustedReference),
-    /// The final network response for a page has arrived.
-    PageFetchComplete(PipelineId, Option<SubpageId>, LoadResponse),
     /// Notify a document that all pending loads are complete.
     DocumentLoadsComplete(PipelineId),
 }
@@ -427,6 +428,21 @@ unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus) 
 }
 
 impl ScriptTask {
+    pub fn page_fetch_complete(id: PipelineId, subpage: Option<SubpageId>, metadata: Metadata)
+                               -> Option<Temporary<ServoHTMLParser>> {
+        SCRIPT_TASK_ROOT.with(|root| {
+            let script_task = unsafe { &*root.borrow().unwrap() };
+            script_task.handle_page_fetch_complete(id, subpage, metadata)
+        })
+    }
+
+    pub fn parsing_complete(id: PipelineId) {
+        SCRIPT_TASK_ROOT.with(|root| {
+            let script_task = unsafe { &*root.borrow().unwrap() };
+            script_task.handle_parsing_complete(id);
+        });
+    }
+
     pub fn process_event(msg: ScriptMsg) {
         SCRIPT_TASK_ROOT.with(|root| {
             if let Some(script_task) = *root.borrow() {
@@ -765,8 +781,6 @@ impl ScriptTask {
                 runnable.handler(self),
             ScriptMsg::RefcountCleanup(addr) =>
                 LiveDOMReferences::cleanup(self.get_cx(), addr),
-            ScriptMsg::PageFetchComplete(id, subpage, response) =>
-                self.handle_page_fetch_complete(id, subpage, response),
             ScriptMsg::DocumentLoadsComplete(id) =>
                 self.handle_loads_complete(id),
         }
@@ -1069,7 +1083,7 @@ impl ScriptTask {
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
     fn handle_page_fetch_complete(&self, id: PipelineId, subpage: Option<SubpageId>,
-                                  response: LoadResponse) {
+                                  metadata: Metadata) -> Option<Temporary<ServoHTMLParser>> {
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
             load.pipeline_id == id && load.parent_info.map(|info| info.1) == subpage
         });
@@ -1078,10 +1092,11 @@ impl ScriptTask {
         match idx {
             Some(idx) => {
                 let load = self.incomplete_loads.borrow_mut().remove(idx);
-                self.load(response, load);
+                Some(self.load(metadata, load))
             }
             None => {
                 assert!(self.closed_pipelines.borrow().contains(&id));
+                None
             }
         }
     }
@@ -1148,8 +1163,8 @@ impl ScriptTask {
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-    fn load(&self, response: LoadResponse, incomplete: InProgressLoad) {
-        let final_url = response.metadata.final_url.clone();
+    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> Temporary<ServoHTMLParser> {
+        let final_url = metadata.final_url.clone();
         debug!("ScriptTask: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
 
         // We should either be initializing a root page or loading a child page of an
@@ -1249,11 +1264,11 @@ impl ScriptTask {
                                  incomplete.parent_info,
                                  incomplete.window_size).root();
 
-        let last_modified: Option<DOMString> = response.metadata.headers.as_ref().and_then(|headers| {
+        let last_modified: Option<DOMString> = metadata.headers.as_ref().and_then(|headers| {
             headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
         });
 
-        let content_type = match response.metadata.content_type {
+        let content_type = match metadata.content_type {
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => Some("text/plain".to_owned()),
             _ => None
         };
@@ -1264,7 +1279,7 @@ impl ScriptTask {
         };
         let loader = DocumentLoader::new_with_task(self.resource_task.clone(),
                                                    Some(notifier_data),
-                                                   Some(final_url.clone()));
+                                                   Some(incomplete.url.clone()));
         let document = Document::new(window.r(),
                                      Some(final_url.clone()),
                                      IsHTMLDocument::HTMLDocument,
@@ -1288,14 +1303,17 @@ impl ScriptTask {
             let jsval = window.r().evaluate_js_on_global_with_result(evalstr);
             let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval,
                                                           StringificationBehavior::Empty);
-            HTMLInput::InputString(strval.unwrap_or("".to_owned()))
+            strval.unwrap_or("".to_owned())
         } else {
-            HTMLInput::InputUrl(response)
+            "".to_owned()
         };
 
-        parse_html(document.r(), parse_input, &final_url, None);
-        self.handle_parsing_complete(incomplete.pipeline_id);
+        parse_html(document.r(), parse_input, &final_url,
+                   ParseContext::Owner(Some(incomplete.pipeline_id)));
+
         page_remover.neuter();
+
+        document.r().get_current_parser().unwrap()
     }
 
     fn notify_devtools(&self, title: DOMString, url: Url, ids: (PipelineId, Option<WorkerId>)) {
@@ -1480,29 +1498,26 @@ impl ScriptTask {
         let script_chan = self.chan.clone();
         let resource_task = self.resource_task.clone();
 
-        spawn_named(format!("fetch for {:?}", load_data.url.serialize()), move || {
-            if load_data.url.scheme == "javascript" {
-                load_data.url = Url::parse("about:blank").unwrap();
-            }
+        let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, script_chan.clone(),
+                                                             load_data.url.clone())));
+        let listener = box NetworkListener {
+            context: context,
+            script_chan: script_chan.clone(),
+        };
 
-            let (input_chan, input_port) = channel();
-            resource_task.send(ControlMsg::Load(NetLoadData {
-                url: load_data.url,
-                method: load_data.method,
-                headers: Headers::new(),
-                preserved_headers: load_data.headers,
-                data: load_data.data,
-                cors: None,
-                pipeline_id: Some(id),
-            }, LoadConsumer::Channel(input_chan))).unwrap();
+        if load_data.url.scheme == "javascript" {
+            load_data.url = Url::parse("about:blank").unwrap();
+        }
 
-            let load_response = input_port.recv().unwrap();
-            if script_chan.send(ScriptMsg::PageFetchComplete(id, subpage, load_response)).is_err() {
-                // TODO(gw): This should be handled by aborting
-                // the load before the script task exits.
-                debug!("PageFetchComplete: script channel has exited");
-            }
-        });
+        resource_task.send(ControlMsg::Load(NetLoadData {
+            url: load_data.url,
+            method: load_data.method,
+            headers: Headers::new(),
+            preserved_headers: load_data.headers,
+            data: load_data.data,
+            cors: None,
+            pipeline_id: Some(id),
+        }, LoadConsumer::Listener(listener))).unwrap();
 
         self.incomplete_loads.borrow_mut().push(incomplete);
     }
@@ -1541,6 +1556,7 @@ impl ScriptTask {
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {:?}", final_url);
+
         document.r().content_changed(NodeCast::from_ref(document.r()),
                                      NodeDamage::OtherNodeDamage);
         let window = window_from_node(document.r()).root();
