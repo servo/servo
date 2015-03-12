@@ -190,6 +190,20 @@ pub fn parse_html(document: JSRef<Document>,
                     let page = format!("<html><body><img src='{}' /></body></html>", url.serialize());
                     parser.parse_chunk(page);
                 },
+                Some((ref t, ref st)) if t.as_slice().eq_ignore_ascii_case("text") &&
+                                         st.as_slice().eq_ignore_ascii_case("plain") => {
+                    // FIXME: When servo/html5ever#109 is fixed remove <plaintext> usage and
+                    // replace with fix from that issue.
+
+                    // text/plain documents require setting the tokenizer into PLAINTEXT mode.
+                    // This is done by using a <plaintext> element as the html5ever tokenizer
+                    // provides no other way to change to that state.
+                    // Spec for text/plain handling is:
+                    // https://html.spec.whatwg.org/multipage/browsers.html#read-text
+                    let page = format!("<pre>\u{000A}<plaintext>");
+                    parser.parse_chunk(page);
+                    parse_progress(&parser, url, &load_response);
+                },
                 _ => {
                     for msg in load_response.progress_port.iter() {
                         match msg {

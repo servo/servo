@@ -14,6 +14,7 @@ use hyper::client::Request;
 use hyper::header::{ContentLength, ContentType, Host, Location};
 use hyper::HttpError;
 use hyper::method::Method;
+use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::net::HttpConnector;
 use hyper::status::{StatusCode, StatusClass};
 use std::error::Error;
@@ -53,6 +54,18 @@ fn load(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cooki
     let mut iters = 0u;
     let mut url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
+
+    // If the URL is a view-source scheme then the scheme data contains the
+    // real URL that should be used for which the source is to be viewed.
+    // Change our existing URL to that and keep note that we are viewing
+    // the source rather than rendering the contents of the URL.
+    let viewing_source = if url.scheme == "view-source" {
+       let inner_url = load_data.url.non_relative_scheme_data().unwrap();
+       url = Url::parse(inner_url).unwrap();
+       true
+    } else {
+      false
+    };
 
     let senders = ResponseSenders {
         immediate_consumer: start_chan,
@@ -259,12 +272,16 @@ reason: \"certificate verify failed\" }]";
             }
         }
 
+        let mut adjusted_headers = response.headers.clone();
+        if viewing_source {
+            adjusted_headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec![])));
+        }
         let mut metadata = Metadata::default(url);
-        metadata.set_content_type(match response.headers.get() {
+        metadata.set_content_type(match adjusted_headers.get() {
             Some(&ContentType(ref mime)) => Some(mime),
             None => None
         });
-        metadata.headers = Some(response.headers.clone());
+        metadata.headers = Some(adjusted_headers);
         metadata.status = Some(response.status_raw().clone());
 
         let progress_chan = match start_sending_opt(senders, metadata) {
