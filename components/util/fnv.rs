@@ -5,7 +5,7 @@
 //! This file stolen wholesale from rustc/src/librustc/util/nodemap.rs
 
 use std::default::Default;
-use std::hash::{Hasher, Writer};
+use std::hash::Hasher;
 
 /// A speedy hash algorithm for node ids and def ids. The hashmap in
 /// libcollections by default uses SipHash which isn't quite as speedy as we
@@ -22,12 +22,7 @@ impl Default for FnvHasher {
 }
 
 impl Hasher for FnvHasher {
-    type Output = u64;
-    fn reset(&mut self) { *self = Default::default(); }
     fn finish(&self) -> u64 { self.0 }
-}
-
-impl Writer for FnvHasher {
     fn write(&mut self, bytes: &[u8]) {
         let FnvHasher(mut hash) = *self;
         for byte in bytes.iter() {

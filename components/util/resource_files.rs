@@ -2,22 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::old_io::{File, IoResult};
-use std::old_path::Path;
+use std::fs::{File, PathExt};
+use std::io::{self, Read};
+use std::path::PathBuf;
 
 #[cfg(target_os = "android")]
-pub fn resources_dir_path() -> Path {
-    Path::new("/sdcard/servo/")
+pub fn resources_dir_path() -> PathBuf {
+    PathBuf::new("/sdcard/servo/")
 }
 
 #[cfg(not(target_os = "android"))]
-pub fn resources_dir_path() -> Path {
+pub fn resources_dir_path() -> PathBuf {
     use opts;
     use std::env;
-    use std::old_io::fs::PathExtensions;
 
     match opts::get().resources_path {
-        Some(ref path) => Path::new(path),
+        Some(ref path) => PathBuf::new(path),
         None => {
             // FIXME: Find a way to not rely on the executable being
             // under `<servo source>/components/servo/target`
@@ -39,9 +39,13 @@ pub fn resources_dir_path() -> Path {
 }
 
 
-pub fn read_resource_file(relative_path_components: &[&str]) -> IoResult<Vec<u8>> {
+pub fn read_resource_file(relative_path_components: &[&str]) -> io::Result<Vec<u8>> {
     let mut path = resources_dir_path();
-    path.push_many(relative_path_components);
+    for component in relative_path_components {
+        path.push(component);
+    }
     let mut file = try!(File::open(&path));
-    file.read_to_end()
+    let mut data = Vec::new();
+    try!(file.read_to_end(&mut data));
+    Ok(data)
 }

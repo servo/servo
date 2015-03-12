@@ -74,7 +74,7 @@ pub struct PersistentListIterator<'a,T> where T: 'a + Send + Sync {
     entry: Option<&'a PersistentListEntry<T>>,
 }
 
-impl<'a,T> Iterator for PersistentListIterator<'a,T> where T: Send + Sync {
+impl<'a,T> Iterator for PersistentListIterator<'a,T> where T: Send + Sync + 'static {
     type Item = &'a T;
 
     #[inline]

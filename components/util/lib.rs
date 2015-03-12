@@ -18,8 +18,6 @@
 #![feature(unicode)]
 #![feature(unsafe_destructor)]
 
-#![allow(missing_copy_implementations)]
-
 #![plugin(string_cache_plugin)]
 
 #[macro_use] extern crate log;

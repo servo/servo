@@ -184,7 +184,7 @@ pub struct WorkerProxy<'a, QueueData: 'a, WorkData: 'a> {
     worker_index: u8,
 }
 
-impl<'a, QueueData: 'static, WorkData: Send> WorkerProxy<'a, QueueData, WorkData> {
+impl<'a, QueueData: 'static, WorkData: Send + 'static> WorkerProxy<'a, QueueData, WorkData> {
     /// Enqueues a block into the work queue.
     #[inline]
     pub fn push(&mut self, work_unit: WorkUnit<QueueData, WorkData>) {
