@@ -2020,6 +2020,89 @@ pub mod longhands {
 
     ${single_keyword("caption-side", "top bottom")}
 
+    ${single_keyword("border-collapse", "separate collapse", experimental=True)}
+
+    <%self:longhand name="border-spacing">
+        use values::computed::{Context, ToComputedValue};
+
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+        use util::geometry::Au;
+
+        pub mod computed_value {
+            use util::geometry::Au;
+
+            #[derive(Clone, Copy, Debug, PartialEq, RustcEncodable)]
+            pub struct T {
+                pub horizontal: Au,
+                pub vertical: Au,
+            }
+        }
+
+        #[derive(Clone, Debug, PartialEq)]
+        pub struct SpecifiedValue {
+            pub horizontal: specified::Length,
+            pub vertical: specified::Length,
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T {
+                horizontal: Au(0),
+                vertical: Au(0),
+            }
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                try!(self.horizontal.to_css(dest));
+                try!(dest.write_str(" "));
+                self.vertical.to_css(dest)
+            }
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                computed_value::T {
+                    horizontal: self.horizontal.to_computed_value(context),
+                    vertical: self.vertical.to_computed_value(context),
+                }
+            }
+        }
+
+        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            let mut lengths = [ None, None ];
+            for i in range(0, 2) {
+                match specified::Length::parse_non_negative(input) {
+                    Err(()) => break,
+                    Ok(length) => lengths[i] = Some(length),
+                }
+            }
+            if input.next().is_ok() {
+                return Err(())
+            }
+            match (lengths[0], lengths[1]) {
+                (None, None) => Err(()),
+                (Some(length), None) => {
+                    Ok(SpecifiedValue {
+                        horizontal: length,
+                        vertical: length,
+                    })
+                }
+                (Some(horizontal), Some(vertical)) => {
+                    Ok(SpecifiedValue {
+                        horizontal: horizontal,
+                        vertical: vertical,
+                    })
+                }
+                (None, Some(_)) => panic!("shouldn't happen"),
+            }
+        }
+    </%self:longhand>
+
     // CSS 2.1, Section 18 - User interface
 
 

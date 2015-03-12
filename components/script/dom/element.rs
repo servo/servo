@@ -317,6 +317,16 @@ impl RawLayoutElementHelpers for Element {
                     None
                 }
             }
+            UnsignedIntegerAttribute::CellSpacing => {
+                if self.is_htmltableelement() {
+                    let this: &HTMLTableElement = mem::transmute(self);
+                    this.get_cellspacing()
+                } else {
+                    // Don't panic since `display` can cause this to be called on arbitrary
+                    // elements.
+                    None
+                }
+            }
             UnsignedIntegerAttribute::ColSpan => {
                 if self.is_htmltablecellelement() {
                     let this: &HTMLTableCellElement = mem::transmute(self);

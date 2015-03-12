@@ -6,12 +6,14 @@
 
 #![deny(unsafe_blocks)]
 
-use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
+use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use flow::{FlowClass, Flow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use layout_debug;
-use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable};
+use style::computed_values::border_spacing;
+use table::{ChildInlineSizeInfo, ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
+use table::{InternalTable, TableLikeFlow};
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
@@ -32,6 +34,9 @@ pub struct TableRowGroupFlow {
 
     /// Information about the actual inline sizes of each column.
     pub column_computed_inline_sizes: Vec<ColumnComputedInlineSize>,
+
+    /// The spacing for this rowgroup.
+    pub spacing: border_spacing::T,
 }
 
 impl TableRowGroupFlow {
@@ -41,20 +46,15 @@ impl TableRowGroupFlow {
             block_flow: BlockFlow::from_node_and_fragment(node, fragment),
             column_intrinsic_inline_sizes: Vec::new(),
             column_computed_inline_sizes: Vec::new(),
+            spacing: border_spacing::T {
+                horizontal: Au(0),
+                vertical: Au(0),
+            },
         }
     }
 
     pub fn fragment<'a>(&'a mut self) -> &'a Fragment {
         &self.block_flow.fragment
-    }
-
-    /// Assign block-size for table-rowgroup flow.
-    ///
-    /// inline(always) because this is only ever called by in-order or non-in-order top-level
-    /// methods.
-    #[inline(always)]
-    fn assign_block_size_table_rowgroup_base<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
-        self.block_flow.assign_block_size_block_base(layout_context, MarginsMayCollapseFlag::MarginsMayNotCollapse)
     }
 }
 
@@ -109,16 +109,20 @@ impl Flow for TableRowGroupFlow {
                                                       layout_context,
                                                       containing_block_inline_size);
 
-        self.block_flow.propagate_assigned_inline_size_to_children(
-            layout_context,
-            inline_start_content_edge,
-            content_inline_size,
-            Some(self.column_computed_inline_sizes.as_slice()));
+        let info = ChildInlineSizeInfo {
+            column_computed_inline_sizes: self.column_computed_inline_sizes.as_slice(),
+            spacing: self.spacing,
+        };
+        self.block_flow.propagate_assigned_inline_size_to_children(layout_context,
+                                                                   inline_start_content_edge,
+                                                                   content_inline_size,
+                                                                   Some(info));
     }
 
-    fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
+    fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         debug!("assign_block_size: assigning block_size for table_rowgroup");
-        self.assign_block_size_table_rowgroup_base(ctx);
+        self.block_flow.assign_block_size_for_table_like_flow(layout_context,
+                                                              self.spacing.vertical)
     }
 
     fn compute_absolute_position(&mut self) {

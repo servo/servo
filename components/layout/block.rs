@@ -44,7 +44,7 @@ use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{IntrinsicISizes, MarginCollapseInfo};
 use model::{MaybeAuto, CollapsibleMargins, specified, specified_or_none};
-use table::ColumnComputedInlineSize;
+use table;
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect, Size2D};
@@ -53,13 +53,13 @@ use msg::compositor_msg::LayerId;
 use rustc_serialize::{Encoder, Encodable};
 use std::cmp::{max, min};
 use std::fmt;
+use std::sync::Arc;
 use style::computed_values::{overflow_x, overflow_y, position, box_sizing, display, float};
 use style::properties::ComputedValues;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
-use std::sync::Arc;
 use util::geometry::{Au, MAX_AU};
-use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
+use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use util::opts;
 
 /// Information specific to floated blocks.
@@ -302,11 +302,11 @@ impl BSizeConstraintSolution {
 /// current calculated value of `height`.
 ///
 /// See CSS 2.1 § 10.7.
-struct CandidateBSizeIterator {
+pub struct CandidateBSizeIterator {
     block_size: MaybeAuto,
     max_block_size: Option<Au>,
     min_block_size: Au,
-    candidate_value: Au,
+    pub candidate_value: Au,
     status: CandidateBSizeIteratorStatus,
 }
 
@@ -510,7 +510,7 @@ enum FormattingContextType {
 //
 // TODO(#1244, #2007, pcwalton): Do this for CSS transforms and opacity too, at least if they're
 // animating.
-fn propagate_layer_flag_from_child(layers_needed_for_descendants: &mut bool, kid: &mut Flow) {
+pub fn propagate_layer_flag_from_child(layers_needed_for_descendants: &mut bool, kid: &mut Flow) {
     if kid.is_absolute_containing_block() {
         let kid_base = flow::mut_base(kid);
         if kid_base.flags.contains(NEEDS_LAYER) {
@@ -1234,7 +1234,7 @@ impl BlockFlow {
             layout_context: &LayoutContext,
             inline_start_content_edge: Au,
             content_inline_size: Au,
-            optional_column_computed_inline_sizes: Option<&[ColumnComputedInlineSize]>) {
+            table_info: Option<table::ChildInlineSizeInfo>) {
         // Keep track of whether floats could impact each child.
         let mut inline_start_floats_impact_child =
             self.base.flags.contains(IMPACTED_BY_LEFT_FLOATS);
@@ -1255,9 +1255,6 @@ impl BlockFlow {
 
         let fixed_static_i_offset = self.base.fixed_static_i_offset + inline_start_content_edge;
         let flags = self.base.flags.clone();
-
-        // This value is used only for table cells.
-        let mut inline_start_margin_edge = inline_start_content_edge;
 
         // Remember the inline-sizes of the last left and right floats, if there were any. These
         // are used for estimating the inline-sizes of block formatting contexts. (We estimate that
@@ -1286,7 +1283,8 @@ impl BlockFlow {
             (LengthOrPercentageOrAuto::Percentage(percent), Some(container_size)) => {
                 Some(container_size.scale_by(percent))
             }
-            (LengthOrPercentageOrAuto::Percentage(_), None) | (LengthOrPercentageOrAuto::Auto, _) => None,
+            (LengthOrPercentageOrAuto::Percentage(_), None) |
+            (LengthOrPercentageOrAuto::Auto, _) => None,
             (LengthOrPercentageOrAuto::Length(length), _) => Some(length),
         };
 
@@ -1298,6 +1296,13 @@ impl BlockFlow {
         };
         // FIXME (mbrubeck): Get correct mode for absolute containing block
         let containing_block_mode = self.base.writing_mode;
+
+        // This value is used only for table cells.
+        let mut inline_start_margin_edge = if table_info.is_some() {
+            inline_start_content_edge
+        } else {
+            Au(0)
+        };
 
         for (i, kid) in self.base.child_iter().enumerate() {
             {
@@ -1376,16 +1381,12 @@ impl BlockFlow {
             }
 
             // Handle tables.
-            match optional_column_computed_inline_sizes {
-                Some(ref column_computed_inline_sizes) => {
-                    propagate_column_inline_sizes_to_child(kid,
-                                                           i,
-                                                           content_inline_size,
-                                                           containing_block_mode,
-                                                           *column_computed_inline_sizes,
-                                                           &mut inline_start_margin_edge)
-                }
-                None => {}
+            if let Some(ref table_info) = table_info {
+                table_info.propagate_to_child(kid,
+                                              i,
+                                              content_inline_size,
+                                              containing_block_mode,
+                                              &mut inline_start_margin_edge);
             }
 
             // Per CSS 2.1 § 16.3.1, text alignment propagates to all children in flow.
@@ -2661,38 +2662,3 @@ impl ISizeAndMarginsComputer for FloatReplaced {
     }
 }
 
-fn propagate_column_inline_sizes_to_child(
-        kid: &mut Flow,
-        child_index: uint,
-        content_inline_size: Au,
-        writing_mode: WritingMode,
-        column_computed_inline_sizes: &[ColumnComputedInlineSize],
-        inline_start_margin_edge: &mut Au) {
-    // If kid is table_rowgroup or table_row, the column inline-sizes info should be copied from
-    // its parent.
-    //
-    // FIXME(pcwalton): This seems inefficient. Reference count it instead?
-    let inline_size = if kid.is_table() || kid.is_table_rowgroup() || kid.is_table_row() {
-        *kid.column_computed_inline_sizes() =
-            column_computed_inline_sizes.iter().map(|&x| x).collect();
-
-        // ISize of kid flow is our content inline-size.
-        content_inline_size
-    } else if kid.is_table_cell() {
-        column_computed_inline_sizes[child_index].size
-    } else {
-        // ISize of kid flow is our content inline-size.
-        content_inline_size
-    };
-
-    {
-        let kid_base = flow::mut_base(kid);
-        kid_base.position.start.i = *inline_start_margin_edge;
-        kid_base.block_container_inline_size = inline_size;
-        kid_base.block_container_writing_mode = writing_mode;
-    }
-
-    if kid.is_table_cell() {
-        *inline_start_margin_edge = *inline_start_margin_edge + inline_size
-    }
-}
