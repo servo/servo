@@ -243,37 +243,27 @@ pub struct MemoryProfiler {
 impl MemoryProfiler {
     pub fn create(period: Option<f64>) -> MemoryProfilerChan {
         let (chan, port) = channel();
-        match period {
-            Some(period) => {
-                let period = Duration::milliseconds((period * 1000f64) as i64);
-                let chan = chan.clone();
-                spawn_named("Memory profiler timer".to_owned(), move || {
-                    loop {
-                        sleep(period);
-                        if chan.send(MemoryProfilerMsg::Print).is_err() {
-                            break;
-                        }
+
+        // Create the timer thread if a period was provided.
+        if let Some(period) = period {
+            let period_ms = Duration::milliseconds((period * 1000f64) as i64);
+            let chan = chan.clone();
+            spawn_named("Memory profiler timer".to_owned(), move || {
+                loop {
+                    sleep(period_ms);
+                    if chan.send(MemoryProfilerMsg::Print).is_err() {
+                        break;
                     }
-                });
-                // Spawn the memory profiler.
-                spawn_named("Memory profiler".to_owned(), move || {
-                    let mut memory_profiler = MemoryProfiler::new(port);
-                    memory_profiler.start();
-                });
-            }
-            None => {
-                // No-op to handle messages when the memory profiler is
-                // inactive.
-                spawn_named("Memory profiler".to_owned(), move || {
-                    loop {
-                        match port.recv() {
-                            Err(_) | Ok(MemoryProfilerMsg::Exit) => break,
-                            _ => {}
-                        }
-                    }
-                });
-            }
+                }
+            });
         }
+
+        // Always spawn the memory profiler. If there is no timer thread it won't receive regular
+        // `Print` events, but it will still receive the other events.
+        spawn_named("Memory profiler".to_owned(), move || {
+            let mut memory_profiler = MemoryProfiler::new(port);
+            memory_profiler.start();
+        });
 
         MemoryProfilerChan(chan)
     }
