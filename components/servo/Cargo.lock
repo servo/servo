@@ -818,6 +818,7 @@ dependencies = [
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "mod_path 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
+ "rustc-serialize 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",

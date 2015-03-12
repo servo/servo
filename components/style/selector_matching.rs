@@ -193,16 +193,19 @@ impl Stylist {
 
         let mut shareable = true;
 
-        // Step 1: Virtual rules that are synthesized from legacy HTML attributes.
-        self.synthesize_presentational_hints_for_legacy_attributes(element,
-                                                                   applicable_declarations,
-                                                                   &mut shareable);
 
-        // Step 2: Normal rules.
+        // Step 1: Normal user-agent rules.
         map.user_agent.normal.get_all_matching_rules(element,
                                                      parent_bf,
                                                      applicable_declarations,
                                                      &mut shareable);
+
+        // Step 2: Presentational hints.
+        self.synthesize_presentational_hints_for_legacy_attributes(element,
+                                                                   applicable_declarations,
+                                                                   &mut shareable);
+
+        // Step 3: User and author normal rules.
         map.user.normal.get_all_matching_rules(element,
                                                parent_bf,
                                                applicable_declarations,
@@ -212,27 +215,27 @@ impl Stylist {
                                                  applicable_declarations,
                                                  &mut shareable);
 
-        // Step 3: Normal style attributes.
+        // Step 4: Normal style attributes.
         style_attribute.map(|sa| {
             shareable = false;
             applicable_declarations.vec_push(
                 GenericDeclarationBlock::from_declarations(sa.normal.clone()))
         });
 
-        // Step 4: Author-supplied `!important` rules.
+        // Step 5: Author-supplied `!important` rules.
         map.author.important.get_all_matching_rules(element,
                                                     parent_bf,
                                                     applicable_declarations,
                                                     &mut shareable);
 
-        // Step 5: `!important` style attributes.
+        // Step 6: `!important` style attributes.
         style_attribute.map(|sa| {
             shareable = false;
             applicable_declarations.vec_push(
                 GenericDeclarationBlock::from_declarations(sa.important.clone()))
         });
 
-        // Step 6: User and UA `!important` rules.
+        // Step 7: User and UA `!important` rules.
         map.user.important.get_all_matching_rules(element,
                                                   parent_bf,
                                                   applicable_declarations,
@@ -277,3 +280,4 @@ impl PerPseudoElementSelectorMap {
         }
     }
 }
+

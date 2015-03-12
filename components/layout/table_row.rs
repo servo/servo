@@ -12,7 +12,8 @@ use context::LayoutContext;
 use flow::{self, FlowClass, Flow, ImmutableFlowUtils};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use layout_debug;
-use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable};
+use table::{ChildInlineSizeInfo, ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
+use table::{InternalTable};
 use model::MaybeAuto;
 use wrapper::ThreadSafeLayoutNode;
 
@@ -21,9 +22,10 @@ use util::geometry::Au;
 use util::logical_geometry::LogicalRect;
 use std::cmp::max;
 use std::fmt;
+use std::sync::Arc;
+use style::computed_values::border_spacing;
 use style::properties::ComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
-use std::sync::Arc;
 
 /// A single row of a table.
 #[derive(RustcEncodable)]
@@ -35,6 +37,10 @@ pub struct TableRowFlow {
 
     /// Information about the computed inline-sizes of each column.
     pub column_computed_inline_sizes: Vec<ColumnComputedInlineSize>,
+
+    /// The spacing for this row, propagated down from the table during the inline-size assignment
+    /// phase.
+    pub spacing: border_spacing::T,
 }
 
 /// Information about the column inline size and span for each cell.
@@ -53,6 +59,10 @@ impl TableRowFlow {
             block_flow: BlockFlow::from_node_and_fragment(node, fragment),
             cell_intrinsic_inline_sizes: Vec::new(),
             column_computed_inline_sizes: Vec::new(),
+            spacing: border_spacing::T {
+                horizontal: Au(0),
+                vertical: Au(0),
+            },
         }
     }
 
@@ -76,11 +86,9 @@ impl TableRowFlow {
     fn assign_block_size_table_row_base<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         let (block_start_offset, _, _) = self.initialize_offsets();
 
-        let /* mut */ cur_y = block_start_offset;
-
         // Per CSS 2.1 § 17.5.3, find max_y = max(computed `block-size`, minimum block-size of all
         // cells).
-        let mut max_y = Au(0);
+        let mut max_block_size = Au(0);
         let thread_id = self.block_flow.base.thread_id;
         for kid in self.block_flow.base.child_iter() {
             kid.place_float_if_applicable(layout_context);
@@ -93,17 +101,18 @@ impl TableRowFlow {
                 // TODO: Percentage block-size
                 let child_specified_block_size =
                     MaybeAuto::from_style(child_fragment.style().content_block_size(),
-                                          Au::new(0)).specified_or_zero();
-                max_y = max(max_y,
-                            child_specified_block_size +
-                                child_fragment.border_padding.block_start_end());
+                                          Au(0)).specified_or_zero();
+                max_block_size =
+                    max(max_block_size,
+                        child_specified_block_size +
+                        child_fragment.border_padding.block_start_end());
             }
             let child_node = flow::mut_base(kid);
-            child_node.position.start.b = cur_y;
-            max_y = max(max_y, child_node.position.size.block);
+            child_node.position.start.b = block_start_offset;
+            max_block_size = max(max_block_size, child_node.position.size.block);
         }
 
-        let mut block_size = max_y;
+        let mut block_size = max_block_size;
         // TODO: Percentage block-size
         block_size = match MaybeAuto::from_style(self.block_flow
                                                      .fragment
@@ -113,11 +122,8 @@ impl TableRowFlow {
             MaybeAuto::Auto => block_size,
             MaybeAuto::Specified(value) => max(value, block_size)
         };
-        // cur_y = cur_y + block-size;
 
         // Assign the block-size of own fragment
-        //
-        // FIXME(pcwalton): Take `cur_y` into account.
         let mut position = self.block_flow.fragment.border_box;
         position.size.block = block_size;
         self.block_flow.fragment.border_box = position;
@@ -273,11 +279,14 @@ impl Flow for TableRowFlow {
         }
 
         // Push those inline sizes down to the cells.
-        self.block_flow.propagate_assigned_inline_size_to_children(
-            layout_context,
-            inline_start_content_edge,
-            containing_block_inline_size,
-            Some(computed_inline_size_for_cells.as_slice()));
+        let info = ChildInlineSizeInfo {
+            column_computed_inline_sizes: computed_inline_size_for_cells.as_slice(),
+            spacing: self.spacing,
+        };
+        self.block_flow.propagate_assigned_inline_size_to_children(layout_context,
+                                                                   inline_start_content_edge,
+                                                                   containing_block_inline_size,
+                                                                   Some(info));
     }
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {

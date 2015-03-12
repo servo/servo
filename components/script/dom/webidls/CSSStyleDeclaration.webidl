@@ -41,8 +41,10 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString backgroundSize;
 
   [TreatNullAs=EmptyString] attribute DOMString border;
+  [TreatNullAs=EmptyString] attribute DOMString borderCollapse;
   [TreatNullAs=EmptyString] attribute DOMString borderColor;
   [TreatNullAs=EmptyString] attribute DOMString borderRadius;
+  [TreatNullAs=EmptyString] attribute DOMString borderSpacing;
   [TreatNullAs=EmptyString] attribute DOMString borderStyle;
   [TreatNullAs=EmptyString] attribute DOMString borderWidth;
   [TreatNullAs=EmptyString] attribute DOMString borderBottom;
