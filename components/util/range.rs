@@ -58,11 +58,11 @@ macro_rules! int_range_index {
             fn one() -> $Self_ { $Self_(1) }
             fn min_value() -> $Self_ { $Self_(::std::num::Int::min_value()) }
             fn max_value() -> $Self_ { $Self_(::std::num::Int::max_value()) }
-            fn count_ones(self) -> uint { self.get().count_ones() }
-            fn leading_zeros(self) -> uint { self.get().leading_zeros() }
-            fn trailing_zeros(self) -> uint { self.get().trailing_zeros() }
-            fn rotate_left(self, n: uint) -> $Self_ { $Self_(self.get().rotate_left(n)) }
-            fn rotate_right(self, n: uint) -> $Self_ { $Self_(self.get().rotate_right(n)) }
+            fn count_ones(self) -> u32 { self.get().count_ones() }
+            fn leading_zeros(self) -> u32 { self.get().leading_zeros() }
+            fn trailing_zeros(self) -> u32 { self.get().trailing_zeros() }
+            fn rotate_left(self, n: u32) -> $Self_ { $Self_(self.get().rotate_left(n)) }
+            fn rotate_right(self, n: u32) -> $Self_ { $Self_(self.get().rotate_right(n)) }
             fn swap_bytes(self) -> $Self_ { $Self_(self.get().swap_bytes()) }
             fn checked_add(self, other: $Self_) -> Option<$Self_> {
                 self.get().checked_add(other.get()).map($Self_)
@@ -183,6 +183,33 @@ macro_rules! int_range_index {
             type Output = $Self_;
             fn shr(self, n: uint) -> $Self_ {
                 $Self_(self.get() >> n)
+            }
+        }
+
+        impl ::std::num::wrapping::WrappingOps for $Self_ {
+            fn wrapping_add(self, rhs: $Self_) -> $Self_ {
+                $Self_(self.get().wrapping_add(rhs.get()))
+            }
+            fn wrapping_sub(self, rhs: $Self_) -> $Self_ {
+                $Self_(self.get().wrapping_sub(rhs.get()))
+            }
+            fn wrapping_mul(self, rhs: $Self_) -> $Self_ {
+                $Self_(self.get().wrapping_mul(rhs.get()))
+            }
+        }
+
+        impl ::std::num::wrapping::OverflowingOps for $Self_ {
+            fn overflowing_add(self, rhs: $Self_) -> ($Self_, bool) {
+                let (x, b) = self.get().overflowing_add(rhs.get());
+                ($Self_(x), b)
+            }
+            fn overflowing_sub(self, rhs: $Self_) -> ($Self_, bool) {
+                let (x, b) = self.get().overflowing_sub(rhs.get());
+                ($Self_(x), b)
+            }
+            fn overflowing_mul(self, rhs: $Self_) -> ($Self_, bool) {
+                let (x, b) = self.get().overflowing_mul(rhs.get());
+                ($Self_(x), b)
             }
         }
     )
