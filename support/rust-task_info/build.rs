@@ -4,6 +4,7 @@
 
 #![feature(env)]
 #![feature(io)]
+#![feature(old_io)]
 
 use std::old_io::process::{Command, ProcessExit, StdioContainer};
 use std::env;
