@@ -13,6 +13,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::{AttributeHandlers, Element, ElementTypeId};
 use dom::element::ActivationElementHelpers;
+use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::{FormSubmitter, FormControl, HTMLFormElementHelpers};
@@ -196,7 +197,7 @@ impl<'a> Activatable for JSRef<'a, HTMLButtonElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
-    fn activation_behavior(&self) {
+    fn activation_behavior(&self, _event: JSRef<Event>, _target: JSRef<EventTarget>) {
         let ty = self.button_type.get();
         match ty {
             //https://html.spec.whatwg.org/multipage/forms.html#attr-button-type-submit-state

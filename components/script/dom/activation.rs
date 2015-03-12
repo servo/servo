@@ -27,7 +27,7 @@ pub trait Activatable : Copy {
     fn canceled_activation(&self);
 
     // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
-    fn activation_behavior(&self);
+    fn activation_behavior(&self, event: JSRef<Event>, target: JSRef<EventTarget>);
 
     // https://html.spec.whatwg.org/multipage/forms.html#implicit-submission
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool);
@@ -60,7 +60,7 @@ pub trait Activatable : Copy {
             self.canceled_activation();
         } else {
             // post click activation
-            self.activation_behavior();
+            self.activation_behavior(event, target);
         }
 
         // Step 6
