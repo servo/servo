@@ -113,7 +113,7 @@ version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "openssl 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -292,9 +292,9 @@ dependencies = [
 [[package]]
 name = "geom"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-geom#435a48a40c66252fa9b5bcf5466deee2c6076d39"
+source = "git+https://github.com/servo/rust-geom#c47fc0f927b6d6e5543fe3b5445c86810831dce1"
 dependencies = [
- "rustc-serialize 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -432,7 +432,7 @@ version = "0.0.0"
 source = "git+https://github.com/servo/html5ever#8bad1ca8e1e05a7972be80acc64efd729ffdc8a5"
 dependencies = [
  "mac 0.0.2 (git+https://github.com/reem/rust-mac)",
- "rustc-serialize 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -444,7 +444,7 @@ dependencies = [
  "log 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -743,7 +743,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "rustc-serialize"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -764,7 +764,7 @@ dependencies = [
  "msg 0.0.1",
  "net 0.0.1",
  "plugins 0.0.1",
- "rustc-serialize 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_traits 0.0.1",
  "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
@@ -886,7 +886,7 @@ version = "0.2.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -926,7 +926,7 @@ version = "0.1.11"
 source = "git+https://github.com/rust-lang/uuid#c7862508f84b114d22bb68ec01202eafc50a81b2"
 dependencies = [
  "rand 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
