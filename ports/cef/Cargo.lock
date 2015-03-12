@@ -289,6 +289,14 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "gdi32-sys"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "winapi 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "geom"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-geom#435a48a40c66252fa9b5bcf5466deee2c6076d39"
@@ -356,17 +364,21 @@ dependencies = [
 
 [[package]]
 name = "glutin"
-version = "0.0.4-pre"
-source = "git+https://github.com/servo/glutin#862baf82204c373d17e2878871826a457529a03f"
+version = "0.0.7"
+source = "git+https://github.com/servo/glutin#183d96b44e497fcc441f94d32d5228e4c3d28c4d"
 dependencies = [
  "android_glue 0.0.1 (git+https://github.com/tomaka/android-rs-glue)",
  "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
+ "gdi32-sys 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_common 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.0.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "kernel32-sys 0.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "khronos_api 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "user32-sys 0.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -379,7 +391,7 @@ dependencies = [
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
- "glutin 0.0.4-pre (git+https://github.com/servo/glutin)",
+ "glutin 0.0.7 (git+https://github.com/servo/glutin)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
@@ -463,6 +475,14 @@ source = "git+https://github.com/servo/rust-mozjs#510f763c4410891a87a721b2c76c19
 dependencies = [
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs)",
+]
+
+[[package]]
+name = "kernel32-sys"
+version = "0.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "winapi 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -895,6 +915,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "user32-sys"
+version = "0.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "winapi 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "util"
 version = "0.0.1"
 dependencies = [
@@ -930,6 +958,14 @@ dependencies = [
 name = "winapi"
 version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "winapi"
+version = "0.1.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "xlib"
