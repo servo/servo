@@ -5,8 +5,6 @@
 #![feature(core)]
 #![feature(collections)]
 
-#![allow(missing_copy_implementations)]
-
 extern crate azure;
 extern crate cssparser;
 extern crate geom;

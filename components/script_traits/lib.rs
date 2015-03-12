@@ -5,8 +5,6 @@
 #![feature(core)]
 #![feature(int_uint)]
 
-#![allow(missing_copy_implementations)]
-
 extern crate devtools_traits;
 extern crate geom;
 extern crate libc;

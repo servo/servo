@@ -17,7 +17,6 @@
 
 #![deny(unsafe_blocks)]
 #![allow(non_snake_case)]
-#![allow(missing_copy_implementations)]
 
 #![doc="The script crate contains all matters DOM."]
 

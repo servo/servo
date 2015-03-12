@@ -4,8 +4,6 @@
 
 #![feature(core, env, libc, path, rustc_private, std_misc, thread_local)]
 
-#![allow(missing_copy_implementations)]
-
 #[macro_use]
 extern crate log;
 

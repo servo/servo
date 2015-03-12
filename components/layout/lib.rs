@@ -19,7 +19,6 @@
 
 #![deny(unsafe_blocks)]
 #![allow(unrooted_must_root)]
-#![allow(missing_copy_implementations)]
 
 #![plugin(string_cache_plugin)]
 

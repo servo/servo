@@ -16,7 +16,6 @@
 #![feature(unicode)]
 #![feature(unsafe_destructor)]
 
-#![allow(missing_copy_implementations)]
 
 #[macro_use]
 extern crate log;
