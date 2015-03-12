@@ -65,7 +65,7 @@ dependencies = [
 [[package]]
 name = "cgl"
 version = "0.0.1"
-source = "git+https://github.com/servo/rust-cgl#7b7090729f65e2287c3d80651df02e547911b119"
+source = "git+https://github.com/servo/rust-cgl#211afc4d1572d8fe67b91c452441b6cb292a2bc7"
 dependencies = [
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
 ]
@@ -347,7 +347,7 @@ dependencies = [
 [[package]]
 name = "gleam"
 version = "0.0.1"
-source = "git+https://github.com/servo/gleam#ae1fa5b3aff50d1d01a2376b247ff8f46fd9a88c"
+source = "git+https://github.com/servo/gleam#fb17a364f314a35a6d209e875b5e90a920d41e86"
 dependencies = [
  "gl_common 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.0.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -396,7 +396,7 @@ dependencies = [
 [[package]]
 name = "glx"
 version = "0.0.1"
-source = "git+https://github.com/servo/rust-glx#d8a3329d1f68dc4cf72509daca7ef837b8ce94d6"
+source = "git+https://github.com/servo/rust-glx#f2103861d38076ef5e01a8c2f58df1e79ca12f41"
 dependencies = [
  "gl_common 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.0.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -486,7 +486,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#c719c3520c5751515248e8ef8755925764bc6513"
+source = "git+https://github.com/servo/rust-layers#df3a14d00260c8ab506565972555931444361ff8"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
