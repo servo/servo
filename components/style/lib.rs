@@ -13,6 +13,7 @@
 #![allow(missing_copy_implementations)]
 
 #![plugin(string_cache_plugin)]
+#![plugin(mod_path)]
 
 #[macro_use] extern crate log;
 #[macro_use] extern crate bitflags;
@@ -37,8 +38,6 @@ extern crate selectors;
 extern crate lazy_static;
 
 extern crate util;
-
-#[plugin] #[no_link] extern crate mod_path;
 
 
 pub mod stylesheets;
