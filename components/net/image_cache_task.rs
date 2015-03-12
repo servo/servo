@@ -470,8 +470,8 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<Vec<u8>, ()>
 
 
 pub fn spawn_listener<F, A>(f: F) -> Sender<A>
-    where F: FnOnce(Receiver<A>) + Send,
-          A: Send
+    where F: FnOnce(Receiver<A>) + Send + 'static,
+          A: Send + 'static
 {
     let (setup_chan, setup_port) = channel();
 

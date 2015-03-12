@@ -11,7 +11,7 @@ use hyper::http::RawStatus;
 use util::resource_files::resources_dir_path;
 
 use std::borrow::IntoCow;
-use std::old_io::fs::PathExtensions;
+use std::fs::PathExt;
 use std::sync::mpsc::Sender;
 
 pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
@@ -36,7 +36,7 @@ pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>
             let mut path = resources_dir_path();
             path.push("failure.html");
             assert!(path.exists());
-            load_data.url = Url::from_file_path(&path).unwrap();
+            load_data.url = Url::from_file_path(&*path).unwrap();
         }
         _ => {
             start_sending(senders, Metadata::default(load_data.url))
