@@ -31,7 +31,7 @@ use context::LayoutContext;
 use display_list_builder::DisplayListBuildingResult;
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
-use flow_ref::FlowRef;
+use flow_ref::{FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{self, RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
@@ -740,7 +740,9 @@ pub struct BaseFlow {
     /// NB: Must be the first element.
     ///
     /// The necessity of this will disappear once we have dynamically-sized types.
-    ref_count: AtomicUint,
+    strong_ref_count: AtomicUint,
+
+    weak_ref_count: AtomicUint,
 
     pub restyle_damage: RestyleDamage,
 
@@ -887,7 +889,8 @@ impl Encodable for BaseFlow {
 #[unsafe_destructor]
 impl Drop for BaseFlow {
     fn drop(&mut self) {
-        if self.ref_count.load(Ordering::SeqCst) != 0 {
+        if self.strong_ref_count.load(Ordering::SeqCst) != 0 &&
+           self.weak_ref_count.load(Ordering::SeqCst) != 0 {
             panic!("Flow destroyed before its ref count hit zero—this is unsafe!")
         }
     }
@@ -948,7 +951,8 @@ impl BaseFlow {
         damage.remove(RECONSTRUCT_FLOW);
 
         BaseFlow {
-            ref_count: AtomicUint::new(1),
+            strong_ref_count: AtomicUint::new(1),
+            weak_ref_count: AtomicUint::new(1),
             restyle_damage: damage,
             children: FlowList::new(),
             intrinsic_inline_sizes: IntrinsicISizes::new(),
@@ -978,8 +982,12 @@ impl BaseFlow {
         self.children.iter_mut()
     }
 
-    pub unsafe fn ref_count<'a>(&'a self) -> &'a AtomicUint {
-        &self.ref_count
+    pub unsafe fn strong_ref_count<'a>(&'a self) -> &'a AtomicUint {
+        &self.strong_ref_count
+    }
+
+    pub unsafe fn weak_ref_count<'a>(&'a self) -> &'a AtomicUint {
+        &self.weak_ref_count
     }
 
     pub fn debug_id(&self) -> uint {
@@ -1333,7 +1341,7 @@ impl MutableOwnedFlowUtils for FlowRef {
 /// FIXME(pcwalton): I think this would be better with a borrow flag instead of `unsafe`.
 pub struct ContainingBlockLink {
     /// The pointer up to the containing block.
-    link: Option<FlowRef>,
+    link: Option<WeakFlowRef>,
 }
 
 impl ContainingBlockLink {
@@ -1344,10 +1352,10 @@ impl ContainingBlockLink {
     }
 
     fn set(&mut self, link: FlowRef) {
-        self.link = Some(link)
+        self.link = Some(link.downgrade())
     }
 
-    pub unsafe fn get<'a>(&'a mut self) -> &'a mut Option<FlowRef> {
+    pub unsafe fn get<'a>(&'a mut self) -> &'a mut Option<WeakFlowRef> {
         &mut self.link
     }
 
