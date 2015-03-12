@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::bindings::conversions::{unwrap_jsmanaged, is_dom_class};
+use dom::bindings::conversions::{native_from_reflector_jsmanaged, is_dom_class};
 use dom::bindings::error::throw_type_error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, Root};
@@ -576,7 +576,7 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
     unsafe {
         debug!("outerizing");
         let obj = *obj.unnamed_field1;
-        let win: Root<window::Window> = unwrap_jsmanaged(obj).unwrap().root();
+        let win: Root<window::Window> = native_from_reflector_jsmanaged(obj).unwrap().root();
         win.r().browser_context().as_ref().unwrap().window_proxy()
     }
 }

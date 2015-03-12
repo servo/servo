@@ -913,7 +913,7 @@ pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: Untrusted
         if object.is_null() {
             panic!("Attempted to create a `JS<Node>` from an invalid pointer!")
         }
-        let boxed_node: *const Node = conversions::unwrap(object);
+        let boxed_node: *const Node = conversions::native_from_reflector(object);
         Temporary::from_unrooted(Unrooted::from_raw(boxed_node))
     }
 }
