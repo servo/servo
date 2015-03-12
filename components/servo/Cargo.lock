@@ -432,7 +432,7 @@ version = "0.0.0"
 source = "git+https://github.com/servo/html5ever#8bad1ca8e1e05a7972be80acc64efd729ffdc8a5"
 dependencies = [
  "mac 0.0.2 (git+https://github.com/reem/rust-mac)",
- "rustc-serialize 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -444,7 +444,7 @@ dependencies = [
  "log 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
