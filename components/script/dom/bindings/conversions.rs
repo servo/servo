@@ -428,7 +428,7 @@ pub unsafe fn dom_object_slot(obj: *mut JSObject) -> u32 {
 }
 
 /// Get the DOM object from the given reflector.
-pub unsafe fn unwrap<T>(obj: *mut JSObject) -> *const T {
+pub unsafe fn native_from_reflector<T>(obj: *mut JSObject) -> *const T {
     use js::jsapi::JS_GetReservedSlot;
 
     let slot = dom_object_slot(obj);
@@ -462,7 +462,7 @@ unsafe fn get_dom_class(obj: *mut JSObject) -> Result<DOMClass, ()> {
 /// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
 /// not a reflector for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
-pub fn unwrap_jsmanaged<T>(mut obj: *mut JSObject) -> Result<Unrooted<T>, ()>
+pub fn native_from_reflector_jsmanaged<T>(mut obj: *mut JSObject) -> Result<Unrooted<T>, ()>
     where T: Reflectable + IDLInterface
 {
     use js::glue::{IsWrapper, UnwrapObject};
@@ -491,7 +491,7 @@ pub fn unwrap_jsmanaged<T>(mut obj: *mut JSObject) -> Result<Unrooted<T>, ()>
         let proto_depth = <T as IDLInterface>::get_prototype_depth();
         if dom_class.interface_chain[proto_depth] == proto_id {
             debug!("good prototype");
-            Ok(Unrooted::from_raw(unwrap(obj)))
+            Ok(Unrooted::from_raw(native_from_reflector(obj)))
         } else {
             debug!("bad prototype");
             Err(())
@@ -506,7 +506,7 @@ impl<T: Reflectable+IDLInterface> FromJSValConvertible for Unrooted<T> {
         if !value.is_object() {
             return Err(());
         }
-        unwrap_jsmanaged(value.to_object())
+        native_from_reflector_jsmanaged(value.to_object())
     }
 }
 

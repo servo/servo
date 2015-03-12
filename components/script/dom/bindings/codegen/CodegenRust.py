@@ -108,7 +108,7 @@ class CastableObjectUnwrapper():
 
     def __str__(self):
         return string.Template("""\
-match unwrap_jsmanaged(${source}) {
+match native_from_reflector_jsmanaged(${source}) {
     Ok(val) => val,
     Err(()) => {
 ${codeOnFailure}
@@ -1711,7 +1711,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::bindings::codegen::PrototypeList',
         'dom::bindings::conversions::FromJSValConvertible',
         'dom::bindings::conversions::ToJSValConvertible',
-        'dom::bindings::conversions::unwrap_jsmanaged',
+        'dom::bindings::conversions::native_from_reflector_jsmanaged',
         'dom::bindings::conversions::StringificationBehavior::Default',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::Unrooted',
@@ -4015,7 +4015,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
     def definition_body_prologue(self):
         return CGGeneric("""\
-let this: *const %s = unwrap::<%s>(obj);
+let this: *const %s = native_from_reflector::<%s>(obj);
 """ % (self.descriptor.concreteType, self.descriptor.concreteType))
 
     def definition_body(self):
@@ -4628,7 +4628,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
             'dom::bindings::callback::wrap_call_this_object',
             'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
-            'dom::bindings::conversions::{unwrap, unwrap_jsmanaged}',
+            'dom::bindings::conversions::{native_from_reflector, native_from_reflector_jsmanaged}',
             'dom::bindings::conversions::DOM_OBJECT_SLOT',
             'dom::bindings::conversions::IDLInterface',
             'dom::bindings::conversions::jsid_to_str',
