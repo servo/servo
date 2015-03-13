@@ -4150,13 +4150,16 @@ class CGInterfaceTrait(CGThing):
         def fmt(arguments):
             return "".join(", %s: %s" % argument for argument in arguments)
 
-        methods = CGList([
+        methods = [
             CGGeneric("fn %s(self%s) -> %s;\n" % (name, fmt(arguments), rettype))
             for name, arguments, rettype in members()
-        ], "")
-        self.cgRoot = CGWrapper(CGIndenter(methods),
-                                pre="pub trait %sMethods {\n" % descriptor.interface.identifier.name,
-                                post="}")
+        ]
+        if methods:
+            self.cgRoot = CGWrapper(CGIndenter(CGList(methods, "")),
+                                    pre="pub trait %sMethods {\n" % descriptor.interface.identifier.name,
+                                    post="}")
+        else:
+            self.cgRoot = CGGeneric("")
 
     def define(self):
         return self.cgRoot.define()
