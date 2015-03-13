@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::LocationBinding;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::str::USVString;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 use dom::window::Window;
@@ -41,19 +42,19 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
         self.window.root().r().load_url(url);
     }
 
-    fn Href(self) -> DOMString {
+    fn Href(self) -> USVString {
         UrlHelper::Href(&self.get_url())
     }
 
     fn Stringify(self) -> DOMString {
-        self.Href()
+        self.Href().0
     }
 
-    fn Search(self) -> DOMString {
+    fn Search(self) -> USVString {
         UrlHelper::Search(&self.get_url())
     }
 
-    fn Hash(self) -> DOMString {
+    fn Hash(self) -> USVString {
         UrlHelper::Hash(&self.get_url())
     }
 }

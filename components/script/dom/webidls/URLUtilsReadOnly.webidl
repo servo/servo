@@ -7,17 +7,15 @@
 [NoInterfaceObject/*,
  Exposed=(Window,Worker)*/]
 interface URLUtilsReadOnly {
-  //stringifier readonly attribute ScalarValueString href;
-  readonly attribute DOMString href;
-  //readonly attribute ScalarValueString origin;
+  //stringifier readonly attribute USVString href;
+  readonly attribute USVString href;
+  //readonly attribute USVString origin;
 
-  //readonly attribute ScalarValueString protocol;
-  //readonly attribute ScalarValueString host;
-  //readonly attribute ScalarValueString hostname;
-  //readonly attribute ScalarValueString port;
-  //readonly attribute ScalarValueString pathname;
-  //readonly attribute ScalarValueString search;
-  readonly attribute DOMString search;
-  //readonly attribute ScalarValueString hash;
-  readonly attribute DOMString hash;
+  //readonly attribute USVString protocol;
+  //readonly attribute USVString host;
+  //readonly attribute USVString hostname;
+  //readonly attribute USVString port;
+  //readonly attribute USVString pathname;
+  readonly attribute USVString search;
+  readonly attribute USVString hash;
 };

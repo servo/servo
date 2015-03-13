@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use util::str::DOMString;
+use dom::bindings::str::USVString;
+
 use url::Url;
 
 use std::borrow::ToOwned;
@@ -10,24 +11,24 @@ use std::borrow::ToOwned;
 pub struct UrlHelper;
 
 impl UrlHelper {
-    pub fn Href(url: &Url) -> DOMString {
-        url.serialize()
+    pub fn Href(url: &Url) -> USVString {
+        USVString(url.serialize())
     }
 
-    pub fn Search(url: &Url) -> DOMString {
-        match url.query {
+    pub fn Search(url: &Url) -> USVString {
+        USVString(match url.query {
             None => "".to_owned(),
             Some(ref query) if query.as_slice() == "" => "".to_owned(),
             Some(ref query) => format!("?{}", query)
-        }
+        })
     }
 
-    pub fn Hash(url: &Url) -> DOMString {
-        match url.fragment {
+    pub fn Hash(url: &Url) -> USVString {
+        USVString(match url.fragment {
             None => "".to_owned(),
             Some(ref hash) if hash.as_slice() == "" => "".to_owned(),
             Some(ref hash) => format!("#{}", hash)
-        }
+        })
     }
 
     /// https://html.spec.whatwg.org/multipage/browsers.html#same-origin
