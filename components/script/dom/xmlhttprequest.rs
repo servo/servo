@@ -369,9 +369,12 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             // Step 4
             Some(Method::Connect) | Some(Method::Trace) => Err(Security),
             Some(Method::Extension(ref t)) if t.as_slice() == "TRACK" => Err(Security),
-            Some(parse_method) if method.is_token() => {
+            Some(parsed_method) => {
+                if !method.is_token() {
+                    return Err(Syntax)
+                }
 
-                *self.request_method.borrow_mut() = parse_method;
+                *self.request_method.borrow_mut() = parsed_method;
 
                 // Step 6
                 let base = self.global.root().r().get_url();
@@ -675,6 +678,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         self.status.get()
     }
     fn StatusText(self) -> ByteString {
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let status_text = self.status_text.borrow();
         status_text.clone()
     }
@@ -982,9 +986,11 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
             None => {}
         }
 
+
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let response = self.response.borrow();
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
-        let response = self.response.borrow();
         encoding.decode(response.as_slice(), DecoderTrap::Replace).unwrap().to_owned()
     }
     fn filter_response_headers(self) -> Headers {

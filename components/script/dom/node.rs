@@ -856,7 +856,9 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn get_unique_id(self) -> String {
-        self.unique_id.borrow().clone()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let id = self.unique_id.borrow();
+        id.clone()
     }
 
     fn summarize(self) -> NodeInfo {

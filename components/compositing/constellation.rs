@@ -99,6 +99,7 @@ pub struct Constellation<LTF, STF> {
     phantom: PhantomData<(LTF, STF)>,
 
     pub window_size: WindowSizeData,
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
 }
 
 /// Stores the navigation context for a single frame in the frame tree.
