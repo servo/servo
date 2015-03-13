@@ -7,7 +7,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![feature(collections, core, io, os, path, rustc_private, std_misc, test)]
+#![feature(collections, core, env, io, os, path, rustc_private, std_misc, test)]
 
 extern crate getopts;
 extern crate test;
@@ -15,7 +15,7 @@ extern crate test;
 use test::{AutoColor, TestOpts, run_tests_console, TestDesc, TestDescAndFn, DynTestFn, DynTestName};
 use test::ShouldFail;
 use getopts::{getopts, reqopt};
-use std::{os, str, env};
+use std::{str, env};
 use std::old_io::fs;
 use std::old_io::Reader;
 use std::old_io::process::{Command, Ignored, CreatePipe, InheritFd, ExitStatus};
@@ -88,14 +88,19 @@ fn make_test(file: String) -> TestDescAndFn {
 }
 
 fn run_test(file: String) {
-    let path = os::make_absolute(&Path::new(file)).unwrap();
+    let path = env::current_dir().unwrap().join(&file);
     // FIXME (#1094): not the right way to transform a path
     let infile = format!("file://{}", path.display());
     let stdout = CreatePipe(false, true);
     let stderr = InheritFd(2);
     let args = ["-z", "-f", infile.as_slice()];
 
-    let mut prc = match Command::new(os::self_exe_path().unwrap().join("servo"))
+    let mut prc_arg = env::current_exe().unwrap();
+    let prc_arg = match prc_arg.pop() {
+        true => prc_arg.join("servo"),
+        _ => panic!("could not pop directory"),
+    };
+    let mut prc = match Command::new(prc_arg)
         .args(args.as_slice())
         .stdin(Ignored)
         .stdout(stdout)
