@@ -11,6 +11,7 @@ use dom::bindings::error::Error::IndexSize;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};
+use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::htmlcanvaselement::{HTMLCanvasElement, HTMLCanvasElementHelpers};
 use dom::imagedata::{ImageData, ImageDataHelpers};
@@ -231,7 +232,10 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         Ok(ImageData::new(self.global.root().r(), imagedata.Width(), imagedata.Height(), None))
     }
 
-    fn GetImageData(self, sx: f64, sy: f64, sw: f64, sh: f64) -> Fallible<Temporary<ImageData>> {
+    fn GetImageData(self, sx: Finite<f64>, sy: Finite<f64>, sw: Finite<f64>, sh: Finite<f64>) -> Fallible<Temporary<ImageData>> {
+        let sw = *sw;
+        let sh = *sh;
+
         if sw == 0.0 || sh == 0.0 {
             return Err(IndexSize)
         }
@@ -244,7 +248,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         Ok(ImageData::new(self.global.root().r(), sw.abs().to_u32().unwrap(), sh.abs().to_u32().unwrap(), Some(data)))
     }
 
-    fn PutImageData(self, imagedata: JSRef<ImageData>, dx: f64, dy: f64) {
+    fn PutImageData(self, imagedata: JSRef<ImageData>, dx: Finite<f64>, dy: Finite<f64>) {
         let data = imagedata.get_data_array(&self.global.root().r());
         let image_data_rect = Rect(Point2D(dx.to_i32().unwrap(), dy.to_i32().unwrap()), imagedata.get_size());
         let dirty_rect = None;
@@ -252,8 +256,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.renderer.send(CanvasMsg::PutImageData(data, image_data_rect, dirty_rect, canvas_size)).unwrap()
     }
 
-    fn PutImageData_(self, imagedata: JSRef<ImageData>, dx: f64, dy: f64,
-                     dirtyX: f64, dirtyY: f64, dirtyWidth: f64, dirtyHeight: f64) {
+    fn PutImageData_(self, imagedata: JSRef<ImageData>, dx: Finite<f64>, dy: Finite<f64>,
+                     dirtyX: Finite<f64>, dirtyY: Finite<f64>, dirtyWidth: Finite<f64>, dirtyHeight: Finite<f64>) {
         let data = imagedata.get_data_array(&self.global.root().r());
         let image_data_rect = Rect(Point2D(dx.to_i32().unwrap(), dy.to_i32().unwrap()),
                                    Size2D(imagedata.Width().to_i32().unwrap(),
