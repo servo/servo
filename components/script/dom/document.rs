@@ -365,7 +365,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
     fn find_fragment_node(self, fragid: DOMString) -> Option<Temporary<Element>> {
         self.GetElementById(fragid.clone()).or_else(|| {
-            let check_anchor = |&:&node: &JSRef<HTMLAnchorElement>| {
+            let check_anchor = |&node: &JSRef<HTMLAnchorElement>| {
                 let elem: JSRef<Element> = ElementCast::from_ref(node);
                 elem.get_attribute(ns!(""), &atom!("name")).root().map_or(false, |attr| {
                     attr.r().value().as_slice() == fragid.as_slice()

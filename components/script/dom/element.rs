@@ -746,7 +746,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             let owner_doc = node.owner_doc().root();
             owner_doc.r().quirks_mode()
         };
-        let is_equal = |&:lhs: &Atom, rhs: &Atom| match quirks_mode {
+        let is_equal = |lhs: &Atom, rhs: &Atom| match quirks_mode {
             NoQuirks | LimitedQuirks => lhs == rhs,
             Quirks => lhs.as_slice().eq_ignore_ascii_case(rhs.as_slice())
         };
@@ -764,7 +764,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn has_attribute(self, name: &Atom) -> bool {
-        assert!(name.as_slice().bytes().all(|&:b| b.to_ascii_lowercase() == b));
+        assert!(name.as_slice().bytes().all(|b| b.to_ascii_lowercase() == b));
         self.attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
             *attr.r().local_name() == *name && *attr.r().namespace() == ns!("")
         })

@@ -1122,7 +1122,7 @@ impl NodeIterator {
     }
 
     fn next_child<'b>(&self, node: JSRef<'b, Node>) -> Option<JSRef<'b, Node>> {
-        let skip = |&:element: JSRef<Element>| {
+        let skip = |element: JSRef<Element>| {
             !self.include_descendants_of_void && element.is_void()
         };
 
@@ -2217,7 +2217,9 @@ impl<'a> VirtualMethods for JSRef<'a, Node> {
     }
 }
 
-impl<'a> style::node::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
+impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
+    type Element = JSRef<'a, Element>;
+
     fn parent_node(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.

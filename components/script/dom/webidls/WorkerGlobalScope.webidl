@@ -5,7 +5,7 @@
 // http://www.whatwg.org/html/#workerglobalscope
 //[Exposed=Worker]
 interface WorkerGlobalScope : EventTarget {
-  readonly attribute WorkerGlobalScope self;
+  [BinaryName="Self_"] readonly attribute WorkerGlobalScope self;
   readonly attribute WorkerLocation location;
 
   //void close();

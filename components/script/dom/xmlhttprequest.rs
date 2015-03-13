@@ -992,7 +992,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         use hyper::header::SetCookie;
 
         // a dummy header so we can use headers.remove::<SetCookie2>()
-        #[derive(Clone)]
+        #[derive(Clone, Debug)]
         struct SetCookie2;
         impl Header for SetCookie2 {
             fn header_name() -> &'static str {

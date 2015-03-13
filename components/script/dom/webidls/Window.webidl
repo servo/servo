@@ -10,7 +10,7 @@
   //[Unforgeable] readonly attribute WindowProxy window;
   //[Replaceable] readonly attribute WindowProxy self;
   readonly attribute Window window;
-  readonly attribute Window self;
+  [BinaryName="Self_"] readonly attribute Window self;
   /*[Unforgeable]*/ readonly attribute Document document;
   //         attribute DOMString name;
   /*[PutForwards=href, Unforgeable]*/ readonly attribute Location location;
