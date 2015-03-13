@@ -84,8 +84,10 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
 
     #[allow(unsafe_blocks)]
     fn Get(self, name: DOMString) -> Option<FileOrString> {
-        if self.data.borrow().contains_key(&name) {
-            match (*self.data.borrow())[name][0].clone() {
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let data = self.data.borrow();
+        if data.contains_key(&name) {
+            match data[name][0].clone() {
                 FormDatum::StringData(ref s) => Some(eString(s.clone())),
                 FormDatum::FileData(ref f) => {
                     Some(eFile(Unrooted::from_js(*f)))
@@ -97,7 +99,9 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     }
 
     fn Has(self, name: DOMString) -> bool {
-        self.data.borrow().contains_key(&name)
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let data = self.data.borrow();
+        data.contains_key(&name)
     }
     #[allow(unrooted_must_root)]
     fn Set(self, name: DOMString, value: JSRef<Blob>, filename: Option<DOMString>) {

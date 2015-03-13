@@ -245,7 +245,8 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     }
 
     fn has_handlers(self) -> bool {
-        !self.handlers.borrow().is_empty()
+        let handlers = self.handlers.borrow();
+        !handlers.is_empty()
     }
 }
 

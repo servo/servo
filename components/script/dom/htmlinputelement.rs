@@ -238,7 +238,9 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
     fn Value(self) -> DOMString {
-        self.textinput.borrow().get_content()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let textinput = self.textinput.borrow();
+        textinput.get_content()
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value

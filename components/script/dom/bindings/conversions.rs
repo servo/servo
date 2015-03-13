@@ -75,6 +75,7 @@ pub trait ToJSValConvertible {
 
 /// A trait to convert `JSVal`s to Rust types.
 pub trait FromJSValConvertible {
+    /// Optional configurable behaviour switch; use () for no configuration.
     type Config;
     /// Convert `val` to type `Self`.
     /// Optional configuration of type `T` can be passed as the `option`

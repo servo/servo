@@ -172,7 +172,10 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(ns!(""), &Atom::from_slice(to_snake_case(name).as_slice())).map(|attr| {
             let attr = attr.root();
-            attr.r().value().as_slice().to_owned()
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let attr = attr.r();
+            let value = attr.value();
+            value.as_slice().to_owned()
         })
     }
 

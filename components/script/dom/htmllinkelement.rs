@@ -59,7 +59,12 @@ impl HTMLLinkElement {
 
 fn get_attr(element: JSRef<Element>, name: &Atom) -> Option<String> {
     let elem = element.get_attribute(ns!(""), name).root();
-    elem.map(|e| e.r().value().as_slice().to_owned())
+    elem.map(|e| {
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let e = e.r();
+        let value = e.value();
+        value.as_slice().to_owned()
+    })
 }
 
 fn is_stylesheet(value: &Option<String>) -> bool {

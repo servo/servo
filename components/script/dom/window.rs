@@ -179,11 +179,11 @@ impl Window {
         &self.image_cache_task
     }
 
-    pub fn compositor(&self) -> RefMut<Box<ScriptListener+'static>> {
+    pub fn compositor<'a>(&'a self) -> RefMut<'a, Box<ScriptListener+'static>> {
         self.compositor.borrow_mut()
     }
 
-    pub fn browser_context(&self) -> Ref<Option<BrowserContext>> {
+    pub fn browser_context<'a>(&'a self) -> Ref<'a, Option<BrowserContext>> {
         self.browser_context.borrow()
     }
 
