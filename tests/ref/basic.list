@@ -274,6 +274,10 @@ flaky_cpu,experimental == vertical-lr-blocks.html vertical-lr-blocks_ref.html
 == vertical_align_top_a.html vertical_align_top_ref.html
 == vertical_align_top_bottom_a.html vertical_align_top_bottom_ref.html
 == vertical_align_top_span_a.html vertical_align_top_span_ref.html
+resolution=800x600 == viewport_percentage_vmin_vmax.html viewport_percentage_vmin_vmax_a.html
+resolution=600x800 == viewport_percentage_vmin_vmax.html viewport_percentage_vmin_vmax_b.html
+resolution=800x600 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_a.html
+resolution=600x800 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_b.html
 == visibility_hidden.html visibility_hidden_ref.html
 == whitespace_nowrap_a.html whitespace_nowrap_ref.html
 == whitespace_pre.html whitespace_pre_ref.html
