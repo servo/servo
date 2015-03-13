@@ -180,6 +180,22 @@ pub fn parse_html(document: JSRef<Document>,
         task_state::enter(IN_HTML_PARSER);
     }
 
+    fn parse_progress(parser: &JSRef<ServoHTMLParser>, url: &Url, load_response: &LoadResponse) {
+        for msg in load_response.progress_port.iter() {
+            match msg {
+                ProgressMsg::Payload(data) => {
+                    // FIXME: use Vec<u8> (html5ever #34)
+                    let data = UTF_8.decode(data.as_slice(), DecoderTrap::Replace).unwrap();
+                    parser.parse_chunk(data);
+                }
+                ProgressMsg::Done(Err(err)) => {
+                    panic!("Failed to load page URL {}, error: {}", url.serialize(), err);
+                }
+                ProgressMsg::Done(Ok(())) => break,
+            }
+        }
+    };
+
     match input {
         HTMLInput::InputString(s) => {
             parser.parse_chunk(s);
@@ -205,19 +221,7 @@ pub fn parse_html(document: JSRef<Document>,
                     parse_progress(&parser, url, &load_response);
                 },
                 _ => {
-                    for msg in load_response.progress_port.iter() {
-                        match msg {
-                            ProgressMsg::Payload(data) => {
-                                // FIXME: use Vec<u8> (html5ever #34)
-                                let data = UTF_8.decode(data.as_slice(), DecoderTrap::Replace).unwrap();
-                                parser.parse_chunk(data);
-                            }
-                            ProgressMsg::Done(Err(err)) => {
-                                panic!("Failed to load page URL {}, error: {}", url.serialize(), err);
-                            }
-                            ProgressMsg::Done(Ok(())) => break,
-                        }
-                    }
+                    parse_progress(&parser, url, &load_response);
                 }
             }
         }

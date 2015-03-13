@@ -55,6 +55,11 @@ fn load(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cooki
     let mut url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
 
+    let senders = ResponseSenders {
+        immediate_consumer: start_chan,
+        eventual_consumer: load_data.consumer
+    };
+
     // If the URL is a view-source scheme then the scheme data contains the
     // real URL that should be used for which the source is to be viewed.
     // Change our existing URL to that and keep note that we are viewing
@@ -62,14 +67,17 @@ fn load(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cooki
     let viewing_source = if url.scheme == "view-source" {
        let inner_url = load_data.url.non_relative_scheme_data().unwrap();
        url = Url::parse(inner_url).unwrap();
+       match url.scheme.as_slice() {
+           "http" | "https" => {}
+           _ => {
+               let s = format!("The {} scheme with view-source is not supported", url.scheme);
+               send_error(url, s, senders);
+               return;
+           }
+       };
        true
     } else {
       false
-    };
-
-    let senders = ResponseSenders {
-        immediate_consumer: start_chan,
-        eventual_consumer: load_data.consumer
     };
 
     // Loop to handle redirects.
