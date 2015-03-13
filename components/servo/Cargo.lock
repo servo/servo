@@ -137,7 +137,7 @@ dependencies = [
 [[package]]
 name = "core_text"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-core-text#e769be9cb3366f9d403ddbee040e031ce03d32bb"
+source = "git+https://github.com/servo/rust-core-text#8809f011445585d023d5e2a0712a1adcbf7ce609"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -453,7 +453,7 @@ dependencies = [
 [[package]]
 name = "io_surface"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-io-surface#691cbccc320c4fb9b75e215da9b0b82539d729bd"
+source = "git+https://github.com/servo/rust-io-surface#f380a03a9b0e0316866d4320d46a78dda87efbec"
 dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
