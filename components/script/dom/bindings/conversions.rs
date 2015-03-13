@@ -307,6 +307,7 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
     unsafe {
         let mut length = 0;
         let chars = JS_GetStringCharsAndLength(cx, s, &mut length);
+        assert!(!chars.is_null());
         let char_vec = slice::from_raw_parts(chars, length as usize);
         String::from_utf16(char_vec).unwrap()
     }
@@ -358,6 +359,7 @@ impl FromJSValConvertible for USVString {
             unsafe {
                 let mut length = 0;
                 let chars = JS_GetStringCharsAndLength(cx, jsstr, &mut length);
+                assert!(!chars.is_null());
                 let char_vec = slice::from_raw_parts(chars, length as usize);
                 Ok(USVString(String::from_utf16_lossy(char_vec)))
             }
