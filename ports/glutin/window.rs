@@ -450,7 +450,7 @@ impl WindowMethods for Window {
     }
 
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
-        ScaleFactor(self.window.hidpi_factor())
+        ScaleFactor::new(self.window.hidpi_factor())
     }
 
     fn set_page_title(&self, title: Option<String>) {
