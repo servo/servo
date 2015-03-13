@@ -3,9 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::NodeIteratorBinding;
-use dom::bindings::codegen::Bindings::NodeIteratorBinding::NodeIteratorMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Temporary;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 
 #[dom_struct]
@@ -24,7 +23,3 @@ impl NodeIterator {
         reflect_dom_object(box NodeIterator::new_inherited(), global, NodeIteratorBinding::Wrap)
     }
 }
-
-impl<'a> NodeIteratorMethods for JSRef<'a, NodeIterator> {
-}
-
