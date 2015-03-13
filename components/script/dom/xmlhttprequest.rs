@@ -369,9 +369,9 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             // Step 4
             Some(Method::Connect) | Some(Method::Trace) => Err(Security),
             Some(Method::Extension(ref t)) if t.as_slice() == "TRACK" => Err(Security),
-            Some(_) if method.is_token() => {
+            Some(parse_method) if method.is_token() => {
 
-                *self.request_method.borrow_mut() = maybe_method.unwrap();
+                *self.request_method.borrow_mut() = parse_method;
 
                 // Step 6
                 let base = self.global.root().r().get_url();
@@ -675,7 +675,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         self.status.get()
     }
     fn StatusText(self) -> ByteString {
-        self.status_text.borrow().clone()
+        let status_text = self.status_text.borrow();
+        status_text.clone()
     }
     fn GetResponseHeader(self, name: ByteString) -> Option<ByteString> {
         self.filter_response_headers().iter().find(|h| {
@@ -983,7 +984,8 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
-        encoding.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().to_owned()
+        let response = self.response.borrow();
+        encoding.decode(response.as_slice(), DecoderTrap::Replace).unwrap().to_owned()
     }
     fn filter_response_headers(self) -> Headers {
         // http://fetch.spec.whatwg.org/#concept-response-header-list
