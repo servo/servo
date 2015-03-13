@@ -178,7 +178,7 @@ impl ImageResponder<UntrustedNodeAddress> for LayoutImageResponder {
     fn respond(&self) -> Box<Fn(ImageResponseMsg, UntrustedNodeAddress)+Send> {
         let id = self.id.clone();
         let script_chan = self.script_chan.clone();
-        box move |&:_, node_address| {
+        box move |_, node_address| {
             let ScriptControlChan(ref chan) = script_chan;
             debug!("Dirtying {:x}", node_address.0 as uint);
             let mut nodes = SmallVec1::new();
@@ -568,7 +568,7 @@ impl LayoutTask {
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
 
         if mq.evaluate(&rw_data.stylist.device) {
-            iter_font_face_rules(&sheet, &rw_data.stylist.device, &|&:family, src| {
+            iter_font_face_rules(&sheet, &rw_data.stylist.device, &|family, src| {
                 self.font_cache_task.add_web_font(family.to_owned(), (*src).clone());
             });
             rw_data.stylist.add_stylesheet(sheet);

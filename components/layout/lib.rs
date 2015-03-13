@@ -16,11 +16,13 @@
 #![feature(thread_local)]
 #![feature(unicode)]
 #![feature(unsafe_destructor)]
+#![feature(unsafe_no_drop_flag)]
 
 #![deny(unsafe_blocks)]
 #![allow(unrooted_must_root)]
 
 #![plugin(string_cache_plugin)]
+#![plugin(plugins)]
 
 #[macro_use]
 extern crate log;
@@ -38,7 +40,7 @@ extern crate "rustc-serialize" as rustc_serialize;
 extern crate png;
 extern crate style;
 #[macro_use]
-#[no_link] #[plugin]
+#[no_link]
 extern crate "plugins" as servo_plugins;
 extern crate net;
 extern crate msg;

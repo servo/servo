@@ -16,7 +16,7 @@ use incremental::{self, RESOLVE_GENERATED_CONTENT};
 use text::TextRunScanner;
 
 use gfx::display_list::OpaqueNode;
-use std::collections::{DList, HashMap};
+use std::collections::{LinkedList, HashMap};
 use std::sync::Arc;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{display, list_style_type};
@@ -421,7 +421,7 @@ fn render_text(layout_context: &LayoutContext,
                style: Arc<ComputedValues>,
                string: String)
                -> SpecificFragmentInfo {
-    let mut fragments = DList::new();
+    let mut fragments = LinkedList::new();
     let info = SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(string));
     fragments.push_back(Fragment::from_opaque_node_and_style(node,
                                                              style,

@@ -797,7 +797,7 @@ impl FragmentDisplayListBuilding for Fragment {
             self.stacking_relative_border_box(stacking_relative_flow_origin,
                                               relative_containing_block_size,
                                               relative_containing_block_mode,
-                                              CoordinateSystem::Self);
+                                              CoordinateSystem::Own);
 
         debug!("Fragment::build_display_list at rel={:?}, abs={:?}, dirty={:?}, flow origin={:?}: \
                 {:?}",

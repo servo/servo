@@ -63,7 +63,7 @@ use msg::constellation_msg::{PipelineId, SubpageId};
 use util::str::{LengthOrPercentageOrAuto, is_whitespace};
 use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
-use std::marker::ContravariantLifetime;
+use std::marker::PhantomData;
 use std::mem;
 use std::sync::mpsc::Sender;
 use string_cache::{Atom, Namespace};
@@ -173,8 +173,8 @@ pub struct LayoutNode<'a> {
     /// The wrapped node.
     node: LayoutJS<Node>,
 
-    /// Being chained to a ContravariantLifetime prevents `LayoutNode`s from escaping.
-    pub chain: ContravariantLifetime<'a>,
+    /// Being chained to a PhantomData prevents `LayoutNode`s from escaping.
+    pub chain: PhantomData<&'a ()>,
 }
 
 impl<'ln> Clone for LayoutNode<'ln> {
@@ -347,7 +347,9 @@ impl<'ln> LayoutNode<'ln> {
     }
 }
 
-impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
+impl<'ln> TNode<'ln> for LayoutNode<'ln> {
+    type Element = LayoutElement<'ln>;
+
     fn parent_node(self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
