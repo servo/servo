@@ -1,0 +1,45 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use ::cssparser::Parser;
+use ::geom::size::TypedSize2D;
+use ::util::geometry::ViewportPx;
+
+#[derive(PartialEq, Eq, Copy, Debug)]
+pub enum MediaType {
+    Screen,
+    Print,
+    Unknown,
+}
+
+#[allow(missing_copy_implementations)]
+#[derive(Debug)]
+pub struct Device {
+    pub media_type: MediaType,
+    pub viewport_size: TypedSize2D<ViewportPx, f32>,
+}
+
+impl Device {
+    pub fn new(media_type: MediaType, viewport_size: TypedSize2D<ViewportPx, f32>) -> Device {
+        Device {
+            media_type: media_type,
+            viewport_size: viewport_size,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct MediaQueryList {
+    media_queries: Vec<()>
+}
+
+impl MediaQueryList {
+    pub fn evaluate(&self, device: &Device) -> bool {
+        false
+    }
+}
+
+pub fn parse_media_query_list(input: &mut Parser) -> MediaQueryList {
+    MediaQueryList { media_queries: vec![] }
+}
