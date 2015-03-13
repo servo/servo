@@ -54,11 +54,12 @@ use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
 use libc;
 use std::borrow::ToOwned;
 use std::default;
+use std::marker::MarkerTrait;
 use std::slice;
 
 /// A trait to retrieve the constants necessary to check if a `JSObject`
 /// implements a given interface.
-pub trait IDLInterface {
+pub trait IDLInterface: MarkerTrait {
     /// Returns the prototype ID.
     fn get_prototype_id() -> PrototypeList::ID;
     /// Returns the prototype depth, i.e., the number of interfaces this

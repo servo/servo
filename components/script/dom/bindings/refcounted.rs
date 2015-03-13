@@ -32,6 +32,7 @@ use libc;
 use std::cell::RefCell;
 use std::collections::hash_map::HashMap;
 use std::collections::hash_map::Entry::{Vacant, Occupied};
+use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
@@ -53,6 +54,7 @@ pub struct Trusted<T> {
     refcount: Arc<Mutex<usize>>,
     script_chan: Box<ScriptChan + Send>,
     owner_thread: *const libc::c_void,
+    phantom: PhantomData<T>,
 }
 
 unsafe impl<T: Reflectable> Send for Trusted<T> {}
