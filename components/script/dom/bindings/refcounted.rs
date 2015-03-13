@@ -73,6 +73,7 @@ impl<T: Reflectable> Trusted<T> {
                 refcount: refcount,
                 script_chan: script_chan.clone(),
                 owner_thread: (&*live_references) as *const _ as *const libc::c_void,
+                phantom: PhantomData,
             }
         })
     }
@@ -104,6 +105,7 @@ impl<T: Reflectable> Clone for Trusted<T> {
             refcount: self.refcount.clone(),
             script_chan: self.script_chan.clone(),
             owner_thread: self.owner_thread,
+            phantom: PhantomData,
         }
     }
 }
