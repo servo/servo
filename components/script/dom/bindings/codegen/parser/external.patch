@@ -1,16 +1,18 @@
 --- WebIDL.py
 +++ WebIDL.py
-@@ -450,44 +450,8 @@ class IDLIdentifierPlaceholder(IDLObjectWithIdentifier):
+@@ -505,46 +505,8 @@ class IDLExposureMixins():
  
- class IDLExternalInterface(IDLObjectWithIdentifier):
+ class IDLExternalInterface(IDLObjectWithIdentifier, IDLExposureMixins):
      def __init__(self, location, parentScope, identifier):
 -        assert isinstance(identifier, IDLUnresolvedIdentifier)
 -        assert isinstance(parentScope, IDLScope)
 -        self.parent = None
 -        IDLObjectWithIdentifier.__init__(self, location, parentScope, identifier)
+-        IDLExposureMixins.__init__(self, location)
 -        IDLObjectWithIdentifier.resolve(self, parentScope)
 -
 -    def finish(self, scope):
+-        IDLExposureMixins.finish(self, scope)
 -        pass
 -
 -    def validate(self):

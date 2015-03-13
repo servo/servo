@@ -419,7 +419,8 @@ def typeIsSequenceOrHasSequenceMember(type):
     return False
 
 def typeNeedsRooting(type, descriptorProvider):
-    return type.isGeckoInterface() and descriptorProvider.getDescriptor(type.name).needsRooting
+    return (type.isGeckoInterface() and
+            descriptorProvider.getDescriptor(type.unroll().inner.identifier.name).needsRooting)
 
 
 def union_native_type(t):
