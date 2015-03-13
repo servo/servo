@@ -17,6 +17,7 @@ dictionary TestDictionary {
   float floatValue;
   double doubleValue;
   DOMString stringValue;
+  USVString usvstringValue;
   TestEnum enumValue;
   Blob interfaceValue;
   any anyValue;
@@ -35,6 +36,7 @@ dictionary TestDictionaryDefaults {
   // float floatValue = 7.0;
   // double doubleValue = 7.0;
   DOMString stringValue = "foo";
+  USVString usvstringValue = "foo";
   TestEnum enumValue = "bar";
   any anyValue = null;
 
@@ -50,6 +52,7 @@ dictionary TestDictionaryDefaults {
   // float? nullableFloatValue = 7.0;
   // double? nullableDoubleValue = 7.0;
   DOMString? nullableStringValue = "foo";
+  USVString? nullableUsvstringValue = "foo";
   // TestEnum? nullableEnumValue = "bar";
 };
 
@@ -66,6 +69,7 @@ interface TestBinding {
            attribute float floatAttribute;
            attribute double doubleAttribute;
            attribute DOMString stringAttribute;
+           attribute USVString usvstringAttribute;
            attribute ByteString byteStringAttribute;
            attribute TestEnum enumAttribute;
            attribute Blob interfaceAttribute;
@@ -86,6 +90,7 @@ interface TestBinding {
            attribute float? floatAttributeNullable;
            attribute double? doubleAttributeNullable;
            attribute DOMString? stringAttributeNullable;
+           attribute USVString? usvstringAttributeNullable;
            attribute ByteString? byteStringAttributeNullable;
   readonly attribute TestEnum? enumAttributeNullable;
            attribute Blob? interfaceAttributeNullable;
@@ -107,6 +112,7 @@ interface TestBinding {
   float receiveFloat();
   double receiveDouble();
   DOMString receiveString();
+  USVString receiveUsvstring();
   ByteString receiveByteString();
   TestEnum receiveEnum();
   Blob receiveInterface();
@@ -126,6 +132,7 @@ interface TestBinding {
   float? receiveNullableFloat();
   double? receiveNullableDouble();
   DOMString? receiveNullableString();
+  USVString? receiveNullableUsvstring();
   ByteString? receiveNullableByteString();
   TestEnum? receiveNullableEnum();
   Blob? receiveNullableInterface();
@@ -144,6 +151,7 @@ interface TestBinding {
   void passFloat(float arg);
   void passDouble(double arg);
   void passString(DOMString arg);
+  void passUsvstring(USVString arg);
   void passByteString(ByteString arg);
   void passEnum(TestEnum arg);
   void passInterface(Blob arg);
@@ -166,6 +174,7 @@ interface TestBinding {
   void passNullableFloat(float? arg);
   void passNullableDouble(double? arg);
   void passNullableString(DOMString? arg);
+  void passNullableUsvstring(USVString? arg);
   void passNullableByteString(ByteString? arg);
   // void passNullableEnum(TestEnum? arg);
   void passNullableInterface(Blob? arg);
@@ -186,6 +195,7 @@ interface TestBinding {
   void passOptionalFloat(optional float arg);
   void passOptionalDouble(optional double arg);
   void passOptionalString(optional DOMString arg);
+  void passOptionalUsvstring(optional USVString arg);
   void passOptionalByteString(optional ByteString arg);
   void passOptionalEnum(optional TestEnum arg);
   void passOptionalInterface(optional Blob arg);
@@ -207,6 +217,7 @@ interface TestBinding {
   void passOptionalNullableFloat(optional float? arg);
   void passOptionalNullableDouble(optional double? arg);
   void passOptionalNullableString(optional DOMString? arg);
+  void passOptionalNullableUsvstring(optional USVString? arg);
   void passOptionalNullableByteString(optional ByteString? arg);
   // void passOptionalNullableEnum(optional TestEnum? arg);
   void passOptionalNullableInterface(optional Blob? arg);
@@ -225,6 +236,7 @@ interface TestBinding {
   void passOptionalLongLongWithDefault(optional long long arg = -12);
   void passOptionalUnsignedLongLongWithDefault(optional unsigned long long arg = 17);
   void passOptionalStringWithDefault(optional DOMString arg = "x");
+  void passOptionalUsvstringWithDefault(optional USVString arg = "x");
   void passOptionalEnumWithDefault(optional TestEnum arg = "foo");
   // void passOptionalUnionWithDefault(optional (HTMLElement or long) arg = 9);
   // void passOptionalUnion2WithDefault(optional(Event or DOMString)? data = "foo");
@@ -239,6 +251,7 @@ interface TestBinding {
   void passOptionalNullableLongLongWithDefault(optional long long? arg = null);
   void passOptionalNullableUnsignedLongLongWithDefault(optional unsigned long long? arg = null);
   void passOptionalNullableStringWithDefault(optional DOMString? arg = null);
+  void passOptionalNullableUsvstringWithDefault(optional USVString? arg = null);
   void passOptionalNullableByteStringWithDefault(optional ByteString? arg = null);
   // void passOptionalNullableEnumWithDefault(optional TestEnum? arg = null);
   void passOptionalNullableInterfaceWithDefault(optional Blob? arg = null);
@@ -260,6 +273,7 @@ interface TestBinding {
   // void passOptionalNullableFloatWithNonNullDefault(optional float? arg = 0.0);
   // void passOptionalNullableDoubleWithNonNullDefault(optional double? arg = 0.0);
   void passOptionalNullableStringWithNonNullDefault(optional DOMString? arg = "x");
+  void passOptionalNullableUsvstringWithNonNullDefault(optional USVString? arg = "x");
   // void passOptionalNullableEnumWithNonNullDefault(optional TestEnum? arg = "foo");
   // void passOptionalNullableUnionWithNonNullDefault(optional (HTMLElement or long)? arg = 7);
   // void passOptionalNullableUnion2WithNonNullDefault(optional (Event or DOMString)? data = "foo");
@@ -276,6 +290,7 @@ interface TestBinding {
   void passVariadicFloat(float... args);
   void passVariadicDouble(double... args);
   void passVariadicString(DOMString... args);
+  void passVariadicUsvstring(USVString... args);
   void passVariadicByteString(ByteString... args);
   void passVariadicEnum(TestEnum... args);
   // void passVariadicInterface(Blob... args);

@@ -19,6 +19,7 @@
 //! | float                   | `f32`                            |
 //! | double                  | `f64`                            |
 //! | DOMString               | `DOMString`                      |
+//! | USVString               | `USVString`                      |
 //! | ByteString              | `ByteString`                     |
 //! | object                  | `*mut JSObject`                  |
 //! | interface types         | `JSRef<T>`      | `Temporary<T>` |
@@ -31,7 +32,7 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::js::{JSRef, Root, Unrooted};
-use dom::bindings::str::ByteString;
+use dom::bindings::str::{ByteString, USVString};
 use dom::bindings::utils::{Reflectable, Reflector, DOMClass};
 use util::str::DOMString;
 
@@ -306,6 +307,7 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
     unsafe {
         let mut length = 0;
         let chars = JS_GetStringCharsAndLength(cx, s, &mut length);
+        assert!(!chars.is_null());
         let char_vec = slice::from_raw_parts(chars, length as usize);
         String::from_utf16(char_vec).unwrap()
     }
@@ -334,6 +336,32 @@ impl FromJSValConvertible for DOMString {
                 Err(())
             } else {
                 Ok(jsstring_to_str(cx, jsstr))
+            }
+        }
+    }
+}
+
+impl ToJSValConvertible for USVString {
+    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
+        self.0.to_jsval(cx)
+    }
+}
+
+impl FromJSValConvertible for USVString {
+    type Config = ();
+    fn from_jsval(cx: *mut JSContext, value: JSVal, _: ())
+                  -> Result<USVString, ()> {
+        let jsstr = unsafe { JS_ValueToString(cx, value) };
+        if jsstr.is_null() {
+            debug!("JS_ValueToString failed");
+            Err(())
+        } else {
+            unsafe {
+                let mut length = 0;
+                let chars = JS_GetStringCharsAndLength(cx, jsstr, &mut length);
+                assert!(!chars.is_null());
+                let char_vec = slice::from_raw_parts(chars, length as usize);
+                Ok(USVString(String::from_utf16_lossy(char_vec)))
             }
         }
     }

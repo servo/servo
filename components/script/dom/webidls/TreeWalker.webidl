@@ -8,7 +8,7 @@
  */
 
 interface TreeWalker {
-  [SameObject,Constant]
+  [SameObject]
   readonly attribute Node root;
   [Constant]
   readonly attribute unsigned long whatToShow;

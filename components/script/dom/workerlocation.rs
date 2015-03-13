@@ -6,11 +6,10 @@ use dom::bindings::codegen::Bindings::WorkerLocationBinding;
 use dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::str::USVString;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 use dom::workerglobalscope::WorkerGlobalScope;
-
-use util::str::DOMString;
 
 use url::Url;
 
@@ -36,15 +35,15 @@ impl WorkerLocation {
 }
 
 impl<'a> WorkerLocationMethods for JSRef<'a, WorkerLocation> {
-    fn Href(self) -> DOMString {
+    fn Href(self) -> USVString {
         UrlHelper::Href(&self.url)
     }
 
-    fn Search(self) -> DOMString {
+    fn Search(self) -> USVString {
         UrlHelper::Search(&self.url)
     }
 
-    fn Hash(self) -> DOMString {
+    fn Hash(self) -> USVString {
         UrlHelper::Hash(&self.url)
     }
 }
