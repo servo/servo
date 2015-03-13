@@ -135,7 +135,7 @@ pub struct Window {
     layout_join_port: DOMRefCell<Option<Receiver<()>>>,
 
     /// The current size of the window, in pixels.
-    window_size: Cell<WindowSizeData>,
+    window_size: Cell<Option<WindowSizeData>>,
 
     /// Associated resource task for use by DOM objects like XMLHttpRequest
     resource_task: ResourceTask,
@@ -428,7 +428,7 @@ pub trait WindowHelpers {
     fn set_fragment_name(self, fragment: Option<String>);
     fn steal_fragment_name(self) -> Option<String>;
     fn set_window_size(self, size: WindowSizeData);
-    fn window_size(self) -> WindowSizeData;
+    fn window_size(self) -> Option<WindowSizeData>;
     fn get_url(self) -> Url;
     fn resource_task(self) -> ResourceTask;
     fn devtools_chan(self) -> Option<DevtoolsControlChan>;
@@ -517,6 +517,11 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             return
         }
 
+        let window_size = match self.window_size.get() {
+            Some(window_size) => window_size,
+            None => return,
+        };
+
         // Layout will let us know when it's done.
         let (join_chan, join_port) = channel();
 
@@ -527,8 +532,6 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 
         let last_reflow_id = &self.last_reflow_id;
         last_reflow_id.set(last_reflow_id.get() + 1);
-
-        let window_size = self.window_size.get();
 
         // On debug mode, print the reflow event information.
         if opts::get().relayout_event {
@@ -607,7 +610,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn handle_resize_inactive_msg(self, new_size: WindowSizeData) {
-        self.window_size.set(new_size);
+        self.window_size.set(Some(new_size));
     }
 
     fn init_browser_context(self, doc: JSRef<Document>, frame_element: Option<JSRef<Element>>) {
@@ -626,7 +629,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
                 self.script_chan.send(ScriptMsg::TriggerFragment(self.id, fragment)).unwrap();
             },
             None => {
-                self.script_chan.send(ScriptMsg::TriggerLoad(self.id, LoadData::new(url))).unwrap();
+                self.script_chan.send(ScriptMsg::Navigate(self.id, LoadData::new(url))).unwrap();
             }
         }
     }
@@ -645,10 +648,10 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn set_window_size(self, size: WindowSizeData) {
-        self.window_size.set(size);
+        self.window_size.set(Some(size));
     }
 
-    fn window_size(self) -> WindowSizeData {
+    fn window_size(self) -> Option<WindowSizeData> {
         self.window_size.get()
     }
 
@@ -755,7 +758,7 @@ impl Window {
                layout_chan: LayoutChan,
                id: PipelineId,
                subpage_id: Option<SubpageId>,
-               window_size: WindowSizeData)
+               window_size: Option<WindowSizeData>)
                -> Temporary<Window> {
         let layout_rpc: Box<LayoutRPC> = {
             let (rpc_send, rpc_recv) = channel();

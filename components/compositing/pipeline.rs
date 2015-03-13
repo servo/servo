@@ -8,23 +8,24 @@ use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use script_traits::{NewLayoutInfo, ConstellationControlMsg};
 
 use devtools_traits::DevtoolsControlChan;
+use geom::rect::{TypedRect};
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintTask};
 use gfx::font_cache_task::FontCacheTask;
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
+use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
 use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
 use net::storage_task::StorageTask;
 use url::Url;
+use util::geometry::{PagePx};
 use util::time::TimeProfilerChan;
-use std::rc::Rc;
 use std::sync::mpsc::{Receiver, channel};
 
 /// A uniquely-identifiable pipeline of script task, layout task, and paint task.
 pub struct Pipeline {
     pub id: PipelineId,
-    pub parent: Option<(PipelineId, SubpageId)>,
+    pub parent_info: Option<(PipelineId, SubpageId)>,
     pub script_chan: ScriptControlChan,
     pub layout_chan: LayoutControlChan,
     pub paint_chan: PaintChan,
@@ -34,6 +35,8 @@ pub struct Pipeline {
     pub url: Url,
     /// The title of the most recently-loaded page.
     pub title: Option<String>,
+    pub rect: Option<TypedRect<PagePx, f32>>,
+    pub children: Vec<FrameId>,
 }
 
 /// The subset of the pipeline that is needed for layer composition.
@@ -49,7 +52,7 @@ impl Pipeline {
     /// Returns the channels wrapped in a struct.
     /// If script_pipeline is not None, then subpage_id must also be not None.
     pub fn create<LTF,STF>(id: PipelineId,
-                           parent: Option<(PipelineId, SubpageId)>,
+                           parent_info: Option<(PipelineId, SubpageId)>,
                            constellation_chan: ConstellationChan,
                            compositor_proxy: Box<CompositorProxy+'static+Send>,
                            devtools_chan: Option<DevtoolsControlChan>,
@@ -58,8 +61,8 @@ impl Pipeline {
                            resource_task: ResourceTask,
                            storage_task: StorageTask,
                            time_profiler_chan: TimeProfilerChan,
-                           window_size: WindowSizeData,
-                           script_pipeline: Option<Rc<Pipeline>>,
+                           window_size: Option<WindowSizeData>,
+                           script_chan: Option<ScriptControlChan>,
                            load_data: LoadData)
                            -> Pipeline
                            where LTF: LayoutTaskFactory, STF:ScriptTaskFactory {
@@ -71,10 +74,10 @@ impl Pipeline {
 
         let failure = Failure {
             pipeline_id: id,
-            parent: parent,
+            parent_info: parent_info,
         };
 
-        let script_chan = match script_pipeline {
+        let script_chan = match script_chan {
             None => {
                 let (script_chan, script_port) = channel();
                 ScriptTaskFactory::create(None::<&mut STF>,
@@ -93,18 +96,19 @@ impl Pipeline {
                                           load_data.clone());
                 ScriptControlChan(script_chan)
             }
-            Some(spipe) => {
+            Some(script_chan) => {
+                let (containing_pipeline_id, subpage_id) = parent_info.expect("script_pipeline != None but subpage_id == None");
                 let new_layout_info = NewLayoutInfo {
-                    old_pipeline_id: spipe.id.clone(),
+                    containing_pipeline_id: containing_pipeline_id,
                     new_pipeline_id: id,
-                    subpage_id: parent.expect("script_pipeline != None but subpage_id == None").1,
+                    subpage_id: subpage_id,
                     layout_chan: ScriptTaskFactory::clone_layout_channel(None::<&mut STF>, &layout_pair),
                     load_data: load_data.clone(),
                 };
 
-                let ScriptControlChan(ref chan) = spipe.script_chan;
+                let ScriptControlChan(ref chan) = script_chan;
                 chan.send(ConstellationControlMsg::AttachLayout(new_layout_info)).unwrap();
-                spipe.script_chan.clone()
+                script_chan.clone()
             }
         };
 
@@ -132,7 +136,7 @@ impl Pipeline {
                                   layout_shutdown_chan);
 
         Pipeline::new(id,
-                      parent,
+                      parent_info,
                       script_chan,
                       LayoutControlChan(pipeline_chan),
                       paint_chan,
@@ -142,7 +146,7 @@ impl Pipeline {
     }
 
     pub fn new(id: PipelineId,
-               parent: Option<(PipelineId, SubpageId)>,
+               parent_info: Option<(PipelineId, SubpageId)>,
                script_chan: ScriptControlChan,
                layout_chan: LayoutControlChan,
                paint_chan: PaintChan,
@@ -152,7 +156,7 @@ impl Pipeline {
                -> Pipeline {
         Pipeline {
             id: id,
-            parent: parent,
+            parent_info: parent_info,
             script_chan: script_chan,
             layout_chan: layout_chan,
             paint_chan: paint_chan,
@@ -160,12 +164,9 @@ impl Pipeline {
             paint_shutdown_port: paint_shutdown_port,
             url: url,
             title: None,
+            children: vec!(),
+            rect: None,
         }
-    }
-
-    pub fn activate(&self) {
-        let ScriptControlChan(ref chan) = self.script_chan;
-        chan.send(ConstellationControlMsg::Activate(self.id)).unwrap();
     }
 
     pub fn grant_paint_permission(&self) {
@@ -221,7 +222,7 @@ impl Pipeline {
         }
     }
 
-    pub fn subpage_id(&self) -> Option<SubpageId> {
-      self.parent.map(|parent| parent.1)
+    pub fn add_child(&mut self, frame_id: FrameId) {
+        self.children.push(frame_id);
     }
 }
