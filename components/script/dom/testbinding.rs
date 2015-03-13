@@ -14,7 +14,7 @@ use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong::eLong;
 use dom::bindings::global::GlobalField;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::str::ByteString;
+use dom::bindings::str::{ByteString, USVString};
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::blob::Blob;
 use util::str::DOMString;
@@ -55,6 +55,8 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetDoubleAttribute(self, _: f64) {}
     fn StringAttribute(self) -> DOMString { "".to_owned() }
     fn SetStringAttribute(self, _: DOMString) {}
+    fn UsvstringAttribute(self) -> USVString { USVString("".to_owned()) }
+    fn SetUsvstringAttribute(self, _: USVString) {}
     fn ByteStringAttribute(self) -> ByteString { ByteString::new(vec!()) }
     fn SetByteStringAttribute(self, _: ByteString) {}
     fn EnumAttribute(self) -> TestEnum { _empty }
@@ -98,6 +100,8 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetByteStringAttributeNullable(self, _: Option<ByteString>) {}
     fn GetStringAttributeNullable(self) -> Option<DOMString> { Some("".to_owned()) }
     fn SetStringAttributeNullable(self, _: Option<DOMString>) {}
+    fn GetUsvstringAttributeNullable(self) -> Option<USVString> { Some(USVString("".to_owned())) }
+    fn SetUsvstringAttributeNullable(self, _: Option<USVString>) {}
     fn SetBinaryRenamedAttribute(self, _: DOMString) {}
     fn BinaryRenamedAttribute(self) -> DOMString { "".to_owned() }
     fn GetEnumAttributeNullable(self) -> Option<TestEnum> { Some(_empty) }
@@ -124,6 +128,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn ReceiveFloat(self) -> f32 { 0. }
     fn ReceiveDouble(self) -> f64 { 0. }
     fn ReceiveString(self) -> DOMString { "".to_owned() }
+    fn ReceiveUsvstring(self) -> USVString { USVString("".to_owned()) }
     fn ReceiveByteString(self) -> ByteString { ByteString::new(vec!()) }
     fn ReceiveEnum(self) -> TestEnum { _empty }
     fn ReceiveInterface(self) -> Temporary<Blob> {
@@ -146,6 +151,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn ReceiveNullableFloat(self) -> Option<f32> { Some(0.) }
     fn ReceiveNullableDouble(self) -> Option<f64> { Some(0.) }
     fn ReceiveNullableString(self) -> Option<DOMString> { Some("".to_owned()) }
+    fn ReceiveNullableUsvstring(self) -> Option<USVString> { Some(USVString("".to_owned())) }
     fn ReceiveNullableByteString(self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn ReceiveNullableEnum(self) -> Option<TestEnum> { Some(_empty) }
     fn ReceiveNullableInterface(self) -> Option<Temporary<Blob>> {
@@ -167,6 +173,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassFloat(self, _: f32) {}
     fn PassDouble(self, _: f64) {}
     fn PassString(self, _: DOMString) {}
+    fn PassUsvstring(self, _: USVString) {}
     fn PassByteString(self, _: ByteString) {}
     fn PassEnum(self, _: TestEnum) {}
     fn PassInterface(self, _: JSRef<Blob>) {}
@@ -189,6 +196,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassNullableFloat(self, _: Option<f32>) {}
     fn PassNullableDouble(self, _: Option<f64>) {}
     fn PassNullableString(self, _: Option<DOMString>) {}
+    fn PassNullableUsvstring(self, _: Option<USVString>) {}
     fn PassNullableByteString(self, _: Option<ByteString>) {}
     // fn PassNullableEnum(self, _: Option<TestEnum>) {}
     fn PassNullableInterface(self, _: Option<JSRef<Blob>>) {}
@@ -209,6 +217,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalFloat(self, _: Option<f32>) {}
     fn PassOptionalDouble(self, _: Option<f64>) {}
     fn PassOptionalString(self, _: Option<DOMString>) {}
+    fn PassOptionalUsvstring(self, _: Option<USVString>) {}
     fn PassOptionalByteString(self, _: Option<ByteString>) {}
     fn PassOptionalEnum(self, _: Option<TestEnum>) {}
     fn PassOptionalInterface(self, _: Option<JSRef<Blob>>) {}
@@ -230,6 +239,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalNullableFloat(self, _: Option<Option<f32>>) {}
     fn PassOptionalNullableDouble(self, _: Option<Option<f64>>) {}
     fn PassOptionalNullableString(self, _: Option<Option<DOMString>>) {}
+    fn PassOptionalNullableUsvstring(self, _: Option<Option<USVString>>) {}
     fn PassOptionalNullableByteString(self, _: Option<Option<ByteString>>) {}
     // fn PassOptionalNullableEnum(self, _: Option<Option<TestEnum>>) {}
     fn PassOptionalNullableInterface(self, _: Option<Option<JSRef<Blob>>>) {}
@@ -248,6 +258,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalLongLongWithDefault(self, _: i64) {}
     fn PassOptionalUnsignedLongLongWithDefault(self, _: u64) {}
     fn PassOptionalStringWithDefault(self, _: DOMString) {}
+    fn PassOptionalUsvstringWithDefault(self, _: USVString) {}
     fn PassOptionalEnumWithDefault(self, _: TestEnum) {}
 
     fn PassOptionalNullableBooleanWithDefault(self, _: Option<bool>) {}
@@ -262,6 +273,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     // fn PassOptionalNullableFloatWithDefault(self, _: Option<f32>) {}
     // fn PassOptionalNullableDoubleWithDefault(self, _: Option<f64>) {}
     fn PassOptionalNullableStringWithDefault(self, _: Option<DOMString>) {}
+    fn PassOptionalNullableUsvstringWithDefault(self, _: Option<USVString>) {}
     fn PassOptionalNullableByteStringWithDefault(self, _: Option<ByteString>) {}
     // fn PassOptionalNullableEnumWithDefault(self, _: Option<TestEnum>) {}
     fn PassOptionalNullableInterfaceWithDefault(self, _: Option<JSRef<Blob>>) {}
@@ -283,6 +295,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     // fn PassOptionalNullableFloatWithNonNullDefault(self, _: Option<f32>) {}
     // fn PassOptionalNullableDoubleWithNonNullDefault(self, _: Option<f64>) {}
     fn PassOptionalNullableStringWithNonNullDefault(self, _: Option<DOMString>) {}
+    fn PassOptionalNullableUsvstringWithNonNullDefault(self, _: Option<USVString>) {}
     // fn PassOptionalNullableEnumWithNonNullDefault(self, _: Option<TestEnum>) {}
 
     fn PassVariadicBoolean(self, _: Vec<bool>) {}
@@ -297,6 +310,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassVariadicFloat(self, _: Vec<f32>) {}
     fn PassVariadicDouble(self, _: Vec<f64>) {}
     fn PassVariadicString(self, _: Vec<DOMString>) {}
+    fn PassVariadicUsvstring(self, _: Vec<USVString>) {}
     fn PassVariadicByteString(self, _: Vec<ByteString>) {}
     fn PassVariadicEnum(self, _: Vec<TestEnum>) {}
     // fn PassVariadicInterface(self, _: Vec<JSRef<Blob>>) {}

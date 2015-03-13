@@ -717,6 +717,32 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         return handleOptional(conversionCode, CGGeneric(declType), default)
 
+    if type.isUSVString():
+        assert not isEnforceRange and not isClamp
+
+        conversionCode = (
+            "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+            "    Ok(strval) => strval,\n"
+            "    Err(_) => { %s },\n"
+            "}" % exceptionCode)
+
+        if defaultValue is None:
+            default = None
+        elif isinstance(defaultValue, IDLNullValue):
+            assert type.nullable()
+            default = "None"
+        else:
+            assert defaultValue.type.tag() in (IDLType.Tags.domstring, IDLType.Tags.usvstring)
+            default = 'USVString("%s".to_owned())' % defaultValue.value
+            if type.nullable():
+                default = "Some(%s)" % default
+
+        declType = "USVString"
+        if type.nullable():
+            declType = "Option<%s>" % declType
+
+        return handleOptional(conversionCode, CGGeneric(declType), default)
+
     if type.isByteString():
         assert not isEnforceRange and not isClamp
 
@@ -1083,6 +1109,11 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         return result
     if returnType.isDOMString():
         result = CGGeneric("DOMString")
+        if returnType.nullable():
+            result = CGWrapper(result, pre="Option<", post=">")
+        return result
+    if returnType.isUSVString():
+        result = CGGeneric("USVString")
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -4647,6 +4678,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::proxyhandler::{fill_property_descriptor, get_expando_object}',
             'dom::bindings::proxyhandler::{get_property_descriptor}',
             'dom::bindings::str::ByteString',
+            'dom::bindings::str::USVString',
             'libc',
             'util::str::DOMString',
             'std::borrow::ToOwned',
