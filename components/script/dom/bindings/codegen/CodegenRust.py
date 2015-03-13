@@ -4362,8 +4362,8 @@ class CGDictionary(CGThing):
     def struct(self):
         d = self.dictionary
         if d.parent:
-            inheritance = "    pub parent: %s::%s<'a, 'b>,\n" % (self.makeModuleName(d.parent),
-                                                                 self.makeClassName(d.parent))
+            inheritance = "    pub parent: %s::%s,\n" % (self.makeModuleName(d.parent),
+                                                         self.makeClassName(d.parent))
         else:
             inheritance = ""
         memberDecls = ["    pub %s: %s," %
@@ -4371,7 +4371,7 @@ class CGDictionary(CGThing):
                        for m in self.memberInfo]
 
         return (string.Template(
-                "pub struct ${selfName}<'a, 'b> {\n" +
+                "pub struct ${selfName} {\n" +
                 "${inheritance}" +
                 "\n".join(memberDecls) + "\n" +
                 "}").substitute( { "selfName": self.makeClassName(d),
@@ -4395,11 +4395,11 @@ class CGDictionary(CGThing):
         memberInits = CGList([memberInit(m) for m in self.memberInfo])
 
         return string.Template(
-            "impl<'a, 'b> ${selfName}<'a, 'b> {\n"
-            "    pub fn empty() -> ${selfName}<'a, 'b> {\n"
+            "impl ${selfName} {\n"
+            "    pub fn empty() -> ${selfName} {\n"
             "        ${selfName}::new(ptr::null_mut(), NullValue()).unwrap()\n"
             "    }\n"
-            "    pub fn new(cx: *mut JSContext, val: JSVal) -> Result<${selfName}<'a, 'b>, ()> {\n"
+            "    pub fn new(cx: *mut JSContext, val: JSVal) -> Result<${selfName}, ()> {\n"
             "        let object = if val.is_null_or_undefined() {\n"
             "            ptr::null_mut()\n"
             "        } else if val.is_object() {\n"
