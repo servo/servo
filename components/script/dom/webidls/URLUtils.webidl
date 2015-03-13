@@ -6,21 +6,21 @@
 // http://url.spec.whatwg.org/#urlutils
 [NoInterfaceObject]
 interface URLUtils {
-  //stringifier attribute ScalarValueString href;
-  readonly attribute DOMString href;
-  //readonly attribute ScalarValueString origin;
-  //         attribute ScalarValueString protocol;
-  //         attribute ScalarValueString username;
-  //         attribute ScalarValueString password;
-  //         attribute ScalarValueString host;
-  //         attribute ScalarValueString hostname;
-  //         attribute ScalarValueString port;
-  //         attribute ScalarValueString pathname;
-  //         attribute ScalarValueString search;
-  readonly attribute DOMString search;
+  //stringifier attribute USVString href;
+  readonly attribute USVString href;
+  //readonly attribute USVString origin;
+  //         attribute USVString protocol;
+  //         attribute USVString username;
+  //         attribute USVString password;
+  //         attribute USVString host;
+  //         attribute USVString hostname;
+  //         attribute USVString port;
+  //         attribute USVString pathname;
+  //         attribute USVString search;
+  readonly attribute USVString search;
   //         attribute URLSearchParams searchParams;
-  //         attribute ScalarValueString hash;
-  readonly attribute DOMString hash;
+  //         attribute USVString hash;
+  readonly attribute USVString hash;
 
   // This is only doing as well as gecko right now, bug 824857 is on file for
   // adding attribute stringifier support.
