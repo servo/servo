@@ -33,7 +33,7 @@ use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, Encoding, EncodingRef, EncoderTrap};
 
 use hyper::header::Headers;
-use hyper::header::{Accept, ContentLength, ContentType, QualityItem};
+use hyper::header::{Accept, ContentLength, ContentType, qitem};
 use hyper::http::RawStatus;
 use hyper::mime::{self, Mime};
 use hyper::method::Method;
@@ -586,7 +586,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
         if !load_data.preserved_headers.has::<Accept>() {
             let mime = Mime(mime::TopLevel::Star, mime::SubLevel::Star, vec![]);
-            load_data.preserved_headers.set(Accept(vec![QualityItem::new(mime, 1.0)]));
+            load_data.preserved_headers.set(Accept(vec![qitem(mime)]));
         }
 
         load_data.method = (*self.request_method.borrow()).clone();
