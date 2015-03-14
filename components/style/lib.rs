@@ -66,3 +66,12 @@ macro_rules! reexport_computed_values {
 }
 longhand_properties_idents!(reexport_computed_values);
 
+/// A trait that mimics std::str::FromStr, but from CSS instead of a string.
+pub trait FromCss {
+    /// The associated error which can be returned from parsing.
+    type Err;
+
+    /// Parses some CSS from `input` to return an optional value of this type.
+    /// If the CSS is ill-formatted, the Err is returned.
+    fn from_css(input: &mut ::cssparser::Parser) -> Result<Self, Self::Err>;
+}

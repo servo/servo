@@ -2,6 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+macro_rules! derive_display_using_to_css {
+    ($item_:ty) => {
+        impl ::std::fmt::Display for $item_ {
+            #[inline]
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                use ::cssparser::ToCss;
+
+                self.fmt_to_css(f)
+            }
+        }
+    };
+}
+
+pub mod values;
+
 use ::cssparser::Parser;
 use ::geom::size::TypedSize2D;
 use ::util::geometry::ViewportPx;
