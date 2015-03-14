@@ -516,8 +516,8 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let y = point.y as i32;
         let event = MouseEvent::new(window.r(),
                                     "click".to_owned(),
-                                    true,
-                                    true,
+                                    EventBubbles::Bubbles,
+                                    EventCancelable::Cancelable,
                                     Some(window.r()),
                                     0i32,
                                     x, y, x, y,
@@ -579,8 +579,8 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             let window = self.window.root();
             let mouse_event = MouseEvent::new(window.r(),
                                               "mousemove".to_owned(),
-                                              true,
-                                              true,
+                                              EventBubbles::Bubbles,
+                                              EventCancelable::Cancelable,
                                               Some(window.r()),
                                               0i32,
                                               x, y, x, y,

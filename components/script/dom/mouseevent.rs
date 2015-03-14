@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, RootedReference, Temporary};
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventTypeId};
+use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
@@ -64,8 +64,8 @@ impl MouseEvent {
 
     pub fn new(window: JSRef<Window>,
                type_: DOMString,
-               canBubble: bool,
-               cancelable: bool,
+               canBubble: EventBubbles,
+               cancelable: EventCancelable,
                view: Option<JSRef<Window>>,
                detail: i32,
                screenX: i32,
@@ -79,7 +79,7 @@ impl MouseEvent {
                button: i16,
                relatedTarget: Option<JSRef<EventTarget>>) -> Temporary<MouseEvent> {
         let ev = MouseEvent::new_uninitialized(window).root();
-        ev.r().InitMouseEvent(type_, canBubble, cancelable, view, detail,
+        ev.r().InitMouseEvent(type_, canBubble == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable, view, detail,
                               screenX, screenY, clientX, clientY,
                               ctrlKey, altKey, shiftKey, metaKey,
                               button, relatedTarget);
@@ -89,9 +89,11 @@ impl MouseEvent {
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<Temporary<MouseEvent>> {
+        let bubbles = if init.parent.parent.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
+        let cancelable = if init.parent.parent.parent.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
         let event = MouseEvent::new(global.as_window(), type_,
-                                    init.parent.parent.parent.bubbles,
-                                    init.parent.parent.parent.cancelable,
+                                    bubbles,
+                                    cancelable,
                                     init.parent.parent.view.r(),
                                     init.parent.parent.detail,
                                     init.screenX, init.screenY,
