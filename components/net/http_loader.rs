@@ -23,6 +23,7 @@ use std::sync::mpsc::{Sender, channel};
 use std::thunk::Invoke;
 use util::task::spawn_named;
 use util::resource_files::resources_dir_path;
+use util::opts;
 use url::{Url, UrlParser};
 
 use std::borrow::ToOwned;
@@ -89,7 +90,12 @@ fn load(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cooki
 function: \"SSL3_GET_SERVER_CERTIFICATE\", \
 reason: \"certificate verify failed\" }]";
 
-        let mut connector = HttpConnector(Some(box verifier as Box<FnMut(&mut SslContext)>));
+        let mut connector = if opts::get().nossl {
+            HttpConnector(None)
+        } else {
+            HttpConnector(Some(box verifier as Box<FnMut(&mut SslContext)>))
+        };
+
         let mut req = match Request::with_connector(load_data.method.clone(), url.clone(), &mut connector) {
             Ok(req) => req,
             Err(HttpError::HttpIoError(IoError {kind: IoErrorKind::OtherIoError,
