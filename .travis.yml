@@ -1,0 +1,5 @@
+language: python
+sudo: false
+
+script:
+ - ./mach test-tidy
