@@ -120,7 +120,7 @@ class CommandBase(object):
             self._cargo_build_id = open(filename).read().strip()
         return self._cargo_build_id
 
-    def build_env(self, gonk=False):
+    def build_env(self, gonk=False, hosts_file_path=None):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         extra_path = []
@@ -205,6 +205,9 @@ class CommandBase(object):
             env["NDK_HOME"] = env["ANDROID_NDK"]
         if "ANDROID_TOOLCHAIN" in env:
             env["NDK_STANDALONE"] = env["ANDROID_TOOLCHAIN"]
+
+        if hosts_file_path:
+            env['HOST_FILE'] = hosts_file_path
 
         return env
 
