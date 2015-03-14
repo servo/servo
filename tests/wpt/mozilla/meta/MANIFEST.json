@@ -503,6 +503,12 @@
             "url": "/_mozilla/mozilla/union.html"
           }
         ],
+        "mozilla/unrooting_order.html": [
+          {
+            "path": "mozilla/unrooting_order.html",
+            "url": "/_mozilla/mozilla/unrooting_order.html"
+          }
+        ],
         "mozilla/window.html": [
           {
             "path": "mozilla/window.html",
