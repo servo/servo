@@ -170,15 +170,13 @@ impl DisplayList {
         let doit = |items: &Vec<DisplayItem>| {
             for item in items.iter() {
                 match *item {
-                    // TODO(savago): would be nice to have other information associated with
-                    // each display item (e.g. coordinates?).
-                    DisplayItem::SolidColorClass(ref _solid_color) => println!("{} SolidColor.", indentation),
-                    DisplayItem::TextClass(ref _text) => println!("{} TextClass.", indentation),
-                    DisplayItem::ImageClass(ref _image) => println!("{} ImageClass.", indentation),
-                    DisplayItem::BorderClass(ref _border) => println!("{} BorderClass.", indentation),
-                    DisplayItem::GradientClass(ref _gradient) => println!("{} GradientClass.", indentation),
-                    DisplayItem::LineClass(ref _line) => println!("{} LineClass.", indentation),
-                    DisplayItem::BoxShadowClass(ref _box_shadow) => println!("{} BoxShadowClass.", indentation),
+                    DisplayItem::SolidColorClass(ref solid_color) => println!("{:?} SolidColor. {:?}", indentation, solid_color.base.bounds),
+                    DisplayItem::TextClass(ref text) => println!("{:?} Text. {:?}", indentation, text.base.bounds),
+                    DisplayItem::ImageClass(ref image) => println!("{:?} Image. {:?}", indentation, image.base.bounds),
+                    DisplayItem::BorderClass(ref border) => println!("{:?} Border. {:?}", indentation, border.base.bounds),
+                    DisplayItem::GradientClass(ref gradient) => println!("{:?} Gradient. {:?}", indentation, gradient.base.bounds),
+                    DisplayItem::LineClass(ref line) => println!("{:?} Line. {:?}", indentation, line.base.bounds),
+                    DisplayItem::BoxShadowClass(ref box_shadow) => println!("{:?} Box_shadow. {:?}", indentation, box_shadow.base.bounds),
                 }
             }
             println!("\n");
