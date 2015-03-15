@@ -16,6 +16,7 @@ use std::borrow::ToOwned;
 pub struct FontTemplateData {
     pub ctfont: Option<CTFont>,
     pub identifier: String,
+    pub font_data: Option<Vec<u8>>
 }
 
 unsafe impl Send for FontTemplateData {}
@@ -24,7 +25,7 @@ unsafe impl Sync for FontTemplateData {}
 impl FontTemplateData {
     pub fn new(identifier: &str, font_data: Option<Vec<u8>>) -> FontTemplateData {
         let ctfont = match font_data {
-            Some(bytes) => {
+            Some(ref bytes) => {
                 let fontprov = CGDataProvider::from_buffer(bytes.as_slice());
                 let cgfont_result = CGFont::from_data_provider(fontprov);
                 match cgfont_result {
@@ -40,6 +41,7 @@ impl FontTemplateData {
         FontTemplateData {
             ctfont: ctfont,
             identifier: identifier.to_owned(),
+            font_data: font_data
         }
     }
 }
