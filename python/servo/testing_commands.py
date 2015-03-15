@@ -204,6 +204,7 @@ class MachCommands(CommandBase):
              description='Run the web platform tests',
              category='testing')
     def test_wpt_failure(self):
+        self.ensure_bootstrapped()
         return not subprocess.call([
             "bash",
             path.join("tests", "wpt", "run.sh"),
@@ -221,6 +222,8 @@ class MachCommands(CommandBase):
         "params", default=None, nargs='...',
         help="command-line arguments to be passed through to wpt/run.sh")
     def test_wpt(self, processes=None, params=None):
+        self.ensure_bootstrapped()
+
         if params is None:
             params = []
         else:
