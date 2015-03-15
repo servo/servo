@@ -32,7 +32,7 @@ use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource};
 use dom::element::{Element, AttributeHandlers};
-use dom::event::{Event, EventHelpers};
+use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
 use dom::node::{self, Node, NodeHelpers, NodeDamage, window_from_node};
@@ -1176,8 +1176,8 @@ impl ScriptTask {
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
         let uievent = UIEvent::new(window.r(),
-                                   "resize".to_owned(), false,
-                                   false, Some(window.r()),
+                                   "resize".to_owned(), EventBubbles::DoesNotBubble,
+                                   EventCancelable::NotCancelable, Some(window.r()),
                                    0i32).root();
         let event: JSRef<Event> = EventCast::from_ref(uievent.r());
 

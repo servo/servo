@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::element::{Element, ActivationElementHelpers};
-use dom::event::{Event, EventHelpers};
+use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::mouseevent::MouseEvent;
 use dom::node::window_from_node;
@@ -49,7 +49,7 @@ pub trait Activatable : Copy {
         let win = window_from_node(element.r()).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(element.r());
         let mouse = MouseEvent::new(win.r(), "click".to_owned(),
-                                    false, false, Some(win.r()), 1,
+                                    EventBubbles::DoesNotBubble, EventCancelable::NotCancelable, Some(win.r()), 1,
                                     0, 0, 0, 0, ctrlKey, shiftKey, altKey, metaKey,
                                     0, None).root();
         let event: JSRef<Event> = EventCast::from_ref(mouse.r());
