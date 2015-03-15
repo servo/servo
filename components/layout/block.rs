@@ -732,11 +732,15 @@ impl BlockFlow {
 
     /// Return true if this has a replaced fragment.
     ///
-    /// The only two types of replaced fragments currently are text fragments
-    /// and image fragments.
+    /// Text, Images, Inline Block and
+    //  Canvas (https://html.spec.whatwg.org/multipage/rendering.html#replaced-elements)
+    //  fragments are considered as replaced fragments
     fn is_replaced_content(&self) -> bool {
         match self.fragment.specific {
-            SpecificFragmentInfo::ScannedText(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::InlineBlock(_) => true,
+            SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::Image(_) |
+            SpecificFragmentInfo::Canvas(_) |
+            SpecificFragmentInfo::InlineBlock(_) => true,
             _ => false,
         }
     }
