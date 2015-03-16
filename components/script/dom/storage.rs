@@ -7,9 +7,9 @@ use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::bindings::error::Fallible;
 use util::str::DOMString;
 use net::storage_task::StorageTask;
+use net::storage_task::StorageType;
 use net::storage_task::StorageTaskMsg;
 use std::sync::mpsc::channel;
 use url::Url;
@@ -18,22 +18,20 @@ use url::Url;
 pub struct Storage {
     reflector_: Reflector,
     global: GlobalField,
+    storage_type: StorageType
 }
 
 impl Storage {
-    fn new_inherited(global: &GlobalRef) -> Storage {
+    fn new_inherited(global: &GlobalRef, storage_type: StorageType) -> Storage {
         Storage {
             reflector_: Reflector::new(),
             global: GlobalField::from_rooted(global),
+            storage_type: storage_type
         }
     }
 
-    pub fn new(global: &GlobalRef) -> Temporary<Storage> {
-        reflect_dom_object(box Storage::new_inherited(global), *global, StorageBinding::Wrap)
-    }
-
-    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<Storage>> {
-        Ok(Storage::new(global))
+    pub fn new(global: &GlobalRef, storage_type: StorageType) -> Temporary<Storage> {
+        reflect_dom_object(box Storage::new_inherited(global, storage_type), *global, StorageBinding::Wrap)
     }
 
     fn get_url(&self) -> Url {
@@ -54,21 +52,21 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     fn Length(self) -> u32 {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::Length(sender, self.get_url())).unwrap();
+        self.get_storage_task().send(StorageTaskMsg::Length(sender, self.get_url(), self.storage_type)).unwrap();
         receiver.recv().unwrap()
     }
 
     fn Key(self, index: u32) -> Option<DOMString> {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::Key(sender, self.get_url(), index)).unwrap();
+        self.get_storage_task().send(StorageTaskMsg::Key(sender, self.get_url(), self.storage_type, index)).unwrap();
         receiver.recv().unwrap()
     }
 
     fn GetItem(self, name: DOMString) -> Option<DOMString> {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::GetItem(sender, self.get_url(), name)).unwrap();
+        self.get_storage_task().send(StorageTaskMsg::GetItem(sender, self.get_url(), self.storage_type, name)).unwrap();
         receiver.recv().unwrap()
     }
 
@@ -81,7 +79,7 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     fn SetItem(self, name: DOMString, value: DOMString) {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::SetItem(sender, self.get_url(), name, value)).unwrap();
+        self.get_storage_task().send(StorageTaskMsg::SetItem(sender, self.get_url(), self.storage_type, name, value)).unwrap();
         if receiver.recv().unwrap() {
             //TODO send notification
         }
@@ -98,7 +96,7 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     fn RemoveItem(self, name: DOMString) {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::RemoveItem(sender, self.get_url(), name)).unwrap();
+        self.get_storage_task().send(StorageTaskMsg::RemoveItem(sender, self.get_url(), self.storage_type, name)).unwrap();
         if receiver.recv().unwrap() {
             //TODO send notification
         }
@@ -111,10 +109,9 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     fn Clear(self) {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::Clear(sender, self.get_url())).unwrap();
+        self.get_storage_task().send(StorageTaskMsg::Clear(sender, self.get_url(), self.storage_type)).unwrap();
         if receiver.recv().unwrap() {
             //TODO send notification
         }
     }
 }
-

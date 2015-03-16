@@ -134,3 +134,10 @@ interface WindowSessionStorage {
   readonly attribute Storage sessionStorage;
 };
 Window implements WindowSessionStorage;
+
+// https://html.spec.whatwg.org/multipage/webstorage.html#dom-localstorage
+[NoInterfaceObject]
+interface WindowLocalStorage {
+  readonly attribute Storage localStorage;
+};
+Window implements WindowLocalStorage;
