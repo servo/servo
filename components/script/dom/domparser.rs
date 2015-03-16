@@ -56,6 +56,7 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                 let document = Document::new(window.r(), Some(url.clone()),
                                              IsHTMLDocument::HTMLDocument,
                                              Some(content_type),
+                                             None,
                                              DocumentSource::FromParser).root();
                 parse_html(document.r(), HTMLInput::InputString(s), &url);
                 document.r().set_ready_state(DocumentReadyState::Complete);
@@ -66,6 +67,7 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                 Ok(Document::new(window.r(), Some(url.clone()),
                                  IsHTMLDocument::NonHTMLDocument,
                                  Some(content_type),
+                                 None,
                                  DocumentSource::NotFromParser))
             }
         }
