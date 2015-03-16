@@ -804,8 +804,12 @@ impl LayoutTask {
         }
 
         if needs_reflow {
-            self.try_get_layout_root(*node).map(
-                |mut flow| LayoutTask::reflow_all_nodes(&mut *flow));
+            match self.try_get_layout_root(*node) {
+                None => {}
+                Some(mut flow) => {
+                    LayoutTask::reflow_all_nodes(&mut *flow);
+                }
+            }
         }
 
         // Create a layout context for use throughout the following passes.

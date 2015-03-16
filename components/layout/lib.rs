@@ -49,6 +49,7 @@ extern crate util;
 extern crate string_cache_macros;
 extern crate string_cache;
 
+extern crate alloc;
 extern crate collections;
 extern crate encoding;
 extern crate libc;
