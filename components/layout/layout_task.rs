@@ -73,7 +73,7 @@ use style::selector_matching::Stylist;
 use style::computed_values::{filter, mix_blend_mode};
 use style::stylesheets::{Origin, Stylesheet, iter_font_face_rules};
 use style::node::TNode;
-use style::media_queries::{MediaType, Device};
+use style::media_queries::{MediaType, MediaQueryList, Device};
 use std::sync::{Arc, Mutex, MutexGuard};
 use url::Url;
 
@@ -405,8 +405,8 @@ impl LayoutTask {
                                                                                  LayoutTaskData>>)
                                  -> bool {
         match request {
-            Msg::AddStylesheet(sheet) => self.handle_add_stylesheet(sheet, possibly_locked_rw_data),
-            Msg::LoadStylesheet(url) => self.handle_load_stylesheet(url, possibly_locked_rw_data),
+            Msg::AddStylesheet(sheet, mq) => self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data),
+            Msg::LoadStylesheet(url, mq) => self.handle_load_stylesheet(url, mq, possibly_locked_rw_data),
             Msg::SetQuirksMode => self.handle_set_quirks_mode(possibly_locked_rw_data),
             Msg::GetRPC(response_chan) => {
                 response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
@@ -487,11 +487,13 @@ impl LayoutTask {
 
     fn handle_load_stylesheet<'a>(&'a self,
                                   url: Url,
+                                  mq: MediaQueryList,
                                   possibly_locked_rw_data:
                                     &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
         let environment_encoding = UTF_8 as EncodingRef;
 
+        // TODO we don't really even need to load this if mq does not match
         let (metadata, iter) = load_bytes_iter(&self.resource_task, url);
         let protocol_encoding_label = metadata.charset.as_ref().map(|s| s.as_slice());
         let final_url = metadata.final_url;
@@ -501,20 +503,26 @@ impl LayoutTask {
                                                 protocol_encoding_label,
                                                 Some(environment_encoding),
                                                 Origin::Author);
-        self.handle_add_stylesheet(sheet, possibly_locked_rw_data);
+        self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data);
     }
 
     fn handle_add_stylesheet<'a>(&'a self,
                                  sheet: Stylesheet,
+                                 mq: MediaQueryList,
                                  possibly_locked_rw_data:
                                     &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
+
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-        iter_font_face_rules(&sheet, &rw_data.stylist.device, &|&:family, src| {
-            self.font_cache_task.add_web_font(family.to_owned(), (*src).clone());
-        });
-        rw_data.stylist.add_stylesheet(sheet);
+
+        if mq.evaluate(&rw_data.stylist.device) {
+            iter_font_face_rules(&sheet, &rw_data.stylist.device, &|&:family, src| {
+                self.font_cache_task.add_web_font(family.to_owned(), (*src).clone());
+            });
+            rw_data.stylist.add_stylesheet(sheet);
+        }
+
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 
