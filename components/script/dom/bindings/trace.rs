@@ -48,6 +48,7 @@ use layout_interface::{LayoutRPC, LayoutChan};
 use libc;
 use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
 use net::image_cache_task::ImageCacheTask;
+use net::storage_task::StorageType;
 use script_traits::ScriptControlChan;
 use script_traits::UntrustedNodeAddress;
 use msg::compositor_msg::ScriptListener;
@@ -231,6 +232,7 @@ no_jsmanaged_fields!(UntrustedNodeAddress);
 no_jsmanaged_fields!(LengthOrPercentageOrAuto);
 no_jsmanaged_fields!(RGBA);
 no_jsmanaged_fields!(Matrix2D<T>);
+no_jsmanaged_fields!(StorageType);
 
 impl JSTraceable for Box<ScriptChan+Send> {
     #[inline]

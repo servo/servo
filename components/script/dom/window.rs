@@ -39,7 +39,7 @@ use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData};
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
-use net::storage_task::StorageTask;
+use net::storage_task::{StorageTask, StorageType};
 use util::geometry::{self, Au, MAX_RECT};
 use util::opts;
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};
@@ -95,6 +95,7 @@ pub struct Window {
     navigation_start_precise: f64,
     screen: MutNullableJS<Screen>,
     session_storage: MutNullableJS<Storage>,
+    local_storage: MutNullableJS<Storage>,
     timers: TimerManager,
 
     /// For providing instructions to an optional devtools server.
@@ -288,7 +289,11 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn SessionStorage(self) -> Temporary<Storage> {
-        self.session_storage.or_init(|| Storage::new(&GlobalRef::Window(self)))
+        self.session_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Session))
+    }
+
+    fn LocalStorage(self) -> Temporary<Storage> {
+        self.local_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Local))
     }
 
     fn Console(self) -> Temporary<Console> {
@@ -775,6 +780,7 @@ impl Window {
             navigation_start_precise: time::precise_time_ns() as f64,
             screen: Default::default(),
             session_storage: Default::default(),
+            local_storage: Default::default(),
             timers: TimerManager::new(),
             id: id,
             subpage_id: subpage_id,
