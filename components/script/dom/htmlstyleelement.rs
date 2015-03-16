@@ -4,11 +4,11 @@
 
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLStyleElementDerived, NodeCast};
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLStyleElementDerived, NodeCast};
+use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::element::ElementTypeId;
+use dom::element::{Element, ElementTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -16,6 +16,9 @@ use dom::window::WindowHelpers;
 use layout_interface::{LayoutChan, Msg};
 use util::str::DOMString;
 use style::stylesheets::{Origin, Stylesheet};
+use style::media_queries::parse_media_query_list;
+use style::node::TElement;
+use cssparser::Parser as CssParser;
 
 #[dom_struct]
 pub struct HTMLStyleElement {
@@ -49,16 +52,21 @@ pub trait StyleElementHelpers {
 impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
     fn parse_own_css(self) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
+        let element: JSRef<Element> = ElementCast::from_ref(self);
         assert!(node.is_in_doc());
 
         let win = window_from_node(node).root();
         let win = win.r();
         let url = win.get_url();
 
+        let mq_str = element.get_attr(&ns!(""), &atom!("media")).unwrap_or("");
+        let mut css_parser = CssParser::new(&mq_str);
+        let media = parse_media_query_list(&mut css_parser);
+
         let data = node.GetTextContent().expect("Element.textContent must be a string");
         let sheet = Stylesheet::from_str(data.as_slice(), url, Origin::Author);
         let LayoutChan(ref layout_chan) = win.layout_chan();
-        layout_chan.send(Msg::AddStylesheet(sheet)).unwrap();
+        layout_chan.send(Msg::AddStylesheet(sheet, media)).unwrap();
     }
 }
 

@@ -7,7 +7,7 @@ use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
@@ -20,6 +20,9 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 use layout_interface::{LayoutChan, Msg};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use style::media_queries::parse_media_query_list;
+use style::node::TElement;
+use cssparser::Parser as CssParser;
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -80,11 +83,16 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
             s.after_set_attr(attr);
         }
 
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        if !node.is_in_doc() {
+            return;
+        }
+
         let element: JSRef<Element> = ElementCast::from_ref(*self);
         let rel = get_attr(element, &atom!("rel"));
 
         match (rel, attr.local_name()) {
-            (ref rel, &atom!("href")) => {
+            (ref rel, &atom!("href")) | (ref rel, &atom!("media")) => {
                 if is_stylesheet(rel) {
                     self.handle_stylesheet_url(attr.value().as_slice());
                 }
@@ -131,8 +139,14 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
         let window = window.r();
         match UrlParser::new().base_url(&window.get_url()).parse(href) {
             Ok(url) => {
+                let element: JSRef<Element> = ElementCast::from_ref(self);
+
+                let mq_str = element.get_attr(&ns!(""), &atom!("media")).unwrap_or("");
+                let mut css_parser = CssParser::new(&mq_str);
+                let media = parse_media_query_list(&mut css_parser);
+
                 let LayoutChan(ref layout_chan) = window.layout_chan();
-                layout_chan.send(Msg::LoadStylesheet(url)).unwrap();
+                layout_chan.send(Msg::LoadStylesheet(url, media)).unwrap();
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }

@@ -17,6 +17,7 @@ use std::any::Any;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::boxed::BoxAny;
 use style::stylesheets::Stylesheet;
+use style::media_queries::MediaQueryList;
 use url::Url;
 
 pub use dom::node::TrustedNodeAddress;
@@ -24,10 +25,10 @@ pub use dom::node::TrustedNodeAddress;
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
     /// Adds the given stylesheet to the document.
-    AddStylesheet(Stylesheet),
+    AddStylesheet(Stylesheet, MediaQueryList),
 
     /// Adds the given stylesheet to the document.
-    LoadStylesheet(Url),
+    LoadStylesheet(Url, MediaQueryList),
 
     /// Puts a document into quirks mode, causing the quirks mode stylesheet to be loaded.
     SetQuirksMode,
