@@ -74,7 +74,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
 
         // Step 1.
         let doc = Document::new(win.r(), None, IsHTMLDocument::NonHTMLDocument,
-                                None, DocumentSource::NotFromParser).root();
+                                None, None, DocumentSource::NotFromParser).root();
         // Step 2-3.
         let maybe_elem = if qname.is_empty() {
             None
@@ -119,7 +119,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         let win = document.r().window().root();
 
         // Step 1-2.
-        let doc = Document::new(win.r(), None, IsHTMLDocument::HTMLDocument, None,
+        let doc = Document::new(win.r(), None, IsHTMLDocument::HTMLDocument, None, None,
                                 DocumentSource::NotFromParser).root();
         let doc_node: JSRef<Node> = NodeCast::from_ref(doc.r());
 

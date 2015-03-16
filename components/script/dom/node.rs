@@ -1576,7 +1576,7 @@ impl Node {
                 let window = document.window().root();
                 let document = Document::new(window.r(), Some(document.url()),
                                              is_html_doc, None,
-                                             DocumentSource::NotFromParser);
+                                             None, DocumentSource::NotFromParser);
                 NodeCast::from_temporary(document)
             },
             NodeTypeId::Element(..) => {

@@ -66,6 +66,7 @@ use net::storage_task::StorageTask;
 use string_cache::Atom;
 use util::geometry::to_frac_px;
 use util::smallvec::SmallVec;
+use util::str::DOMString;
 use util::task::{spawn_named, spawn_named_with_send_on_failure};
 use util::task_state;
 
@@ -979,18 +980,18 @@ impl ScriptTask {
                                  incomplete.subpage_id.map(|s| s.1),
                                  incomplete.window_size).root();
 
-        let document = Document::new(window.r(), Some(final_url.clone()),
-                                     IsHTMLDocument::HTMLDocument, None,
+        let last_modified: Option<DOMString> = response.metadata.headers.as_ref().and_then(|headers| {
+            headers.get().map(|&LastModified(ref tm)| dom_last_modified(tm))
+        });
+
+        let document = Document::new(window.r(),
+                                     Some(final_url.clone()),
+                                     IsHTMLDocument::HTMLDocument,
+                                     None,
+                                     last_modified,
                                      DocumentSource::FromParser).root();
 
         window.r().init_browser_context(document.r(), frame_element.r());
-
-        let last_modified = response.metadata.headers.as_ref().and_then(|headers| {
-            headers.get().map(|&LastModified(ref tm)| tm.clone())
-        });
-        if let Some(tm) = last_modified {
-            document.r().set_last_modified(dom_last_modified(&tm));
-        }
 
         // Create the root frame
         page.set_frame(Some(Frame {

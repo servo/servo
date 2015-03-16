@@ -102,7 +102,7 @@ pub struct Document {
     implementation: MutNullableJS<DOMImplementation>,
     location: MutNullableJS<Location>,
     content_type: DOMString,
-    last_modified: DOMRefCell<Option<DOMString>>,
+    last_modified: Option<DOMString>,
     encoding_name: DOMRefCell<DOMString>,
     is_html_document: bool,
     url: Url,
@@ -197,7 +197,6 @@ pub trait DocumentHelpers<'a> {
     fn url(self) -> Url;
     fn quirks_mode(self) -> QuirksMode;
     fn set_quirks_mode(self, mode: QuirksMode);
-    fn set_last_modified(self, value: DOMString);
     fn set_encoding_name(self, name: DOMString);
     fn content_changed(self, node: JSRef<Node>, damage: NodeDamage);
     fn content_and_heritage_changed(self, node: JSRef<Node>, damage: NodeDamage);
@@ -276,10 +275,6 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             }
             NoQuirks | LimitedQuirks => {}
         }
-    }
-
-    fn set_last_modified(self, value: DOMString) {
-        *self.last_modified.borrow_mut() = Some(value);
     }
 
     fn set_encoding_name(self, name: DOMString) {
@@ -704,6 +699,7 @@ impl Document {
                      url: Option<Url>,
                      is_html_document: IsHTMLDocument,
                      content_type: Option<DOMString>,
+                     last_modified: Option<DOMString>,
                      source: DocumentSource) -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
@@ -728,7 +724,7 @@ impl Document {
                     IsHTMLDocument::NonHTMLDocument => "application/xml".to_owned()
                 }
             },
-            last_modified: DOMRefCell::new(None),
+            last_modified: last_modified,
             url: url,
             // http://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(NoQuirks),
@@ -754,16 +750,18 @@ impl Document {
     pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<Document>> {
         Ok(Document::new(global.as_window(), None,
                          IsHTMLDocument::NonHTMLDocument, None,
-                         DocumentSource::NotFromParser))
+                         None, DocumentSource::NotFromParser))
     }
 
     pub fn new(window: JSRef<Window>,
                url: Option<Url>,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
+               last_modified: Option<DOMString>,
                source: DocumentSource) -> Temporary<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window, url, doctype,
-                                                                      content_type, source),
+                                                                      content_type, last_modified,
+                                                                      source),
                                           GlobalRef::Window(window),
                                           DocumentBinding::Wrap).root();
 
@@ -1063,7 +1061,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://www.whatwg.org/html/#dom-document-lastmodified
     fn LastModified(self) -> DOMString {
-        match *self.last_modified.borrow() {
+        match self.last_modified {
             Some(ref t) => t.clone(),
             None => format!("{}", time::now().strftime("%m/%d/%Y %H:%M:%S").unwrap()),
         }
