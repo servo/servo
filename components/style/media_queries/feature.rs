@@ -5,7 +5,7 @@
 use super::values::{self, Range, range};
 
 use ::FromCss;
-use ::cssparser::{Parser, SourcePosition, Token};
+use ::cssparser::{Parser, SourcePosition, ToCss, Token};
 
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -15,6 +15,19 @@ macro_rules! media_features {
         #[derive(Debug, PartialEq)]
         pub enum MediaFeature {
             $($feature(Option<values::$feature_type::$feature>)),*
+        }
+
+        impl ToCss for MediaFeature {
+            fn to_css<W>(&self, dest: &mut W) -> ::text_writer::Result
+                where W: ::text_writer::TextWriter
+            {
+                match *self {
+                    $(
+                        MediaFeature::$feature(ref value) =>
+                            $feature_type!(ToCss, dest, $css, value)
+                     ),*
+                }
+            }
         }
 
         fn dispatch_ident_first_form<'a>(input: &mut Parser,
@@ -46,6 +59,16 @@ macro_rules! media_features {
 }
 
 macro_rules! discrete {
+    (ToCss, $dest:ident, $css:expr, $value:ident) => {
+        match $value {
+            &Some(ref value) => {
+                try!(write!($dest, "({}: ", $css));
+                try!(value.to_css($dest));
+                write!($dest, ")")
+            }
+            &None => write!($dest, "({})", $css),
+        }
+    };
     (MediaFeatureForm::IdentFirst, $input:ident, $prefix:ident, $feature:ident) => {
         parse_discrete_value($input, $prefix).map(MediaFeature::$feature)
     };
@@ -55,6 +78,16 @@ macro_rules! discrete {
 }
 
 macro_rules! range {
+    (ToCss, $dest:ident, $css:expr, $value:ident) => {
+        match $value {
+            &Some(ref value) => {
+                try!(write!($dest, "("));
+                try!(value.to_css($dest, $css));
+                write!($dest, ")")
+            }
+            &None => write!($dest, "({})", $css),
+        }
+    };
     (MediaFeatureForm::IdentFirst, $input:ident, $prefix:ident, $feature:ident) => {
         parse_boolean_or_normal_range_value($input, $prefix).map(|r| match r {
             Some(value) => MediaFeature::$feature(Some(range::$feature(value))),
@@ -106,6 +139,8 @@ media_features! {
     "device-height" => DeviceHeight(range),
     "device-aspect-ratio" => DeviceAspectRatio(range)
 }
+
+derive_display_using_to_css!(MediaFeature);
 
 enum RangePrefix {
     Min,

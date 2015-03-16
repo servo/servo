@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ::FromCss;
-use ::cssparser::{Parser, Token};
+use ::cssparser::{Parser, Token, ToCss};
 
 pub mod discrete;
 pub mod range;
@@ -80,6 +80,47 @@ impl<T> FromCss for Range<T> where T: FromCss<Err=()> {
                 '>'     => Gt,
                 ">="    => Ge
             })
+        }
+    }
+}
+
+impl<T> Range<T>
+    where T: ToCss
+{
+    pub fn to_css<'a, W>(&self, dest: &mut W, name: &'a str) -> ::text_writer::Result
+        where W: ::text_writer::TextWriter
+    {
+        macro_rules! to_css {
+            ($op:expr, $value:ident) => {{
+                try!(write!(dest, concat!("{} ", $op, " "), name));
+                $value.to_css(dest)
+            }};
+        }
+        macro_rules! interval_to_css {
+            ($a:ident, $a_bound:expr, $b_bound:expr, $b:ident) => {{
+                try!($a.to_css(dest));
+                try!(write!(dest, concat!(" ", $a_bound, " {} ", $b_bound, " "), name));
+                $b.to_css(dest)
+            }}
+        }
+
+        match *self {
+            Range::Eq(ref value) => {
+                try!(write!(dest, "{}: ", name));
+                value.to_css(dest)
+            }
+            Range::Lt(ref value) => to_css!("<", value),
+            Range::Le(ref value) => to_css!("<=", value),
+            Range::Gt(ref value) => to_css!(">", value),
+            Range::Ge(ref value) => to_css!(">=", value),
+            Range::Interval(ref a, true, ref b, true) =>
+                interval_to_css!(a, "<=", "<=", b),
+            Range::Interval(ref a, true, ref b, false) =>
+                interval_to_css!(a, "<=", "<", b),
+            Range::Interval(ref a, false, ref b, true) =>
+                interval_to_css!(a, "<", "<=", b),
+            Range::Interval(ref a, false, ref b, false) =>
+                interval_to_css!(a, "<", "<", b)
         }
     }
 }
