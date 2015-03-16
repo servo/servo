@@ -17,12 +17,14 @@ macro_rules! derive_display_using_to_css {
 
 pub mod values;
 mod feature;
+mod condition;
 
 use ::cssparser::Parser;
 use ::geom::size::TypedSize2D;
 use ::util::geometry::ViewportPx;
 
 pub use self::feature::MediaFeature;
+pub use self::condition::MediaCondition;
 
 #[derive(PartialEq, Eq, Copy, Debug)]
 pub enum MediaType {
