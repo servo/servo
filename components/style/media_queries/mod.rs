@@ -18,6 +18,7 @@ macro_rules! derive_display_using_to_css {
 pub mod values;
 mod feature;
 mod condition;
+mod query;
 
 use ::cssparser::Parser;
 use ::geom::size::TypedSize2D;
@@ -25,13 +26,7 @@ use ::util::geometry::ViewportPx;
 
 pub use self::feature::MediaFeature;
 pub use self::condition::MediaCondition;
-
-#[derive(PartialEq, Eq, Copy, Debug)]
-pub enum MediaType {
-    Screen,
-    Print,
-    Unknown,
-}
+pub use self::query::{MediaType, MediaQuery};
 
 #[allow(missing_copy_implementations)]
 #[derive(Debug)]
@@ -51,7 +46,7 @@ impl Device {
 
 #[derive(Debug, PartialEq)]
 pub struct MediaQueryList {
-    media_queries: Vec<()>
+    media_queries: Vec<MediaQuery>
 }
 
 impl MediaQueryList {
