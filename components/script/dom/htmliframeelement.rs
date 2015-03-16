@@ -63,6 +63,7 @@ pub trait HTMLIFrameElementHelpers {
     /// http://www.whatwg.org/html/#process-the-iframe-attributes
     fn process_the_iframe_attributes(self);
     fn generate_new_subpage_id(self) -> (SubpageId, Option<SubpageId>);
+    fn navigate_child_browsing_context(self, url: Url);
 }
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
@@ -92,12 +93,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         (subpage_id, old_subpage_id)
     }
 
-    fn process_the_iframe_attributes(self) {
-        let url = match self.get_url() {
-            Some(url) => url.clone(),
-            None => Url::parse("about:blank").unwrap(),
-        };
-
+    fn navigate_child_browsing_context(self, url: Url) {
         let sandboxed = if self.is_sandboxed() {
             IFrameSandboxed
         } else {
@@ -111,11 +107,20 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         self.containing_page_pipeline_id.set(Some(window.pipeline()));
 
         let ConstellationChan(ref chan) = window.constellation_chan();
-    chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(url,
-                                                        window.pipeline(),
-                                                        new_subpage_id,
-                                                        old_subpage_id,
-                                                        sandboxed)).unwrap();
+        chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(url,
+                                                            window.pipeline(),
+                                                            new_subpage_id,
+                                                            old_subpage_id,
+                                                            sandboxed)).unwrap();
+    }
+
+    fn process_the_iframe_attributes(self) {
+        let url = match self.get_url() {
+            Some(url) => url.clone(),
+            None => Url::parse("about:blank").unwrap(),
+        };
+
+        self.navigate_child_browsing_context(url);
     }
 }
 

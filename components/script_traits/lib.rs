@@ -44,7 +44,7 @@ pub struct UntrustedNodeAddress(pub *const c_void);
 unsafe impl Send for UntrustedNodeAddress {}
 
 pub struct NewLayoutInfo {
-    pub old_pipeline_id: PipelineId,
+    pub containing_pipeline_id: PipelineId,
     pub new_pipeline_id: PipelineId,
     pub subpage_id: SubpageId,
     pub layout_chan: Box<Any+Send>, // opaque reference to a LayoutChannel
@@ -53,8 +53,6 @@ pub struct NewLayoutInfo {
 
 /// Messages sent from the constellation to the script task
 pub enum ConstellationControlMsg {
-    /// Reactivate an existing pipeline.
-    Activate(PipelineId),
     /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
@@ -74,7 +72,9 @@ pub enum ConstellationControlMsg {
     /// Notifies script task to suspend all its timers
     Freeze(PipelineId),
     /// Notifies script task to resume all its timers
-    Thaw(PipelineId)
+    Thaw(PipelineId),
+    /// Notifies script task that a url should be loaded in this iframe.
+    Navigate(PipelineId, SubpageId, LoadData),
 }
 
 unsafe impl Send for ConstellationControlMsg {
@@ -112,7 +112,7 @@ pub trait ScriptTaskFactory {
                  storage_task: StorageTask,
                  image_cache_task: ImageCacheTask,
                  devtools_chan: Option<DevtoolsControlChan>,
-                 window_size: WindowSizeData,
+                 window_size: Option<WindowSizeData>,
                  load_data: LoadData)
                  where C: ScriptListener + Send;
     fn create_layout_channel(_phantom: Option<&mut Self>) -> OpaqueScriptLayoutChannel;

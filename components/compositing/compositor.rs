@@ -291,18 +291,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.get_title_for_main_frame();
             }
 
-            (Msg::ChangeLayerPipelineAndRemoveChildren(old_pipeline, new_pipeline, response_channel),
-             ShutdownState::NotShuttingDown) => {
-                self.handle_change_layer_pipeline_and_remove_children(old_pipeline, new_pipeline);
-                response_channel.send(()).unwrap();
-            }
-
-            (Msg::CreateRootLayerForPipeline(parent_pipeline, pipeline, rect, response_channel),
-             ShutdownState::NotShuttingDown) => {
-                self.handle_create_root_layer_for_pipeline(parent_pipeline, pipeline, rect);
-                response_channel.send(()).unwrap();
-            }
-
             (Msg::CreateOrUpdateBaseLayer(layer_properties), ShutdownState::NotShuttingDown) => {
                 self.create_or_update_base_layer(layer_properties);
             }
@@ -554,60 +542,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let root_layer = self.create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline,
                                                                       frame_rect);
         for kid in frame_tree.children.iter() {
-            root_layer.add_child(self.create_frame_tree_root_layers(&kid.frame_tree, kid.rect));
+            root_layer.add_child(self.create_frame_tree_root_layers(kid, kid.rect));
         }
         return root_layer;
-    }
-
-    fn handle_change_layer_pipeline_and_remove_children(&mut self,
-                                                        old_pipeline: CompositionPipeline,
-                                                        new_pipeline: CompositionPipeline) {
-        let root_layer = match self.find_pipeline_root_layer(old_pipeline.id) {
-            Some(root_layer) => root_layer,
-            None => {
-                debug!("Ignoring ChangeLayerPipelineAndRemoveChildren message \
-                        for pipeline ({:?}) shutting down.",
-                       old_pipeline.id);
-                return;
-            }
-        };
-
-        root_layer.clear_all_tiles(self);
-        root_layer.children().clear();
-
-        debug_assert!(root_layer.extra_data.borrow().pipeline_id == old_pipeline.id);
-        root_layer.extra_data.borrow_mut().pipeline_id = new_pipeline.id;
-
-        let new_pipeline_id = new_pipeline.id;
-        self.get_or_create_pipeline_details(new_pipeline_id).pipeline = Some(new_pipeline);
-    }
-
-    fn handle_create_root_layer_for_pipeline(&mut self,
-                                             parent_pipeline: CompositionPipeline,
-                                             new_pipeline: CompositionPipeline,
-                                             frame_rect: Option<TypedRect<PagePx, f32>>) {
-        let root_layer = self.create_root_layer_for_pipeline_and_rect(&new_pipeline, frame_rect);
-        match frame_rect {
-            Some(ref frame_rect) => {
-                *root_layer.masks_to_bounds.borrow_mut() = true;
-
-                let frame_rect = frame_rect.to_untyped();
-                *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
-            }
-            None => {}
-        }
-
-        let pipeline_id = parent_pipeline.id;
-        let parent_layer = match self.find_pipeline_root_layer(pipeline_id) {
-            Some(root_layer) => root_layer,
-            None => {
-                debug!("Ignoring FrameTreeUpdate message for pipeline ({:?}) \
-                        shutting down.",
-                       pipeline_id);
-                return;
-            }
-        };
-        parent_layer.add_child(root_layer);
     }
 
     fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Option<Rc<Layer<CompositorData>>> {
