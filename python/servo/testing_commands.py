@@ -30,8 +30,8 @@ class MachCommands(CommandBase):
         if self.context.built_tests:
             return
         returncode = Registrar.dispatch('build-tests', context=self.context)
-	if returncode:
-	    sys.exit(returncode)
+        if returncode:
+            sys.exit(returncode)
         self.context.built_tests = True
 
     def find_test(self, prefix):
@@ -238,7 +238,8 @@ class MachCommands(CommandBase):
 
         processes = str(multiprocessing.cpu_count()) if processes is None else processes
         params = params + ["--processes", processes]
+        hosts_file_path = path.join('tests', 'wpt', 'hosts')
 
         return subprocess.call(
             ["bash", path.join("tests", "wpt", "run.sh")] + params,
-            env=self.build_env())
+            env=self.build_env(hosts_file_path=hosts_file_path))
