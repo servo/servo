@@ -15,7 +15,7 @@ use std::cmp;
 use std::mem;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
-use geom::size::TypedSize2D;
+use geom::size::{Size2D, TypedSize2D};
 use geom::scale_factor::ScaleFactor;
 use gfx::color;
 use gfx::paint_task::Msg as PaintMsg;
@@ -450,8 +450,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return false;
         }
         return self.pipeline_details.values().all(|ref details| {
-                                                     details.paint_state == PaintState::Idle
-                                                  });
+            // If a pipeline exists and has a root layer that has
+            // zero size, it will never be painted. In this case,
+            // consider it as idle to avoid hangs in reftests.
+            if let Some(ref pipeline) = details.pipeline {
+                if let Some(root_layer) = self.find_pipeline_root_layer(pipeline.id) {
+                    if root_layer.bounds.borrow().size == Size2D::zero() {
+                        return true;
+                    }
+                }
+            }
+            details.paint_state == PaintState::Idle
+        });
     }
 
     fn has_paint_msg_tracking(&self) -> bool {
