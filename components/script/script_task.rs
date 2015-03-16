@@ -33,6 +33,7 @@ use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
+use dom::htmliframeelement::HTMLIFrameElementHelpers;
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
 use dom::node::{self, Node, NodeHelpers, NodeDamage, window_from_node};
@@ -116,7 +117,7 @@ struct InProgressLoad {
     /// The parent pipeline and child subpage associated with this load, if any.
     subpage_id: Option<(PipelineId, SubpageId)>,
     /// The current window size associated with this pipeline.
-    window_size: WindowSizeData,
+    window_size: Option<WindowSizeData>,
     /// Channel to the layout task associated with this pipeline.
     layout_chan: LayoutChan,
     /// The current viewport clipping rectangle applying to this pipelie, if any.
@@ -130,7 +131,7 @@ impl InProgressLoad {
     fn new(id: PipelineId,
            subpage_id: Option<(PipelineId, SubpageId)>,
            layout_chan: LayoutChan,
-           window_size: WindowSizeData,
+           window_size: Option<WindowSizeData>,
            url: Url) -> InProgressLoad {
         InProgressLoad {
             pipeline_id: id,
@@ -161,7 +162,7 @@ pub enum ScriptMsg {
     TriggerFragment(PipelineId, String),
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptTask).
-    TriggerLoad(PipelineId, LoadData),
+    Navigate(PipelineId, LoadData),
     /// Fires a JavaScript timeout
     /// TimerSource must be FromWindow when dispatched to ScriptTask and
     /// must be FromWorker when dispatched to a DedicatedGlobalWorkerScope
@@ -340,7 +341,7 @@ impl ScriptTaskFactory for ScriptTask {
                  storage_task: StorageTask,
                  image_cache_task: ImageCacheTask,
                  devtools_chan: Option<DevtoolsControlChan>,
-                 window_size: WindowSizeData,
+                 window_size: Option<WindowSizeData>,
                  load_data: LoadData)
                  where C: ScriptListener + Send + 'static {
         let ConstellationChan(const_chan) = constellation_chan.clone();
@@ -620,8 +621,8 @@ impl ScriptTask {
         match msg {
             ConstellationControlMsg::AttachLayout(_) =>
                 panic!("should have handled AttachLayout already"),
-            ConstellationControlMsg::Activate(id) =>
-                self.handle_activate(id),
+            ConstellationControlMsg::Navigate(pipeline_id, subpage_id, load_data) =>
+                self.handle_navigate(pipeline_id, Some(subpage_id), load_data),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ReflowComplete(id, reflow_id) =>
@@ -645,8 +646,8 @@ impl ScriptTask {
 
     fn handle_msg_from_script(&self, msg: ScriptMsg) {
         match msg {
-            ScriptMsg::TriggerLoad(id, load_data) =>
-                self.trigger_load(id, load_data),
+            ScriptMsg::Navigate(id, load_data) =>
+                self.handle_navigate(id, None, load_data),
             ScriptMsg::TriggerFragment(id, fragment) =>
                 self.trigger_fragment(id, fragment),
             ScriptMsg::FireTimer(TimerSource::FromWindow(id), timer_id) =>
@@ -697,7 +698,7 @@ impl ScriptTask {
         }
         let mut loads = self.incomplete_loads.borrow_mut();
         if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.window_size = size;
+            load.window_size = Some(size);
             return;
         }
         panic!("resize sent to nonexistent pipeline");
@@ -726,7 +727,7 @@ impl ScriptTask {
     /// Handle a request to load a page in a new child frame of an existing page.
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
         let NewLayoutInfo {
-            old_pipeline_id,
+            containing_pipeline_id,
             new_pipeline_id,
             subpage_id,
             layout_chan,
@@ -734,7 +735,7 @@ impl ScriptTask {
         } = new_layout_info;
 
         let page = self.root_page();
-        let parent_page = page.find(old_pipeline_id).expect("ScriptTask: received a layout
+        let parent_page = page.find(containing_pipeline_id).expect("ScriptTask: received a layout
             whose parent has a PipelineId which does not correspond to a pipeline in the script
             task's page tree. This is a bug.");
 
@@ -742,7 +743,7 @@ impl ScriptTask {
         let chan = layout_chan.downcast_ref::<Sender<layout_interface::Msg>>().unwrap();
         let layout_chan = LayoutChan(chan.clone());
         // Kick off the fetch for the new resource.
-        let new_load = InProgressLoad::new(new_pipeline_id, Some((old_pipeline_id, subpage_id)),
+        let new_load = InProgressLoad::new(new_pipeline_id, Some((containing_pipeline_id, subpage_id)),
                                            layout_chan, parent_window.r().window_size(),
                                            load_data.url.clone());
         self.start_page_load(new_load, load_data);
@@ -768,24 +769,17 @@ impl ScriptTask {
 
     /// Handles thaw message
     fn handle_thaw_msg(&self, id: PipelineId) {
-        let page = self.root_page();
-        let page = page.find(id).expect("ScriptTask: received thaw msg for a
-                            pipeline ID not associated with this script task. This is a bug.");
-        let window = page.window().root();
-        window.r().thaw();
-    }
-
-    /// Handle a request to make a previously-created pipeline active.
-    //TODO: unsuspend JS and timers, etc. when we support such things.
-    fn handle_activate(&self, pipeline_id: PipelineId) {
         // We should only get this message when moving in history, so all pages requested
         // should exist.
-        let page = self.root_page().find(pipeline_id).unwrap();
+        let page = self.root_page().find(id).unwrap();
 
         let needed_reflow = page.set_reflow_status(false);
         if needed_reflow {
             self.force_reflow(&*page, ReflowReason::CachedPageNeededReflow);
         }
+
+        let window = page.window().root();
+        window.r().thaw();
     }
 
     /// Handles a notification that reflow completed.
@@ -1138,11 +1132,29 @@ impl ScriptTask {
         }
     }
 
+    /// https://html.spec.whatwg.org/multipage/browsers.html#navigating-across-documents
     /// The entry point for content to notify that a new load has been requested
-    /// for the given pipeline.
-    fn trigger_load(&self, pipeline_id: PipelineId, load_data: LoadData) {
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::LoadUrl(pipeline_id, load_data)).unwrap();
+    /// for the given pipeline (specifically the "navigate" algorithm).
+    fn handle_navigate(&self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>, load_data: LoadData) {
+        match subpage_id {
+            Some(subpage_id) => {
+                let borrowed_page = self.root_page();
+                let iframe = borrowed_page.find(pipeline_id).and_then(|page| {
+                    let doc = page.document().root();
+                    let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
+
+                    doc.traverse_preorder()
+                       .filter_map(HTMLIFrameElementCast::to_ref)
+                       .find(|node| node.subpage_id() == Some(subpage_id))
+                       .map(Temporary::from_rooted)
+                }).root();
+                iframe.r().unwrap().navigate_child_browsing_context(load_data.url);
+            }
+            None => {
+                let ConstellationChan(ref const_chan) = self.constellation_chan;
+                const_chan.send(ConstellationMsg::LoadUrl(pipeline_id, load_data)).unwrap();
+            }
+        }
     }
 
     /// The entry point for content to notify that a fragment url has been requested

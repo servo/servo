@@ -90,14 +90,6 @@ impl CompositorEventListener for NullCompositor {
                 response_chan.send(()).unwrap();
             }
 
-            Msg::ChangeLayerPipelineAndRemoveChildren(_, _, response_channel) => {
-                response_channel.send(()).unwrap();
-            }
-
-            Msg::CreateRootLayerForPipeline(_, _, _, response_channel) => {
-                response_channel.send(()).unwrap();
-            }
-
             // Explicitly list ignored messages so that when we add a new one,
             // we'll notice and think about whether it needs a response, like
             // SetFrameTree.

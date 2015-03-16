@@ -26,7 +26,7 @@ impl ConstellationChan {
     }
 }
 
-#[derive(PartialEq, Eq, Copy)]
+#[derive(PartialEq, Eq, Copy, Debug)]
 pub enum IFrameSandboxState {
     IFrameSandboxed,
     IFrameUnsandboxed
@@ -36,7 +36,7 @@ pub enum IFrameSandboxState {
 #[derive(Clone, Copy)]
 pub struct Failure {
     pub pipeline_id: PipelineId,
-    pub parent: Option<(PipelineId, SubpageId)>,
+    pub parent_info: Option<(PipelineId, SubpageId)>,
 }
 
 #[derive(Copy)]
@@ -236,18 +236,14 @@ impl LoadData {
     }
 }
 
-/// Represents the two different ways to which a page can be navigated
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
-pub enum NavigationType {
-    Load,               // entered or clicked on a url
-    Navigate,           // browser forward/back buttons
-}
-
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
 pub enum NavigationDirection {
     Forward,
     Back,
 }
+
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
+pub struct FrameId(pub uint);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
 pub struct PipelineId(pub uint);
