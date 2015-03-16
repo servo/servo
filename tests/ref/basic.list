@@ -98,6 +98,8 @@ flaky_cpu == append_style_a.html append_style_b.html
 
 == iframe/bg_color.html iframe/bg_color_ref.html
 == iframe/hide_and_show.html iframe/hide_and_show_ref.html
+== iframe/hide_layers1.html iframe/hide_layers_ref.html
+== iframe/hide_layers2.html iframe/hide_layers_ref.html
 == iframe/multiple_external.html iframe/multiple_external_ref.html
 == iframe/overflow.html iframe/overflow_ref.html
 == iframe/positioning_margin.html iframe/positioning_margin_ref.html
@@ -110,9 +112,6 @@ flaky_cpu == append_style_a.html append_style_b.html
 == iframe/simple_inline_width_height.html iframe/simple_inline_width_height_ref.html
 == iframe/simple_inline_width_percentage.html iframe/simple_inline_width_percentage_ref.html
 
-# gw: race condition here caused by pipelines never painting when removed from document
-#== iframe/hide_layers1.html iframe/hide_layers_ref.html
-#== iframe/hide_layers2.html iframe/hide_layers_ref.html
 != image_rendering_auto_a.html image_rendering_pixelated_a.html
 == image_rendering_pixelated_a.html image_rendering_pixelated_ref.html
 == img_block_display_a.html img_block_display_ref.html
