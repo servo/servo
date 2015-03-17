@@ -102,6 +102,7 @@ impl Flow for TableRowGroupFlow {
         // FIXME: In case of border-collapse: collapse, inline-start_content_edge should be
         // the border width on the inline-start side.
         let inline_start_content_edge = Au::new(0);
+        let inline_end_content_edge = Au::new(0);
         let content_inline_size = containing_block_inline_size;
 
         let inline_size_computer = InternalTable;
@@ -115,6 +116,7 @@ impl Flow for TableRowGroupFlow {
         };
         self.block_flow.propagate_assigned_inline_size_to_children(layout_context,
                                                                    inline_start_content_edge,
+                                                                   inline_end_content_edge,
                                                                    content_inline_size,
                                                                    Some(info));
     }
