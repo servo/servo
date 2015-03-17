@@ -236,6 +236,7 @@ experimental != overconstrained_block.html overconstrained_block_ref.html
 == root_height_a.html root_height_b.html
 == root_margin_collapse_a.html root_margin_collapse_b.html
 == root_pseudo_a.html root_pseudo_b.html
+experimental == rtl_body.html rtl_body_ref.html
 experimental == rtl_simple.html rtl_simple_ref.html
 == setattribute_id_restyle_a.html setattribute_id_restyle_b.html
 == stacking_context_overflow_a.html stacking_context_overflow_ref.html

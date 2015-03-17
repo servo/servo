@@ -238,6 +238,7 @@ impl Flow for TableRowFlow {
         // FIXME: In case of border-collapse: collapse, inline_start_content_edge should be
         // border_inline_start.
         let inline_start_content_edge = Au(0);
+        let inline_end_content_edge = Au(0);
 
         let inline_size_computer = InternalTable;
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
@@ -285,6 +286,7 @@ impl Flow for TableRowFlow {
         };
         self.block_flow.propagate_assigned_inline_size_to_children(layout_context,
                                                                    inline_start_content_edge,
+                                                                   inline_end_content_edge,
                                                                    containing_block_inline_size,
                                                                    Some(info));
     }

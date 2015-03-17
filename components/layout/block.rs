@@ -1237,6 +1237,7 @@ impl BlockFlow {
             &mut self,
             layout_context: &LayoutContext,
             inline_start_content_edge: Au,
+            inline_end_content_edge: Au,
             content_inline_size: Au,
             table_info: Option<table::ChildInlineSizeInfo>) {
         // Keep track of whether floats could impact each child.
@@ -1340,8 +1341,8 @@ impl BlockFlow {
                             inline_start_content_edge
                         } else {
                             // The kid's inline 'start' is at the parent's 'end'
-                            inline_start_content_edge + content_inline_size
-                        }
+                            inline_end_content_edge
+                        };
                 }
                 kid_base.block_container_inline_size = content_inline_size;
                 kid_base.block_container_writing_mode = containing_block_mode;
@@ -1352,7 +1353,7 @@ impl BlockFlow {
                         inline_start_content_edge
                     } else {
                         // The kid's inline 'start' is at the parent's 'end'
-                        inline_start_content_edge + content_inline_size
+                        inline_end_content_edge
                     }
             }
 
@@ -1630,15 +1631,25 @@ impl Flow for BlockFlow {
                 self.base.flags.remove(IMPACTED_BY_RIGHT_FLOATS);
             }
         }
-
         // Move in from the inline-start border edge.
         let inline_start_content_edge = self.fragment.border_box.start.i +
             self.fragment.border_padding.inline_start;
+
         let padding_and_borders = self.fragment.border_padding.inline_start_end();
+
+        // Distance from the inline-end margin edge to the inline-end content edge.
+        let inline_end_content_edge =
+            self.base.block_container_inline_size -
+            self.fragment.margin.inline_end -
+            self.fragment.border_box.size.inline -
+            self.fragment.border_box.start.i -
+            padding_and_borders;
+
         let content_inline_size = self.fragment.border_box.size.inline - padding_and_borders;
 
         self.propagate_assigned_inline_size_to_children(layout_context,
                                                         inline_start_content_edge,
+                                                        inline_end_content_edge,
                                                         content_inline_size,
                                                         None);
     }
@@ -1820,9 +1831,11 @@ impl Flow for BlockFlow {
         for kid in self.base.child_iter() {
             if !flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 let kid_base = flow::mut_base(kid);
-                kid_base.stacking_relative_position = origin_for_children +
-                    kid_base.position.start.to_physical(kid_base.writing_mode,
-                                                        container_size_for_children);
+                // FIXME (mbrubeck): `position.size` is inflated by the inline margin size, making
+                // this incorrect for RTL blocks (see `set_inline_size_constraint_solutions`).
+                let physical_position = kid_base.position.to_physical(kid_base.writing_mode,
+                                                                      container_size_for_children);
+                kid_base.stacking_relative_position = origin_for_children + physical_position.origin;
             }
 
             flow::mut_base(kid).absolute_position_info = absolute_position_info_for_children;
@@ -2109,6 +2122,9 @@ pub trait ISizeAndMarginsComputer {
         // We also resize the block itself, to ensure that overflow is not calculated
         // as the inline-size of our parent. We might be smaller and we might be larger if we
         // overflow.
+        //
+        // FIXME (mbrubeck): The margin is included in position.size but not position.start, which
+        // throws off position.to_physical results (especially for RTL blocks).
         flow::mut_base(block).position.size.inline = inline_size + extra_inline_size_from_margin;
     }
 
