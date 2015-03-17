@@ -1213,7 +1213,7 @@ impl ScriptTask {
         let script_chan = self.chan.clone();
         let resource_task = self.resource_task.clone();
 
-        spawn_named(format!("fetch for {:?}", load_data.url), move || {
+        spawn_named(format!("fetch for {:?}", load_data.url.serialize()), move || {
             if load_data.url.scheme.as_slice() == "javascript" {
                 load_data.url = Url::parse("about:blank").unwrap();
             }
