@@ -10,18 +10,17 @@ use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use flow::{FlowClass, Flow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
+use geom::{Point2D, Rect};
 use layout_debug;
+use std::fmt;
+use std::sync::Arc;
 use style::computed_values::border_spacing;
+use style::properties::ComputedValues;
 use table::{ChildInlineSizeInfo, ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use table::{InternalTable, TableLikeFlow};
-use wrapper::ThreadSafeLayoutNode;
-
-use geom::{Point2D, Rect};
 use util::geometry::Au;
 use util::logical_geometry::LogicalRect;
-use std::fmt;
-use style::properties::ComputedValues;
-use std::sync::Arc;
+use wrapper::ThreadSafeLayoutNode;
 
 /// A table formatting context.
 #[derive(RustcEncodable)]

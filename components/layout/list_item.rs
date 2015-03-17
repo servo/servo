@@ -14,17 +14,16 @@ use floats::FloatKind;
 use flow::{Flow, FlowClass};
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedContentInfo};
 use generated_content;
-use incremental::RESOLVE_GENERATED_CONTENT;
-use wrapper::ThreadSafeLayoutNode;
-
 use geom::{Point2D, Rect};
 use gfx::display_list::DisplayList;
+use incremental::RESOLVE_GENERATED_CONTENT;
+use std::sync::Arc;
+use style::computed_values::list_style_type;
+use style::properties::ComputedValues;
 use util::geometry::Au;
 use util::logical_geometry::LogicalRect;
 use util::opts;
-use style::properties::ComputedValues;
-use style::computed_values::list_style_type;
-use std::sync::Arc;
+use wrapper::ThreadSafeLayoutNode;
 
 /// A block with the CSS `display` property equal to `list-item`.
 #[derive(Debug)]

@@ -7,22 +7,21 @@
 #![allow(unsafe_blocks)]
 
 use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
-
 use geom::{Rect, Size2D};
 use gfx::display_list::OpaqueNode;
-use gfx::font_context::FontContext;
 use gfx::font_cache_task::FontCacheTask;
-use script::layout_interface::LayoutChan;
-use script_traits::UntrustedNodeAddress;
+use gfx::font_context::FontContext;
 use msg::constellation_msg::ConstellationChan;
 use net::local_image_cache::LocalImageCache;
-use util::geometry::Au;
+use script::layout_interface::LayoutChan;
+use script_traits::UntrustedNodeAddress;
 use std::boxed;
 use std::cell::Cell;
 use std::ptr;
 use std::sync::{Arc, Mutex};
 use style::selector_matching::Stylist;
 use url::Url;
+use util::geometry::Au;
 
 struct LocalLayoutContext {
     font_context: FontContext,

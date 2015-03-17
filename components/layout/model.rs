@@ -7,14 +7,14 @@
 #![deny(unsafe_blocks)]
 
 use fragment::Fragment;
-
 use geom::SideOffsets2D;
-use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, LengthOrPercentage};
-use style::properties::ComputedValues;
-use util::geometry::Au;
-use util::logical_geometry::LogicalMargin;
 use std::cmp::{max, min};
 use std::fmt;
+use style::properties::ComputedValues;
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrPercentageOrNone};
+use util::geometry::Au;
+use util::logical_geometry::LogicalMargin;
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 #[derive(Copy)]

@@ -9,18 +9,17 @@
 //! as possible.
 
 use context::LayoutContext;
-use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, ImmutableFlowUtils};
 use flow::{InorderFlowTraversal};
+use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, ImmutableFlowUtils};
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
-use incremental::{self, RESOLVE_GENERATED_CONTENT};
-use text::TextRunScanner;
-
 use gfx::display_list::OpaqueNode;
+use incremental::{self, RESOLVE_GENERATED_CONTENT};
 use std::collections::{DList, HashMap};
 use std::sync::Arc;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{display, list_style_type};
 use style::properties::ComputedValues;
+use text::TextRunScanner;
 use util::smallvec::{SmallVec, SmallVec8};
 
 // Decimal styles per CSS-COUNTER-STYLES § 6.1:

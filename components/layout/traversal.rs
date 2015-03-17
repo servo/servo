@@ -6,25 +6,23 @@
 
 #![allow(unsafe_blocks)]
 
-use css::node_style::StyledNode;
-use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
 use construct::FlowConstructor;
 use context::LayoutContext;
+use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
+use css::node_style::StyledNode;
+use flow;
 use flow::{Flow, MutableFlowUtils};
 use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
-use flow;
 use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
+use selectors::bloom::BloomFilter;
+use std::cell::RefCell;
+use std::mem;
+use style::node::TNode;
+use util::opts;
+use util::tid::tid;
 use wrapper::{layout_node_to_unsafe_layout_node, LayoutNode};
 use wrapper::{PostorderNodeMutTraversal, ThreadSafeLayoutNode, UnsafeLayoutNode};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
-
-use selectors::bloom::BloomFilter;
-use util::opts;
-use util::tid::tid;
-use style::node::TNode;
-
-use std::cell::RefCell;
-use std::mem;
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.

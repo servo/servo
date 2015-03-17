@@ -20,19 +20,18 @@ use floats::FloatKind;
 use flow::{FlowClass, Flow, ImmutableFlowUtils};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
 use fragment::{Fragment, FragmentBorderBoxIterator};
-use table::{ChildInlineSizeInfo, ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
-use wrapper::ThreadSafeLayoutNode;
-
 use geom::{Point2D, Rect};
-use util::geometry::Au;
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
 use std::sync::Arc;
 use style::computed_values::table_layout;
 use style::properties::ComputedValues;
-use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::CSSFloat;
+use table::{ChildInlineSizeInfo, ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
+use util::geometry::Au;
+use wrapper::ThreadSafeLayoutNode;
 
 #[derive(Copy, RustcEncodable, Debug)]
 pub enum TableLayout {

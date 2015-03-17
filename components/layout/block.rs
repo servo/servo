@@ -31,24 +31,21 @@ use context::LayoutContext;
 use css::node_style::StyledNode;
 use display_list_builder::{BlockFlowDisplayListBuilding, FragmentDisplayListBuilding};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
-use flow::{self, AbsolutePositionInfo, BaseFlow, ForceNonfloatedFlag, FlowClass, Flow};
-use flow::{ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
-use flow::{PostorderFlowTraversal, mut_base};
-use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
-use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
-use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
-use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{CLEARS_LEFT, CLEARS_RIGHT};
+use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
+use flow::{ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
+use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
+use flow::{IS_ABSOLUTELY_POSITIONED};
+use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
+use flow::{PostorderFlowTraversal, mut_base};
+use flow::{self, AbsolutePositionInfo, BaseFlow, ForceNonfloatedFlag, FlowClass, Flow};
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
+use geom::{Point2D, Rect, Size2D};
+use gfx::display_list::{ClippingRegion, DisplayList};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{IntrinsicISizes, MarginCollapseInfo};
 use model::{MaybeAuto, CollapsibleMargins, specified, specified_or_none};
-use table;
-use wrapper::ThreadSafeLayoutNode;
-
-use geom::{Point2D, Rect, Size2D};
-use gfx::display_list::{ClippingRegion, DisplayList};
 use msg::compositor_msg::LayerId;
 use rustc_serialize::{Encoder, Encodable};
 use std::cmp::{max, min};
@@ -58,9 +55,11 @@ use style::computed_values::{overflow_x, overflow_y, position, box_sizing, displ
 use style::properties::ComputedValues;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
+use table;
 use util::geometry::{Au, MAX_AU};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use util::opts;
+use wrapper::ThreadSafeLayoutNode;
 
 /// Information specific to floated blocks.
 #[derive(Clone, RustcEncodable)]
