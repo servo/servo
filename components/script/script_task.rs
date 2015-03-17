@@ -83,6 +83,7 @@ use js;
 use url::Url;
 
 use libc;
+use std::ascii::AsciiExt;
 use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -978,10 +979,18 @@ impl ScriptTask {
             headers.get().map(|&LastModified(ref tm)| dom_last_modified(tm))
         });
 
+        let content_type = match response.metadata.content_type {
+            Some((ref t, ref st)) if t.as_slice().eq_ignore_ascii_case("text") &&
+                                    st.as_slice().eq_ignore_ascii_case("plain") => {
+                Some("text/plain".to_owned())
+            }
+            _ => None
+        };
+
         let document = Document::new(window.r(),
                                      Some(final_url.clone()),
                                      IsHTMLDocument::HTMLDocument,
-                                     None,
+                                     content_type,
                                      last_modified,
                                      DocumentSource::FromParser).root();
 
