@@ -341,20 +341,22 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             doc.r().request_focus(ElementCast::from_ref(*self));
         } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() {
             let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
-            keyevent.map(|event| {
-                match self.textinput.borrow_mut().handle_keydown(event) {
+            keyevent.map(|kevent| {
+                match self.textinput.borrow_mut().handle_keydown(kevent) {
                     KeyReaction::TriggerDefaultAction => (),
                     KeyReaction::DispatchInput => {
                         self.value_changed.set(true);
 
-                        let window = window_from_node(*self).root();
-                        let window = window.r();
-                        let chan = window.script_chan();
-                        let handler = Trusted::new(window.get_cx(), *self , chan.clone());
-                        let dispatcher = TrustedHTMLTextAreaElement {
-                            element: handler,
-                        };
-                        chan.send(ScriptMsg::RunnableMsg(box dispatcher));
+                        if event.IsTrusted() == true {
+                            let window = window_from_node(*self).root();
+                            let window = window.r();
+                            let chan = window.script_chan();
+                            let handler = Trusted::new(window.get_cx(), *self , chan.clone());
+                            let dispatcher = ChangeEventRunnable {
+                                element: handler,
+                            };
+                            chan.send(ScriptMsg::RunnableMsg(box dispatcher));
+                        }
 
                         self.force_relayout();
                     }
@@ -371,12 +373,12 @@ impl<'a> FormControl<'a> for JSRef<'a, HTMLTextAreaElement> {
     }
 }
 
-pub struct TrustedHTMLTextAreaElement {
+pub struct ChangeEventRunnable {
     element: Trusted<HTMLTextAreaElement>,
 }
 
-impl Runnable for TrustedHTMLTextAreaElement {
-    fn handler(self: Box<TrustedHTMLTextAreaElement>) {
+impl Runnable for ChangeEventRunnable {
+    fn handler(self: Box<ChangeEventRunnable>) {
         let target = self.element.to_temporary().root();
         target.r().dispatch_change_event();
     }
