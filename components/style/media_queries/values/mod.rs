@@ -2,11 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+pub use super::{EvaluateUsingContext, DeviceFeatureContext};
+
 use ::FromCss;
 use ::cssparser::{Parser, Token, ToCss};
 
-pub mod discrete;
-pub mod range;
+pub trait EvaluateMediaFeatureValue<C> {
+    type Context;
+
+    fn evaluate(&self, context: &C, value: Self::Context) -> bool;
+}
 
 #[derive(Copy, Debug, PartialEq, Eq)]
 pub enum Range<T> {
@@ -173,7 +178,7 @@ impl<T> Range<T> {
 }
 
 impl<T> Range<T> where T: PartialOrd {
-    fn cmp<V>(&self, value: V) -> bool
+    fn evaluate<V>(&self, value: V) -> bool
         where T: PartialOrd<V>, V: PartialOrd
     {
         match *self {
@@ -198,6 +203,9 @@ impl<T> Range<T> where T: PartialOrd {
         }
     }
 }
+
+pub mod discrete;
+pub mod range;
 
 #[cfg(test)]
 mod tests {
@@ -234,33 +242,33 @@ mod tests {
 
     #[test]
     fn range_cmp() {
-        macro_rules! assert_range_cmp_eq {
+        macro_rules! assert_range_evaluate_eq {
             (value_op: $variant:expr, '<' => $lesser:expr, '=' => $equal:expr, '>' => $greater:expr) => {{
                 let value_first: Range<i32> = FromCss::from_css(&mut Parser::new(concat!("0 ", $variant))).unwrap();
-                assert!(value_first.cmp(-1) == $lesser,  "0 {} -1 != {}", $variant, $lesser);
-                assert!(value_first.cmp(0)  == $equal,   "0 {} 0 != {}", $variant, $equal);
-                assert!(value_first.cmp(1)  == $greater, "0 {} 1 != {}", $variant, $greater);
+                assert!(value_first.evaluate(-1) == $lesser,  "0 {} -1 != {}", $variant, $lesser);
+                assert!(value_first.evaluate(0)  == $equal,   "0 {} 0 != {}", $variant, $equal);
+                assert!(value_first.evaluate(1)  == $greater, "0 {} 1 != {}", $variant, $greater);
             }};
             (op_value: $variant:expr, '<' => $lesser:expr, '=' => $equal:expr, '>' => $greater:expr) => {{
                 let op_first: Range<i32> = FromCss::from_css(&mut Parser::new(concat!($variant, " 0"))).unwrap();
-                assert!(op_first.cmp(-1) == $greater, "-1 {} 0 != {}", $variant, $greater);
-                assert!(op_first.cmp(0)  == $equal,   "0 {} 0 != {}", $variant, $equal);
-                assert!(op_first.cmp(1)  == $lesser,  "1 {} 0 != {}", $variant, $lesser);
+                assert!(op_first.evaluate(-1) == $greater, "-1 {} 0 != {}", $variant, $greater);
+                assert!(op_first.evaluate(0)  == $equal,   "0 {} 0 != {}", $variant, $equal);
+                assert!(op_first.evaluate(1)  == $lesser,  "1 {} 0 != {}", $variant, $lesser);
             }}
         }
 
-        assert_range_cmp_eq!(value_op: "=",  '<' => false, '=' => true,  '>' => false);
-        assert_range_cmp_eq!(value_op: "<",  '<' => false, '=' => false, '>' => true);
-        assert_range_cmp_eq!(value_op: "<=", '<' => false, '=' => true,  '>' => true);
-        assert_range_cmp_eq!(value_op: ">",  '<' => true,  '=' => false, '>' => false);
-        assert_range_cmp_eq!(value_op: ">=", '<' => true,  '=' => true,  '>' => false);
+        assert_range_evaluate_eq!(value_op: "=",  '<' => false, '=' => true,  '>' => false);
+        assert_range_evaluate_eq!(value_op: "<",  '<' => false, '=' => false, '>' => true);
+        assert_range_evaluate_eq!(value_op: "<=", '<' => false, '=' => true,  '>' => true);
+        assert_range_evaluate_eq!(value_op: ">",  '<' => true,  '=' => false, '>' => false);
+        assert_range_evaluate_eq!(value_op: ">=", '<' => true,  '=' => true,  '>' => false);
 
-        assert_range_cmp_eq!(op_value: "=",  '<' => false, '=' => true,  '>' => false);
-        assert_range_cmp_eq!(op_value: ":",  '<' => false, '=' => true,  '>' => false);
-        assert_range_cmp_eq!(op_value: "<",  '<' => false, '=' => false, '>' => true);
-        assert_range_cmp_eq!(op_value: "<=", '<' => false, '=' => true,  '>' => true);
-        assert_range_cmp_eq!(op_value: ">",  '<' => true,  '=' => false, '>' => false);
-        assert_range_cmp_eq!(op_value: ">=", '<' => true,  '=' => true,  '>' => false);
+        assert_range_evaluate_eq!(op_value: "=",  '<' => false, '=' => true,  '>' => false);
+        assert_range_evaluate_eq!(op_value: ":",  '<' => false, '=' => true,  '>' => false);
+        assert_range_evaluate_eq!(op_value: "<",  '<' => false, '=' => false, '>' => true);
+        assert_range_evaluate_eq!(op_value: "<=", '<' => false, '=' => true,  '>' => true);
+        assert_range_evaluate_eq!(op_value: ">",  '<' => true,  '=' => false, '>' => false);
+        assert_range_evaluate_eq!(op_value: ">=", '<' => true,  '=' => true,  '>' => false);
     }
 
     #[test]

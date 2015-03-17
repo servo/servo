@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use super::values::{self, Range, range};
+use super::{EvaluateUsingContext, MediaType};
+use super::values::{discrete, EvaluateMediaFeatureValue, Range, range};
 
 use ::FromCss;
 use ::cssparser::{Parser, SourcePosition, ToCss, Token};
+use ::geom::size::Size2D;
+use ::util::geometry::Au;
 
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -14,7 +17,28 @@ macro_rules! media_features {
     ($($css:expr => $feature:ident($feature_type:ident)),*) => {
         #[derive(Debug, PartialEq)]
         pub enum MediaFeature {
-            $($feature(Option<values::$feature_type::$feature>)),*
+            $($feature(Option<$feature_type::$feature>)),*
+        }
+
+        #[allow(non_snake_case)]
+        pub trait DeviceFeatureContext {
+            fn MediaType(&self) -> MediaType;
+            fn ViewportSize(&self) -> Size2D<Au>;
+
+            $(fn $feature(&self) -> <$feature_type::$feature as EvaluateMediaFeatureValue<Self>>::Context;)*
+        }
+
+        impl<C> EvaluateUsingContext<C> for MediaFeature
+            where C: DeviceFeatureContext
+        {
+            fn evaluate(&self, context: &C) -> bool {
+                use super::values::EvaluateMediaFeatureValue;
+
+                match *self {
+                    $(MediaFeature::$feature(ref feature) =>
+                          feature.evaluate(context, context.$feature())),*
+                }
+            }
         }
 
         impl ToCss for MediaFeature {
@@ -22,10 +46,8 @@ macro_rules! media_features {
                 where W: ::text_writer::TextWriter
             {
                 match *self {
-                    $(
-                        MediaFeature::$feature(ref value) =>
-                            $feature_type!(ToCss, dest, $css, value)
-                     ),*
+                    $(MediaFeature::$feature(ref value) =>
+                          $feature_type!(ToCss, dest, $css, value)),*
                 }
             }
         }
@@ -37,8 +59,8 @@ macro_rules! media_features {
         {
             match name {
                 $(n if $css.eq_ignore_ascii_case(n) =>
-                  $feature_type!(MediaFeatureForm::IdentFirst,
-                                 input, prefix, $feature)),*,
+                      $feature_type!(MediaFeatureForm::IdentFirst,
+                                     input, prefix, $feature)),*,
                 _ => Err(())
             }
         }
@@ -50,8 +72,8 @@ macro_rules! media_features {
         {
             match name {
                 $(n if $css.eq_ignore_ascii_case(n) =>
-                  $feature_type!(MediaFeatureForm::ValueFirst,
-                                 input, $feature, after_name)),*,
+                      $feature_type!(MediaFeatureForm::ValueFirst,
+                                     input, $feature, after_name)),*,
                 _ => Err(())
             }
         }

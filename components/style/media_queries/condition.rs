@@ -214,7 +214,7 @@ impl<C> EvaluateUsingContext<C> for MediaInParensTerm
             MediaInParensTerm::Condition(ref term) =>
                 term.evaluate(context),
             MediaInParensTerm::Feature(ref feature) =>
-                /* TODO: feature.evaluate(...) */ false,
+                feature.evaluate(context),
             MediaInParensTerm::GeneralEnclosed(_) =>
                 false
         }
