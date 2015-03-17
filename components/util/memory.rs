@@ -265,7 +265,16 @@ impl MemoryProfiler {
             memory_profiler.start();
         });
 
-        MemoryProfilerChan(chan)
+        let memory_profiler_chan = MemoryProfilerChan(chan);
+
+        // Register the system memory reporter, which will run on the memory profiler's own thread.
+        // It never needs to be unregistered, because as long as the memory profiler is running the
+        // system memory reporter can make measurements.
+        let system_reporter = Box::new(SystemMemoryReporter);
+        memory_profiler_chan.send(MemoryProfilerMsg::RegisterMemoryReporter("system".to_owned(),
+                                                                            system_reporter));
+
+        memory_profiler_chan
     }
 
     pub fn new(port: Receiver<MemoryProfilerMsg>) -> MemoryProfiler {
@@ -319,58 +328,11 @@ impl MemoryProfiler {
         }
     }
 
-    fn print_measurement(path: &str, nbytes: Option<u64>) {
-        match nbytes {
-            Some(nbytes) => {
-                let mebi = 1024f64 * 1024f64;
-                println!("{:12.2}: {}", (nbytes as f64) / mebi, path);
-            }
-            None => {
-                println!("{:>12}: {}", "???", path);
-            }
-        }
-    }
-
     fn handle_print_msg(&self) {
-
         println!("{:12}: {}", "_size (MiB)_", "_category_");
 
-        // Collect global measurements from the OS and heap allocators.
-
-        // Virtual and physical memory usage, as reported by the OS.
-        MemoryProfiler::print_measurement("vsize", get_vsize());
-        MemoryProfiler::print_measurement("resident", get_resident());
-
-        for seg in get_resident_segments().iter() {
-            MemoryProfiler::print_measurement(seg.0.as_slice(), Some(seg.1));
-        }
-
-        // Total number of bytes allocated by the application on the system
-        // heap.
-        MemoryProfiler::print_measurement("system-heap-allocated",
-                                          get_system_heap_allocated());
-
-        // The descriptions of the following jemalloc measurements are taken
-        // directly from the jemalloc documentation.
-
-        // "Total number of bytes allocated by the application."
-        MemoryProfiler::print_measurement("jemalloc-heap-allocated",
-                                          get_jemalloc_stat("stats.allocated"));
-
-        // "Total number of bytes in active pages allocated by the application.
-        // This is a multiple of the page size, and greater than or equal to
-        // |stats.allocated|."
-        MemoryProfiler::print_measurement("jemalloc-heap-active",
-                                          get_jemalloc_stat("stats.active"));
-
-        // "Total number of bytes in chunks mapped on behalf of the application.
-        // This is a multiple of the chunk size, and is at least as large as
-        // |stats.active|. This does not include inactive chunks."
-        MemoryProfiler::print_measurement("jemalloc-heap-mapped",
-                                          get_jemalloc_stat("stats.mapped"));
-
         // Collect reports from memory reporters.
-
+        //
         // This serializes the report-gathering. It might be worth creating a new scoped thread for
         // each reporter once we have enough of them.
         //
@@ -380,8 +342,8 @@ impl MemoryProfiler {
             if reporter.collect_reports(MemoryReportsChan(chan)) {
                 if let Ok(reports) = port.recv() {
                     for report in reports {
-                        MemoryProfiler::print_measurement(report.name.as_slice(),
-                                                          Some(report.size));
+                        let mebi = 1024f64 * 1024f64;
+                        println!("{:12.2}: {}", (report.size as f64) / mebi, report.name);
                     }
                 }
             }
@@ -390,6 +352,55 @@ impl MemoryProfiler {
         println!("");
     }
 }
+
+/// Collects global measurements from the OS and heap allocators.
+struct SystemMemoryReporter;
+
+impl MemoryReporter for SystemMemoryReporter {
+    fn collect_reports(&self, reports_chan: MemoryReportsChan) -> bool {
+        let mut reports = vec![];
+        {
+            let mut report = |name: &str, size| {
+                if let Some(size) = size {
+                    reports.push(MemoryReport { name: name.to_owned(), size: size });
+                }
+            };
+
+            // Virtual and physical memory usage, as reported by the OS.
+            report("vsize", get_vsize());
+            report("resident", get_resident());
+
+            // Memory segments, as reported by the OS.
+            for seg in get_resident_segments().iter() {
+                report(seg.0.as_slice(), Some(seg.1));
+            }
+
+            // Total number of bytes allocated by the application on the system
+            // heap.
+            report("system-heap-allocated", get_system_heap_allocated());
+
+            // The descriptions of the following jemalloc measurements are taken
+            // directly from the jemalloc documentation.
+
+            // "Total number of bytes allocated by the application."
+            report("jemalloc-heap-allocated", get_jemalloc_stat("stats.allocated"));
+
+            // "Total number of bytes in active pages allocated by the application.
+            // This is a multiple of the page size, and greater than or equal to
+            // |stats.allocated|."
+            report("jemalloc-heap-active", get_jemalloc_stat("stats.active"));
+
+            // "Total number of bytes in chunks mapped on behalf of the application.
+            // This is a multiple of the chunk size, and is at least as large as
+            // |stats.active|. This does not include inactive chunks."
+            report("jemalloc-heap-mapped", get_jemalloc_stat("stats.mapped"));
+        }
+        reports_chan.send(reports);
+
+        true
+    }
+}
+
 
 #[cfg(target_os="linux")]
 extern {
