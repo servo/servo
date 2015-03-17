@@ -308,7 +308,7 @@ fn check_reftest(reftest: Reftest) {
     }
 
     let pixels = left_bytes.iter().zip(right_bytes.iter()).map(|(&a, &b)| {
-        if a as i8 - b as i8 == 0 {
+        if a == b {
             // White for correct
             0xFF
         } else {
