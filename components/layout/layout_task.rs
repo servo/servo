@@ -96,6 +96,7 @@ pub struct LayoutTaskData {
     /// The root stacking context.
     pub stacking_context: Option<Arc<StackingContext>>,
 
+    /// Performs CSS selector matching and style resolution.
     pub stylist: Box<Stylist>,
 
     /// The workers that we use for parallel operation.

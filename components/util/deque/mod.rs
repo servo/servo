@@ -78,6 +78,8 @@ struct Deque<T> {
     pool: BufferPool<T>,
 }
 
+unsafe impl<T> Send for Deque<T> {}
+
 /// Worker half of the work-stealing deque. This worker has exclusive access to
 /// one side of the deque, and uses `push` and `pop` method to manipulate it.
 ///
