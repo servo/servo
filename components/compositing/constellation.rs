@@ -217,24 +217,29 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 
+    /// Gets the current window_size rect for an existing pipeline. This is used
+    /// to initialize the window size for a new pipeline, but may be None
+    /// when a new frame is loading.
+    fn get_window_size_data_for_pipeline(&self, pipeline_id: PipelineId) -> Option<WindowSizeData> {
+        self.pipeline(pipeline_id).rect.map(|rect| {
+            WindowSizeData {
+                visible_viewport: rect.size,
+                initial_viewport: rect.size * ScaleFactor(1.0),
+                device_pixel_ratio: self.window_size.device_pixel_ratio,
+            }
+        })
+    }
+
     /// Helper function for creating a pipeline
     fn new_pipeline(&mut self,
                     parent_info: Option<(PipelineId, SubpageId)>,
+                    initial_window_size: Option<WindowSizeData>,
                     script_channel: Option<ScriptControlChan>,
                     load_data: LoadData)
                     -> PipelineId {
         let pipeline_id = self.next_pipeline_id;
         let PipelineId(ref mut i) = self.next_pipeline_id;
         *i += 1;
-
-        // If this is a child frame, don't attach the main window
-        // size to this pipeline - it will get its window size
-        // assigned by the parent layout task.
-        let window_size = if parent_info.is_some() {
-            None
-        } else {
-            Some(self.window_size)
-        };
 
         let pipeline = Pipeline::create::<LTF, STF>(pipeline_id,
                                                     parent_info,
@@ -247,7 +252,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                     self.storage_task.clone(),
                                                     self.time_profiler_chan.clone(),
                                                     self.memory_profiler_chan.clone(),
-                                                    window_size,
+                                                    initial_window_size,
                                                     script_channel,
                                                     load_data);
 
@@ -324,7 +329,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                       new_subpage_id,
                                                       old_subpage_id,
                                                       sandbox) => {
-                debug!("constellation got iframe URL load message");
+                debug!("constellation got iframe URL load message {:?} {:?} {:?}", source_pipeline_id, old_subpage_id, new_subpage_id);
                 self.handle_script_loaded_url_in_iframe_msg(url,
                                                             source_pipeline_id,
                                                             new_subpage_id,
@@ -415,14 +420,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
         debug!("creating replacement pipeline for about:failure");
 
-        let new_pipeline_id = self.new_pipeline(parent_info, None,
+        let window_size = self.get_window_size_data_for_pipeline(pipeline_id);
+        let new_pipeline_id = self.new_pipeline(parent_info, window_size, None,
                                                 LoadData::new(Url::parse("about:failure").unwrap()));
 
         self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
     }
 
     fn handle_init_load(&mut self, url: Url) {
-        let root_pipeline_id = self.new_pipeline(None, None, LoadData::new(url));
+        let window_size = self.window_size;
+        let root_pipeline_id = self.new_pipeline(None, Some(window_size), None, LoadData::new(url));
         self.push_pending_frame(root_pipeline_id, None);
     }
 
@@ -485,13 +492,17 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         };
 
         // Create the new pipeline, attached to the parent and push to pending frames
-        let new_pipeline_id = self.new_pipeline(Some((containing_pipeline_id, new_subpage_id)),
-                                                script_chan,
-                                                LoadData::new(url));
-        self.subpage_map.insert((containing_pipeline_id, new_subpage_id), new_pipeline_id);
         let old_pipeline_id = old_subpage_id.map(|old_subpage_id| {
             self.find_subpage(containing_pipeline_id, old_subpage_id).id
         });
+        let window_size = old_pipeline_id.and_then(|old_pipeline_id| {
+            self.get_window_size_data_for_pipeline(old_pipeline_id)
+        });
+        let new_pipeline_id = self.new_pipeline(Some((containing_pipeline_id, new_subpage_id)),
+                                                window_size,
+                                                script_chan,
+                                                LoadData::new(url));
+        self.subpage_map.insert((containing_pipeline_id, new_subpage_id), new_pipeline_id);
         self.push_pending_frame(new_pipeline_id, old_pipeline_id);
     }
 
@@ -527,7 +538,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 // changes would be overridden by changing the subframe associated with source_id.
 
                 // Create the new pipeline
-                let new_pipeline_id = self.new_pipeline(None, None, load_data);
+                let window_size = self.get_window_size_data_for_pipeline(source_id);
+                let new_pipeline_id = self.new_pipeline(None, window_size, None, load_data);
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
 
                 // Send message to ScriptTask that will suspend all timers
