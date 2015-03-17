@@ -21,7 +21,7 @@ use std::old_io::process::ExitStatus;
 use std::old_io::fs::PathExtensions;
 use std::old_path::Path;
 use std::thunk::Thunk;
-use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldFail};
+use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldPanic};
 use test::run_tests_console;
 use url::Url;
 
@@ -239,7 +239,7 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
         desc: TestDesc {
             name: DynTestName(name),
             ignore: false,
-            should_fail: ShouldFail::No,
+            should_panic: ShouldPanic::No,
         },
         testfn: DynTestFn(Thunk::new(move || {
             check_reftest(reftest);
