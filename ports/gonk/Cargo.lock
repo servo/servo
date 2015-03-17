@@ -453,6 +453,7 @@ dependencies = [
  "msg 0.0.1",
  "net 0.0.1",
  "script_traits 0.0.1",
+ "url 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
