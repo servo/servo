@@ -710,6 +710,10 @@
         "url": "/html/semantics/forms/the-input-element/file-manual.html"
       },
       {
+        "path": "html/semantics/grouping-content/the-li-element/grouping-li-novalue-manual.html",
+        "url": "/html/semantics/grouping-content/the-li-element/grouping-li-novalue-manual.html"
+      },
+      {
         "path": "mediacapture-streams/mediastreams-as-media-elements/video-assignment-manual.html",
         "url": "/mediacapture-streams/mediastreams-as-media-elements/video-assignment-manual.html"
       },
@@ -7856,6 +7860,10 @@
         "url": "/DOMEvents/ClickFakeEvent.nondocument.html"
       },
       {
+        "path": "DOMEvents/constructors.html",
+        "url": "/DOMEvents/constructors.html"
+      },
+      {
         "path": "DOMEvents/event-phases-order.html",
         "url": "/DOMEvents/event-phases-order.html"
       },
@@ -7866,10 +7874,6 @@
       {
         "path": "DOMEvents/tests/approved/DOM.event.flow.html",
         "url": "/DOMEvents/tests/approved/DOM.event.flow.html"
-      },
-      {
-        "path": "DOMEvents/tests/approved/EventListener.dispatch.new.event.html",
-        "url": "/DOMEvents/tests/approved/EventListener.dispatch.new.event.html"
       },
       {
         "path": "DOMEvents/tests/approved/EventListener.eventHandler.html",
@@ -7958,6 +7962,10 @@
       {
         "path": "DOMEvents/throwing-in-listener-when-all-have-not-run-yet.html",
         "url": "/DOMEvents/throwing-in-listener-when-all-have-not-run-yet.html"
+      },
+      {
+        "path": "FileAPI/FileReader/Progress_event_bubbles_cancelable.html",
+        "url": "/FileAPI/FileReader/Progress_event_bubbles_cancelable.html"
       },
       {
         "path": "FileAPI/FileReaderSync.worker.js",
@@ -10214,6 +10222,10 @@
       {
         "path": "dom/events/Event-dispatch-redispatch.html",
         "url": "/dom/events/Event-dispatch-redispatch.html"
+      },
+      {
+        "path": "dom/events/Event-dispatch-reenter.html",
+        "url": "/dom/events/Event-dispatch-reenter.html"
       },
       {
         "path": "dom/events/Event-dispatch-target-moved.html",
@@ -13788,10 +13800,6 @@
         "url": "/html/semantics/embedded-content/the-img-element/relevant-mutations.html"
       },
       {
-        "path": "html/semantics/embedded-content/the-img-element/sizes/parse-a-sizes-attribute.html",
-        "url": "/html/semantics/embedded-content/the-img-element/sizes/parse-a-sizes-attribute.html"
-      },
-      {
         "path": "html/semantics/embedded-content/the-img-element/srcset/parse-a-srcset-attribute.html",
         "url": "/html/semantics/embedded-content/the-img-element/srcset/parse-a-srcset-attribute.html"
       },
@@ -14212,10 +14220,6 @@
         "url": "/html/semantics/grouping-content/the-hr-element/grouping-hr.html"
       },
       {
-        "path": "html/semantics/grouping-content/the-li-element/grouping-li-novalue-MANUAL.html",
-        "url": "/html/semantics/grouping-content/the-li-element/grouping-li-novalue-MANUAL.html"
-      },
-      {
         "path": "html/semantics/grouping-content/the-li-element/grouping-li.html",
         "url": "/html/semantics/grouping-content/the-li-element/grouping-li.html"
       },
@@ -14242,6 +14246,10 @@
       {
         "path": "html/semantics/grouping-content/the-ul-element/grouping-ul.html",
         "url": "/html/semantics/grouping-content/the-ul-element/grouping-ul.html"
+      },
+      {
+        "path": "html/semantics/interactive-elements/the-details-element/details.html",
+        "url": "/html/semantics/interactive-elements/the-details-element/details.html"
       },
       {
         "path": "html/semantics/interactive-elements/the-details-element/toggleEvent.html",
@@ -17980,6 +17988,14 @@
         "url": "/websockets/unload-a-document/003.html"
       },
       {
+        "path": "webstorage/builtins.html",
+        "url": "/webstorage/builtins.html"
+      },
+      {
+        "path": "webstorage/clear.html",
+        "url": "/webstorage/clear.html"
+      },
+      {
         "path": "webstorage/event_constructor.html",
         "url": "/webstorage/event_constructor.html"
       },
@@ -18036,124 +18052,40 @@
         "url": "/webstorage/event_session_url.html"
       },
       {
+        "path": "webstorage/getitem.html",
+        "url": "/webstorage/getitem.html"
+      },
+      {
         "path": "webstorage/idlharness.html",
         "url": "/webstorage/idlharness.html"
+      },
+      {
+        "path": "webstorage/in.html",
+        "url": "/webstorage/in.html"
+      },
+      {
+        "path": "webstorage/indexing.html",
+        "url": "/webstorage/indexing.html"
+      },
+      {
+        "path": "webstorage/key.html",
+        "url": "/webstorage/key.html"
+      },
+      {
+        "path": "webstorage/length.html",
+        "url": "/webstorage/length.html"
       },
       {
         "path": "webstorage/missing_arguments.html",
         "url": "/webstorage/missing_arguments.html"
       },
       {
-        "path": "webstorage/storage_local_builtins.html",
-        "url": "/webstorage/storage_local_builtins.html"
+        "path": "webstorage/removeitem.html",
+        "url": "/webstorage/removeitem.html"
       },
       {
-        "path": "webstorage/storage_local_clear.html",
-        "url": "/webstorage/storage_local_clear.html"
-      },
-      {
-        "path": "webstorage/storage_local_clear_js.html",
-        "url": "/webstorage/storage_local_clear_js.html"
-      },
-      {
-        "path": "webstorage/storage_local_getitem.html",
-        "url": "/webstorage/storage_local_getitem.html"
-      },
-      {
-        "path": "webstorage/storage_local_getitem_js.html",
-        "url": "/webstorage/storage_local_getitem_js.html"
-      },
-      {
-        "path": "webstorage/storage_local_in_js.html",
-        "url": "/webstorage/storage_local_in_js.html"
-      },
-      {
-        "path": "webstorage/storage_local_index_js.html",
-        "url": "/webstorage/storage_local_index_js.html"
-      },
-      {
-        "path": "webstorage/storage_local_key.html",
-        "url": "/webstorage/storage_local_key.html"
-      },
-      {
-        "path": "webstorage/storage_local_length.html",
-        "url": "/webstorage/storage_local_length.html"
-      },
-      {
-        "path": "webstorage/storage_local_length_js.html",
-        "url": "/webstorage/storage_local_length_js.html"
-      },
-      {
-        "path": "webstorage/storage_local_removeitem.html",
-        "url": "/webstorage/storage_local_removeitem.html"
-      },
-      {
-        "path": "webstorage/storage_local_removeitem_js.html",
-        "url": "/webstorage/storage_local_removeitem_js.html"
-      },
-      {
-        "path": "webstorage/storage_local_setitem.html",
-        "url": "/webstorage/storage_local_setitem.html"
-      },
-      {
-        "path": "webstorage/storage_local_setitem_js.html",
-        "url": "/webstorage/storage_local_setitem_js.html"
-      },
-      {
-        "path": "webstorage/storage_session_builtins.html",
-        "url": "/webstorage/storage_session_builtins.html"
-      },
-      {
-        "path": "webstorage/storage_session_clear.html",
-        "url": "/webstorage/storage_session_clear.html"
-      },
-      {
-        "path": "webstorage/storage_session_clear_js.html",
-        "url": "/webstorage/storage_session_clear_js.html"
-      },
-      {
-        "path": "webstorage/storage_session_getitem.html",
-        "url": "/webstorage/storage_session_getitem.html"
-      },
-      {
-        "path": "webstorage/storage_session_getitem_js.html",
-        "url": "/webstorage/storage_session_getitem_js.html"
-      },
-      {
-        "path": "webstorage/storage_session_in_js.html",
-        "url": "/webstorage/storage_session_in_js.html"
-      },
-      {
-        "path": "webstorage/storage_session_index_js.html",
-        "url": "/webstorage/storage_session_index_js.html"
-      },
-      {
-        "path": "webstorage/storage_session_key.html",
-        "url": "/webstorage/storage_session_key.html"
-      },
-      {
-        "path": "webstorage/storage_session_length.html",
-        "url": "/webstorage/storage_session_length.html"
-      },
-      {
-        "path": "webstorage/storage_session_length_js.html",
-        "url": "/webstorage/storage_session_length_js.html"
-      },
-      {
-        "path": "webstorage/storage_session_removeitem.html",
-        "url": "/webstorage/storage_session_removeitem.html"
-      },
-      {
-        "path": "webstorage/storage_session_removeitem_js.html",
-        "url": "/webstorage/storage_session_removeitem_js.html"
-      },
-      {
-        "path": "webstorage/storage_session_setitem.html",
-        "url": "/webstorage/storage_session_setitem.html"
-      },
-      {
-        "path": "webstorage/storage_session_setitem_js.html",
-        "url": "/webstorage/storage_session_setitem_js.html"
+        "path": "webstorage/setitem.html",
+        "url": "/webstorage/setitem.html"
       },
       {
         "path": "webvtt/interfaces.html",
@@ -19167,49 +19099,144 @@
         "url": "/html/semantics/embedded-content/media-elements/video_loop_base.html"
       },
       {
+        "path": "html/semantics/embedded-content/the-img-element/sizes/parse-a-sizes-attribute.html",
+        "timeout": "long",
+        "url": "/html/semantics/embedded-content/the-img-element/sizes/parse-a-sizes-attribute.html"
+      },
+      {
         "path": "html/syntax/parsing/html5lib_adoption01.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_adoption01.html"
+        "url": "/html/syntax/parsing/html5lib_adoption01.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_adoption01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_adoption01.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_adoption01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_adoption01.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_adoption02.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_adoption02.html"
+        "url": "/html/syntax/parsing/html5lib_adoption02.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_adoption02.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_adoption02.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_adoption02.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_adoption02.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_comments01.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_comments01.html"
+        "url": "/html/syntax/parsing/html5lib_comments01.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_comments01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_comments01.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_comments01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_comments01.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_doctype01.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_doctype01.html"
+        "url": "/html/syntax/parsing/html5lib_doctype01.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_doctype01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_doctype01.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_doctype01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_doctype01.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_domjs-unsafe.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_domjs-unsafe.html"
+        "url": "/html/syntax/parsing/html5lib_domjs-unsafe.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_domjs-unsafe.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_domjs-unsafe.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_domjs-unsafe.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_domjs-unsafe.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_entities01.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_entities01.html"
+        "url": "/html/syntax/parsing/html5lib_entities01.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_entities01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_entities01.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_entities01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_entities01.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_entities02.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_entities02.html"
+        "url": "/html/syntax/parsing/html5lib_entities02.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_entities02.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_entities02.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_entities02.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_entities02.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_html5test-com.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_html5test-com.html"
+        "url": "/html/syntax/parsing/html5lib_html5test-com.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_html5test-com.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_html5test-com.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_html5test-com.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_html5test-com.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_inbody01.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_inbody01.html"
+        "url": "/html/syntax/parsing/html5lib_inbody01.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_inbody01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_inbody01.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_inbody01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_inbody01.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_innerHTML_tests4.html",
@@ -19234,192 +19261,572 @@
       {
         "path": "html/syntax/parsing/html5lib_isindex.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_isindex.html"
+        "url": "/html/syntax/parsing/html5lib_isindex.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_isindex.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_isindex.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_isindex.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_isindex.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_main-element.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_main-element.html"
+        "url": "/html/syntax/parsing/html5lib_main-element.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_main-element.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_main-element.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_main-element.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_main-element.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_pending-spec-changes-plain-text-unsafe.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_pending-spec-changes-plain-text-unsafe.html"
+        "url": "/html/syntax/parsing/html5lib_pending-spec-changes-plain-text-unsafe.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_pending-spec-changes-plain-text-unsafe.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_pending-spec-changes-plain-text-unsafe.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_pending-spec-changes-plain-text-unsafe.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_pending-spec-changes-plain-text-unsafe.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_pending-spec-changes.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_pending-spec-changes.html"
+        "url": "/html/syntax/parsing/html5lib_pending-spec-changes.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_pending-spec-changes.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_pending-spec-changes.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_pending-spec-changes.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_pending-spec-changes.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_plain-text-unsafe.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_plain-text-unsafe.html"
+        "url": "/html/syntax/parsing/html5lib_plain-text-unsafe.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_plain-text-unsafe.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_plain-text-unsafe.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_plain-text-unsafe.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_plain-text-unsafe.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_scriptdata01.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_scriptdata01.html"
+        "url": "/html/syntax/parsing/html5lib_scriptdata01.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_scriptdata01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_scriptdata01.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_scriptdata01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_scriptdata01.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_scripted_adoption01.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_scripted_adoption01.html"
+        "url": "/html/syntax/parsing/html5lib_scripted_adoption01.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_scripted_adoption01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_scripted_adoption01.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_scripted_adoption01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_scripted_adoption01.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_scripted_ark.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_scripted_ark.html"
+        "url": "/html/syntax/parsing/html5lib_scripted_ark.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_scripted_ark.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_scripted_ark.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_scripted_ark.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_scripted_ark.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_scripted_webkit01.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_scripted_webkit01.html"
+        "url": "/html/syntax/parsing/html5lib_scripted_webkit01.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_scripted_webkit01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_scripted_webkit01.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_scripted_webkit01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_scripted_webkit01.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tables01.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tables01.html"
+        "url": "/html/syntax/parsing/html5lib_tables01.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tables01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tables01.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tables01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tables01.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_template.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_template.html"
+        "url": "/html/syntax/parsing/html5lib_template.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_template.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_template.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_template.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_template.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests1.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests1.html"
+        "url": "/html/syntax/parsing/html5lib_tests1.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests1.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests1.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests1.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests1.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests10.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests10.html"
+        "url": "/html/syntax/parsing/html5lib_tests10.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests10.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests10.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests10.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests10.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests11.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests11.html"
+        "url": "/html/syntax/parsing/html5lib_tests11.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests11.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests11.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests11.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests11.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests12.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests12.html"
+        "url": "/html/syntax/parsing/html5lib_tests12.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests12.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests12.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests12.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests12.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests14.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests14.html"
+        "url": "/html/syntax/parsing/html5lib_tests14.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests14.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests14.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests14.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests14.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests15.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests15.html"
+        "url": "/html/syntax/parsing/html5lib_tests15.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests15.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests15.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests15.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests15.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests16.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests16.html"
+        "url": "/html/syntax/parsing/html5lib_tests16.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests16.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests16.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests16.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests16.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests17.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests17.html"
+        "url": "/html/syntax/parsing/html5lib_tests17.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests17.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests17.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests17.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests17.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests18.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests18.html"
+        "url": "/html/syntax/parsing/html5lib_tests18.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests18.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests18.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests18.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests18.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests19.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests19.html"
+        "url": "/html/syntax/parsing/html5lib_tests19.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests19.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests19.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests19.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests19.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests2.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests2.html"
+        "url": "/html/syntax/parsing/html5lib_tests2.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests2.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests2.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests2.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests2.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests20.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests20.html"
+        "url": "/html/syntax/parsing/html5lib_tests20.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests20.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests20.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests20.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests20.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests21.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests21.html"
+        "url": "/html/syntax/parsing/html5lib_tests21.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests21.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests21.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests21.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests21.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests22.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests22.html"
+        "url": "/html/syntax/parsing/html5lib_tests22.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests22.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests22.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests22.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests22.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests23.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests23.html"
+        "url": "/html/syntax/parsing/html5lib_tests23.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests23.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests23.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests23.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests23.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests24.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests24.html"
+        "url": "/html/syntax/parsing/html5lib_tests24.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests24.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests24.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests24.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests24.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests25.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests25.html"
+        "url": "/html/syntax/parsing/html5lib_tests25.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests25.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests25.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests25.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests25.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests26.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests26.html"
+        "url": "/html/syntax/parsing/html5lib_tests26.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests26.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests26.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests26.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests26.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests3.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests3.html"
+        "url": "/html/syntax/parsing/html5lib_tests3.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests3.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests3.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests3.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests3.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests5.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests5.html"
+        "url": "/html/syntax/parsing/html5lib_tests5.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests5.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests5.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests5.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests5.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests6.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests6.html"
+        "url": "/html/syntax/parsing/html5lib_tests6.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests6.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests6.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests6.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests6.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests7.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests7.html"
+        "url": "/html/syntax/parsing/html5lib_tests7.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests7.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests7.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests7.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests7.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests8.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests8.html"
+        "url": "/html/syntax/parsing/html5lib_tests8.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests8.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests8.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests8.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests8.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tests9.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tests9.html"
+        "url": "/html/syntax/parsing/html5lib_tests9.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests9.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests9.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tests9.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tests9.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_tricky01.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_tricky01.html"
+        "url": "/html/syntax/parsing/html5lib_tricky01.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tricky01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tricky01.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_tricky01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_tricky01.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_webkit01.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_webkit01.html"
+        "url": "/html/syntax/parsing/html5lib_webkit01.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_webkit01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_webkit01.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_webkit01.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_webkit01.html?run_type=write_single"
       },
       {
         "path": "html/syntax/parsing/html5lib_webkit02.html",
         "timeout": "long",
-        "url": "/html/syntax/parsing/html5lib_webkit02.html"
+        "url": "/html/syntax/parsing/html5lib_webkit02.html?run_type=uri"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_webkit02.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_webkit02.html?run_type=write"
+      },
+      {
+        "path": "html/syntax/parsing/html5lib_webkit02.html",
+        "timeout": "long",
+        "url": "/html/syntax/parsing/html5lib_webkit02.html?run_type=write_single"
       },
       {
         "path": "media-source/mediasource-redundant-seek.html",
@@ -24627,7 +25034,7 @@
       }
     ]
   },
-  "rev": "56db12eee9711048ea4c927a89b9e9e05fd97c1b",
+  "rev": "29dfb8944e535d439ca94cf7d1b1d9138a8ad11f",
   "url_base": "/",
   "version": 2
 }
