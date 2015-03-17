@@ -19,10 +19,10 @@ use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
 use inline::InlineFlow;
 use list_item::ListItemFlow;
-use model::{self, MaybeAuto};
+use model::{self, MaybeAuto, ToGfxMatrix};
 use opaque_node::OpaqueNodeMethods;
 
-use geom::{Point2D, Rect, Size2D, SideOffsets2D};
+use geom::{Matrix2D, Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
@@ -49,6 +49,7 @@ use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirec
 use style::values::computed::{Image, LinearGradient, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::RGBA;
 use style::computed_values::filter::Filter;
+use style::computed_values::transform::ComputedMatrix;
 use style::computed_values::{background_attachment, background_repeat, background_size};
 use style::computed_values::{border_style, image_rendering, overflow_x, position, visibility};
 use style::properties::style_structs::Border;
@@ -1369,6 +1370,22 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                                .relative_containing_block_mode,
                                                            CoordinateSystem::Parent);
 
+        let transform_origin = self.fragment.style().get_effects().transform_origin;
+        let transform_origin =
+            Point2D(model::specified(transform_origin.horizontal,
+                                     border_box.size.width).to_frac32_px(),
+                    model::specified(transform_origin.vertical,
+                                     border_box.size.height).to_frac32_px());
+        let transform = self.fragment
+                            .style()
+                            .get_effects()
+                            .transform
+                            .unwrap_or(ComputedMatrix::identity())
+                            .to_gfx_matrix(&border_box.size);
+        let transform = Matrix2D::identity().translate(transform_origin.x, transform_origin.y)
+                                            .mul(&transform)
+                                            .translate(-transform_origin.x, -transform_origin.y);
+
         // FIXME(pcwalton): Is this vertical-writing-direction-safe?
         let margin = self.fragment.margin.to_physical(self.base.writing_mode);
         let overflow = self.base.overflow.translate(&-Point2D(margin.left, Au(0)));
@@ -1384,6 +1401,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                       &border_box,
                                       &overflow,
                                       self.fragment.style().get_box().z_index.number_or_zero(),
+                                      &transform,
                                       filters,
                                       self.fragment.style().get_effects().mix_blend_mode,
                                       layer))

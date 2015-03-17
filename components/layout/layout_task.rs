@@ -24,35 +24,49 @@ use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
+use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
-use geom::size::Size2D;
 use geom::scale_factor::ScaleFactor;
+use geom::size::Size2D;
 use gfx::color;
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, OpaqueNode};
 use gfx::display_list::{StackingContext};
 use gfx::font_cache_task::FontCacheTask;
-use gfx::paint_task::{PaintChan, PaintLayer};
 use gfx::paint_task::Msg as PaintMsg;
+use gfx::paint_task::{PaintChan, PaintLayer};
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
-use script::dom::bindings::js::LayoutJS;
-use script::dom::node::{LayoutData, Node, NodeTypeId};
-use script::dom::element::ElementTypeId;
-use script::dom::htmlelement::HTMLElementTypeId;
-use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse};
-use script::layout_interface::ReflowQueryType;
-use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC};
-use script::layout_interface::{MouseOverResponse, Msg};
-use script::layout_interface::{Reflow, ReflowGoal, ScriptLayoutChan, TrustedNodeAddress};
-use script_traits::{ConstellationControlMsg, CompositorEvent, OpaqueScriptLayoutChannel};
-use script_traits::{ScriptControlChan, UntrustedNodeAddress};
 use msg::compositor_msg::ScrollPolicy;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
 use net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use net::local_image_cache::{ImageResponder, LocalImageCache};
 use net::resource_task::{ResourceTask, load_bytes_iter};
+use script::dom::bindings::js::LayoutJS;
+use script::dom::element::ElementTypeId;
+use script::dom::htmlelement::HTMLElementTypeId;
+use script::dom::node::{LayoutData, Node, NodeTypeId};
+use script::layout_interface::ReflowQueryType;
+use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse};
+use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC};
+use script::layout_interface::{MouseOverResponse, Msg};
+use script::layout_interface::{Reflow, ReflowGoal, ScriptLayoutChan, TrustedNodeAddress};
+use script_traits::{ConstellationControlMsg, CompositorEvent, OpaqueScriptLayoutChannel};
+use script_traits::{ScriptControlChan, UntrustedNodeAddress};
+use std::borrow::ToOwned;
+use std::cell::Cell;
+use std::mem;
+use std::ops::{Deref, DerefMut};
+use std::ptr;
+use std::sync::mpsc::{channel, Sender, Receiver, Select};
+use std::sync::{Arc, Mutex, MutexGuard};
+use style::computed_values::{filter, mix_blend_mode};
+use style::media_queries::{MediaType, MediaQueryList, Device};
+use style::node::TNode;
+use style::selector_matching::Stylist;
+use style::stylesheets::{Origin, Stylesheet, iter_font_face_rules};
+use url::Url;
 use util::cursor::Cursor;
 use util::geometry::Au;
 use util::logical_geometry::LogicalPoint;
@@ -65,19 +79,6 @@ use util::task_state;
 use util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan};
 use util::time::{TimerMetadataFrameType, TimerMetadataReflowType, profile};
 use util::workqueue::WorkQueue;
-use std::borrow::ToOwned;
-use std::cell::Cell;
-use std::ops::{Deref, DerefMut};
-use std::sync::mpsc::{channel, Sender, Receiver, Select};
-use std::mem;
-use std::ptr;
-use style::selector_matching::Stylist;
-use style::computed_values::{filter, mix_blend_mode};
-use style::stylesheets::{Origin, Stylesheet, iter_font_face_rules};
-use style::node::TNode;
-use style::media_queries::{MediaType, MediaQueryList, Device};
-use std::sync::{Arc, Mutex, MutexGuard};
-use url::Url;
 
 /// Mutable data belonging to the LayoutTask.
 ///
@@ -785,6 +786,7 @@ impl LayoutTask {
                                                                  &origin,
                                                                  &origin,
                                                                  0,
+                                                                 &Matrix2D::identity(),
                                                                  filter::T::new(Vec::new()),
                                                                  mix_blend_mode::T::normal,
                                                                  Some(paint_layer)));
