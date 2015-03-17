@@ -100,7 +100,7 @@ fn run_test(file: String) {
         true => prc_arg.join("servo"),
         _ => panic!("could not pop directory"),
     };
-    let mut prc = match Command::new(prc_arg)
+    let mut prc = match Command::new(prc_arg.to_str().unwrap())
         .args(args.as_slice())
         .stdin(Ignored)
         .stdout(stdout)
