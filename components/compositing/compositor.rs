@@ -128,6 +128,9 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// Pending scroll events.
     pending_scroll_events: Vec<ScrollEvent>,
+
+    /// Has a Quit event been seen?
+    has_seen_quit_event: bool,
 }
 
 pub struct ScrollEvent {
@@ -217,6 +220,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             fragment_point: None,
             outstanding_paint_msgs: 0,
             last_composite_time: 0,
+            has_seen_quit_event: false,
         }
     }
 
@@ -787,10 +791,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             WindowEvent::Quit => {
-                debug!("shutting down the constellation for WindowEvent::Quit");
-                let ConstellationChan(ref chan) = self.constellation_chan;
-                chan.send(ConstellationMsg::Exit).unwrap();
-                self.shutdown_state = ShutdownState::ShuttingDown;
+                if !self.has_seen_quit_event {
+                    self.has_seen_quit_event = true;
+                    debug!("shutting down the constellation for WindowEvent::Quit");
+                    let ConstellationChan(ref chan) = self.constellation_chan;
+                    chan.send(ConstellationMsg::Exit).unwrap();
+                    self.shutdown_state = ShutdownState::ShuttingDown;
+                }
             }
         }
     }
