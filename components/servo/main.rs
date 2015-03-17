@@ -41,7 +41,7 @@ use std::borrow::ToOwned;
 
 #[cfg(not(test))]
 struct BrowserWrapper {
-    browser: Browser<app::window::Window>,
+    browser: Browser,
 }
 
 #[cfg(target_os="android")]
@@ -58,7 +58,7 @@ fn get_args() -> Vec<String> {
 #[cfg(not(target_os="android"))]
 fn get_args() -> Vec<String> {
     use std::env;
-    env::args().map(|s| s.into_string().unwrap()).collect()
+    env::args().collect()
 }
 
 #[cfg(target_os="android")]
