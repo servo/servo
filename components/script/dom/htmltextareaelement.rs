@@ -9,22 +9,25 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, LayoutJS, Temporary, OptionalRootable};
+use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
-use dom::event::Event;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::FormControl;
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId};
-use dom::node::{document_from_node};
+use dom::node::{document_from_node, window_from_node};
 use textinput::{TextInput, Lines, KeyReaction};
 use dom::virtualmethods::VirtualMethods;
+use script_task::{ScriptMsg, Runnable};
 
 use util::str::DOMString;
 use string_cache::Atom;
@@ -38,7 +41,6 @@ pub struct HTMLTextAreaElement {
     textinput: DOMRefCell<TextInput>,
     cols: Cell<u32>,
     rows: Cell<u32>,
-
     // https://html.spec.whatwg.org/multipage/forms.html#concept-textarea-dirty
     value_changed: Cell<bool>,
 }
@@ -183,6 +185,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         // TODO move the cursor to the end of the field
         self.textinput.borrow_mut().set_content(value);
         self.value_changed.set(true);
+
         self.force_relayout();
     }
 }
@@ -207,6 +210,7 @@ impl<'a> HTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
 
 trait PrivateHTMLTextAreaElementHelpers {
     fn force_relayout(self);
+    fn dispatch_change_event(self);
 }
 
 impl<'a> PrivateHTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
@@ -214,6 +218,18 @@ impl<'a> PrivateHTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
         let doc = document_from_node(self).root();
         let node: JSRef<Node> = NodeCast::from_ref(self);
         doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
+    }
+
+    fn dispatch_change_event(self) {
+        let window = window_from_node(self).root();
+        let window = window.r();
+        let event = Event::new(GlobalRef::Window(window),
+                               "input".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
+
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        target.dispatch_event(event.r());
     }
 }
 
@@ -325,12 +341,24 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             doc.r().request_focus(ElementCast::from_ref(*self));
         } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() {
             let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
-            keyevent.map(|event| {
-                match self.textinput.borrow_mut().handle_keydown(event) {
+            keyevent.map(|kevent| {
+                match self.textinput.borrow_mut().handle_keydown(kevent) {
                     KeyReaction::TriggerDefaultAction => (),
                     KeyReaction::DispatchInput => {
-                        self.force_relayout();
                         self.value_changed.set(true);
+
+                        if event.IsTrusted() {
+                            let window = window_from_node(*self).root();
+                            let window = window.r();
+                            let chan = window.script_chan();
+                            let handler = Trusted::new(window.get_cx(), *self , chan.clone());
+                            let dispatcher = ChangeEventRunnable {
+                                element: handler,
+                            };
+                            let _ = chan.send(ScriptMsg::RunnableMsg(box dispatcher));
+                        }
+
+                        self.force_relayout();
                     }
                     KeyReaction::Nothing => (),
                 }
@@ -342,5 +370,16 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
 impl<'a> FormControl<'a> for JSRef<'a, HTMLTextAreaElement> {
     fn to_element(self) -> JSRef<'a, Element> {
         ElementCast::from_ref(self)
+    }
+}
+
+pub struct ChangeEventRunnable {
+    element: Trusted<HTMLTextAreaElement>,
+}
+
+impl Runnable for ChangeEventRunnable {
+    fn handler(self: Box<ChangeEventRunnable>) {
+        let target = self.element.to_temporary().root();
+        target.r().dispatch_change_event();
     }
 }
