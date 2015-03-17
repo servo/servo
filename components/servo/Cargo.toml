@@ -64,6 +64,9 @@ path = "../gfx"
 [dependencies.devtools]
 path = "../devtools"
 
+[dependencies.devtools_traits]
+path = "../devtools_traits"
+
 [dependencies.glutin_app]
 path = "../../ports/glutin"
 optional = true

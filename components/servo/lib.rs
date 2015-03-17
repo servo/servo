@@ -2,15 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(core, env, libc, path, rustc_private, std_misc, thread_local)]
+//! Servo, the mighty web browser engine from the future.
+//!
+//! This is a very simple library that wires all of Servo's components
+//! together as type `Browser`, along with a generic client
+//! implementing the `WindowMethods` trait, to create a working web
+//! browser.
+//!
+//! The `Browser` type is responsible for configuring a
+//! `Constellation`, which does the heavy lifting of coordinating all
+//! of Servo's internal subsystems, including the `ScriptTask` and the
+//! `LayoutTask`, as well maintains the navigation context.
+//!
+//! The `Browser` is fed events from a generic type that implements the
+//! `WindowMethods` trait.
+
+#![feature(core, env, libc, path, rustc_private, thread_local)]
 
 #![allow(missing_copy_implementations)]
 
-#[macro_use]
-extern crate log;
-
 extern crate compositing;
 extern crate devtools;
+extern crate devtools_traits;
 extern crate net;
 extern crate msg;
 #[macro_use]
@@ -20,119 +33,87 @@ extern crate layout;
 extern crate gfx;
 extern crate libc;
 extern crate url;
+#[macro_use]
+extern crate log;
 
 use compositing::CompositorEventListener;
 use compositing::windowing::{WindowEvent, WindowMethods};
-
-#[cfg(not(test))]
 use compositing::{CompositorProxy, CompositorTask, Constellation};
-#[cfg(not(test))]
+
 use msg::constellation_msg::Msg as ConstellationMsg;
-#[cfg(not(test))]
 use msg::constellation_msg::ConstellationChan;
-#[cfg(not(test))]
+
 use script::dom::bindings::codegen::RegisterBindings;
 
-#[cfg(not(test))]
 use net::image_cache_task::ImageCacheTask;
-#[cfg(not(test))]
 use net::resource_task::new_resource_task;
-#[cfg(not(test))]
-use net::storage_task::{StorageTaskFactory, StorageTask};
-#[cfg(not(test))]
+use net::storage_task::StorageTaskFactory;
+
 use gfx::font_cache_task::FontCacheTask;
-#[cfg(not(test))]
-use util::time::TimeProfiler;
-#[cfg(not(test))]
+
+use util::time::{TimeProfiler, TimeProfilerChan};
 use util::memory::MemoryProfiler;
-#[cfg(not(test))]
 use util::opts;
-#[cfg(not(test))]
 use util::taskpool::TaskPool;
 
-#[cfg(not(test))]
+use std::env;
 use std::rc::Rc;
-#[cfg(not(test))]
-use std::sync::mpsc::channel;
-#[cfg(not(test))]
-use std::thread::Builder;
+use std::sync::mpsc::Sender;
 
+/// The in-process interface to Servo.
+///
+/// It does everything necessary to render the web, primarily
+/// orchestrating the interaction between JavaScript, CSS layout,
+/// rendering, and the client window.
+///
+/// Clients create a `Browser` for a given reference-counted type
+/// implementing `WindowMethods`, which is the bridge to whatever
+/// application Servo is embedded in. Clients then create an event
+/// loop to pump messages between the embedding application and
+/// various browser components.
 pub struct Browser<Window> {
     compositor: Box<CompositorEventListener + 'static>,
 }
 
 impl<Window> Browser<Window> where Window: WindowMethods + 'static {
-    #[cfg(not(test))]
     pub fn new(window: Option<Rc<Window>>) -> Browser<Window> {
-        use std::env;
+        util::opts::set_experimental_enabled(opts::get().enable_experimental);
 
-        ::util::opts::set_experimental_enabled(opts::get().enable_experimental);
+        // Global configuration options, parsed from the command line.
         let opts = opts::get();
+
+        // Create the global vtables used by the (generated) DOM
+        // bindings to implement JS proxies.
         RegisterBindings::RegisterProxyHandlers();
 
+        // Use this thread pool to load-balance simple tasks, such as
+        // image decoding.
         let shared_task_pool = TaskPool::new(8);
 
-        let (compositor_proxy, compositor_receiver) =
-            WindowMethods::create_compositor_channel(&window);
         let time_profiler_chan = TimeProfiler::create(opts.time_profiler_period);
         let memory_profiler_chan = MemoryProfiler::create(opts.memory_profiler_period);
         let devtools_chan = opts.devtools_port.map(|port| {
             devtools::start_server(port)
         });
 
-        let opts_clone = opts.clone();
-        let time_profiler_chan_clone = time_profiler_chan.clone();
+        // Get both endpoints of a special channel for communication between
+        // the client window and the compositor. This channel is unique because
+        // messages to client may need to pump a platform-specific event loop
+        // to deliver the message.
+        let (compositor_proxy, compositor_receiver) =
+            WindowMethods::create_compositor_channel(&window);
 
-        let (result_chan, result_port) = channel();
-        let compositor_proxy_for_constellation = compositor_proxy.clone_compositor_proxy();
-        Builder::new()
-            .spawn(move || {
-            let opts = &opts_clone;
-            // Create a Servo instance.
-            let resource_task = new_resource_task(opts.user_agent.clone());
-            // If we are emitting an output file, then we need to block on
-            // image load or we risk emitting an output file missing the
-            // image.
-            let image_cache_task = if opts.output_file.is_some() {
-                ImageCacheTask::new_sync(resource_task.clone(), shared_task_pool,
-                                         time_profiler_chan_clone.clone())
-            } else {
-                ImageCacheTask::new(resource_task.clone(), shared_task_pool,
-                                    time_profiler_chan_clone.clone())
-            };
-            let font_cache_task = FontCacheTask::new(resource_task.clone());
-            let storage_task: StorageTask = StorageTaskFactory::new();
-            let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
-                                                     script::script_task::ScriptTask>::start(
-                                                          compositor_proxy_for_constellation,
-                                                          resource_task,
-                                                          image_cache_task,
-                                                          font_cache_task,
-                                                          time_profiler_chan_clone,
-                                                          devtools_chan,
-                                                          storage_task);
+        // Create the constellation, which maintains the engine
+        // pipelines, including the script and layout threads, as well
+        // as the navigation context.
+        let constellation_chan = create_constellation(opts.clone(),
+                                                      compositor_proxy.clone_compositor_proxy(),
+                                                      time_profiler_chan.clone(),
+                                                      devtools_chan,
+                                                      shared_task_pool);
 
-            // Send the URL command to the constellation.
-            let cwd = env::current_dir().unwrap();
-            for url in opts.urls.iter() {
-                let url = match url::Url::parse(&*url) {
-                    Ok(url) => url,
-                    Err(url::ParseError::RelativeUrlWithoutBase)
-                    => url::Url::from_file_path(&cwd.join(&*url)).unwrap(),
-                    Err(_) => panic!("URL parsing failed"),
-                };
-
-                let ConstellationChan(ref chan) = constellation_chan;
-                chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
-            }
-
-            // Send the constallation Chan as the result
-            result_chan.send(constellation_chan).unwrap();
-        });
-
-        let constellation_chan = result_port.recv().unwrap();
-
-        debug!("preparing to enter main loop");
+        // The compositor coordinates with the client window to create the final
+        // rendered page and display it somewhere.
         let compositor = CompositorTask::create(window,
                                                 compositor_proxy,
                                                 compositor_receiver,
@@ -166,3 +147,52 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
     }
 }
 
+fn create_constellation(opts: opts::Opts,
+                        compositor_proxy: Box<CompositorProxy+Send>,
+                        time_profiler_chan: TimeProfilerChan,
+                        devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
+                        shared_task_pool: TaskPool) -> ConstellationChan {
+
+    let resource_task = new_resource_task(opts.user_agent.clone());
+
+    // If we are emitting an output file, then we need to block on
+    // image load or we risk emitting an output file missing the
+    // image.
+    let image_cache_task = if opts.output_file.is_some() {
+        ImageCacheTask::new_sync(resource_task.clone(), shared_task_pool,
+                                 time_profiler_chan.clone())
+    } else {
+        ImageCacheTask::new(resource_task.clone(), shared_task_pool,
+                            time_profiler_chan.clone())
+    };
+
+    let font_cache_task = FontCacheTask::new(resource_task.clone());
+    let storage_task = StorageTaskFactory::new();
+
+    let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
+                                             script::script_task::ScriptTask>::start(
+                                                 compositor_proxy,
+                                                 resource_task,
+                                                 image_cache_task,
+                                                 font_cache_task,
+                                                 time_profiler_chan,
+                                                 devtools_chan,
+                                                 storage_task);
+
+    // If the global configuration asked to load a URL then send
+    // it to the constellation.
+    let cwd = env::current_dir().unwrap();
+    for url in opts.urls.iter() {
+        let url = match url::Url::parse(&*url) {
+            Ok(url) => url,
+            Err(url::ParseError::RelativeUrlWithoutBase)
+                => url::Url::from_file_path(&cwd.join(&*url)).unwrap(),
+            Err(_) => panic!("URL parsing failed"),
+        };
+
+        let ConstellationChan(ref chan) = constellation_chan;
+        chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
+    }
+
+    constellation_chan
+}
