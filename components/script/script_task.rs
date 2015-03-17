@@ -1148,7 +1148,9 @@ impl ScriptTask {
                        .find(|node| node.subpage_id() == Some(subpage_id))
                        .map(Temporary::from_rooted)
                 }).root();
-                iframe.r().unwrap().navigate_child_browsing_context(load_data.url);
+                if let Some(iframe) = iframe.r() {
+                    iframe.navigate_child_browsing_context(load_data.url);
+                }
             }
             None => {
                 let ConstellationChan(ref const_chan) = self.constellation_chan;
