@@ -953,7 +953,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             windowing::WindowNavigateMsg::Back => NavigationDirection::Back,
         };
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::Navigate(direction)).unwrap()
+        chan.send(ConstellationMsg::Navigate(None, direction)).unwrap()
     }
 
     fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {
