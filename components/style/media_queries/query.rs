@@ -177,9 +177,15 @@ pub struct MediaQuery {
 
 derive_display_using_to_css!(MediaQuery);
 
-const NOT_ALL_MEDIA_QUERY: MediaQuery =
+pub const ALL_MEDIA_QUERY: MediaQuery =
     MediaQuery {
         media_type: Some(QualifiedMediaType(None, MediaType::All)),
+        condition: None
+    };
+
+pub const NOT_ALL_MEDIA_QUERY: MediaQuery =
+    MediaQuery {
+        media_type: Some(QualifiedMediaType(Some(Qualifier::Not), MediaType::All)),
         condition: None
     };
 

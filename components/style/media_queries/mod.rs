@@ -20,7 +20,8 @@ mod feature;
 mod condition;
 mod query;
 
-use ::cssparser::Parser;
+use ::FromCss;
+use ::cssparser::{Parser, ToCss};
 use ::geom::size::TypedSize2D;
 use ::util::geometry::ViewportPx;
 
@@ -46,7 +47,44 @@ impl Device {
 
 #[derive(Debug, PartialEq)]
 pub struct MediaQueryList {
-    media_queries: Vec<MediaQuery>
+    queries: Vec<MediaQuery>
+}
+
+impl FromCss for MediaQueryList {
+    type Err = ();
+
+    fn from_css(input: &mut Parser) -> Result<MediaQueryList, ()> {
+        let queries = if input.is_exhausted() {
+            // MQ 4 § 2.1
+            // An empty media query list evaluates to true.
+            vec![query::ALL_MEDIA_QUERY]
+        } else {
+            match input.parse_comma_separated(FromCss::from_css) {
+                Ok(queries) => queries,
+                // MediaQuery::from_css returns `not all` (and consumes any
+                // remaining input of the query) on error
+                Err(_) => unreachable!()
+            }
+        };
+
+        Ok(MediaQueryList { queries: queries })
+    }
+}
+
+impl ToCss for MediaQueryList {
+    fn to_css<W>(&self, dest: &mut W) -> ::text_writer::Result
+        where W: ::text_writer::TextWriter
+    {
+        if !self.queries.is_empty() {
+            try!(self.queries[0].to_css(dest));
+
+            for query in &self.queries[1..] {
+                try!(write!(dest, ", "));
+                try!(query.to_css(dest));
+            }
+        }
+        Ok(())
+    }
 }
 
 impl MediaQueryList {
@@ -56,5 +94,5 @@ impl MediaQueryList {
 }
 
 pub fn parse_media_query_list(input: &mut Parser) -> MediaQueryList {
-    MediaQueryList { media_queries: vec![] }
+    FromCss::from_css(input).unwrap()
 }
