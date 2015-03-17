@@ -252,6 +252,12 @@ impl Au {
     }
 
     #[inline]
+    pub fn to_frac32_px(&self) -> f32 {
+        let Au(s) = *self;
+        (s as f32) / 60f32
+    }
+
+    #[inline]
     pub fn to_subpx(&self) -> f64 {
         let Au(s) = *self;
         (s as f64) / 60f64

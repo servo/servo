@@ -90,6 +90,9 @@ partial interface CSSStyleDeclaration {
 
   [TreatNullAs=EmptyString] attribute DOMString clip;
 
+  [TreatNullAs=EmptyString] attribute DOMString transform;
+  [TreatNullAs=EmptyString] attribute DOMString transformOrigin;
+
   [TreatNullAs=EmptyString] attribute DOMString direction;
 
   [TreatNullAs=EmptyString] attribute DOMString filter;

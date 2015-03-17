@@ -267,6 +267,8 @@ experimental == rtl_simple.html rtl_simple_ref.html
 == text_transform_lowercase_a.html text_transform_lowercase_ref.html
 == text_transform_none_a.html text_transform_none_ref.html
 == text_transform_uppercase_a.html text_transform_uppercase_ref.html
+== transform_simple_a.html transform_simple_ref.html
+== transform_stacking_context_a.html transform_stacking_context_ref.html
 == upper_id_attr.html upper_id_attr_ref.html
 flaky_cpu,experimental == vertical-lr-blocks.html vertical-lr-blocks_ref.html
 == vertical_align_bottom_a.html vertical_align_bottom_ref.html
