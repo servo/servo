@@ -15,6 +15,8 @@
 //!
 //! [glutin]: https://github.com/tomaka/glutin
 
+#![feature(start)]
+
 // The Servo engine
 extern crate servo;
 // Window graphics compositing and message dispatch
@@ -36,6 +38,9 @@ use util::opts;
 use net::resource_task;
 use servo::Browser;
 use compositing::windowing::WindowEvent;
+
+#[cfg(target_os="android")]
+use std::borrow::ToOwned;
 
 fn main() {
     // Parse the command line options and store them globally
@@ -151,9 +156,17 @@ fn get_args() -> Vec<String> {
     env::args().collect()
 }
 
+// This macro must be used at toplevel because it defines a nested
+// module, but macros can only accept identifiers - not paths -
+// preventing the expansion of this macro within the android module
+// without use of an additionl stub method or other hackery.
+#[cfg(target_os = "android")]
+android_start!(main);
+
 #[cfg(target_os = "android")]
 mod android {
     extern crate libc;
+    extern crate android_glue;
 
     use self::libc::c_int;
     use std::borrow::ToOwned;
@@ -164,8 +177,6 @@ mod android {
         redirect_output(STDERR_FILENO);
         redirect_output(STDOUT_FILENO);
     }
-
-    android_start!(main);
 
     struct FilePtr(*mut self::libc::types::common::c95::FILE);
 
