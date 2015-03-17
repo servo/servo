@@ -6,30 +6,29 @@
 
 #![deny(unsafe_blocks)]
 
-use block::{self, BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use block::{ISizeConstraintInput, ISizeConstraintSolution};
+use block::{self, BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use floats::FloatKind;
-use flow::{self, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
 use flow::{ImmutableFlowUtils, MutableFlowUtils};
+use flow::{self, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
 use fragment::{Fragment, FragmentBorderBoxIterator};
+use geom::{Point2D, Rect};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
-use table_row::CellIntrinsicInlineSize;
-use table_wrapper::TableLayout;
-use wrapper::ThreadSafeLayoutNode;
-
-use geom::{Point2D, Rect};
 use std::cmp::max;
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::properties::ComputedValues;
-use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::CSSFloat;
+use table_row::CellIntrinsicInlineSize;
+use table_wrapper::TableLayout;
 use util::geometry::Au;
 use util::logical_geometry::{LogicalRect, WritingMode};
+use wrapper::ThreadSafeLayoutNode;
 
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
 /// The properties `position`, `float`, and `margin-*` are used on the table wrapper fragment,

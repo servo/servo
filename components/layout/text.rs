@@ -7,26 +7,25 @@
 #![deny(unsafe_blocks)]
 
 use fragment::{Fragment, SpecificFragmentInfo, ScannedTextFragmentInfo};
-use inline::InlineFragments;
-
+use gfx::font_context::FontContext;
 use gfx::font::{DISABLE_KERNING_SHAPING_FLAG, FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG};
 use gfx::font::{RunMetrics, ShapingFlags, ShapingOptions};
-use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
+use inline::InlineFragments;
+use std::collections::DList;
+use std::mem;
+use std::sync::Arc;
+use style::computed_values::{line_height, text_orientation, text_rendering, text_transform};
+use style::computed_values::{white_space};
+use style::properties::ComputedValues;
+use style::properties::style_structs::Font as FontStyle;
 use util::dlist;
 use util::geometry::Au;
 use util::logical_geometry::{LogicalSize, WritingMode};
 use util::range::Range;
 use util::smallvec::{SmallVec, SmallVec1};
-use std::collections::DList;
-use std::mem;
-use style::computed_values::{line_height, text_orientation, text_rendering, text_transform};
-use style::computed_values::{white_space};
-use style::properties::ComputedValues;
-use style::properties::style_structs::Font as FontStyle;
-use std::sync::Arc;
 
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextFragment`s.
 pub struct TextRunScanner {

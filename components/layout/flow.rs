@@ -25,44 +25,43 @@
 ///   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
 ///   similar methods.
 
-use css::node_style::StyledNode;
 use block::BlockFlow;
 use context::LayoutContext;
+use css::node_style::StyledNode;
 use display_list_builder::DisplayListBuildingResult;
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::{FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
+use geom::{Point2D, Rect, Size2D};
+use gfx::display_list::ClippingRegion;
 use incremental::{self, RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
+use msg::compositor_msg::LayerId;
+use msg::constellation_msg::ConstellationChan;
 use parallel::FlowParallelInfo;
-use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
+use rustc_serialize::{Encoder, Encodable};
+use std::fmt;
+use std::iter::Zip;
+use std::mem;
+use std::num::FromPrimitive;
+use std::raw;
+use std::slice::IterMut;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUint, Ordering};
+use style::computed_values::{clear, empty_cells, float, position, text_align};
+use style::properties::ComputedValues;
 use table_caption::TableCaptionFlow;
 use table_cell::TableCellFlow;
 use table_colgroup::TableColGroupFlow;
-use table_row::TableRowFlow;
+use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
 use table_rowgroup::TableRowGroupFlow;
+use table_row::TableRowFlow;
 use table_wrapper::TableWrapperFlow;
-use wrapper::ThreadSafeLayoutNode;
-
-use geom::{Point2D, Rect, Size2D};
-use gfx::display_list::ClippingRegion;
-use rustc_serialize::{Encoder, Encodable};
-use msg::constellation_msg::ConstellationChan;
-use msg::compositor_msg::LayerId;
 use util::geometry::{Au, ZERO_RECT};
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use std::mem;
-use std::fmt;
-use std::iter::Zip;
-use std::num::FromPrimitive;
-use std::raw;
-use std::sync::atomic::{AtomicUint, Ordering};
-use std::slice::IterMut;
-use style::computed_values::{clear, empty_cells, float, position, text_align};
-use style::properties::ComputedValues;
-use std::sync::Arc;
+use wrapper::ThreadSafeLayoutNode;
 
 /// Virtual methods that make up a float context.
 ///

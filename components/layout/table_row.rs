@@ -11,21 +11,20 @@ use block::ISizeAndMarginsComputer;
 use context::LayoutContext;
 use flow::{self, FlowClass, Flow, ImmutableFlowUtils};
 use fragment::{Fragment, FragmentBorderBoxIterator};
-use layout_debug;
-use table::{ChildInlineSizeInfo, ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
-use table::{InternalTable};
-use model::MaybeAuto;
-use wrapper::ThreadSafeLayoutNode;
-
 use geom::{Point2D, Rect};
-use util::geometry::Au;
-use util::logical_geometry::LogicalRect;
+use layout_debug;
+use model::MaybeAuto;
 use std::cmp::max;
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::border_spacing;
 use style::properties::ComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
+use table::{ChildInlineSizeInfo, ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
+use table::{InternalTable};
+use util::geometry::Au;
+use util::logical_geometry::LogicalRect;
+use wrapper::ThreadSafeLayoutNode;
 
 /// A single row of a table.
 #[derive(RustcEncodable)]

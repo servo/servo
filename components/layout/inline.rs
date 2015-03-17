@@ -4,39 +4,38 @@
 
 #![deny(unsafe_blocks)]
 
-use css::node_style::StyledNode;
+use collections::{RingBuf};
 use context::LayoutContext;
+use css::node_style::StyledNode;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
 use floats::{FloatKind, Floats, PlacementInfo};
+use flow;
 use flow::{BaseFlow, FlowClass, Flow, MutableFlowUtils, ForceNonfloatedFlag};
 use flow::{IS_ABSOLUTELY_POSITIONED};
-use flow;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, ScannedTextFragmentInfo};
 use fragment::{SpecificFragmentInfo, SplitInfo};
+use geom::{Point2D, Rect};
+use gfx::font_context::FontContext;
+use gfx::font::FontMetrics;
+use gfx::text::glyph::CharIndex;
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
 use layout_debug;
 use model::IntrinsicISizesContribution;
-use text;
-
-use collections::{RingBuf};
-use geom::{Point2D, Rect};
-use gfx::font::FontMetrics;
-use gfx::font_context::FontContext;
-use gfx::text::glyph::CharIndex;
-use util::arc_ptr_eq;
-use util::geometry::{Au, ZERO_RECT};
-use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use util::range::{Range, RangeIndex};
 use std::cmp::max;
 use std::fmt;
 use std::mem;
 use std::num::ToPrimitive;
 use std::ops::{Add, Sub, Mul, Div, Rem, Neg, Shl, Shr, Not, BitOr, BitAnd, BitXor};
+use std::sync::Arc;
 use std::u16;
 use style::computed_values::{overflow_x, text_align, text_justify, text_overflow, vertical_align};
 use style::computed_values::{white_space};
 use style::properties::ComputedValues;
-use std::sync::Arc;
+use text;
+use util::arc_ptr_eq;
+use util::geometry::{Au, ZERO_RECT};
+use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
+use util::range::{Range, RangeIndex};
 
 // From gfxFontConstants.h in Firefox
 static FONT_SUBSCRIPT_OFFSET_RATIO: f64 = 0.20;

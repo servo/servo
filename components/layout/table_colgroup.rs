@@ -10,16 +10,15 @@ use context::LayoutContext;
 use css::node_style::StyledNode;
 use flow::{BaseFlow, FlowClass, Flow, ForceNonfloatedFlag};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use layout_debug;
-use wrapper::ThreadSafeLayoutNode;
-
 use geom::{Point2D, Rect};
-use util::geometry::{Au, ZERO_RECT};
+use layout_debug;
 use std::cmp::max;
 use std::fmt;
-use style::values::computed::LengthOrPercentageOrAuto;
-use style::properties::ComputedValues;
 use std::sync::Arc;
+use style::properties::ComputedValues;
+use style::values::computed::LengthOrPercentageOrAuto;
+use util::geometry::{Au, ZERO_RECT};
+use wrapper::ThreadSafeLayoutNode;
 
 /// A table formatting context.
 pub struct TableColGroupFlow {

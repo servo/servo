@@ -35,12 +35,12 @@
 use canvas::canvas_paint_task::CanvasMsg;
 use context::SharedLayoutContext;
 use css::node_style::StyledNode;
-use incremental::RestyleDamage;
-use data::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
-use opaque_node::OpaqueNodeMethods;
-
 use cssparser::RGBA;
+use data::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
 use gfx::display_list::OpaqueNode;
+use incremental::RestyleDamage;
+use msg::constellation_msg::{PipelineId, SubpageId};
+use opaque_node::OpaqueNodeMethods;
 use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLCanvasElementCast, HTMLImageElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast};
@@ -48,19 +48,18 @@ use script::dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
-use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
+use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
-use script::dom::node::{Node, NodeTypeId};
-use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData};
 use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
+use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData};
+use script::dom::node::{Node, NodeTypeId};
 use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
-use msg::constellation_msg::{PipelineId, SubpageId};
-use util::str::{LengthOrPercentageOrAuto, is_whitespace};
+use selectors::parser::{NamespaceConstraint, AttrSelector};
 use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
 use std::marker::ContravariantLifetime;
@@ -69,12 +68,12 @@ use std::sync::mpsc::Sender;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
-use selectors::parser::{NamespaceConstraint, AttrSelector};
 use style::legacy::{IntegerAttribute, LengthAttribute, SimpleColorAttribute};
 use style::legacy::{UnsignedIntegerAttribute};
 use style::node::{TElement, TElementAttributes, TNode};
 use style::properties::PropertyDeclarationBlock;
 use url::Url;
+use util::str::{LengthOrPercentageOrAuto, is_whitespace};
 
 /// Allows some convenience methods on generic layout nodes.
 pub trait TLayoutNode {

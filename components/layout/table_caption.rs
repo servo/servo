@@ -10,14 +10,13 @@ use block::BlockFlow;
 use context::LayoutContext;
 use flow::{FlowClass, Flow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
-use wrapper::ThreadSafeLayoutNode;
-
 use geom::{Point2D, Rect};
+use std::fmt;
+use std::sync::Arc;
+use style::properties::ComputedValues;
 use util::geometry::Au;
 use util::logical_geometry::LogicalRect;
-use std::fmt;
-use style::properties::ComputedValues;
-use std::sync::Arc;
+use wrapper::ThreadSafeLayoutNode;
 
 /// A table formatting context.
 pub struct TableCaptionFlow {

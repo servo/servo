@@ -4,7 +4,6 @@
 
 use flow::Flow;
 use flow_ref::FlowRef;
-
 use std::collections::{dlist, DList};
 
 // This needs to be reworked now that we have dynamically-sized types in Rust.

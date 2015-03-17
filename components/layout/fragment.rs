@@ -7,55 +7,54 @@
 #![deny(unsafe_blocks)]
 
 use canvas::canvas_paint_task::CanvasMsg;
-use css::node_style::StyledNode;
 use context::LayoutContext;
+use css::node_style::StyledNode;
 use floats::ClearType;
 use flow;
 use flow::Flow;
 use flow_ref::FlowRef;
-use incremental::{self, RestyleDamage};
-use inline::{InlineFragmentContext, InlineMetrics};
-use layout_debug;
-use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
-use model;
-use text;
-use opaque_node::OpaqueNodeMethods;
-use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
-
 use geom::num::Zero;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
-use script_traits::UntrustedNodeAddress;
-use rustc_serialize::{Encodable, Encoder};
+use incremental::{self, RestyleDamage};
+use inline::{InlineFragmentContext, InlineMetrics};
+use layout_debug;
+use model;
+use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net::image::holder::ImageHolder;
 use net::local_image_cache::LocalImageCache;
-use util::geometry::{self, Au, ZERO_POINT};
-use util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin, WritingMode};
-use util::range::*;
-use util::smallvec::SmallVec;
-use util::str::is_whitespace;
+use opaque_node::OpaqueNodeMethods;
+use rustc_serialize::{Encodable, Encoder};
+use script_traits::UntrustedNodeAddress;
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::collections::DList;
 use std::fmt;
 use std::num::ToPrimitive;
 use std::str::FromStr;
-use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc::Sender;
 use string_cache::Atom;
-use style::computed_values::content::ContentItem;
 use style::computed_values::{clear, mix_blend_mode, overflow_wrap};
+use style::computed_values::content::ContentItem;
 use style::computed_values::{position, text_align, text_decoration, vertical_align, white_space};
 use style::computed_values::{word_break};
 use style::node::{TElement, TNode};
 use style::properties::{ComputedValues, cascade_anonymous, make_border};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
+use text;
 use text::TextRunScanner;
 use url::Url;
+use util::geometry::{self, Au, ZERO_POINT};
+use util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin, WritingMode};
+use util::range::*;
+use util::smallvec::SmallVec;
+use util::str::is_whitespace;
+use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, fragments do not have a simple correspondence with CSS fragments in the

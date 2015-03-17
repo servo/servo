@@ -9,23 +9,22 @@
 #![allow(unsafe_blocks)]
 
 use context::{LayoutContext, SharedLayoutContextWrapper, SharedLayoutContext};
-use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
-use flow;
-use flow_ref::FlowRef;
 use data::{LayoutDataAccess, LayoutDataWrapper};
-use traversal::{BubbleISizes, AssignISizes, AssignBSizesAndStoreOverflow};
-use traversal::{ComputeAbsolutePositions, BuildDisplayList};
-use traversal::{RecalcStyleForNode, ConstructFlows};
-use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode};
-use wrapper::{PostorderNodeMutTraversal, UnsafeLayoutNode};
-use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
-
-use util::opts;
-use util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan, profile};
-use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
+use flow;
+use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
+use flow_ref::FlowRef;
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicInt, Ordering};
+use traversal::{BubbleISizes, AssignISizes, AssignBSizesAndStoreOverflow};
+use traversal::{ComputeAbsolutePositions, BuildDisplayList};
+use traversal::{RecalcStyleForNode, ConstructFlows};
+use util::opts;
+use util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan, profile};
+use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
+use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode};
+use wrapper::{PostorderNodeMutTraversal, UnsafeLayoutNode};
+use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeLayoutNode) {

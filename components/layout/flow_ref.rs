@@ -10,10 +10,9 @@
 
 #![allow(unsafe_blocks)]
 
-use flow::Flow;
-use flow;
-
 use alloc::heap;
+use flow;
+use flow::Flow;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
