@@ -1167,10 +1167,10 @@ impl<'a> Iterator for NodeIterator {
                                                          .expect("Got to root without reaching start node")
                                                          .root()
                                                          .get_unsound_ref_forever();
-                                    self.depth -= 1;
                                     if JS::from_rooted(candidate) == self.start_node {
                                         break;
                                     }
+                                    self.depth -= 1;
                                 }
                                 if JS::from_rooted(candidate) != self.start_node {
                                     candidate.next_sibling().map(|node| JS::from_rooted(node.root().r()))
