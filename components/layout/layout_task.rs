@@ -56,6 +56,8 @@ use net::resource_task::{ResourceTask, load_bytes_iter};
 use util::cursor::Cursor;
 use util::geometry::Au;
 use util::logical_geometry::LogicalPoint;
+use util::memory::{MemoryProfilerChan, MemoryProfilerMsg, MemoryReport, MemoryReportsChan};
+use util::memory::{SizeOf};
 use util::opts;
 use util::smallvec::{SmallVec, SmallVec1, VecLike};
 use util::task::spawn_named_with_send_on_failure;
@@ -117,6 +119,9 @@ pub struct LayoutTask {
     /// The ID of the pipeline that we belong to.
     pub id: PipelineId,
 
+    /// The URL of the pipeline that we belong to.
+    pub url: Url,
+
     /// The port on which we receive messages from the script task.
     pub port: Receiver<Msg>,
 
@@ -137,6 +142,12 @@ pub struct LayoutTask {
 
     /// The channel on which messages can be sent to the time profiler.
     pub time_profiler_chan: TimeProfilerChan,
+
+    /// The channel on which messages can be sent to the memory profiler.
+    pub memory_profiler_chan: MemoryProfilerChan,
+
+    /// The name used for the task's memory reporter.
+    pub memory_reporter_name: String,
 
     /// The channel on which messages can be sent to the resource task.
     pub resource_task: ResourceTask,
@@ -181,6 +192,7 @@ impl LayoutTaskFactory for LayoutTask {
     /// Spawns a new layout task.
     fn create(_phantom: Option<&mut LayoutTask>,
                   id: PipelineId,
+                  url: Url,
                   chan: OpaqueScriptLayoutChannel,
                   pipeline_port: Receiver<LayoutControlMsg>,
                   constellation_chan: ConstellationChan,
@@ -191,6 +203,7 @@ impl LayoutTaskFactory for LayoutTask {
                   img_cache_task: ImageCacheTask,
                   font_cache_task: FontCacheTask,
                   time_profiler_chan: TimeProfilerChan,
+                  memory_profiler_chan: MemoryProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
         spawn_named_with_send_on_failure("LayoutTask", task_state::LAYOUT, move || {
@@ -199,6 +212,7 @@ impl LayoutTaskFactory for LayoutTask {
                 let layout =
                     LayoutTask::new(
                         id,
+                        url,
                         chan.receiver(),
                         LayoutChan(sender),
                         pipeline_port,
@@ -208,7 +222,8 @@ impl LayoutTaskFactory for LayoutTask {
                         resource_task,
                         img_cache_task,
                         font_cache_task,
-                        time_profiler_chan);
+                        time_profiler_chan,
+                        memory_profiler_chan);
                 layout.start();
             }
             shutdown_chan.send(()).unwrap();
@@ -249,6 +264,7 @@ impl<'a> DerefMut for RWGuard<'a> {
 impl LayoutTask {
     /// Creates a new `LayoutTask` structure.
     fn new(id: PipelineId,
+           url: Url,
            port: Receiver<Msg>,
            chan: LayoutChan,
            pipeline_port: Receiver<LayoutControlMsg>,
@@ -258,7 +274,8 @@ impl LayoutTask {
            resource_task: ResourceTask,
            image_cache_task: ImageCacheTask,
            font_cache_task: FontCacheTask,
-           time_profiler_chan: TimeProfilerChan)
+           time_profiler_chan: TimeProfilerChan,
+           memory_profiler_chan: MemoryProfilerChan)
            -> LayoutTask {
         let local_image_cache =
             Arc::new(Mutex::new(LocalImageCache::new(image_cache_task.clone())));
@@ -271,8 +288,15 @@ impl LayoutTask {
             None
         };
 
+        // Register this thread as a memory reporter, via its own channel.
+        let reporter = Box::new(chan.clone());
+        let reporter_name = format!("layout-reporter-{}", id.0);
+        memory_profiler_chan.send(MemoryProfilerMsg::RegisterMemoryReporter(reporter_name.clone(),
+                                                                            reporter));
+
         LayoutTask {
             id: id,
+            url: url,
             port: port,
             pipeline_port: pipeline_port,
             chan: chan,
@@ -280,6 +304,8 @@ impl LayoutTask {
             constellation_chan: constellation_chan.clone(),
             paint_chan: paint_chan,
             time_profiler_chan: time_profiler_chan,
+            memory_profiler_chan: memory_profiler_chan,
+            memory_reporter_name: reporter_name,
             resource_task: resource_task,
             image_cache_task: image_cache_task.clone(),
             font_cache_task: font_cache_task,
@@ -361,13 +387,13 @@ impl LayoutTask {
             PortToRead::Pipeline => {
                 match self.pipeline_port.recv().unwrap() {
                     LayoutControlMsg::ExitNowMsg(exit_type) => {
-                        self.handle_script_request(Msg::ExitNow(exit_type), possibly_locked_rw_data)
+                        self.handle_request_helper(Msg::ExitNow(exit_type), possibly_locked_rw_data)
                     }
                 }
             },
             PortToRead::Script => {
                 let msg = self.port.recv().unwrap();
-                self.handle_script_request(msg, possibly_locked_rw_data)
+                self.handle_request_helper(msg, possibly_locked_rw_data)
             }
         }
     }
@@ -398,8 +424,8 @@ impl LayoutTask {
         }
     }
 
-    /// Receives and dispatches messages from the script task.
-    fn handle_script_request<'a>(&'a self,
+    /// Receives and dispatches messages from other tasks.
+    fn handle_request_helper<'a>(&'a self,
                                  request: Msg,
                                  possibly_locked_rw_data: &mut Option<MutexGuard<'a,
                                                                                  LayoutTaskData>>)
@@ -423,6 +449,9 @@ impl LayoutTask {
                     self.handle_reap_layout_data(dead_layout_data)
                 }
             },
+            Msg::CollectMemoryReports(reports_chan) => {
+                self.collect_memory_reports(reports_chan, possibly_locked_rw_data);
+            },
             Msg::PrepareToExit(response_chan) => {
                 debug!("layout: PrepareToExitMsg received");
                 self.prepare_to_exit(response_chan, possibly_locked_rw_data);
@@ -436,6 +465,23 @@ impl LayoutTask {
         }
 
         true
+    }
+
+    fn collect_memory_reports<'a>(&'a self,
+                                  reports_chan: MemoryReportsChan,
+                                  possibly_locked_rw_data:
+                                      &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+        let mut reports = vec![];
+
+        // FIXME(njn): Just measuring the display tree for now.
+        let rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        let stacking_context = rw_data.stacking_context.as_ref();
+        reports.push(MemoryReport {
+            name: format!("display-list::{}", self.url),
+            size: stacking_context.map_or(0, |sc| sc.size_of_excluding_self() as u64),
+        });
+
+        reports_chan.send(reports);
     }
 
     /// Enters a quiescent state in which no new messages except for `layout_interface::Msg::ReapLayoutData` will be
@@ -480,6 +526,10 @@ impl LayoutTask {
             }
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
+
+        let unregister_msg =
+            MemoryProfilerMsg::UnregisterMemoryReporter(self.memory_reporter_name.clone());
+        self.memory_profiler_chan.send(unregister_msg);
 
         self.paint_chan.send(PaintMsg::Exit(Some(response_chan), exit_type));
         response_port.recv().unwrap()

@@ -1348,12 +1348,8 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         while self.port.try_recv_compositor_msg().is_some() {}
 
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
-        let TimeProfilerChan(ref time_profiler_chan) = self.time_profiler_chan;
-        time_profiler_chan.send(time::TimeProfilerMsg::Exit).unwrap();
-
-        let MemoryProfilerChan(ref memory_profiler_chan) = self.memory_profiler_chan;
-        memory_profiler_chan.send(memory::MemoryProfilerMsg::Exit).unwrap();
-
+        self.time_profiler_chan.send(time::TimeProfilerMsg::Exit);
+        self.memory_profiler_chan.send(memory::MemoryProfilerMsg::Exit);
         self.scrolling_timer.shutdown();
     }
 

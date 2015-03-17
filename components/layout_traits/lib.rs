@@ -8,6 +8,7 @@ extern crate gfx;
 extern crate script_traits;
 extern crate msg;
 extern crate net;
+extern crate url;
 extern crate util;
 
 // This module contains traits in layout used generically
@@ -20,6 +21,8 @@ use gfx::paint_task::PaintChan;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, PipelineExitType};
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
+use url::Url;
+use util::memory::MemoryProfilerChan;
 use util::time::TimeProfilerChan;
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel};
 use std::sync::mpsc::{Sender, Receiver};
@@ -38,6 +41,7 @@ pub trait LayoutTaskFactory {
     // FIXME: use a proper static method
     fn create(_phantom: Option<&mut Self>,
               id: PipelineId,
+              url: Url,
               chan: OpaqueScriptLayoutChannel,
               pipeline_port: Receiver<LayoutControlMsg>,
               constellation_chan: ConstellationChan,
@@ -48,5 +52,6 @@ pub trait LayoutTaskFactory {
               img_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: TimeProfilerChan,
+              memory_profiler_chan: MemoryProfilerChan,
               shutdown_chan: Sender<()>);
 }

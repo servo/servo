@@ -37,6 +37,7 @@ use net::image::base::Image;
 use util::cursor::Cursor;
 use util::dlist as servo_dlist;
 use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
+use util::memory::SizeOf;
 use util::range::Range;
 use util::smallvec::{SmallVec, SmallVec8};
 use std::fmt;
@@ -195,6 +196,17 @@ impl DisplayList {
                 }
             }
         }
+    }
+}
+
+impl SizeOf for DisplayList {
+    fn size_of_excluding_self(&self) -> usize {
+        self.background_and_borders.size_of_excluding_self() +
+            self.block_backgrounds_and_borders.size_of_excluding_self() +
+            self.floats.size_of_excluding_self() +
+            self.content.size_of_excluding_self() +
+            self.outlines.size_of_excluding_self() +
+            self.children.size_of_excluding_self()
     }
 }
 
@@ -501,6 +513,14 @@ impl StackingContext {
     }
 }
 
+impl SizeOf for StackingContext {
+    fn size_of_excluding_self(&self) -> usize {
+        self.display_list.size_of_excluding_self()
+
+        // FIXME(njn): other fields may be measured later, esp. `layer`
+    }
+}
+
 /// Returns the stacking context in the given tree of stacking contexts with a specific layer ID.
 pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id: LayerId)
                                            -> Option<Arc<StackingContext>> {
@@ -553,6 +573,13 @@ impl BaseDisplayItem {
             metadata: metadata,
             clip: clip,
         }
+    }
+}
+
+impl SizeOf for BaseDisplayItem {
+    fn size_of_excluding_self(&self) -> usize {
+        self.metadata.size_of_excluding_self() +
+            self.clip.size_of_excluding_self()
     }
 }
 
@@ -681,6 +708,18 @@ impl ClippingRegion {
     }
 }
 
+impl SizeOf for ClippingRegion {
+    fn size_of_excluding_self(&self) -> usize {
+        self.complex.size_of_excluding_self()
+    }
+}
+
+impl SizeOf for ComplexClippingRegion {
+    fn size_of_excluding_self(&self) -> usize {
+        0
+    }
+}
+
 /// Metadata attached to each display item. This is useful for performing auxiliary tasks with
 /// the display list involving hit testing: finding the originating DOM node and determining the
 /// cursor to use when the element is hovered over.
@@ -712,6 +751,12 @@ impl DisplayItemMetadata {
     }
 }
 
+impl SizeOf for DisplayItemMetadata {
+    fn size_of_excluding_self(&self) -> usize {
+        0
+    }
+}
+
 /// Paints a solid color.
 #[derive(Clone)]
 pub struct SolidColorDisplayItem {
@@ -720,6 +765,12 @@ pub struct SolidColorDisplayItem {
 
     /// The color.
     pub color: Color,
+}
+
+impl SizeOf for SolidColorDisplayItem {
+    fn size_of_excluding_self(&self) -> usize {
+        self.base.size_of_excluding_self()
+    }
 }
 
 /// Paints text.
@@ -747,6 +798,13 @@ pub struct TextDisplayItem {
     pub blur_radius: Au,
 }
 
+impl SizeOf for TextDisplayItem {
+    fn size_of_excluding_self(&self) -> usize {
+        self.base.size_of_excluding_self()
+        // We exclude `text_run` because it is non-owning.
+    }
+}
+
 #[derive(Clone, Eq, PartialEq)]
 pub enum TextOrientation {
     Upright,
@@ -770,6 +828,13 @@ pub struct ImageDisplayItem {
     pub image_rendering: image_rendering::T,
 }
 
+impl SizeOf for ImageDisplayItem {
+    fn size_of_excluding_self(&self) -> usize {
+        self.base.size_of_excluding_self()
+        // We exclude `image` here because it is non-owning.
+    }
+}
+
 /// Paints a gradient.
 #[derive(Clone)]
 pub struct GradientDisplayItem {
@@ -785,6 +850,20 @@ pub struct GradientDisplayItem {
     /// A list of color stops.
     pub stops: Vec<GradientStop>,
 }
+
+impl SizeOf for GradientDisplayItem {
+    fn size_of_excluding_self(&self) -> usize {
+        use libc::c_void;
+        use util::memory::heap_size_of;
+
+        // We can't measure `stops` via Vec's SizeOf implementation because GradientStop isn't
+        // defined in this module, and we don't want to import GradientStop into util::memory where
+        // the SizeOf trait is defined. So we measure the elements directly.
+        self.base.size_of_excluding_self() +
+            heap_size_of(self.stops.as_ptr() as *const c_void)
+    }
+}
+
 
 /// Paints a border.
 #[derive(Clone)]
@@ -805,6 +884,12 @@ pub struct BorderDisplayItem {
     ///
     /// TODO(pcwalton): Elliptical radii.
     pub radius: BorderRadii<Au>,
+}
+
+impl SizeOf for BorderDisplayItem {
+    fn size_of_excluding_self(&self) -> usize {
+        self.base.size_of_excluding_self()
+    }
 }
 
 /// Information about the border radii.
@@ -851,6 +936,12 @@ pub struct LineDisplayItem {
     pub style: border_style::T
 }
 
+impl SizeOf for LineDisplayItem {
+    fn size_of_excluding_self(&self) -> usize {
+        self.base.size_of_excluding_self()
+    }
+}
+
 /// Paints a box shadow per CSS-BACKGROUNDS.
 #[derive(Clone)]
 pub struct BoxShadowDisplayItem {
@@ -874,6 +965,12 @@ pub struct BoxShadowDisplayItem {
 
     /// How we should clip the result.
     pub clip_mode: BoxShadowClipMode,
+}
+
+impl SizeOf for BoxShadowDisplayItem {
+    fn size_of_excluding_self(&self) -> usize {
+        self.base.size_of_excluding_self()
+    }
 }
 
 /// How a box shadow should be clipped.
@@ -1035,6 +1132,20 @@ impl fmt::Debug for DisplayItem {
             self.base().bounds,
             self.base().metadata.node.id()
         )
+    }
+}
+
+impl SizeOf for DisplayItem {
+    fn size_of_excluding_self(&self) -> usize {
+        match *self {
+            SolidColorClass(ref item) => item.size_of_excluding_self(),
+            TextClass(ref item)       => item.size_of_excluding_self(),
+            ImageClass(ref item)      => item.size_of_excluding_self(),
+            BorderClass(ref item)     => item.size_of_excluding_self(),
+            GradientClass(ref item)   => item.size_of_excluding_self(),
+            LineClass(ref item)       => item.size_of_excluding_self(),
+            BoxShadowClass(ref item)  => item.size_of_excluding_self(),
+        }
     }
 }
 
