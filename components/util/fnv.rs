@@ -6,6 +6,7 @@
 
 use std::default::Default;
 use std::hash::Hasher;
+use std::num::wrapping::WrappingOps;
 
 /// A speedy hash algorithm for node ids and def ids. The hashmap in
 /// libcollections by default uses SipHash which isn't quite as speedy as we
@@ -27,7 +28,7 @@ impl Hasher for FnvHasher {
         let FnvHasher(mut hash) = *self;
         for byte in bytes.iter() {
             hash = hash ^ (*byte as u64);
-            hash = hash * 0x100000001b3;
+            hash = hash.wrapping_mul(0x100000001b3);
         }
         *self = FnvHasher(hash);
     }
