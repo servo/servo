@@ -13,7 +13,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLEle
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary, OptionalRootable};
+use dom::bindings::js::{JSRef, LayoutJS, Temporary, OptionalRootable};
 use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
@@ -347,7 +347,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
                     KeyReaction::DispatchInput => {
                         self.value_changed.set(true);
 
-                        if event.IsTrusted() == true {
+                        if event.IsTrusted() {
                             let window = window_from_node(*self).root();
                             let window = window.r();
                             let chan = window.script_chan();
@@ -355,7 +355,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
                             let dispatcher = ChangeEventRunnable {
                                 element: handler,
                             };
-                            chan.send(ScriptMsg::RunnableMsg(box dispatcher));
+                            let _ = chan.send(ScriptMsg::RunnableMsg(box dispatcher));
                         }
 
                         self.force_relayout();
