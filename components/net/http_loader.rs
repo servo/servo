@@ -303,7 +303,7 @@ reason: \"certificate verify failed\" }]";
 
             unsafe { buf.set_len(1024); }
             match response.read(buf.as_mut_slice()) {
-                Ok(len) => {
+                Ok(len) if len > 0 => {
                     unsafe { buf.set_len(len); }
                     if progress_chan.send(Payload(buf)).is_err() {
                         // The send errors when the receiver is out of scope,
@@ -312,7 +312,7 @@ reason: \"certificate verify failed\" }]";
                         return;
                     }
                 }
-                Err(_) => {
+                Ok(_) | Err(_) => {
                     let _ = progress_chan.send(Done(Ok(())));
                     break;
                 }
