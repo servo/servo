@@ -183,9 +183,9 @@ impl TextRunScanner {
                 flags: flags,
             };
 
-            Arc::new(box TextRun::new(&mut *fontgroup.fonts.get(0).borrow_mut(),
-                                      run_text,
-                                      &options))
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let mut font = fontgroup.fonts.get(0).borrow_mut();
+            Arc::new(box TextRun::new(&mut *font, run_text, &options))
         };
 
         // Make new fragments with the run and adjusted text indices.
@@ -304,7 +304,9 @@ fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
 pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: Arc<FontStyle>)
                               -> FontMetrics {
     let fontgroup = font_context.get_layout_font_group_for_style(font_style);
-    fontgroup.fonts.get(0).borrow().metrics.clone()
+    // FIXME(https://github.com/rust-lang/rust/issues/23338)
+    let font = fontgroup.fonts.get(0).borrow();
+    font.metrics.clone()
 }
 
 /// Returns the line block-size needed by the given computed style and font size.
