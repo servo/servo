@@ -115,6 +115,9 @@ impl Frame {
     }
 
     fn load(&mut self, pipeline_id: PipelineId) -> Vec<PipelineId> {
+        // TODO(gw): To also allow navigations within subframes
+        // to affect the parent navigation history, this should bubble
+        // up the navigation change to each parent.
         self.prev.push(self.current);
         self.current = pipeline_id;
         replace(&mut self.next, vec!())
@@ -351,9 +354,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 self.compositor_proxy.send(CompositorMsg::LoadComplete);
             }
             // Handle a forward or back request
-            ConstellationMsg::Navigate(direction) => {
+            ConstellationMsg::Navigate(pipeline_info, direction) => {
                 debug!("constellation got navigation message");
-                self.handle_navigate_msg(direction);
+                self.handle_navigate_msg(pipeline_info, direction);
             }
             // Notification that painting has finished and is requesting permission to paint.
             ConstellationMsg::PainterReady(pipeline_id) => {
@@ -549,15 +552,17 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 
-    fn handle_navigate_msg(&mut self, direction: constellation_msg::NavigationDirection) {
+    fn handle_navigate_msg(&mut self,
+                           pipeline_info: Option<(PipelineId, SubpageId)>,
+                           direction: constellation_msg::NavigationDirection) {
         debug!("received message to navigate {:?}", direction);
 
-        // TODO(gw): Extend handle_navigate_msg to allow passing the frame
-        // id that this navigation should apply to, instead of always referencing
-        // the frame history in the root frame. To also allow navigations within
-        // subframes to affect the parent navigation history, this should bubble
-        // up the navigation items to each parent.
-        let frame_id = self.root_frame_id.unwrap();
+        // Get the frame id associated with the pipeline that sent
+        // the navigate message, or use root frame id by default.
+        let frame_id = pipeline_info.map_or(self.root_frame_id, |(containing_pipeline_id, subpage_id)| {
+            let pipeline_id = self.find_subpage(containing_pipeline_id, subpage_id).id;
+            self.pipeline_to_frame_map.get(&pipeline_id).map(|id| *id)
+        }).unwrap();
 
         // Get the ids for the previous and next pipelines.
         let (prev_pipeline_id, next_pipeline_id) = {
