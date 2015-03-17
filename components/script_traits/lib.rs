@@ -23,7 +23,7 @@ extern crate url;
 use devtools_traits::DevtoolsControlChan;
 use libc::c_void;
 use msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeData};
-use msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
+use msg::constellation_msg::{LoadData, Key, KeyState, KeyModifiers};
 use msg::constellation_msg::PipelineExitType;
 use msg::compositor_msg::ScriptListener;
 use net::image_cache_task::ImageCacheTask;
@@ -46,7 +46,6 @@ unsafe impl Send for UntrustedNodeAddress {}
 pub struct NewLayoutInfo {
     pub containing_pipeline_id: PipelineId,
     pub new_pipeline_id: PipelineId,
-    pub subpage_id: SubpageId,
     pub layout_chan: Box<Any+Send>, // opaque reference to a LayoutChannel
     pub load_data: LoadData,
 }
@@ -74,7 +73,7 @@ pub enum ConstellationControlMsg {
     /// Notifies script task to resume all its timers
     Thaw(PipelineId),
     /// Notifies script task that a url should be loaded in this iframe.
-    Navigate(PipelineId, SubpageId, LoadData),
+    Navigate(PipelineId, LoadData),
 }
 
 unsafe impl Send for ConstellationControlMsg {

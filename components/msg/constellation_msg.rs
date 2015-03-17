@@ -36,7 +36,7 @@ pub enum IFrameSandboxState {
 #[derive(Clone, Copy)]
 pub struct Failure {
     pub pipeline_id: PipelineId,
-    pub parent_info: Option<(PipelineId, SubpageId)>,
+    pub parent_info: Option<PipelineId>,
 }
 
 #[derive(Copy)]
@@ -200,7 +200,7 @@ pub enum Msg {
     Failure(Failure),
     InitLoadUrl(Url),
     LoadComplete,
-    FrameRect(PipelineId, SubpageId, Rect<f32>),
+    FrameRect(PipelineId, Rect<f32>),
     LoadUrl(PipelineId, LoadData),
     ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, Option<SubpageId>, IFrameSandboxState),
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
@@ -246,7 +246,16 @@ pub enum NavigationDirection {
 pub struct FrameId(pub uint);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
-pub struct PipelineId(pub uint);
+pub struct PipelineId {
+    pub window_id: WindowId,
+    pub subpage_id: Option<SubpageId>,
+}
+
+
+/// A unique identifier for a top-level window. Any iframes for a window would share the same
+/// window id
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
+pub struct WindowId(pub uint);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
 pub struct SubpageId(pub uint);

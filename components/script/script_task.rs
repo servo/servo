@@ -115,8 +115,8 @@ unsafe extern fn trace_script_tasks(tr: *mut JSTracer, _data: *mut libc::c_void)
 struct InProgressLoad {
     /// The pipeline which requested this load.
     pipeline_id: PipelineId,
-    /// The parent pipeline and child subpage associated with this load, if any.
-    subpage_id: Option<(PipelineId, SubpageId)>,
+    /// The child subpage associated with this load, if any.
+    subpage_id: Option<PipelineId>,
     /// The current window size associated with this pipeline.
     window_size: Option<WindowSizeData>,
     /// Channel to the layout task associated with this pipeline.
@@ -130,7 +130,7 @@ struct InProgressLoad {
 impl InProgressLoad {
     /// Create a new InProgressLoad object.
     fn new(id: PipelineId,
-           subpage_id: Option<(PipelineId, SubpageId)>,
+           subpage_id: Option<PipelineId>,
            layout_chan: LayoutChan,
            window_size: Option<WindowSizeData>,
            url: Url) -> InProgressLoad {
@@ -622,8 +622,8 @@ impl ScriptTask {
         match msg {
             ConstellationControlMsg::AttachLayout(_) =>
                 panic!("should have handled AttachLayout already"),
-            ConstellationControlMsg::Navigate(pipeline_id, subpage_id, load_data) =>
-                self.handle_navigate(pipeline_id, Some(subpage_id), load_data),
+            ConstellationControlMsg::Navigate(pipeline_id, load_data) =>
+                self.handle_navigate(pipeline_id, load_data),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ReflowComplete(id, reflow_id) =>
@@ -648,7 +648,7 @@ impl ScriptTask {
     fn handle_msg_from_script(&self, msg: ScriptMsg) {
         match msg {
             ScriptMsg::Navigate(id, load_data) =>
-                self.handle_navigate(id, None, load_data),
+                self.handle_navigate(id, load_data),
             ScriptMsg::TriggerFragment(id, fragment) =>
                 self.trigger_fragment(id, fragment),
             ScriptMsg::FireTimer(TimerSource::FromWindow(id), timer_id) =>
@@ -730,7 +730,6 @@ impl ScriptTask {
         let NewLayoutInfo {
             containing_pipeline_id,
             new_pipeline_id,
-            subpage_id,
             layout_chan,
             load_data,
         } = new_layout_info;
@@ -744,7 +743,7 @@ impl ScriptTask {
         let chan = layout_chan.downcast_ref::<Sender<layout_interface::Msg>>().unwrap();
         let layout_chan = LayoutChan(chan.clone());
         // Kick off the fetch for the new resource.
-        let new_load = InProgressLoad::new(new_pipeline_id, Some((containing_pipeline_id, subpage_id)),
+        let new_load = InProgressLoad::new(new_pipeline_id, Some(containing_pipeline_id),
                                            layout_chan, parent_window.r().window_size(),
                                            load_data.url.clone());
         self.start_page_load(new_load, load_data);
@@ -909,7 +908,7 @@ impl ScriptTask {
         if !root_page_exists {
             // We have a new root frame tree.
             *self.page.borrow_mut() = Some(page.clone());
-        } else if let Some((parent, _)) = incomplete.subpage_id {
+        } else if let Some(parent) = incomplete.subpage_id {
             // We have a new child frame.
             let parent_page = self.root_page();
             parent_page.find(parent).expect("received load for subpage with missing parent");
@@ -972,7 +971,7 @@ impl ScriptTask {
                                  self.constellation_chan.clone(),
                                  incomplete.layout_chan,
                                  incomplete.pipeline_id,
-                                 incomplete.subpage_id.map(|s| s.1),
+                                 incomplete.subpage_id.map(|s| s.pipeline_id),
                                  incomplete.window_size).root();
 
         let last_modified: Option<DOMString> = response.metadata.headers.as_ref().and_then(|headers| {
@@ -1144,8 +1143,8 @@ impl ScriptTask {
     /// https://html.spec.whatwg.org/multipage/browsers.html#navigating-across-documents
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline (specifically the "navigate" algorithm).
-    fn handle_navigate(&self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>, load_data: LoadData) {
-        match subpage_id {
+    fn handle_navigate(&self, pipeline_id: PipelineId, load_data: LoadData) {
+        match pipeline_id.subpage_id {
             Some(subpage_id) => {
                 let borrowed_page = self.root_page();
                 let iframe = borrowed_page.find(pipeline_id).and_then(|page| {
@@ -1219,7 +1218,7 @@ impl ScriptTask {
     /// argument until a notification is received that the fetch is complete.
     fn start_page_load(&self, incomplete: InProgressLoad, mut load_data: LoadData) {
         let id = incomplete.pipeline_id.clone();
-        let subpage = incomplete.subpage_id.clone().map(|p| p.1);
+        let subpage = incomplete.subpage_id.clone();
 
         let script_chan = self.chan.clone();
         let resource_task = self.resource_task.clone();
