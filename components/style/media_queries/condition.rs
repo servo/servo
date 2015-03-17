@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use super::feature::MediaFeature;
+use super::{EvaluateUsingContext, DeviceFeatureContext, MediaFeature};
 
 use ::FromCss;
 use ::cssparser::{Parser, ToCss};
@@ -11,6 +11,15 @@ use ::cssparser::{Parser, ToCss};
 pub struct MediaCondition(pub MediaConditionTerm);
 
 derive_display_using_to_css!(MediaCondition);
+
+impl<C> EvaluateUsingContext<C> for MediaCondition
+    where C: DeviceFeatureContext
+{
+    #[inline]
+    fn evaluate(&self, context: &C) -> bool {
+        self.0.evaluate(context)
+    }
+}
 
 impl FromCss for MediaCondition {
     type Err = ();
@@ -46,6 +55,17 @@ pub enum MediaConditionTerm {
 
 derive_display_using_to_css!(MediaConditionTerm);
 
+impl<C> EvaluateUsingContext<C> for MediaConditionTerm
+    where C: DeviceFeatureContext
+{
+    fn evaluate(&self, context: &C) -> bool {
+        match *self {
+            MediaConditionTerm::Connective(ref term) => term.evaluate(context),
+            MediaConditionTerm::InParens(ref term) => term.evaluate(context),
+        }
+    }
+}
+
 impl FromCss for MediaConditionTerm {
     type Err = ();
 
@@ -78,6 +98,21 @@ pub enum MediaConnectiveTerm {
 }
 
 derive_display_using_to_css!(MediaConnectiveTerm);
+
+impl<C> EvaluateUsingContext<C> for MediaConnectiveTerm
+    where C: DeviceFeatureContext
+{
+    fn evaluate(&self, context: &C) -> bool {
+        match *self {
+            MediaConnectiveTerm::Not(ref term) =>
+                !term.evaluate(context),
+            MediaConnectiveTerm::And(ref terms) =>
+                terms.iter().all(|term| term.evaluate(context)),
+            MediaConnectiveTerm::Or(ref terms) =>
+                terms.iter().any(|term| term.evaluate(context))
+        }
+    }
+}
 
 impl FromCss for MediaConnectiveTerm {
     type Err = ();
@@ -153,7 +188,7 @@ impl ToCss for MediaConnectiveTerm {
 
         match *self {
             MediaConnectiveTerm::Not(ref term) => {
-                try!(dest.write_str("not "));
+                try!(write!(dest, "not "));
                 term.to_css(dest)
             }
             MediaConnectiveTerm::And(ref terms) => write_terms!(terms, "and"),
@@ -170,6 +205,21 @@ pub enum MediaInParensTerm {
 }
 
 derive_display_using_to_css!(MediaInParensTerm);
+
+impl<C> EvaluateUsingContext<C> for MediaInParensTerm
+    where C: DeviceFeatureContext
+{
+    fn evaluate(&self, context: &C) -> bool {
+        match *self {
+            MediaInParensTerm::Condition(ref term) =>
+                term.evaluate(context),
+            MediaInParensTerm::Feature(ref feature) =>
+                /* TODO: feature.evaluate(...) */ false,
+            MediaInParensTerm::GeneralEnclosed(_) =>
+                false
+        }
+    }
+}
 
 impl FromCss for MediaInParensTerm {
     type Err = ();

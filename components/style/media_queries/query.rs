@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use super::MediaCondition;
+use super::{EvaluateUsingContext, DeviceFeatureContext, MediaCondition};
 
 use ::FromCss;
 use ::cssparser::{Parser, ToCss};
@@ -67,24 +67,36 @@ pub enum MediaType {
 
 derive_display_using_to_css!(MediaType);
 
+impl<C> EvaluateUsingContext<C> for MediaType
+    where C: DeviceFeatureContext
+{
+    fn evaluate(&self, context: &C) -> bool {
+        match self {
+            &MediaType::All => true,
+            &MediaType::Defined(ref media_type) => context.MediaType() == *media_type,
+            &MediaType::Deprecated(_) |
+            &MediaType::Unknown(_) => false,
+        }
+    }
+}
+
 impl FromCss for MediaType {
     type Err = ();
 
     fn from_css(input: &mut Parser) -> Result<MediaType, ()> {
-        if let Ok(keyword_result) = input.try(|input| -> Result<Result<MediaType, ()>, ()> {
-            match &try!(input.expect_ident())[] {
-                t if "all".eq_ignore_ascii_case(t) => Ok(Ok(MediaType::All)),
-                // MQ 4 § 3
-                // The <media-type> production does not include the keywords
-                // `only`, `not`, `and`, and `or`.
-                t if "only".eq_ignore_ascii_case(t) => Ok(Err(())),
-                t if "not".eq_ignore_ascii_case(t) => Ok(Err(())),
-                t if "and".eq_ignore_ascii_case(t) => Ok(Err(())),
-                t if "or".eq_ignore_ascii_case(t) => Ok(Err(())),
-                _ => Err(())
-            }
-        }) {
-            keyword_result
+        if input.try(|input| input.expect_ident_matching("all")).is_ok() {
+            Ok(MediaType::All)
+        } else if input.try(|input| match &try!(input.expect_ident())[] {
+            // MQ 4 § 3
+            // The <media-type> production does not include the keywords
+            // `only`, `not`, `and`, and `or`.
+            t if "only".eq_ignore_ascii_case(t) => Ok(()),
+            t if "not".eq_ignore_ascii_case(t) => Ok(()),
+            t if "and".eq_ignore_ascii_case(t) => Ok(()),
+            t if "or".eq_ignore_ascii_case(t) => Ok(()),
+            _ => Err(())
+        }).is_ok() {
+            Err(())
         } else if let Ok(defined) = input.try(FromCss::from_css) {
             Ok(MediaType::Defined(defined))
         } else if let Ok(deprecated) = input.try(FromCss::from_css) {
@@ -140,54 +152,49 @@ impl ToCss for Qualifier {
     }
 }
 
-#[derive(Copy, Debug, PartialEq, Eq)]
-struct QualifiedMediaType(Option<Qualifier>, MediaType);
-
-derive_display_using_to_css!(QualifiedMediaType);
-
-impl FromCss for QualifiedMediaType {
-    type Err = ();
-
-    fn from_css(input: &mut Parser) -> Result<QualifiedMediaType, ()> {
-        // [ only | not ] <media-type>
-        let qualifier = input.try(FromCss::from_css).ok();
-        let media_type = try!(FromCss::from_css(input));
-
-        Ok(QualifiedMediaType(qualifier, media_type))
-    }
-}
-
-impl ToCss for QualifiedMediaType {
-    fn to_css<W>(&self, dest: &mut W) -> ::text_writer::Result
-        where W: ::text_writer::TextWriter
-    {
-        if let Some(q) = self.0 {
-            try!(q.to_css(dest));
-            try!(write!(dest, " "));
-        }
-        self.1.to_css(dest)
-    }
-}
-
 #[derive(Debug, PartialEq)]
 pub struct MediaQuery {
-    media_type: Option<QualifiedMediaType>,
-    condition: Option<MediaCondition>
+    pub qualifier: Option<Qualifier>,
+    pub media_type: MediaType,
+    pub condition: Option<MediaCondition>
 }
 
 derive_display_using_to_css!(MediaQuery);
 
 pub const ALL_MEDIA_QUERY: MediaQuery =
     MediaQuery {
-        media_type: Some(QualifiedMediaType(None, MediaType::All)),
+        qualifier: None,
+        media_type: MediaType::All,
         condition: None
     };
 
 pub const NOT_ALL_MEDIA_QUERY: MediaQuery =
     MediaQuery {
-        media_type: Some(QualifiedMediaType(Some(Qualifier::Not), MediaType::All)),
+        qualifier: Some(Qualifier::Not),
+        media_type: MediaType::All,
         condition: None
     };
+
+impl<C> EvaluateUsingContext<C> for MediaQuery
+    where C: DeviceFeatureContext
+{
+    fn evaluate(&self, context: &C) -> bool {
+        let result = if self.media_type.evaluate(context) {
+            if let Some(ref condition) = self.condition {
+                condition.evaluate(context)
+            } else {
+                true
+            }
+        } else {
+            false
+        };
+
+        match self.qualifier {
+            Some(Qualifier::Not) => !result,
+            Some(Qualifier::Only) | None => result
+        }
+    }
+}
 
 impl FromCss for MediaQuery {
     type Err = ();
@@ -210,12 +217,16 @@ impl FromCss for MediaQuery {
         // <media-condition>
         if let Ok(condition) = input.try(FromCss::from_css) {
             Ok(MediaQuery {
-                media_type: None,
+                qualifier: None,
+                media_type: MediaType::All,
                 condition: Some(condition)
             })
         } else {
-            // [ only | not ] <media-type>
-            let media_type = Some(try!(FromCss::from_css(input)));
+            // [ only | not ]?
+            let qualifier = input.try(FromCss::from_css).ok();
+
+            //  <media-type>
+            let media_type = try!(FromCss::from_css(input));
 
             // [ and <media-condition> ]?
             let condition = if !input.is_exhausted() {
@@ -226,6 +237,7 @@ impl FromCss for MediaQuery {
             };
 
             Ok(MediaQuery {
+                qualifier: qualifier,
                 media_type: media_type,
                 condition: condition,
             })
@@ -238,16 +250,29 @@ impl ToCss for MediaQuery {
         where W: ::text_writer::TextWriter
     {
         match self {
-            &MediaQuery { media_type: None, condition: Some(ref c ) } =>
-                c.to_css(dest),
-            &MediaQuery { media_type: Some(ref qt), condition: None } =>
-                qt.to_css(dest),
-            &MediaQuery { media_type: Some(ref qt), condition: Some(ref c ) } => {
-                try!(qt.to_css(dest));
+            &MediaQuery { qualifier: Some(ref q), media_type: ref mt, condition: None } => {
+                try!(q.to_css(dest));
+                try!(write!(dest, " "));
+                mt.to_css(dest)
+            }
+            &MediaQuery { qualifier: Some(ref q), media_type: ref mt, condition: Some(ref c) } => {
+                try!(q.to_css(dest));
+                try!(write!(dest, " "));
+                try!(mt.to_css(dest));
                 try!(write!(dest, " and "));
                 c.to_css(dest)
             }
-            _ => unreachable!()
+            &MediaQuery { qualifier: None, media_type: ref mt, condition: None } => {
+                mt.to_css(dest)
+            }
+            &MediaQuery { qualifier: None, media_type: ref mt, condition: Some(ref c) } => {
+                // omit 'all'
+                if *mt != MediaType::All {
+                    try!(mt.to_css(dest));
+                    try!(write!(dest, " and "));
+                }
+                c.to_css(dest)
+            }
         }
     }
 }

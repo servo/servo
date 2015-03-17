@@ -25,9 +25,17 @@ use ::cssparser::{Parser, ToCss};
 use ::geom::size::TypedSize2D;
 use ::util::geometry::ViewportPx;
 
-pub use self::feature::MediaFeature;
+pub use self::feature::{DeviceFeatureContext, MediaFeature};
 pub use self::condition::MediaCondition;
-pub use self::query::{MediaType, MediaQuery};
+
+pub use self::query::MediaQuery;
+// external users should only be able to use the defined media types
+pub use self::query::DefinedMediaType as MediaType;
+
+pub trait EvaluateUsingContext<C: DeviceFeatureContext>
+{
+    fn evaluate(&self, context: &C) -> bool;
+}
 
 #[allow(missing_copy_implementations)]
 #[derive(Debug)]
@@ -48,6 +56,14 @@ impl Device {
 #[derive(Debug, PartialEq)]
 pub struct MediaQueryList {
     queries: Vec<MediaQuery>
+}
+
+impl<C> EvaluateUsingContext<C> for MediaQueryList
+    where C: DeviceFeatureContext
+{
+    fn evaluate(&self, context: &C) -> bool {
+        self.queries.iter().any(|query| query.evaluate(context))
+    }
 }
 
 impl FromCss for MediaQueryList {
