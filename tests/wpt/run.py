@@ -12,20 +12,9 @@ def wptsubdir(*args):
 
 # Imports
 sys.path.append(wptsubdir("web-platform-tests"))
-sys.path.append(wptsubdir("web-platform-tests", "tools", "scripts"))
 from wptrunner import wptrunner, wptcommandline
-import manifest
-
-def update_manifest():
-    manifest.update_manifest(wptsubdir("web-platform-tests"),
-                             rebuild=False,
-                             experimental_include_local_changes=True,
-                             path=wptsubdir("metadata", "MANIFEST.json"))
-    return True
 
 def run_tests(**kwargs):
-    if not os.path.isfile(wptsubdir("metadata", "MANIFEST.json")):
-        raise Exception("Manifest not found. Please use --update-manifest in WPTARGS to create one")
     wptrunner.setup_logging(kwargs, {"raw": sys.stdout})
     return wptrunner.run_tests(**kwargs)
 
@@ -38,10 +27,7 @@ def set_defaults(args):
 
 def main():
     parser = wptcommandline.create_parser()
-    parser.add_argument('--update-manifest', dest='update_manifest', action='store_true')
     args = parser.parse_args()
-    if args.update_manifest:
-        return update_manifest()
     kwargs = set_defaults(args)
     return run_tests(**kwargs)
 
