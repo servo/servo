@@ -1212,7 +1212,11 @@ impl ScriptTask {
     fn handle_reflow_event(&self, pipeline_id: PipelineId) {
         debug!("script got reflow event");
         let page = get_page(&self.root_page(), pipeline_id);
-        self.force_reflow(&*page, ReflowReason::ReceivedReflowEvent);
+        let document = page.document().root();
+        let window = window_from_node(document.r()).root();
+        window.r().reflow(ReflowGoal::ForDisplay,
+                          ReflowQueryType::NoQuery,
+                          ReflowReason::ReceivedReflowEvent);
     }
 
     /// Initiate a non-blocking fetch for a specified resource. Stores the InProgressLoad
