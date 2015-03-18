@@ -40,3 +40,6 @@ pub trait EvaluateUsingContext<C: DeviceFeatureContext>
 pub fn parse_media_query_list(input: &mut Parser) -> MediaQueryList {
     FromCss::from_css(input).unwrap()
 }
+
+#[cfg(test)]
+mod tests;

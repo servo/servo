@@ -279,7 +279,7 @@ impl ToCss for MediaQuery {
 
 #[derive(Debug, PartialEq)]
 pub struct MediaQueryList {
-    queries: Vec<MediaQuery>
+    pub queries: Vec<MediaQuery>
 }
 
 derive_display_using_to_css!(MediaQueryList);
