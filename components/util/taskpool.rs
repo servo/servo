@@ -21,7 +21,7 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use std::thunk::Thunk;
 
 pub struct TaskPool {
-    tx: Sender<Thunk<()>>,
+    tx: Sender<Thunk<'static, ()>>,
 }
 
 impl TaskPool {
@@ -52,7 +52,7 @@ impl TaskPool {
     }
 
     pub fn execute<F>(&self, job: F)
-        where F: FnOnce() + Send
+        where F: FnOnce() + Send + 'static
     {
         self.tx.send(Thunk::new(job)).unwrap();
     }

@@ -20,10 +20,6 @@ git = "https://github.com/servo/rust-azure"
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
-[dependencies.hyper]
-git = "https://github.com/servo/hyper"
-branch = "servo"
-
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 
@@ -36,3 +32,4 @@ git = "https://github.com/servo/rust-io-surface"
 [dependencies]
 url = "0.2.16"
 bitflags = "*"
+hyper = "0.3"

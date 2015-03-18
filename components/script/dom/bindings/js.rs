@@ -62,7 +62,7 @@ use util::smallvec::{SmallVec, SmallVec16};
 use core::nonzero::NonZero;
 use std::cell::{Cell, UnsafeCell};
 use std::default::Default;
-use std::marker::ContravariantLifetime;
+use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
 
@@ -677,7 +677,7 @@ impl<T: Reflectable> Root<T> {
     pub fn r<'b>(&'b self) -> JSRef<'b, T> {
         JSRef {
             ptr: self.ptr,
-            chain: ContravariantLifetime,
+            chain: PhantomData,
         }
     }
 
@@ -688,7 +688,7 @@ impl<T: Reflectable> Root<T> {
     pub fn get_unsound_ref_forever<'b>(&self) -> JSRef<'b, T> {
         JSRef {
             ptr: self.ptr,
-            chain: ContravariantLifetime,
+            chain: PhantomData,
         }
     }
 }
@@ -713,7 +713,7 @@ impl<'a, T: Reflectable> Deref for JSRef<'a, T> {
 /// copyable.
 pub struct JSRef<'a, T> {
     ptr: NonZero<*const T>,
-    chain: ContravariantLifetime<'a>,
+    chain: PhantomData<&'a ()>,
 }
 
 impl<'a, T> Copy for JSRef<'a, T> {}

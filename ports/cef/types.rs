@@ -1112,9 +1112,9 @@ pub type cef_page_range_t = _cef_page_range_t;
 //
 pub enum cef_duplex_mode_t {
   DUPLEX_MODE_UNKNOWN = -1,
-  DUPLEX_MODE_SIMPLEX,
-  DUPLEX_MODE_LONG_EDGE,
-  DUPLEX_MODE_SHORT_EDGE,
+  DUPLEX_MODE_SIMPLEX = 0,
+  DUPLEX_MODE_LONG_EDGE = 1,
+  DUPLEX_MODE_SHORT_EDGE = 2,
 }
 
 //

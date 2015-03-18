@@ -38,7 +38,7 @@ use std::old_io::net::tcp::TcpListener;
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 
 pub fn global_init() {
-    if let Ok(host_file_path) = env::var_string("HOST_FILE") {
+    if let Ok(host_file_path) = env::var("HOST_FILE") {
         //TODO: handle bad file path
         let path = Path::new(host_file_path);
         let mut file = BufferedReader::new(File::open(&path));
@@ -241,7 +241,7 @@ pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> 
             let address = ip_host[0].to_owned();
 
             for token in ip_host.iter().skip(1) {
-                if token[].as_bytes()[0] == b'#' {
+                if token.as_bytes()[0] == b'#' {
                     break;
                 }
                 host_table.insert(token.to_owned().to_string(), address.clone());
@@ -326,7 +326,7 @@ impl ResourceManager {
 
         fn from_factory(factory: fn(LoadData, Sender<TargetedLoadResponse>))
                         -> Box<Invoke<(LoadData, Sender<TargetedLoadResponse>)> + Send> {
-            box move |&:(load_data, start_chan)| {
+            box move |(load_data, start_chan)| {
                 factory(load_data, start_chan)
             }
         }

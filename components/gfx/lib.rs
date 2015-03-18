@@ -16,7 +16,7 @@
 #![feature(unicode)]
 #![feature(unsafe_destructor)]
 
-#![allow(missing_copy_implementations)]
+#![plugin(plugins)]
 
 #[macro_use]
 extern crate log;
@@ -32,8 +32,6 @@ extern crate png;
 extern crate script_traits;
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate unicode;
-#[no_link] #[plugin]
-extern crate "plugins" as servo_plugins;
 extern crate net;
 #[macro_use]
 extern crate util;

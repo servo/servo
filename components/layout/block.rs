@@ -1823,7 +1823,7 @@ impl Flow for BlockFlow {
                                               self.base
                                                   .absolute_position_info
                                                   .relative_containing_block_mode,
-                                              CoordinateSystem::Self);
+                                              CoordinateSystem::Own);
         let clip = self.fragment.clipping_region_for_children(&clip_in_child_coordinate_system,
                                                               &stacking_relative_border_box);
 

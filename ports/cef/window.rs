@@ -188,7 +188,7 @@ impl WindowMethods for Window {
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx,DevicePixel,f32> {
         let browser = self.cef_browser.borrow();
         match *browser {
-            None => ScaleFactor(1.0),
+            None => ScaleFactor::new(1.0),
             Some(ref browser) => {
                 let mut view_rect = cef_rect_t::zero();
                 browser.get_host()
@@ -200,7 +200,7 @@ impl WindowMethods for Window {
                        .get_client()
                        .get_render_handler()
                        .get_backing_rect((*browser).clone(), &mut backing_rect);
-                ScaleFactor(backing_rect.width as f32 / view_rect.width as f32)
+                ScaleFactor::new(backing_rect.width as f32 / view_rect.width as f32)
             }
         }
     }
@@ -294,7 +294,9 @@ impl WindowMethods for Window {
         };
         let frame = browser.get_main_frame();
         let frame = frame.downcast();
-        *frame.url.borrow_mut() = url.to_string()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let mut frame_url = frame.url.borrow_mut();
+        *frame_url = url.to_string()
     }
 
     fn handle_key(&self, _: Key, _: KeyModifiers) {

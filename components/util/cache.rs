@@ -12,6 +12,7 @@ use std::hash::{Hash, Hasher, SipHasher};
 use std::iter::repeat;
 use rand;
 use std::slice::Iter;
+use std::default::Default;
 
 #[cfg(test)]
 use std::cell::Cell;
@@ -21,12 +22,12 @@ pub struct HashCache<K, V> {
 }
 
 impl<K, V> HashCache<K,V>
-    where K: Clone + PartialEq + Eq + Hash<SipHasher>,
+    where K: Clone + PartialEq + Eq + Hash,
           V: Clone,
 {
     pub fn new() -> HashCache<K,V> {
         HashCache {
-          entries: HashMap::with_hash_state(DefaultState),
+          entries: HashMap::with_hash_state(<DefaultState<SipHasher> as Default>::default()),
         }
     }
 
@@ -133,7 +134,7 @@ pub struct SimpleHashCache<K,V> {
     k1: u64,
 }
 
-impl<K:Clone+Eq+Hash<SipHasher>,V:Clone> SimpleHashCache<K,V> {
+impl<K:Clone+Eq+Hash,V:Clone> SimpleHashCache<K,V> {
     pub fn new(cache_size: usize) -> SimpleHashCache<K,V> {
         let mut r = rand::thread_rng();
         SimpleHashCache {
@@ -149,7 +150,7 @@ impl<K:Clone+Eq+Hash<SipHasher>,V:Clone> SimpleHashCache<K,V> {
     }
 
     #[inline]
-    fn bucket_for_key<Q:Hash<SipHasher>>(&self, key: &Q) -> usize {
+    fn bucket_for_key<Q:Hash>(&self, key: &Q) -> usize {
         let mut hasher = SipHasher::new_with_keys(self.k0, self.k1);
         key.hash(&mut hasher);
         self.to_bucket(hasher.finish() as usize)
@@ -160,7 +161,7 @@ impl<K:Clone+Eq+Hash<SipHasher>,V:Clone> SimpleHashCache<K,V> {
         self.entries[bucket_index] = Some((key, value));
     }
 
-    pub fn find<Q>(&self, key: &Q) -> Option<V> where Q: PartialEq<K> + Hash<SipHasher> + Eq {
+    pub fn find<Q>(&self, key: &Q) -> Option<V> where Q: PartialEq<K> + Hash + Eq {
         let bucket_index = self.bucket_for_key(key);
         match self.entries[bucket_index] {
             Some((ref existing_key, ref value)) if key == existing_key => Some((*value).clone()),

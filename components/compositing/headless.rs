@@ -59,7 +59,7 @@ impl NullCompositor {
             chan.send(ConstellationMsg::ResizedWindow(WindowSizeData {
                 initial_viewport: TypedSize2D(640_f32, 480_f32),
                 visible_viewport: TypedSize2D(640_f32, 480_f32),
-                device_pixel_ratio: ScaleFactor(1.0),
+                device_pixel_ratio: ScaleFactor::new(1.0),
             })).unwrap();
         }
 

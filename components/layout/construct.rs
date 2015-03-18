@@ -52,7 +52,7 @@ use script::dom::htmlobjectelement::is_image_data;
 use script::dom::node::NodeTypeId;
 use util::opts;
 use std::borrow::ToOwned;
-use std::collections::DList;
+use std::collections::LinkedList;
 use std::mem;
 use std::sync::atomic::Ordering;
 use style::computed_values::content::ContentItem;
@@ -114,10 +114,10 @@ pub enum ConstructionItem {
 #[derive(Clone)]
 pub struct InlineFragmentsConstructionResult {
     /// Any {ib} splits that we're bubbling up.
-    pub splits: DList<InlineBlockSplit>,
+    pub splits: LinkedList<InlineBlockSplit>,
 
     /// Any fragments that succeed the {ib} splits.
-    pub fragments: DList<Fragment>,
+    pub fragments: LinkedList<Fragment>,
 
     /// Any absolute descendants that we're bubbling up.
     pub abs_descendants: AbsDescendants,
@@ -152,7 +152,7 @@ pub struct InlineFragmentsConstructionResult {
 #[derive(Clone)]
 pub struct InlineBlockSplit {
     /// The inline fragments that precede the flow.
-    pub predecessors: DList<Fragment>,
+    pub predecessors: LinkedList<Fragment>,
 
     /// The flow that caused this {ib} split.
     pub flow: FlowRef,
@@ -161,7 +161,7 @@ pub struct InlineBlockSplit {
 /// Holds inline fragments that we're gathering for children of an inline node.
 struct InlineFragmentsAccumulator {
     /// The list of fragments.
-    fragments: DList<Fragment>,
+    fragments: LinkedList<Fragment>,
 
     /// Whether we've created a range to enclose all the fragments. This will be Some() if the
     /// outer node is an inline and None otherwise.
@@ -171,20 +171,20 @@ struct InlineFragmentsAccumulator {
 impl InlineFragmentsAccumulator {
     fn new() -> InlineFragmentsAccumulator {
         InlineFragmentsAccumulator {
-            fragments: DList::new(),
+            fragments: LinkedList::new(),
             enclosing_style: None,
         }
     }
 
     fn from_inline_node(node: &ThreadSafeLayoutNode) -> InlineFragmentsAccumulator {
-        let fragments = DList::new();
+        let fragments = LinkedList::new();
         InlineFragmentsAccumulator {
             fragments: fragments,
             enclosing_style: Some(node.style().clone()),
         }
     }
 
-    fn push_all(&mut self, mut fragments: DList<Fragment>) {
+    fn push_all(&mut self, mut fragments: LinkedList<Fragment>) {
         if fragments.len() == 0 {
             return
         }
@@ -192,7 +192,7 @@ impl InlineFragmentsAccumulator {
         self.fragments.append(&mut fragments)
     }
 
-    fn to_dlist(self) -> DList<Fragment> {
+    fn to_dlist(self) -> LinkedList<Fragment> {
         let InlineFragmentsAccumulator {
             mut fragments,
             enclosing_style
@@ -507,7 +507,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_block_starting_with_fragments(&mut self,
                                                     mut flow: FlowRef,
                                                     node: &ThreadSafeLayoutNode,
-                                                    mut initial_fragments: DList<Fragment>)
+                                                    mut initial_fragments: LinkedList<Fragment>)
                                                     -> ConstructionResult {
         // Gather up fragments for the inline flows we might need to create.
         let mut inline_fragment_accumulator = InlineFragmentsAccumulator::new();
@@ -577,7 +577,7 @@ impl<'a> FlowConstructor<'a> {
     /// `<textarea>`.
     fn build_flow_for_block(&mut self, flow: FlowRef, node: &ThreadSafeLayoutNode)
                             -> ConstructionResult {
-        let mut initial_fragments = DList::new();
+        let mut initial_fragments = LinkedList::new();
         if node.get_pseudo_element_type() != PseudoElementType::Normal ||
            node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                        HTMLElementTypeId::HTMLInputElement))) ||
@@ -600,7 +600,7 @@ impl<'a> FlowConstructor<'a> {
 
     /// Pushes fragments appropriate for the content of the given node onto the given list.
     fn create_fragments_for_node_text_content(&self,
-                                              fragments: &mut DList<Fragment>,
+                                              fragments: &mut LinkedList<Fragment>,
                                               node: &ThreadSafeLayoutNode,
                                               style: &Arc<ComputedValues>) {
         for content_item in node.text_content().into_iter() {
@@ -650,7 +650,7 @@ impl<'a> FlowConstructor<'a> {
     /// whitespace.
     fn build_fragments_for_nonreplaced_inline_content(&mut self, node: &ThreadSafeLayoutNode)
                                                   -> ConstructionResult {
-        let mut opt_inline_block_splits: DList<InlineBlockSplit> = DList::new();
+        let mut opt_inline_block_splits: LinkedList<InlineBlockSplit> = LinkedList::new();
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
         let mut abs_descendants = Descendants::new();
 
@@ -769,7 +769,7 @@ impl<'a> FlowConstructor<'a> {
         // If this is generated content, then we need to initialize the accumulator with the
         // fragment corresponding to that content. Otherwise, just initialize with the ordinary
         // fragment that needs to be generated for this inline node.
-        let mut fragments = DList::new();
+        let mut fragments = LinkedList::new();
         match (node.get_pseudo_element_type(), node.type_id()) {
             (_, Some(NodeTypeId::Text)) => {
                 self.create_fragments_for_node_text_content(&mut fragments, node, &style)
@@ -782,7 +782,7 @@ impl<'a> FlowConstructor<'a> {
 
         let construction_item =
             ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
-                splits: DList::new(),
+                splits: LinkedList::new(),
                 fragments: fragments,
                 abs_descendants: Descendants::new(),
             });
@@ -806,7 +806,7 @@ impl<'a> FlowConstructor<'a> {
 
         let construction_item =
             ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
-                splits: DList::new(),
+                splits: LinkedList::new(),
                 fragments: fragment_accumulator.to_dlist(),
                 abs_descendants: abs_descendants,
             });
@@ -832,7 +832,7 @@ impl<'a> FlowConstructor<'a> {
 
         let construction_item =
             ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
-                splits: DList::new(),
+                splits: LinkedList::new(),
                 fragments: fragment_accumulator.to_dlist(),
                 abs_descendants: abs_descendants,
             });
@@ -1042,7 +1042,7 @@ impl<'a> FlowConstructor<'a> {
                     ListStyleTypeContent::None => None,
                     ListStyleTypeContent::StaticText(ch) => {
                         let text = format!("{}\u{a0}", ch);
-                        let mut unscanned_marker_fragments = DList::new();
+                        let mut unscanned_marker_fragments = LinkedList::new();
                         unscanned_marker_fragments.push_back(Fragment::new(
                             node,
                             SpecificFragmentInfo::UnscannedText(
@@ -1065,7 +1065,7 @@ impl<'a> FlowConstructor<'a> {
         // we adopt Gecko's behavior rather than WebKit's when the marker causes an {ib} split,
         // which has caused some malaise (Bugzilla #36854) but CSS 2.1 § 12.5.1 lets me do it, so
         // there.
-        let mut initial_fragments = DList::new();
+        let mut initial_fragments = LinkedList::new();
         let main_fragment = self.build_fragment_for_block(node);
         let flow = match node.style().get_list().list_style_position {
             list_style_position::T::outside => {
@@ -1477,7 +1477,7 @@ impl FlowConstructionUtils for FlowRef {
 }
 
 /// Strips ignorable whitespace from the start of a list of fragments.
-pub fn strip_ignorable_whitespace_from_start(this: &mut DList<Fragment>) {
+pub fn strip_ignorable_whitespace_from_start(this: &mut LinkedList<Fragment>) {
     if this.is_empty() {
         return   // Fast path.
     }
@@ -1489,7 +1489,7 @@ pub fn strip_ignorable_whitespace_from_start(this: &mut DList<Fragment>) {
 }
 
 /// Strips ignorable whitespace from the end of a list of fragments.
-pub fn strip_ignorable_whitespace_from_end(this: &mut DList<Fragment>) {
+pub fn strip_ignorable_whitespace_from_end(this: &mut LinkedList<Fragment>) {
     if this.is_empty() {
         return
     }

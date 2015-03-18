@@ -21,7 +21,7 @@ use std::old_io::process::ExitStatus;
 use std::old_io::fs::PathExtensions;
 use std::old_path::Path;
 use std::thunk::Thunk;
-use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldFail};
+use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldPanic};
 use test::run_tests_console;
 use url::Url;
 
@@ -38,7 +38,7 @@ bitflags!(
 
 
 fn main() {
-    let args: Vec<String> = env::args().map(|arg| arg.into_string().ok().expect("argument ws not a String")).collect();
+    let args: Vec<String> = env::args().collect();
     let mut parts = args.tail().split(|e| "--" == e.as_slice());
 
     let harness_args = parts.next().unwrap();  // .split() is never empty
@@ -183,12 +183,7 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
             part => panic!("reftest line: '{}' has invalid kind '{}'", line, part)
         };
 
-        // If we're running this directly, file.dir_path() might be relative.
-        // (see issue #3521)
-        let base = match file.dir_path().is_relative() {
-            true  => env::current_dir().unwrap().join(file.dir_path()),
-            false => file.dir_path()
-        };
+        let base = Path::new(env::current_dir().unwrap().to_str().unwrap()).join(file.dir_path());
 
         let file_left =  base.join(test_line.file_left);
         let file_right = base.join(test_line.file_right);
@@ -239,7 +234,7 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
         desc: TestDesc {
             name: DynTestName(name),
             ignore: false,
-            should_fail: ShouldFail::No,
+            should_panic: ShouldPanic::No,
         },
         testfn: DynTestFn(Thunk::new(move || {
             check_reftest(reftest);
@@ -293,7 +288,7 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
 
 fn servo_path() -> Path {
     let current_exe = env::current_exe().ok().expect("Could not locate current executable");
-    current_exe.dir_path().join("servo")
+    Path::new(current_exe.to_str().unwrap()).dir_path().join("servo")
 }
 
 fn check_reftest(reftest: Reftest) {
@@ -311,7 +306,7 @@ fn check_reftest(reftest: Reftest) {
     }
 
     let pixels = left_bytes.iter().zip(right_bytes.iter()).map(|(&a, &b)| {
-        if a as i8 - b as i8 == 0 {
+        if a == b {
             // White for correct
             0xFF
         } else {

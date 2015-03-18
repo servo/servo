@@ -184,10 +184,10 @@ impl<T: JSTraceable> JSTraceable for Option<T> {
 }
 
 impl<K,V,S> JSTraceable for HashMap<K, V, S>
-    where K: Hash<<S as HashState>::Hasher> + Eq + JSTraceable,
+    where K: Hash + Eq + JSTraceable,
           V: JSTraceable,
           S: HashState,
-          <S as HashState>::Hasher: Hasher<Output=u64>,
+          <S as HashState>::Hasher: Hasher,
 {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {

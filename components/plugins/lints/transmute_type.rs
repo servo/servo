@@ -26,7 +26,7 @@ impl LintPass for TransmutePass {
         match ex.node {
             ast::ExprCall(ref expr, ref args) => {
                 match expr.node {
-                    ast::ExprPath(ref path) => {
+                    ast::ExprPath(_, ref path) => {
                         if path.segments.last()
                                         .map_or(false, |ref segment| segment.identifier.name.as_str() == "transmute")
                            && args.len() == 1 {

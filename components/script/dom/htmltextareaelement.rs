@@ -177,7 +177,9 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-value
     fn Value(self) -> DOMString {
-        self.textinput.borrow().get_content()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let textinput = self.textinput.borrow();
+        textinput.get_content()
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-value

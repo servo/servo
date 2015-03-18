@@ -13,7 +13,7 @@ extern crate getopts;
 extern crate test;
 
 use test::{AutoColor, TestOpts, run_tests_console, TestDesc, TestDescAndFn, DynTestFn, DynTestName};
-use test::ShouldFail;
+use test::ShouldPanic;
 use getopts::{getopts, reqopt};
 use std::{str, env};
 use std::old_io::fs;
@@ -30,7 +30,7 @@ struct Config {
 
 fn main() {
     let args = env::args();
-    let config = parse_config(args.map(|x| x.into_string().unwrap()).collect());
+    let config = parse_config(args.collect());
     let opts = test_options(config.clone());
     let tests = find_tests(config);
     match run_tests_console(&opts, tests) {
@@ -81,7 +81,7 @@ fn make_test(file: String) -> TestDescAndFn {
         desc: TestDesc {
             name: DynTestName(file.clone()),
             ignore: false,
-            should_fail: ShouldFail::No,
+            should_panic: ShouldPanic::No,
         },
         testfn: DynTestFn(Thunk::new(move || { run_test(file) }))
     }
@@ -100,7 +100,7 @@ fn run_test(file: String) {
         true => prc_arg.join("servo"),
         _ => panic!("could not pop directory"),
     };
-    let mut prc = match Command::new(prc_arg)
+    let mut prc = match Command::new(prc_arg.to_str().unwrap())
         .args(args.as_slice())
         .stdin(Ignored)
         .stdout(stdout)

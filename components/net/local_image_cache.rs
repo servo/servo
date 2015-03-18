@@ -47,7 +47,7 @@ struct ImageState {
     last_response: ImageResponseMsg
 }
 
-impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
+impl<NodeAddress: Send + 'static> LocalImageCache<NodeAddress> {
     /// The local cache will only do a single remote request for a given
     /// URL in each 'round'. Layout should call this each time it begins
     pub fn next_round(&mut self, on_image_available: Box<ImageResponder<NodeAddress> + Send>) {

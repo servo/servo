@@ -5,8 +5,6 @@
 #![feature(hash)]
 #![feature(int_uint)]
 
-#![allow(missing_copy_implementations)]
-
 extern crate azure;
 #[macro_use] extern crate bitflags;
 extern crate geom;

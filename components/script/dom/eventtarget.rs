@@ -245,7 +245,9 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     }
 
     fn has_handlers(self) -> bool {
-        !self.handlers.borrow().is_empty()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let handlers = self.handlers.borrow();
+        !handlers.is_empty()
     }
 }
 

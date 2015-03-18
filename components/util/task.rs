@@ -9,7 +9,7 @@ use std::sync::mpsc::Sender;
 use std::thread::Builder;
 
 pub fn spawn_named<F>(name: String, f: F)
-    where F: FnOnce() + Send
+    where F: FnOnce() + Send + 'static
 {
     let builder = thread::Builder::new().name(name);
     builder.spawn(move || {
@@ -23,13 +23,13 @@ pub fn spawn_named_with_send_on_failure<F, T>(name: &'static str,
                                               f: F,
                                               msg: T,
                                               dest: Sender<T>)
-    where F: FnOnce() + Send,
-          T: Send
+    where F: FnOnce() + Send + 'static,
+          T: Send + 'static
 {
-    let future_handle = thread::Builder::new().name(name.to_owned()).scoped(move || {
+    let future_handle = thread::Builder::new().name(name.to_owned()).spawn(move || {
         task_state::initialize(state);
         f()
-    });
+    }).unwrap();
 
     let watcher_name = format!("{}Watcher", name);
     Builder::new().name(watcher_name).spawn(move || {

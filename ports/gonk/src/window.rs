@@ -811,7 +811,7 @@ impl WindowMethods for Window {
     }
 
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
-        ScaleFactor(1.0)
+        ScaleFactor::new(1.0)
     }
 
     fn native_metadata(&self) -> NativeGraphicsMetadata {

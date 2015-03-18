@@ -84,7 +84,7 @@ impl WorkerGlobalScope {
 }
 
 impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
-    fn Self(self) -> Temporary<WorkerGlobalScope> {
+    fn Self_(self) -> Temporary<WorkerGlobalScope> {
         Temporary::from_rooted(self)
     }
 

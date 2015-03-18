@@ -6,7 +6,8 @@
 
 use libc::{c_char,c_int,c_void,size_t};
 use std::borrow::ToOwned;
-use std::collections::{DList, HashMap};
+use std::collections::HashMap;
+use std::collections::LinkedList as DList;
 use std::ffi::CString;
 #[cfg(target_os = "linux")]
 use std::iter::AdditiveIterator;

@@ -271,7 +271,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     };
 
     let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str|
-        ScaleFactor(dppx_str.parse().unwrap())
+        ScaleFactor::new(dppx_str.parse().unwrap())
     );
 
     let mut paint_threads: usize = match opt_match.opt_str("t") {

@@ -3886,26 +3886,24 @@ pub mod shorthands {
 // TODO(SimonSapin): Convert this to a syntax extension rather than a Mako template.
 // Maybe submit for inclusion in libstd?
 mod property_bit_field {
-    use std::uint;
-    use std::mem;
 
     pub struct PropertyBitField {
-        storage: [uint; (${len(LONGHANDS)} - 1 + uint::BITS) / uint::BITS]
+        storage: [u32; (${len(LONGHANDS)} - 1 + 32) / 32]
     }
 
     impl PropertyBitField {
         #[inline]
         pub fn new() -> PropertyBitField {
-            PropertyBitField { storage: unsafe { mem::zeroed() } }
+            PropertyBitField { storage: [0; (${len(LONGHANDS)} - 1 + 32) / 32] }
         }
 
         #[inline]
         fn get(&self, bit: uint) -> bool {
-            (self.storage[bit / uint::BITS] & (1 << (bit % uint::BITS))) != 0
+            (self.storage[bit / 32] & (1 << (bit % 32))) != 0
         }
         #[inline]
         fn set(&mut self, bit: uint) {
-            self.storage[bit / uint::BITS] |= 1 << (bit % uint::BITS)
+            self.storage[bit / 32] |= 1 << (bit % 32)
         }
         % for i, property in enumerate(LONGHANDS):
             % if property.derived_from is None:

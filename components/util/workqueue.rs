@@ -7,15 +7,15 @@
 //! Data associated with queues is simply a pair of unsigned integers. It is expected that a
 //! higher-level API on top of this could allow safe fork-join parallelism.
 
+use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 use task::spawn_named;
 use task_state;
 
 use libc::funcs::posix88::unistd::usleep;
-use std::mem;
 use rand::{Rng, weak_rng, XorShiftRng};
+use std::mem;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
-use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 
 /// A unit of work.
 ///
@@ -184,7 +184,7 @@ pub struct WorkerProxy<'a, QueueData: 'a, WorkData: 'a> {
     worker_index: u8,
 }
 
-impl<'a, QueueData: 'static, WorkData: Send> WorkerProxy<'a, QueueData, WorkData> {
+impl<'a, QueueData: 'static, WorkData: Send + 'static> WorkerProxy<'a, QueueData, WorkData> {
     /// Enqueues a block into the work queue.
     #[inline]
     pub fn push(&mut self, work_unit: WorkUnit<QueueData, WorkData>) {
@@ -297,7 +297,9 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         // Tell the workers to start.
         let mut work_count = AtomicUsize::new(self.work_count);
         for worker in self.workers.iter_mut() {
-            worker.chan.send(WorkerMsg::Start(worker.deque.take().unwrap(), &mut work_count, &self.data)).unwrap()
+            worker.chan.send(WorkerMsg::Start(worker.deque.take().unwrap(),
+                                              &mut work_count,
+                                              &self.data)).unwrap()
         }
 
         // Wait for the work to finish.

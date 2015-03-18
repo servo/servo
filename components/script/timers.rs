@@ -23,7 +23,7 @@ use std::cmp;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::mpsc::Select;
-use std::hash::{Hash, Hasher, Writer};
+use std::hash::{Hash, Hasher};
 use std::old_io::timer::Timer;
 use std::time::duration::Duration;
 
@@ -47,8 +47,8 @@ pub enum TimerCallback {
     FunctionTimerCallback(Function)
 }
 
-impl<H: Writer + Hasher> Hash<H> for TimerId {
-    fn hash(&self, state: &mut H) {
+impl Hash for TimerId {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         let TimerId(id) = *self;
         id.hash(state);
     }

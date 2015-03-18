@@ -12,7 +12,6 @@
 #![feature(int_uint)]
 
 #![allow(non_snake_case)]
-#![allow(missing_copy_implementations)]
 
 extern crate msg;
 extern crate "rustc-serialize" as rustc_serialize;

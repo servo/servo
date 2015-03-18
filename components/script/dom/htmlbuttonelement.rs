@@ -229,7 +229,7 @@ impl<'a> Activatable for JSRef<'a, HTMLButtonElement> {
                     h
                 })
                 .find(|r| r.form_owner() == owner)
-                .map(|&:s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
+                .map(|s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
         }
     }
 }

@@ -35,7 +35,7 @@ class MachCommands(CommandBase):
     def get_binary_path(self, release, dev):
         base_path = path.join("components", "servo", "target")
         release_path = path.join(base_path, "release", "servo")
-        dev_path = path.join(base_path, "servo")
+        dev_path = path.join(base_path, "debug", "servo")
 
         # Prefer release if both given
         if release and dev:

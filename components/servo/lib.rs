@@ -4,8 +4,6 @@
 
 #![feature(core, env, libc, path, rustc_private, std_misc, thread_local)]
 
-#![allow(missing_copy_implementations)]
-
 #[macro_use]
 extern crate log;
 
@@ -57,13 +55,14 @@ use std::sync::mpsc::channel;
 #[cfg(not(test))]
 use std::thread::Builder;
 
-pub struct Browser<Window> {
+pub struct Browser {
     compositor: Box<CompositorEventListener + 'static>,
 }
 
-impl<Window> Browser<Window> where Window: WindowMethods + 'static {
+impl Browser  {
     #[cfg(not(test))]
-    pub fn new(window: Option<Rc<Window>>) -> Browser<Window> {
+    pub fn new<Window>(window: Option<Rc<Window>>) -> Browser
+    where Window: WindowMethods + 'static {
         use std::env;
 
         ::util::opts::set_experimental_enabled(opts::get().enable_experimental);
@@ -120,7 +119,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 let url = match url::Url::parse(&*url) {
                     Ok(url) => url,
                     Err(url::ParseError::RelativeUrlWithoutBase)
-                    => url::Url::from_file_path(&cwd.join(&*url)).unwrap(),
+                    => url::Url::from_file_path(&*cwd.join(&*url)).unwrap(),
                     Err(_) => panic!("URL parsing failed"),
                 };
 

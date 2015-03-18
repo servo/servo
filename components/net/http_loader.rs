@@ -19,7 +19,7 @@ use hyper::net::HttpConnector;
 use hyper::status::{StatusCode, StatusClass};
 use std::error::Error;
 use openssl::ssl::{SslContext, SslVerifyMode};
-use std::old_io::{IoError, IoErrorKind, Reader};
+use std::io::{self, Read, Write};
 use std::sync::mpsc::{Sender, channel};
 use std::thunk::Invoke;
 use util::task::spawn_named;
@@ -119,12 +119,14 @@ reason: \"certificate verify failed\" }]";
 
         let mut req = match Request::with_connector(load_data.method.clone(), url.clone(), &mut connector) {
             Ok(req) => req,
-            Err(HttpError::HttpIoError(IoError {kind: IoErrorKind::OtherIoError,
-                                                desc: "Error in OpenSSL",
-                                                detail: Some(ref det)})) if det.as_slice() == ssl_err_string => {
+            Err(HttpError::HttpIoError(ref io_error)) if (
+                io_error.kind() == io::ErrorKind::Other &&
+                io_error.description() == "Error in OpenSSL" &&
+                io_error.detail() == Some(ssl_err_string.to_owned())
+            ) => {
                 let mut image = resources_dir_path();
                 image.push("badcert.html");
-                let load_data = LoadData::new(Url::from_file_path(&image).unwrap(), senders.eventual_consumer);
+                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), senders.eventual_consumer);
                 file_loader::factory(load_data, senders.immediate_consumer);
                 return;
             },
@@ -186,7 +188,7 @@ reason: \"certificate verify failed\" }]";
                 };
                 match writer.write_all(&*data) {
                     Err(e) => {
-                        send_error(url, e.desc.to_string(), senders);
+                        send_error(url, e.description().to_string(), senders);
                         return;
                     }
                     _ => {}
@@ -301,7 +303,7 @@ reason: \"certificate verify failed\" }]";
 
             unsafe { buf.set_len(1024); }
             match response.read(buf.as_mut_slice()) {
-                Ok(len) => {
+                Ok(len) if len > 0 => {
                     unsafe { buf.set_len(len); }
                     if progress_chan.send(Payload(buf)).is_err() {
                         // The send errors when the receiver is out of scope,
@@ -310,7 +312,7 @@ reason: \"certificate verify failed\" }]";
                         return;
                     }
                 }
-                Err(_) => {
+                Ok(_) | Err(_) => {
                     let _ = progress_chan.send(Done(Ok(())));
                     break;
                 }

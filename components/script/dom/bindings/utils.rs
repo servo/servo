@@ -577,7 +577,10 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
         debug!("outerizing");
         let obj = *obj.unnamed_field1;
         let win: Root<window::Window> = native_from_reflector_jsmanaged(obj).unwrap().root();
-        win.r().browser_context().as_ref().unwrap().window_proxy()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let win = win.r();
+        let context = win.browser_context();
+        context.as_ref().unwrap().window_proxy()
     }
 }
 

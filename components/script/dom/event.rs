@@ -178,7 +178,9 @@ impl<'a> EventMethods for JSRef<'a, Event> {
     }
 
     fn Type(self) -> DOMString {
-        self.type_.borrow().clone()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let type_ = self.type_.borrow();
+        type_.clone()
     }
 
     fn GetTarget(self) -> Option<Temporary<EventTarget>> {

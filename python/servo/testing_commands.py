@@ -36,12 +36,12 @@ class MachCommands(CommandBase):
 
     def find_test(self, prefix):
         target_contents = os.listdir(path.join(
-            self.context.topdir, "components", "servo", "target"))
+            self.context.topdir, "components", "servo", "target", "debug"))
         for filename in target_contents:
             if filename.startswith(prefix + "-"):
                 filepath = path.join(
                     self.context.topdir, "components", "servo",
-                    "target", filename)
+                    "target", "debug", filename)
 
                 if path.isfile(filepath) and os.access(filepath, os.X_OK):
                     return filepath

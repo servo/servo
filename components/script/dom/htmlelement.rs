@@ -32,6 +32,7 @@ use util::str::DOMString;
 
 use string_cache::Atom;
 
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::default::Default;
 
@@ -161,7 +162,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
     fn set_custom_attr(self, name: DOMString, value: DOMString) -> ErrorResult {
         if name.as_slice().chars()
                .skip_while(|&ch| ch != '\u{2d}')
-               .nth(1).map_or(false, |ch| ch as u8 - b'a' < 26) {
+               .nth(1).map_or(false, |ch| ch >= 'a' && ch <= 'z') {
             return Err(Syntax);
         }
         let element: JSRef<Element> = ElementCast::from_ref(self);
@@ -172,7 +173,10 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(ns!(""), &Atom::from_slice(to_snake_case(name).as_slice())).map(|attr| {
             let attr = attr.root();
-            attr.r().value().as_slice().to_owned()
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let attr = attr.r();
+            let value = attr.value();
+            value.as_slice().to_owned()
         })
     }
 

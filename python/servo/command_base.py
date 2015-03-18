@@ -128,12 +128,12 @@ class CommandBase(object):
         if not self.config["tools"]["system-rust"] \
                 or self.config["tools"]["rust-root"]:
             env["RUST_ROOT"] = self.config["tools"]["rust-root"]
-            extra_path += [path.join(self.config["tools"]["rust-root"], "bin")]
-            extra_lib += [path.join(self.config["tools"]["rust-root"], "lib")]
+            extra_path += [path.join(self.config["tools"]["rust-root"], "rustc", "bin")]
+            extra_lib += [path.join(self.config["tools"]["rust-root"], "rustc", "lib")]
         if not self.config["tools"]["system-cargo"] \
                 or self.config["tools"]["cargo-root"]:
             extra_path += [
-                path.join(self.config["tools"]["cargo-root"], "bin")]
+                path.join(self.config["tools"]["cargo-root"], "cargo", "bin")]
 
         if extra_path:
             env["PATH"] = "%s%s%s" % (
@@ -192,7 +192,9 @@ class CommandBase(object):
                               "--sysroot=%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/")  % {"gonkdir": env["GONKDIR"], "gonkproduct": env["GONK_PRODUCT"] }
 
             # Not strictly necessary for a vanilla build, but might be when tweaking the openssl build
-            env["OPENSSL_PATH"] = "%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib" % {"gonkdir": env["GONKDIR"], "gonkproduct": env["GONK_PRODUCT"] }
+            openssl_dir = "%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib" % {"gonkdir": env["GONKDIR"], "gonkproduct": env["GONK_PRODUCT"] }
+            env["OPENSSL_LIB_DIR"] = openssl_dir
+            env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
 
         # FIXME: These are set because they are the variable names that
         # android-rs-glue expects. However, other submodules have makefiles that
@@ -233,11 +235,11 @@ class CommandBase(object):
 
         if not self.config["tools"]["system-rust"] and \
            not path.exists(path.join(
-                self.config["tools"]["rust-root"], "bin", "rustc")):
+                self.config["tools"]["rust-root"], "rustc", "bin", "rustc")):
             Registrar.dispatch("bootstrap-rust", context=self.context)
         if not self.config["tools"]["system-cargo"] and \
            not path.exists(path.join(
-                self.config["tools"]["cargo-root"], "bin", "cargo")):
+                self.config["tools"]["cargo-root"], "cargo", "bin", "cargo")):
             Registrar.dispatch("bootstrap-cargo", context=self.context)
 
         self.context.bootstrapped = True
