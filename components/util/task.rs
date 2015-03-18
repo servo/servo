@@ -14,7 +14,7 @@ pub fn spawn_named<F>(name: String, f: F)
     let builder = thread::Builder::new().name(name);
     builder.spawn(move || {
         f()
-    });
+    }).unwrap();
 }
 
 /// Arrange to send a particular message to a channel if the task fails.
@@ -40,7 +40,7 @@ pub fn spawn_named_with_send_on_failure<F, T>(name: &'static str,
                 dest.send(msg).unwrap();
             }
         }
-    });
+    }).unwrap();
 }
 
 #[test]

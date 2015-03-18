@@ -9,10 +9,10 @@ use cssparser::{self, RGBA, Color};
 use libc::c_char;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::ffi::c_str_to_bytes;
+use std::ffi::CStr;
 use std::iter::Filter;
 use std::num::{Int, ToPrimitive};
-use std::str::{from_utf8, CharEq, FromStr, Split};
+use std::str::{from_utf8, FromStr, Split};
 
 pub type DOMString = String;
 pub type StaticCharVec = &'static [char];
@@ -333,5 +333,5 @@ impl Str for LowercaseString {
 /// Creates a String from the given null-terminated buffer.
 /// Panics if the buffer does not contain UTF-8.
 pub unsafe fn c_str_to_string(s: *const c_char) -> String {
-    from_utf8(c_str_to_bytes(&s)).unwrap().to_owned()
+    from_utf8(CStr::from_ptr(s).to_bytes()).unwrap().to_owned()
 }

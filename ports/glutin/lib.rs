@@ -6,7 +6,6 @@
 
 #![feature(int_uint)]
 #![feature(core)]
-#![cfg_attr(feature = "window", feature(hash))]
 #![feature(box_syntax)]
 
 #[macro_use] extern crate bitflags;

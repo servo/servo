@@ -2,32 +2,33 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(env, old_io, old_path)]
+#![feature(io, path)]
 
 use std::env;
-use std::old_path::Path;
-use std::old_io::process::{Command, ProcessExit, StdioContainer};
-use std::old_io::File;
+use std::fs::File;
+use std::io::Write;
+use std::process::{Command, Stdio};
+use std::path::Path;
 
 
 fn main() {
-    let python = if Command::new("python2.7").arg("--version").status() == Ok(ProcessExit::ExitStatus(0)) {
+    let python = if Command::new("python2.7").arg("--version").status().unwrap().success() {
         "python2.7"
     } else {
         "python"
     };
-    let style = Path::new(file!()).dir_path();
+    let style = Path::new(file!()).parent().unwrap();
     let mako = style.join("Mako-0.9.1.zip");
     let template = style.join("properties.mako.rs");
     let result = Command::new(python)
-        .env("PYTHONPATH", mako.as_str().unwrap())
-        .env("TEMPLATE", template.as_str().unwrap())
+        .env("PYTHONPATH", &mako)
+        .env("TEMPLATE", &template)
         .arg("-c")
         .arg("from os import environ; from mako.template import Template; print(Template(filename=environ['TEMPLATE']).render())")
-        .stderr(StdioContainer::InheritFd(2))
+        .stderr(Stdio::inherit())
         .output()
         .unwrap();
-    assert_eq!(result.status, ProcessExit::ExitStatus(0));
-    let out = Path::new(env::var("OUT_DIR").unwrap());
-    File::create(&out.join("properties.rs")).unwrap().write_all(&*result.output).unwrap();
+    assert!(result.status.success());
+    let out = env::var("OUT_DIR").unwrap();
+    File::create(&Path::new(&out).join("properties.rs")).unwrap().write_all(&result.stdout).unwrap();
 }

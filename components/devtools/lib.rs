@@ -10,7 +10,7 @@
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 
-#![feature(int_uint, box_syntax, io, core, rustc_private)]
+#![feature(int_uint, box_syntax, io, old_io, core, rustc_private)]
 #![feature(collections, std_misc)]
 
 #![allow(non_snake_case)]

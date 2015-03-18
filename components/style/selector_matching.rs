@@ -9,7 +9,7 @@ use selectors::matching::{SelectorMap, Rule};
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::parser::PseudoElement;
 use selectors::smallvec::VecLike;
-use selectors::tree::{TNode, TElement};
+use selectors::tree::TNode;
 use util::resource_files::read_resource_file;
 
 use legacy::PresentationalHintSynthesis;

@@ -126,7 +126,7 @@ macro_rules! int_range_index {
 
         impl ::std::num::NumCast for $Self_ {
             fn from<T: ToPrimitive>(n: T) -> Option<$Self_> {
-                n.to_int().map($Self_)
+                n.to_isize().map($Self_)
             }
         }
 

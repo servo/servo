@@ -59,7 +59,7 @@ pub fn get_variations_for_family<F>(family_name: &str, mut callback: F)
         let font_set_array_ptr = &mut font_set;
         let pattern = FcPatternCreate();
         assert!(!pattern.is_null());
-        let family_name_c = CString::from_slice(family_name.as_bytes());
+        let family_name_c = CString::new(family_name).unwrap();
         let family_name = family_name_c.as_ptr();
         let ok = FcPatternAddString(pattern, FC_FAMILY.as_ptr() as *mut c_char, family_name as *mut FcChar8);
         assert!(ok != 0);
@@ -102,7 +102,7 @@ pub fn get_variations_for_family<F>(family_name: &str, mut callback: F)
 }
 
 pub fn get_system_default_family(generic_name: &str) -> Option<String> {
-    let generic_name_c = CString::from_slice(generic_name.as_bytes());
+    let generic_name_c = CString::new(generic_name).unwrap();
     let generic_name_ptr = generic_name_c.as_ptr();
 
     unsafe {
