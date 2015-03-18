@@ -14,6 +14,7 @@ use super::values::discrete::InvertedColors;
 use super::values::discrete::{Hover, Pointer};
 use super::values::discrete::LightLevel;
 use super::values::discrete::Scripting;
+use super::values::discrete::ViewMode;
 
 #[allow(missing_copy_implementations)]
 #[derive(Debug)]
@@ -190,5 +191,14 @@ impl DeviceFeatureContext for Device {
     // TDOD
     fn DeviceAspectRatio(&self) -> f32 {
         0.
+    }
+
+    // TODO
+    fn ViewMode(&self) -> Option<ViewMode> {
+        match self.media_type {
+            // Servo doesn't have any chrome...
+            MediaType::Screen => Some(ViewMode::Floating),
+            _ => None
+        }
     }
 }

@@ -159,7 +159,10 @@ media_features! {
     // MQ 4 § 11. Deprecated
     "device-width" => DeviceWidth(range),
     "device-height" => DeviceHeight(range),
-    "device-aspect-ratio" => DeviceAspectRatio(range)
+    "device-aspect-ratio" => DeviceAspectRatio(range),
+
+    // View-mode
+    "view-mode" => ViewMode(discrete)
 }
 
 derive_display_using_to_css!(MediaFeature);

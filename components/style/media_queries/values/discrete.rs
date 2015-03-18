@@ -246,3 +246,19 @@ discrete_values!(Scripting {
     "initial-only" => InitialOnly,
     "enabled" => Enabled
 });
+
+// View-mode § 5.1
+// http://www.w3.org/TR/view-mode/#view-modes
+discrete_values!(ViewMode {
+    "windowed" => Windowed,
+    "floating" => Floating,
+    "fullscreen" => Fullscreen,
+    "maximized" => Maximized,
+    "minimized" => Minimized
+},
+context -> Option<ViewMode>,
+match context {
+    boolean(view_mode) => view_mode.is_some(),
+    normal(ref specified, view_mode) =>
+        view_mode.map_or(false, |view_mode| *specified == view_mode)
+});
