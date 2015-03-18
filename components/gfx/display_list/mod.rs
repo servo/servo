@@ -26,7 +26,7 @@ use text::TextRun;
 use azure::azure::AzFloat;
 use azure::azure_hl::{Color};
 
-use collections::dlist::{self, DList};
+use collections::linked_list::{self, LinkedList};
 use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 use geom::approxeq::ApproxEq;
 use geom::num::Zero;
@@ -35,7 +35,7 @@ use paint_task::PaintLayer;
 use msg::compositor_msg::LayerId;
 use net::image::base::Image;
 use util::cursor::Cursor;
-use util::dlist as servo_dlist;
+use util::linked_list::prepend_from;
 use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
 use util::memory::SizeOf;
 use util::range::Range;
@@ -81,17 +81,17 @@ impl OpaqueNode {
 /// structure, omitting several pointers and lengths.
 pub struct DisplayList {
     /// The border and backgrounds for the root of this stacking context: steps 1 and 2.
-    pub background_and_borders: DList<DisplayItem>,
+    pub background_and_borders: LinkedList<DisplayItem>,
     /// Borders and backgrounds for block-level descendants: step 4.
-    pub block_backgrounds_and_borders: DList<DisplayItem>,
+    pub block_backgrounds_and_borders: LinkedList<DisplayItem>,
     /// Floats: step 5. These are treated as pseudo-stacking contexts.
-    pub floats: DList<DisplayItem>,
+    pub floats: LinkedList<DisplayItem>,
     /// All other content.
-    pub content: DList<DisplayItem>,
+    pub content: LinkedList<DisplayItem>,
     /// Outlines: step 10.
-    pub outlines: DList<DisplayItem>,
+    pub outlines: LinkedList<DisplayItem>,
     /// Child stacking contexts.
-    pub children: DList<Arc<StackingContext>>,
+    pub children: LinkedList<Arc<StackingContext>>,
 }
 
 impl DisplayList {
@@ -99,12 +99,12 @@ impl DisplayList {
     #[inline]
     pub fn new() -> DisplayList {
         DisplayList {
-            background_and_borders: DList::new(),
-            block_backgrounds_and_borders: DList::new(),
-            floats: DList::new(),
-            content: DList::new(),
-            outlines: DList::new(),
-            children: DList::new(),
+            background_and_borders: LinkedList::new(),
+            block_backgrounds_and_borders: LinkedList::new(),
+            floats: LinkedList::new(),
+            content: LinkedList::new(),
+            outlines: LinkedList::new(),
+            children: LinkedList::new(),
         }
     }
 
@@ -123,10 +123,10 @@ impl DisplayList {
     /// Merges all display items from all non-float stacking levels to the `float` stacking level.
     #[inline]
     pub fn form_float_pseudo_stacking_context(&mut self) {
-        servo_dlist::prepend_from(&mut self.floats, &mut self.outlines);
-        servo_dlist::prepend_from(&mut self.floats, &mut self.content);
-        servo_dlist::prepend_from(&mut self.floats, &mut self.block_backgrounds_and_borders);
-        servo_dlist::prepend_from(&mut self.floats, &mut self.background_and_borders);
+        prepend_from(&mut self.floats, &mut self.outlines);
+        prepend_from(&mut self.floats, &mut self.content);
+        prepend_from(&mut self.floats, &mut self.block_backgrounds_and_borders);
+        prepend_from(&mut self.floats, &mut self.background_and_borders);
     }
 
     /// Returns a list of all items in this display list concatenated together. This is extremely
@@ -1002,7 +1002,7 @@ pub enum BoxShadowClipMode {
 
 pub enum DisplayItemIterator<'a> {
     Empty,
-    Parent(dlist::Iter<'a,DisplayItem>),
+    Parent(linked_list::Iter<'a,DisplayItem>),
 }
 
 impl<'a> Iterator for DisplayItemIterator<'a> {

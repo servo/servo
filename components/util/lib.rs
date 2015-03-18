@@ -59,7 +59,7 @@ pub mod cache;
 pub mod cursor;
 pub mod debug_utils;
 pub mod deque;
-pub mod dlist;
+pub mod linked_list;
 pub mod fnv;
 pub mod geometry;
 pub mod logical_geometry;

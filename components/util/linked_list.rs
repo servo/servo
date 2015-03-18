@@ -9,10 +9,6 @@ use std::mem;
 
 /// Splits the head off a list in O(1) time, and returns the head.
 pub fn split_off_head<T>(list: &mut LinkedList<T>) -> LinkedList<T> {
-    // FIXME: Work around https://github.com/rust-lang/rust/issues/22244
-    if list.len() == 1 {
-        return mem::replace(list, LinkedList::new());
-    }
     let tail = list.split_off(1);
     mem::replace(list, tail)
 }
