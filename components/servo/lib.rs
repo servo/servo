@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(core, env, libc, path, rustc_private, std_misc, thread_local)]
+#![feature(libc, path, rustc_private, thread_local)]
 
 #[macro_use]
 extern crate log;
