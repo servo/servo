@@ -40,7 +40,7 @@ impl ScrollingTimerProxy {
                 receiver: to_scrolling_timer_receiver,
             };
             scrolling_timer.run();
-        });
+        }).unwrap();
         ScrollingTimerProxy {
             sender: to_scrolling_timer_sender,
         }
