@@ -31,6 +31,14 @@ pub struct Sink {
     pub document: JS<Document>,
 }
 
+/// FragmentContext is used only to pass this group of related values
+/// into functions.
+#[derive(Copy)]
+pub struct FragmentContext<'a> {
+    pub context_elem: JSRef<'a, Node>,
+    pub form_elem: Option<JSRef<'a, Node>>,
+}
+
 pub type Tokenizer = tokenizer::Tokenizer<TreeBuilder<JS<Node>, Sink>>;
 
 // NB: JSTraceable is *not* auto-derived.
@@ -66,6 +74,39 @@ impl ServoHTMLParser {
         });
 
         let tok = tokenizer::Tokenizer::new(tb, Default::default());
+
+        let parser = ServoHTMLParser {
+            reflector_: Reflector::new(),
+            tokenizer: DOMRefCell::new(tok),
+        };
+
+        reflect_dom_object(box parser, GlobalRef::Window(window.r()),
+                           ServoHTMLParserBinding::Wrap)
+    }
+
+    #[allow(unrooted_must_root)]
+    pub fn new_for_fragment(base_url: Option<Url>, document: JSRef<Document>,
+                            fragment_context: FragmentContext) -> Temporary<ServoHTMLParser> {
+        let window = document.window().root();
+        let sink = Sink {
+            base_url: base_url,
+            document: JS::from_rooted(document),
+        };
+
+        let tb_opts = TreeBuilderOpts {
+            ignore_missing_rules: true,
+            .. Default::default()
+        };
+        let tb = TreeBuilder::new_for_fragment(sink,
+                                               JS::from_rooted(fragment_context.context_elem),
+                                               fragment_context.form_elem.map(|n| JS::from_rooted(n)),
+                                               tb_opts);
+
+        let tok_opts = tokenizer::TokenizerOpts {
+            initial_state: Some(tb.tokenizer_state_for_context_elem()),
+            .. Default::default()
+        };
+        let tok = tokenizer::Tokenizer::new(tb, tok_opts);
 
         let parser = ServoHTMLParser {
             reflector_: Reflector::new(),
