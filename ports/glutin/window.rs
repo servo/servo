@@ -468,16 +468,7 @@ impl WindowMethods for Window {
     fn load_end(&self) {
     }
 
-    // TODO: Enable on macos when supported by glutin.
-    #[cfg(target_os="macos")]
-    fn set_cursor(&self, _: Cursor) {
-    }
-
-    #[cfg(target_os="android")]
-    fn set_cursor(&self, _: Cursor) {
-    }
-
-    #[cfg(target_os="linux")]
+    /// Has no effect on Android.
     fn set_cursor(&self, c: Cursor) {
         use glutin::MouseCursor;
 
