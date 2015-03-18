@@ -144,15 +144,12 @@ struct FrameTreeIterator<'a> {
 impl<'a> Iterator for FrameTreeIterator<'a> {
     type Item = &'a Frame;
     fn next(&mut self) -> Option<&'a Frame> {
-        match self.stack.pop() {
-            Some(next) => {
-                let frame = self.frames.get(&next).unwrap();
-                let pipeline = self.pipelines.get(&frame.current).unwrap();
-                self.stack.extend(pipeline.children.iter().map(|&c| c));
-                Some(frame)
-            }
-            None => None,
-        }
+        self.stack.pop().map(|next| {
+            let frame = self.frames.get(&next).unwrap();
+            let pipeline = self.pipelines.get(&frame.current).unwrap();
+            self.stack.extend(pipeline.children.iter().map(|&c| c));
+            frame
+        })
     }
 }
 
