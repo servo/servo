@@ -1342,7 +1342,7 @@ impl Flow for InlineFlow {
                                                       self.base
                                                           .absolute_position_info
                                                           .relative_containing_block_mode,
-                                                      CoordinateSystem::Own);
+                                                      CoordinateSystem::Parent);
             let clip = fragment.clipping_region_for_children(&self.base.clip,
                                                              &stacking_relative_border_box);
             match fragment.specific {
