@@ -380,7 +380,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_exit(&mut self) {
-        for (_id, ref pipeline) in self.pipelines.iter() {
+        for (_id, ref pipeline) in &self.pipelines {
             pipeline.exit(PipelineExitType::Complete);
         }
         self.image_cache_task.exit();
@@ -530,7 +530,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             }
             None => {
                 // Make sure no pending page would be overridden.
-                for frame_change in self.pending_frames.iter() {
+                for frame_change in &self.pending_frames {
                     if frame_change.old_pipeline_id == Some(source_id) {
                         // id that sent load msg is being changed already; abort
                         return;
@@ -676,7 +676,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         // Remove any evicted frames
         if let Some(evicted_frames) = evicted_frames {
-            for pipeline_id in evicted_frames.iter() {
+            for pipeline_id in &evicted_frames {
                 self.close_pipeline(*pipeline_id, ExitPipelineMode::Normal);
             }
         }
@@ -751,7 +751,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
 
         // Send resize message to any pending pipelines that aren't loaded yet.
-        for pending_frame in self.pending_frames.iter() {
+        for pending_frame in &self.pending_frames {
             let pipeline = self.pipelines.get(&pending_frame.new_pipeline_id).unwrap();
             if pipeline.parent_info.is_none() {
                 let ScriptControlChan(ref chan) = pipeline.script_chan;
@@ -778,7 +778,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let pipeline = self.pipelines.remove(&pipeline_id).unwrap();
 
         // Remove any child frames
-        for child in pipeline.children.iter() {
+        for child in &pipeline.children {
             self.close_frame(*child, exit_mode);
         }
 
@@ -808,7 +808,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             children: vec!(),
         };
 
-        for child_frame_id in pipeline.children.iter() {
+        for child_frame_id in &pipeline.children {
             frame_tree.children.push(self.frame_to_sendable(*child_frame_id));
         }
 
