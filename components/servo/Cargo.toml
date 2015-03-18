@@ -34,11 +34,13 @@ default = ["glutin_app", "window"]
 window = ["glutin_app/window"]
 headless = ["glutin_app/headless"]
 
-[profile.release]
-opt-level = 3
-debug = true
-rpath = false
-lto = false
+# Uncomment to profile on Linux:
+#
+# [profile.release]
+# opt-level = 3
+# debug = true
+# rpath = false
+# lto = false
 
 [dependencies.compositing]
 path = "../compositing"

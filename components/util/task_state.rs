@@ -26,8 +26,13 @@ bitflags! {
 macro_rules! task_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
     impl TaskState {
         $(
+            #[cfg(not(ndebug))]
             pub fn $fun(self) -> bool {
                 self.contains($flag)
+            }
+            #[cfg(ndebug)]
+            pub fn $fun(self) -> bool {
+                true
             }
         )*
     }
