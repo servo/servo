@@ -64,7 +64,7 @@ partial interface Element {
 // http://domparsing.spec.whatwg.org/#extensions-to-the-element-interface
 partial interface Element {
   [Throws,TreatNullAs=EmptyString]
-  readonly attribute DOMString innerHTML;
+  attribute DOMString innerHTML;
   [Throws,TreatNullAs=EmptyString]
   readonly attribute DOMString outerHTML;
 };
