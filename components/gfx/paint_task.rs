@@ -439,7 +439,7 @@ impl WorkerThreadProxy {
                                                           font_cache_task,
                                                           time_profiler_chan);
                 worker_thread.main();
-            });
+            }).unwrap();
             WorkerThreadProxy {
                 receiver: from_worker_receiver,
                 sender: to_worker_sender,
