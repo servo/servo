@@ -6,11 +6,10 @@
 
 use libc::{c_char,c_int,c_void,size_t};
 use std::borrow::ToOwned;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::collections::LinkedList;
 use std::ffi::CString;
-#[cfg(target_os = "linux")]
-use std::iter::AdditiveIterator;
 use std::old_io::timer::sleep;
 use std::mem::{size_of, transmute};
 use std::ptr::null_mut;
@@ -183,9 +182,15 @@ impl MemoryProfilerChan {
     }
 }
 
+/// An easy way to build a path for a report.
+#[macro_export]
+macro_rules! path {
+    ($($x:expr),*) => {{ vec![$( $x.to_owned() ),*] }}
+}
+
 pub struct MemoryReport {
-    /// The identifying name for this report.
-    pub name: String,
+    /// The identifying path for this report.
+    pub path: Vec<String>,
 
     /// The size, in bytes.
     pub size: u64,
@@ -328,7 +333,8 @@ impl MemoryProfiler {
     }
 
     fn handle_print_msg(&self) {
-        println!("{:12}: {}", "_size (MiB)_", "_category_");
+        println!("Begin memory reports");
+        println!("|");
 
         // Collect reports from memory reporters.
         //
@@ -336,21 +342,181 @@ impl MemoryProfiler {
         // each reporter once we have enough of them.
         //
         // If anything goes wrong with a reporter, we just skip it.
+        let mut forest = ReportsForest::new();
         for reporter in self.reporters.values() {
             let (chan, port) = channel();
             if reporter.collect_reports(MemoryReportsChan(chan)) {
                 if let Ok(reports) = port.recv() {
-                    for report in reports {
-                        let mebi = 1024f64 * 1024f64;
-                        println!("{:12.2}: {}", (report.size as f64) / mebi, report.name);
+                    for report in reports.iter() {
+                        forest.insert(&report.path, report.size);
                     }
                 }
             }
         }
+        forest.print();
 
+        println!("|");
+        println!("End memory reports");
         println!("");
     }
 }
+
+/// A collection of one or more reports with the same initial path segment. A ReportsTree
+/// containing a single node is described as "degenerate".
+struct ReportsTree {
+    /// For leaf nodes, this is the sum of the sizes of all reports that mapped to this location.
+    /// For interior nodes, this is the sum of the sizes of all its child nodes.
+    size: u64,
+
+    /// For leaf nodes, this is the count of all reports that mapped to this location.
+    /// For interor nodes, this is always zero.
+    count: u32,
+
+    /// The segment from the report path that maps to this node.
+    path_seg: String,
+
+    /// Child nodes.
+    children: Vec<ReportsTree>,
+}
+
+impl ReportsTree {
+    fn new(path_seg: String) -> ReportsTree {
+        ReportsTree {
+            size: 0,
+            count: 0,
+            path_seg: path_seg,
+            children: vec![]
+        }
+    }
+
+    // Searches the tree's children for a path_seg match, and returns the index if there is a
+    // match.
+    fn find_child(&self, path_seg: &String) -> Option<usize> {
+        for (i, child) in self.children.iter().enumerate() {
+            if child.path_seg == *path_seg {
+                return Some(i);
+            }
+        }
+        None
+    }
+
+    // Insert the path and size into the tree, adding any nodes as necessary.
+    fn insert(&mut self, path: &[String], size: u64) {
+        let mut t: &mut ReportsTree = self;
+        for path_seg in path.iter() {
+            let i = match t.find_child(&path_seg) {
+                Some(i) => i,
+                None => {
+                    let new_t = ReportsTree::new(path_seg.clone());
+                    t.children.push(new_t);
+                    t.children.len() - 1
+                },
+            };
+            let tmp = t;    // this temporary is needed to satisfy the borrow checker
+            t = &mut tmp.children[i];
+        }
+
+        t.size += size;
+        t.count += 1;
+    }
+
+    // Fill in sizes for interior nodes. Should only be done once all the reports have been
+    // inserted.
+    fn compute_interior_node_sizes(&mut self) -> u64 {
+        if !self.children.is_empty() {
+            // Interior node. Derive its size from its children.
+            if self.size != 0 {
+                // This will occur if e.g. we have paths ["a", "b"] and ["a", "b", "c"].
+                panic!("one report's path is a sub-path of another report's path");
+            }
+            for child in self.children.iter_mut() {
+                self.size += child.compute_interior_node_sizes();
+            }
+        }
+        self.size
+    }
+
+    fn print(&self, depth: i32) {
+        if !self.children.is_empty() {
+            assert_eq!(self.count, 0);
+        }
+
+        let mut indent_str = String::new();
+        for _ in range(0, depth) {
+            indent_str.push_str("   ");
+        }
+
+        let mebi = 1024f64 * 1024f64;
+        let count_str = if self.count > 1 { format!(" {}", self.count) } else { "".to_owned() };
+        println!("|{}{:8.2} MiB -- {}{}",
+                 indent_str, (self.size as f64) / mebi, self.path_seg, count_str);
+
+        for child in self.children.iter() {
+            child.print(depth + 1);
+        }
+    }
+}
+
+/// A collection of ReportsTrees. It represents the data from multiple memory reports in a form
+/// that's good to print.
+struct ReportsForest {
+    trees: HashMap<String, ReportsTree>,
+}
+
+impl ReportsForest {
+    fn new() -> ReportsForest {
+        ReportsForest {
+            trees: HashMap::new(),
+        }
+    }
+
+    // Insert the path and size into the forest, adding any trees and nodes as necessary.
+    fn insert(&mut self, path: &[String], size: u64) {
+        // Get the right tree, creating it if necessary.
+        if !self.trees.contains_key(&path[0]) {
+            self.trees.insert(path[0].clone(), ReportsTree::new(path[0].clone()));
+        }
+        let t = self.trees.get_mut(&path[0]).unwrap();
+
+        // Use tail() because the 0th path segment was used to find the right tree in the forest.
+        t.insert(path.tail(), size);
+    }
+
+    fn print(&mut self) {
+        // Fill in sizes of interior nodes.
+        for (_, tree) in self.trees.iter_mut() {
+            tree.compute_interior_node_sizes();
+        }
+
+        // Put the trees into a sorted vector. Primary sort: degenerate trees (those containing a
+        // single node) come after non-degenerate trees. Secondary sort: alphabetical order of the
+        // root node's path_seg.
+        let mut v = vec![];
+        for (_, tree) in self.trees.iter() {
+            v.push(tree);
+        }
+        v.sort_by(|a, b| {
+            if a.children.is_empty() && !b.children.is_empty() {
+                Ordering::Greater
+            } else if !a.children.is_empty() && b.children.is_empty() {
+                Ordering::Less
+            } else {
+                a.path_seg.cmp(&b.path_seg)
+            }
+        });
+
+        // Print the forest.
+        for tree in v.iter() {
+            tree.print(0);
+            // Print a blank line after non-degenerate trees.
+            if !tree.children.is_empty() {
+                println!("|");
+            }
+        }
+    }
+}
+
+//---------------------------------------------------------------------------
 
 /// Collects global measurements from the OS and heap allocators.
 struct SystemMemoryReporter;
@@ -359,40 +525,42 @@ impl MemoryReporter for SystemMemoryReporter {
     fn collect_reports(&self, reports_chan: MemoryReportsChan) -> bool {
         let mut reports = vec![];
         {
-            let mut report = |name: &str, size| {
+            let mut report = |path, size| {
                 if let Some(size) = size {
-                    reports.push(MemoryReport { name: name.to_owned(), size: size });
+                    reports.push(MemoryReport { path: path, size: size });
                 }
             };
 
             // Virtual and physical memory usage, as reported by the OS.
-            report("vsize", get_vsize());
-            report("resident", get_resident());
+            report(path!["vsize"], get_vsize());
+            report(path!["resident"], get_resident());
 
             // Memory segments, as reported by the OS.
             for seg in get_resident_segments().iter() {
-                report(seg.0.as_slice(), Some(seg.1));
+                report(path!["resident-according-to-smaps".to_owned(), seg.0.to_owned()],
+                       Some(seg.1));
             }
 
             // Total number of bytes allocated by the application on the system
             // heap.
-            report("system-heap-allocated", get_system_heap_allocated());
+            report(path!["system-heap-allocated".to_owned()], get_system_heap_allocated());
 
             // The descriptions of the following jemalloc measurements are taken
             // directly from the jemalloc documentation.
 
             // "Total number of bytes allocated by the application."
-            report("jemalloc-heap-allocated", get_jemalloc_stat("stats.allocated"));
+            report(path!["jemalloc-heap-allocated".to_owned()],
+                   get_jemalloc_stat("stats.allocated"));
 
             // "Total number of bytes in active pages allocated by the application.
             // This is a multiple of the page size, and greater than or equal to
             // |stats.allocated|."
-            report("jemalloc-heap-active", get_jemalloc_stat("stats.active"));
+            report(path!["jemalloc-heap-active"], get_jemalloc_stat("stats.active"));
 
             // "Total number of bytes in chunks mapped on behalf of the application.
             // This is a multiple of the chunk size, and is at least as large as
             // |stats.active|. This does not include inactive chunks."
-            report("jemalloc-heap-mapped", get_jemalloc_stat("stats.mapped"));
+            report(path!["jemalloc-heap-mapped"], get_jemalloc_stat("stats.mapped"));
         }
         reports_chan.send(reports);
 
@@ -583,7 +751,6 @@ fn get_resident_segments() -> Vec<(String, u64)> {
 
             // Construct the segment name from its pathname and permissions.
             curr_seg_name.clear();
-            curr_seg_name.push_str("- ");
             if pathname == "" || pathname.starts_with("[stack:") {
                 // Anonymous memory. Entries marked with "[stack:nnn]"
                 // look like thread stacks but they may include other
@@ -607,9 +774,9 @@ fn get_resident_segments() -> Vec<(String, u64)> {
             let rss = cap.at(1).unwrap().parse::<u64>().unwrap() * 1024;
 
             if rss > 0 {
-                // Aggregate small segments into "- other".
+                // Aggregate small segments into "other".
                 let seg_name = if rss < 512 * 1024 {
-                    "- other".to_owned()
+                    "other".to_owned()
                 } else {
                     curr_seg_name.clone()
                 };
@@ -625,14 +792,9 @@ fn get_resident_segments() -> Vec<(String, u64)> {
 
     let mut segs: Vec<(String, u64)> = seg_map.into_iter().collect();
 
-    // Get the total and add it to the vector. Note that this total differs
-    // from the "resident" measurement obtained via /proc/<pid>/statm in
-    // get_resident(). It's unclear why this difference occurs; for some
-    // processes the measurements match, but for Servo they do not.
-    let total = segs.iter().map(|&(_, size)| size).sum();
-    segs.push(("resident-according-to-smaps".to_owned(), total));
-
-    // Sort by size; the total will be first.
+    // Note that the sum of all these segments' RSS values differs from the "resident" measurement
+    // obtained via /proc/<pid>/statm in get_resident(). It's unclear why this difference occurs;
+    // for some processes the measurements match, but for Servo they do not.
     segs.sort_by(|&(_, rss1), &(_, rss2)| rss2.cmp(&rss1));
 
     segs
