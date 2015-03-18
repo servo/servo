@@ -13,7 +13,7 @@ pub fn spawn_named<F>(name: String, f: F)
 {
     let builder = thread::Builder::new().name(name);
     builder.spawn(move || {
-        f()
+        f();
     });
 }
 
