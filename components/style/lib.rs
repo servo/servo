@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![feature(alloc)]
 #![feature(plugin)]
 #![feature(int_uint)]
 #![feature(box_syntax)]
 #![feature(core)]
-#![feature(std_misc)]
 #![feature(collections)]
 #![feature(rustc_private)]
 
