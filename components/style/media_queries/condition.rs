@@ -288,11 +288,11 @@ mod tests {
 
         match from_css!("(scan) and ((not (hover)) or (grid))").unwrap() {
             MediaConditionTerm::Connective(
-                MediaConnectiveTerm::And(ref terms)) => match &terms {
+                MediaConnectiveTerm::And(ref terms)) => match &terms[..] {
                 [MediaInParensTerm::Feature(MediaFeature::Scan(None)),
                  MediaInParensTerm::Condition(
                     box MediaConditionTerm::Connective(
-                        MediaConnectiveTerm::Or(ref terms)))] => match &terms {
+                        MediaConnectiveTerm::Or(ref terms)))] => match &terms[..] {
                         [MediaInParensTerm::Condition(
                              box MediaConditionTerm::Connective(
                                  MediaConnectiveTerm::Not(
@@ -315,7 +315,7 @@ mod tests {
         }
 
         match from_css!("(scan) and (grid)").unwrap() {
-            MediaConnectiveTerm::And(ref terms) => match &terms {
+            MediaConnectiveTerm::And(ref terms) => match &terms[..] {
                 [MediaInParensTerm::Feature(MediaFeature::Scan(None)),
                  MediaInParensTerm::Feature(MediaFeature::Grid(None))] => {}
                 t => panic!("condition did not match: actual {:?}", t)
@@ -324,7 +324,7 @@ mod tests {
         }
 
         match from_css!("(scan) or (grid)").unwrap() {
-            MediaConnectiveTerm::Or(ref terms) => match &terms {
+            MediaConnectiveTerm::Or(ref terms) => match &terms[..] {
                 [MediaInParensTerm::Feature(MediaFeature::Scan(None)),
                  MediaInParensTerm::Feature(MediaFeature::Grid(None))] => {}
                 t => panic!("condition did not match: actual {:?}", t)
@@ -358,7 +358,7 @@ mod tests {
         }
 
         match from_css!("calc(...)").unwrap() {
-            MediaInParensTerm::GeneralEnclosed(ref name) => match &name {
+            MediaInParensTerm::GeneralEnclosed(ref name) => match &name[..] {
                 "calc" => {}
                 _ => panic!("condition did not match: actual {:?}", name)
             },

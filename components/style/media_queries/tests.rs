@@ -296,7 +296,7 @@ fn test_mq_multiple_expressions() {
         assert!(q.condition.is_some(), css.to_owned());
         match q.condition.as_ref().unwrap().0 {
             MediaConditionTerm::Connective(
-                MediaConnectiveTerm::And(ref e)) => match &e[] {
+                MediaConnectiveTerm::And(ref e)) => match &e[..] {
                     [MediaInParensTerm::Feature(
                         MediaFeature::Width(
                             Some(Width(Range::Ge(e0))))),
@@ -320,7 +320,7 @@ fn test_mq_multiple_expressions() {
         assert!(q.condition.is_some(), css.to_owned());
         match q.condition.as_ref().unwrap().0 {
             MediaConditionTerm::Connective(
-                MediaConnectiveTerm::And(ref e)) => match &e[] {
+                MediaConnectiveTerm::And(ref e)) => match &e[..] {
                     [MediaInParensTerm::Feature(
                         MediaFeature::Width(
                             Some(Width(Range::Ge(e0))))),

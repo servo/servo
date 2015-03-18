@@ -22,7 +22,7 @@ macro_rules! media_types {
             type Err = ();
 
             fn from_css(input: &mut Parser) -> Result<$name, ()> {
-                match &try!(input.expect_ident())[] {
+                match &try!(input.expect_ident()) {
                     $(t if $css.eq_ignore_ascii_case(t) => Ok($name::$variant)),+,
                     _ => Err(())
                 }
@@ -86,7 +86,7 @@ impl FromCss for MediaType {
     fn from_css(input: &mut Parser) -> Result<MediaType, ()> {
         if input.try(|input| input.expect_ident_matching("all")).is_ok() {
             Ok(MediaType::All)
-        } else if input.try(|input| match &try!(input.expect_ident())[] {
+        } else if input.try(|input| match &try!(input.expect_ident()) {
             // MQ 4 § 3
             // The <media-type> production does not include the keywords
             // `only`, `not`, `and`, and `or`.
@@ -133,7 +133,7 @@ impl FromCss for Qualifier {
     type Err = ();
 
     fn from_css(input: &mut Parser) -> Result<Qualifier, ()> {
-        match &try!(input.expect_ident())[] {
+        match &try!(input.expect_ident()) {
             q if "only".eq_ignore_ascii_case(q) => Ok(Qualifier::Only),
             q if "not".eq_ignore_ascii_case(q) => Ok(Qualifier::Not),
             _ => Err(())

@@ -77,7 +77,7 @@ macro_rules! discrete_values {
             fn from_css(input: &mut Parser) -> Result<$name, ()> {
                 use ::std::ascii::AsciiExt;
 
-                match &try!(input.expect_ident())[] {
+                match &try!(input.expect_ident()) {
                     $(s if s.eq_ignore_ascii_case($css) => Ok($name::$variant)),+,
                     _ => Err(())
                 }

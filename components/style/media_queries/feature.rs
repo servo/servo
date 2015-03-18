@@ -186,7 +186,7 @@ impl FromCss for MediaFeature {
     }
 }
 
-fn parse_ident_first_form<'a>(input: &mut Parser, name: Cow<'a, String, str>)
+fn parse_ident_first_form<'a>(input: &mut Parser, name: Cow<'a, str>)
                               -> Result<MediaFeature, ()>
 {
     if name.len() >= 4 {
@@ -199,10 +199,10 @@ fn parse_ident_first_form<'a>(input: &mut Parser, name: Cow<'a, String, str>)
                 dispatch_ident_first_form(input,
                                           Some(RangePrefix::Max),
                                           &name[4..]),
-            _ => dispatch_ident_first_form(input, None, &name[])
+            _ => dispatch_ident_first_form(input, None, &name)
         }
     } else {
-        dispatch_ident_first_form(input, None, &name[])
+        dispatch_ident_first_form(input, None, &name)
     }
 }
 
@@ -235,7 +235,7 @@ fn parse_value_first_form(input: &mut Parser) -> Result<MediaFeature, ()> {
     // we have our feature name; we can reset the parser to `start`
     // and use Range::from_css now that we can infer the value type
     input.reset(start);
-    dispatch_value_first_form(input, &name[], after_name)
+    dispatch_value_first_form(input, &name, after_name)
 }
 
 fn parse_discrete_value<T>(input: &mut Parser,
