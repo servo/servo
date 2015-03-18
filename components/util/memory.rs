@@ -7,7 +7,7 @@
 use libc::{c_char,c_int,c_void,size_t};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::collections::LinkedList as DList;
+use std::collections::LinkedList;
 use std::ffi::CString;
 #[cfg(target_os = "linux")]
 use std::iter::AdditiveIterator;
@@ -109,18 +109,18 @@ impl<T: SizeOf> SizeOf for Vec<T> {
     }
 }
 
-// FIXME(njn): We can't implement SizeOf accurately for DList because it requires access to the
+// FIXME(njn): We can't implement SizeOf accurately for LinkedList because it requires access to the
 // private Node type. Eventually we'll want to add SizeOf (or equivalent) to Rust itself. In the
-// meantime, we use the dirty hack of transmuting DList into an identical type (DList2) and
+// meantime, we use the dirty hack of transmuting LinkedList into an identical type (LinkedList2) and
 // measuring that.
-impl<T: SizeOf> SizeOf for DList<T> {
+impl<T: SizeOf> SizeOf for LinkedList<T> {
     fn size_of_excluding_self(&self) -> usize {
-        let list2: &DList2<T> = unsafe { transmute(self) };
+        let list2: &LinkedList2<T> = unsafe { transmute(self) };
         list2.size_of_excluding_self()
     }
 }
 
-struct DList2<T> {
+struct LinkedList2<T> {
     _length: usize,
     list_head: Link<T>,
     _list_tail: Rawlink<Node<T>>,
@@ -140,14 +140,14 @@ struct Node<T> {
 
 impl<T: SizeOf> SizeOf for Node<T> {
     // Unlike most size_of_excluding_self() functions, this one does *not* measure descendents.
-    // Instead, DList2<T>::size_of_excluding_self() handles that, so that it can use iteration
+    // Instead, LinkedList2<T>::size_of_excluding_self() handles that, so that it can use iteration
     // instead of recursion, which avoids potentially blowing the stack.
     fn size_of_excluding_self(&self) -> usize {
         self.value.size_of_excluding_self()
     }
 }
 
-impl<T: SizeOf> SizeOf for DList2<T> {
+impl<T: SizeOf> SizeOf for LinkedList2<T> {
     fn size_of_excluding_self(&self) -> usize {
         let mut size = 0;
         let mut curr: &Link<T> = &self.list_head;
@@ -159,17 +159,17 @@ impl<T: SizeOf> SizeOf for DList2<T> {
     }
 }
 
-// This is a basic sanity check. If the representation of DList changes such that it becomes a
-// different size to DList2, this will fail at compile-time.
+// This is a basic sanity check. If the representation of LinkedList changes such that it becomes a
+// different size to LinkedList2, this will fail at compile-time.
 #[allow(dead_code)]
-unsafe fn dlist2_check() {
-    transmute::<DList<i32>, DList2<i32>>(panic!());
+unsafe fn linked_list2_check() {
+    transmute::<LinkedList<i32>, LinkedList2<i32>>(panic!());
 }
 
-// Currently, types that implement the Drop type are larger than those that don't. Because DList
-// implements Drop, DList2 must also so that dlist2_check() doesn't fail.
+// Currently, types that implement the Drop type are larger than those that don't. Because
+// LinkedList implements Drop, LinkedList2 must also so that linked_list2_check() doesn't fail.
 #[unsafe_destructor]
-impl<T> Drop for DList2<T> {
+impl<T> Drop for LinkedList2<T> {
     fn drop(&mut self) {}
 }
 
