@@ -6,7 +6,7 @@
 
 use display_list::{DisplayItem, DisplayList, StackingContext};
 
-use collections::dlist::DList;
+use collections::linked_list::LinkedList;
 use geom::rect::Rect;
 use util::geometry::{self, Au};
 use std::sync::Arc;
@@ -42,7 +42,7 @@ impl DisplayListOptimizer {
 
     /// Adds display items that intersect the visible rect to `result_list`.
     fn add_in_bounds_display_items<'a,I>(&self,
-                                         result_list: &mut DList<DisplayItem>,
+                                         result_list: &mut LinkedList<DisplayItem>,
                                          display_items: I)
                                          where I: Iterator<Item=&'a DisplayItem> {
         for display_item in display_items {
@@ -55,7 +55,7 @@ impl DisplayListOptimizer {
 
     /// Adds child stacking contexts whose boundaries intersect the visible rect to `result_list`.
     fn add_in_bounds_stacking_contexts<'a,I>(&self,
-                                             result_list: &mut DList<Arc<StackingContext>>,
+                                             result_list: &mut LinkedList<Arc<StackingContext>>,
                                              stacking_contexts: I)
                                              where I: Iterator<Item=&'a Arc<StackingContext>> {
         for stacking_context in stacking_contexts {

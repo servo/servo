@@ -15,7 +15,7 @@ use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
-use util::dlist;
+use util::linked_list::split_off_head;
 use util::geometry::Au;
 use util::logical_geometry::{LogicalSize, WritingMode};
 use util::range::Range;
@@ -50,13 +50,13 @@ impl TextRunScanner {
         let mut last_whitespace = true;
         while !fragments.is_empty() {
             // Create a clump.
-            self.clump.append(&mut dlist::split_off_head(&mut fragments));
+            self.clump.append(&mut split_off_head(&mut fragments));
             while !fragments.is_empty() && self.clump
                                                .back()
                                                .unwrap()
                                                .can_merge_with_fragment(fragments.front()
                                                                                  .unwrap()) {
-                self.clump.append(&mut dlist::split_off_head(&mut fragments));
+                self.clump.append(&mut split_off_head(&mut fragments));
             }
 
             // Flush that clump to the list of fragments we're building up.
