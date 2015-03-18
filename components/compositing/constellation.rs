@@ -568,36 +568,27 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let (prev_pipeline_id, next_pipeline_id) = {
             let frame = self.mut_frame(frame_id);
 
-            match direction {
+            let next = match direction {
                 NavigationDirection::Forward => {
                     if frame.next.is_empty() {
                         debug!("no next page to navigate to");
                         return;
-                    } else {
-                        let prev = frame.current;
-
-                        frame.prev.push(frame.current);
-                        let next = frame.next.pop().unwrap();
-                        frame.current = next;
-
-                        (prev, next)
                     }
+                    frame.prev.push(frame.current);
+                    frame.next.pop().unwrap()
                 }
                 NavigationDirection::Back => {
                     if frame.prev.is_empty() {
                         debug!("no previous page to navigate to");
                         return;
-                    } else {
-                        let prev = frame.current;
-
-                        frame.next.push(frame.current);
-                        let next = frame.prev.pop().unwrap();
-                        frame.current = next;
-
-                        (prev, next)
                     }
+                    frame.next.push(frame.current);
+                    frame.prev.pop().unwrap()
                 }
-            }
+            };
+            let prev = frame.current;
+            frame.current = next;
+            (prev, next)
         };
 
         // Suspend the old pipeline, and resume the new one.
