@@ -14,7 +14,7 @@ pub fn new_sniffer_task() -> SnifferTask {
     let builder = Builder::new().name("SnifferManager".to_string());
     builder.spawn(move || {
         SnifferManager::new(rec).start();
-    });
+    }).unwrap();
     sen
 }
 

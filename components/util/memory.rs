@@ -451,12 +451,12 @@ fn get_jemalloc_stat(value_name: &str) -> Option<u64> {
     // request. Without that jemalloc gives cached statistics(!) which can be
     // highly inaccurate.
     let epoch_name = "epoch";
-    let epoch_c_name = CString::from_slice(epoch_name.as_bytes());
+    let epoch_c_name = CString::new(epoch_name).unwrap();
     let mut epoch: u64 = 0;
     let epoch_ptr = &mut epoch as *mut _ as *mut c_void;
     let mut epoch_len = size_of::<u64>() as size_t;
 
-    let value_c_name = CString::from_slice(value_name.as_bytes());
+    let value_c_name = CString::new(value_name).unwrap();
     let mut value: size_t = 0;
     let value_ptr = &mut value as *mut _ as *mut c_void;
     let mut value_len = size_of::<size_t>() as size_t;

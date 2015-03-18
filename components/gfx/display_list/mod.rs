@@ -14,7 +14,7 @@
 //! They are therefore not exactly analogous to constructs like Skia pictures, which consist of
 //! low-level drawing primitives.
 
-#![deny(unsafe_blocks)]
+#![deny(unsafe_code)]
 
 use display_list::optimizer::DisplayListOptimizer;
 use paint_context::{PaintContext, ToAzureRect};
