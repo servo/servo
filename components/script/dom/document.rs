@@ -629,7 +629,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                                           ctrl, alt, shift, meta,
                                           None, props.key_code).root();
         let event = EventCast::from_ref(keyevent.r());
-        let _ = target.DispatchEvent(event);
+        event.fire(target);
         let mut prevented = event.DefaultPrevented();
 
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
@@ -642,7 +642,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                                            ctrl, alt, shift, meta,
                                            props.char_code, 0).root();
             let ev = EventCast::from_ref(event.r());
-            let _ = target.DispatchEvent(ev);
+            ev.fire(target);
             prevented = ev.DefaultPrevented();
             // TODO: if keypress event is canceled, prevent firing input events
         }
