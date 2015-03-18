@@ -79,7 +79,7 @@ class MachCommands(CommandBase):
     def bootstrap_rustc(self, force=False):
         rust_dir = path.join(
             self.context.sharedir, "rust", *self.rust_snapshot_path().split("/"))
-        if not force and path.exists(path.join(rust_dir, "bin", "rustc")):
+        if not force and path.exists(path.join(rust_dir, "rustc", "bin", "rustc")):
             print("Snapshot Rust compiler already downloaded.", end=" ")
             print("Use |bootstrap-rust --force| to download again.")
             return
@@ -130,7 +130,9 @@ class MachCommands(CommandBase):
         if path.isdir(temp_dir):
             shutil.rmtree(temp_dir)
         extract(tgz_file, temp_dir)
-        shutil.move(path.join(temp_dir, docs_name.split("/")[1], "share", "doc", "rust", "html"), docs_dir)
+        shutil.move(path.join(temp_dir, docs_name.split("/")[1],
+                              "rust-docs", "share", "doc", "rust", "html"),
+                    docs_dir)
         shutil.rmtree(temp_dir)
         print("Rust docs ready.")
 

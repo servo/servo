@@ -238,7 +238,9 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
     fn Value(self) -> DOMString {
-        self.textinput.borrow().get_content()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let textinput = self.textinput.borrow();
+        textinput.get_content()
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
@@ -781,7 +783,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                     h
                 })
                 .find(|r| r.form_owner() == owner)
-                .map(|&:s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
+                .map(|s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
         }
     }
 }

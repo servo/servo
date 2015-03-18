@@ -618,9 +618,14 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn get_attributes(self, local_name: &Atom) -> Vec<Temporary<Attr>> {
-        self.attrs.borrow().iter().map(|attr| attr.root()).filter_map(|attr| {
-            if *attr.r().local_name() == *local_name {
-                Some(Temporary::from_rooted(attr.r()))
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let attrs = self.attrs.borrow();
+        attrs.iter().map(|attr| attr.root()).filter_map(|attr| {
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let attr = attr.r();
+            let attr_local_name = attr.local_name();
+            if *attr_local_name == *local_name {
+                Some(Temporary::from_rooted(attr))
             } else {
                 None
             }
@@ -746,12 +751,15 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             let owner_doc = node.owner_doc().root();
             owner_doc.r().quirks_mode()
         };
-        let is_equal = |&:lhs: &Atom, rhs: &Atom| match quirks_mode {
+        let is_equal = |lhs: &Atom, rhs: &Atom| match quirks_mode {
             NoQuirks | LimitedQuirks => lhs == rhs,
             Quirks => lhs.as_slice().eq_ignore_ascii_case(rhs.as_slice())
         };
         self.get_attribute(ns!(""), &atom!("class")).root().map(|attr| {
-            attr.r().value().tokens().map(|tokens| {
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let attr = attr.r();
+            let value = attr.value();
+            value.tokens().map(|tokens| {
                 tokens.iter().any(|atom| is_equal(name, atom))
             }).unwrap_or(false)
         }).unwrap_or(false)
@@ -764,9 +772,15 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn has_attribute(self, name: &Atom) -> bool {
-        assert!(name.as_slice().bytes().all(|&:b| b.to_ascii_lowercase() == b));
-        self.attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
-            *attr.r().local_name() == *name && *attr.r().namespace() == ns!("")
+        assert!(name.as_slice().bytes().all(|b| b.to_ascii_lowercase() == b));
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let attrs = self.attrs.borrow();
+        attrs.iter().map(|attr| attr.root()).any(|attr| {
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let attr = attr.r();
+            let local_name = attr.local_name();
+            let namespace = attr.namespace();
+            *local_name == *name && *namespace == ns!("")
         })
     }
 
@@ -811,11 +825,12 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
     fn get_tokenlist_attribute(self, name: &Atom) -> Vec<Atom> {
         self.get_attribute(ns!(""), name).root().map(|attr| {
-            attr.r()
-                .value()
-                .tokens()
-                .expect("Expected a TokenListAttrValue")
-                .to_vec()
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let attr = attr.r();
+            let value = attr.value();
+            value.tokens()
+                 .expect("Expected a TokenListAttrValue")
+                 .to_vec()
         }).unwrap_or(vec!())
     }
 
@@ -1328,14 +1343,20 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
     fn get_attr(self, namespace: &Namespace, attr: &Atom) -> Option<&'a str> {
         self.get_attribute(namespace.clone(), attr).root().map(|attr| {
             // This transmute is used to cheat the lifetime restriction.
-            unsafe { mem::transmute(attr.r().value().as_slice()) }
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let attr = attr.r();
+            let value = attr.value();
+            unsafe { mem::transmute(value.as_slice()) }
         })
     }
     #[allow(unsafe_blocks)]
     fn get_attrs(self, attr: &Atom) -> Vec<&'a str> {
         self.get_attributes(attr).into_iter().map(|attr| attr.root()).map(|attr| {
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let attr = attr.r();
+            let value = attr.value();
             // This transmute is used to cheat the lifetime restriction.
-            unsafe { mem::transmute(attr.r().value().as_slice()) }
+            unsafe { mem::transmute(value.as_slice()) }
         }).collect()
     }
     fn get_link(self) -> Option<&'a str> {
@@ -1375,7 +1396,10 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
     fn get_id(self) -> Option<Atom> {
         self.get_attribute(ns!(""), &atom!("id")).map(|attr| {
             let attr = attr.root();
-            match *attr.r().value() {
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let attr = attr.r();
+            let value = attr.value();
+            match *value {
                 AttrValue::Atom(ref val) => val.clone(),
                 _ => panic!("`id` attribute should be AttrValue::Atom"),
             }

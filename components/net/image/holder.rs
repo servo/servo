@@ -24,7 +24,7 @@ pub struct ImageHolder<NodeAddress> {
     local_image_cache: Arc<Mutex<LocalImageCache<NodeAddress>>>,
 }
 
-impl<NodeAddress: Send> ImageHolder<NodeAddress> {
+impl<NodeAddress: Send + 'static> ImageHolder<NodeAddress> {
     pub fn new(url: Url, local_image_cache: Arc<Mutex<LocalImageCache<NodeAddress>>>)
                -> ImageHolder<NodeAddress> {
         debug!("ImageHolder::new() {}", url.serialize());

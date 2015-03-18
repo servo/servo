@@ -63,13 +63,14 @@ use std::thread::Builder;
 #[cfg(not(test))]
 use std::sync::mpsc::channel;
 
-pub struct Browser<Window> {
+pub struct Browser {
     compositor: Box<CompositorEventListener + 'static>,
 }
 
-impl<Window> Browser<Window> where Window: WindowMethods + 'static {
+impl Browser {
     #[cfg(not(test))]
-    pub fn new(window: Option<Rc<Window>>) -> Browser<Window> {
+    pub fn new<Window>(window: Option<Rc<Window>>) -> Browser
+        where Window: WindowMethods + 'static {
         ::util::opts::set_experimental_enabled(opts::get().enable_experimental);
         let opts = opts::get();
         RegisterBindings::RegisterProxyHandlers();
@@ -124,7 +125,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 let url = match url::Url::parse(url.as_slice()) {
                     Ok(url) => url,
                     Err(url::ParseError::RelativeUrlWithoutBase)
-                    => url::Url::from_file_path(&cwd.join(url.as_slice())).unwrap(),
+                    => url::Url::from_file_path(&*cwd.join(url.as_slice())).unwrap(),
                     Err(_) => panic!("URL parsing failed"),
                 };
 

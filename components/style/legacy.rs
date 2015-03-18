@@ -66,14 +66,13 @@ pub trait PresentationalHintSynthesis {
     /// `common_style_affecting_attributes` or `rare_style_affecting_attributes` as appropriate. If
     /// you don't, you risk strange random nondeterministic failures due to false positives in
     /// style sharing.
-    fn synthesize_presentational_hints_for_legacy_attributes<'a,E,N,V>(
+    fn synthesize_presentational_hints_for_legacy_attributes<'a,N,V>(
                                                              &self,
                                                              node: &N,
                                                              matching_rules_list: &mut V,
                                                              shareable: &mut bool)
-                                                             where E: TElement<'a> +
-                                                                      TElementAttributes,
-                                                                   N: TNode<'a,E>,
+                                                             where N: TNode<'a>,
+                                                                   N::Element: TElementAttributes,
                                                                    V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
     /// Synthesizes rules for the legacy `bgcolor` attribute.
     fn synthesize_presentational_hint_for_legacy_background_color_attribute<'a,E,V>(
@@ -100,14 +99,13 @@ pub trait PresentationalHintSynthesis {
 }
 
 impl PresentationalHintSynthesis for Stylist {
-    fn synthesize_presentational_hints_for_legacy_attributes<'a,E,N,V>(
+    fn synthesize_presentational_hints_for_legacy_attributes<'a,N,V>(
                                                              &self,
                                                              node: &N,
                                                              matching_rules_list: &mut V,
                                                              shareable: &mut bool)
-                                                             where E: TElement<'a> +
-                                                                      TElementAttributes,
-                                                                   N: TNode<'a,E>,
+                                                             where N: TNode<'a>,
+                                                                   N::Element: TElementAttributes,
                                                                    V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {
         let element = node.as_element();
         match element.get_local_name() {

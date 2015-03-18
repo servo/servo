@@ -68,7 +68,9 @@ impl CharacterData {
 
 impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     fn Data(self) -> DOMString {
-        self.data.borrow().clone()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let data = self.data.borrow();
+        data.clone()
     }
 
     fn SetData(self, arg: DOMString) -> ErrorResult {
@@ -77,11 +79,15 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     fn Length(self) -> u32 {
-        self.data.borrow().chars().count() as u32
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let data = self.data.borrow();
+        data.chars().count() as u32
     }
 
     fn SubstringData(self, offset: u32, count: u32) -> Fallible<DOMString> {
-        Ok(self.data.borrow().slice_chars(offset as usize, (offset + count) as usize).to_owned())
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let data = self.data.borrow();
+        Ok(data.slice_chars(offset as usize, (offset + count) as usize).to_owned())
     }
 
     fn AppendData(self, arg: DOMString) -> ErrorResult {

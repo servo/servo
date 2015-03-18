@@ -873,6 +873,7 @@ pub mod computed {
     use geom::size::Size2D;
     use properties::longhands;
     use std::fmt;
+    use std::marker::MarkerTrait;
     use std::ops::{Add, Mul};
     use url::Url;
     use util::geometry::Au;
@@ -909,7 +910,7 @@ pub mod computed {
         fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue;
     }
 
-    pub trait ComputedValueAsSpecified {}
+    pub trait ComputedValueAsSpecified: MarkerTrait {}
 
     impl<T> ToComputedValue for T where T: ComputedValueAsSpecified + Clone {
         type ComputedValue = T;

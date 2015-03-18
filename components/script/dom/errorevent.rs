@@ -68,12 +68,14 @@ impl ErrorEvent {
         let event: JSRef<Event> = EventCast::from_ref(ev.r());
         event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
                         cancelable == EventCancelable::Cancelable);
-        *ev.r().message.borrow_mut() = message;
-        *ev.r().filename.borrow_mut() = filename;
-        ev.r().lineno.set(lineno);
-        ev.r().colno.set(colno);
-        ev.r().error.set(error);
-        Temporary::from_rooted(ev.r())
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let ev = ev.r();
+        *ev.message.borrow_mut() = message;
+        *ev.filename.borrow_mut() = filename;
+        ev.lineno.set(lineno);
+        ev.colno.set(colno);
+        ev.error.set(error);
+        Temporary::from_rooted(ev)
     }
 
     pub fn Constructor(global: GlobalRef,
@@ -116,11 +118,15 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
     }
 
     fn Message(self) -> DOMString {
-        self.message.borrow().clone()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let message = self.message.borrow();
+        message.clone()
     }
 
     fn Filename(self) -> DOMString {
-        self.filename.borrow().clone()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let filename = self.filename.borrow();
+        filename.clone()
     }
 
     fn Error(self, _cx: *mut JSContext) -> JSVal {

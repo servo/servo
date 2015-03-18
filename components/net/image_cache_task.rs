@@ -470,8 +470,8 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<Vec<u8>, ()>
 
 
 pub fn spawn_listener<F, A>(f: F) -> Sender<A>
-    where F: FnOnce(Receiver<A>) + Send,
-          A: Send
+    where F: FnOnce(Receiver<A>) + Send + 'static,
+          A: Send + 'static
 {
     let (setup_chan, setup_port) = channel();
 
@@ -566,7 +566,7 @@ mod tests {
         }
     }
 
-    fn mock_resource_task<T: Closure+Send>(on_load: Box<T>) -> ResourceTask {
+    fn mock_resource_task<T: Closure + Send + 'static>(on_load: Box<T>) -> ResourceTask {
         spawn_listener(move |port: Receiver<resource_task::ControlMsg>| {
             loop {
                 match port.recv().unwrap() {
@@ -602,8 +602,8 @@ mod tests {
     }
 
     #[test]
-    #[should_fail]
-    fn should_fail_if_unprefetched_image_is_requested() {
+    #[should_panic]
+    fn should_panic_if_unprefetched_image_is_requested() {
         let mock_resource_task = mock_resource_task(box DoesNothing);
 
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone(), TaskPool::new(4), profiler());

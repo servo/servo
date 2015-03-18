@@ -208,8 +208,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             composition_request: CompositionRequest::NoCompositingNecessary,
             pending_scroll_events: Vec::new(),
             shutdown_state: ShutdownState::NotShuttingDown,
-            page_zoom: ScaleFactor(1.0),
-            viewport_zoom: ScaleFactor(1.0),
+            page_zoom: ScaleFactor::new(1.0),
+            viewport_zoom: ScaleFactor::new(1.0),
             zoom_action: false,
             zoom_time: 0f64,
             got_load_complete_message: false,
@@ -893,7 +893,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match opts::get().device_pixels_per_px {
             Some(device_pixels_per_px) => device_pixels_per_px,
             None => match opts::get().output_file {
-                Some(_) => ScaleFactor(1.0),
+                Some(_) => ScaleFactor::new(1.0),
                 None => self.hidpi_factor
             }
         }
@@ -905,7 +905,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn update_zoom_transform(&mut self) {
         let scale = self.device_pixels_per_page_px();
-        self.scene.scale = ScaleFactor(scale.get());
+        self.scene.scale = ScaleFactor::new(scale.get());
 
         // We need to set the size of the root layer again, since the window size
         // has changed in unscaled layer pixels.
@@ -913,7 +913,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn on_zoom_window_event(&mut self, magnification: f32) {
-        self.page_zoom = ScaleFactor((self.page_zoom.get() * magnification).max(1.0));
+        self.page_zoom = ScaleFactor::new((self.page_zoom.get() * magnification).max(1.0));
         self.update_zoom_transform();
         self.send_window_size();
     }
@@ -924,7 +924,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.zoom_time = precise_time_s();
         let old_viewport_zoom = self.viewport_zoom;
 
-        self.viewport_zoom = ScaleFactor((self.viewport_zoom.get() * magnification).max(1.0));
+        self.viewport_zoom = ScaleFactor::new((self.viewport_zoom.get() * magnification).max(1.0));
         let viewport_zoom = self.viewport_zoom;
 
         self.update_zoom_transform();

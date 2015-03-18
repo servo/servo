@@ -36,7 +36,7 @@ path = "../../support/rust-task_info"
 [dependencies.string_cache]
 git = "https://github.com/servo/string-cache"
 
-[dependencies.string_cache_macros]
+[dependencies.string_cache_plugin]
 git = "https://github.com/servo/string-cache"
 
 [dependencies.lazy_static]
@@ -47,7 +47,7 @@ bitflags = "*"
 libc = "*"
 rand = "*"
 regex = "0.1.14"
-rustc-serialize = "0.2"
+rustc-serialize = "0.3"
 text_writer = "0.1.1"
 time = "0.1.12"
 url = "0.2.16"

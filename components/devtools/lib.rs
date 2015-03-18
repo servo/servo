@@ -14,7 +14,6 @@
 #![feature(collections, std_misc)]
 
 #![allow(non_snake_case)]
-#![allow(missing_copy_implementations)]
 
 #[macro_use]
 extern crate log;

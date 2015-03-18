@@ -16,6 +16,8 @@
 
 #![allow(missing_copy_implementations)]
 
+#![plugin(regex_macros)]
+
 extern crate "cookie" as cookie_rs;
 extern crate collections;
 extern crate geom;
@@ -30,8 +32,6 @@ extern crate stb_image;
 extern crate time;
 extern crate url;
 
-#[plugin] #[no_link]
-extern crate regex_macros;
 extern crate regex;
 
 /// Image handling.

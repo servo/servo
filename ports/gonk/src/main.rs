@@ -34,12 +34,11 @@ mod window;
 mod input;
 
 struct BrowserWrapper {
-    browser: Browser<window::Window>,
+    browser: Browser,
 }
 
 fn main() {
-    if opts::from_cmdline_args(env::args().map(|a| a.into_string().unwrap())
-                                          .collect::<Vec<_>>().as_slice()) {
+    if opts::from_cmdline_args(env::args().collect::<Vec<_>>().as_slice()) {
         let window = if opts::get().headless {
             None
         } else {

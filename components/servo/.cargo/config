@@ -1,4 +1,4 @@
 paths = ["../../support/android-rs-glue"]
 
 [target.arm-linux-androideabi]
-linker = "../../support/android-rs-glue/apk-builder/target/apk-builder"
+linker = "../../support/android-rs-glue/apk-builder/target/debug/apk-builder"

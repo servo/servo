@@ -132,7 +132,7 @@ impl Add for Au {
     fn add(self, other: Au) -> Au {
         let Au(s) = self;
         let Au(o) = other;
-        Au(s + o)
+        Au(s.wrapping_add(o))
     }
 }
 
@@ -143,7 +143,7 @@ impl Sub for Au {
     fn sub(self, other: Au) -> Au {
         let Au(s) = self;
         let Au(o) = other;
-        Au(s - o)
+        Au(s.wrapping_sub(o))
     }
 
 }
@@ -154,7 +154,7 @@ impl Mul<i32> for Au {
     #[inline]
     fn mul(self, other: i32) -> Au {
         let Au(s) = self;
-        Au(s * other)
+        Au(s.wrapping_mul(other))
     }
 }
 

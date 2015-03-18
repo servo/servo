@@ -34,6 +34,7 @@ use util::time::TimeProfilerChan;
 use std::borrow::ToOwned;
 use std::collections::{HashMap};
 use std::old_io as io;
+use std::marker::PhantomData;
 use std::mem::replace;
 use std::sync::mpsc::{Receiver, channel};
 use url::Url;
@@ -94,6 +95,8 @@ pub struct Constellation<LTF, STF> {
 
     /// A channel through which messages can be sent to the memory profiler.
     pub memory_profiler_chan: MemoryProfilerChan,
+
+    phantom: PhantomData<(LTF, STF)>,
 
     pub window_size: WindowSizeData,
 }
@@ -201,10 +204,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 time_profiler_chan: time_profiler_chan,
                 memory_profiler_chan: memory_profiler_chan,
                 window_size: WindowSizeData {
-                    visible_viewport: opts::get().initial_window_size.as_f32() * ScaleFactor(1.0),
-                    initial_viewport: opts::get().initial_window_size.as_f32() * ScaleFactor(1.0),
-                    device_pixel_ratio: ScaleFactor(1.0),
+                    visible_viewport: opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0),
+                    initial_viewport: opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0),
+                    device_pixel_ratio: ScaleFactor::new(1.0),
                 },
+                phantom: PhantomData,
             };
             constellation.run();
         });
@@ -227,7 +231,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.pipeline(pipeline_id).rect.map(|rect| {
             WindowSizeData {
                 visible_viewport: rect.size,
-                initial_viewport: rect.size * ScaleFactor(1.0),
+                initial_viewport: rect.size * ScaleFactor::new(1.0),
                 device_pixel_ratio: self.window_size.device_pixel_ratio,
             }
         })
@@ -448,7 +452,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let ScriptControlChan(ref script_chan) = script_chan;
         script_chan.send(ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
             visible_viewport: rect.size,
-            initial_viewport: rect.size * ScaleFactor(1.0),
+            initial_viewport: rect.size * ScaleFactor::new(1.0),
             device_pixel_ratio: self.window_size.device_pixel_ratio,
         })).unwrap();
 

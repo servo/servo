@@ -179,11 +179,11 @@ impl Window {
         &self.image_cache_task
     }
 
-    pub fn compositor(&self) -> RefMut<Box<ScriptListener+'static>> {
+    pub fn compositor<'a>(&'a self) -> RefMut<'a, Box<ScriptListener+'static>> {
         self.compositor.borrow_mut()
     }
 
-    pub fn browser_context(&self) -> Ref<Option<BrowserContext>> {
+    pub fn browser_context<'a>(&'a self) -> Ref<'a, Option<BrowserContext>> {
         self.browser_context.borrow()
     }
 
@@ -281,7 +281,9 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Document(self) -> Temporary<Document> {
-        self.browser_context().as_ref().unwrap().active_document()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let context = self.browser_context();
+        context.as_ref().unwrap().active_document()
     }
 
     fn Location(self) -> Temporary<Location> {
@@ -301,7 +303,9 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn GetFrameElement(self) -> Option<Temporary<Element>> {
-        self.browser_context().as_ref().unwrap().frame_element()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let context = self.browser_context();
+        context.as_ref().unwrap().frame_element()
     }
 
     fn Navigator(self) -> Temporary<Navigator> {
@@ -356,7 +360,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         Temporary::from_rooted(self)
     }
 
-    fn Self(self) -> Temporary<Window> {
+    fn Self_(self) -> Temporary<Window> {
         self.Window()
     }
 
@@ -373,7 +377,10 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         browser_context.frame_element().map_or(self.Window(), |fe| {
             let frame_element = fe.root();
             let window = window_from_node(frame_element.r()).root();
-            window.r().browser_context().as_ref().unwrap().active_window()
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let r = window.r();
+            let context = r.browser_context();
+            context.as_ref().unwrap().active_window()
         })
     }
 
@@ -644,7 +651,9 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn steal_fragment_name(self) -> Option<String> {
-        self.fragment_name.borrow_mut().take()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let mut name = self.fragment_name.borrow_mut();
+        name.take()
     }
 
     fn set_window_size(self, size: WindowSizeData) {
@@ -688,7 +697,9 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn layout_is_idle(self) -> bool {
-        self.layout_join_port.borrow().is_none()
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let port = self.layout_join_port.borrow();
+        port.is_none()
     }
 
     fn set_resize_event(self, event: WindowSizeData) {

@@ -850,9 +850,11 @@ impl<'a> PaintContext<'a> {
         // Draw the text.
         let temporary_draw_target =
             self.create_draw_target_for_blur_if_necessary(&text.base.bounds, text.blur_radius);
-        self.font_context
-            .get_paint_font_from_template(&text.text_run.font_template,
-                                           text.text_run.actual_pt_size)
+        {
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let font = self.font_context.get_paint_font_from_template(
+                &text.text_run.font_template, text.text_run.actual_pt_size);
+            font
             .borrow()
             .draw_text(&temporary_draw_target.draw_target,
                        &*text.text_run,
@@ -860,6 +862,7 @@ impl<'a> PaintContext<'a> {
                        baseline_origin,
                        text.text_color,
                        opts::get().enable_text_antialiasing);
+        }
 
         // Blur, if necessary.
         self.blur_if_necessary(temporary_draw_target, text.blur_radius);

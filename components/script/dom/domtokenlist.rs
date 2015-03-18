@@ -67,15 +67,23 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
     // http://dom.spec.whatwg.org/#dom-domtokenlist-length
     fn Length(self) -> u32 {
         self.attribute().root().map(|attr| {
-            attr.r().value().tokens().map(|tokens| tokens.len()).unwrap_or(0)
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let attr = attr.r();
+            let value = attr.value();
+            value.tokens().map(|tokens| tokens.len()).unwrap_or(0)
         }).unwrap_or(0) as u32
     }
 
     // http://dom.spec.whatwg.org/#dom-domtokenlist-item
     fn Item(self, index: u32) -> Option<DOMString> {
-        self.attribute().root().and_then(|attr| attr.r().value().tokens().and_then(|tokens| {
-            tokens.get(index as usize).map(|token| token.as_slice().to_owned())
-        }))
+        self.attribute().root().and_then(|attr| {
+            // FIXME(https://github.com/rust-lang/rust/issues/23338)
+            let attr = attr.r();
+            let value = attr.value();
+            value.tokens().and_then(|tokens| {
+                tokens.get(index as usize).map(|token| token.as_slice().to_owned())
+            })
+        })
     }
 
     fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<DOMString> {
@@ -88,12 +96,13 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
     fn Contains(self, token: DOMString) -> Fallible<bool> {
         self.check_token_exceptions(token.as_slice()).map(|token| {
             self.attribute().root().map(|attr| {
-                attr.r()
-                    .value()
-                    .tokens()
-                    .expect("Should have parsed this attribute")
-                    .iter()
-                    .any(|atom| *atom == token)
+                // FIXME(https://github.com/rust-lang/rust/issues/23338)
+                let attr = attr.r();
+                let value = attr.value();
+                value.tokens()
+                     .expect("Should have parsed this attribute")
+                     .iter()
+                     .any(|atom| *atom == token)
             }).unwrap_or(false)
         })
     }

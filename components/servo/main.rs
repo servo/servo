@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(env, os)]
+#![feature(env, os, start)]
 
 #[cfg(target_os="android")]
 extern crate libc;
@@ -41,7 +41,7 @@ use std::borrow::ToOwned;
 
 #[cfg(not(test))]
 struct BrowserWrapper {
-    browser: Browser<app::window::Window>,
+    browser: Browser,
 }
 
 #[cfg(target_os="android")]
@@ -58,7 +58,7 @@ fn get_args() -> Vec<String> {
 #[cfg(not(target_os="android"))]
 fn get_args() -> Vec<String> {
     use std::env;
-    env::args().map(|s| s.into_string().unwrap()).collect()
+    env::args().collect()
 }
 
 #[cfg(target_os="android")]

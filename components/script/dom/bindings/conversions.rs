@@ -54,11 +54,12 @@ use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
 use libc;
 use std::borrow::ToOwned;
 use std::default;
+use std::marker::MarkerTrait;
 use std::slice;
 
 /// A trait to retrieve the constants necessary to check if a `JSObject`
 /// implements a given interface.
-pub trait IDLInterface {
+pub trait IDLInterface: MarkerTrait {
     /// Returns the prototype ID.
     fn get_prototype_id() -> PrototypeList::ID;
     /// Returns the prototype depth, i.e., the number of interfaces this
@@ -74,6 +75,7 @@ pub trait ToJSValConvertible {
 
 /// A trait to convert `JSVal`s to Rust types.
 pub trait FromJSValConvertible {
+    /// Optional configurable behaviour switch; use () for no configuration.
     type Config;
     /// Convert `val` to type `Self`.
     /// Optional configuration of type `T` can be passed as the `option`

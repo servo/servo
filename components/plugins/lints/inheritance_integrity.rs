@@ -41,8 +41,9 @@ impl LintPass for InheritancePass {
                                     .map(|(_, f)| f.span);
             // Find all #[dom_struct] fields
             let dom_spans: Vec<_> = def.fields.iter().enumerate().filter_map(|(ctr, f)| {
-                if let ast::TyPath(_, ty_id) = f.node.ty.node {
-                    if let Some(def::DefTy(def_id, _)) = cx.tcx.def_map.borrow().get(&ty_id).cloned() {
+                if let ast::TyPath(..) = f.node.ty.node {
+                    if let Some(&def::PathResolution { base_def: def::DefTy(def_id, _), .. }) =
+                            cx.tcx.def_map.borrow().get(&f.node.ty.id) {
                         if ty::has_attr(cx.tcx, def_id, "_dom_struct_marker") {
                             // If the field is not the first, it's probably
                             // being misused (a)

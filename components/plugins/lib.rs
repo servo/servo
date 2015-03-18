@@ -14,8 +14,6 @@
 
 #![feature(plugin_registrar, quote, plugin, box_syntax, rustc_private, core, unicode)]
 
-#![allow(missing_copy_implementations)]
-
 #[macro_use]
 extern crate syntax;
 #[macro_use]
