@@ -435,6 +435,7 @@ pub trait ElementHelpers<'a> {
     fn get_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
     fn get_important_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
     fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString>;
+    fn get_root_element(self) -> Option<Temporary<Element>>;
 }
 
 impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
@@ -591,6 +592,15 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
                         }) {
             Ok(()) => Ok(String::from_utf8(writer.into_inner()).unwrap()),
             Err(_) => panic!("Cannot serialize element"),
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/infrastructure.html#root-element
+    fn get_root_element(self) -> Option<Temporary<Element>> {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        match node.ancestors().last().map(ElementCast::to_ref) {
+            Some(n) => n.map(Temporary::from_rooted),
+            None => Some(self).map(Temporary::from_rooted),
         }
     }
 }

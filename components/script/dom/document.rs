@@ -834,6 +834,19 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         self.url().serialize()
     }
 
+    // https://html.spec.whatwg.org/multipage/interaction.html#dom-document-activeelement
+    fn GetActiveElement(self) -> Option<Temporary<Element>> {
+        // TODO: Step 2.
+
+        match self.get_focused_element() {
+            Some(element) => Some(element),     // Step 3. and 4.
+            None => match self.GetBody() {      // Step 5.
+                Some(body) => Some(ElementCast::from_temporary(body)),
+                None => self.GetDocumentElement(),
+            }
+        }
+    }
+
     // http://dom.spec.whatwg.org/#dom-document-documenturi
     fn DocumentURI(self) -> DOMString {
         self.URL()
