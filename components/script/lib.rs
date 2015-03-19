@@ -15,7 +15,7 @@
 #![feature(unsafe_destructor)]
 #![feature(custom_attribute)]
 
-#![deny(unsafe_blocks)]
+#![deny(unsafe_code)]
 #![allow(non_snake_case)]
 
 #![doc="The script crate contains all matters DOM."]

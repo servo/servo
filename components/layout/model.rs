@@ -4,7 +4,7 @@
 
 //! Borders, padding, and margins.
 
-#![deny(unsafe_blocks)]
+#![deny(unsafe_code)]
 
 use fragment::Fragment;
 

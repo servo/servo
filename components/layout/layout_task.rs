@@ -5,7 +5,7 @@
 //! The layout task. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
-#![allow(unsafe_blocks)]
+#![allow(unsafe_code)]
 
 use construct::ConstructionResult;
 use context::{SharedLayoutContext, SharedLayoutContextWrapper};

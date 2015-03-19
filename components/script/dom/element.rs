@@ -148,6 +148,7 @@ impl Element {
     }
 }
 
+#[allow(unsafe_code)]
 pub trait RawLayoutElementHelpers {
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                       -> Option<&'a str>;
@@ -171,6 +172,7 @@ pub trait RawLayoutElementHelpers {
 }
 
 #[inline]
+#[allow(unsafe_code)]
 unsafe fn get_attr_for_layout<'a>(elem: &'a Element, namespace: &Namespace, name: &Atom) -> Option<&'a JS<Attr>> {
     // cast to point to T in RefCell<T> directly
     let attrs = elem.attrs.borrow_for_layout();
@@ -181,6 +183,7 @@ unsafe fn get_attr_for_layout<'a>(elem: &'a Element, namespace: &Namespace, name
     })
 }
 
+#[allow(unsafe_code)]
 impl RawLayoutElementHelpers for Element {
     #[inline]
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
@@ -394,12 +397,15 @@ impl RawLayoutElementHelpers for Element {
 }
 
 pub trait LayoutElementHelpers {
+    #[allow(unsafe_code)]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
+    #[allow(unsafe_code)]
     unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool;
 }
 
 impl LayoutElementHelpers for LayoutJS<Element> {
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool {
         if (*self.unsafe_get()).namespace != ns!(HTML) {
             return false
@@ -408,6 +414,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         node.owner_doc_for_layout().is_html_document_for_layout()
     }
 
+    #[allow(unsafe_code)]
     unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool {
         get_attr_for_layout(&*self.unsafe_get(), namespace, name).is_some()
     }
@@ -1425,7 +1432,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 }
 
 impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn get_attr(self, namespace: &Namespace, attr: &Atom) -> Option<&'a str> {
         self.get_attribute(namespace.clone(), attr).root().map(|attr| {
             // This transmute is used to cheat the lifetime restriction.
@@ -1435,7 +1442,7 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
             unsafe { mem::transmute(value.as_slice()) }
         })
     }
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn get_attrs(self, attr: &Atom) -> Vec<&'a str> {
         self.get_attributes(attr).into_iter().map(|attr| attr.root()).map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
