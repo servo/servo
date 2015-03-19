@@ -356,7 +356,7 @@ dependencies = [
 [[package]]
 name = "glutin"
 version = "0.0.7"
-source = "git+https://github.com/servo/glutin#183d96b44e497fcc441f94d32d5228e4c3d28c4d"
+source = "git+https://github.com/servo/glutin?branch=servo#8138fe5755aa1b23fee704994d52597109f1abe0"
 dependencies = [
  "android_glue 0.0.1 (git+https://github.com/tomaka/android-rs-glue)",
  "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
@@ -382,7 +382,7 @@ dependencies = [
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
- "glutin 0.0.7 (git+https://github.com/servo/glutin)",
+ "glutin 0.0.7 (git+https://github.com/servo/glutin?branch=servo)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
