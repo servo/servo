@@ -66,6 +66,9 @@ branch = "upstream-2014-06-16"
 [dependencies.script_traits]
 path = "../script_traits"
 
+[dependencies.string_cache]
+git = "https://github.com/servo/string-cache"
+
 [dependencies]
 url = "0.2.16"
 time = "0.1.12"

@@ -35,6 +35,7 @@ extern crate net;
 #[macro_use]
 extern crate util;
 extern crate msg;
+extern crate string_cache;
 extern crate style;
 extern crate skia;
 extern crate time;
