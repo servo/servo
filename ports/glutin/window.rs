@@ -271,16 +271,8 @@ impl Window {
                 }
             }
         } else {
-            // GWTODO: Something has changed in the wait_events
-            // behaviour in glutin. Switching to poll events
-            // for now, so that things display correctly,
-            // need to fix glutin / handle the changed behaviour.
-            for event in self.window.poll_events() {
-                close_event = self.handle_window_event(event);
-                if close_event {
-                    break;
-                }
-            }
+            let event = self.window.wait_events().next().unwrap();
+            close_event = self.handle_window_event(event);
         }
 
         if close_event || self.window.is_closed() {
