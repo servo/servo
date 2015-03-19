@@ -707,15 +707,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rand"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "regex"
 version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -810,7 +801,7 @@ dependencies = [
  "lazy_static 0.1.8 (git+https://github.com/Kimundi/lazy-static.rs)",
  "phf 0.6.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_macros 0.6.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_plugin 0.0.0 (git+https://github.com/servo/string-cache)",
 ]
 
@@ -895,7 +886,7 @@ dependencies = [
  "lazy_static 0.1.8 (git+https://github.com/Kimundi/lazy-static.rs)",
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
- "rand 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
