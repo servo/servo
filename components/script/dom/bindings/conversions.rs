@@ -101,6 +101,7 @@ impl ToJSValConvertible for JSVal {
     }
 }
 
+#[allow(unsafe_code)]
 unsafe fn convert_from_jsval<T: default::Default>(
     cx: *mut JSContext, value: JSVal,
     convert_fn: unsafe extern "C" fn(*mut JSContext, JSVal, *mut T) -> JSBool) -> Result<T, ()> {
@@ -447,6 +448,7 @@ const DOM_PROXY_OBJECT_SLOT: u32 = js::JSSLOT_PROXY_PRIVATE;
 /// is stored.
 ///
 /// Fails if `obj` is not a DOM object.
+#[allow(unsafe_code)]
 pub unsafe fn dom_object_slot(obj: *mut JSObject) -> u32 {
     let clasp = JS_GetClass(obj);
     if is_dom_class(&*clasp) {
@@ -458,6 +460,7 @@ pub unsafe fn dom_object_slot(obj: *mut JSObject) -> u32 {
 }
 
 /// Get the DOM object from the given reflector.
+#[allow(unsafe_code)]
 pub unsafe fn native_from_reflector<T>(obj: *mut JSObject) -> *const T {
     use js::jsapi::JS_GetReservedSlot;
 
@@ -467,6 +470,7 @@ pub unsafe fn native_from_reflector<T>(obj: *mut JSObject) -> *const T {
 }
 
 /// Get the `DOMClass` from `obj`, or `Err(())` if `obj` is not a DOM object.
+#[allow(unsafe_code)]
 unsafe fn get_dom_class(obj: *mut JSObject) -> Result<DOMClass, ()> {
     use dom::bindings::utils::DOMJSClass;
     use js::glue::GetProxyHandlerExtra;

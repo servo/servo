@@ -65,6 +65,7 @@ fn get_args() -> Vec<String> {
 struct FilePtr(*mut libc::types::common::c95::FILE);
 
 #[cfg(target_os="android")]
+#[allow(unsafe_code)]
 unsafe impl Send for FilePtr {}
 
 #[cfg(target_os="android")]

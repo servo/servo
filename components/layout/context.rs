@@ -90,6 +90,7 @@ pub struct SharedLayoutContext {
 }
 
 pub struct SharedLayoutContextWrapper(pub *const SharedLayoutContext);
+#[allow(unsafe_code)]
 unsafe impl Send for SharedLayoutContextWrapper {}
 
 pub struct LayoutContext<'a> {

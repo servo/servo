@@ -79,6 +79,7 @@ use url::Url;
 /// Allows some convenience methods on generic layout nodes.
 pub trait TLayoutNode {
     /// Creates a new layout node with the same lifetime as this layout node.
+    #[allow(unsafe_code)]
     unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> Self;
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably. Returns `None`
@@ -87,10 +88,12 @@ pub trait TLayoutNode {
 
     /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
+    #[allow(unsafe_code)]
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node>;
 
     /// Returns the interior of this node as a `Node`. This is highly unsafe for layout to call
     /// and as such is marked `unsafe`.
+    #[allow(unsafe_code)]
     unsafe fn get<'a>(&'a self) -> &'a Node {
         &*self.get_jsmanaged().unsafe_get()
     }
@@ -194,6 +197,7 @@ impl<'a> PartialEq for LayoutNode<'a> {
 }
 
 impl<'ln> TLayoutNode for LayoutNode<'ln> {
+    #[allow(unsafe_code)]
     unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
             node: node.transmute_copy(),
@@ -207,6 +211,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
         }
     }
 
+    #[allow(unsafe_code)]
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         &self.node
     }
@@ -305,6 +310,7 @@ impl<'ln> LayoutNode<'ln> {
 
     }
 
+    #[allow(unsafe_code)]
     pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         &self.node
     }
@@ -435,6 +441,7 @@ impl<'ln> TNode<'ln> for LayoutNode<'ln> {
         unsafe { self.node.get_flag(HAS_CHANGED) }
     }
 
+    #[allow(unsafe_code)]
     unsafe fn set_changed(self, value: bool) {
         self.node.set_flag(HAS_CHANGED, value)
     }
@@ -443,6 +450,7 @@ impl<'ln> TNode<'ln> for LayoutNode<'ln> {
         unsafe { self.node.get_flag(IS_DIRTY) }
     }
 
+    #[allow(unsafe_code)]
     unsafe fn set_dirty(self, value: bool) {
         self.node.set_flag(IS_DIRTY, value)
     }
@@ -451,6 +459,7 @@ impl<'ln> TNode<'ln> for LayoutNode<'ln> {
         unsafe { self.node.get_flag(HAS_DIRTY_SIBLINGS) }
     }
 
+    #[allow(unsafe_code)]
     unsafe fn set_dirty_siblings(self, value: bool) {
         self.node.set_flag(HAS_DIRTY_SIBLINGS, value);
     }
@@ -459,6 +468,7 @@ impl<'ln> TNode<'ln> for LayoutNode<'ln> {
         unsafe { self.node.get_flag(HAS_DIRTY_DESCENDANTS) }
     }
 
+    #[allow(unsafe_code)]
     unsafe fn set_dirty_descendants(self, value: bool) {
         self.node.set_flag(HAS_DIRTY_DESCENDANTS, value)
     }
@@ -714,6 +724,7 @@ pub struct ThreadSafeLayoutNode<'ln> {
 
 impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     /// Creates a new layout node with the same lifetime as this layout node.
+    #[allow(unsafe_code)]
     unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> ThreadSafeLayoutNode<'ln> {
         ThreadSafeLayoutNode {
             node: LayoutNode {
@@ -733,10 +744,12 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
         self.node.type_id()
     }
 
+    #[allow(unsafe_code)]
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         self.node.get_jsmanaged()
     }
 
+    #[allow(unsafe_code)]
     unsafe fn get<'a>(&'a self) -> &'a Node { // this change.
         &*self.get_jsmanaged().unsafe_get()
     }
@@ -811,6 +824,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     }
 
     /// Returns the next sibling of this node. Unsafe and private because this can lead to races.
+    #[allow(unsafe_code)]
     unsafe fn next_sibling(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
         if self.pseudo.is_before() {
             return self.get_jsmanaged().first_child_ref().map(|node| self.new_with_this_lifetime(&node))
@@ -1146,6 +1160,7 @@ pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode 
 
 // FIXME(#3044): This should be updated to use a real lifetime instead of
 // faking one.
+#[allow(unsafe_code)]
 pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> LayoutNode<'static> {
     let (node, _) = *node;
     mem::transmute(node)

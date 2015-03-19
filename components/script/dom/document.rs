@@ -689,12 +689,14 @@ pub enum DocumentSource {
 }
 
 pub trait LayoutDocumentHelpers {
+    #[allow(unsafe_code)]
     unsafe fn is_html_document_for_layout(&self) -> bool;
 }
 
 impl LayoutDocumentHelpers for LayoutJS<Document> {
     #[allow(unrooted_must_root)]
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn is_html_document_for_layout(&self) -> bool {
         (*self.unsafe_get()).is_html_document
     }

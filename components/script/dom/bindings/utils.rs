@@ -135,6 +135,7 @@ pub struct DOMClass {
     /// The NativePropertyHooks for the interface associated with this class.
     pub native_hooks: &'static NativePropertyHooks,
 }
+#[allow(unsafe_code)]
 unsafe impl Sync for DOMClass {}
 
 /// The JSClass used for DOM object reflectors.
@@ -145,6 +146,7 @@ pub struct DOMJSClass {
     /// Associated data for DOM object reflectors.
     pub dom_class: DOMClass
 }
+#[allow(unsafe_code)]
 unsafe impl Sync for DOMJSClass {}
 
 /// Returns the ProtoOrIfaceArray for the given global object.
@@ -170,6 +172,7 @@ pub struct NativeProperties {
     /// Static attributes for the interface.
     pub static_attrs: Option<&'static [JSPropertySpec]>,
 }
+#[allow(unsafe_code)]
 unsafe impl Sync for NativeProperties {}
 
 /// A JSNative that cannot be null.
@@ -379,6 +382,7 @@ impl Reflector {
     /// Return a pointer to the memory location at which the JS reflector
     /// object is stored. Used by Temporary values to root the reflector, as
     /// required by the JSAPI rooting APIs.
+    #[allow(unsafe_code)]
     pub unsafe fn rootable(&self) -> *mut *mut JSObject {
         self.object.as_unsafe_cell().get()
     }
@@ -585,6 +589,7 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
 }
 
 /// Deletes the property `id` from `object`.
+#[allow(unsafe_code)]
 pub unsafe fn delete_property_by_id(cx: *mut JSContext, object: *mut JSObject,
                                     id: jsid, bp: &mut bool) -> bool {
     let mut value = UndefinedValue();

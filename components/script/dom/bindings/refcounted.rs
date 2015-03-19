@@ -41,6 +41,7 @@ thread_local!(pub static LIVE_REFERENCES: Rc<RefCell<Option<LiveDOMReferences>>>
 
 /// A pointer to a Rust DOM object that needs to be destroyed.
 pub struct TrustedReference(*const libc::c_void);
+#[allow(unsafe_code)]
 unsafe impl Send for TrustedReference {}
 
 /// A safe wrapper around a raw pointer to a DOM object that can be
@@ -57,6 +58,7 @@ pub struct Trusted<T> {
     phantom: PhantomData<T>,
 }
 
+#[allow(unsafe_code)]
 unsafe impl<T: Reflectable> Send for Trusted<T> {}
 
 impl<T: Reflectable> Trusted<T> {

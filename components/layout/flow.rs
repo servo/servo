@@ -832,7 +832,9 @@ pub struct BaseFlow {
     pub flags: FlowFlags,
 }
 
+#[allow(unsafe_code)]
 unsafe impl Send for BaseFlow {}
+#[allow(unsafe_code)]
 unsafe impl Sync for BaseFlow {}
 
 impl fmt::Debug for BaseFlow {
@@ -982,10 +984,12 @@ impl BaseFlow {
         self.children.iter_mut()
     }
 
+    #[allow(unsafe_code)]
     pub unsafe fn strong_ref_count<'a>(&'a self) -> &'a AtomicUint {
         &self.strong_ref_count
     }
 
+    #[allow(unsafe_code)]
     pub unsafe fn weak_ref_count<'a>(&'a self) -> &'a AtomicUint {
         &self.weak_ref_count
     }
@@ -1355,6 +1359,7 @@ impl ContainingBlockLink {
         self.link = Some(link.downgrade())
     }
 
+    #[allow(unsafe_code)]
     pub unsafe fn get<'a>(&'a mut self) -> &'a mut Option<WeakFlowRef> {
         &mut self.link
     }

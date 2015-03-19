@@ -984,6 +984,7 @@ impl LayoutTask {
         chan.send(ConstellationControlMsg::ReflowComplete(self.id, data.id)).unwrap();
     }
 
+    #[allow(unsafe_code)]
     unsafe fn dirty_all_nodes(node: &mut LayoutNode) {
         for node in node.traverse_preorder() {
             // TODO(cgaebel): mark nodes which are sensitive to media queries as
@@ -1023,6 +1024,7 @@ impl LayoutTask {
 
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* task
     /// because the struct type is transmuted to a different type on the script side.
+    #[allow(unsafe_code)]
     unsafe fn handle_reap_layout_data(&self, layout_data: LayoutData) {
         let layout_data_wrapper: LayoutDataWrapper = mem::transmute(layout_data);
         layout_data_wrapper.remove_compositor_layers(self.constellation_chan.clone());

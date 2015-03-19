@@ -59,4 +59,5 @@ impl StructuredCloneData {
     }
 }
 
+#[allow(unsafe_code)]
 unsafe impl Send for StructuredCloneData {}

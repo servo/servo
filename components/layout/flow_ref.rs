@@ -25,7 +25,9 @@ pub struct FlowRef {
     object: raw::TraitObject,
 }
 
+#[allow(unsafe_code)]
 unsafe impl Send for FlowRef {}
+#[allow(unsafe_code)]
 unsafe impl Sync for FlowRef {}
 
 #[unsafe_no_drop_flag]
@@ -33,7 +35,9 @@ pub struct WeakFlowRef {
     object: raw::TraitObject,
 }
 
+#[allow(unsafe_code)]
 unsafe impl Send for WeakFlowRef {}
+#[allow(unsafe_code)]
 unsafe impl Sync for WeakFlowRef {}
 
 impl FlowRef {

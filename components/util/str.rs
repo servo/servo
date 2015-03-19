@@ -332,6 +332,7 @@ impl Str for LowercaseString {
 
 /// Creates a String from the given null-terminated buffer.
 /// Panics if the buffer does not contain UTF-8.
+#[allow(unsafe_code)]
 pub unsafe fn c_str_to_string(s: *const c_char) -> String {
     from_utf8(CStr::from_ptr(s).to_bytes()).unwrap().to_owned()
 }

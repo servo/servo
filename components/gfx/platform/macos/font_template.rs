@@ -19,7 +19,9 @@ pub struct FontTemplateData {
     pub font_data: Option<Vec<u8>>
 }
 
+#[allow(unsafe_code)]
 unsafe impl Send for FontTemplateData {}
+#[allow(unsafe_code)]
 unsafe impl Sync for FontTemplateData {}
 
 impl FontTemplateData {

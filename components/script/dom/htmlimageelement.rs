@@ -86,10 +86,12 @@ impl HTMLImageElement {
 }
 
 pub trait LayoutHTMLImageElementHelpers {
+    #[allow(unsafe_code)]
     unsafe fn image(&self) -> Option<Url>;
 }
 
 impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
+    #[allow(unsafe_code)]
     unsafe fn image(&self) -> Option<Url> {
         (*self.unsafe_get()).image.borrow_for_layout().clone()
     }
