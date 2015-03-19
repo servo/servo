@@ -69,8 +69,9 @@ class CommandBase(object):
 
         # Handle missing/default items
         self.config.setdefault("tools", {})
-        self.config["tools"].setdefault("cache-dir",
-                                        path.join(context.topdir, ".servo"))
+        default_cache_dir = os.environ.get("SERVO_CACHE_DIR",
+                                           path.join(context.topdir, ".servo"))
+        self.config["tools"].setdefault("cache-dir", default_cache_dir)
         resolverelative("tools", "cache-dir")
 
         self.config["tools"].setdefault("cargo-home-dir",
