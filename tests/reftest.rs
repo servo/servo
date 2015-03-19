@@ -73,9 +73,9 @@ fn main() {
         match maybe_extension {
             Some(extension) => {
                 if extension.to_ascii_lowercase().as_slice() == "list" && file.is_file() {
-                    let tests = parse_lists(&file, servo_args, render_mode, all_tests.len());
+                    let mut tests = parse_lists(&file, servo_args, render_mode, all_tests.len());
                     println!("\t{} [{} tests]", file.display(), tests.len());
-                    all_tests.extend(tests.into_iter());
+                    all_tests.append(&mut tests);
                 }
             }
             _ => {}
