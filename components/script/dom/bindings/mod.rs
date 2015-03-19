@@ -25,7 +25,7 @@
 //! some sanity checks and [argument conversions](conversions/index.html), and
 //! calls into API implementation for the DOM object.
 
-#![allow(unsafe_blocks)]
+#![allow(unsafe_code)]
 #![deny(missing_docs, non_snake_case)]
 
 pub mod cell;

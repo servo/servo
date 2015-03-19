@@ -1415,7 +1415,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 }
 
 impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn get_attr(self, namespace: &Namespace, attr: &Atom) -> Option<&'a str> {
         self.get_attribute(namespace.clone(), attr).root().map(|attr| {
             // This transmute is used to cheat the lifetime restriction.
@@ -1425,7 +1425,7 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
             unsafe { mem::transmute(value.as_slice()) }
         })
     }
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn get_attrs(self, attr: &Atom) -> Vec<&'a str> {
         self.get_attributes(attr).into_iter().map(|attr| attr.root()).map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)

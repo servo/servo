@@ -307,7 +307,7 @@ pub trait HTMLInputElementHelpers {
     fn reset(self);
 }
 
-#[allow(unsafe_blocks)]
+#[allow(unsafe_code)]
 fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&str>) {
     //TODO: if not in document, use root ancestor instead of document
     let owner = broadcaster.form_owner().root();
@@ -614,7 +614,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn pre_click_activation(&self) {
         let mut cache = self.activation_state.borrow_mut();
         let ty = self.input_type.get();
@@ -765,7 +765,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#implicit-submission
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
         let doc = document_from_node(*self).root();
         let node: JSRef<Node> = NodeCast::from_ref(doc.r());

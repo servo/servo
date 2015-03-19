@@ -30,7 +30,7 @@
 //!   o Instead of `html_element_in_html_document()`, use
 //!     `html_element_in_html_document_for_layout()`.
 
-#![allow(unsafe_blocks)]
+#![allow(unsafe_code)]
 
 use canvas::canvas_paint_task::CanvasMsg;
 use context::SharedLayoutContext;

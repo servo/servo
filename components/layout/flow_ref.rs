@@ -8,7 +8,7 @@
 //! be superfluous. This design is largely duplicating logic of Arc<T> and
 //! Weak<T>; please see comments there for details.
 
-#![allow(unsafe_blocks)]
+#![allow(unsafe_code)]
 
 use flow::Flow;
 use flow;

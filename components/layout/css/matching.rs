@@ -4,7 +4,7 @@
 
 //! High-level interface to CSS selector matching.
 
-#![allow(unsafe_blocks)]
+#![allow(unsafe_code)]
 
 use context::SharedLayoutContext;
 use css::node_style::StyledNode;
