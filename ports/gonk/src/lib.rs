@@ -6,7 +6,6 @@
 #![feature(box_syntax)]
 #![feature(int_uint)]
 #![feature(core, path, rustc_private)]
-#![feature(std_misc, env)]
 // For FFI
 #![allow(non_snake_case, dead_code)]
 

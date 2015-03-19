@@ -6,7 +6,7 @@
 #![deny(unused_variables)]
 
 #![feature(int_uint)]
-#![feature(core, os, path, io, std_misc, env)]
+#![feature(core, os, path, io, std_misc)]
 // For FFI
 #![allow(non_snake_case, dead_code)]
 
