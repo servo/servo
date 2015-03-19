@@ -114,7 +114,7 @@ pub struct Window {
     id: PipelineId,
 
     /// Subpage id associated with this page, if any.
-    subpage_id: Option<SubpageId>,
+    parent_info: Option<(PipelineId, SubpageId)>,
 
     /// Unique id for last reflow request; used for confirming completion reply.
     last_reflow_id: Cell<uint>,
@@ -164,11 +164,15 @@ impl Window {
     }
 
     pub fn pipeline(&self) -> PipelineId {
-        self.id.clone()
+        self.id
     }
 
     pub fn subpage(&self) -> Option<SubpageId> {
-        self.subpage_id.clone()
+        self.parent_info.map(|p| p.1)
+    }
+
+    pub fn parent_info(&self) -> Option<(PipelineId, SubpageId)> {
+        self.parent_info
     }
 
     pub fn control_chan<'a>(&'a self) -> &'a ScriptControlChan {
@@ -549,7 +553,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         let reflow = box Reflow {
             document_root: root.to_trusted_node_address(),
             url: self.get_url(),
-            iframe: self.subpage_id.is_some(),
+            iframe: self.parent_info.is_some(),
             goal: goal,
             window_size: window_size,
             script_chan: self.control_chan.clone(),
@@ -768,7 +772,7 @@ impl Window {
                constellation_chan: ConstellationChan,
                layout_chan: LayoutChan,
                id: PipelineId,
-               subpage_id: Option<SubpageId>,
+               parent_info: Option<(PipelineId, SubpageId)>,
                window_size: Option<WindowSizeData>)
                -> Temporary<Window> {
         let layout_rpc: Box<LayoutRPC> = {
@@ -797,7 +801,7 @@ impl Window {
             local_storage: Default::default(),
             timers: TimerManager::new(),
             id: id,
-            subpage_id: subpage_id,
+            parent_info: parent_info,
             dom_static: GlobalStaticData::new(),
             js_context: DOMRefCell::new(Some(js_context.clone())),
             resource_task: resource_task,
