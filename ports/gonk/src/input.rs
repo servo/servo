@@ -2,16 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::old_path::Path;
+use std::path::Path;
 use std::mem::size_of;
 use std::mem::transmute;
 use std::mem::zeroed;
 use std::os::errno;
 use std::os::unix::AsRawFd;
 use std::num::Float;
-use std::old_io::File;
+use std::fs::File;
 use std::thread::Thread;
 use std::sync::mpsc::Sender;
+use std::io::Read;
 
 use geom::point::TypedPoint2D;
 

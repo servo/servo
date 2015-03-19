@@ -632,18 +632,16 @@ impl Window {
     pub fn new() -> Rc<Window> {
         let mut hwc_mod = ptr::null();
         unsafe {
-            let cstr = CString::from_slice("hwcomposer".as_bytes());
-            let ptr = cstr.as_ptr();
-            let ret = hw_get_module(ptr, &mut hwc_mod);
+            let cstr = CString::new("hwcomposer").unwrap();
+            let ret = hw_get_module(cstr.as_ptr(), &mut hwc_mod);
             assert!(ret == 0, "Failed to get HWC module!");
         }
 
         let mut hwc_device: *mut hwc_composer_device;
         unsafe {
             let mut device = ptr::null();
-            let cstr = CString::from_slice("composer".as_bytes());
-            let ptr = cstr.as_ptr();
-            let ret = ((*(*hwc_mod).methods).open)(hwc_mod, ptr, &mut device);
+            let cstr = CString::new("composer").unwrap();
+            let ret = ((*(*hwc_mod).methods).open)(hwc_mod, cstr.as_ptr(), &mut device);
             assert!(ret == 0, "Failed to get HWC device!");
             hwc_device = transmute(device);
             // Require HWC 1.1 or newer
@@ -667,13 +665,11 @@ impl Window {
         let mut alloc_dev: *mut alloc_device;
         unsafe {
             let mut device = ptr::null();
-            let cstr = CString::from_slice("gralloc".as_bytes());
-            let ptr = cstr.as_ptr();
-            let ret1 = hw_get_module(ptr, &mut gralloc_mod);
+            let cstr = CString::new("gralloc").unwrap();
+            let ret1 = hw_get_module(cstr.as_ptr(), &mut gralloc_mod);
             assert!(ret1 == 0, "Failed to get gralloc moudle!");
-            let cstr2 = CString::from_slice("gpu0".as_bytes());
-            let ptr2 = cstr2.as_ptr();
-            let ret2 = ((*(*gralloc_mod).methods).open)(gralloc_mod, ptr2, &mut device);
+            let cstr2 = CString::new("gpu0").unwrap();
+            let ret2 = ((*(*gralloc_mod).methods).open)(gralloc_mod, cstr2.as_ptr(), &mut device);
             assert!(ret2 == 0, "Failed to get gralloc moudle!");
             alloc_dev = transmute(device);
         }
