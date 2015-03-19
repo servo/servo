@@ -391,7 +391,7 @@ impl<T: Send> Buffer<T> {
         // NB: not entirely obvious, but thanks to 2's complement,
         // casting delta to usize and then adding gives the desired
         // effect.
-        let buf = Buffer::new(self.log_size + delta as usize);
+        let buf = Buffer::new(self.log_size.wrapping_add(delta as usize));
         for i in range(t, b) {
             buf.put(i, self.get(i));
         }
