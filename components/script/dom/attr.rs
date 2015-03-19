@@ -246,20 +246,17 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     }
 }
 
+#[allow(unsafe_code)]
 pub trait AttrHelpersForLayout {
-    #[allow(unsafe_code)]
     unsafe fn value_ref_forever(&self) -> &'static str;
-    #[allow(unsafe_code)]
     unsafe fn value_atom_forever(&self) -> Option<Atom>;
-    #[allow(unsafe_code)]
     unsafe fn value_tokens_forever(&self) -> Option<&'static [Atom]>;
-    #[allow(unsafe_code)]
     unsafe fn local_name_atom_forever(&self) -> Atom;
 }
 
+#[allow(unsafe_code)]
 impl AttrHelpersForLayout for Attr {
     #[inline]
-    #[allow(unsafe_code)]
     unsafe fn value_ref_forever(&self) -> &'static str {
         // This transmute is used to cheat the lifetime restriction.
         let value = mem::transmute::<&AttrValue, &AttrValue>(self.value.borrow_for_layout());
@@ -267,7 +264,6 @@ impl AttrHelpersForLayout for Attr {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
     unsafe fn value_atom_forever(&self) -> Option<Atom> {
         let value = self.value.borrow_for_layout();
         match *value {
@@ -277,7 +273,6 @@ impl AttrHelpersForLayout for Attr {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
     unsafe fn value_tokens_forever(&self) -> Option<&'static [Atom]> {
         // This transmute is used to cheat the lifetime restriction.
         let value = mem::transmute::<&AttrValue, &AttrValue>(self.value.borrow_for_layout());
@@ -288,7 +283,6 @@ impl AttrHelpersForLayout for Attr {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
     unsafe fn local_name_atom_forever(&self) -> Atom {
         self.local_name.clone()
     }

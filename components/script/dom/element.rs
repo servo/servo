@@ -148,32 +148,23 @@ impl Element {
     }
 }
 
+#[allow(unsafe_code)]
 pub trait RawLayoutElementHelpers {
-    #[allow(unsafe_code)]
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                       -> Option<&'a str>;
-    #[allow(unsafe_code)]
     unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &Atom) -> Vec<&'a str>;
-    #[allow(unsafe_code)]
+
     unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &Atom) -> Option<Atom>;
-    #[allow(unsafe_code)]
     unsafe fn has_class_for_layout(&self, name: &Atom) -> bool;
-    #[allow(unsafe_code)]
     unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]>;
-    #[allow(unsafe_code)]
     unsafe fn get_length_attribute_for_layout(&self, length_attribute: LengthAttribute)
                                               -> LengthOrPercentageOrAuto;
-    #[allow(unsafe_code)]
     unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
                                                -> Option<i32>;
-    #[allow(unsafe_code)]
     unsafe fn get_checked_state_for_layout(&self) -> bool;
-    #[allow(unsafe_code)]
     unsafe fn get_indeterminate_state_for_layout(&self) -> bool;
-    #[allow(unsafe_code)]
     unsafe fn get_unsigned_integer_attribute_for_layout(&self, attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32>;
-    #[allow(unsafe_code)]
     unsafe fn get_simple_color_attribute_for_layout(&self, attribute: SimpleColorAttribute)
                                                     -> Option<RGBA>;
     fn local_name<'a>(&'a self) -> &'a Atom;
@@ -193,9 +184,9 @@ unsafe fn get_attr_for_layout<'a>(elem: &'a Element, namespace: &Namespace, name
     })
 }
 
+#[allow(unsafe_code)]
 impl RawLayoutElementHelpers for Element {
     #[inline]
-    #[allow(unsafe_code)]
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                           -> Option<&'a str> {
         get_attr_for_layout(self, namespace, name).map(|attr| {
@@ -205,7 +196,6 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
     unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &Atom) -> Vec<&'a str> {
         let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().filter_map(|attr: &JS<Attr>| {
@@ -219,7 +209,6 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
     unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &Atom)
                                       -> Option<Atom> {
         let attrs = self.attrs.borrow_for_layout();
@@ -234,7 +223,6 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
     unsafe fn has_class_for_layout(&self, name: &Atom) -> bool {
         let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().find(|attr: & &JS<Attr>| {
@@ -249,7 +237,6 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
     unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]> {
         let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().find(|attr: & &JS<Attr>| {
@@ -262,7 +249,6 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
     unsafe fn get_length_attribute_for_layout(&self, length_attribute: LengthAttribute)
                                               -> LengthOrPercentageOrAuto {
         match length_attribute {
@@ -281,7 +267,6 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
     unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
                                                -> Option<i32> {
         match integer_attribute {
@@ -311,7 +296,6 @@ impl RawLayoutElementHelpers for Element {
 
     #[inline]
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
     unsafe fn get_checked_state_for_layout(&self) -> bool {
         // TODO option and menuitem can also have a checked state.
         if !self.is_htmlinputelement() {
@@ -323,7 +307,6 @@ impl RawLayoutElementHelpers for Element {
 
     #[inline]
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
     unsafe fn get_indeterminate_state_for_layout(&self) -> bool {
         // TODO progress elements can also be matched with :indeterminate
         if !self.is_htmlinputelement() {
@@ -334,7 +317,6 @@ impl RawLayoutElementHelpers for Element {
     }
 
 
-    #[allow(unsafe_code)]
     unsafe fn get_unsigned_integer_attribute_for_layout(&self,
                                                         attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32> {
@@ -374,7 +356,6 @@ impl RawLayoutElementHelpers for Element {
 
     #[inline]
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
     unsafe fn get_simple_color_attribute_for_layout(&self, attribute: SimpleColorAttribute)
                                                     -> Option<RGBA> {
         match attribute {
