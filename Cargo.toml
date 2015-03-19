@@ -8,6 +8,3 @@ build = "support/not-the-toml-you-re-looking-for.rs"
 
 [lib]
 name = "not-the-toml-you-re-looking-for"
-
-
-

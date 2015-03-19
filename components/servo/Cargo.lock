@@ -49,6 +49,19 @@ version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "bswap"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "byteorder"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "bswap 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "canvas"
 version = "0.0.1"
 dependencies = [
@@ -443,21 +456,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hyper"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "cookie 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "mime 0.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "time 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicase 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "io_surface"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-io-surface#f380a03a9b0e0316866d4320d46a78dda87efbec"
@@ -776,6 +774,7 @@ dependencies = [
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "uuid 0.1.11 (git+https://github.com/rust-lang/uuid)",
+ "websocket 0.11.1 (git+https://github.com/cyderize/rust-websocket.git)",
 ]
 
 [[package]]
@@ -933,16 +932,17 @@ dependencies = [
 
 [[package]]
 name = "websocket"
-version = "0.10.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.11.1"
+source = "git+https://github.com/cyderize/rust-websocket.git#1036d4f0511da40f8b64211fb910ff83703a66ac"
 dependencies = [
- "bitflags 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "byteorder 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicase 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicase 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
