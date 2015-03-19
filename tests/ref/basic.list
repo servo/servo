@@ -133,6 +133,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == inline_block_parent_width.html inline_block_parent_width_ref.html
 == inline_block_parent_width_percentage.html inline_block_parent_width_ref.html
 == inline_block_percentage_height_a.html inline_block_percentage_height_ref.html
+== inline_block_stacking_context_a.html inline_block_stacking_context_ref.html
 == inline_block_with_margin_a.html inline_block_with_margin_ref.html
 # inline_border_a.html inline_border_b.html
 == inline_element_border_a.html inline_element_border_ref.html
