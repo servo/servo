@@ -7,6 +7,8 @@
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLScriptElementCast};
+use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, TextCast, CommentCast};
+use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers};
@@ -14,7 +16,8 @@ use dom::documenttype::DocumentType;
 use dom::element::{Element, AttributeHandlers, ElementHelpers, ElementCreator};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlscriptelement::HTMLScriptElementHelpers;
-use dom::node::{Node, NodeHelpers};
+use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::processinginstruction::ProcessingInstruction;
 use dom::servohtmlparser;
 use dom::servohtmlparser::{ServoHTMLParser, FragmentContext};
 use dom::text::Text;
@@ -27,9 +30,13 @@ use net::resource_task::{ProgressMsg, LoadResponse};
 use util::task_state;
 use util::task_state::IN_HTML_PARSER;
 use std::ascii::AsciiExt;
+use std::old_io::{Writer, IoResult};
 use std::string::CowString;
 use url::Url;
 use html5ever::Attribute;
+use html5ever::serialize::{Serializable, Serializer, AttrRef};
+use html5ever::serialize::TraversalScope;
+use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
 use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText};
 use string_cache::QualName;
 
@@ -166,6 +173,80 @@ impl<'a> TreeSink for servohtmlparser::Sink {
 
     fn reparent_children(&mut self, _node: JS<Node>, _new_parent: JS<Node>) {
         panic!("unimplemented")
+    }
+}
+
+impl<'a> Serializable for JSRef<'a, Node> {
+    fn serialize<'wr, Wr: Writer>(&self, serializer: &mut Serializer<'wr, Wr>,
+                                  traversal_scope: TraversalScope) -> IoResult<()> {
+        let node = *self;
+        match (traversal_scope, node.type_id()) {
+            (_, NodeTypeId::Element(..)) => {
+                let elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
+                let name = QualName::new(elem.namespace().clone(),
+                                         elem.local_name().clone());
+                if traversal_scope == IncludeNode {
+                    let attrs = elem.attrs().iter().map(|at| {
+                        let attr = at.root();
+                        let qname = QualName::new(attr.r().namespace().clone(),
+                                                  attr.r().local_name().clone());
+                        let value = attr.r().value().clone();
+                        (qname, value)
+                    }).collect::<Vec<_>>();
+                    let attr_refs = attrs.iter().map(|&(ref qname, ref value)| {
+                        let ar: AttrRef = (&qname, value.as_slice());
+                        ar
+                    });
+                    try!(serializer.start_elem(name.clone(), attr_refs));
+                }
+
+                for handle in node.children() {
+                    try!(handle.serialize(serializer, IncludeNode));
+                }
+
+                if traversal_scope == IncludeNode {
+                    try!(serializer.end_elem(name.clone()));
+                }
+                Ok(())
+            },
+
+            (ChildrenOnly, NodeTypeId::Document) => {
+                for handle in node.children() {
+                    try!(handle.serialize(serializer, IncludeNode));
+                }
+                Ok(())
+            },
+
+            (ChildrenOnly, _) => Ok(()),
+
+            (IncludeNode, NodeTypeId::DocumentType) => {
+                let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
+                serializer.write_doctype(doctype.name().as_slice())
+            },
+
+            (IncludeNode, NodeTypeId::Text) => {
+                let text: JSRef<Text> = TextCast::to_ref(node).unwrap();
+                let data = text.characterdata().data();
+                serializer.write_text(data.as_slice())
+            },
+
+            (IncludeNode, NodeTypeId::Comment) => {
+                let comment: JSRef<Comment> = CommentCast::to_ref(node).unwrap();
+                let data = comment.characterdata().data();
+                serializer.write_comment(data.as_slice())
+            },
+
+            (IncludeNode, NodeTypeId::ProcessingInstruction) => {
+                let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
+                let data = pi.characterdata().data();
+                serializer.write_processing_instruction(pi.target().as_slice(),
+                                                        data.as_slice())
+            },
+
+            (IncludeNode, NodeTypeId::DocumentFragment) => Ok(()),
+
+            (IncludeNode, NodeTypeId::Document) => panic!("Can't serialize Document node itself"),
+        }
     }
 }
 

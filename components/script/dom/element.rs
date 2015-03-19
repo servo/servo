@@ -44,14 +44,13 @@ use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElementTypeId;
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers, HTMLInputElementHelpers};
-use dom::htmlserializer::serialize;
 use dom::htmltableelement::{HTMLTableElement, HTMLTableElementHelpers};
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
 use dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementHelpers};
 use dom::htmltablesectionelement::{HTMLTableSectionElement, HTMLTableSectionElementHelpers};
 use dom::htmltextareaelement::{HTMLTextAreaElement, RawLayoutHTMLTextAreaElementHelpers};
 use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node, NodeHelpers, NodeTypeId};
-use dom::node::{NodeIterator, document_from_node, NodeDamage};
+use dom::node::{document_from_node, NodeDamage};
 use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
 use dom::servohtmlparser::FragmentContext;
@@ -66,6 +65,10 @@ use style;
 use util::namespace;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
+use html5ever::serialize;
+use html5ever::serialize::SerializeOpts;
+use html5ever::serialize::TraversalScope;
+use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
 use html5ever::tree_builder::{NoQuirks, LimitedQuirks, Quirks};
 
 use cssparser::RGBA;
@@ -74,6 +77,7 @@ use std::borrow::{IntoCow, ToOwned};
 use std::cell::{Ref, RefMut};
 use std::default::Default;
 use std::mem;
+use std::old_io::{MemWriter, Writer};
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, QualName};
 use url::UrlParser;
@@ -430,6 +434,7 @@ pub trait ElementHelpers<'a> {
     fn update_inline_style(self, property_decl: PropertyDeclaration, style_priority: StylePriority);
     fn get_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
     fn get_important_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
+    fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString>;
 }
 
 impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
@@ -574,6 +579,19 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
                         .find(|decl| decl.matches(property.as_slice()))
                         .map(|decl| decl.clone())
         })
+    }
+
+    fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let mut writer = MemWriter::new();
+        match serialize(&mut writer, &node,
+                        SerializeOpts {
+                            traversal_scope: traversal_scope,
+                            .. Default::default()
+                        }) {
+            Ok(()) => Ok(String::from_utf8(writer.into_inner()).unwrap()),
+            Err(_) => panic!("Cannot serialize element"),
+        }
     }
 }
 
@@ -1120,7 +1138,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     fn GetInnerHTML(self) -> Fallible<DOMString> {
         //XXX TODO: XML case
-        Ok(serialize(&mut NodeIterator::new(NodeCast::from_ref(self), false, false)))
+        self.serialize(ChildrenOnly)
     }
 
     fn SetInnerHTML(self, value: DOMString) -> Fallible<()> {
@@ -1176,7 +1194,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     fn GetOuterHTML(self) -> Fallible<DOMString> {
-        Ok(serialize(&mut NodeIterator::new(NodeCast::from_ref(self), true, false)))
+        self.serialize(IncludeNode)
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-children
