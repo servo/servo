@@ -743,8 +743,8 @@ impl InlineFragments {
     }
 
     /// Merges another set of inline fragments with this one.
-    pub fn push_all(&mut self, fragments: InlineFragments) {
-        self.fragments.extend(fragments.fragments.into_iter());
+    pub fn push_all(&mut self, mut other: InlineFragments) {
+        self.fragments.append(&mut other.fragments);
     }
 
     /// A convenience function to return the fragment at a given index.
