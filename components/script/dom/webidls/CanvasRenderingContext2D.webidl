@@ -52,8 +52,10 @@ interface CanvasRenderingContext2D {
   // colours and styles (see also the CanvasDrawingStyles interface)
            attribute (DOMString or CanvasGradient or CanvasPattern) strokeStyle; // (default black)
            attribute (DOMString or CanvasGradient or CanvasPattern) fillStyle; // (default black)
-  //CanvasGradient createLinearGradient(double x0, double y0, double x1, double y1);
-  //CanvasGradient createRadialGradient(double x0, double y0, double r0, double x1, double y1, double r1);
+  [Throws]
+  CanvasGradient createLinearGradient(double x0, double y0, double x1, double y1);
+  [Throws]
+  CanvasGradient createRadialGradient(double x0, double y0, double r0, double x1, double y1, double r1);
   //CanvasPattern createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
 
   // shadows
