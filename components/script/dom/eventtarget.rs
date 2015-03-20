@@ -198,8 +198,8 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
                                     scope: *mut JSObject,
                                     ty: &str,
                                     source: DOMString) {
-        let url = CString::from_slice(url.serialize().as_bytes());
-        let name = CString::from_slice(ty.as_bytes());
+        let url = CString::new(url.serialize()).unwrap();
+        let name = CString::new(ty).unwrap();
         let lineno = 0; //XXXjdm need to get a real number here
 
         let nargs = 1; //XXXjdm not true for onerror

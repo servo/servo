@@ -197,7 +197,7 @@ pub fn do_create_interface_objects(cx: *mut JSContext, global: *mut JSObject,
 
     match constructor {
         Some((native, name, nargs)) => {
-            let s = CString::from_slice(name.as_bytes());
+            let s = CString::new(name).unwrap();
             create_interface_object(cx, global, receiver,
                                     native, nargs, proto,
                                     members, s.as_ptr())
@@ -516,7 +516,7 @@ pub fn get_dictionary_property(cx: *mut JSContext,
         }
     }
 
-    let property = CString::from_slice(property.as_bytes());
+    let property = CString::new(property).unwrap();
     if object.is_null() {
         return Ok(None);
     }

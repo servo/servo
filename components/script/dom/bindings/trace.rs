@@ -92,7 +92,7 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
     }
 
     unsafe {
-        let name = CString::from_slice(description.as_bytes());
+        let name = CString::new(description).unwrap();
         (*tracer).debugPrinter = None;
         (*tracer).debugPrintIndex = -1;
         (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;
@@ -110,7 +110,7 @@ pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Ref
 /// Trace a `JSObject`.
 pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut JSObject) {
     unsafe {
-        let name = CString::from_slice(description.as_bytes());
+        let name = CString::new(description).unwrap();
         (*tracer).debugPrinter = None;
         (*tracer).debugPrintIndex = -1;
         (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;

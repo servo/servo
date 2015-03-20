@@ -470,7 +470,7 @@ impl<'a, T: Reflectable> ScriptHelpers for JSRef<'a, T> {
         let global = global_object_for_js_object(this).root().r().reflector().get_jsobject();
         let code: Vec<u16> = code.as_slice().utf16_units().collect();
         let mut rval = UndefinedValue();
-        let filename = CString::from_slice(filename.as_bytes());
+        let filename = CString::new(filename).unwrap();
 
         with_compartment(cx, global, || {
             unsafe {
