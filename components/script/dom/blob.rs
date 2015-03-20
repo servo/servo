@@ -126,8 +126,8 @@ impl<'a> BlobMethods for JSRef<'a, Blob> {
         match self.bytes {
             None => Blob::new(global.r(), None, relativeContentType.as_slice()),
             Some(ref vec) => {
-                let start = relativeStart.to_uint().unwrap();
-                let end = (relativeStart + span).to_uint().unwrap();
+                let start = relativeStart.to_usize().unwrap();
+                let end = (relativeStart + span).to_usize().unwrap();
                 let mut bytes: Vec<u8> = Vec::new();
                 bytes.push_all(&vec[start..end]);
                 Blob::new(global.r(), Some(bytes), relativeContentType.as_slice())

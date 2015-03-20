@@ -99,7 +99,7 @@ impl CallbackInterface {
                                  -> Result<JSVal, ()> {
         let mut callable = UndefinedValue();
         unsafe {
-            let name = CString::from_slice(name.as_bytes());
+            let name = CString::new(name).unwrap();
             if JS_GetProperty(cx, self.callback(), name.as_ptr(), &mut callable) == 0 {
                 return Err(());
             }

@@ -30,8 +30,8 @@ use net::resource_task::{ProgressMsg, LoadResponse};
 use util::task_state;
 use util::task_state::IN_HTML_PARSER;
 use std::ascii::AsciiExt;
+use std::borrow::Cow;
 use std::old_io::{Writer, IoResult};
-use std::string::CowString;
 use url::Url;
 use html5ever::Attribute;
 use html5ever::serialize::{Serializable, Serializer, AttrRef};
@@ -120,7 +120,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         Ok(())
     }
 
-    fn parse_error(&mut self, msg: CowString<'static>) {
+    fn parse_error(&mut self, msg: Cow<'static, str>) {
         debug!("Parse error: {}", msg);
     }
 

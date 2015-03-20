@@ -33,7 +33,7 @@ impl ImageData {
 
             if let Some(vec) = data {
                 let js_object_data: *mut uint8_t = JS_GetUint8ClampedArrayData(js_object, cx);
-                ptr::copy_nonoverlapping_memory(js_object_data, vec.as_ptr(), vec.len())
+                ptr::copy_nonoverlapping(js_object_data, vec.as_ptr(), vec.len())
             }
 
             ImageData {
