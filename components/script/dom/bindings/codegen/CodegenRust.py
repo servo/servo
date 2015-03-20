@@ -4061,7 +4061,12 @@ let this: *const %s = native_from_reflector::<%s>(obj);
         assert(False)
 
 def finalizeHook(descriptor, hookName, context):
-    release = """\
+    release = ""
+    if descriptor.isGlobal():
+        release += """\
+finalize_global(obj);
+"""
+    release += """\
 let _ = Box::from_raw(this as *mut %s);
 debug!("%s finalize: {:p}", this);\
 """ % (descriptor.concreteType, descriptor.concreteType)
@@ -4650,6 +4655,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{find_enum_string_index, get_array_index_from_id}',
             'dom::bindings::utils::{get_property_on_prototype, get_proto_or_iface_array}',
+            'dom::bindings::utils::finalize_global',
             'dom::bindings::utils::has_property_on_prototype',
             'dom::bindings::utils::is_platform_object',
             'dom::bindings::utils::{Reflectable}',
