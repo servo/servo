@@ -59,6 +59,7 @@ pub struct Opts {
     pub nonincremental_layout: bool,
 
     pub nossl: bool,
+    pub userscripts: bool,
 
     pub output_file: Option<String>,
     pub headless: bool,
@@ -180,6 +181,7 @@ pub fn default_opts() -> Opts {
         layout_threads: 1,
         nonincremental_layout: false,
         nossl: false,
+        userscripts: false,
         output_file: None,
         headless: true,
         hard_fail: true,
@@ -220,6 +222,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         getopts::optopt("y", "layout-threads", "Number of threads to use for layout", "1"),
         getopts::optflag("i", "nonincremental-layout", "Enable to turn off incremental layout."),
         getopts::optflag("", "no-ssl", "Disables ssl certificate verification."),
+        getopts::optflag("", "userscripts", "Uses userscripts in resources/user-agent-js"),
         getopts::optflag("z", "headless", "Headless mode"),
         getopts::optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure"),
         getopts::optflagopt("", "devtools", "Start remote devtools server on port", "6000"),
@@ -296,6 +299,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
 
     let nonincremental_layout = opt_match.opt_present("i");
     let nossl = opt_match.opt_present("no-ssl");
+    let userscripts = opt_match.opt_present("userscripts");
 
     let mut bubble_inline_sizes_separately = debug_options.contains(&"bubble-widths");
     let trace_layout = debug_options.contains(&"trace-layout");
@@ -331,6 +335,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         layout_threads: layout_threads,
         nonincremental_layout: nonincremental_layout,
         nossl: nossl,
+        userscripts: userscripts,
         output_file: opt_match.opt_str("o"),
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
