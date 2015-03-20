@@ -23,9 +23,9 @@ use hyper::mime::{Mime, Attr};
 use url::Url;
 
 use std::borrow::{ToOwned, IntoCow};
+use std::boxed;
 use std::collections::HashMap;
 use std::env;
-use std::mem;
 use std::old_io::{BufferedReader, File};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thunk::Invoke;
@@ -38,16 +38,25 @@ use std::old_io::net::tcp::TcpListener;
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 
 pub fn global_init() {
-    if let Ok(host_file_path) = env::var("HOST_FILE") {
-        //TODO: handle bad file path
-        let path = Path::new(host_file_path);
-        let mut file = BufferedReader::new(File::open(&path));
-        if let Ok(lines) = file.read_to_string(){
-            unsafe {
-                let host_table: *mut HashMap<String, String> =  mem::transmute(parse_hostsfile(lines.as_slice()));
-                HOST_TABLE = Some(host_table);
-            }
-        }
+    //TODO: handle bad file path
+    let path = match env::var("HOST_FILE") {
+        Ok(host_file_path) => Path::new(host_file_path),
+        Err(_) => return,
+    };
+
+    let mut file = match File::open(&path) {
+        Ok(f) => BufferedReader::new(f),
+        Err(_) => return,
+    };
+
+    let lines = match file.read_to_string() {
+        Ok(lines) => lines,
+        Err(_) => return,
+    };
+
+    unsafe {
+        let host_table = boxed::into_raw(parse_hostsfile(lines.as_slice()));
+        HOST_TABLE = Some(host_table);
     }
 }
 
@@ -526,7 +535,9 @@ fn test_replace_hosts() {
     host_table_box.insert("foo.bar.com".to_owned(), "127.0.0.1".to_owned());
     host_table_box.insert("servo.test.server".to_owned(), "127.0.0.2".to_owned());
 
-    let host_table: *mut HashMap<String, String> = unsafe {mem::transmute(host_table_box)};
+    let host_table: *mut HashMap<String, String> = unsafe {
+        boxed::into_raw(host_table_box)
+    };
 
     //Start the TCP server
     let mut listener = TcpListener::bind("127.0.0.1:0").unwrap();
