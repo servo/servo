@@ -88,9 +88,8 @@ fn redirect_output(file_no: c_int) {
                 let mut read_buffer: [u8; 1024] = mem::zeroed();
                 let FilePtr(input_file) = input_file;
                 fgets(read_buffer.as_mut_ptr() as *mut i8, read_buffer.len() as i32, input_file);
-                let cs = CString::from_slice(&read_buffer);
-                match from_utf8(cs.as_bytes()) {
-                    Ok(s) => android_glue::write_log(s),
+                match from_utf8(&read_buffer) {
+                    Ok(s) => android_glue::write_log(s.trim_right_matches('\0')),
                     _ => {}
                 }
             }
