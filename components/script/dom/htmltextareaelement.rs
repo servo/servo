@@ -52,16 +52,20 @@ impl HTMLTextAreaElementDerived for EventTarget {
 }
 
 pub trait LayoutHTMLTextAreaElementHelpers {
+    #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String;
 }
 
 pub trait RawLayoutHTMLTextAreaElementHelpers {
+    #[allow(unsafe_code)]
     unsafe fn get_cols_for_layout(&self) -> u32;
+    #[allow(unsafe_code)]
     unsafe fn get_rows_for_layout(&self) -> u32;
 }
 
 impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     #[allow(unrooted_must_root)]
+    #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String {
         (*self.unsafe_get()).textinput.borrow_for_layout().get_content()
     }
@@ -69,11 +73,13 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
 
 impl RawLayoutHTMLTextAreaElementHelpers for HTMLTextAreaElement {
     #[allow(unrooted_must_root)]
+    #[allow(unsafe_code)]
     unsafe fn get_cols_for_layout(&self) -> u32 {
         self.cols.get()
     }
 
     #[allow(unrooted_must_root)]
+    #[allow(unsafe_code)]
     unsafe fn get_rows_for_layout(&self) -> u32 {
         self.rows.get()
     }

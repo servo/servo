@@ -38,6 +38,7 @@ use geom::rect::Rect;
 #[allow(raw_pointer_derive)]
 #[derive(Copy, Clone)]
 pub struct UntrustedNodeAddress(pub *const c_void);
+#[allow(unsafe_code)]
 unsafe impl Send for UntrustedNodeAddress {}
 
 pub struct NewLayoutInfo {
@@ -74,6 +75,7 @@ pub enum ConstellationControlMsg {
     Navigate(PipelineId, SubpageId, LoadData),
 }
 
+#[allow(unsafe_code)]
 unsafe impl Send for ConstellationControlMsg {
 }
 

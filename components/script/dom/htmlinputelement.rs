@@ -129,23 +129,31 @@ impl HTMLInputElement {
 }
 
 pub trait LayoutHTMLInputElementHelpers {
+    #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String;
+    #[allow(unsafe_code)]
     unsafe fn get_size_for_layout(self) -> u32;
 }
 
 pub trait RawLayoutHTMLInputElementHelpers {
+    #[allow(unsafe_code)]
     unsafe fn get_checked_state_for_layout(&self) -> bool;
+    #[allow(unsafe_code)]
     unsafe fn get_indeterminate_state_for_layout(&self) -> bool;
+    #[allow(unsafe_code)]
     unsafe fn get_size_for_layout(&self) -> u32;
 }
 
 impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
     #[allow(unrooted_must_root)]
+    #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String {
+        #[allow(unsafe_code)]
         unsafe fn get_raw_textinput_value(input: LayoutJS<HTMLInputElement>) -> String {
             (*input.unsafe_get()).textinput.borrow_for_layout().get_content()
         }
 
+        #[allow(unsafe_code)]
         unsafe fn get_raw_attr_value(input: LayoutJS<HTMLInputElement>) -> Option<String> {
             let elem: LayoutJS<Element> = input.transmute_copy();
             (*elem.unsafe_get()).get_attr_val_for_layout(&ns!(""), &atom!("value"))
@@ -167,6 +175,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
     }
 
     #[allow(unrooted_must_root)]
+    #[allow(unsafe_code)]
     unsafe fn get_size_for_layout(self) -> u32 {
         (*self.unsafe_get()).get_size_for_layout()
     }
@@ -174,16 +183,19 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 
 impl RawLayoutHTMLInputElementHelpers for HTMLInputElement {
     #[allow(unrooted_must_root)]
+    #[allow(unsafe_code)]
     unsafe fn get_checked_state_for_layout(&self) -> bool {
         self.checked.get()
     }
 
     #[allow(unrooted_must_root)]
+    #[allow(unsafe_code)]
     unsafe fn get_indeterminate_state_for_layout(&self) -> bool {
         self.indeterminate.get()
     }
 
     #[allow(unrooted_must_root)]
+    #[allow(unsafe_code)]
     unsafe fn get_size_for_layout(&self) -> u32 {
         self.size.get()
     }
@@ -307,7 +319,7 @@ pub trait HTMLInputElementHelpers {
     fn reset(self);
 }
 
-#[allow(unsafe_blocks)]
+#[allow(unsafe_code)]
 fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&str>) {
     //TODO: if not in document, use root ancestor instead of document
     let owner = broadcaster.form_owner().root();
@@ -614,7 +626,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn pre_click_activation(&self) {
         let mut cache = self.activation_state.borrow_mut();
         let ty = self.input_type.get();
@@ -765,7 +777,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#implicit-submission
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
         let doc = document_from_node(*self).root();
         let node: JSRef<Node> = NodeCast::from_ref(doc.r());

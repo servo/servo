@@ -78,10 +78,12 @@ impl CanvasRenderingContext2D {
 }
 
 pub trait LayoutCanvasRenderingContext2DHelpers {
+    #[allow(unsafe_code)]
     unsafe fn get_renderer(&self) -> Sender<CanvasMsg>;
 }
 
 impl LayoutCanvasRenderingContext2DHelpers for LayoutJS<CanvasRenderingContext2D> {
+    #[allow(unsafe_code)]
     unsafe fn get_renderer(&self) -> Sender<CanvasMsg> {
         (*self.unsafe_get()).renderer.clone()
     }

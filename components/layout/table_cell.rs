@@ -4,7 +4,7 @@
 
 //! CSS table formatting contexts.
 
-#![deny(unsafe_blocks)]
+#![deny(unsafe_code)]
 
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;

@@ -4,7 +4,7 @@
 
 //! Data needed by the layout task.
 
-#![allow(unsafe_blocks)]
+#![allow(unsafe_code)]
 
 use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 
@@ -90,6 +90,7 @@ pub struct SharedLayoutContext {
 }
 
 pub struct SharedLayoutContextWrapper(pub *const SharedLayoutContext);
+#[allow(unsafe_code)]
 unsafe impl Send for SharedLayoutContextWrapper {}
 
 pub struct LayoutContext<'a> {

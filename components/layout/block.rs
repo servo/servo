@@ -25,7 +25,7 @@
 //!
 //!   http://dev.w3.org/csswg/css-sizing/
 
-#![deny(unsafe_blocks)]
+#![deny(unsafe_code)]
 
 use context::LayoutContext;
 use css::node_style::StyledNode;

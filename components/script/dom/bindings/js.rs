@@ -76,6 +76,7 @@ pub struct Unrooted<T> {
 
 impl<T: Reflectable> Unrooted<T> {
     /// Create a new JS-owned value wrapped from a raw Rust pointer.
+    #[allow(unsafe_code)]
     pub unsafe fn from_raw(raw: *const T) -> Unrooted<T> {
         assert!(!raw.is_null());
         Unrooted {
@@ -99,6 +100,7 @@ impl<T: Reflectable> Unrooted<T> {
     }
 
     /// Returns an unsafe pointer to the interior of this object.
+    #[allow(unsafe_code)]
     pub unsafe fn unsafe_get(&self) -> *const T {
         *self.ptr
     }
@@ -176,6 +178,7 @@ impl<T: Reflectable> Temporary<T> {
         })
     }
 
+    #[allow(unsafe_code)]
     unsafe fn inner(&self) -> JS<T> {
         self.inner.clone()
     }
@@ -183,6 +186,7 @@ impl<T: Reflectable> Temporary<T> {
     /// Returns `self` as a `Temporary` of another type. For use by
     /// `InheritTypes` only.
     //XXXjdm It would be lovely if this could be private.
+    #[allow(unsafe_code)]
     pub unsafe fn transmute<To>(self) -> Temporary<To> {
         mem::transmute(self)
     }
@@ -197,6 +201,7 @@ pub struct JS<T> {
 
 impl<T> JS<T> {
     /// Returns `LayoutJS<T>` containing the same pointer.
+    #[allow(unsafe_code)]
     pub unsafe fn to_layout(self) -> LayoutJS<T> {
         LayoutJS {
             ptr: self.ptr.clone()
@@ -212,6 +217,7 @@ pub struct LayoutJS<T> {
 
 impl<T: Reflectable> LayoutJS<T> {
     /// Get the reflector.
+    #[allow(unsafe_code)]
     pub unsafe fn get_jsobject(&self) -> *mut JSObject {
         (**self.ptr).reflector().get_jsobject()
     }
@@ -256,6 +262,7 @@ impl <T> Clone for LayoutJS<T> {
 impl LayoutJS<Node> {
     /// Create a new JS-owned value wrapped from an address known to be a
     /// `Node` pointer.
+    #[allow(unsafe_code)]
     pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress)
                                             -> LayoutJS<Node> {
         let TrustedNodeAddress(addr) = inner;
@@ -392,6 +399,7 @@ impl<T: Reflectable> MutNullableJS<T> {
 
     /// Retrieve a copy of the inner optional `JS<T>` as `LayoutJS<T>`.
     /// For use by layout, which can't use safe types like Temporary.
+    #[allow(unsafe_code)]
     pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
         self.ptr.get().map(|js| js.to_layout())
     }
@@ -426,6 +434,7 @@ impl<T: Reflectable> LayoutJS<T> {
     /// Returns an unsafe pointer to the interior of this JS object. This is
     /// the only method that be safely accessed from layout. (The fact that
     /// this is unsafe is what necessitates the layout wrappers.)
+    #[allow(unsafe_code)]
     pub unsafe fn unsafe_get(&self) -> *const T {
         *self.ptr
     }
@@ -433,6 +442,7 @@ impl<T: Reflectable> LayoutJS<T> {
 
 impl<From> JS<From> {
     /// Return `self` as a `JS` of another type.
+    #[allow(unsafe_code)]
     pub unsafe fn transmute_copy<To>(&self) -> JS<To> {
         mem::transmute_copy(self)
     }
@@ -440,6 +450,7 @@ impl<From> JS<From> {
 
 impl<From> LayoutJS<From> {
     /// Return `self` as a `LayoutJS` of another type.
+    #[allow(unsafe_code)]
     pub unsafe fn transmute_copy<To>(&self) -> LayoutJS<To> {
         mem::transmute_copy(self)
     }
@@ -476,22 +487,26 @@ impl<T: Reflectable> OptionalRootedReference<T> for Option<Option<Root<T>>> {
 /// they can outlive the rooted lifetime of the original value.
 pub trait Assignable<T> {
     /// Extract an unrooted `JS<T>`.
+    #[allow(unsafe_code)]
     unsafe fn get_js(&self) -> JS<T>;
 }
 
 impl<T> Assignable<T> for JS<T> {
+    #[allow(unsafe_code)]
     unsafe fn get_js(&self) -> JS<T> {
         self.clone()
     }
 }
 
 impl<'a, T: Reflectable> Assignable<T> for JSRef<'a, T> {
+    #[allow(unsafe_code)]
     unsafe fn get_js(&self) -> JS<T> {
         self.unrooted()
     }
 }
 
 impl<T: Reflectable> Assignable<T> for Temporary<T> {
+    #[allow(unsafe_code)]
     unsafe fn get_js(&self) -> JS<T> {
         self.inner()
     }
@@ -736,12 +751,14 @@ impl<'a, 'b, T> PartialEq<JSRef<'b, T>> for JSRef<'a, T> {
 impl<'a,T> JSRef<'a,T> {
     /// Return `self` as a `JSRef` of another type.
     //XXXjdm It would be lovely if this could be private.
+    #[allow(unsafe_code)]
     pub unsafe fn transmute<To>(self) -> JSRef<'a, To> {
         mem::transmute(self)
     }
 
     /// Return `self` as a borrowed reference to a `JSRef` of another type.
     // FIXME(zwarich): It would be nice to get rid of this entirely.
+    #[allow(unsafe_code)]
     pub unsafe fn transmute_borrowed<'b, To>(&'b self) -> &'b JSRef<'a, To> {
         mem::transmute(self)
     }

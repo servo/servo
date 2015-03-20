@@ -81,6 +81,7 @@ pub enum Command {
     Exit(Sender<()>),
 }
 
+#[allow(unsafe_code)]
 unsafe impl Send for Command {}
 
 /// Reply messages sent from the font cache task to the FontContext caller.
@@ -88,6 +89,7 @@ pub enum Reply {
     GetFontTemplateReply(Option<Arc<FontTemplateData>>),
 }
 
+#[allow(unsafe_code)]
 unsafe impl Send for Reply {}
 
 /// The font cache task itself. It maintains a list of reference counted

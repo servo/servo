@@ -8,7 +8,7 @@
 //! list building, as the actual painting does not happen here—only deciding *what* we're going to
 //! paint.
 
-#![deny(unsafe_blocks)]
+#![deny(unsafe_code)]
 
 use azure::azure_hl::Color;
 use block::BlockFlow;

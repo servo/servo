@@ -78,6 +78,7 @@ struct Deque<T> {
     pool: BufferPool<T>,
 }
 
+#[allow(unsafe_code)]
 unsafe impl<T> Send for Deque<T> {}
 
 /// Worker half of the work-stealing deque. This worker has exclusive access to
@@ -144,6 +145,7 @@ struct Buffer<T> {
     log_size: usize,
 }
 
+#[allow(unsafe_code)]
 unsafe impl<T: 'static> Send for Buffer<T> { }
 
 impl<T: Send + 'static> BufferPool<T> {
@@ -237,6 +239,7 @@ impl<T: Send + 'static> Deque<T> {
         }
     }
 
+    #[allow(unsafe_code)]
     unsafe fn push(&self, data: T) {
         let mut b = self.bottom.load(SeqCst);
         let t = self.top.load(SeqCst);
@@ -253,6 +256,7 @@ impl<T: Send + 'static> Deque<T> {
         self.bottom.store(b + 1, SeqCst);
     }
 
+    #[allow(unsafe_code)]
     unsafe fn pop(&self) -> Option<T> {
         let b = self.bottom.load(SeqCst);
         let a = self.array.load(SeqCst);
@@ -279,6 +283,7 @@ impl<T: Send + 'static> Deque<T> {
         }
     }
 
+    #[allow(unsafe_code)]
     unsafe fn steal(&self) -> Stolen<T> {
         let t = self.top.load(SeqCst);
         let old = self.array.load(SeqCst);
@@ -301,6 +306,7 @@ impl<T: Send + 'static> Deque<T> {
         }
     }
 
+    #[allow(unsafe_code)]
     unsafe fn maybe_shrink(&self, b: isize, t: isize) {
         let a = self.array.load(SeqCst);
         if b - t < (*a).size() / K && b - t > (1 << MIN_BITS) {
@@ -315,6 +321,7 @@ impl<T: Send + 'static> Deque<T> {
     // after this method has called 'free' on it. The continued usage is simply
     // a read followed by a forget, but we must make sure that the memory can
     // continue to be read after we flag this buffer for reclamation.
+    #[allow(unsafe_code)]
     unsafe fn swap_buffer(&self, b: isize, old: *mut Buffer<T>,
                           buf: Buffer<T>) -> *mut Buffer<T> {
         let newbuf: *mut Buffer<T> = transmute(box buf);
@@ -352,6 +359,7 @@ fn buffer_alloc_size<T>(log_size: usize) -> usize {
 }
 
 impl<T: Send> Buffer<T> {
+    #[allow(unsafe_code)]
     unsafe fn new(log_size: usize) -> Buffer<T> {
         let size = buffer_alloc_size::<T>(log_size);
         let buffer = allocate(size, min_align_of::<T>());
@@ -367,6 +375,7 @@ impl<T: Send> Buffer<T> {
     // Apparently LLVM cannot optimize (foo % (1 << bar)) into this implicitly
     fn mask(&self) -> isize { (1 << self.log_size) - 1 }
 
+    #[allow(unsafe_code)]
     unsafe fn elem(&self, i: isize) -> *const T {
         self.storage.offset(i & self.mask())
     }
@@ -375,18 +384,21 @@ impl<T: Send> Buffer<T> {
     // nor does this clear out the contents contained within. Hence, this is a
     // very unsafe method which the caller needs to treat specially in case a
     // race is lost.
+    #[allow(unsafe_code)]
     unsafe fn get(&self, i: isize) -> T {
         ptr::read(self.elem(i))
     }
 
     // Unsafe because this unsafely overwrites possibly uninitialized or
     // initialized data.
+    #[allow(unsafe_code)]
     unsafe fn put(&self, i: isize, t: T) {
         ptr::write(self.elem(i) as *mut T, t);
     }
 
     // Again, unsafe because this has incredibly dubious ownership violations.
     // It is assumed that this buffer is immediately dropped.
+    #[allow(unsafe_code)]
     unsafe fn resize(&self, b: isize, t: isize, delta: isize) -> Buffer<T> {
         // NB: not entirely obvious, but thanks to 2's complement,
         // casting delta to usize and then adding gives the desired

@@ -4,7 +4,7 @@
 
 //! High-level interface to CSS selector matching.
 
-#![allow(unsafe_blocks)]
+#![allow(unsafe_code)]
 
 use context::SharedLayoutContext;
 use css::node_style::StyledNode;
@@ -389,12 +389,14 @@ pub trait MatchMethods {
     /// Attempts to share a style with another node. This method is unsafe because it depends on
     /// the `style_sharing_candidate_cache` having only live nodes in it, and we have no way to
     /// guarantee that at the type system level yet.
+    #[allow(unsafe_code)]
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
                                       parent: Option<LayoutNode>)
                                       -> StyleSharingResult;
 
+    #[allow(unsafe_code)]
     unsafe fn cascade_node(&self,
                            layout_context: &SharedLayoutContext,
                            parent: Option<LayoutNode>,
@@ -535,6 +537,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             applicable_declarations.after.len() == 0
     }
 
+    #[allow(unsafe_code)]
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
@@ -611,6 +614,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         element.each_class(|class| bf.remove(class));
     }
 
+    #[allow(unsafe_code)]
     unsafe fn cascade_node(&self,
                            layout_context: &SharedLayoutContext,
                            parent: Option<LayoutNode>,

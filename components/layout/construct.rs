@@ -11,7 +11,7 @@
 //! maybe it's an absolute or fixed position thing that hasn't found its containing block yet.
 //! Construction items bubble up the tree from children to parents until they find their homes.
 
-#![deny(unsafe_blocks)]
+#![deny(unsafe_code)]
 
 use block::BlockFlow;
 use context::LayoutContext;

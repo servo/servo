@@ -67,7 +67,7 @@ impl BrowserContext {
         self.window_proxy
     }
 
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn create_window_proxy(&mut self) {
         let win = self.active_window().root();
         let win = win.r();
@@ -104,6 +104,7 @@ impl SessionHistoryEntry {
     }
 }
 
+#[allow(unsafe_code)]
 unsafe fn GetSubframeWindow(cx: *mut JSContext, proxy: *mut JSObject, id: jsid) -> Option<Temporary<Window>> {
     let index = get_array_index_from_id(cx, id);
     if let Some(index) = index {
@@ -116,6 +117,7 @@ unsafe fn GetSubframeWindow(cx: *mut JSContext, proxy: *mut JSObject, id: jsid) 
     None
 }
 
+#[allow(unsafe_code)]
 unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObject, id: jsid, set: bool, desc: *mut JSPropertyDescriptor) -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
@@ -142,7 +144,7 @@ unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObje
     true
 }
 
-
+#[allow(unsafe_code)]
 unsafe extern fn defineProperty(cx: *mut JSContext, proxy: *mut JSObject, id: jsid, desc: *mut JSPropertyDescriptor) -> bool {
     if get_array_index_from_id(cx, id).is_some() {
         // Spec says to Reject whether this is a supported index or not,
@@ -157,6 +159,7 @@ unsafe extern fn defineProperty(cx: *mut JSContext, proxy: *mut JSObject, id: js
                           (*desc).setter, (*desc).attrs) != 0
 }
 
+#[allow(unsafe_code)]
 unsafe extern fn hasOwn(cx: *mut JSContext, proxy: *mut JSObject, id: jsid, bp: *mut bool) -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if window.is_some() {
@@ -174,6 +177,7 @@ unsafe extern fn hasOwn(cx: *mut JSContext, proxy: *mut JSObject, id: jsid, bp: 
     return true;
 }
 
+#[allow(unsafe_code)]
 unsafe extern fn get(cx: *mut JSContext, proxy: *mut JSObject, receiver: *mut JSObject, id: jsid, vp: *mut JSVal) -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
@@ -186,6 +190,7 @@ unsafe extern fn get(cx: *mut JSContext, proxy: *mut JSObject, receiver: *mut JS
     JS_ForwardGetPropertyTo(cx, target, id, receiver, vp) != 0
 }
 
+#[allow(unsafe_code)]
 unsafe extern fn set(cx: *mut JSContext, proxy: *mut JSObject, _receiver: *mut JSObject, id: jsid, _strict: bool, vp: *mut JSVal) -> bool {
     if get_array_index_from_id(cx, id).is_some() {
         // Reject (which means throw if and only if strict) the set.
@@ -234,7 +239,7 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     trace: None
 };
 
-#[allow(unsafe_blocks)]
+#[allow(unsafe_code)]
 pub fn new_window_proxy_handler() -> WindowProxyHandler {
     unsafe {
         WindowProxyHandler(CreateWrapperProxyHandler(&PROXY_HANDLER))

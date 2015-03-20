@@ -246,6 +246,7 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     }
 }
 
+#[allow(unsafe_code)]
 pub trait AttrHelpersForLayout {
     unsafe fn value_ref_forever(&self) -> &'static str;
     unsafe fn value_atom_forever(&self) -> Option<Atom>;
@@ -253,6 +254,7 @@ pub trait AttrHelpersForLayout {
     unsafe fn local_name_atom_forever(&self) -> Atom;
 }
 
+#[allow(unsafe_code)]
 impl AttrHelpersForLayout for Attr {
     #[inline]
     unsafe fn value_ref_forever(&self) -> &'static str {

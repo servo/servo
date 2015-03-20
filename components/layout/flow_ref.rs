@@ -8,7 +8,7 @@
 //! be superfluous. This design is largely duplicating logic of Arc<T> and
 //! Weak<T>; please see comments there for details.
 
-#![allow(unsafe_blocks)]
+#![allow(unsafe_code)]
 
 use flow::Flow;
 use flow;
@@ -25,7 +25,9 @@ pub struct FlowRef {
     object: raw::TraitObject,
 }
 
+#[allow(unsafe_code)]
 unsafe impl Send for FlowRef {}
+#[allow(unsafe_code)]
 unsafe impl Sync for FlowRef {}
 
 #[unsafe_no_drop_flag]
@@ -33,7 +35,9 @@ pub struct WeakFlowRef {
     object: raw::TraitObject,
 }
 
+#[allow(unsafe_code)]
 unsafe impl Send for WeakFlowRef {}
+#[allow(unsafe_code)]
 unsafe impl Sync for WeakFlowRef {}
 
 impl FlowRef {

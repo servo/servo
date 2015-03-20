@@ -211,7 +211,7 @@ impl<'a> Activatable for JSRef<'a, HTMLButtonElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#implicit-submission
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
         let doc = document_from_node(*self).root();
         let node: JSRef<Node> = NodeCast::from_ref(doc.r());

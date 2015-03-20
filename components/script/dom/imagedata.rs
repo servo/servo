@@ -25,7 +25,7 @@ pub struct ImageData {
 }
 
 impl ImageData {
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn new_inherited(width: u32, height: u32, data: Option<Vec<u8>>, global: GlobalRef) -> ImageData {
         unsafe {
             let cx = global.get_cx();
@@ -57,7 +57,7 @@ pub trait ImageDataHelpers {
 }
 
 impl<'a> ImageDataHelpers for JSRef<'a, ImageData> {
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn get_data_array(self, global: &GlobalRef) -> Vec<u8> {
         unsafe {
             let cx = global.get_cx();

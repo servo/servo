@@ -162,6 +162,7 @@ impl<T: SizeOf> SizeOf for LinkedList2<T> {
 // This is a basic sanity check. If the representation of LinkedList changes such that it becomes a
 // different size to LinkedList2, this will fail at compile-time.
 #[allow(dead_code)]
+#[allow(unsafe_code)]
 unsafe fn linked_list2_check() {
     transmute::<LinkedList<i32>, LinkedList2<i32>>(panic!());
 }

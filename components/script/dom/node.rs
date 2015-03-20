@@ -175,7 +175,7 @@ impl NodeFlags {
 
 #[unsafe_destructor]
 impl Drop for Node {
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn drop(&mut self) {
         self.layout_data.dispose();
     }
@@ -203,6 +203,7 @@ pub struct LayoutData {
     _data: NonZero<*const ()>,
 }
 
+#[allow(unsafe_code)]
 unsafe impl Send for LayoutData {}
 
 pub struct LayoutDataRef {
@@ -236,6 +237,7 @@ impl LayoutDataRef {
     /// happen if you try to mutate the layout data while this is held. This is the only thread-
     /// safe layout data accessor.
     #[inline]
+    #[allow(unsafe_code)]
     pub unsafe fn borrow_unchecked(&self) -> *const Option<LayoutData> {
         mem::transmute(&self.data_cell)
     }
@@ -382,6 +384,7 @@ pub struct QuerySelectorIterator<'a> {
 }
 
 impl<'a> QuerySelectorIterator<'a> {
+    #[allow(unsafe_code)]
     unsafe fn new(iter: TreeIterator<'a>, selectors: Vec<Selector>) -> QuerySelectorIterator<'a> {
         QuerySelectorIterator {
             selectors: selectors,
@@ -483,6 +486,7 @@ pub trait NodeHelpers<'a> {
     fn get_content_boxes(self) -> Vec<Rect<Au>>;
 
     fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
+    #[allow(unsafe_code)]
     unsafe fn query_selector_iter(self, selectors: DOMString) -> Fallible<QuerySelectorIterator<'a>>;
     fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
 
@@ -773,6 +777,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     /// Get an iterator over all nodes which match a set of selectors
     /// Be careful not to do anything which may manipulate the DOM tree whilst iterating, otherwise
     /// the iterator may be invalidated
+    #[allow(unsafe_code)]
     unsafe fn query_selector_iter(self, selectors: DOMString)
                                   -> Fallible<QuerySelectorIterator<'a>> {
         // Step 1.
@@ -790,7 +795,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
         // Step 1.
         unsafe {
@@ -907,7 +912,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
 /// returns it.
-#[allow(unsafe_blocks)]
+#[allow(unsafe_code)]
 pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: UntrustedNodeAddress)
     -> Temporary<Node> {
     unsafe {
@@ -923,68 +928,88 @@ pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: Untrusted
 }
 
 pub trait LayoutNodeHelpers {
+    #[allow(unsafe_code)]
     unsafe fn type_id_for_layout(&self) -> NodeTypeId;
 
+    #[allow(unsafe_code)]
     unsafe fn parent_node_ref(&self) -> Option<LayoutJS<Node>>;
+    #[allow(unsafe_code)]
     unsafe fn first_child_ref(&self) -> Option<LayoutJS<Node>>;
+    #[allow(unsafe_code)]
     unsafe fn last_child_ref(&self) -> Option<LayoutJS<Node>>;
+    #[allow(unsafe_code)]
     unsafe fn prev_sibling_ref(&self) -> Option<LayoutJS<Node>>;
+    #[allow(unsafe_code)]
     unsafe fn next_sibling_ref(&self) -> Option<LayoutJS<Node>>;
 
+    #[allow(unsafe_code)]
     unsafe fn owner_doc_for_layout(&self) -> LayoutJS<Document>;
 
+    #[allow(unsafe_code)]
     unsafe fn is_element_for_layout(&self) -> bool;
+    #[allow(unsafe_code)]
     unsafe fn get_flag(self, flag: NodeFlags) -> bool;
+    #[allow(unsafe_code)]
     unsafe fn set_flag(self, flag: NodeFlags, value: bool);
 }
 
 impl LayoutNodeHelpers for LayoutJS<Node> {
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn type_id_for_layout(&self) -> NodeTypeId {
         (*self.unsafe_get()).type_id
     }
 
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn is_element_for_layout(&self) -> bool {
         (*self.unsafe_get()).is_element()
     }
 
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn parent_node_ref(&self) -> Option<LayoutJS<Node>> {
         (*self.unsafe_get()).parent_node.get_inner_as_layout()
     }
 
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn first_child_ref(&self) -> Option<LayoutJS<Node>> {
         (*self.unsafe_get()).first_child.get_inner_as_layout()
     }
 
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn last_child_ref(&self) -> Option<LayoutJS<Node>> {
         (*self.unsafe_get()).last_child.get_inner_as_layout()
     }
 
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn prev_sibling_ref(&self) -> Option<LayoutJS<Node>> {
         (*self.unsafe_get()).prev_sibling.get_inner_as_layout()
     }
 
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn next_sibling_ref(&self) -> Option<LayoutJS<Node>> {
         (*self.unsafe_get()).next_sibling.get_inner_as_layout()
     }
 
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn owner_doc_for_layout(&self) -> LayoutJS<Document> {
         (*self.unsafe_get()).owner_doc.get_inner_as_layout().unwrap()
     }
 
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn get_flag(self, flag: NodeFlags) -> bool {
         (*self.unsafe_get()).flags.get().contains(flag)
     }
 
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn set_flag(self, flag: NodeFlags, value: bool) {
         let this = self.unsafe_get();
         let mut flags = (*this).flags.get();
@@ -1000,22 +1025,28 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
 }
 
 pub trait RawLayoutNodeHelpers {
+    #[allow(unsafe_code)]
     unsafe fn get_hover_state_for_layout(&self) -> bool;
+    #[allow(unsafe_code)]
     unsafe fn get_disabled_state_for_layout(&self) -> bool;
+    #[allow(unsafe_code)]
     unsafe fn get_enabled_state_for_layout(&self) -> bool;
     fn type_id_for_layout(&self) -> NodeTypeId;
 }
 
 impl RawLayoutNodeHelpers for Node {
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn get_hover_state_for_layout(&self) -> bool {
         self.flags.get().contains(IN_HOVER_STATE)
     }
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn get_disabled_state_for_layout(&self) -> bool {
         self.flags.get().contains(IN_DISABLED_STATE)
     }
     #[inline]
+    #[allow(unsafe_code)]
     unsafe fn get_enabled_state_for_layout(&self) -> bool {
         self.flags.get().contains(IN_ENABLED_STATE)
     }
@@ -1245,6 +1276,7 @@ impl Node {
     }
 
     #[inline]
+    #[allow(unsafe_code)]
     pub unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData> {
         self.layout_data.borrow_unchecked()
     }
@@ -2207,6 +2239,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 #[derive(Clone, PartialEq, Eq, Copy)]
 pub struct TrustedNodeAddress(pub *const c_void);
 
+#[allow(unsafe_code)]
 unsafe impl Send for TrustedNodeAddress {}
 
 pub fn document_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Temporary<Document> {
@@ -2341,15 +2374,19 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     }
 
     fn has_changed(self) -> bool { self.get_has_changed() }
+    #[allow(unsafe_code)]
     unsafe fn set_changed(self, value: bool) { self.set_has_changed(value) }
 
     fn is_dirty(self) -> bool { self.get_is_dirty() }
+    #[allow(unsafe_code)]
     unsafe fn set_dirty(self, value: bool) { self.set_is_dirty(value) }
 
     fn has_dirty_siblings(self) -> bool { self.get_has_dirty_siblings() }
+    #[allow(unsafe_code)]
     unsafe fn set_dirty_siblings(self, value: bool) { self.set_has_dirty_siblings(value) }
 
     fn has_dirty_descendants(self) -> bool { self.get_has_dirty_descendants() }
+    #[allow(unsafe_code)]
     unsafe fn set_dirty_descendants(self, value: bool) { self.set_has_dirty_descendants(value) }
 }
 

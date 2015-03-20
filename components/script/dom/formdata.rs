@@ -82,7 +82,7 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
         self.data.borrow_mut().remove(&name);
     }
 
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn Get(self, name: DOMString) -> Option<FileOrString> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let data = self.data.borrow();

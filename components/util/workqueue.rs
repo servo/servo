@@ -40,6 +40,7 @@ enum WorkerMsg<QueueData: 'static, WorkData: 'static> {
     Exit,
 }
 
+#[allow(unsafe_code)]
 unsafe impl<QueueData: 'static, WorkData: 'static> Send for WorkerMsg<QueueData, WorkData> {}
 
 /// Messages to the supervisor.
@@ -48,6 +49,7 @@ enum SupervisorMsg<QueueData: 'static, WorkData: 'static> {
     ReturnDeque(usize, Worker<WorkUnit<QueueData, WorkData>>),
 }
 
+#[allow(unsafe_code)]
 unsafe impl<QueueData: 'static, WorkData: 'static> Send for SupervisorMsg<QueueData, WorkData> {}
 
 /// Information that the supervisor thread keeps about the worker threads.
@@ -74,6 +76,7 @@ struct WorkerThread<QueueData: 'static, WorkData: 'static> {
     rng: XorShiftRng,
 }
 
+#[allow(unsafe_code)]
 unsafe impl<QueueData: 'static, WorkData: 'static> Send for WorkerThread<QueueData, WorkData> {}
 
 static SPIN_COUNT: u32 = 128;
