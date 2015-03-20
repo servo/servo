@@ -22,8 +22,7 @@ use msg::constellation_msg::{FrameId, PipelineExitType, PipelineId};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
-use net::resource_task::ResourceTask;
-use net::resource_task;
+use net::resource_task::{self, ResourceTask};
 use net::storage_task::{StorageTask, StorageTaskMsg};
 use util::cursor::Cursor;
 use util::geometry::PagePx;
@@ -32,7 +31,7 @@ use util::opts;
 use util::task::spawn_named;
 use util::time::TimeProfilerChan;
 use std::borrow::ToOwned;
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use std::old_io as io;
 use std::marker::PhantomData;
 use std::mem::replace;
@@ -147,15 +146,12 @@ struct FrameTreeIterator<'a> {
 impl<'a> Iterator for FrameTreeIterator<'a> {
     type Item = &'a Frame;
     fn next(&mut self) -> Option<&'a Frame> {
-        match self.stack.pop() {
-            Some(next) => {
-                let frame = self.frames.get(&next).unwrap();
-                let pipeline = self.pipelines.get(&frame.current).unwrap();
-                self.stack.extend(pipeline.children.iter().map(|&c| c));
-                Some(frame)
-            }
-            None => None,
-        }
+        self.stack.pop().map(|next| {
+            let frame = self.frames.get(&next).unwrap();
+            let pipeline = self.pipelines.get(&frame.current).unwrap();
+            self.stack.extend(pipeline.children.iter().map(|&c| c));
+            frame
+        })
     }
 }
 
@@ -384,7 +380,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_exit(&mut self) {
-        for (_id, ref pipeline) in self.pipelines.iter() {
+        for (_id, ref pipeline) in &self.pipelines {
             pipeline.exit(PipelineExitType::Complete);
         }
         self.image_cache_task.exit();
@@ -534,7 +530,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             }
             None => {
                 // Make sure no pending page would be overridden.
-                for frame_change in self.pending_frames.iter() {
+                for frame_change in &self.pending_frames {
                     if frame_change.old_pipeline_id == Some(source_id) {
                         // id that sent load msg is being changed already; abort
                         return;
@@ -572,36 +568,27 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let (prev_pipeline_id, next_pipeline_id) = {
             let frame = self.mut_frame(frame_id);
 
-            match direction {
+            let next = match direction {
                 NavigationDirection::Forward => {
                     if frame.next.is_empty() {
                         debug!("no next page to navigate to");
                         return;
-                    } else {
-                        let prev = frame.current;
-
-                        frame.prev.push(frame.current);
-                        let next = frame.next.pop().unwrap();
-                        frame.current = next;
-
-                        (prev, next)
                     }
+                    frame.prev.push(frame.current);
+                    frame.next.pop().unwrap()
                 }
                 NavigationDirection::Back => {
                     if frame.prev.is_empty() {
                         debug!("no previous page to navigate to");
                         return;
-                    } else {
-                        let prev = frame.current;
-
-                        frame.next.push(frame.current);
-                        let next = frame.prev.pop().unwrap();
-                        frame.current = next;
-
-                        (prev, next)
                     }
+                    frame.next.push(frame.current);
+                    frame.prev.pop().unwrap()
                 }
-            }
+            };
+            let prev = frame.current;
+            frame.current = next;
+            (prev, next)
         };
 
         // Suspend the old pipeline, and resume the new one.
@@ -680,7 +667,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         // Remove any evicted frames
         if let Some(evicted_frames) = evicted_frames {
-            for pipeline_id in evicted_frames.iter() {
+            for pipeline_id in &evicted_frames {
                 self.close_pipeline(*pipeline_id, ExitPipelineMode::Normal);
             }
         }
@@ -755,7 +742,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
 
         // Send resize message to any pending pipelines that aren't loaded yet.
-        for pending_frame in self.pending_frames.iter() {
+        for pending_frame in &self.pending_frames {
             let pipeline = self.pipelines.get(&pending_frame.new_pipeline_id).unwrap();
             if pipeline.parent_info.is_none() {
                 let ScriptControlChan(ref chan) = pipeline.script_chan;
@@ -782,7 +769,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let pipeline = self.pipelines.remove(&pipeline_id).unwrap();
 
         // Remove any child frames
-        for child in pipeline.children.iter() {
+        for child in &pipeline.children {
             self.close_frame(*child, exit_mode);
         }
 
@@ -812,7 +799,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             children: vec!(),
         };
 
-        for child_frame_id in pipeline.children.iter() {
+        for child_frame_id in &pipeline.children {
             frame_tree.children.push(self.frame_to_sendable(*child_frame_id));
         }
 
