@@ -5,6 +5,7 @@
 use azure::azure::AzFloat;
 use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
 use azure::azure_hl::{ColorPattern, PathBuilder, JoinStyle, CapStyle, DrawSurfaceOptions, Filter};
+use azure::azure_hl::{GradientStop, LinearGradientPattern, RadialGradientPattern, ExtendMode};
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -167,11 +168,11 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn set_fill_style(&mut self, style: FillOrStrokeStyle) {
-        self.fill_style = style.to_azure_pattern()
+        self.fill_style = style.to_azure_pattern(&self.drawtarget)
     }
 
     fn set_stroke_style(&mut self, style: FillOrStrokeStyle) {
-        self.stroke_style = style.to_azure_pattern()
+        self.stroke_style = style.to_azure_pattern(&self.drawtarget)
     }
 
     fn set_transform(&mut self, transform: &Matrix2D<f32>) {
@@ -292,20 +293,104 @@ impl<'a> CanvasPaintTask<'a> {
 }
 
 #[derive(Clone)]
+pub struct CanvasGradientStop {
+    pub offset: f64,
+    pub color: RGBA,
+}
+
+#[derive(Clone)]
+pub struct LinearGradientStyle {
+    pub x0: f64,
+    pub y0: f64,
+    pub x1: f64,
+    pub y1: f64,
+    pub stops: Vec<CanvasGradientStop>
+}
+
+impl LinearGradientStyle {
+    pub fn new(x0: f64, y0: f64, x1: f64, y1: f64, stops: Vec<CanvasGradientStop>)
+        -> LinearGradientStyle {
+        LinearGradientStyle {
+            x0: x0,
+            y0: y0,
+            x1: x1,
+            y1: y1,
+            stops: stops,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct RadialGradientStyle {
+    pub x0: f64,
+    pub y0: f64,
+    pub r0: f64,
+    pub x1: f64,
+    pub y1: f64,
+    pub r1: f64,
+    pub stops: Vec<CanvasGradientStop>
+}
+
+impl RadialGradientStyle {
+    pub fn new(x0: f64, y0: f64, r0: f64, x1: f64, y1: f64, r1: f64, stops: Vec<CanvasGradientStop>)
+        -> RadialGradientStyle {
+        RadialGradientStyle {
+            x0: x0,
+            y0: y0,
+            r0: r0,
+            x1: x1,
+            y1: y1,
+            r1: r1,
+            stops: stops,
+        }
+    }
+}
+
+#[derive(Clone)]
 pub enum FillOrStrokeStyle {
     Color(RGBA),
+    LinearGradient(LinearGradientStyle),
+    RadialGradient(RadialGradientStyle),
 }
 
 impl FillOrStrokeStyle {
-    fn to_azure_pattern(&self) -> Pattern {
+    fn to_azure_pattern(&self, drawtarget: &DrawTarget) -> Pattern {
         match *self {
             FillOrStrokeStyle::Color(ref color) => {
                 Pattern::Color(ColorPattern::new(color::new(color.red,
                                                             color.green,
                                                             color.blue,
                                                             color.alpha)))
+            },
+            FillOrStrokeStyle::LinearGradient(ref linear_gradient_style) => {
+                let gradient_stops: Vec<GradientStop> = linear_gradient_style.stops.iter().map(|s| {
+                    GradientStop {
+                        offset: s.offset as AzFloat,
+                        color: color::new(s.color.red, s.color.green, s.color.blue, s.color.alpha)
+                    }
+                }).collect();
+
+                Pattern::LinearGradient(LinearGradientPattern::new(
+                    &Point2D(linear_gradient_style.x0 as AzFloat, linear_gradient_style.y0 as AzFloat),
+                    &Point2D(linear_gradient_style.x1 as AzFloat, linear_gradient_style.y1 as AzFloat),
+                    drawtarget.create_gradient_stops(gradient_stops.as_slice(), ExtendMode::Clamp),
+                    &Matrix2D::identity()))
+            },
+            FillOrStrokeStyle::RadialGradient(ref radial_gradient_style) => {
+                let gradient_stops: Vec<GradientStop> = radial_gradient_style.stops.iter().map(|s| {
+                    GradientStop {
+                        offset: s.offset as AzFloat,
+                        color: color::new(s.color.red, s.color.green, s.color.blue, s.color.alpha)
+                    }
+                }).collect();
+
+                Pattern::RadialGradient(RadialGradientPattern::new(
+                    &Point2D(radial_gradient_style.x0 as AzFloat, radial_gradient_style.y0 as AzFloat),
+                    &Point2D(radial_gradient_style.x1 as AzFloat, radial_gradient_style.y1 as AzFloat),
+                    radial_gradient_style.r0 as AzFloat, radial_gradient_style.r1 as AzFloat,
+                    drawtarget.create_gradient_stops(gradient_stops.as_slice(), ExtendMode::Clamp),
+                    &Matrix2D::identity()))
             }
         }
     }
 }
-

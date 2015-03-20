@@ -7,11 +7,12 @@ use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRen
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasWindingRule;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
-use dom::bindings::error::Error::IndexSize;
+use dom::bindings::error::Error::{IndexSize, TypeError};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::htmlcanvaselement::{HTMLCanvasElement, HTMLCanvasElementHelpers};
 use dom::imagedata::{ImageData, ImageDataHelpers};
 
@@ -23,7 +24,9 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 
 use canvas::canvas_paint_task::{CanvasMsg, CanvasPaintTask, FillOrStrokeStyle};
+use canvas::canvas_paint_task::{LinearGradientStyle, RadialGradientStyle};
 
+use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::num::{Float, ToPrimitive};
 use std::sync::mpsc::{channel, Sender};
@@ -215,6 +218,9 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                     _ => {}
                 }
             }
+            StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient) => {
+                self.renderer.send(CanvasMsg::SetFillStyle(gradient.root().r().to_fill_or_stroke_style())).unwrap();
+            }
             _ => {}
         }
     }
@@ -263,6 +269,22 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                                           dirtyHeight.to_i32().unwrap())));
         let canvas_size = self.canvas.root().r().get_size();
         self.renderer.send(CanvasMsg::PutImageData(data, image_data_rect, dirty_rect, canvas_size)).unwrap()
+    }
+
+    fn CreateLinearGradient(self, x0: f64, y0: f64, x1: f64, y1: f64) -> Fallible<Temporary<CanvasGradient>> {
+        if [x0, y0, x1, y1].iter().any(|x| x.is_nan() || x.is_infinite()) {
+            return Err(TypeError("One of the arguments of createLinearGradient() is not a finite floating-point value.".to_owned()));
+        }
+        Ok(CanvasGradient::new(self.global.root().r(),
+                               CanvasGradientStyle::Linear(LinearGradientStyle::new(x0, y0, x1, y1, Vec::new()))))
+    }
+
+    fn CreateRadialGradient(self, x0: f64, y0: f64, r0: f64, x1: f64, y1: f64, r1: f64) -> Fallible<Temporary<CanvasGradient>> {
+        if [x0, y0, r0, x1, y1, r1].iter().any(|x| x.is_nan() || x.is_infinite()) {
+            return Err(TypeError("One of the arguments of createRadialGradient() is not a finite floating-point value.".to_owned()));
+        }
+        Ok(CanvasGradient::new(self.global.root().r(),
+                               CanvasGradientStyle::Radial(RadialGradientStyle::new(x0, y0, r0, x1, y1, r1, Vec::new()))))
     }
 }
 
