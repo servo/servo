@@ -32,7 +32,6 @@ use util::str::DOMString;
 
 use string_cache::Atom;
 
-use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::default::Default;
 

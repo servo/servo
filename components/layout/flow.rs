@@ -58,7 +58,7 @@ use std::fmt;
 use std::iter::Zip;
 use std::num::FromPrimitive;
 use std::raw;
-use std::sync::atomic::{AtomicUint, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::slice::IterMut;
 use style::computed_values::{clear, empty_cells, float, position, text_align};
 use style::properties::ComputedValues;
@@ -740,9 +740,9 @@ pub struct BaseFlow {
     /// NB: Must be the first element.
     ///
     /// The necessity of this will disappear once we have dynamically-sized types.
-    strong_ref_count: AtomicUint,
+    strong_ref_count: AtomicUsize,
 
-    weak_ref_count: AtomicUint,
+    weak_ref_count: AtomicUsize,
 
     pub restyle_damage: RestyleDamage,
 
@@ -951,8 +951,8 @@ impl BaseFlow {
         damage.remove(RECONSTRUCT_FLOW);
 
         BaseFlow {
-            strong_ref_count: AtomicUint::new(1),
-            weak_ref_count: AtomicUint::new(1),
+            strong_ref_count: AtomicUsize::new(1),
+            weak_ref_count: AtomicUsize::new(1),
             restyle_damage: damage,
             children: FlowList::new(),
             intrinsic_inline_sizes: IntrinsicISizes::new(),
@@ -982,11 +982,11 @@ impl BaseFlow {
         self.children.iter_mut()
     }
 
-    pub unsafe fn strong_ref_count<'a>(&'a self) -> &'a AtomicUint {
+    pub unsafe fn strong_ref_count<'a>(&'a self) -> &'a AtomicUsize {
         &self.strong_ref_count
     }
 
-    pub unsafe fn weak_ref_count<'a>(&'a self) -> &'a AtomicUint {
+    pub unsafe fn weak_ref_count<'a>(&'a self) -> &'a AtomicUsize {
         &self.weak_ref_count
     }
 

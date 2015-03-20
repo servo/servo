@@ -67,7 +67,7 @@ pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, na
             if o.as_slice().starts_with(opt.as_slice()) {
                 let mut string = mem::uninitialized();
                 let arg = o[opt.len() + 1..].as_bytes();
-                let c_str = ffi::CString::from_slice(arg);
+                let c_str = ffi::CString::new(arg).unwrap();
                 cef_string_utf16_set(c_str.as_bytes().as_ptr() as *const _,
                                      arg.len() as size_t,
                                      &mut string,

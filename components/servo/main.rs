@@ -81,7 +81,7 @@ fn redirect_output(file_no: c_int) {
         let mut pipes: [c_int; 2] = [ 0, 0 ];
         pipe(pipes.as_mut_ptr());
         dup2(pipes[1], file_no);
-        let mode = CString::from_slice("r".as_bytes());
+        let mode = CString::new("r").unwrap();
         let input_file = FilePtr(fdopen(pipes[0], mode.as_ptr()));
         spawn_named("android-logger".to_owned(), move || {
             loop {

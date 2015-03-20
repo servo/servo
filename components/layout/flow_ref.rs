@@ -102,9 +102,7 @@ impl Drop for FlowRef {
             let object_align = vtable[2];
 
             let fake_data = heap::allocate(object_size, object_align);
-            ptr::copy_memory(fake_data,
-                             flow_ref.object.data as *const u8,
-                             object_size);
+            ptr::copy(fake_data, flow_ref.object.data as *const u8, object_size);
 
             let fake_box = raw::TraitObject { vtable: flow_ref.object.vtable, data: fake_data as *mut () };
             let fake_flow = mem::transmute::<raw::TraitObject, Box<Flow>>(fake_box);

@@ -122,7 +122,7 @@ pub fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
 pub fn throw_not_in_union(cx: *mut JSContext, names: &'static str) -> JSBool {
     assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
     let message = format!("argument could not be converted to any of: {}", names);
-    let string = CString::from_slice(message.as_bytes());
+    let string = CString::new(message).unwrap();
     unsafe { ReportError(cx, string.as_ptr()) };
     return 0;
 }
@@ -153,7 +153,7 @@ unsafe extern fn get_error_message(_user_ref: *mut libc::c_void,
 
 /// Throw a `TypeError` with the given message.
 pub fn throw_type_error(cx: *mut JSContext, error: &str) {
-    let error = CString::from_slice(error.as_bytes());
+    let error = CString::new(error).unwrap();
     unsafe {
         JS_ReportErrorNumber(cx,
             Some(get_error_message as
