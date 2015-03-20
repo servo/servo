@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+    <head >
+        <title></title>
+        <script src="harness.js"></script>
+    </head>
+    <body>
+        <input id="foo" type="text"></input>
+        <script>
+            is_not(document.activeElement, null, "test_1.1, document.activeElement");
+            is(document.activeElement, document.body, "test_1.2, document.activeElement");
+
+            //TODO: uncomment following lines when focus() method will be available
+            //document.getElementById('foo').focus();
+            is_not(document.activeElement, null, "test_2.1, document.activeElement");
+            //is(document.activeElement, document.getElementById("foo"), "test_2.2, document.activeElement");
+        </script>
+    </body>
+</html>
