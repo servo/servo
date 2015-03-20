@@ -26,7 +26,8 @@ use std::borrow::{ToOwned, IntoCow};
 use std::boxed;
 use std::collections::HashMap;
 use std::env;
-use std::old_io::{BufferedReader, File};
+use std::fs::File;
+use std::io::{BufReader, Read};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thunk::Invoke;
 
@@ -45,12 +46,13 @@ pub fn global_init() {
     };
 
     let mut file = match File::open(&path) {
-        Ok(f) => BufferedReader::new(f),
+        Ok(f) => BufReader::new(f),
         Err(_) => return,
     };
 
-    let lines = match file.read_to_string() {
-        Ok(lines) => lines,
+    let mut lines = String::new();
+    match file.read_to_string(&mut lines) {
+        Ok(()) => (),
         Err(_) => return,
     };
 

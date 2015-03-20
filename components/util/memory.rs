@@ -12,8 +12,6 @@ use std::ffi::CString;
 #[cfg(target_os = "linux")]
 use std::iter::AdditiveIterator;
 use std::old_io::timer::sleep;
-#[cfg(target_os="linux")]
-use std::old_io::File;
 use std::mem::{size_of, transmute};
 use std::ptr::null_mut;
 use std::sync::Arc;
@@ -489,15 +487,15 @@ macro_rules! option_try(
 
 #[cfg(target_os="linux")]
 fn get_proc_self_statm_field(field: usize) -> Option<u64> {
-    let mut f = File::open(&Path::new("/proc/self/statm"));
-    match f.read_to_string() {
-        Ok(contents) => {
-            let s = option_try!(contents.as_slice().words().nth(field));
-            let npages = option_try!(s.parse::<u64>().ok());
-            Some(npages * (::std::env::page_size() as u64))
-        }
-        Err(_) => None
-    }
+    use std::fs::File;
+    use std::io::Read;
+
+    let mut f = option_try!(File::open("/proc/self/statm").ok());
+    let mut contents = String::new();
+    option_try!(f.read_to_string(&mut contents).ok());
+    let s = option_try!(contents.words().nth(field));
+    let npages = option_try!(s.parse::<u64>().ok());
+    Some(npages * (::std::env::page_size() as u64))
 }
 
 #[cfg(target_os="linux")]
@@ -535,6 +533,8 @@ fn get_resident_segments() -> Vec<(String, u64)> {
     use regex::Regex;
     use std::collections::HashMap;
     use std::collections::hash_map::Entry;
+    use std::fs::File;
+    use std::io::{BufReader, BufReadExt};
 
     // The first line of an entry in /proc/<pid>/smaps looks just like an entry
     // in /proc/<pid>/maps:
@@ -548,8 +548,10 @@ fn get_resident_segments() -> Vec<(String, u64)> {
     //
     //   Rss:           132 kB
 
-    let path = Path::new("/proc/self/smaps");
-    let mut f = ::std::old_io::BufferedReader::new(File::open(&path));
+    let f = match File::open("/proc/self/smaps") {
+        Ok(f) => BufReader::new(f),
+        Err(_) => return vec![],
+    };
 
     let seg_re = Regex::new(
         r"^[:xdigit:]+-[:xdigit:]+ (....) [:xdigit:]+ [:xdigit:]+:[:xdigit:]+ \d+ +(.*)").unwrap();
