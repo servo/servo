@@ -126,7 +126,7 @@ interface CanvasPathMethods {
   void closePath();
   void moveTo(/*unrestricted*/ double x, /*unrestricted*/ double y);
   void lineTo(double x, double y);
-  //void quadraticCurveTo(double cpx, double cpy, double x, double y);
+  void quadraticCurveTo(double cpx, double cpy, double x, double y);
 
   void bezierCurveTo(/*unrestricted*/ double cp1x,
                      /*unrestricted*/ double cp1y,

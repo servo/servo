@@ -29,6 +29,7 @@ pub enum CanvasMsg {
     Fill,
     MoveTo(Point2D<f32>),
     LineTo(Point2D<f32>),
+    QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
     BezierCurveTo(Point2D<f32>, Point2D<f32>, Point2D<f32>),
     Arc(Point2D<f32>, f32, f32, f32, bool),
     SetFillStyle(FillOrStrokeStyle),
@@ -81,6 +82,9 @@ impl<'a> CanvasPaintTask<'a> {
                     CanvasMsg::Fill => painter.fill(),
                     CanvasMsg::MoveTo(ref point) => painter.move_to(point),
                     CanvasMsg::LineTo(ref point) => painter.line_to(point),
+                    CanvasMsg::QuadraticCurveTo(ref cp, ref pt) => {
+                        painter.quadratic_curve_to(cp, pt)
+                    }
                     CanvasMsg::BezierCurveTo(ref cp1, ref cp2, ref pt) => {
                         painter.bezier_curve_to(cp1, cp2, pt)
                     }
@@ -149,6 +153,12 @@ impl<'a> CanvasPaintTask<'a> {
 
     fn line_to(&self, point: &Point2D<AzFloat>) {
         self.path_builder.line_to(*point)
+    }
+
+    fn quadratic_curve_to(&self,
+                          cp: &Point2D<AzFloat>,
+                          endpoint: &Point2D<AzFloat>) {
+        self.path_builder.quadratic_curve_to(cp, endpoint)
     }
 
     fn bezier_curve_to(&self,
