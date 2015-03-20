@@ -7,7 +7,7 @@
 #![feature(collections)]
 #![feature(core)]
 #![feature(int_uint)]
-#![feature(old_io)]
+#![feature(io)]
 #![feature(old_path)]
 #![feature(plugin)]
 #![feature(rustc_private)]
