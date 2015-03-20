@@ -2,16 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-pub use super::{EvaluateUsingContext, DeviceFeatureContext};
-
 use ::FromCss;
 use ::cssparser::{Parser, Token, ToCss};
-
-pub trait EvaluateMediaFeatureValue<C> {
-    type Context;
-
-    fn evaluate(&self, context: &C, value: Self::Context) -> bool;
-}
 
 #[derive(Copy, Debug, PartialEq, Eq)]
 pub enum Range<T> {
@@ -178,7 +170,7 @@ impl<T> Range<T> {
 }
 
 impl<T> Range<T> where T: PartialOrd {
-    fn evaluate<V>(&self, value: V) -> bool
+    pub fn evaluate<V>(&self, value: V) -> bool
         where T: PartialOrd<V>, V: PartialOrd
     {
         match *self {
@@ -203,9 +195,6 @@ impl<T> Range<T> where T: PartialOrd {
         }
     }
 }
-
-pub mod discrete;
-pub mod range;
 
 #[cfg(test)]
 mod tests {

@@ -15,7 +15,12 @@ macro_rules! derive_display_using_to_css {
     };
 }
 
-mod values;
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SpecificationLevel {
+    MEDIAQ3,
+    MEDIAQ4
+}
+
 mod feature;
 mod condition;
 mod query;
@@ -24,9 +29,7 @@ mod device;
 use ::FromCss;
 use ::cssparser::Parser;
 
-pub use self::values::{discrete, range, Range};
-pub use self::feature::{DeviceFeatureContext, MediaFeature};
-pub use self::condition::MediaCondition;
+pub use self::feature::DeviceFeatureContext;
 pub use self::query::{MediaQuery, MediaQueryList};
 // external users should only be able to use the defined media types
 pub use self::query::DefinedMediaType as MediaType;

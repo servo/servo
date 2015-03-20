@@ -5,7 +5,7 @@
 #![cfg(test)]
 
 use super::*;
-use super::values::range::Width;
+use super::feature::{MediaFeature, Range, Width};
 use super::condition::{MediaConditionTerm, MediaConnectiveTerm, MediaInParensTerm};
 use super::query::Qualifier;
 

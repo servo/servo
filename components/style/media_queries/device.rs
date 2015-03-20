@@ -8,13 +8,13 @@ use ::util::geometry::{Au, ViewportPx};
 use super::DeviceFeatureContext;
 use super::MediaType;
 
-use super::values::discrete::Orientation;
-use super::values::discrete::{Scan, UpdateFrequency, OverflowBlock, OverflowInline};
-use super::values::discrete::InvertedColors;
-use super::values::discrete::{Hover, Pointer};
-use super::values::discrete::LightLevel;
-use super::values::discrete::Scripting;
-use super::values::discrete::ViewMode;
+use super::feature::Orientation;
+use super::feature::{Scan, UpdateFrequency, OverflowBlock, OverflowInline};
+use super::feature::InvertedColors;
+use super::feature::{Pointer, Hover, AnyPointer, AnyHover};
+use super::feature::LightLevel;
+use super::feature::Scripting;
+use super::feature::ViewMode;
 
 #[allow(missing_copy_implementations)]
 #[derive(Debug)]
@@ -63,8 +63,17 @@ impl DeviceFeatureContext for Device {
         }
     }
 
-    fn Orientation(&self) -> Orientation {
-        Orientation::from_viewport_size(self.ViewportSize())
+    fn Orientation(&self) -> Option<Orientation> {
+        let vps = self.ViewportSize();
+        if vps.width > Au(0) && vps.height > Au(0) {
+            if vps.width > vps.height {
+                Some(Orientation::Landscape)
+            } else {
+                Some(Orientation::Portrait)
+            }
+        } else {
+            None
+        }
     }
 
     // TODO
@@ -147,18 +156,18 @@ impl DeviceFeatureContext for Device {
     }
 
     // TODO
-    fn AnyPointer(&self) -> Pointer {
+    fn AnyPointer(&self) -> AnyPointer {
         match self.media_type {
-            MediaType::Screen => Pointer::Fine,
-            _ => Pointer::None
+            MediaType::Screen => AnyPointer::Fine,
+            _ => AnyPointer::None
         }
     }
 
     // TODO
-    fn AnyHover(&self) -> Hover {
+    fn AnyHover(&self) -> AnyHover {
         match self.media_type {
-            MediaType::Screen => Hover::Hover,
-            _ => Hover::None
+            MediaType::Screen => AnyHover::Hover,
+            _ => AnyHover::None
         }
     }
 
