@@ -33,7 +33,8 @@ impl Console {
 impl<'a> ConsoleMethods for JSRef<'a, Console> {
     fn Log(self, message: DOMString) {
         println!("{}", message);
-        propagate_console_msg(&self, ConsoleMessage::LogMessage(message));
+        //TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
+        propagate_console_msg(&self, ConsoleMessage::LogMessage(message, String::from_str("test"), 1, 1));
     }
 
     fn Debug(self, message: DOMString) {

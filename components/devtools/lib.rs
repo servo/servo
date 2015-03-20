@@ -67,9 +67,12 @@ struct ConsoleAPICall {
 
 #[derive(RustcEncodable)]
 struct ConsoleMsg {
-    logLevel: u32,
-    timestamp: u64,
-    message: String,
+    level: String,
+    timeStamp: u64,
+    arguments: Vec<String>,
+    filename: String,
+    lineNumber: u32,
+    columnNumber: u32,
 }
 
 /// Spin up a devtools server that listens for connections on the specified port.
@@ -192,14 +195,17 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
         let actors = actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(console_actor_name.as_slice());
         match console_message {
-            ConsoleMessage::LogMessage(message) => {
+            ConsoleMessage::LogMessage(message, filename, lineNumber, columnNumber) => {
                 let msg = ConsoleAPICall {
                     from: console_actor.name.clone(),
                     __type__: "consoleAPICall".to_string(),
                     message: ConsoleMsg {
-                        logLevel: 0,
-                        timestamp: precise_time_ns(),
-                        message: message,
+                        level: "log".to_string(),
+                        timeStamp: precise_time_ns(),
+                        arguments: vec!(message),
+                        filename: filename,
+                        lineNumber: lineNumber,
+                        columnNumber: columnNumber,
                     },
                 };
                 for stream in console_actor.streams.borrow_mut().iter_mut() {
