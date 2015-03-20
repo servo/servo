@@ -447,7 +447,7 @@ impl WindowMethods for Window {
 
     fn set_page_title(&self, title: Option<String>) {
         let title = match title {
-            Some(ref title) if title.len() > 0 => title.as_slice(),
+            Some(ref title) if title.len() > 0 => &**title,
             _ => "untitled",
         };
         let title = format!("{} - Servo", title);
