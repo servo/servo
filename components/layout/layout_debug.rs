@@ -13,7 +13,8 @@ use rustc_serialize::json;
 
 use std::borrow::ToOwned;
 use std::cell::RefCell;
-use std::old_io::File;
+use std::io::Write;
+use std::fs::File;
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 
 thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));
@@ -127,5 +128,5 @@ pub fn end_trace() {
     let result = json::encode(&root_scope).unwrap();
     let path = Path::new("layout_trace.json");
     let mut file = File::create(&path).unwrap();
-    file.write_str(result.as_slice()).unwrap();
+    file.write_all(result.as_bytes()).unwrap();
 }
