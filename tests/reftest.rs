@@ -7,7 +7,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![feature(collections, core, exit_status, fs_walk, io, old_io, path, path_ext, std_misc, test)]
+#![feature(collections, exit_status, fs_walk, io, old_io, path, path_ext, std_misc, test)]
 #[macro_use] extern crate bitflags;
 extern crate png;
 extern crate test;
@@ -38,7 +38,7 @@ bitflags!(
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let mut parts = args.tail().split(|e| "--" == e.as_slice());
+    let mut parts = args.tail().split(|e| &**e == "--");
 
     let harness_args = parts.next().unwrap();  // .split() is never empty
     let servo_args = parts.next().unwrap_or(&[]);
@@ -49,7 +49,7 @@ fn main() {
         [ref render_mode_string, ref base_path, ref testname, ..] => (render_mode_string, base_path, Some(testname.clone())),
     };
 
-    let mut render_mode = match render_mode_string.as_slice() {
+    let mut render_mode = match &**render_mode_string {
         "cpu" => CPU_RENDERING,
         "gpu" => GPU_RENDERING,
         _ => panic!("First argument must specify cpu or gpu as rendering mode")
@@ -112,8 +112,8 @@ fn run(test_opts: TestOpts, all_tests: Vec<TestDescAndFn>,
     };
     let stderr = String::from_utf8(output.stderr).unwrap();
 
-    if stderr.as_slice().contains("Unrecognized") {
-        println!("Servo: {}", stderr.as_slice());
+    if stderr.contains("Unrecognized") {
+        println!("Servo: {}", stderr);
         return Ok(false);
     }
 
@@ -155,7 +155,7 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
         contents
     };
 
-    for line in contents.as_slice().lines() {
+    for line in contents.lines() {
         // ignore comments or empty lines
         if line.starts_with("#") || line.is_empty() {
             continue;
@@ -254,8 +254,8 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
         // Allows pixel perfect rendering of Ahem font for reftests.
         .arg("-Z")
         .arg("disable-text-aa")
-        .args(["-f", "-o"].as_slice())
-        .arg(png_filename.as_slice())
+        .args(&["-f", "-o"])
+        .arg(&png_filename)
         .arg(&{
             let mut url = Url::from_file_path(&*reftest.files[side]).unwrap();
             url.fragment = reftest.fragment_identifier.clone();
