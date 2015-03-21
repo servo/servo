@@ -141,7 +141,7 @@ impl StorageManager {
         }
 
         let updated = data.get_mut(&origin).map(|entry| {
-            if entry.get(&origin).map_or(true, |item| item.as_slice() != value.as_slice()) {
+            if entry.get(&origin).map_or(true, |item| *item != value) {
                 entry.insert(name.clone(), value.clone());
                 true
             } else {
@@ -182,12 +182,12 @@ impl StorageManager {
 
     fn get_origin_as_string(&self, url: Url) -> String {
         let mut origin = "".to_string();
-        origin.push_str(url.scheme.as_slice());
+        origin.push_str(&url.scheme);
         origin.push_str("://");
-        url.domain().map(|domain| origin.push_str(domain.as_slice()));
+        url.domain().map(|domain| origin.push_str(&domain));
         url.port().map(|port| {
             origin.push_str(":");
-            origin.push_str(port.to_string().as_slice());
+            origin.push_str(&port.to_string());
         });
         origin.push_str("/");
         origin

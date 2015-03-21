@@ -1109,7 +1109,7 @@ pub mod longhands {
                     Ok(_) => return Err(()),
                     Err(_) => break,
                 };
-                if content::counter_name_is_illegal(counter_name.as_slice()) {
+                if content::counter_name_is_illegal(&counter_name) {
                     return Err(())
                 }
                 let counter_delta = input.try(|input| input.expect_integer()).unwrap_or(1) as i32;
@@ -2075,7 +2075,7 @@ pub mod longhands {
 
         pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
             let mut lengths = [ None, None ];
-            for i in range(0, 2) {
+            for i in 0..2 {
                 match specified::Length::parse_non_negative(input) {
                     Err(()) => break,
                     Ok(length) => lengths[i] = Some(length),

@@ -237,7 +237,7 @@ impl<'a> CanvasPaintTask<'a> {
             //start offset of the copyable rectangle
             let mut src = (src_read_rect.origin.y * stride + src_read_rect.origin.x * 4) as usize;
             //copy the data to the destination vector
-            for _ in range(0, src_read_rect.size.height) {
+            for _ in 0..src_read_rect.size.height {
                 let row = &src_data[src .. src + (4 * src_read_rect.size.width) as usize];
                 dest_data.push_all(row);
                 src += stride as usize;
@@ -285,7 +285,7 @@ impl<'a> CanvasPaintTask<'a> {
                 return
             }
 
-            let source_surface = self.drawtarget.create_source_surface_from_data(imagedata.as_slice(),
+            let source_surface = self.drawtarget.create_source_surface_from_data(&imagedata,
                 image_data_rect.size, image_data_rect.size.width * 4, SurfaceFormat::B8G8R8A8);
 
             let draw_surface_options = DrawSurfaceOptions::new(Filter::Linear, true);
@@ -383,7 +383,7 @@ impl FillOrStrokeStyle {
                 Pattern::LinearGradient(LinearGradientPattern::new(
                     &Point2D(linear_gradient_style.x0 as AzFloat, linear_gradient_style.y0 as AzFloat),
                     &Point2D(linear_gradient_style.x1 as AzFloat, linear_gradient_style.y1 as AzFloat),
-                    drawtarget.create_gradient_stops(gradient_stops.as_slice(), ExtendMode::Clamp),
+                    drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
                     &Matrix2D::identity()))
             },
             FillOrStrokeStyle::RadialGradient(ref radial_gradient_style) => {
@@ -398,7 +398,7 @@ impl FillOrStrokeStyle {
                     &Point2D(radial_gradient_style.x0 as AzFloat, radial_gradient_style.y0 as AzFloat),
                     &Point2D(radial_gradient_style.x1 as AzFloat, radial_gradient_style.y1 as AzFloat),
                     radial_gradient_style.r0 as AzFloat, radial_gradient_style.r1 as AzFloat,
-                    drawtarget.create_gradient_stops(gradient_stops.as_slice(), ExtendMode::Clamp),
+                    drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
                     &Matrix2D::identity()))
             }
         }

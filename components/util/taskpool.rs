@@ -31,7 +31,7 @@ impl TaskPool {
 
         let state = Arc::new(Mutex::new(rx));
 
-        for i in range(0, tasks) {
+        for i in 0..tasks {
             let state = state.clone();
             spawn_named(
                 format!("TaskPoolWorker {}/{}", i+1, tasks),

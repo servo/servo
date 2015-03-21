@@ -326,7 +326,7 @@ impl LowercaseString {
 impl Str for LowercaseString {
     #[inline]
     fn as_slice(&self) -> &str {
-        self.inner.as_slice()
+        &*self.inner
     }
 }
 

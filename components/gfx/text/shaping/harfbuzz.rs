@@ -306,7 +306,7 @@ impl Shaper {
         }
 
         debug!("(glyph idx) -> (text byte offset)");
-        for i in range(0, glyph_data.len()) {
+        for i in 0..glyph_data.len() {
             // loc refers to a *byte* offset within the utf8 string.
             let loc = glyph_data.byte_offset_of_glyph(i);
             if loc < byte_max {
@@ -481,7 +481,7 @@ impl Shaper {
                 }
 
                 // now add the detailed glyph entry.
-                glyphs.add_glyphs_for_char_index(char_idx, datas.as_slice());
+                glyphs.add_glyphs_for_char_index(char_idx, &datas);
 
                 // set the other chars, who have no glyphs
                 let mut i = covered_byte_span.begin();

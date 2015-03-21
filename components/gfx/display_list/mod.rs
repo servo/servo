@@ -1079,7 +1079,7 @@ impl DisplayItem {
                 paint_context.draw_linear_gradient(&gradient.base.bounds,
                                                    &gradient.start_point,
                                                    &gradient.end_point,
-                                                   gradient.stops.as_slice());
+                                                   &gradient.stops);
             }
 
             DisplayItem::LineClass(ref line) => {

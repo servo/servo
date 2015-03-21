@@ -34,7 +34,7 @@ fn read_all(reader: &mut io::Stream, progress_chan: &Sender<ProgressMsg>)
 
 pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     let url = load_data.url;
-    assert!("file" == url.scheme.as_slice());
+    assert!(&*url.scheme == "file");
     let senders = ResponseSenders {
         immediate_consumer: start_chan,
         eventual_consumer: load_data.consumer,

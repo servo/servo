@@ -54,7 +54,7 @@ impl Cookie {
 
         // Step 6
         let host_only = if !domain.is_empty() {
-            if !Cookie::domain_match(url_host.as_slice(), domain.as_slice()) {
+            if !Cookie::domain_match(&url_host, &domain) {
                 return None;
             } else {
                 cookie.domain = Some(domain);
@@ -69,7 +69,7 @@ impl Cookie {
         let mut path = cookie.path.unwrap_or("".to_owned());
         if path.is_empty() || path.char_at(0) != '/' {
             let url_path = request.serialize_path();
-            let url_path = url_path.as_ref().map(|path| path.as_slice());
+            let url_path = url_path.as_ref().map(|path| &**path);
             path = Cookie::default_path(url_path.unwrap_or(""));
         }
         cookie.path = Some(path);
@@ -136,14 +136,14 @@ impl Cookie {
             }
         } else {
             if let (Some(ref domain), &Some(ref cookie_domain)) = (domain, &self.cookie.domain) {
-                if !Cookie::domain_match(domain.as_slice(), cookie_domain.as_slice()) {
+                if !Cookie::domain_match(domain, cookie_domain) {
                     return false;
                 }
             }
         }
 
         if let (Some(ref path), &Some(ref cookie_path)) = (url.serialize_path(), &self.cookie.path) {
-            if !Cookie::path_match(path.as_slice(), cookie_path.as_slice()) {
+            if !Cookie::path_match(path, cookie_path) {
                 return false;
             }
         }
@@ -177,12 +177,12 @@ fn test_domain_match() {
 
 #[test]
 fn test_default_path() {
-    assert!(Cookie::default_path("/foo/bar/baz/").as_slice() == "/foo/bar/baz");
-    assert!(Cookie::default_path("/foo/").as_slice() == "/foo");
-    assert!(Cookie::default_path("/foo").as_slice() == "/");
-    assert!(Cookie::default_path("/").as_slice() == "/");
-    assert!(Cookie::default_path("").as_slice() == "/");
-    assert!(Cookie::default_path("foo").as_slice() == "/");
+    assert!(&*Cookie::default_path("/foo/bar/baz/") == "/foo/bar/baz");
+    assert!(&*Cookie::default_path("/foo/") == "/foo");
+    assert!(&*Cookie::default_path("/foo") == "/");
+    assert!(&*Cookie::default_path("/") == "/");
+    assert!(&*Cookie::default_path("") == "/");
+    assert!(&*Cookie::default_path("foo") == "/");
 }
 
 #[test]
@@ -201,7 +201,7 @@ fn fn_cookie_constructor() {
     let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  ").unwrap();
     assert!(Cookie::new_wrapped(cookie.clone(), url, CookieSource::HTTP).is_some());
     let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP).unwrap();
-    assert!(cookie.cookie.domain.as_ref().unwrap().as_slice() == "example.com");
+    assert!(&**cookie.cookie.domain.as_ref().unwrap() == "example.com");
 
     // cookie public domains test
     let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  gov.ac").unwrap();

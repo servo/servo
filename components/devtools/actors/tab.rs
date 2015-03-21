@@ -80,7 +80,7 @@ impl Actor for TabActor {
                       msg_type: &String,
                       _msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match msg_type.as_slice() {
+        Ok(match &**msg_type {
             "reconfigure" => {
                 stream.write_json_packet(&ReconfigureReply { from: self.name() });
                 true
@@ -97,7 +97,7 @@ impl Actor for TabActor {
                     javascriptEnabled: true,
                     traits: TabTraits,
                 };
-                let console_actor = registry.find::<ConsoleActor>(self.console.as_slice());
+                let console_actor = registry.find::<ConsoleActor>(&self.console);
                 console_actor.streams.borrow_mut().push(stream.clone());
                 stream.write_json_packet(&msg);
                 console_actor.script_chan.send(
@@ -112,7 +112,7 @@ impl Actor for TabActor {
                     from: self.name(),
                     __type__: "detached".to_string(),
                 };
-                let console_actor = registry.find::<ConsoleActor>(self.console.as_slice());
+                let console_actor = registry.find::<ConsoleActor>(&self.console);
                 console_actor.streams.borrow_mut().pop();
                 stream.write_json_packet(&msg);
                 console_actor.script_chan.send(
