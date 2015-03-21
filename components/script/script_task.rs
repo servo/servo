@@ -17,7 +17,7 @@
 //! a page runs its course and the script task returns to processing events in the main event
 //! loop.
 
-#![allow(unsafe_blocks)]
+#![allow(unsafe_code)]
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};

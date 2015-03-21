@@ -60,6 +60,7 @@ impl CharacterData {
     }
 
     #[inline]
+    #[allow(unsafe_code)]
     pub unsafe fn data_for_layout<'a>(&'a self) -> &'a str {
         self.data.borrow_for_layout().as_slice()
     }

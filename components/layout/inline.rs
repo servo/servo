@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![deny(unsafe_blocks)]
+#![deny(unsafe_code)]
 
 use css::node_style::StyledNode;
 use context::LayoutContext;

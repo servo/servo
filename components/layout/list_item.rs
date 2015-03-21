@@ -5,7 +5,7 @@
 //! Layout for elements with a CSS `display` property of `list-item`. These elements consist of a
 //! block and an extra inline fragment for the marker.
 
-#![deny(unsafe_blocks)]
+#![deny(unsafe_code)]
 
 use block::BlockFlow;
 use context::LayoutContext;

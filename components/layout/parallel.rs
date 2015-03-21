@@ -6,7 +6,7 @@
 //!
 //! This code is highly unsafe. Keep this file small and easy to audit.
 
-#![allow(unsafe_blocks)]
+#![allow(unsafe_code)]
 
 use context::{LayoutContext, SharedLayoutContextWrapper, SharedLayoutContext};
 use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};

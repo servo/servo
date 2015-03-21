@@ -27,6 +27,7 @@ impl<T> DOMRefCell<T> {
     /// Return a reference to the contents.
     ///
     /// For use in the layout task only.
+    #[allow(unsafe_code)]
     pub unsafe fn borrow_for_layout<'a>(&'a self) -> &'a T {
         debug_assert!(task_state::get().is_layout());
         &*self.value.as_unsafe_cell().get()
@@ -36,6 +37,7 @@ impl<T> DOMRefCell<T> {
     ///
     /// This succeeds even if the object is mutably borrowed,
     /// so you have to be careful in trace code!
+    #[allow(unsafe_code)]
     pub unsafe fn borrow_for_gc_trace<'a>(&'a self) -> &'a T {
         debug_assert!(task_state::get().contains(SCRIPT | IN_GC));
         &*self.value.as_unsafe_cell().get()
@@ -43,6 +45,7 @@ impl<T> DOMRefCell<T> {
 
     /// Borrow the contents for the purpose of script deallocation.
     ///
+    #[allow(unsafe_code)]
     pub unsafe fn borrow_for_script_deallocation<'a>(&'a self) -> &'a mut T {
         debug_assert!(task_state::get().contains(SCRIPT));
         &mut *self.value.as_unsafe_cell().get()

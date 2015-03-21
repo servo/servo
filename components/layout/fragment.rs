@@ -4,7 +4,7 @@
 
 //! The `Fragment` type, which represents the leaves of the layout tree.
 
-#![deny(unsafe_blocks)]
+#![deny(unsafe_code)]
 
 use canvas::canvas_paint_task::CanvasMsg;
 use css::node_style::StyledNode;
@@ -118,7 +118,9 @@ pub struct Fragment {
     pub debug_id: u16,
 }
 
+#[allow(unsafe_code)]
 unsafe impl Send for Fragment {}
+#[allow(unsafe_code)]
 unsafe impl Sync for Fragment {}
 
 impl Encodable for Fragment {

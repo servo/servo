@@ -142,7 +142,7 @@ impl tree_builder::Tracer for Tracer {
 }
 
 impl JSTraceable for ServoHTMLParser {
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn trace(&self, trc: *mut JSTracer) {
         self.reflector_.trace(trc);
 
