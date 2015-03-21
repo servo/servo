@@ -15,6 +15,7 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
@@ -25,6 +26,7 @@ use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error;
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
+use dom::bindings::error::Error::NoModificationAllowed;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::trace::RootedVec;
@@ -1182,6 +1184,47 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     fn GetOuterHTML(self) -> Fallible<DOMString> {
         self.serialize(IncludeNode)
+    }
+
+    fn SetOuterHTML(self, value: DOMString) -> Fallible<()> {
+        let context_document = document_from_node(self).root();
+        let context_node: JSRef<Node> = NodeCast::from_ref(self);
+        // 1. Let parent be the context object's parent.
+        let context_parent = match context_node.parent_node() {
+            // 2. If parent is null, terminate these steps.
+            None => return Ok(()),
+            Some(parent) => parent.root()
+        };
+
+        let parent: Root<Node> = match context_parent.r().type_id() {
+            // 3. If parent is a Document, throw a DOMException
+            //    with name "NoModificationAllowedError" exception.
+            NodeTypeId::Document => return Err(NoModificationAllowed),
+
+            // 4. If parent is a DocumentFragment, let parent be a new Element with
+            //    body as its local name,
+            //    The HTML namespace as its namespace, and
+            //    The context object's node document as its node document.
+            NodeTypeId::DocumentFragment => {
+                let body_elem = Element::create(QualName::new(ns!(HTML), atom!(body)),
+                                                None, context_document.r(),
+                                                ElementCreator::ScriptCreated);
+                let body_node: Temporary<Node> = NodeCast::from_temporary(body_elem);
+                body_node.root()
+            },
+            _ => context_node.parent_node().unwrap().root()
+        };
+
+        // 5. Let fragment be the result of invoking the fragment parsing algorithm with
+        //    the new value as markup, and parent as the context element.
+        // 6. Replace the context object with fragment within the context object's parent.
+        parent.r().parse_fragment(HTMLInput::InputString(value))
+                  .and_then(|frag| {
+                      let frag = frag.root();
+                      let frag_node: JSRef<Node> = NodeCast::from_ref(frag.r());
+                      try!(context_parent.r().ReplaceChild(frag_node, context_node));
+                      Ok(())
+                  })
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-children
