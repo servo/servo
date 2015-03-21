@@ -113,9 +113,6 @@ pub struct Window {
     /// Pipeline id associated with this page.
     id: PipelineId,
 
-    /// Subpage id associated with this page, if any.
-    subpage_id: Option<SubpageId>,
-
     /// Unique id for last reflow request; used for confirming completion reply.
     last_reflow_id: Cell<uint>,
 
@@ -165,10 +162,6 @@ impl Window {
 
     pub fn pipeline(&self) -> PipelineId {
         self.id.clone()
-    }
-
-    pub fn subpage(&self) -> Option<SubpageId> {
-        self.subpage_id.clone()
     }
 
     pub fn control_chan<'a>(&'a self) -> &'a ScriptControlChan {

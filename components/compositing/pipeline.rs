@@ -12,7 +12,7 @@ use geom::rect::{TypedRect};
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintTask};
 use gfx::font_cache_task::FontCacheTask;
-use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
+use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId};
 use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
@@ -26,7 +26,7 @@ use std::sync::mpsc::{Receiver, channel};
 /// A uniquely-identifiable pipeline of script task, layout task, and paint task.
 pub struct Pipeline {
     pub id: PipelineId,
-    pub parent_info: Option<(PipelineId, SubpageId)>,
+    pub parent_info: Option<PipelineId>,
     pub script_chan: ScriptControlChan,
     pub layout_chan: LayoutControlChan,
     pub paint_chan: PaintChan,
@@ -53,7 +53,7 @@ impl Pipeline {
     /// Returns the channels wrapped in a struct.
     /// If script_pipeline is not None, then subpage_id must also be not None.
     pub fn create<LTF,STF>(id: PipelineId,
-                           parent_info: Option<(PipelineId, SubpageId)>,
+                           parent_info: Option<PipelineId>,
                            constellation_chan: ConstellationChan,
                            compositor_proxy: Box<CompositorProxy+'static+Send>,
                            devtools_chan: Option<DevtoolsControlChan>,
@@ -99,11 +99,10 @@ impl Pipeline {
                 ScriptControlChan(script_chan)
             }
             Some(script_chan) => {
-                let (containing_pipeline_id, subpage_id) = parent_info.expect("script_pipeline != None but subpage_id == None");
+                let containing_pipeline_id = parent_info.expect("script_pipeline != None but subpage_id == None");
                 let new_layout_info = NewLayoutInfo {
                     containing_pipeline_id: containing_pipeline_id,
                     new_pipeline_id: id,
-                    subpage_id: subpage_id,
                     layout_chan: ScriptTaskFactory::clone_layout_channel(None::<&mut STF>, &layout_pair),
                     load_data: load_data.clone(),
                 };
@@ -150,7 +149,7 @@ impl Pipeline {
     }
 
     pub fn new(id: PipelineId,
-               parent_info: Option<(PipelineId, SubpageId)>,
+               parent_info: Option<PipelineId>,
                script_chan: ScriptControlChan,
                layout_chan: LayoutControlChan,
                paint_chan: PaintChan,

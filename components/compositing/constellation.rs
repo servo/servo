@@ -19,7 +19,7 @@ use msg::constellation_msg::{self, ConstellationChan, Failure};
 use msg::constellation_msg::{IFrameSandboxState, NavigationDirection};
 use msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
 use msg::constellation_msg::{FrameId, PipelineExitType, PipelineId};
-use msg::constellation_msg::{SubpageId, WindowSizeData};
+use msg::constellation_msg::{SubpageId, WindowId, WindowSizeData};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use net::resource_task::{self, ResourceTask};
@@ -194,7 +194,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 pipeline_to_frame_map: HashMap::new(),
                 subpage_map: HashMap::new(),
                 pending_frames: vec!(),
-                next_pipeline_id: PipelineId(0),
+                next_pipeline_id: PipelineId{
+                    window_id: WindowId(0),
+                    subpage_id: None,
+                },
                 root_frame_id: None,
                 next_frame_id: FrameId(0),
                 time_profiler_chan: time_profiler_chan,
@@ -235,13 +238,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     /// Helper function for creating a pipeline
     fn new_pipeline(&mut self,
-                    parent_info: Option<(PipelineId, SubpageId)>,
+                    parent_info: Option<PipelineId>,
                     initial_window_size: Option<WindowSizeData>,
                     script_channel: Option<ScriptControlChan>,
                     load_data: LoadData)
                     -> PipelineId {
         let pipeline_id = self.next_pipeline_id;
-        let PipelineId(ref mut i) = self.next_pipeline_id;
+        let PipelineId{window_id: WindowId(ref mut i), ..} = self.next_pipeline_id;
         *i += 1;
 
         let pipeline = Pipeline::create::<LTF, STF>(pipeline_id,
@@ -323,9 +326,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             }
             // A layout assigned a size and position to a subframe. This needs to be reflected by
             // all frame trees in the navigation context containing the subframe.
-            ConstellationMsg::FrameRect(pipeline_id, subpage_id, rect) => {
+            ConstellationMsg::FrameRect(pipeline_id, rect) => {
                 debug!("constellation got frame rect message");
-                self.handle_frame_rect_msg(pipeline_id, subpage_id, Rect::from_untyped(&rect));
+                self.handle_frame_rect_msg(pipeline_id, Rect::from_untyped(&rect));
             }
             ConstellationMsg::ScriptLoadedURLInIFrame(url,
                                                       source_pipeline_id,
@@ -395,7 +398,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     fn handle_failure_msg(&mut self,
                           pipeline_id: PipelineId,
-                          parent_info: Option<(PipelineId, SubpageId)>) {
+                          parent_info: Option<PipelineId>) {
         debug!("handling failure message from pipeline {:?}, {:?}", pipeline_id, parent_info);
 
         if opts::get().hard_fail {
@@ -496,7 +499,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         // Create the new pipeline, attached to the parent and push to pending frames
         let old_pipeline_id = old_subpage_id.map(|old_subpage_id| {
-            self.find_subpage(containing_pipeline_id, old_subpage_id).id
+            self.find_subpage(old_subpage_id).id
         });
         let window_size = old_pipeline_id.and_then(|old_pipeline_id| {
             self.get_window_size_data_for_pipeline(old_pipeline_id)
@@ -519,14 +522,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // the new load. The framing element must be notified about the
         // requested change so it can update its internal state.
         match self.pipeline(source_id).parent_info {
-            Some((parent_pipeline_id, subpage_id)) => {
+            Some(parent_pipeline_id) => {
                 // Message the constellation to find the script task for this iframe
                 // and issue an iframe load through there.
                 let parent_pipeline = self.pipeline(parent_pipeline_id);
                 let ScriptControlChan(ref script_channel) = parent_pipeline.script_chan;
-                script_channel.send(ConstellationControlMsg::Navigate(parent_pipeline_id,
-                                                                      subpage_id,
-                                                                      load_data)).unwrap();
+                let msg = ConstellationControlMsg::Navigate(parent_pipeline_id, load_data);
+                script_channel.send(msg).unwrap();
             }
             None => {
                 // Make sure no pending page would be overridden.
@@ -648,7 +650,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 // If a child frame, add it to the parent pipeline. Otherwise
                 // it must surely be the root frame being created!
                 match self.pipeline(frame_change.new_pipeline_id).parent_info {
-                    Some((parent_id, _)) => {
+                    Some(parent_id) => {
                         self.mut_pipeline(parent_id).add_child(frame_id);
                     }
                     None => {
