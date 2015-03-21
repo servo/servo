@@ -186,7 +186,7 @@ impl<'a> Iterator for LineIterator<'a> {
 
 impl<'a> TextRun {
     pub fn new(font: &mut Font, text: String, options: &ShapingOptions) -> TextRun {
-        let glyphs = TextRun::break_and_shape(font, text.as_slice(), options);
+        let glyphs = TextRun::break_and_shape(font, &text, options);
         let run = TextRun {
             text: Arc::new(text),
             font_metrics: font.metrics.clone(),
@@ -331,7 +331,7 @@ impl<'a> TextRun {
 
     /// Returns the index of the first glyph run containing the given character index.
     fn index_of_first_glyph_run_containing(&self, index: CharIndex) -> Option<uint> {
-        self.glyphs.as_slice().binary_search_index_by(&index, CharIndexComparator)
+        (&**self.glyphs).binary_search_index_by(&index, CharIndexComparator)
     }
 
     /// Returns an iterator that will iterate over all slices of glyphs that represent natural

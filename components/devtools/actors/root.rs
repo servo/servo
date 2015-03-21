@@ -55,7 +55,7 @@ impl Actor for RootActor {
                       msg_type: &String,
                       _msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match msg_type.as_slice() {
+        Ok(match &**msg_type {
             "listAddons" => {
                 let actor = ErrorReply {
                     from: "root".to_string(),
@@ -72,7 +72,7 @@ impl Actor for RootActor {
                     from: "root".to_string(),
                     selected: 0,
                     tabs: self.tabs.iter().map(|tab| {
-                        registry.find::<TabActor>(tab.as_slice()).encodable()
+                        registry.find::<TabActor>(tab).encodable()
                     }).collect()
                 };
                 stream.write_json_packet(&actor);

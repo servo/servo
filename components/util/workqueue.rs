@@ -231,7 +231,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         // Set up data structures.
         let (supervisor_chan, supervisor_port) = channel();
         let (mut infos, mut threads) = (vec!(), vec!());
-        for i in range(0, thread_count) {
+        for i in 0..thread_count {
             let (worker_chan, worker_port) = channel();
             let pool = BufferPool::new();
             let (worker, thief) = pool.deque();
@@ -250,8 +250,8 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         }
 
         // Connect workers to one another.
-        for i in range(0, thread_count) {
-            for j in range(0, thread_count) {
+        for i in 0..thread_count {
+            for j in 0..thread_count {
                 if i != j {
                     threads[i].other_deques.push(infos[j].thief.clone())
                 }
@@ -312,7 +312,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         }
 
         // Get our deques back.
-        for _ in range(0, self.workers.len()) {
+        for _ in 0..self.workers.len() {
             match self.port.recv().unwrap() {
                 SupervisorMsg::ReturnDeque(index, deque) => self.workers[index].deque = Some(deque),
                 SupervisorMsg::Finished => panic!("unexpected finished message!"),

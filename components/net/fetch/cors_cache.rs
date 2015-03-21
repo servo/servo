@@ -28,7 +28,7 @@ pub enum HeaderOrMethod {
 impl HeaderOrMethod {
     fn match_header(&self, header_name: &str) -> bool {
         match *self {
-            HeaderOrMethod::HeaderData(ref s) => s.as_slice().eq_ignore_ascii_case(header_name),
+            HeaderOrMethod::HeaderData(ref s) => s.eq_ignore_ascii_case(header_name),
             _ => false
         }
     }
@@ -294,10 +294,10 @@ impl CORSCacheTask {
                     tx.send(());
                 },
                 CORSCacheTaskMsg::MatchHeader(request, header, tx) => {
-                    tx.send(self.cache.match_header(request, header.as_slice()));
+                    tx.send(self.cache.match_header(request, &header));
                 },
                 CORSCacheTaskMsg::MatchHeaderUpdate(request, header, new_max_age, tx) => {
-                    tx.send(self.cache.match_header_and_update(request, header.as_slice(), new_max_age));
+                    tx.send(self.cache.match_header_and_update(request, &header, new_max_age));
                 },
                 CORSCacheTaskMsg::MatchMethod(request, method, tx) => {
                     tx.send(self.cache.match_method(request, method));

@@ -316,7 +316,7 @@ impl ImageCache {
                     debug!("image_cache_task: started image decode for {}", url.serialize());
                     let image = profile(time::TimeProfilerCategory::ImageDecoding,
                                         None, time_profiler_chan, || {
-                        load_from_memory(data.as_slice())
+                        load_from_memory(&data)
                     });
 
                     let image = image.map(|image| Arc::new(box image));
@@ -456,7 +456,7 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<Vec<u8>, ()>
     loop {
         match progress_port.recv().unwrap() {
             Payload(data) => {
-                image_data.push_all(data.as_slice());
+                image_data.push_all(&data);
             }
             Done(Ok(..)) => {
                 return Ok(image_data);

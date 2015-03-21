@@ -84,7 +84,7 @@ impl FontTemplate {
     }
 
     pub fn identifier<'a>(&'a self) -> &'a str {
-        self.identifier.as_slice()
+        &*self.identifier
     }
 
     /// Get the data for creating a font if it matches a given descriptor.

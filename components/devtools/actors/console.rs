@@ -121,13 +121,13 @@ impl Actor for ConsoleActor {
                       msg_type: &String,
                       msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match msg_type.as_slice() {
+        Ok(match &**msg_type {
             "getCachedMessages" => {
                 let types = msg.get(&"messageTypes".to_string()).unwrap().as_array().unwrap();
                 let /*mut*/ messages = vec!();
                 for msg_type in types.iter() {
                     let msg_type = msg_type.as_string().unwrap();
-                    match msg_type.as_slice() {
+                    match &*msg_type {
                         "ConsoleAPI" => {
                             //TODO: figure out all consoleapi properties from FFOX source
                         }

@@ -832,7 +832,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         };
 
         let msg = ConstellationMsg::LoadUrl(root_pipeline_id,
-            LoadData::new(Url::parse(url_string.as_slice()).unwrap()));
+            LoadData::new(Url::parse(&url_string).unwrap()));
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(msg).unwrap()
     }
@@ -1133,7 +1133,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         if output_image {
             let path: Path =
-                opts::get().output_file.as_ref().unwrap().as_slice().parse().unwrap();
+                opts::get().output_file.as_ref().unwrap().parse().unwrap();
             let mut pixels = gl::read_pixels(0, 0,
                                              width as gl::GLsizei,
                                              height as gl::GLsizei,
@@ -1141,13 +1141,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             gl::bind_framebuffer(gl::FRAMEBUFFER, 0);
 
-            gl::delete_buffers(texture_ids.as_slice());
-            gl::delete_frame_buffers(framebuffer_ids.as_slice());
+            gl::delete_buffers(&texture_ids);
+            gl::delete_frame_buffers(&framebuffer_ids);
 
             // flip image vertically (texture is upside down)
             let orig_pixels = pixels.clone();
             let stride = width * 3;
-            for y in range(0, height) {
+            for y in 0..height {
                 let dst_start = y * stride;
                 let src_start = (height - y - 1) * stride;
                 let src_slice = &orig_pixels[src_start .. src_start + stride];

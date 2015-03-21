@@ -64,20 +64,20 @@ fn load(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cooki
     // real URL that should be used for which the source is to be viewed.
     // Change our existing URL to that and keep note that we are viewing
     // the source rather than rendering the contents of the URL.
-    let viewing_source = if url.scheme == "view-source" {
-       let inner_url = load_data.url.non_relative_scheme_data().unwrap();
-       url = Url::parse(inner_url).unwrap();
-       match url.scheme.as_slice() {
-           "http" | "https" => {}
-           _ => {
-               let s = format!("The {} scheme with view-source is not supported", url.scheme);
-               send_error(url, s, senders);
-               return;
-           }
-       };
-       true
+    let viewing_source = if &*url.scheme == "view-source" {
+        let inner_url = load_data.url.non_relative_scheme_data().unwrap();
+        url = Url::parse(inner_url).unwrap();
+        match &*url.scheme {
+            "http" | "https" => {}
+            _ => {
+                let s = format!("The {} scheme with view-source is not supported", url.scheme);
+                send_error(url, s, senders);
+                return;
+            }
+        };
+        true
     } else {
-      false
+        false
     };
 
     // Loop to handle redirects.
@@ -89,7 +89,7 @@ fn load(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cooki
             return;
         }
 
-        match url.scheme.as_slice() {
+        match &*url.scheme {
             "http" | "https" => {}
             _ => {
                 let s = format!("{} request, but we don't support that scheme", url.scheme);
@@ -252,7 +252,7 @@ reason: \"certificate verify failed\" }]";
                         }
                         _ => {}
                     }
-                    let new_url = match UrlParser::new().base_url(&url).parse(new_url.as_slice()) {
+                    let new_url = match UrlParser::new().base_url(&url).parse(&new_url) {
                         Ok(u) => u,
                         Err(e) => {
                             send_error(url, e.to_string(), senders);

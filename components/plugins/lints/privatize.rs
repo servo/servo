@@ -27,7 +27,7 @@ impl LintPass for PrivatizePass {
                 match field.node {
                     ast::StructField_ { kind: ast::NamedField(ident, visibility), .. } if visibility == Public => {
                         cx.span_lint(PRIVATIZE, field.span,
-                                     format!("Field {} is public where only private fields are allowed", ident.name).as_slice());
+                                     &format!("Field {} is public where only private fields are allowed", ident.name));
                     }
                     _ => {}
                 }

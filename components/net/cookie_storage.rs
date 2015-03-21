@@ -112,7 +112,7 @@ impl CookieStorage {
             (match acc.len() {
                 0 => acc,
                 _ => acc + ";"
-            }) + c.cookie.name.as_slice() + "=" + c.cookie.value.as_slice()
+            }) + &c.cookie.name + "=" + &c.cookie.value
         };
         let result = url_cookies.iter_mut().fold("".to_string(), reducer);
 
