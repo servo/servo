@@ -191,7 +191,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         }).map(|entry| entry.listener.get_listener()))
     }
 
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn set_event_handler_uncompiled(self,
                                     cx: *mut JSContext,
                                     url: Url,

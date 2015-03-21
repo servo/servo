@@ -4,7 +4,7 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
-#![allow(unsafe_blocks)]
+#![allow(unsafe_code)]
 
 use css::node_style::StyledNode;
 use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};

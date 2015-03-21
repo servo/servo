@@ -17,7 +17,7 @@
 #![feature(unsafe_destructor)]
 #![feature(unsafe_no_drop_flag)]
 
-#![deny(unsafe_blocks)]
+#![deny(unsafe_code)]
 #![allow(unrooted_must_root)]
 
 #![plugin(string_cache_plugin)]

@@ -63,21 +63,27 @@ impl HTMLCanvasElement {
 }
 
 pub trait LayoutHTMLCanvasElementHelpers {
+    #[allow(unsafe_code)]
     unsafe fn get_renderer(&self) -> Option<Sender<CanvasMsg>>;
+    #[allow(unsafe_code)]
     unsafe fn get_canvas_width(&self) -> u32;
+    #[allow(unsafe_code)]
     unsafe fn get_canvas_height(&self) -> u32;
 }
 
 impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
+    #[allow(unsafe_code)]
     unsafe fn get_renderer(&self) -> Option<Sender<CanvasMsg>> {
         let context = (*self.unsafe_get()).context.get_inner_as_layout();
         context.map(|cx| cx.get_renderer())
     }
 
+    #[allow(unsafe_code)]
     unsafe fn get_canvas_width(&self) -> u32 {
         (*self.unsafe_get()).width.get()
     }
 
+    #[allow(unsafe_code)]
     unsafe fn get_canvas_height(&self) -> u32 {
         (*self.unsafe_get()).height.get()
     }

@@ -4,7 +4,7 @@
 
 //! Text layout.
 
-#![deny(unsafe_blocks)]
+#![deny(unsafe_code)]
 
 use fragment::{Fragment, SpecificFragmentInfo, ScannedTextFragmentInfo};
 use inline::InlineFragments;

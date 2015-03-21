@@ -310,7 +310,7 @@ pub trait Flow: fmt::Debug + Sync {
     }
 
     /// Returns a layer ID for the given fragment.
-    #[allow(unsafe_blocks)]
+    #[allow(unsafe_code)]
     fn layer_id(&self, fragment_id: uint) -> LayerId {
         unsafe {
             let obj = mem::transmute::<&&Self, &raw::TraitObject>(&self);
@@ -330,7 +330,7 @@ pub trait Flow: fmt::Debug + Sync {
 // Base access
 
 #[inline(always)]
-#[allow(unsafe_blocks)]
+#[allow(unsafe_code)]
 pub fn base<'a, T: ?Sized + Flow>(this: &'a T) -> &'a BaseFlow {
     unsafe {
         let obj = mem::transmute::<&&'a T, &'a raw::TraitObject>(&this);
@@ -344,7 +344,7 @@ pub fn imm_child_iter<'a>(flow: &'a Flow) -> FlowListIterator<'a> {
 }
 
 #[inline(always)]
-#[allow(unsafe_blocks)]
+#[allow(unsafe_code)]
 pub fn mut_base<'a, T: ?Sized + Flow>(this: &'a mut T) -> &'a mut BaseFlow {
     unsafe {
         let obj = mem::transmute::<&&'a mut T, &'a raw::TraitObject>(&this);
@@ -832,7 +832,9 @@ pub struct BaseFlow {
     pub flags: FlowFlags,
 }
 
+#[allow(unsafe_code)]
 unsafe impl Send for BaseFlow {}
+#[allow(unsafe_code)]
 unsafe impl Sync for BaseFlow {}
 
 impl fmt::Debug for BaseFlow {
@@ -982,10 +984,12 @@ impl BaseFlow {
         self.children.iter_mut()
     }
 
+    #[allow(unsafe_code)]
     pub unsafe fn strong_ref_count<'a>(&'a self) -> &'a AtomicUsize {
         &self.strong_ref_count
     }
 
+    #[allow(unsafe_code)]
     pub unsafe fn weak_ref_count<'a>(&'a self) -> &'a AtomicUsize {
         &self.weak_ref_count
     }
@@ -1355,6 +1359,7 @@ impl ContainingBlockLink {
         self.link = Some(link.downgrade())
     }
 
+    #[allow(unsafe_code)]
     pub unsafe fn get<'a>(&'a mut self) -> &'a mut Option<WeakFlowRef> {
         &mut self.link
     }

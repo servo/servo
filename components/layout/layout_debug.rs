@@ -6,6 +6,7 @@
 //! that can be viewed by an external tool to make layout debugging easier.
 
 #![macro_use]
+#![allow(unsafe_code)] // thread_local!() defines an unsafe function on Android
 
 use flow_ref::FlowRef;
 use flow;
@@ -96,7 +97,6 @@ impl Drop for Scope {
 /// Generate a unique ID. This is used for items such as Fragment
 /// which are often reallocated but represent essentially the
 /// same data.
-#[allow(unsafe_blocks)]
 pub fn generate_unique_debug_id() -> u16 {
     unsafe { DEBUG_ID_COUNTER.fetch_add(1, Ordering::SeqCst) as u16 }
 }
