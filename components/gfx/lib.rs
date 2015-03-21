@@ -8,7 +8,6 @@
 #![feature(core)]
 #![feature(int_uint)]
 #![cfg_attr(any(target_os="linux", target_os = "android"), feature(io))]
-#![cfg_attr(any(target_os="linux", target_os = "android"), feature(old_path))]
 #![feature(plugin)]
 #![feature(rustc_private)]
 #![feature(std_misc)]
