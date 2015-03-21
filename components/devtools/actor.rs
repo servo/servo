@@ -93,13 +93,13 @@ impl ActorRegistry {
     }
 
     pub fn register_script_actor(&self, script_id: String, actor: String) {
-        println!("registering {} ({})", actor.as_slice(), script_id.as_slice());
+        println!("registering {} ({})", actor, script_id);
         let mut script_actors = self.script_actors.borrow_mut();
         script_actors.insert(script_id, actor);
     }
 
     pub fn script_to_actor(&self, script_id: String) -> String {
-        if script_id.as_slice() == "" {
+        if script_id.is_empty() {
             return "".to_string();
         }
         self.script_actors.borrow().get(&script_id).unwrap().to_string()
@@ -111,8 +111,8 @@ impl ActorRegistry {
 
     pub fn actor_to_script(&self, actor: String) -> String {
         for (key, value) in self.script_actors.borrow().iter() {
-            println!("checking {}", value.as_slice());
-            if value.as_slice() == actor.as_slice() {
+            println!("checking {}", value);
+            if *value == actor {
                 return key.to_string();
             }
         }

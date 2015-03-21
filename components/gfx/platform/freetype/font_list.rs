@@ -36,7 +36,7 @@ pub fn get_available_families<F>(mut callback: F) where F: FnMut(String) {
     unsafe {
         let config = FcConfigGetCurrent();
         let fontSet = FcConfigGetFonts(config, FcSetSystem);
-        for i in range(0, (*fontSet).nfont as int) {
+        for i in 0..((*fontSet).nfont as int) {
             let font = (*fontSet).fonts.offset(i);
             let mut family: *mut FcChar8 = ptr::null_mut();
             let mut v: c_int = 0;
@@ -74,7 +74,7 @@ pub fn get_variations_for_family<F>(family_name: &str, mut callback: F)
 
         debug!("found {} variations", (*matches).nfont);
 
-        for i in range(0, (*matches).nfont as int) {
+        for i in 0..((*matches).nfont as int) {
             let font = (*matches).fonts.offset(i);
             let mut file: *mut FcChar8 = ptr::null_mut();
             let file = if FcPatternGetString(*font, FC_FILE.as_ptr() as *mut c_char, 0, &mut file) == FcResultMatch {

@@ -69,7 +69,7 @@ impl Actor for HighlighterActor {
                       msg_type: &String,
                       _msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match msg_type.as_slice() {
+        Ok(match &**msg_type {
             "showBoxModel" => {
                 let msg = ShowBoxModelReply {
                     from: self.name(),
@@ -106,12 +106,12 @@ impl Actor for NodeActor {
                       msg_type: &String,
                       msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match msg_type.as_slice() {
+        Ok(match &**msg_type {
             "modifyAttributes" => {
                 let target = msg.get(&"to".to_string()).unwrap().as_string().unwrap();
                 let mods = msg.get(&"modifications".to_string()).unwrap().as_array().unwrap();
                 let modifications = mods.iter().map(|json_mod| {
-                    json::decode(json_mod.to_string().as_slice()).unwrap()
+                    json::decode(&json_mod.to_string()).unwrap()
                 }).collect();
 
                 self.script_chan.send(ModifyAttribute(self.pipeline,
@@ -280,7 +280,7 @@ impl Actor for WalkerActor {
                       msg_type: &String,
                       msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match msg_type.as_slice() {
+        Ok(match &**msg_type {
             "querySelector" => {
                 let msg = QuerySelectorReply {
                     from: self.name(),
@@ -426,7 +426,7 @@ impl Actor for PageStyleActor {
                       msg_type: &String,
                       msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match msg_type.as_slice() {
+        Ok(match &**msg_type {
             "getApplied" => {
                 //TODO: query script for relevant applied styles to node (msg.node)
                 let msg = GetAppliedReply {
@@ -498,7 +498,7 @@ impl Actor for InspectorActor {
                       msg_type: &String,
                       _msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match msg_type.as_slice() {
+        Ok(match &**msg_type {
             "getWalker" => {
                 if self.walker.borrow().is_none() {
                     let walker = WalkerActor {

@@ -44,7 +44,7 @@ impl Formatable for Option<TimerMetadata> {
         match self {
             // TODO(cgaebel): Center-align in the format strings as soon as rustc supports it.
             &Some(ref meta) => {
-                let url = meta.url.as_slice();
+                let url = &*meta.url;
                 let url = if url.len() > 30 {
                     &url[..30]
                 } else {
@@ -243,7 +243,7 @@ impl TimeProfiler {
             if data_len > 0 {
                 let (mean, median, min, max) =
                     (data.iter().map(|&x|x).sum() / (data_len as f64),
-                     data.as_slice()[data_len / 2],
+                     data[data_len / 2],
                      data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
                      data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
                 println!("{:-35}{} {:15.4} {:15.4} {:15.4} {:15.4} {:15}",

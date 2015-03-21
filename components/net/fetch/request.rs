@@ -119,9 +119,9 @@ impl Request {
 
     /// [Basic fetch](http://fetch.spec.whatwg.org#basic-fetch)
     pub fn basic_fetch(&mut self) -> Response {
-        match self.url.scheme.as_slice() {
+        match &*self.url.scheme {
             "about" => match self.url.non_relative_scheme_data() {
-                Some(s) if s.as_slice() == "blank" => {
+                Some(s) if &*s == "blank" => {
                     let mut response = Response::new();
                     response.headers.set(ContentType(Mime(
                         TopLevel::Text, SubLevel::Html,

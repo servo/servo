@@ -356,7 +356,7 @@ impl<'a> DetailedGlyphStore {
             detail_offset: 0, // unused
         };
 
-        let i = self.detail_lookup.as_slice().binary_search_index(&key)
+        let i = (&*self.detail_lookup).binary_search_index(&key)
             .expect("Invalid index not found in detailed glyph lookup table!");
 
         assert!(i + (count as uint) <= self.detail_buffer.len());
@@ -600,7 +600,7 @@ impl<'a> GlyphStore {
                                        data_for_glyphs[i].offset)
                 }).collect();
 
-                self.detail_store.add_detailed_glyphs_for_entry(i, glyphs_vec.as_slice());
+                self.detail_store.add_detailed_glyphs_for_entry(i, &glyphs_vec);
                 GlyphEntry::complex(first_glyph_data.cluster_start,
                                     first_glyph_data.ligature_start,
                                     glyph_count)

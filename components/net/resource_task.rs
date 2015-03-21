@@ -57,7 +57,7 @@ pub fn global_init() {
     };
 
     unsafe {
-        let host_table = boxed::into_raw(parse_hostsfile(lines.as_slice()));
+        let host_table = boxed::into_raw(parse_hostsfile(&lines));
         HOST_TABLE = Some(host_table);
     }
 }
@@ -218,7 +218,7 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
     let mut buf = vec!();
     loop {
         match response.progress_port.recv().unwrap() {
-            ProgressMsg::Payload(data) => buf.push_all(data.as_slice()),
+            ProgressMsg::Payload(data) => buf.push_all(&data),
             ProgressMsg::Done(Ok(()))  => return Ok((response.metadata, buf)),
             ProgressMsg::Done(Err(e))  => return Err(e)
         }
@@ -303,7 +303,7 @@ impl ResourceManager {
                 self.load(load_data)
               }
               ControlMsg::SetCookiesForUrl(request, cookie_list, source) => {
-                let header = Header::parse_header([cookie_list.into_bytes()].as_slice());
+                let header = Header::parse_header(&[cookie_list.into_bytes()]);
                 if let Some(SetCookie(cookies)) = header {
                   for bare_cookie in cookies.into_iter() {
                     if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
@@ -342,7 +342,7 @@ impl ResourceManager {
             }
         }
 
-        let loader = match load_data.url.scheme.as_slice() {
+        let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" => http_loader::factory(self.resource_task.clone()),
             "data" => from_factory(data_loader::factory),
@@ -549,9 +549,7 @@ fn test_replace_hosts() {
     //Start the resource task and make a request to our TCP server
     let resource_task = new_resource_task(None);
     let (start_chan, _) = channel();
-    let mut raw_url: String = "http://foo.bar.com:".to_string();
-    raw_url = raw_url + port.to_string().as_slice();
-    let url = Url::parse(raw_url.as_slice()).unwrap();
+    let url = Url::parse(&format!("http://foo.bar.com:{}", port)).unwrap();
     resource_task.send(ControlMsg::Load(replace_hosts(LoadData::new(url, start_chan), host_table)));
 
     match acceptor.accept() {

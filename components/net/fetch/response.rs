@@ -110,7 +110,7 @@ impl Response {
             ResponseType::Default | ResponseType::Error => unreachable!(),
             ResponseType::Basic => {
                 let headers = old_headers.iter().filter(|header| {
-                    match header.name().to_ascii_lowercase().as_slice() {
+                    match &*header.name().to_ascii_lowercase() {
                         "set-cookie" | "set-cookie2" => false,
                         _ => true
                     }
@@ -120,7 +120,7 @@ impl Response {
             },
             ResponseType::CORS => {
                 let headers = old_headers.iter().filter(|header| {
-                    match header.name().to_ascii_lowercase().as_slice() {
+                    match &*header.name().to_ascii_lowercase() {
                         "cache-control" | "content-language" |
                         "content-type" | "expires" | "last-modified" | "Pragma" => false,
                         // XXXManishearth handle Access-Control-Expose-Headers
