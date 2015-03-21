@@ -277,8 +277,7 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
     };
     assert_eq!(retval, ExitStatus(0));
 
-    let path = png_filename.parse::<Path>().unwrap();
-    let image = png::load_png(&path).unwrap();
+    let image = png::load_png(&png_filename).unwrap();
     let rgba8_bytes = match image.pixels {
         png::PixelsByColorType::RGBA8(pixels) => pixels,
         _ => panic!(),
@@ -319,8 +318,7 @@ fn check_reftest(reftest: Reftest) {
     }).collect::<Vec<u8>>();
 
     if pixels.iter().any(|&a| a < 255) {
-        let output_str = format!("/tmp/servo-reftest-{:06}-diff.png", reftest.id);
-        let output = output_str.parse::<Path>().unwrap();
+        let output = format!("/tmp/servo-reftest-{:06}-diff.png", reftest.id);
 
         let mut img = png::Image {
             width: left_width,
@@ -331,8 +329,8 @@ fn check_reftest(reftest: Reftest) {
         assert!(res.is_ok());
 
         match (reftest.kind, reftest.is_flaky) {
-            (ReftestKind::Same, true) => println!("flaky test - rendering difference: {}", output_str),
-            (ReftestKind::Same, false) => panic!("rendering difference: {}", output_str),
+            (ReftestKind::Same, true) => println!("flaky test - rendering difference: {}", output),
+            (ReftestKind::Same, false) => panic!("rendering difference: {}", output),
             (ReftestKind::Different, _) => {}   // Result was different and that's what was expected
         }
     } else {
