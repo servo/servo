@@ -5,18 +5,22 @@
 #![allow(unsafe_code, unrooted_must_root)]
 
 use dom::attr::AttrHelpers;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLScriptElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, TextCast, CommentCast};
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
+use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers};
+use dom::document::{DocumentSource, IsHTMLDocument};
 use dom::documenttype::DocumentType;
 use dom::element::{Element, AttributeHandlers, ElementHelpers, ElementCreator};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlscriptelement::HTMLScriptElementHelpers;
 use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{document_from_node, window_from_node};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::servohtmlparser;
 use dom::servohtmlparser::{ServoHTMLParser, FragmentContext};
@@ -323,4 +327,44 @@ pub fn parse_html(document: JSRef<Document>,
     }
 
     debug!("finished parsing");
+}
+
+// https://html.spec.whatwg.org/multipage/syntax.html#parsing-html-fragments
+pub fn parse_html_fragment(context_node: JSRef<Node>, input: HTMLInput) -> Vec<Temporary<Node>> {
+    let window = window_from_node(context_node).root();
+    let context_document = document_from_node(context_node).root();
+    let url = context_document.r().url();
+
+    // 1. Create a new Document node, and mark it as being an HTML document.
+    let document = Document::new(window.r(), Some(url.clone()),
+                                 IsHTMLDocument::HTMLDocument,
+                                 None, None,
+                                 DocumentSource::FromParser).root();
+
+    // 2. If the node document of the context element is in quirks mode,
+    //    then let the Document be in quirks mode. Otherwise,
+    //    the node document of the context element is in limited-quirks mode,
+    //    then let the Document be in limited-quirks mode. Otherwise,
+    //    leave the Document in no-quirks mode.
+    document.r().set_quirks_mode(context_document.r().quirks_mode());
+
+    // 11. Set the parser's form element pointer to the nearest node to
+    //     the context element that is a form element (going straight up
+    //     the ancestor chain, and including the element itself, if it
+    //     is a form element), if any. (If there is no such form element,
+    //     the form element pointer keeps its initial value, null.)
+    let form = context_node.inclusive_ancestors()
+                           .find(|element| element.is_htmlformelement());
+    let fragment_context = FragmentContext {
+        context_elem: context_node,
+        form_elem: form,
+    };
+    parse_html(document.r(), input, &url, Some(fragment_context));
+
+    // "14. Return the child nodes of root, in tree order."
+    let root_element = document.r().GetDocumentElement().expect("no document element").root();
+    let root_node: JSRef<Node> = NodeCast::from_ref(root_element.r());
+    root_node.children()
+             .map(|node| Temporary::from_rooted(node))
+             .collect()
 }
