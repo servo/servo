@@ -20,6 +20,7 @@
 
 extern crate "cookie" as cookie_rs;
 extern crate collections;
+extern crate flate2;
 extern crate geom;
 extern crate hyper;
 extern crate png;

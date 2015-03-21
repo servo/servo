@@ -241,6 +241,15 @@ version = "2.1.0"
 source = "git+https://github.com/servo/libexpat#523a2f2f51b41adf7bb5c4c65e80db0cb615d70b"
 
 [[package]]
+name = "flate2"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "miniz-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "fontconfig"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-fontconfig#91195bd29daa9280680bb28ba556821d504a17c6"
@@ -587,6 +596,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "miniz-sys"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "gcc 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "mod_path"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -617,6 +635,7 @@ name = "net"
 version = "0.0.1"
 dependencies = [
  "cookie 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flate2 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "hyper 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
