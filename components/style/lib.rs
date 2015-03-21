@@ -72,7 +72,10 @@ pub trait FromCss {
     /// The associated error which can be returned from parsing.
     type Err;
 
+    /// The context the input is being parse in.
+    type Context;
+
     /// Parses some CSS from `input` to return an optional value of this type.
     /// If the CSS is ill-formatted, the Err is returned.
-    fn from_css(input: &mut ::cssparser::Parser) -> Result<Self, Self::Err>;
+    fn from_css(input: &mut ::cssparser::Parser, context: &Self::Context) -> Result<Self, Self::Err>;
 }

@@ -2,67 +2,96 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use super::{EvaluateUsingContext, DeviceFeatureContext};
+use super::{DeviceFeatureContext, EvaluateUsingContext, SpecificationLevel};
 use super::condition::MediaCondition;
 
 use ::FromCss;
 use ::cssparser::{Parser, ToCss};
 
 use std::ascii::AsciiExt;
+use std::borrow::ToOwned;
 
-macro_rules! media_types {
-    (enum $name:ident { $($css:expr => $variant:ident),+ }) => {
+macro_rules! known_media_types {
+    ($($css:expr => $variant:ident($($availability:tt)+)),+) =>
+    {
         #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-        pub enum $name {
+        pub enum KnownMediaType {
             $($variant),*
         }
 
-        derive_display_using_to_css!($name);
+        derive_display_using_to_css!(KnownMediaType);
 
-        impl FromCss for $name {
-            type Err = ();
-
-            fn from_css(input: &mut Parser) -> Result<$name, ()> {
+        impl KnownMediaType {
+            fn from_css(input: &mut Parser, level: &SpecificationLevel) -> Result<MediaType, ()> {
                 match &try!(input.expect_ident()) {
-                    $(t if $css.eq_ignore_ascii_case(t) => Ok($name::$variant)),+,
-                    _ => Err(())
+                    $(t if $css.eq_ignore_ascii_case(t) =>
+                          known_media_types!(derive ToCss(level) for $variant($css),
+                                             $($availability)+)),+,
+                    t => Ok(MediaType::Unknown(t.to_ascii_lowercase()))
                 }
             }
         }
 
-        impl ToCss for $name {
+        impl ToCss for KnownMediaType {
             fn to_css<W>(&self, dest: &mut W) -> ::text_writer::Result
                 where W: ::text_writer::TextWriter
             {
                 match self {
-                    $(&$name::$variant => write!(dest, $css)),+
+                    $(&KnownMediaType::$variant => write!(dest, $css)),+
                 }
             }
         }
+    };
+
+    (derive ToCss($level:ident) for $variant:ident($css:expr),
+     since: $since:expr) =>
+    {
+        Ok(if *$level >= $since {
+            MediaType::Known(KnownMediaType::$variant)
+        } else {
+            MediaType::Unknown($css.to_owned())
+        })
+    };
+    (derive ToCss($level:ident) for $variant:ident($css:expr),
+     since: $since:expr, deprecated: $deprecated:expr) =>
+    {
+        Ok(if *$level >= $since {
+            if *$level < $deprecated {
+                MediaType::Known(KnownMediaType::$variant)
+            } else {
+                MediaType::Deprecated(KnownMediaType::$variant)
+            }
+        } else {
+            MediaType::Unknown($css.to_owned())
+        })
     }
 }
 
-media_types!(enum DefinedMediaType {
-    "print" => Print,
-    "screen" => Screen,
-    "speech" => Speech
-});
-
-media_types!(enum DeprecatedMediaType {
-    "tty" => TTY,
-    "tv" => TV,
-    "projection" => Projection,
-    "handheld" => Handheld,
-    "braille" => Braille,
-    "embossed" => Embossed,
-    "aural" => Aural
-});
+known_media_types! {
+    "print" => Print(since: SpecificationLevel::MEDIAQ3),
+    "screen" => Screen(since: SpecificationLevel::MEDIAQ3),
+    "speech" => Speech(since: SpecificationLevel::MEDIAQ3),
+    "tty" => TTY(since: SpecificationLevel::MEDIAQ3,
+                 deprecated: SpecificationLevel::MEDIAQ4),
+    "tv" => TV(since: SpecificationLevel::MEDIAQ3,
+               deprecated: SpecificationLevel::MEDIAQ4),
+    "projection" => Projection(since: SpecificationLevel::MEDIAQ3,
+                               deprecated: SpecificationLevel::MEDIAQ4),
+    "handheld" => Handheld(since: SpecificationLevel::MEDIAQ3,
+                           deprecated: SpecificationLevel::MEDIAQ4),
+    "braille" => Braille(since: SpecificationLevel::MEDIAQ3,
+                         deprecated: SpecificationLevel::MEDIAQ4),
+    "embossed" => Embossed(since: SpecificationLevel::MEDIAQ3,
+                           deprecated: SpecificationLevel::MEDIAQ4),
+    "aural" => Aural(since: SpecificationLevel::MEDIAQ3,
+                     deprecated: SpecificationLevel::MEDIAQ3)
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MediaType {
     All,
-    Defined(DefinedMediaType),
-    Deprecated(DeprecatedMediaType),
+    Known(KnownMediaType),
+    Deprecated(KnownMediaType),
     Unknown(String)
 }
 
@@ -74,7 +103,7 @@ impl<C> EvaluateUsingContext<C> for MediaType
     fn evaluate(&self, context: &C) -> bool {
         match self {
             &MediaType::All => true,
-            &MediaType::Defined(ref media_type) => context.MediaType() == *media_type,
+            &MediaType::Known(ref media_type) => context.MediaType() == *media_type,
             &MediaType::Deprecated(_) |
             &MediaType::Unknown(_) => false,
         }
@@ -83,28 +112,35 @@ impl<C> EvaluateUsingContext<C> for MediaType
 
 impl FromCss for MediaType {
     type Err = ();
+    type Context = SpecificationLevel;
 
-    fn from_css(input: &mut Parser) -> Result<MediaType, ()> {
-        if input.try(|input| input.expect_ident_matching("all")).is_ok() {
-            Ok(MediaType::All)
-        } else if input.try(|input| match &try!(input.expect_ident()) {
-            // MQ 4 § 3
-            // The <media-type> production does not include the keywords
-            // `only`, `not`, `and`, and `or`.
-            t if "only".eq_ignore_ascii_case(t) => Ok(()),
-            t if "not".eq_ignore_ascii_case(t) => Ok(()),
-            t if "and".eq_ignore_ascii_case(t) => Ok(()),
-            t if "or".eq_ignore_ascii_case(t) => Ok(()),
-            _ => Err(())
-        }).is_ok() {
-            Err(())
-        } else if let Ok(defined) = input.try(FromCss::from_css) {
-            Ok(MediaType::Defined(defined))
-        } else if let Ok(deprecated) = input.try(FromCss::from_css) {
-            Ok(MediaType::Deprecated(deprecated))
-        } else {
-            input.expect_ident().map(|name| MediaType::Unknown(name.into_owned()
-                                                                   .to_ascii_lowercase()))
+    fn from_css(input: &mut Parser, level: &SpecificationLevel) -> Result<MediaType, ()> {
+        match level {
+            &SpecificationLevel::MEDIAQ3 => {
+                if input.try(|input| input.expect_ident_matching("all")).is_ok() {
+                    Ok(MediaType::All)
+                } else {
+                    KnownMediaType::from_css(input, level)
+                }
+            }
+            &SpecificationLevel::MEDIAQ4 => {
+                if input.try(|input| input.expect_ident_matching("all")).is_ok() {
+                    Ok(MediaType::All)
+                } else if input.try(|input| match &try!(input.expect_ident()) {
+                    // MQ 4 § 3
+                    // The <media-type> production does not include the keywords
+                    // `only`, `not`, `and`, and `or`.
+                    t if "only".eq_ignore_ascii_case(t) => Ok(()),
+                    t if "not".eq_ignore_ascii_case(t) => Ok(()),
+                    t if "and".eq_ignore_ascii_case(t) => Ok(()),
+                    t if "or".eq_ignore_ascii_case(t) => Ok(()),
+                    _ => Err(())
+                }).is_ok() {
+                    Err(())
+                } else {
+                    KnownMediaType::from_css(input, level)
+                }
+            }
         }
     }
 }
@@ -115,7 +151,7 @@ impl ToCss for MediaType {
     {
         match self {
             &MediaType::All => write!(dest, "all"),
-            &MediaType::Defined(ref type_) => type_.to_css(dest),
+            &MediaType::Known(ref type_) |
             &MediaType::Deprecated(ref type_) => type_.to_css(dest),
             &MediaType::Unknown(ref name) => dest.write_str(name),
         }
@@ -132,8 +168,9 @@ derive_display_using_to_css!(Qualifier);
 
 impl FromCss for Qualifier {
     type Err = ();
+    type Context = ();
 
-    fn from_css(input: &mut Parser) -> Result<Qualifier, ()> {
+    fn from_css(input: &mut Parser, _: &()) -> Result<Qualifier, ()> {
         match &try!(input.expect_ident()) {
             q if "only".eq_ignore_ascii_case(q) => Ok(Qualifier::Only),
             q if "not".eq_ignore_ascii_case(q) => Ok(Qualifier::Not),
@@ -199,8 +236,9 @@ impl<C> EvaluateUsingContext<C> for MediaQuery
 
 impl FromCss for MediaQuery {
     type Err = ();
+    type Context = SpecificationLevel;
 
-    fn from_css(input: &mut Parser) -> Result<MediaQuery, ()> {
+    fn from_css(input: &mut Parser, level: &SpecificationLevel) -> Result<MediaQuery, ()> {
         // MQ 4 § 3.1
         // A media query that does not match the grammar in the previous section
         // must be replaced by `not all` during parsing.
@@ -216,7 +254,7 @@ impl FromCss for MediaQuery {
         }
 
         // <media-condition>
-        if let Ok(condition) = input.try(FromCss::from_css) {
+        if let Ok(condition) = input.try(|input| FromCss::from_css(input, level)) {
             Ok(MediaQuery {
                 qualifier: None,
                 media_type: MediaType::All,
@@ -224,15 +262,23 @@ impl FromCss for MediaQuery {
             })
         } else {
             // [ only | not ]?
-            let qualifier = input.try(FromCss::from_css).ok();
+            let qualifier = input.try(|input| FromCss::from_css(input, &())).ok();
 
             //  <media-type>
-            let media_type = try!(FromCss::from_css(input));
+            let media_type = try!(FromCss::from_css(input, level));
 
-            // [ and <media-condition> ]?
             let condition = if !input.is_exhausted() {
-                try!(input.expect_ident_matching("and"));
-                Some(try!(FromCss::from_css(input)))
+                match level {
+                    &SpecificationLevel::MEDIAQ3 => {
+                        try!(expect_and!(input));
+                        Some(try!(FromCss::from_css(input, level)))
+                    }
+                    &SpecificationLevel::MEDIAQ4 => {
+                        // [ and <media-condition> ]?
+                        try!(input.expect_ident_matching("and"));
+                        Some(try!(FromCss::from_css(input, level)))
+                    }
+                }
             } else {
                 None
             };
@@ -293,14 +339,15 @@ impl MediaQueryList {
 
 impl FromCss for MediaQueryList {
     type Err = ();
+    type Context = SpecificationLevel;
 
-    fn from_css(input: &mut Parser) -> Result<MediaQueryList, ()> {
+    fn from_css(input: &mut Parser, level: &SpecificationLevel) -> Result<MediaQueryList, ()> {
         let queries = if input.is_exhausted() {
             // MQ 4 § 2.1
             // An empty media query list evaluates to true.
             vec![ALL_MEDIA_QUERY]
         } else {
-            match input.parse_comma_separated(FromCss::from_css) {
+            match input.parse_comma_separated(|input| FromCss::from_css(input, level)) {
                 Ok(queries) => queries,
                 // MediaQuery::from_css returns `not all` (and consumes any
                 // remaining input of the query) on error
@@ -330,6 +377,7 @@ impl ToCss for MediaQueryList {
 
 #[cfg(test)]
 mod tests {
+    use super::super::SpecificationLevel;
     use super::MediaQuery;
 
     use ::FromCss;
@@ -342,7 +390,7 @@ mod tests {
                 assert_roundtrip_eq!($css => $css)
             };
             ($from:expr => $to:expr) => {{
-                let query: MediaQuery = FromCss::from_css(&mut Parser::new($from)).unwrap();
+                let query: MediaQuery = FromCss::from_css(&mut Parser::new($from), &SpecificationLevel::MEDIAQ4).unwrap();
                 assert_eq!(query.to_css_string(),
                            $to)
             }}

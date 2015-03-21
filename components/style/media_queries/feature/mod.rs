@@ -7,7 +7,7 @@ mod macros;
 mod range;
 
 use ::FromCss;
-use super::EvaluateUsingContext;
+use super::{EvaluateUsingContext, SpecificationLevel};
 pub use self::range::Range;
 
 use ::cssparser::{Parser, SourcePosition, ToCss, Token};
@@ -276,7 +276,7 @@ media_features! {
                 type: range,
                 availability: {
                     since: SpecificationLevel::MEDIAQ3,
-                    since: SpecificationLevel::MEDIAQ4
+                    deprecated: SpecificationLevel::MEDIAQ4
                 },
                 impl: {
                     context: Au,
@@ -290,7 +290,7 @@ media_features! {
                  type: range,
                  availability: {
                      since: SpecificationLevel::MEDIAQ3,
-                     since: SpecificationLevel::MEDIAQ4
+                     deprecated: SpecificationLevel::MEDIAQ4
                  },
                  impl: {
                      context: Au,
@@ -304,7 +304,7 @@ media_features! {
                       type: range,
                       availability: {
                           since: SpecificationLevel::MEDIAQ3,
-                          since: SpecificationLevel::MEDIAQ4
+                          deprecated: SpecificationLevel::MEDIAQ4
                       },
                       impl: {
                           context: f32,
@@ -338,9 +338,10 @@ enum RangePrefix {
 // TODO: refactor values.rs to implement FromCss directly
 impl FromCss for Length {
     type Err = ();
+    type Context = ();
 
     #[inline]
-    fn from_css(input: &mut Parser) -> Result<Length, ()> {
+    fn from_css(input: &mut Parser, _: &()) -> Result<Length, ()> {
         Length::parse_non_negative(input)
     }
 }
@@ -348,26 +349,46 @@ impl FromCss for Length {
 // TODO: refactor values.rs to implement FromCss directly
 impl<T> FromCss for T where T: ::std::num::Int {
     type Err = ();
+    type Context = ();
 
-    fn from_css(input: &mut Parser) -> Result<T, ()> {
+    #[inline]
+    fn from_css(input: &mut Parser, _: &()) -> Result<T, ()> {
         ::std::num::NumCast::from(try!(input.expect_integer())).ok_or(())
     }
 }
 
 impl FromCss for MediaFeature {
     type Err = ();
+    type Context = SpecificationLevel;
 
-    fn from_css(input: &mut Parser) -> Result<MediaFeature, ()> {
-        try!(input.expect_parenthesis_block());
-        input.parse_nested_block(|input| {
-            if let Ok(name) = input.try(|input| input.expect_ident()) {
-                // ident-first form is the boolean and normal contexts, and part
-                // of the range context (e.g. "(width >= 200px)")
-                parse_ident_first_form(input, name)
-            } else {
-                parse_value_first_form(input)
+    fn from_css(input: &mut Parser, level: &SpecificationLevel) -> Result<MediaFeature, ()> {
+        match level {
+            &SpecificationLevel::MEDIAQ3 => {
+                // we can be either in a '()' block or an 'and()' function block
+                match try!(input.next()) {
+                    Token::Function(ref name) if "and".eq_ignore_ascii_case(name) => {},
+                    Token::ParenthesisBlock => {},
+                    _ => return Err(())
+                }
+
+                input.parse_nested_block(|input| {
+                    let name = try!(input.expect_ident());
+                    parse_ident_first_form(input, level, name)
+                })
             }
-        })
+            &SpecificationLevel::MEDIAQ4 => {
+                try!(input.expect_parenthesis_block());
+                input.parse_nested_block(|input| {
+                    if let Ok(name) = input.try(|input| input.expect_ident()) {
+                        // ident-first form is the boolean and normal contexts, and part
+                        // of the range context (e.g. "(width >= 200px)")
+                        parse_ident_first_form(input, level, name)
+                    } else {
+                        parse_value_first_form(input, level)
+                    }
+                })
+            }
+        }
     }
 }
 
@@ -379,9 +400,11 @@ impl ToCss for MediaFeature {
     }
 }
 
-//derive_display_using_to_css!(MediaFeature);
+derive_display_using_to_css!(MediaFeature);
 
-fn parse_ident_first_form<'a>(input: &mut Parser, name: Cow<'a, str>)
+fn parse_ident_first_form<'a>(input: &mut Parser,
+                              level: &SpecificationLevel,
+                              name: Cow<'a, str>)
                               -> Result<MediaFeature, ()>
 {
     let resolved_name;
@@ -407,10 +430,18 @@ fn parse_ident_first_form<'a>(input: &mut Parser, name: Cow<'a, str>)
         prefix = None;
     }
 
-    dispatch_parse_ident_first_form(input, prefix, resolved_name)
+    dispatch_parse_ident_first_form(input, level, prefix, resolved_name)
 }
 
-fn parse_value_first_form(input: &mut Parser) -> Result<MediaFeature, ()> {
+fn parse_value_first_form(input: &mut Parser,
+                          level: &SpecificationLevel)
+                          -> Result<MediaFeature, ()>
+{
+    // this form was introduced in MQ 4
+    if *level < SpecificationLevel::MEDIAQ4 {
+        return Err(())
+    }
+
     // look-ahead to after ['=' | '<' | '<=' | '>' | '>=' ]
     let start = input.position();
     loop {
@@ -439,11 +470,14 @@ fn parse_value_first_form(input: &mut Parser) -> Result<MediaFeature, ()> {
     // we have our feature name; we can reset the parser to `start`
     // and use Range::from_css now that we can infer the value type
     input.reset(start);
-    dispatch_parse_value_first_form(input, &name, after_name)
+    dispatch_parse_value_first_form(input, level, &name, after_name)
 }
 
-fn parse_discrete<T>(input: &mut Parser, prefix: Option<RangePrefix>) -> Result<Option<T>, ()>
-    where T: FromCss<Err=()>
+fn parse_discrete<T>(input: &mut Parser,
+                     level: &SpecificationLevel,
+                     prefix: Option<RangePrefix>)
+                     -> Result<Option<T>, ()>
+    where T: FromCss<Err=(),Context=SpecificationLevel>
 {
     if prefix.is_none() {
         // boolean context?
@@ -451,7 +485,7 @@ fn parse_discrete<T>(input: &mut Parser, prefix: Option<RangePrefix>) -> Result<
             Ok(None)
         } else {
             try!(input.expect_colon());
-            FromCss::from_css(input).map(|value| Some(value))
+            FromCss::from_css(input, level).map(|value| Some(value))
         }
     } else {
         // MQ 4 § 2.4.4.
@@ -461,29 +495,32 @@ fn parse_discrete<T>(input: &mut Parser, prefix: Option<RangePrefix>) -> Result<
 }
 
 fn parse_boolean_or_normal_range<T>(input: &mut Parser,
+                                    level: &SpecificationLevel,
                                     prefix: Option<RangePrefix>)
                                     -> Result<Option<Range<T>>, ()>
-    where T: FromCss<Err=()>
+    where T: FromCss<Err=(),Context=()>
 {
     if let Some(prefix) = prefix {
         try!(input.expect_colon());
-        FromCss::from_css(input).map(|value| match prefix {
+        <T as FromCss>::from_css(input, &()).map(|value| match prefix {
             RangePrefix::Min => Some(Range::Ge(value)),
             RangePrefix::Max => Some(Range::Le(value))
         })
     } else {
         if !input.is_exhausted() {
-            FromCss::from_css(input).map(|value| Some(value))
+            FromCss::from_css(input, level).map(|value| Some(value))
         } else {
             Ok(None)
         }
     }
 }
 
-fn parse_range_form<T>(input: &mut Parser, after_name: SourcePosition)  -> Result<Range<T>, ()>
-    where T: FromCss<Err=()>
+fn parse_range_form<T>(input: &mut Parser,
+                       level: &SpecificationLevel,
+                       after_name: SourcePosition)  -> Result<Range<T>, ()>
+    where T: FromCss<Err=(),Context=()>
 {
-    let first = try!(FromCss::from_css(input));
+    let first = try!(FromCss::from_css(input, level));
     input.reset(after_name);
 
     // we've parsed <value> <op> <ident>; now need to check if there's
@@ -491,7 +528,7 @@ fn parse_range_form<T>(input: &mut Parser, after_name: SourcePosition)  -> Resul
     if input.is_exhausted() {
         Ok(first)
     } else {
-        let second = try!(FromCss::from_css(input));
+        let second = try!(FromCss::from_css(input, level));
         if let Some(interval) = Range::interval(first, second) {
             Ok(interval)
         } else {

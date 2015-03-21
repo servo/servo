@@ -31,11 +31,13 @@ macro_rules! media_type {
         super::query::MediaType::Unknown($media_type.to_owned())
     };
     ($media_type:ident) => {
-        super::query::MediaType::Defined(MediaType::$media_type)
+        super::query::MediaType::Known(MediaType::$media_type)
     };
 }
 
 fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str) {
+    ::util::opts::set_experimental_enabled(true);
+
     let url = Url::parse("http://localhost").unwrap();
     let stylesheet = Stylesheet::from_str(css, url, Origin::Author);
     let mut rule_count: int = 0;
@@ -47,6 +49,8 @@ fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str)
 }
 
 fn media_query_test(device: &Device, css: &str, expected_rule_count: int) {
+    ::util::opts::set_experimental_enabled(true);
+
     let url = Url::parse("http://localhost").unwrap();
     let ss = Stylesheet::from_str(css, url, Origin::Author);
     let mut rule_count: int = 0;

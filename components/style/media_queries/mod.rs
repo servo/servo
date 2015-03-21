@@ -21,6 +21,18 @@ pub enum SpecificationLevel {
     MEDIAQ4
 }
 
+impl SpecificationLevel {
+    fn from_opts() -> SpecificationLevel {
+        if ::util::opts::experimental_enabled() {
+            SpecificationLevel::MEDIAQ4
+        } else {
+            SpecificationLevel::MEDIAQ3
+        }
+    }
+}
+
+#[macro_use]
+mod util;
 mod feature;
 mod condition;
 mod query;
@@ -31,8 +43,8 @@ use ::cssparser::Parser;
 
 pub use self::feature::DeviceFeatureContext;
 pub use self::query::{MediaQuery, MediaQueryList};
-// external users should only be able to use the defined media types
-pub use self::query::DefinedMediaType as MediaType;
+// external users should only be able to use the known media types
+pub use self::query::KnownMediaType as MediaType;
 pub use self::device::Device;
 
 pub trait EvaluateUsingContext<C: DeviceFeatureContext>
@@ -41,7 +53,7 @@ pub trait EvaluateUsingContext<C: DeviceFeatureContext>
 }
 
 pub fn parse_media_query_list(input: &mut Parser) -> MediaQueryList {
-    FromCss::from_css(input).unwrap()
+    FromCss::from_css(input, &SpecificationLevel::from_opts()).unwrap()
 }
 
 #[cfg(test)]

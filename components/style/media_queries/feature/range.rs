@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use super::super::SpecificationLevel;
+
 use ::FromCss;
 use ::cssparser::{Parser, Token, ToCss};
 
@@ -16,13 +18,19 @@ pub enum Range<T> {
     Interval(T, bool, T, bool)
 }
 
-impl<T> FromCss for Range<T> where T: FromCss<Err=()> {
+impl<T> FromCss for Range<T>
+    where T: FromCss<Err=(),Context=()>
+{
     type Err = ();
+    type Context = SpecificationLevel;
 
     // Handles the following forms:
+    // If MQ 4 or later:
     // * <value> ['=' | '<' | '<=' | '>' | '>=' ]
     // * [':' | '=' | '<' | '<=' | '>' | '>=' ] <value>
-    fn from_css(input: &mut Parser) -> Result<Range<T>, ()> {
+    // Else
+    // * ':' <value>
+    fn from_css(input: &mut Parser, level: &SpecificationLevel) -> Result<Range<T>, ()> {
         macro_rules! range {
             ($value:expr, match op {
                 $($eq:pat),* => Eq,
@@ -61,7 +69,12 @@ impl<T> FromCss for Range<T> where T: FromCss<Err=()> {
             }}
         }
 
-        if let Ok(value) = input.try(<T as FromCss>::from_css) {
+        if *level < SpecificationLevel::MEDIAQ4 {
+            try!(input.expect_colon());
+            return Ok(Range::Eq(try!(<T as FromCss>::from_css(input, &()))))
+        }
+
+        if let Ok(value) = input.try(|input| <T as FromCss>::from_css(input, &())) {
             range!(value, match op {
                 '='  => Eq,
                 '<'  => Gt,
@@ -70,7 +83,7 @@ impl<T> FromCss for Range<T> where T: FromCss<Err=()> {
                 ">=" => Le
             })
         } else {
-            range!(try!(<T as FromCss>::from_css(input)), match op {
+            range!(try!(<T as FromCss>::from_css(input, &())), match op {
                 '=',':' => Eq,
                 '<'     => Lt,
                 "<="    => Le,
@@ -198,6 +211,7 @@ impl<T> Range<T> where T: PartialOrd {
 
 #[cfg(test)]
 mod tests {
+    use ::media_queries::SpecificationLevel;
     use super::*;
     use ::FromCss;
     use ::cssparser::Parser;
@@ -206,11 +220,11 @@ mod tests {
     fn range_from_css() {
         macro_rules! assert_range_from_css_eq {
             ($css:expr, $variant:ident($value:expr)) => {
-                assert_eq!(FromCss::from_css(&mut Parser::new($css)),
+                assert_eq!(FromCss::from_css(&mut Parser::new($css), &SpecificationLevel::MEDIAQ4),
                            Ok(Range::$variant($value)));
             };
             ($css:expr, Err) => {
-                assert!(<Range<i32> as FromCss>::from_css(&mut Parser::new($css)).is_err())
+                assert!(<Range<i32> as FromCss>::from_css(&mut Parser::new($css), &SpecificationLevel::MEDIAQ4).is_err())
             }
         }
 
@@ -233,13 +247,13 @@ mod tests {
     fn range_cmp() {
         macro_rules! assert_range_evaluate_eq {
             (value_op: $variant:expr, '<' => $lesser:expr, '=' => $equal:expr, '>' => $greater:expr) => {{
-                let value_first: Range<i32> = FromCss::from_css(&mut Parser::new(concat!("0 ", $variant))).unwrap();
+                let value_first: Range<i32> = FromCss::from_css(&mut Parser::new(concat!("0 ", $variant)), &SpecificationLevel::MEDIAQ4).unwrap();
                 assert!(value_first.evaluate(-1) == $lesser,  "0 {} -1 != {}", $variant, $lesser);
                 assert!(value_first.evaluate(0)  == $equal,   "0 {} 0 != {}", $variant, $equal);
                 assert!(value_first.evaluate(1)  == $greater, "0 {} 1 != {}", $variant, $greater);
             }};
             (op_value: $variant:expr, '<' => $lesser:expr, '=' => $equal:expr, '>' => $greater:expr) => {{
-                let op_first: Range<i32> = FromCss::from_css(&mut Parser::new(concat!($variant, " 0"))).unwrap();
+                let op_first: Range<i32> = FromCss::from_css(&mut Parser::new(concat!($variant, " 0")), &SpecificationLevel::MEDIAQ4).unwrap();
                 assert!(op_first.evaluate(-1) == $greater, "-1 {} 0 != {}", $variant, $greater);
                 assert!(op_first.evaluate(0)  == $equal,   "0 {} 0 != {}", $variant, $equal);
                 assert!(op_first.evaluate(1)  == $lesser,  "1 {} 0 != {}", $variant, $lesser);

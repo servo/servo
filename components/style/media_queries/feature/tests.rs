@@ -5,6 +5,7 @@
 #![cfg(test)]
 
 use super::*;
+use ::media_queries::SpecificationLevel;
 use ::FromCss;
 use ::cssparser::Parser;
 
@@ -12,15 +13,15 @@ use ::cssparser::Parser;
 fn parse_discrete() {
     macro_rules! assert_from_css_eq {
         ($css:expr, $feature:ident(None)) => {
-            assert_eq!(FromCss::from_css(&mut Parser::new($css)),
+            assert_eq!(FromCss::from_css(&mut Parser::new($css), &SpecificationLevel::MEDIAQ4),
                        Ok(MediaFeature::$feature(None)))
         };
         ($css:expr, $feature:ident(Some($value:ident))) => {
-            assert_eq!(FromCss::from_css(&mut Parser::new($css)),
+            assert_eq!(FromCss::from_css(&mut Parser::new($css), &SpecificationLevel::MEDIAQ4),
                        Ok(MediaFeature::$feature(Some($feature::$value))))
         };
         ($css:expr, $feature:ident(Some(value = $value:expr))) => {
-            assert_eq!(FromCss::from_css(&mut Parser::new($css)),
+            assert_eq!(FromCss::from_css(&mut Parser::new($css), &SpecificationLevel::MEDIAQ4),
                        Ok(MediaFeature::$feature(Some($feature($value)))))
         }
     }
@@ -45,19 +46,19 @@ fn parse_range() {
 
     macro_rules! assert_from_css_eq {
         ($css:expr, Err) => {
-            assert_eq!(<MediaFeature as FromCss>::from_css(&mut Parser::new($css)),
+            assert_eq!(<MediaFeature as FromCss>::from_css(&mut Parser::new($css), &SpecificationLevel::MEDIAQ4),
                        Err(()))
         };
         ($css:expr, $feature:ident(None)) => {
-            assert_eq!(FromCss::from_css(&mut Parser::new($css)),
+            assert_eq!(FromCss::from_css(&mut Parser::new($css), &SpecificationLevel::MEDIAQ4),
                        Ok(MediaFeature::$feature(None)))
         };
         ($css:expr, $feature:ident($op:ident($value:expr))) => {
-            assert_eq!(FromCss::from_css(&mut Parser::new($css)),
+            assert_eq!(FromCss::from_css(&mut Parser::new($css), &SpecificationLevel::MEDIAQ4),
                        Ok(MediaFeature::$feature(Some($feature(Range::$op($value))))))
         };
         ($css:expr, $feature:ident(Interval($a:expr,$ac:expr,$b:expr,$bc:expr))) => {
-            assert_eq!(FromCss::from_css(&mut Parser::new($css)),
+            assert_eq!(FromCss::from_css(&mut Parser::new($css), &SpecificationLevel::MEDIAQ4),
                        Ok(MediaFeature::$feature(Some($feature(Range::Interval($a,$ac,$b,$bc))))))
         };
     }

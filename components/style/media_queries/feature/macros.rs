@@ -10,7 +10,9 @@ macro_rules! media_features {
             $($feature(Option<$feature>)),+
         }
 
+        //trace_macros!(true);
         $(media_feature!($feature, $($rest)*);)+
+        //trace_macros!(false);
 
         derive_dispatch_fns!($($name => $feature),+);
         derive_feature_context_trait!($($feature),+);
@@ -18,53 +20,133 @@ macro_rules! media_features {
 }
 
 macro_rules! media_feature {
+    // discrete feature rules
+    ($feature:ident,
+     value: { $($css:expr => $variant:ident),+ },
+     type: discrete,
+     availability: { $($availability:tt)+ }) =>
+    {
+        discrete!($feature,
+                  value: { $($css => $variant),+ },
+                  availability: { $($availability)+ });
+    };
+    ($feature:ident,
+     value: { $($css:expr => $variant:ident),+ },
+     type: discrete,
+     availability: { $($availability:tt)+ },
+     impl: { $($impl_:tt)+ }) =>
+    {
+        discrete!($feature,
+                  value: { $($css => $variant),+ },
+                  availability: { $($availability)+ },
+                  impl: { $($impl_)+ });
+    };
     ($feature:ident,
      value: mq_boolean,
      type: discrete,
-     availability: {
-         $($availability:tt)+
-     }) => {
-        discrete!($feature, value: mq_boolean);
+     availability: { $($availability:tt)+ }) =>
+    {
+        discrete!($feature,
+                  value: mq_boolean,
+                  availability: { $($availability)+ });
     };
 
-    ($feature:ident,
-     value: { $($css:expr => $variant:ident),+ },
-     type: discrete,
-     availability: {
-         $($availability:tt)+
-     }) => {
-        discrete!($feature, value: { $($css => $variant),+ });
-    };
-    ($feature:ident,
-     value: { $($css:expr => $variant:ident),+ },
-     type: discrete,
-     availability: {
-         $($availability:tt)+
-     },
-     impl: {
-         $($impl_rest:tt)+
-     }) => {
-        discrete!($feature, value: { $($css => $variant),+ }, $($impl_rest)+);
-    };
-
+    // range feature rules
     ($variant:ident,
      value: $value:ty,
      type: range,
-     availability: {
-         $($availability:tt)+
-     },
-     impl: {
-         $($impl_rest:tt)+
-     }) => {
+     availability: { $($availability:tt)+ },
+     impl: { $($impl_:tt)+ }) =>
+    {
         range!($variant,
                value: $value,
-               impl: {
-                   $($impl_rest)+
-               });
+               availability: { $($availability)+ },
+               impl: { $($impl_)+ });
     };
 }
 
 macro_rules! discrete {
+    // following three rules are the variations on the main form of the discrete! macro
+    ($feature:ident,
+     value: { $($css:expr => $variant:ident),+ },
+     availability: { $($availability:tt)+ }) =>
+    {
+        discrete!(enum $feature { $($variant),+ });
+
+        discrete!(derive to_media_feature_css for $feature);
+        discrete!(derive ToCss,FromCss for $feature, $($css => $variant),+);
+        discrete!(derive Parse for $feature, $($availability)+);
+        discrete!(derive EvaluateUsingContextValue<ContextValue=$feature> for $feature,
+                  None = $feature::None);
+    };
+
+    ($feature:ident,
+     value: { $($css:expr => $variant:ident),+ },
+     availability: { $($availability:tt)+ },
+     impl: { no_none }) =>
+    {
+        discrete!(enum $feature { $($variant),+ });
+
+        discrete!(derive to_media_feature_css for $feature);
+        discrete!(derive ToCss,FromCss for $feature, $($css => $variant),+);
+        discrete!(derive Parse for $feature, $($availability)+);
+        discrete!(derive EvaluateUsingContextValue<ContextValue=$feature> for $feature);
+    };
+
+    ($feature:ident,
+     value: mq_boolean,
+     availability: { $($availability:tt)+ }) =>
+    {
+        #[derive(Copy, Debug, PartialEq, Eq)]
+        pub struct $feature(pub bool);
+
+        discrete!(derive to_media_feature_css for $feature);
+        discrete!(derive Parse for $feature, $($availability)+);
+        discrete!(derive EvaluateUsingContextValue<ContextValue=bool> for $feature,
+                  None = false);
+
+        impl PartialEq<bool> for $feature {
+            #[inline]
+            fn eq(&self, other: &bool) -> bool {
+                self.0 == *other
+            }
+        }
+
+        impl FromCss for $feature {
+            type Err = ();
+            type Context = SpecificationLevel;
+
+            fn from_css(input: &mut Parser, _: &SpecificationLevel) -> Result<$feature, ()> {
+                match try!(input.expect_integer()) {
+                    0 => Ok($feature(false)),
+                    1 => Ok($feature(true)),
+                    _ => Err(())
+                }
+            }
+        }
+
+        impl ToCss for $feature {
+            fn to_css<W>(&self, dest: &mut W) -> ::text_writer::Result
+                where W: ::text_writer::TextWriter
+            {
+                match self.0 {
+                    false => dest.write_str("0"),
+                    true => dest.write_str("1"),
+                }
+            }
+        }
+
+        impl ::std::fmt::Display for $feature {
+            #[inline]
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                use ::cssparser::ToCss;
+
+                self.fmt_to_css(f)
+            }
+        }
+    };
+
+    // internal rules below
     (enum $feature:ident { $($variant:ident),+ }) => {
         #[derive(Copy, Debug, PartialEq, Eq)]
         pub enum $feature {
@@ -72,23 +154,33 @@ macro_rules! discrete {
         }
     };
 
-    (derive Parse for $feature:ident) => {
+    (derive Parse for $feature:ident, since: $since:expr) => {
         impl $feature {
             #[inline]
             fn parse_ident_first_form(input: &mut Parser,
+                                      level: &SpecificationLevel,
                                       prefix: Option<RangePrefix>)
                                       -> Result<MediaFeature, ()>
             {
-                parse_discrete(input, prefix).map(MediaFeature::$feature)
+                if *level < $since {
+                    return Err(())
+                }
+
+                parse_discrete(input, level, prefix).map(MediaFeature::$feature)
             }
 
             #[inline]
             fn parse_value_first_form(_: &mut Parser,
+                                      _: &SpecificationLevel,
                                       _: SourcePosition)
                                       -> Result<MediaFeature, ()> {
                 Err(())
             }
         }
+    };
+    (derive Parse for $feature:ident, since: $since:expr, deprecated: $deprecated:expr) => {
+        // currently, deprecation has no effect for media features
+        discrete!(derive Parse for $feature, since: $since);
     };
 
     (derive to_media_feature_css for $feature:ident) => {
@@ -106,8 +198,9 @@ macro_rules! discrete {
     (derive ToCss,FromCss for $feature:ident, $($css:expr => $variant:ident),+) => {
         impl FromCss for $feature {
             type Err = ();
+            type Context = SpecificationLevel;
 
-            fn from_css(input: &mut Parser) -> Result<$feature, ()> {
+            fn from_css(input: &mut Parser, _: &SpecificationLevel) -> Result<$feature, ()> {
                 match &try!(input.expect_ident()) {
                     $(s if s.eq_ignore_ascii_case($css) => Ok($feature::$variant)),+,
                     _ => Err(())
@@ -167,80 +260,34 @@ macro_rules! discrete {
             }
         }
     };
-
-    ($feature:ident, value: { $($css:expr => $variant:ident),+ }) => {
-        discrete!(enum $feature { $($variant),+ });
-
-        discrete!(derive to_media_feature_css for $feature);
-        discrete!(derive ToCss,FromCss for $feature, $($css => $variant),+);
-        discrete!(derive Parse for $feature);
-        discrete!(derive EvaluateUsingContextValue<ContextValue=$feature> for $feature,
-                  None = $feature::None);
-    };
-    ($feature:ident, value: { $($css:expr => $variant:ident),+ }, no_none) => {
-        discrete!(enum $feature { $($variant),+ });
-
-        discrete!(derive to_media_feature_css for $feature);
-        discrete!(derive ToCss,FromCss for $feature, $($css => $variant),+);
-        discrete!(derive Parse for $feature);
-        discrete!(derive EvaluateUsingContextValue<ContextValue=$feature> for $feature);
-    };
-
-    ($feature:ident, value: mq_boolean) => {
-        #[derive(Copy, Debug, PartialEq, Eq)]
-        pub struct $feature(pub bool);
-
-        discrete!(derive to_media_feature_css for $feature);
-        discrete!(derive Parse for $feature);
-        discrete!(derive EvaluateUsingContextValue<ContextValue=bool> for $feature,
-                  None = false);
-
-        impl PartialEq<bool> for $feature {
-            #[inline]
-            fn eq(&self, other: &bool) -> bool {
-                self.0 == *other
-            }
-        }
-
-        impl FromCss for $feature {
-            type Err = ();
-
-            fn from_css(input: &mut Parser) -> Result<$feature, ()> {
-                match try!(input.expect_integer()) {
-                    0 => Ok($feature(false)),
-                    1 => Ok($feature(true)),
-                    _ => Err(())
-                }
-            }
-        }
-
-        impl ToCss for $feature {
-            fn to_css<W>(&self, dest: &mut W) -> ::text_writer::Result
-                where W: ::text_writer::TextWriter
-            {
-                match self.0 {
-                    false => dest.write_str("0"),
-                    true => dest.write_str("1"),
-                }
-            }
-        }
-
-        impl ::std::fmt::Display for $feature {
-            #[inline]
-            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                use ::cssparser::ToCss;
-
-                self.fmt_to_css(f)
-            }
-        }
-    };
-
-    ($feature:ident, value: $value:ty) => {
-        pub type $feature = $value;
-    };
 }
 
 macro_rules! range {
+    // following two rules are the variations on the main form of the range! macro
+    ($feature:ident,
+     value: $value:ty,
+     availability: { $($availability:tt)+ },
+     impl: { context: $context:ty, zero: $zero:expr }) =>
+    {
+        range!(struct $feature($value));
+        range!(derive to_media_feature_css for $feature);
+        range!(derive Parse for $feature, $($availability)+);
+        range!(derive EvaluateUsingContextValue<ContextValue=$context> for $feature,
+               Zero=$zero);
+    };
+    ($feature:ident,
+     value: $value:ty,
+     availability: { $($availability:tt)+ },
+     impl: { context: $context:ty, zero: $zero:expr, compute: $compute:ident }) =>
+    {
+        range!(struct $feature($value));
+        range!(derive to_media_feature_css for $feature);
+        range!(derive Parse for $feature, $($availability)+);
+        range!(derive EvaluateUsingContextValue<ContextValue=$context> for $feature,
+               Zero=$zero, Compute=$compute);
+    };
+
+    // internal rules below
     (struct $feature:ident($value:ty)) => {
         #[derive(Copy, Debug, PartialEq)]
         pub struct $feature(pub Range<$value>);
@@ -258,28 +305,42 @@ macro_rules! range {
         }
     };
 
-    (derive Parse for $feature:ident) => {
+    (derive Parse for $feature:ident, since: $since:expr) => {
         impl $feature {
             #[inline]
             fn parse_ident_first_form(input: &mut Parser,
+                                      level: &SpecificationLevel,
                                       prefix: Option<RangePrefix>)
                                       -> Result<MediaFeature, ()>
             {
-                parse_boolean_or_normal_range(input, prefix)
+                if *level < $since {
+                    return Err(())
+                }
+
+                parse_boolean_or_normal_range(input, level, prefix)
                     .map(|opt_range| opt_range.map(|range| $feature(range)))
                     .map(MediaFeature::$feature)
             }
 
             #[inline]
             fn parse_value_first_form(input: &mut Parser,
+                                      level: &SpecificationLevel,
                                       after_name: SourcePosition)
                                       -> Result<MediaFeature, ()>
             {
-                parse_range_form(input, after_name)
+                if *level < $since {
+                    return Err(())
+                }
+
+                parse_range_form(input, level, after_name)
                     .map(|range| Some($feature(range)))
                     .map(MediaFeature::$feature)
             }
         }
+    };
+    (derive Parse for $feature:ident, since: $since:expr, deprecated: $deprecated:expr) => {
+        // currently, deprecation has no effect for media features
+        range!(derive Parse for $feature, since: $since);
     };
 
     (derive EvaluateUsingContextValue<ContextValue=$context:ty> for $feature:ident,
@@ -313,32 +374,6 @@ macro_rules! range {
             }
         }
     };
-
-    ($feature:ident,
-     value: $value:ty,
-     impl: {
-         context: $context:ty,
-         zero: $zero:expr
-     }) => {
-        range!(struct $feature($value));
-        range!(derive to_media_feature_css for $feature);
-        range!(derive Parse for $feature);
-        range!(derive EvaluateUsingContextValue<ContextValue=$context> for $feature,
-               Zero=$zero);
-    };
-    ($feature:ident,
-     value: $value:ty,
-     impl: {
-         context: $context:ty,
-         zero: $zero:expr,
-         compute: $compute:ident
-     }) => {
-        range!(struct $feature($value));
-        range!(derive to_media_feature_css for $feature);
-        range!(derive Parse for $feature);
-        range!(derive EvaluateUsingContextValue<ContextValue=$context> for $feature,
-               Zero=$zero, Compute=$compute);
-    }
 }
 
 macro_rules! derive_dispatch_fns {
@@ -357,26 +392,28 @@ macro_rules! derive_dispatch_fns {
 
         #[inline]
         fn dispatch_parse_ident_first_form<'a>(input: &mut Parser,
+                                               level: &SpecificationLevel,
                                                prefix: Option<RangePrefix>,
                                                name: &'a str)
                                                -> Result<MediaFeature, ()>
         {
             match name {
                 $(n if $css.eq_ignore_ascii_case(n) =>
-                      $feature::parse_ident_first_form(input, prefix),)+
+                      $feature::parse_ident_first_form(input, level, prefix),)+
                 _ => Err(())
             }
         }
 
         #[inline]
         fn dispatch_parse_value_first_form<'a>(input: &mut Parser,
+                                               level: &SpecificationLevel,
                                                name: &'a str,
                                                after_name: SourcePosition)
                                                -> Result<MediaFeature, ()>
         {
             match name {
                 $(n if $css.eq_ignore_ascii_case(n) =>
-                      $feature::parse_value_first_form(input, after_name),)+
+                      $feature::parse_value_first_form(input, level, after_name),)+
                 _ => Err(())
             }
         }
@@ -397,7 +434,7 @@ macro_rules! derive_feature_context_trait {
     ($($feature:ident),+) => {
         #[allow(non_snake_case)]
         pub trait DeviceFeatureContext {
-            fn MediaType(&self) -> ::media_queries::query::DefinedMediaType;
+            fn MediaType(&self) -> ::media_queries::MediaType;
             fn ViewportSize(&self) -> Size2D<Au>;
 
             $(fn $feature(&self) -> <$feature as EvaluateUsingContextValue<Self>>::ContextValue;)+

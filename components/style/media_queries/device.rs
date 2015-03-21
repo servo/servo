@@ -92,9 +92,9 @@ impl DeviceFeatureContext for Device {
     // TODO
     fn UpdateFrequency(&self) -> UpdateFrequency {
         match self.media_type {
-            MediaType::Print => UpdateFrequency::None,
             MediaType::Screen => UpdateFrequency::Normal,
-            MediaType::Speech => UpdateFrequency::Slow
+            MediaType::Speech => UpdateFrequency::Slow,
+            _ => UpdateFrequency::None
         }
     }
 

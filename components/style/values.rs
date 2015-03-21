@@ -876,8 +876,9 @@ pub mod specified {
 
     impl FromCss for Ratio {
         type Err = ();
+        type Context = ();
 
-        fn from_css(input: &mut Parser) -> Result<Ratio, ()> {
+        fn from_css(input: &mut Parser, _: &()) -> Result<Ratio, ()> {
             macro_rules! expect_positive_integer {
                 ($input:ident) => {
                     $input.expect_integer()
@@ -988,14 +989,14 @@ pub mod specified {
 
         #[test]
         fn ratio_from_css() {
-            assert_eq!(FromCss::from_css(&mut Parser::new("4/3")).unwrap(),
+            assert_eq!(FromCss::from_css(&mut Parser::new("4/3"), &()).unwrap(),
                        Ratio(4,3));
 
-            assert!(<Ratio as FromCss>::from_css(&mut Parser::new("0/3")).is_err());
-            assert!(<Ratio as FromCss>::from_css(&mut Parser::new("4/0")).is_err());
+            assert!(<Ratio as FromCss>::from_css(&mut Parser::new("0/3"), &()).is_err());
+            assert!(<Ratio as FromCss>::from_css(&mut Parser::new("4/0"), &()).is_err());
 
-            assert!(<Ratio as FromCss>::from_css(&mut Parser::new("4.0/3")).is_err());
-            assert!(<Ratio as FromCss>::from_css(&mut Parser::new("4/3.0")).is_err());
+            assert!(<Ratio as FromCss>::from_css(&mut Parser::new("4.0/3"), &()).is_err());
+            assert!(<Ratio as FromCss>::from_css(&mut Parser::new("4/3.0"), &()).is_err());
         }
 
         #[test]
