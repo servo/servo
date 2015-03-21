@@ -616,7 +616,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "png"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-png#da851d68159fe0a7dba81dfbee594e5226b72884"
+source = "git+https://github.com/servo/rust-png#1d9c59c97598014860077f372443ae98b35ff4d9"
 dependencies = [
  "gcc 0.3.1 (git+https://github.com/alexcrichton/gcc-rs)",
  "png-sys 1.6.16 (git+https://github.com/servo/rust-png)",
@@ -625,7 +625,7 @@ dependencies = [
 [[package]]
 name = "png-sys"
 version = "1.6.16"
-source = "git+https://github.com/servo/rust-png#da851d68159fe0a7dba81dfbee594e5226b72884"
+source = "git+https://github.com/servo/rust-png#1d9c59c97598014860077f372443ae98b35ff4d9"
 
 [[package]]
 name = "rand"

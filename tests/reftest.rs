@@ -7,24 +7,23 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![feature(collections, core, env, io, hash, os, path, std_misc, test)]
+#![feature(collections, exit_status, fs_walk, io, old_io, path, path_ext, std_misc, test)]
 #[macro_use] extern crate bitflags;
 extern crate png;
 extern crate test;
 extern crate url;
 
-use std::ascii::AsciiExt;
 use std::env;
-use std::old_io as io;
-use std::old_io::{File, Reader, Command, IoResult};
-use std::old_io::process::ExitStatus;
-use std::old_io::fs::PathExtensions;
-use std::old_path::Path;
+use std::ffi::OsStr;
+use std::fs::{PathExt, File, walk_dir};
+use std::io::Read;
+use std::old_io::{Reader, IoResult};
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::thunk::Thunk;
 use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldPanic};
 use test::run_tests_console;
 use url::Url;
-
 
 bitflags!(
     flags RenderMode: u32 {
@@ -39,7 +38,7 @@ bitflags!(
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let mut parts = args.tail().split(|e| "--" == e.as_slice());
+    let mut parts = args.tail().split(|e| &**e == "--");
 
     let harness_args = parts.next().unwrap();  // .split() is never empty
     let servo_args = parts.next().unwrap_or(&[]);
@@ -50,7 +49,7 @@ fn main() {
         [ref render_mode_string, ref base_path, ref testname, ..] => (render_mode_string, base_path, Some(testname.clone())),
     };
 
-    let mut render_mode = match render_mode_string.as_slice() {
+    let mut render_mode = match &**render_mode_string {
         "cpu" => CPU_RENDERING,
         "gpu" => GPU_RENDERING,
         _ => panic!("First argument must specify cpu or gpu as rendering mode")
@@ -68,11 +67,12 @@ fn main() {
     let mut all_tests = vec!();
     println!("Scanning {} for manifests\n", base_path);
 
-    for file in io::fs::walk_dir(&Path::new(base_path)).unwrap() {
-        let maybe_extension = file.extension_str();
+    for file in walk_dir(base_path).unwrap() {
+        let file = file.unwrap().path();
+        let maybe_extension = file.extension();
         match maybe_extension {
             Some(extension) => {
-                if extension.to_ascii_lowercase().as_slice() == "list" && file.is_file() {
+                if extension == OsStr::from_str("list") && file.is_file() {
                     let mut tests = parse_lists(&file, servo_args, render_mode, all_tests.len());
                     println!("\t{} [{} tests]", file.display(), tests.len());
                     all_tests.append(&mut tests);
@@ -106,15 +106,14 @@ fn run(test_opts: TestOpts, all_tests: Vec<TestDescAndFn>,
     // Verify that we're passing in valid servo arguments. Otherwise, servo
     // will exit before we've run any tests, and it will appear to us as if
     // all the tests are failing.
-    let mut command = match Command::new(servo_path())
-                            .args(servo_args.as_slice()).spawn() {
+    let output = match Command::new(&servo_path()).args(&servo_args).output() {
         Ok(p) => p,
         Err(e) => panic!("failed to execute process: {}", e),
     };
-    let stderr = command.stderr.as_mut().unwrap().read_to_string().unwrap();
+    let stderr = String::from_utf8(output.stderr).unwrap();
 
-    if stderr.as_slice().contains("Unrecognized") {
-        println!("Servo: {}", stderr.as_slice());
+    if stderr.contains("Unrecognized") {
+        println!("Servo: {}", stderr);
         return Ok(false);
     }
 
@@ -130,7 +129,7 @@ enum ReftestKind {
 struct Reftest {
     name: String,
     kind: ReftestKind,
-    files: [Path; 2],
+    files: [PathBuf; 2],
     id: usize,
     servo_args: Vec<String>,
     render_mode: RenderMode,
@@ -149,11 +148,14 @@ struct TestLine<'a> {
 
 fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_offset: usize) -> Vec<TestDescAndFn> {
     let mut tests = Vec::new();
-    let contents = File::open_mode(file, io::Open, io::Read)
-                       .and_then(|mut f| f.read_to_string())
-                       .ok().expect("Could not read file");
+    let contents = {
+        let mut f = File::open(file).unwrap();
+        let mut contents = String::new();
+        f.read_to_string(&mut contents).unwrap();
+        contents
+    };
 
-    for line in contents.as_slice().lines() {
+    for line in contents.lines() {
         // ignore comments or empty lines
         if line.starts_with("#") || line.is_empty() {
             continue;
@@ -183,7 +185,7 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
             part => panic!("reftest line: '{}' has invalid kind '{}'", line, part)
         };
 
-        let base = Path::new(env::current_dir().unwrap().to_str().unwrap()).join(file.dir_path());
+        let base = env::current_dir().unwrap().join(file.parent().unwrap());
 
         let file_left =  base.join(test_line.file_left);
         let file_right = base.join(test_line.file_right);
@@ -244,16 +246,18 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
 
 fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
     let png_filename = format!("/tmp/servo-reftest-{:06}-{}.png", reftest.id, side);
-    let mut command = Command::new(servo_path());
+    let mut command = Command::new(&servo_path());
     command
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .args(&reftest.servo_args[..])
         // Allows pixel perfect rendering of Ahem font for reftests.
         .arg("-Z")
         .arg("disable-text-aa")
-        .args(["-f", "-o"].as_slice())
-        .arg(png_filename.as_slice())
-        .arg({
-            let mut url = Url::from_file_path(&reftest.files[side]).unwrap();
+        .args(&["-f", "-o"])
+        .arg(&png_filename)
+        .arg(&{
+            let mut url = Url::from_file_path(&*reftest.files[side]).unwrap();
             url.fragment = reftest.fragment_identifier.clone();
             url.to_string()
         });
@@ -275,10 +279,9 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
         Ok(status) => status,
         Err(e) => panic!("failed to execute process: {}", e),
     };
-    assert_eq!(retval, ExitStatus(0));
+    assert!(retval.success());
 
-    let path = png_filename.parse::<Path>().unwrap();
-    let image = png::load_png(&path).unwrap();
+    let image = png::load_png(&png_filename).unwrap();
     let rgba8_bytes = match image.pixels {
         png::PixelsByColorType::RGBA8(pixels) => pixels,
         _ => panic!(),
@@ -286,9 +289,9 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
     (image.width, image.height, rgba8_bytes)
 }
 
-fn servo_path() -> Path {
+fn servo_path() -> PathBuf {
     let current_exe = env::current_exe().ok().expect("Could not locate current executable");
-    Path::new(current_exe.to_str().unwrap()).dir_path().join("servo")
+    current_exe.parent().unwrap().join("servo")
 }
 
 fn check_reftest(reftest: Reftest) {
@@ -319,8 +322,7 @@ fn check_reftest(reftest: Reftest) {
     }).collect::<Vec<u8>>();
 
     if pixels.iter().any(|&a| a < 255) {
-        let output_str = format!("/tmp/servo-reftest-{:06}-diff.png", reftest.id);
-        let output = output_str.parse::<Path>().unwrap();
+        let output = format!("/tmp/servo-reftest-{:06}-diff.png", reftest.id);
 
         let mut img = png::Image {
             width: left_width,
@@ -331,8 +333,8 @@ fn check_reftest(reftest: Reftest) {
         assert!(res.is_ok());
 
         match (reftest.kind, reftest.is_flaky) {
-            (ReftestKind::Same, true) => println!("flaky test - rendering difference: {}", output_str),
-            (ReftestKind::Same, false) => panic!("rendering difference: {}", output_str),
+            (ReftestKind::Same, true) => println!("flaky test - rendering difference: {}", output),
+            (ReftestKind::Same, false) => panic!("rendering difference: {}", output),
             (ReftestKind::Different, _) => {}   // Result was different and that's what was expected
         }
     } else {
