@@ -67,9 +67,6 @@ media_features! {
                 type: discrete,
                 availability: {
                     since: SpecificationLevel::MEDIAQ3
-                },
-                impl: {
-                    no_none
                 }),
 
     // MQ 4 § 5. Display Quality
@@ -95,9 +92,6 @@ media_features! {
          type: discrete,
          availability: {
              since: SpecificationLevel::MEDIAQ3
-         },
-         impl: {
-             no_none
          }),
 
     // MQ 4 § 5.3
@@ -252,9 +246,6 @@ media_features! {
                type: discrete,
                availability: {
                    since: SpecificationLevel::MEDIAQ4
-               },
-               impl: {
-                   no_none
                }),
 
     // MQ 4 § 9. Scripting
@@ -324,9 +315,6 @@ media_features! {
              type: discrete,
              availability: {
                  since: SpecificationLevel::MEDIAQ3
-             },
-             impl: {
-                 no_none
              })
 }
 

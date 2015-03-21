@@ -31,17 +31,6 @@ macro_rules! media_feature {
                   availability: { $($availability)+ });
     };
     ($feature:ident,
-     value: { $($css:expr => $variant:ident),+ },
-     type: discrete,
-     availability: { $($availability:tt)+ },
-     impl: { $($impl_:tt)+ }) =>
-    {
-        discrete!($feature,
-                  value: { $($css => $variant),+ },
-                  availability: { $($availability)+ },
-                  impl: { $($impl_)+ });
-    };
-    ($feature:ident,
      value: mq_boolean,
      type: discrete,
      availability: { $($availability:tt)+ }) =>
@@ -66,7 +55,7 @@ macro_rules! media_feature {
 }
 
 macro_rules! discrete {
-    // following three rules are the variations on the main form of the discrete! macro
+    // following two rules are the variations on the main form of the discrete! macro
     ($feature:ident,
      value: { $($css:expr => $variant:ident),+ },
      availability: { $($availability:tt)+ }) =>
@@ -76,21 +65,7 @@ macro_rules! discrete {
         discrete!(derive to_media_feature_css for $feature);
         discrete!(derive ToCss,FromCss for $feature, $($css => $variant),+);
         discrete!(derive Parse for $feature, $($availability)+);
-        discrete!(derive EvaluateUsingContextValue<ContextValue=$feature> for $feature,
-                  None = $feature::None);
-    };
-
-    ($feature:ident,
-     value: { $($css:expr => $variant:ident),+ },
-     availability: { $($availability:tt)+ },
-     impl: { no_none }) =>
-    {
-        discrete!(enum $feature { $($variant),+ });
-
-        discrete!(derive to_media_feature_css for $feature);
-        discrete!(derive ToCss,FromCss for $feature, $($css => $variant),+);
-        discrete!(derive Parse for $feature, $($availability)+);
-        discrete!(derive EvaluateUsingContextValue<ContextValue=$feature> for $feature);
+        discrete!(derive EvaluateUsingContextValue<ContextValue=$feature> for $feature, $($variant),+);
     };
 
     ($feature:ident,
@@ -102,8 +77,6 @@ macro_rules! discrete {
 
         discrete!(derive to_media_feature_css for $feature);
         discrete!(derive Parse for $feature, $($availability)+);
-        discrete!(derive EvaluateUsingContextValue<ContextValue=bool> for $feature,
-                  None = false);
 
         impl PartialEq<bool> for $feature {
             #[inline]
@@ -142,6 +115,19 @@ macro_rules! discrete {
                 use ::cssparser::ToCss;
 
                 self.fmt_to_css(f)
+            }
+        }
+
+        impl<C> EvaluateUsingContextValue<C> for $feature
+            where C: DeviceFeatureContext
+        {
+            type ContextValue = bool;
+
+            fn evaluate(feature_value: &Option<Self>, _: &C, context_value: bool) -> bool {
+                match feature_value {
+                    &Some(ref feature_value) => *feature_value == context_value,
+                    &None => context_value != false
+                }
             }
         }
     };
@@ -185,10 +171,10 @@ macro_rules! discrete {
 
     (derive to_media_feature_css for $feature:ident) => {
         impl $feature {
-            fn to_media_feature_css<W>(&self, dest: &mut W, css: &'static str) -> ::text_writer::Result
+            fn to_media_feature_css<W>(&self, dest: &mut W, name: &'static str) -> ::text_writer::Result
                 where W: ::text_writer::TextWriter
             {
-                try!(write!(dest, "({}: ", css));
+                try!(write!(dest, "({}: ", name));
                 try!(self.to_css(dest));
                 write!(dest, ")")
             }
@@ -228,7 +214,23 @@ macro_rules! discrete {
         }
     };
 
-    (derive EvaluateUsingContextValue<ContextValue=$context:ty> for $feature:ident) => {
+    // we can use recursion to determine if the values contains 'None' or not
+    // base cases
+    (derive EvaluateUsingContextValue<ContextValue=$context:ty> for $feature:ident, None, $($rest:tt)* ) => {
+        impl<C> EvaluateUsingContextValue<C> for $feature
+            where C: DeviceFeatureContext
+        {
+            type ContextValue = $context;
+
+            fn evaluate(feature_value: &Option<Self>, _: &C, context_value: $context) -> bool {
+                match feature_value {
+                    &Some(ref feature_value) => *feature_value == context_value,
+                    &None => context_value != $feature::None
+                }
+            }
+        }
+    };
+    (derive EvaluateUsingContextValue<ContextValue=$context:ty> for $feature:ident, ) => {
         impl<C> EvaluateUsingContextValue<C> for $feature
             where C: DeviceFeatureContext
         {
@@ -246,19 +248,13 @@ macro_rules! discrete {
             }
         }
     };
-    (derive EvaluateUsingContextValue<ContextValue=$context:ty> for $feature:ident, None = $none:expr) => {
-        impl<C> EvaluateUsingContextValue<C> for $feature
-            where C: DeviceFeatureContext
-        {
-            type ContextValue = $context;
 
-            fn evaluate(feature_value: &Option<Self>, _: &C, context_value: $context) -> bool {
-                match feature_value {
-                    &Some(ref feature_value) => *feature_value == context_value,
-                    &None => $none != context_value
-                }
-            }
-        }
+    // reduction steps
+    (derive EvaluateUsingContextValue<ContextValue=$context:ty> for $feature:ident, $variant:ident, $($rest:tt)*) => {
+        discrete!(derive EvaluateUsingContextValue<ContextValue=$context> for $feature, $($rest)*);
+    };
+    (derive EvaluateUsingContextValue<ContextValue=$context:ty> for $feature:ident, $variant:ident) => {
+        discrete!(derive EvaluateUsingContextValue<ContextValue=$context> for $feature, );
     };
 }
 
@@ -295,11 +291,11 @@ macro_rules! range {
 
     (derive to_media_feature_css for $feature:ident) => {
         impl $feature {
-            fn to_media_feature_css<W>(&self, dest: &mut W, css: &'static str) -> ::text_writer::Result
+            fn to_media_feature_css<W>(&self, dest: &mut W, name: &'static str) -> ::text_writer::Result
                 where W: ::text_writer::TextWriter
             {
                 try!(write!(dest, "("));
-                try!(self.0.to_css(dest, css));
+                try!(self.0.to_css(dest, name));
                 write!(dest, ")")
             }
         }
