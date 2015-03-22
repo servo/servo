@@ -43,9 +43,9 @@ use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, Pipel
 use net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use net::local_image_cache::{ImageResponder, LocalImageCache};
 use net::resource_task::{ResourceTask, load_bytes_iter};
-use profile::mem::{MemoryProfilerChan, MemoryProfilerMsg, MemoryReport, MemoryReportsChan};
-use profile::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan};
-use profile::time::{TimerMetadataFrameType, TimerMetadataReflowType, profile};
+use profile::mem::{self, Report, ReportsChan};
+use profile::time::{self, ProfilerCategory, ProfilerMetadata, profile};
+use profile::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::element::ElementTypeId;
 use script::dom::htmlelement::HTMLElementTypeId;
@@ -59,7 +59,7 @@ use script_traits::{ConstellationControlMsg, CompositorEvent, OpaqueScriptLayout
 use script_traits::{ScriptControlChan, UntrustedNodeAddress};
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::mem;
+use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
@@ -73,7 +73,7 @@ use url::Url;
 use util::cursor::Cursor;
 use util::geometry::Au;
 use util::logical_geometry::LogicalPoint;
-use util::memory::{SizeOf};
+use util::mem::HeapSizeOf;
 use util::opts;
 use util::smallvec::{SmallVec, SmallVec1, VecLike};
 use util::task::spawn_named_with_send_on_failure;
@@ -143,13 +143,13 @@ pub struct LayoutTask {
     pub paint_chan: PaintChan,
 
     /// The channel on which messages can be sent to the time profiler.
-    pub time_profiler_chan: TimeProfilerChan,
+    pub time_profiler_chan: time::ProfilerChan,
 
     /// The channel on which messages can be sent to the memory profiler.
-    pub memory_profiler_chan: MemoryProfilerChan,
+    pub mem_profiler_chan: mem::ProfilerChan,
 
     /// The name used for the task's memory reporter.
-    pub memory_reporter_name: String,
+    pub reporter_name: String,
 
     /// The channel on which messages can be sent to the resource task.
     pub resource_task: ResourceTask,
@@ -204,8 +204,8 @@ impl LayoutTaskFactory for LayoutTask {
                   resource_task: ResourceTask,
                   img_cache_task: ImageCacheTask,
                   font_cache_task: FontCacheTask,
-                  time_profiler_chan: TimeProfilerChan,
-                  memory_profiler_chan: MemoryProfilerChan,
+                  time_profiler_chan: time::ProfilerChan,
+                  mem_profiler_chan: mem::ProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
         spawn_named_with_send_on_failure("LayoutTask", task_state::LAYOUT, move || {
@@ -225,7 +225,7 @@ impl LayoutTaskFactory for LayoutTask {
                         img_cache_task,
                         font_cache_task,
                         time_profiler_chan,
-                        memory_profiler_chan);
+                        mem_profiler_chan);
                 layout.start();
             }
             shutdown_chan.send(()).unwrap();
@@ -276,8 +276,8 @@ impl LayoutTask {
            resource_task: ResourceTask,
            image_cache_task: ImageCacheTask,
            font_cache_task: FontCacheTask,
-           time_profiler_chan: TimeProfilerChan,
-           memory_profiler_chan: MemoryProfilerChan)
+           time_profiler_chan: time::ProfilerChan,
+           mem_profiler_chan: mem::ProfilerChan)
            -> LayoutTask {
         let local_image_cache =
             Arc::new(Mutex::new(LocalImageCache::new(image_cache_task.clone())));
@@ -296,8 +296,7 @@ impl LayoutTask {
         // Register this thread as a memory reporter, via its own channel.
         let reporter = Box::new(chan.clone());
         let reporter_name = format!("layout-reporter-{}", id.0);
-        memory_profiler_chan.send(MemoryProfilerMsg::RegisterMemoryReporter(reporter_name.clone(),
-                                                                            reporter));
+        mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter));
 
         LayoutTask {
             id: id,
@@ -309,8 +308,8 @@ impl LayoutTask {
             constellation_chan: constellation_chan.clone(),
             paint_chan: paint_chan,
             time_profiler_chan: time_profiler_chan,
-            memory_profiler_chan: memory_profiler_chan,
-            memory_reporter_name: reporter_name,
+            mem_profiler_chan: mem_profiler_chan,
+            reporter_name: reporter_name,
             resource_task: resource_task,
             image_cache_task: image_cache_task.clone(),
             font_cache_task: font_cache_task,
@@ -444,7 +443,7 @@ impl LayoutTask {
                                    Box<LayoutRPC + Send>).unwrap();
             },
             Msg::Reflow(data) => {
-                profile(TimeProfilerCategory::LayoutPerform,
+                profile(time::ProfilerCategory::LayoutPerform,
                         self.profiler_metadata(&*data),
                         self.time_profiler_chan.clone(),
                         || self.handle_reflow(&*data, possibly_locked_rw_data));
@@ -454,8 +453,8 @@ impl LayoutTask {
                     self.handle_reap_layout_data(dead_layout_data)
                 }
             },
-            Msg::CollectMemoryReports(reports_chan) => {
-                self.collect_memory_reports(reports_chan, possibly_locked_rw_data);
+            Msg::CollectReports(reports_chan) => {
+                self.collect_reports(reports_chan, possibly_locked_rw_data);
             },
             Msg::PrepareToExit(response_chan) => {
                 debug!("layout: PrepareToExitMsg received");
@@ -472,18 +471,17 @@ impl LayoutTask {
         true
     }
 
-    fn collect_memory_reports<'a>(&'a self,
-                                  reports_chan: MemoryReportsChan,
-                                  possibly_locked_rw_data:
-                                      &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+    fn collect_reports<'a>(&'a self,
+                           reports_chan: ReportsChan,
+                           possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         let mut reports = vec![];
 
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = self.lock_rw_data(possibly_locked_rw_data);
         let stacking_context = rw_data.stacking_context.as_ref();
-        reports.push(MemoryReport {
+        reports.push(Report {
             path: path!["pages", format!("url({})", self.url), "display-list"],
-            size: stacking_context.map_or(0, |sc| sc.size_of_excluding_self() as u64),
+            size: stacking_context.map_or(0, |sc| sc.heap_size_of_children() as u64),
         });
 
         reports_chan.send(reports);
@@ -532,9 +530,8 @@ impl LayoutTask {
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
 
-        let unregister_msg =
-            MemoryProfilerMsg::UnregisterMemoryReporter(self.memory_reporter_name.clone());
-        self.memory_profiler_chan.send(unregister_msg);
+        let msg = mem::ProfilerMsg::UnregisterReporter(self.reporter_name.clone());
+        self.mem_profiler_chan.send(msg);
 
         self.paint_chan.send(PaintMsg::Exit(Some(response_chan), exit_type));
         response_port.recv().unwrap()
@@ -705,7 +702,7 @@ impl LayoutTask {
                                          shared_layout_context: &mut SharedLayoutContext,
                                          rw_data: &mut RWGuard<'a>) {
         let writing_mode = flow::base(&**layout_root).writing_mode;
-        profile(TimeProfilerCategory::LayoutDispListBuild,
+        profile(time::ProfilerCategory::LayoutDispListBuild,
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
@@ -814,7 +811,7 @@ impl LayoutTask {
             LayoutJS::from_trusted_node_address(data.document_root)
         };
         let node: &mut LayoutNode = unsafe {
-            mem::transmute(&mut node)
+            transmute(&mut node)
         };
 
         debug!("layout: received layout request for: {}", data.url.serialize());
@@ -874,7 +871,7 @@ impl LayoutTask {
                                                                          node,
                                                                          &data.url);
 
-        let mut layout_root = profile(TimeProfilerCategory::LayoutStyleRecalc,
+        let mut layout_root = profile(time::ProfilerCategory::LayoutStyleRecalc,
                                       self.profiler_metadata(data),
                                       self.time_profiler_chan.clone(),
                                       || {
@@ -892,7 +889,7 @@ impl LayoutTask {
             self.get_layout_root((*node).clone())
         });
 
-        profile(TimeProfilerCategory::LayoutRestyleDamagePropagation,
+        profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
@@ -912,7 +909,7 @@ impl LayoutTask {
         }
 
         // Resolve generated content.
-        profile(TimeProfilerCategory::LayoutGeneratedContent,
+        profile(time::ProfilerCategory::LayoutGeneratedContent,
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
@@ -921,7 +918,7 @@ impl LayoutTask {
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
-        profile(TimeProfilerCategory::LayoutMain,
+        profile(time::ProfilerCategory::LayoutMain,
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
@@ -1024,7 +1021,7 @@ impl LayoutTask {
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* task
     /// because the struct type is transmuted to a different type on the script side.
     unsafe fn handle_reap_layout_data(&self, layout_data: LayoutData) {
-        let layout_data_wrapper: LayoutDataWrapper = mem::transmute(layout_data);
+        let layout_data_wrapper: LayoutDataWrapper = transmute(layout_data);
         layout_data_wrapper.remove_compositor_layers(self.constellation_chan.clone());
     }
 

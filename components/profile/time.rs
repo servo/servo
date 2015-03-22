@@ -19,11 +19,11 @@ use util::task::spawn_named;
 
 // front-end representation of the profiler used to communicate with the profiler
 #[derive(Clone)]
-pub struct TimeProfilerChan(pub Sender<TimeProfilerMsg>);
+pub struct ProfilerChan(pub Sender<ProfilerMsg>);
 
-impl TimeProfilerChan {
-    pub fn send(&self, msg: TimeProfilerMsg) {
-        let TimeProfilerChan(ref c) = *self;
+impl ProfilerChan {
+    pub fn send(&self, msg: ProfilerMsg) {
+        let ProfilerChan(ref c) = *self;
         c.send(msg).unwrap();
     }
 }
@@ -35,11 +35,11 @@ pub struct TimerMetadata {
     incremental: bool,
 }
 
-pub trait Formatable {
+pub trait Formattable {
     fn format(&self) -> String;
 }
 
-impl Formatable for Option<TimerMetadata> {
+impl Formattable for Option<TimerMetadata> {
     fn format(&self) -> String {
         match self {
             // TODO(cgaebel): Center-align in the format strings as soon as rustc supports it.
@@ -61,9 +61,9 @@ impl Formatable for Option<TimerMetadata> {
 }
 
 #[derive(Clone)]
-pub enum TimeProfilerMsg {
+pub enum ProfilerMsg {
     /// Normal message used for reporting time
-    Time((TimeProfilerCategory, Option<TimerMetadata>), f64),
+    Time((ProfilerCategory, Option<TimerMetadata>), f64),
     /// Message used to force print the profiling metrics
     Print,
     /// Tells the profiler to shut down.
@@ -72,7 +72,7 @@ pub enum TimeProfilerMsg {
 
 #[repr(u32)]
 #[derive(PartialEq, Clone, PartialOrd, Eq, Ord)]
-pub enum TimeProfilerCategory {
+pub enum ProfilerCategory {
     Compositing,
     LayoutPerform,
     LayoutStyleRecalc,
@@ -92,60 +92,60 @@ pub enum TimeProfilerCategory {
     ImageDecoding,
 }
 
-impl Formatable for TimeProfilerCategory {
+impl Formattable for ProfilerCategory {
     // some categories are subcategories of LayoutPerformCategory
     // and should be printed to indicate this
     fn format(&self) -> String {
         let padding = match *self {
-            TimeProfilerCategory::LayoutStyleRecalc |
-            TimeProfilerCategory::LayoutRestyleDamagePropagation |
-            TimeProfilerCategory::LayoutNonIncrementalReset |
-            TimeProfilerCategory::LayoutGeneratedContent |
-            TimeProfilerCategory::LayoutMain |
-            TimeProfilerCategory::LayoutDispListBuild |
-            TimeProfilerCategory::LayoutShaping |
-            TimeProfilerCategory::LayoutDamagePropagate |
-            TimeProfilerCategory::PaintingPerTile |
-            TimeProfilerCategory::PaintingPrepBuff => "+ ",
-            TimeProfilerCategory::LayoutParallelWarmup |
-            TimeProfilerCategory::LayoutSelectorMatch |
-            TimeProfilerCategory::LayoutTreeBuilder => "| + ",
+            ProfilerCategory::LayoutStyleRecalc |
+            ProfilerCategory::LayoutRestyleDamagePropagation |
+            ProfilerCategory::LayoutNonIncrementalReset |
+            ProfilerCategory::LayoutGeneratedContent |
+            ProfilerCategory::LayoutMain |
+            ProfilerCategory::LayoutDispListBuild |
+            ProfilerCategory::LayoutShaping |
+            ProfilerCategory::LayoutDamagePropagate |
+            ProfilerCategory::PaintingPerTile |
+            ProfilerCategory::PaintingPrepBuff => "+ ",
+            ProfilerCategory::LayoutParallelWarmup |
+            ProfilerCategory::LayoutSelectorMatch |
+            ProfilerCategory::LayoutTreeBuilder => "| + ",
             _ => ""
         };
         let name = match *self {
-            TimeProfilerCategory::Compositing => "Compositing",
-            TimeProfilerCategory::LayoutPerform => "Layout",
-            TimeProfilerCategory::LayoutStyleRecalc => "Style Recalc",
-            TimeProfilerCategory::LayoutRestyleDamagePropagation => "Restyle Damage Propagation",
-            TimeProfilerCategory::LayoutNonIncrementalReset => "Non-incremental reset (temporary)",
-            TimeProfilerCategory::LayoutSelectorMatch => "Selector Matching",
-            TimeProfilerCategory::LayoutTreeBuilder => "Tree Building",
-            TimeProfilerCategory::LayoutDamagePropagate => "Damage Propagation",
-            TimeProfilerCategory::LayoutGeneratedContent => "Generated Content Resolution",
-            TimeProfilerCategory::LayoutMain => "Primary Layout Pass",
-            TimeProfilerCategory::LayoutParallelWarmup => "Parallel Warmup",
-            TimeProfilerCategory::LayoutShaping => "Shaping",
-            TimeProfilerCategory::LayoutDispListBuild => "Display List Construction",
-            TimeProfilerCategory::PaintingPerTile => "Painting Per Tile",
-            TimeProfilerCategory::PaintingPrepBuff => "Buffer Prep",
-            TimeProfilerCategory::Painting => "Painting",
-            TimeProfilerCategory::ImageDecoding => "Image Decoding",
+            ProfilerCategory::Compositing => "Compositing",
+            ProfilerCategory::LayoutPerform => "Layout",
+            ProfilerCategory::LayoutStyleRecalc => "Style Recalc",
+            ProfilerCategory::LayoutRestyleDamagePropagation => "Restyle Damage Propagation",
+            ProfilerCategory::LayoutNonIncrementalReset => "Non-incremental reset (temporary)",
+            ProfilerCategory::LayoutSelectorMatch => "Selector Matching",
+            ProfilerCategory::LayoutTreeBuilder => "Tree Building",
+            ProfilerCategory::LayoutDamagePropagate => "Damage Propagation",
+            ProfilerCategory::LayoutGeneratedContent => "Generated Content Resolution",
+            ProfilerCategory::LayoutMain => "Primary Layout Pass",
+            ProfilerCategory::LayoutParallelWarmup => "Parallel Warmup",
+            ProfilerCategory::LayoutShaping => "Shaping",
+            ProfilerCategory::LayoutDispListBuild => "Display List Construction",
+            ProfilerCategory::PaintingPerTile => "Painting Per Tile",
+            ProfilerCategory::PaintingPrepBuff => "Buffer Prep",
+            ProfilerCategory::Painting => "Painting",
+            ProfilerCategory::ImageDecoding => "Image Decoding",
         };
         format!("{}{}", padding, name)
     }
 }
 
-type TimeProfilerBuckets = BTreeMap<(TimeProfilerCategory, Option<TimerMetadata>), Vec<f64>>;
+type ProfilerBuckets = BTreeMap<(ProfilerCategory, Option<TimerMetadata>), Vec<f64>>;
 
 // back end of the profiler that handles data aggregation and performance metrics
-pub struct TimeProfiler {
-    pub port: Receiver<TimeProfilerMsg>,
-    buckets: TimeProfilerBuckets,
-    pub last_msg: Option<TimeProfilerMsg>,
+pub struct Profiler {
+    pub port: Receiver<ProfilerMsg>,
+    buckets: ProfilerBuckets,
+    pub last_msg: Option<ProfilerMsg>,
 }
 
-impl TimeProfiler {
-    pub fn create(period: Option<f64>) -> TimeProfilerChan {
+impl Profiler {
+    pub fn create(period: Option<f64>) -> ProfilerChan {
         let (chan, port) = channel();
         match period {
             Some(period) => {
@@ -154,14 +154,14 @@ impl TimeProfiler {
                 spawn_named("Time profiler timer".to_owned(), move || {
                     loop {
                         sleep(period);
-                        if chan.send(TimeProfilerMsg::Print).is_err() {
+                        if chan.send(ProfilerMsg::Print).is_err() {
                             break;
                         }
                     }
                 });
                 // Spawn the time profiler.
                 spawn_named("Time profiler".to_owned(), move || {
-                    let mut profiler = TimeProfiler::new(port);
+                    let mut profiler = Profiler::new(port);
                     profiler.start();
                 });
             }
@@ -170,7 +170,7 @@ impl TimeProfiler {
                 spawn_named("Time profiler".to_owned(), move || {
                     loop {
                         match port.recv() {
-                            Err(_) | Ok(TimeProfilerMsg::Exit) => break,
+                            Err(_) | Ok(ProfilerMsg::Exit) => break,
                             _ => {}
                         }
                     }
@@ -178,11 +178,11 @@ impl TimeProfiler {
             }
         }
 
-        TimeProfilerChan(chan)
+        ProfilerChan(chan)
     }
 
-    pub fn new(port: Receiver<TimeProfilerMsg>) -> TimeProfiler {
-        TimeProfiler {
+    pub fn new(port: Receiver<ProfilerMsg>) -> Profiler {
+        Profiler {
             port: port,
             buckets: BTreeMap::new(),
             last_msg: None,
@@ -203,7 +203,7 @@ impl TimeProfiler {
         }
     }
 
-    fn find_or_insert(&mut self, k: (TimeProfilerCategory, Option<TimerMetadata>), t: f64) {
+    fn find_or_insert(&mut self, k: (ProfilerCategory, Option<TimerMetadata>), t: f64) {
         match self.buckets.get_mut(&k) {
             None => {},
             Some(v) => { v.push(t); return; },
@@ -212,15 +212,15 @@ impl TimeProfiler {
         self.buckets.insert(k, vec!(t));
     }
 
-    fn handle_msg(&mut self, msg: TimeProfilerMsg) -> bool {
+    fn handle_msg(&mut self, msg: ProfilerMsg) -> bool {
         match msg.clone() {
-            TimeProfilerMsg::Time(k, t) => self.find_or_insert(k, t),
-            TimeProfilerMsg::Print => match self.last_msg {
+            ProfilerMsg::Time(k, t) => self.find_or_insert(k, t),
+            ProfilerMsg::Print => match self.last_msg {
                 // only print if more data has arrived since the last printout
-                Some(TimeProfilerMsg::Time(..)) => self.print_buckets(),
+                Some(ProfilerMsg::Time(..)) => self.print_buckets(),
                 _ => ()
             },
-            TimeProfilerMsg::Exit => return false,
+            ProfilerMsg::Exit => return false,
         };
         self.last_msg = Some(msg);
         true
@@ -268,9 +268,9 @@ pub enum TimerMetadataReflowType {
 
 pub type ProfilerMetadata<'a> = Option<(&'a Url, TimerMetadataFrameType, TimerMetadataReflowType)>;
 
-pub fn profile<T, F>(category: TimeProfilerCategory,
+pub fn profile<T, F>(category: ProfilerCategory,
                      meta: ProfilerMetadata,
-                     time_profiler_chan: TimeProfilerChan,
+                     profiler_chan: ProfilerChan,
                      callback: F)
                   -> T
     where F: FnOnce() -> T
@@ -285,7 +285,7 @@ pub fn profile<T, F>(category: TimeProfilerCategory,
             iframe: iframe == TimerMetadataFrameType::IFrame,
             incremental: reflow_type == TimerMetadataReflowType::Incremental,
         });
-    time_profiler_chan.send(TimeProfilerMsg::Time((category, meta), ms));
+    profiler_chan.send(ProfilerMsg::Time((category, meta), ms));
     return val;
 }
 

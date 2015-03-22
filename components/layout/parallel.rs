@@ -20,7 +20,7 @@ use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_
 use wrapper::{PostorderNodeMutTraversal, UnsafeLayoutNode};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
-use profile::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan, profile};
+use profile::time::{self, ProfilerCategory, ProfilerMetadata, profile};
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicIsize, Ordering};
@@ -430,7 +430,7 @@ pub fn traverse_dom_preorder(root: LayoutNode,
 
 pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
                                    profiler_metadata: ProfilerMetadata,
-                                   time_profiler_chan: TimeProfilerChan,
+                                   time_profiler_chan: time::ProfilerChan,
                                    shared_layout_context: &SharedLayoutContext,
                                    queue: &mut WorkQueue<SharedLayoutContextWrapper,UnsafeFlow>) {
     if opts::get().bubble_inline_sizes_separately {
@@ -441,7 +441,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 
     queue.data = SharedLayoutContextWrapper(shared_layout_context as *const _);
 
-    profile(TimeProfilerCategory::LayoutParallelWarmup, profiler_metadata,
+    profile(time::ProfilerCategory::LayoutParallelWarmup, profiler_metadata,
             time_profiler_chan, || {
         queue.push(WorkUnit {
             fun: assign_inline_sizes,
@@ -456,12 +456,12 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 
 pub fn build_display_list_for_subtree(root: &mut FlowRef,
                                       profiler_metadata: ProfilerMetadata,
-                                      time_profiler_chan: TimeProfilerChan,
+                                      time_profiler_chan: time::ProfilerChan,
                                       shared_layout_context: &SharedLayoutContext,
                                       queue: &mut WorkQueue<SharedLayoutContextWrapper,UnsafeFlow>) {
     queue.data = SharedLayoutContextWrapper(shared_layout_context as *const _);
 
-    profile(TimeProfilerCategory::LayoutParallelWarmup, profiler_metadata,
+    profile(time::ProfilerCategory::LayoutParallelWarmup, profiler_metadata,
             time_profiler_chan, || {
         queue.push(WorkUnit {
             fun: compute_absolute_positions,

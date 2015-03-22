@@ -34,9 +34,7 @@ use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineId, WindowSizeData};
 use profile::mem;
-use profile::mem::{MemoryProfilerChan};
-use profile::time;
-use profile::time::{TimeProfilerCategory, profile, TimeProfilerChan};
+use profile::time::{self, ProfilerCategory, profile};
 use std::cmp;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -119,10 +117,10 @@ pub struct IOCompositor<Window: WindowMethods> {
     constellation_chan: ConstellationChan,
 
     /// The channel on which messages can be sent to the time profiler.
-    time_profiler_chan: TimeProfilerChan,
+    time_profiler_chan: time::ProfilerChan,
 
     /// The channel on which messages can be sent to the memory profiler.
-    memory_profiler_chan: MemoryProfilerChan,
+    mem_profiler_chan: mem::ProfilerChan,
 
     /// Pending scroll to fragment event, if any
     fragment_point: Option<Point2D<f32>>,
@@ -184,8 +182,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
            sender: Box<CompositorProxy+Send>,
            receiver: Box<CompositorReceiver>,
            constellation_chan: ConstellationChan,
-           time_profiler_chan: TimeProfilerChan,
-           memory_profiler_chan: MemoryProfilerChan)
+           time_profiler_chan: time::ProfilerChan,
+           mem_profiler_chan: mem::ProfilerChan)
            -> IOCompositor<Window> {
         // Create an initial layer tree.
         //
@@ -217,7 +215,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             got_set_frame_tree_message: false,
             constellation_chan: constellation_chan,
             time_profiler_chan: time_profiler_chan,
-            memory_profiler_chan: memory_profiler_chan,
+            mem_profiler_chan: mem_profiler_chan,
             fragment_point: None,
             outstanding_paint_msgs: 0,
             last_composite_time: 0,
@@ -229,15 +227,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                   sender: Box<CompositorProxy+Send>,
                   receiver: Box<CompositorReceiver>,
                   constellation_chan: ConstellationChan,
-                  time_profiler_chan: TimeProfilerChan,
-                  memory_profiler_chan: MemoryProfilerChan)
+                  time_profiler_chan: time::ProfilerChan,
+                  mem_profiler_chan: mem::ProfilerChan)
                   -> IOCompositor<Window> {
         let mut compositor = IOCompositor::new(window,
                                                sender,
                                                receiver,
                                                constellation_chan,
                                                time_profiler_chan,
-                                               memory_profiler_chan);
+                                               mem_profiler_chan);
 
         // Set the size of the root layer.
         compositor.update_zoom_transform();
@@ -1109,7 +1107,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             gl::bind_texture(gl::TEXTURE_2D, 0);
         }
 
-        profile(TimeProfilerCategory::Compositing, None, self.time_profiler_chan.clone(), || {
+        profile(ProfilerCategory::Compositing, None, self.time_profiler_chan.clone(), || {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             self.scene.viewport = Rect {
@@ -1356,8 +1354,8 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         while self.port.try_recv_compositor_msg().is_some() {}
 
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
-        self.time_profiler_chan.send(time::TimeProfilerMsg::Exit);
-        self.memory_profiler_chan.send(mem::MemoryProfilerMsg::Exit);
+        self.time_profiler_chan.send(time::ProfilerMsg::Exit);
+        self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
         self.scrolling_timer.shutdown();
     }
 

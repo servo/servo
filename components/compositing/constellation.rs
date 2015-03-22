@@ -25,8 +25,8 @@ use msg::constellation_msg::Msg as ConstellationMsg;
 use net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use net::resource_task::{self, ResourceTask};
 use net::storage_task::{StorageTask, StorageTaskMsg};
-use profile::mem::MemoryProfilerChan;
-use profile::time::TimeProfilerChan;
+use profile::mem;
+use profile::time;
 use util::cursor::Cursor;
 use util::geometry::PagePx;
 use util::opts;
@@ -91,10 +91,10 @@ pub struct Constellation<LTF, STF> {
     pending_frames: Vec<FrameChange>,
 
     /// A channel through which messages can be sent to the time profiler.
-    pub time_profiler_chan: TimeProfilerChan,
+    pub time_profiler_chan: time::ProfilerChan,
 
     /// A channel through which messages can be sent to the memory profiler.
-    pub memory_profiler_chan: MemoryProfilerChan,
+    pub mem_profiler_chan: mem::ProfilerChan,
 
     phantom: PhantomData<(LTF, STF)>,
 
@@ -173,8 +173,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                  resource_task: ResourceTask,
                  image_cache_task: ImageCacheTask,
                  font_cache_task: FontCacheTask,
-                 time_profiler_chan: TimeProfilerChan,
-                 memory_profiler_chan: MemoryProfilerChan,
+                 time_profiler_chan: time::ProfilerChan,
+                 mem_profiler_chan: mem::ProfilerChan,
                  devtools_chan: Option<DevtoolsControlChan>,
                  storage_task: StorageTask)
                  -> ConstellationChan {
@@ -199,7 +199,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 root_frame_id: None,
                 next_frame_id: FrameId(0),
                 time_profiler_chan: time_profiler_chan,
-                memory_profiler_chan: memory_profiler_chan,
+                mem_profiler_chan: mem_profiler_chan,
                 window_size: WindowSizeData {
                     visible_viewport: opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0),
                     initial_viewport: opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0),
@@ -242,7 +242,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                     self.resource_task.clone(),
                                                     self.storage_task.clone(),
                                                     self.time_profiler_chan.clone(),
-                                                    self.memory_profiler_chan.clone(),
+                                                    self.mem_profiler_chan.clone(),
                                                     initial_window_rect,
                                                     script_channel,
                                                     load_data,

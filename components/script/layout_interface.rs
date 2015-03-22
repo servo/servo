@@ -11,7 +11,7 @@ use dom::node::LayoutData;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use msg::constellation_msg::{PipelineExitType, WindowSizeData};
-use profile::mem::{MemoryReporter, MemoryReportsChan};
+use profile::mem::{Reporter, ReportsChan};
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel, UntrustedNodeAddress};
 use std::any::Any;
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -47,7 +47,7 @@ pub enum Msg {
 
     /// Requests that the layout task measure its memory usage. The resulting reports are sent back
     /// via the supplied channel.
-    CollectMemoryReports(MemoryReportsChan),
+    CollectReports(ReportsChan),
 
     /// Requests that the layout task enter a quiescent state in which no more messages are
     /// accepted except `ExitMsg`. A response message will be sent on the supplied channel when
@@ -66,7 +66,7 @@ pub enum Msg {
 ///
 ///   1) read-only with respect to LayoutTaskData,
 ///   2) small,
-//    3) and really needs to be fast.
+///   3) and really needs to be fast.
 pub trait LayoutRPC {
     /// Requests the dimensions of the content box, as in the `getBoundingClientRect()` call.
     fn content_box(&self) -> ContentBoxResponse;
@@ -133,11 +133,11 @@ impl LayoutChan {
     }
 }
 
-impl MemoryReporter for LayoutChan {
+impl Reporter for LayoutChan {
     // Just injects an appropriate event into the layout task's queue.
-    fn collect_reports(&self, reports_chan: MemoryReportsChan) -> bool {
+    fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
         let LayoutChan(ref c) = *self;
-        c.send(Msg::CollectMemoryReports(reports_chan)).is_ok()
+        c.send(Msg::CollectReports(reports_chan)).is_ok()
     }
 }
 
