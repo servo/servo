@@ -34,9 +34,8 @@ pub fn command_line_init(argc: c_int, argv: *const *const u8) {
     unsafe {
         let mut a: Vec<String> = vec!();
         for i in 0u..(argc as uint) {
-            let offset = *argv.offset(i as int) as *const c_char;
-            let slice = ffi::c_str_to_bytes(&offset);
-            let s = str::from_utf8(slice).unwrap();
+            let slice = ffi::CStr::from_ptr(*argv.offset(i as int) as *const c_char);
+            let s = str::from_utf8(slice.to_bytes()).unwrap();
             a.push(String::from_str(s));
         }
         let cl = command_line_new();

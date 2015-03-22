@@ -18,9 +18,9 @@ use libc::c_int;
 use util::opts;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, BorrowState};
-use std::sync::atomic::{AtomicInt, Ordering};
+use std::sync::atomic::{AtomicIsize, Ordering};
 
-thread_local!(pub static ID_COUNTER: AtomicInt = AtomicInt::new(0));
+thread_local!(pub static ID_COUNTER: AtomicIsize = AtomicIsize::new(0));
 thread_local!(pub static BROWSERS: RefCell<Vec<CefBrowser>> = RefCell::new(vec!()));
 
 pub enum ServoBrowser {
