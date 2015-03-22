@@ -45,7 +45,7 @@ fn parse_config(args: Vec<String>) -> Config {
     let opts = vec!(reqopt("s", "source-dir", "source-dir", "source-dir"));
     let matches = match getopts(args, opts.as_slice()) {
       Ok(m) => m,
-      Err(f) => panic!(format!("{}", f))
+      Err(f) => panic!(f.to_string())
     };
 
     Config {
@@ -73,7 +73,7 @@ fn find_tests(config: Config) -> Vec<TestDescAndFn> {
         _ => panic!("Error reading directory."),
     };
     files.retain(|file| file.extension_str() == Some("html") );
-    return files.iter().map(|file| make_test(format!("{}", file.display()))).collect();
+    return files.iter().map(|file| make_test(file.display().to_string())).collect();
 }
 
 fn make_test(file: String) -> TestDescAndFn {
