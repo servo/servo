@@ -77,10 +77,10 @@ impl Actor for TabActor {
 
     fn handle_message(&self,
                       registry: &ActorRegistry,
-                      msg_type: &String,
+                      msg_type: &str,
                       _msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match &**msg_type {
+        Ok(match msg_type {
             "reconfigure" => {
                 stream.write_json_packet(&ReconfigureReply { from: self.name() });
                 true
