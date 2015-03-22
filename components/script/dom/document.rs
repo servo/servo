@@ -1216,22 +1216,23 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             return Ok(());
         }
 
-        // Step 3.
-        match self.get_html_element().root() {
-            // Step 4.
-            None => return Err(HierarchyRequest),
-            Some(ref root) => {
-                let new_body: JSRef<Node> = NodeCast::from_ref(new_body);
-
+        match (self.get_html_element().root(), old_body) {
+            // Step 3.
+            (Some(ref root), Some(ref child)) => {
                 let root: JSRef<Node> = NodeCast::from_ref(root.r());
-                match old_body {
-                    Some(ref child) => {
-                        let child: JSRef<Node> = NodeCast::from_ref(child.r());
+                let child: JSRef<Node> = NodeCast::from_ref(child.r());
+                let new_body: JSRef<Node> = NodeCast::from_ref(new_body);
+                assert!(root.ReplaceChild(new_body, child).is_ok())
+            },
 
-                        assert!(root.ReplaceChild(new_body, child).is_ok())
-                    }
-                    None => assert!(root.AppendChild(new_body).is_ok())
-                };
+            // Step 4.
+            (None, _) => return Err(HierarchyRequest),
+
+            // Step 5.
+            (Some(ref root), None) => {
+                let root: JSRef<Node> = NodeCast::from_ref(root.r());
+                let new_body: JSRef<Node> = NodeCast::from_ref(new_body);
+                assert!(root.AppendChild(new_body).is_ok());
             }
         }
         Ok(())
