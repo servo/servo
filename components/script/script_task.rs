@@ -1298,5 +1298,5 @@ pub fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
 }
 
 fn dom_last_modified(tm: &Tm) -> String {
-    format!("{}", tm.to_local().strftime("%m/%d/%Y %H:%M:%S").unwrap())
+    tm.to_local().strftime("%m/%d/%Y %H:%M:%S").unwrap().to_string()
 }

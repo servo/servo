@@ -1090,7 +1090,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn LastModified(self) -> DOMString {
         match self.last_modified {
             Some(ref t) => t.clone(),
-            None => format!("{}", time::now().strftime("%m/%d/%Y %H:%M:%S").unwrap()),
+            None => time::now().strftime("%m/%d/%Y %H:%M:%S").unwrap().to_string(),
         }
     }
 
