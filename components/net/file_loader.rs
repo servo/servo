@@ -6,28 +6,24 @@ use resource_task::{ProgressMsg, Metadata, LoadData, start_sending, TargetedLoad
 use resource_task::ProgressMsg::{Payload, Done};
 
 use std::borrow::ToOwned;
-use std::old_io as io;
-use std::old_io::File;
+use std::io;
+use std::fs::File;
 use std::sync::mpsc::Sender;
 use util::task::spawn_named;
 
 static READ_SIZE: uint = 8192;
 
-fn read_all(reader: &mut io::Stream, progress_chan: &Sender<ProgressMsg>)
+fn read_all(reader: &mut io::Read, progress_chan: &Sender<ProgressMsg>)
         -> Result<(), String> {
     loop {
-        let mut buf = vec!();
-        match reader.push_at_least(READ_SIZE, READ_SIZE, &mut buf) {
-            Ok(_) => progress_chan.send(Payload(buf)).unwrap(),
-            Err(e) => match e.kind {
-                io::EndOfFile => {
-                    if buf.len() > 0 {
-                        progress_chan.send(Payload(buf)).unwrap();
-                    }
-                    return Ok(());
-                }
-                _ => return Err(e.desc.to_string()),
-            }
+        let mut buf = vec![0; READ_SIZE];
+        match reader.read(buf.as_mut_slice()) {
+            Ok(0) => return Ok(()),
+            Ok(n) => {
+                buf.truncate(n);
+                progress_chan.send(Payload(buf)).unwrap();
+            },
+            Err(e) => return Err(e.description().to_string()),
         }
     }
 }
@@ -44,13 +40,13 @@ pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         let file_path: Result<Path, ()> = url.to_file_path();
         match file_path {
             Ok(file_path) => {
-                match File::open_mode(&Path::new(file_path), io::Open, io::Read) {
+                match File::open(&Path::new(file_path)) {
                     Ok(ref mut reader) => {
-                        let res = read_all(reader as &mut io::Stream, &progress_chan);
+                        let res = read_all(reader, &progress_chan);
                         progress_chan.send(Done(res)).unwrap();
                     }
                     Err(e) => {
-                        progress_chan.send(Done(Err(e.desc.to_string()))).unwrap();
+                        progress_chan.send(Done(Err(e.description().to_string()))).unwrap();
                     }
                 }
             }
