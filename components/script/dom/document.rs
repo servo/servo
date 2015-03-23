@@ -60,13 +60,14 @@ use dom::window::{Window, WindowHelpers, ReflowReason};
 
 use layout_interface::{HitTestResponse, MouseOverResponse};
 use msg::compositor_msg::ScriptListener;
-use msg::constellation_msg::{Key, KeyState, KeyModifiers};
+use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::{ConstellationChan, Key, KeyState, KeyModifiers};
 use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
 use net::resource_task::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
 use net::cookie_storage::CookieSource::NonHTTP;
 use script_task::Runnable;
 use script_traits::UntrustedNodeAddress;
-use util::namespace;
+use util::{opts, namespace};
 use util::str::{DOMString, split_html_space_chars};
 use layout_interface::{ReflowGoal, ReflowQueryType};
 
@@ -1450,7 +1451,23 @@ impl DocumentProgressHandler {
             event.r().fire(target);
         });
 
-        window_ref.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::DocumentLoaded);
+        if opts::experimental_enabled() {
+            // If this is a child frame, and experimental mode is enabled,
+            // send the mozbrowserloadend event. For details, see
+            // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
+            if let Some((containing_pipeline_id, subpage_id)) = window_ref.parent_info() {
+                let ConstellationChan(ref chan) = window_ref.constellation_chan();
+                let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
+                                                              subpage_id,
+                                                              "mozbrowserloadend".to_owned(),
+                                                              None);
+                chan.send(event);
+            }
+        }
+
+        window_ref.reflow(ReflowGoal::ForDisplay,
+                          ReflowQueryType::NoQuery,
+                          ReflowReason::DocumentLoaded);
     }
 }
 

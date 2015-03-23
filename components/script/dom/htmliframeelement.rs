@@ -8,12 +8,18 @@ use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLIFrameElementDerived};
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventCast};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLElementCast, HTMLIFrameElementDerived};
+use dom::bindings::conversions::ToJSValConvertible;
+use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::Error::NotSupported;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
+use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::Element;
 use dom::element::AttributeHandlers;
+use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -23,13 +29,15 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::{Window, WindowHelpers};
 use page::IterablePage;
 
-use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan};
+use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan, NavigationDirection};
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use msg::constellation_msg::Msg as ConstellationMsg;
+use util::opts;
 use util::str::DOMString;
 use string_cache::Atom;
 
 use std::ascii::AsciiExt;
+use std::borrow::ToOwned;
 use std::cell::Cell;
 use url::{Url, UrlParser};
 
@@ -64,6 +72,7 @@ pub trait HTMLIFrameElementHelpers {
     fn process_the_iframe_attributes(self);
     fn generate_new_subpage_id(self) -> (SubpageId, Option<SubpageId>);
     fn navigate_child_browsing_context(self, url: Url);
+    fn dispatch_mozbrowser_event(self, event_name: String, event_detail: Option<String>);
 }
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
@@ -112,6 +121,11 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
                                                             new_subpage_id,
                                                             old_subpage_id,
                                                             sandboxed)).unwrap();
+
+        if opts::experimental_enabled() {
+            // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
+            self.dispatch_mozbrowser_event("mozbrowserloadstart".to_owned(), None);
+        }
     }
 
     fn process_the_iframe_attributes(self) {
@@ -121,6 +135,26 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         };
 
         self.navigate_child_browsing_context(url);
+    }
+
+    fn dispatch_mozbrowser_event(self, event_name: String, event_detail: Option<String>) {
+        // TODO(gw): Support mozbrowser event types that have detail which is not a string.
+        // See https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
+        // for a list of mozbrowser events.
+        assert!(opts::experimental_enabled());
+
+        if self.Mozbrowser() {
+            let window = window_from_node(self).root();
+            let cx = window.r().get_cx();
+            let custom_event = CustomEvent::new(GlobalRef::Window(window.r()),
+                                                event_name.to_owned(),
+                                                true,
+                                                true,
+                                                event_detail.to_jsval(cx)).root();
+            let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+            let event: JSRef<Event> = EventCast::from_ref(custom_event.r());
+            event.fire(target);
+        }
     }
 }
 
@@ -198,6 +232,85 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
                 None
             }
         })
+    }
+
+    // Experimental mozbrowser implementation is based on the webidl
+    // present in the gecko source tree, and the documentation here:
+    // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
+
+    // TODO(gw): Use experimental codegen when it is available to avoid
+    // exposing these APIs. See https://github.com/servo/servo/issues/5264.
+
+    // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
+    fn Mozbrowser(self) -> bool {
+        if opts::experimental_enabled() {
+            let element: JSRef<Element> = ElementCast::from_ref(self);
+            element.has_attribute(&Atom::from_slice("mozbrowser"))
+        } else {
+            false
+        }
+    }
+
+    fn SetMozbrowser(self, value: bool) -> ErrorResult {
+        if opts::experimental_enabled() {
+            let element: JSRef<Element> = ElementCast::from_ref(self);
+            element.set_bool_attribute(&Atom::from_slice("mozbrowser"), value);
+        }
+        Ok(())
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
+    fn GoBack(self) -> Fallible<()> {
+         if self.Mozbrowser() {
+            let node: JSRef<Node> = NodeCast::from_ref(self);
+            if node.is_in_doc() {
+                let window = window_from_node(self).root();
+                let window = window.r();
+
+                let pipeline_info = Some((self.containing_page_pipeline_id().unwrap(),
+                                          self.subpage_id().unwrap()));
+                let ConstellationChan(ref chan) = window.constellation_chan();
+                let msg = ConstellationMsg::Navigate(pipeline_info, NavigationDirection::Back);
+                chan.send(msg).unwrap();
+            }
+
+            Ok(())
+        } else {
+            debug!("this frame is not mozbrowser (or experimental_enabled is false)");
+            Err(NotSupported)
+        }
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goForward
+    fn GoForward(self) -> Fallible<()> {
+         if self.Mozbrowser() {
+            let node: JSRef<Node> = NodeCast::from_ref(self);
+            if node.is_in_doc() {
+                let window = window_from_node(self).root();
+                let window = window.r();
+
+                let pipeline_info = Some((self.containing_page_pipeline_id().unwrap(),
+                                          self.subpage_id().unwrap()));
+                let ConstellationChan(ref chan) = window.constellation_chan();
+                let msg = ConstellationMsg::Navigate(pipeline_info, NavigationDirection::Forward);
+                chan.send(msg).unwrap();
+            }
+
+            Ok(())
+        } else {
+            debug!("this frame is not mozbrowser (or experimental_enabled is false)");
+            Err(NotSupported)
+        }
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
+    fn Reload(self, _hardReload: bool) -> Fallible<()> {
+        Err(NotSupported)
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/stop
+    fn Stop(self) -> Fallible<()> {
+        Err(NotSupported)
     }
 }
 

@@ -84,6 +84,7 @@ impl Pipeline {
                 let (script_chan, script_port) = channel();
                 ScriptTaskFactory::create(None::<&mut STF>,
                                           id,
+                                          parent_info,
                                           compositor_proxy.clone_compositor_proxy(),
                                           &layout_pair,
                                           ScriptControlChan(script_chan.clone()),

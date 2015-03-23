@@ -24,6 +24,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLIFrameElementCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, RootedReference};
 use dom::bindings::js::{RootCollection, RootCollectionPtr};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
@@ -116,7 +117,7 @@ struct InProgressLoad {
     /// The pipeline which requested this load.
     pipeline_id: PipelineId,
     /// The parent pipeline and child subpage associated with this load, if any.
-    subpage_id: Option<(PipelineId, SubpageId)>,
+    parent_info: Option<(PipelineId, SubpageId)>,
     /// The current window size associated with this pipeline.
     window_size: Option<WindowSizeData>,
     /// Channel to the layout task associated with this pipeline.
@@ -130,13 +131,13 @@ struct InProgressLoad {
 impl InProgressLoad {
     /// Create a new InProgressLoad object.
     fn new(id: PipelineId,
-           subpage_id: Option<(PipelineId, SubpageId)>,
+           parent_info: Option<(PipelineId, SubpageId)>,
            layout_chan: LayoutChan,
            window_size: Option<WindowSizeData>,
            url: Url) -> InProgressLoad {
         InProgressLoad {
             pipeline_id: id,
-            subpage_id: subpage_id,
+            parent_info: parent_info,
             layout_chan: layout_chan,
             window_size: window_size,
             clip_rect: None,
@@ -332,6 +333,7 @@ impl ScriptTaskFactory for ScriptTask {
 
     fn create<C>(_phantom: Option<&mut ScriptTask>,
                  id: PipelineId,
+                 parent_info: Option<(PipelineId, SubpageId)>,
                  compositor: C,
                  layout_chan: &OpaqueScriptLayoutChannel,
                  control_chan: ScriptControlChan,
@@ -365,7 +367,7 @@ impl ScriptTaskFactory for ScriptTask {
             });
             let mut failsafe = ScriptMemoryFailsafe::new(&script_task);
 
-            let new_load = InProgressLoad::new(id, None, layout_chan, window_size,
+            let new_load = InProgressLoad::new(id, parent_info, layout_chan, window_size,
                                                load_data.url.clone());
             script_task.start_page_load(new_load, load_data);
 
@@ -641,7 +643,15 @@ impl ScriptTask {
             ConstellationControlMsg::Freeze(pipeline_id) =>
                 self.handle_freeze_msg(pipeline_id),
             ConstellationControlMsg::Thaw(pipeline_id) =>
-                self.handle_thaw_msg(pipeline_id)
+                self.handle_thaw_msg(pipeline_id),
+            ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
+                                                     subpage_id,
+                                                     event_name,
+                                                     event_detail) =>
+                self.handle_mozbrowser_event_msg(parent_pipeline_id,
+                                                 subpage_id,
+                                                 event_name,
+                                                 event_detail),
         }
     }
 
@@ -783,6 +793,30 @@ impl ScriptTask {
         window.r().thaw();
     }
 
+    /// Handles a mozbrowser event, for example see:
+    /// https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
+    fn handle_mozbrowser_event_msg(&self,
+                                   parent_pipeline_id: PipelineId,
+                                   subpage_id: SubpageId,
+                                   event_name: String,
+                                   event_detail: Option<String>) {
+        let borrowed_page = self.root_page();
+
+        let frame_element = borrowed_page.find(parent_pipeline_id).and_then(|page| {
+            let doc = page.document().root();
+            let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
+
+            doc.traverse_preorder()
+               .filter_map(HTMLIFrameElementCast::to_ref)
+               .find(|node| node.subpage_id() == Some(subpage_id))
+               .map(Temporary::from_rooted)
+        }).root();
+
+        if let Some(frame_element) = frame_element {
+            frame_element.r().dispatch_mozbrowser_event(event_name, event_detail);
+        }
+    }
+
     /// Handles a notification that reflow completed.
     fn handle_reflow_complete_msg(&self, pipeline_id: PipelineId, reflow_id: uint) {
         debug!("Script: Reflow {:?} complete for {:?}", reflow_id, pipeline_id);
@@ -832,7 +866,7 @@ impl ScriptTask {
                                   response: LoadResponse) {
         // Any notification received should refer to an existing, in-progress load that is tracked.
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
-            load.pipeline_id == id && load.subpage_id.map(|sub| sub.1) == subpage
+            load.pipeline_id == id && load.parent_info.map(|info| info.1) == subpage
         }).unwrap();
         let load = self.incomplete_loads.borrow_mut().remove(idx);
         self.load(response, load);
@@ -876,27 +910,31 @@ impl ScriptTask {
         // We should either be initializing a root page or loading a child page of an
         // existing one.
         let root_page_exists = self.page.borrow().is_some();
-        assert!(incomplete.subpage_id.is_none() || root_page_exists);
 
-        let frame_element = incomplete.subpage_id.and_then(|(parent_id, subpage_id)| {
-            let borrowed_page = self.root_page();
-          // In the case a parent id exists but the matching page
-          // cannot be found, this means the page exists in a different
-          // script task (due to origin) so it shouldn't be returned.
-          // TODO: window.parent will continue to return self in that
-          // case, which is wrong. We should be returning an object that
-          // denies access to most properties (per
-          // https://github.com/servo/servo/issues/3939#issuecomment-62287025).
-          borrowed_page.find(parent_id).and_then(|page| {
-            let doc = page.document().root();
-            let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
+        let frame_element = incomplete.parent_info.and_then(|(parent_id, subpage_id)| {
+            // The root page may not exist yet, if the parent of this frame
+            // exists in a different script task.
+            let borrowed_page = self.page.borrow();
 
-            doc.traverse_preorder()
-               .filter_map(HTMLIFrameElementCast::to_ref)
-               .find(|node| node.subpage_id() == Some(subpage_id))
-               .map(ElementCast::from_ref)
-               .map(Temporary::from_rooted)
-          })
+            // In the case a parent id exists but the matching page
+            // cannot be found, this means the page exists in a different
+            // script task (due to origin) so it shouldn't be returned.
+            // TODO: window.parent will continue to return self in that
+            // case, which is wrong. We should be returning an object that
+            // denies access to most properties (per
+            // https://github.com/servo/servo/issues/3939#issuecomment-62287025).
+            borrowed_page.as_ref().and_then(|borrowed_page| {
+                borrowed_page.find(parent_id).and_then(|page| {
+                    let doc = page.document().root();
+                    let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
+
+                    doc.traverse_preorder()
+                       .filter_map(HTMLIFrameElementCast::to_ref)
+                       .find(|node| node.subpage_id() == Some(subpage_id))
+                       .map(ElementCast::from_ref)
+                       .map(Temporary::from_rooted)
+                })
+            })
         }).root();
 
         self.compositor.borrow_mut().set_ready_state(incomplete.pipeline_id, Loading);
@@ -909,9 +947,11 @@ impl ScriptTask {
         if !root_page_exists {
             // We have a new root frame tree.
             *self.page.borrow_mut() = Some(page.clone());
-        } else if let Some((parent, _)) = incomplete.subpage_id {
+        } else if let Some((parent, _)) = incomplete.parent_info {
             // We have a new child frame.
             let parent_page = self.root_page();
+            // TODO(gw): This find will fail when we are sharing script tasks
+            // between cross origin iframes in the same TLD.
             parent_page.find(parent).expect("received load for subpage with missing parent");
             parent_page.children.borrow_mut().push(page.clone());
         }
@@ -972,7 +1012,7 @@ impl ScriptTask {
                                  self.constellation_chan.clone(),
                                  incomplete.layout_chan,
                                  incomplete.pipeline_id,
-                                 incomplete.subpage_id.map(|s| s.1),
+                                 incomplete.parent_info,
                                  incomplete.window_size).root();
 
         let last_modified: Option<DOMString> = response.metadata.headers.as_ref().and_then(|headers| {
@@ -1223,7 +1263,7 @@ impl ScriptTask {
     /// argument until a notification is received that the fetch is complete.
     fn start_page_load(&self, incomplete: InProgressLoad, mut load_data: LoadData) {
         let id = incomplete.pipeline_id.clone();
-        let subpage = incomplete.subpage_id.clone().map(|p| p.1);
+        let subpage = incomplete.parent_info.clone().map(|p| p.1);
 
         let script_chan = self.chan.clone();
         let resource_task = self.resource_task.clone();
