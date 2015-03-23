@@ -100,7 +100,6 @@ pub enum MediaType {
     Unknown,
 }
 
-#[allow(missing_copy_implementations)]
 #[derive(Debug)]
 pub struct Device {
     pub media_type: MediaType,
