@@ -52,10 +52,10 @@ impl Actor for RootActor {
 
     fn handle_message(&self,
                       registry: &ActorRegistry,
-                      msg_type: &String,
+                      msg_type: &str,
                       _msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match &**msg_type {
+        Ok(match msg_type {
             "listAddons" => {
                 let actor = ErrorReply {
                     from: "root".to_string(),
