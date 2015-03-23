@@ -118,10 +118,10 @@ impl Actor for ConsoleActor {
 
     fn handle_message(&self,
                       _registry: &ActorRegistry,
-                      msg_type: &String,
+                      msg_type: &str,
                       msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match &**msg_type {
+        Ok(match msg_type {
             "getCachedMessages" => {
                 let types = msg.get(&"messageTypes".to_string()).unwrap().as_array().unwrap();
                 let /*mut*/ messages = vec!();

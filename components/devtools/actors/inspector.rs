@@ -66,10 +66,10 @@ impl Actor for HighlighterActor {
 
     fn handle_message(&self,
                       _registry: &ActorRegistry,
-                      msg_type: &String,
+                      msg_type: &str,
                       _msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match &**msg_type {
+        Ok(match msg_type {
             "showBoxModel" => {
                 let msg = ShowBoxModelReply {
                     from: self.name(),
@@ -103,10 +103,10 @@ impl Actor for NodeActor {
 
     fn handle_message(&self,
                       registry: &ActorRegistry,
-                      msg_type: &String,
+                      msg_type: &str,
                       msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match &**msg_type {
+        Ok(match msg_type {
             "modifyAttributes" => {
                 let target = msg.get(&"to".to_string()).unwrap().as_string().unwrap();
                 let mods = msg.get(&"modifications".to_string()).unwrap().as_array().unwrap();
@@ -277,10 +277,10 @@ impl Actor for WalkerActor {
 
     fn handle_message(&self,
                       registry: &ActorRegistry,
-                      msg_type: &String,
+                      msg_type: &str,
                       msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match &**msg_type {
+        Ok(match msg_type {
             "querySelector" => {
                 let msg = QuerySelectorReply {
                     from: self.name(),
@@ -423,10 +423,10 @@ impl Actor for PageStyleActor {
 
     fn handle_message(&self,
                       registry: &ActorRegistry,
-                      msg_type: &String,
+                      msg_type: &str,
                       msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match &**msg_type {
+        Ok(match msg_type {
             "getApplied" => {
                 //TODO: query script for relevant applied styles to node (msg.node)
                 let msg = GetAppliedReply {
@@ -495,10 +495,10 @@ impl Actor for InspectorActor {
 
     fn handle_message(&self,
                       registry: &ActorRegistry,
-                      msg_type: &String,
+                      msg_type: &str,
                       _msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
-        Ok(match &**msg_type {
+        Ok(match msg_type {
             "getWalker" => {
                 if self.walker.borrow().is_none() {
                     let walker = WalkerActor {

@@ -18,7 +18,7 @@ use rustc_serialize::json;
 pub trait Actor: Any {
     fn handle_message(&self,
                       registry: &ActorRegistry,
-                      msg_type: &String,
+                      msg_type: &str,
                       msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()>;
     fn name(&self) -> String;
