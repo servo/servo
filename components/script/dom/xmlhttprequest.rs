@@ -616,13 +616,13 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                 referer_url.serialize_host().map(|ref h| buf.push_str(h.as_slice()));
                 referer_url.port().as_ref().map(|&p| {
                     buf.push_str(":".as_slice());
-                    buf.push_str(format!("{}", p).as_slice());
+                    buf.push_str(p.to_string().as_slice());
                 });
                 referer_url.serialize_path().map(|ref h| buf.push_str(h.as_slice()));
                 self.request_headers.borrow_mut().set_raw("Referer".to_owned(), vec![buf.into_bytes()]);
             },
             Ok(Some(ref req)) => self.insert_trusted_header("origin".to_owned(),
-                                                            format!("{}", req.origin)),
+                                                            req.origin.to_string()),
             _ => {}
         }
 
