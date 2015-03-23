@@ -6,7 +6,6 @@
 
 pub use cssparser::RGBA;
 
-
 macro_rules! define_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident ),+,) => {
         define_css_keyword_enum!($name: $( $css => $variant ),+);
@@ -65,6 +64,7 @@ pub mod specified {
     use text_writer::{self, TextWriter};
     use util::geometry::Au;
     use super::CSSFloat;
+    use ::FromCss;
 
     #[derive(Clone, PartialEq)]
     pub struct CSSColor {
@@ -861,6 +861,150 @@ pub mod specified {
         "ridge" => ridge,
         "inset" => inset,
         "outset" => outset,
+    }
+
+    // MQ 4 § 1.2 Values (http://drafts.csswg.org/mediaqueries/#values)
+    #[derive(Clone, Copy, Eq, Ord)]
+    pub struct Ratio(u32, u32);
+
+    impl fmt::Debug for Ratio {
+        #[inline]
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            self.fmt_to_css(f)
+        }
+    }
+
+    impl FromCss for Ratio {
+        type Err = ();
+        type Context = ();
+
+        fn from_css(input: &mut Parser, _: &()) -> Result<Ratio, ()> {
+            macro_rules! expect_positive_integer {
+                ($input:ident) => {
+                    $input.expect_integer()
+                        .and_then(|i| i.to_u32().ok_or(()))
+                        .and_then(|u| if u > 0 { Ok(u) } else { Err(()) })
+                }
+            }
+
+            let antecedent = try!(expect_positive_integer!(input));
+            try!(input.expect_delim('/'));
+            let consequent = try!(expect_positive_integer!(input));
+
+            Ok(Ratio(antecedent, consequent))
+        }
+    }
+
+    impl ToCss for Ratio {
+        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result
+            where W: TextWriter
+        {
+            write!(dest, "{}/{}", self.0, self.1)
+        }
+    }
+
+    impl ToPrimitive for Ratio {
+        #[inline]
+        fn to_i64(&self) -> Option<i64> {
+            self.to_f64().and_then(|x| x.to_i64())
+        }
+
+        #[inline]
+        fn to_u64(&self) -> Option<u64> {
+            self.to_f64().and_then(|x| x.to_u64())
+        }
+
+        #[inline]
+        fn to_f64(&self) -> Option<f64> {
+            assert!(self.0 > 0 && self.1 > 0);
+            Some(self.0 as f64 / self.1 as f64)
+        }
+    }
+
+    impl PartialOrd<f32> for Ratio {
+        fn partial_cmp(&self, other: &f32) -> Option<::std::cmp::Ordering> {
+            use ::std::cmp::Ordering;
+            use ::std::num::Float;
+
+            if other.is_nan() {
+                return None;
+            }
+
+            if let Some(this) = self.to_f32() {
+                if this < *other {
+                    Some(Ordering::Less)
+                } else if this > * other {
+                    Some(Ordering::Greater)
+                } else {
+                    Some(Ordering::Equal)
+                }
+            } else {
+                None
+            }
+        }
+    }
+
+    impl PartialOrd<Ratio> for Ratio {
+        #[inline]
+        fn partial_cmp(&self, other: &Ratio) -> Option<::std::cmp::Ordering> {
+            other.to_f32().and_then(|other| self.partial_cmp(&other))
+        }
+    }
+
+    impl PartialOrd<Ratio> for f32 {
+        #[inline]
+        fn partial_cmp(&self, other: &Ratio) -> Option<::std::cmp::Ordering> {
+            other.to_f32().and_then(|other| self.partial_cmp(&other))
+        }
+    }
+
+    impl PartialEq<f32> for Ratio {
+        #[inline]
+        fn eq(&self, other: &f32) -> bool {
+            self.to_f32().map(|this| this == *other).unwrap_or(false)
+        }
+    }
+
+    impl PartialEq<Ratio> for Ratio {
+        #[inline]
+        fn eq(&self, other: &Ratio) -> bool {
+            other.to_f32().map(|other| *self == other).unwrap_or(false)
+        }
+    }
+
+    impl PartialEq<Ratio> for f32 {
+        #[inline]
+        fn eq(&self, other: &Ratio) -> bool {
+            other.to_f32().map(|other| *self == other).unwrap_or(false)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::Ratio;
+
+        use std::num::ToPrimitive;
+        use ::FromCss;
+        use ::cssparser::Parser;
+
+        #[test]
+        fn ratio_from_css() {
+            assert_eq!(FromCss::from_css(&mut Parser::new("4/3"), &()).unwrap(),
+                       Ratio(4,3));
+
+            assert!(<Ratio as FromCss>::from_css(&mut Parser::new("0/3"), &()).is_err());
+            assert!(<Ratio as FromCss>::from_css(&mut Parser::new("4/0"), &()).is_err());
+
+            assert!(<Ratio as FromCss>::from_css(&mut Parser::new("4.0/3"), &()).is_err());
+            assert!(<Ratio as FromCss>::from_css(&mut Parser::new("4/3.0"), &()).is_err());
+        }
+
+        #[test]
+        fn common_screen_aspect_ratios() {
+            assert_eq!(Ratio(4, 3).to_f32().unwrap(), 4./3.);
+            assert_eq!(Ratio(16, 10).to_f32().unwrap(), 16./10.);
+            assert_eq!(Ratio(16, 9).to_f32().unwrap(), 16./9.);
+        }
     }
 }
 

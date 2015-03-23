@@ -6,6 +6,7 @@
 #![feature(plugin)]
 #![feature(int_uint)]
 #![feature(box_syntax)]
+#![feature(box_patterns)]
 #![feature(core)]
 #![feature(collections)]
 #![feature(rustc_private)]
@@ -66,3 +67,15 @@ macro_rules! reexport_computed_values {
 }
 longhand_properties_idents!(reexport_computed_values);
 
+/// A trait that mimics std::str::FromStr, but from CSS instead of a string.
+pub trait FromCss {
+    /// The associated error which can be returned from parsing.
+    type Err;
+
+    /// The context the input is being parse in.
+    type Context;
+
+    /// Parses some CSS from `input` to return an optional value of this type.
+    /// If the CSS is ill-formatted, the Err is returned.
+    fn from_css(input: &mut ::cssparser::Parser, context: &Self::Context) -> Result<Self, Self::Err>;
+}
