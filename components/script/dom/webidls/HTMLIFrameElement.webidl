@@ -31,3 +31,10 @@ partial interface HTMLIFrameElement {
   //[TreatNullAs=EmptyString] attribute DOMString marginHeight;
   //[TreatNullAs=EmptyString] attribute DOMString marginWidth;
 };
+
+partial interface HTMLIFrameElement {
+  [ChromeOnly,SetterThrows]
+           attribute boolean mozbrowser;
+};
+
+HTMLIFrameElement implements BrowserElement;

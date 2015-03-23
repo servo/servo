@@ -212,6 +212,8 @@ pub enum Msg {
     GetPipelineTitle(PipelineId),
     /// Requests that the constellation inform the compositor of the a cursor change.
     SetCursor(Cursor),
+    /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
+    MozBrowserEvent(PipelineId, SubpageId, String, Option<String>),
 }
 
 /// Similar to net::resource_task::LoadData

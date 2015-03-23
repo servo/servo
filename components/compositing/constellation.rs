@@ -375,6 +375,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got get-pipeline-title message");
                 self.handle_get_pipeline_title_msg(pipeline_id);
             }
+            ConstellationMsg::MozBrowserEvent(pipeline_id,
+                                              subpage_id,
+                                              event_name,
+                                              event_detail) => {
+                debug!("constellation got mozbrowser event message");
+                self.handle_mozbrowser_event_msg(pipeline_id,
+                                                 subpage_id,
+                                                 event_name,
+                                                 event_detail);
+            }
         }
         true
     }
@@ -625,6 +635,24 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 script_channel.send(ConstellationControlMsg::GetTitle(pipeline_id)).unwrap();
             }
         }
+    }
+
+    fn handle_mozbrowser_event_msg(&mut self,
+                                   pipeline_id: PipelineId,
+                                   subpage_id: SubpageId,
+                                   event_name: String,
+                                   event_detail: Option<String>) {
+        assert!(opts::experimental_enabled());
+
+        // Find the script channel for the given parent pipeline,
+        // and pass the event to that script task.
+        let pipeline = self.pipeline(pipeline_id);
+        let ScriptControlChan(ref script_channel) = pipeline.script_chan;
+        let event = ConstellationControlMsg::MozBrowserEvent(pipeline_id,
+                                                             subpage_id,
+                                                             event_name,
+                                                             event_detail);
+        script_channel.send(event).unwrap();
     }
 
     fn add_or_replace_pipeline_in_frame_tree(&mut self, frame_change: FrameChange) {
