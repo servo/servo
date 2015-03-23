@@ -1106,6 +1106,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         TreeWalker::new(self, root, whatToShow, filter)
     }
 
+    // TODO: Support root SVG namespace: https://github.com/servo/servo/issues/5315
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     fn Title(self) -> DOMString {
         let mut title = String::new();
@@ -1127,6 +1128,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         v.connect(" ")
     }
 
+    // TODO: Support root SVG namespace: https://github.com/servo/servo/issues/5315
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     fn SetTitle(self, title: DOMString) -> ErrorResult {
         self.GetDocumentElement().root().map(|root| {
