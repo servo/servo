@@ -155,6 +155,14 @@ pub struct Window {
 }
 
 impl Window {
+    #[allow(unsafe_code)]
+    pub fn clear_js_context_for_script_deallocation(&self) {
+        unsafe {
+            *self.js_context.borrow_for_script_deallocation() = None;
+            *self.browser_context.borrow_for_script_deallocation() = None;
+        }
+    }
+
     pub fn get_cx(&self) -> *mut JSContext {
         self.js_context.borrow().as_ref().unwrap().ptr
     }
@@ -425,7 +433,6 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
 pub trait WindowHelpers {
     fn clear_js_context(self);
-    fn clear_js_context_for_script_deallocation(self);
     fn init_browser_context(self, doc: JSRef<Document>, frame_element: Option<JSRef<Element>>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
@@ -497,14 +504,6 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 
         *self.js_context.borrow_mut() = None;
         *self.browser_context.borrow_mut() = None;
-    }
-
-    #[allow(unsafe_code)]
-    fn clear_js_context_for_script_deallocation(self) {
-        unsafe {
-            *self.js_context.borrow_for_script_deallocation() = None;
-            *self.browser_context.borrow_for_script_deallocation() = None;
-        }
     }
 
     /// Reflows the page if it's possible to do so and the page is dirty. This method will wait
