@@ -30,9 +30,6 @@ git = "https://github.com/servo/rust-geom"
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 
-[dependencies.task_info]
-path = "../../support/rust-task_info"
-
 [dependencies.string_cache]
 git = "https://github.com/servo/string-cache"
 
@@ -46,8 +43,6 @@ git = "https://github.com/Kimundi/lazy-static.rs"
 bitflags = "*"
 libc = "*"
 rand = "*"
-regex = "0.1.14"
 rustc-serialize = "0.3"
 text_writer = "0.1.1"
 time = "0.1.12"
-url = "0.2.16"

@@ -43,6 +43,9 @@ use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, Pipel
 use net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use net::local_image_cache::{ImageResponder, LocalImageCache};
 use net::resource_task::{ResourceTask, load_bytes_iter};
+use profile::mem::{MemoryProfilerChan, MemoryProfilerMsg, MemoryReport, MemoryReportsChan};
+use profile::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan};
+use profile::time::{TimerMetadataFrameType, TimerMetadataReflowType, profile};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::element::ElementTypeId;
 use script::dom::htmlelement::HTMLElementTypeId;
@@ -70,14 +73,11 @@ use url::Url;
 use util::cursor::Cursor;
 use util::geometry::Au;
 use util::logical_geometry::LogicalPoint;
-use util::memory::{MemoryProfilerChan, MemoryProfilerMsg, MemoryReport, MemoryReportsChan};
 use util::memory::{SizeOf};
 use util::opts;
 use util::smallvec::{SmallVec, SmallVec1, VecLike};
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
-use util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan};
-use util::time::{TimerMetadataFrameType, TimerMetadataReflowType, profile};
 use util::workqueue::WorkQueue;
 
 /// Mutable data belonging to the LayoutTask.

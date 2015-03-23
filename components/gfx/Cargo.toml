@@ -20,6 +20,9 @@ path = "../util"
 [dependencies.msg]
 path = "../msg"
 
+[dependencies.profile]
+path = "../profile"
+
 [dependencies.style]
 path = "../style"
 

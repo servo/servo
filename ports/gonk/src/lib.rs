@@ -22,6 +22,7 @@ extern crate script;
 extern crate layout;
 extern crate gfx;
 extern crate libc;
+extern crate profile;
 extern crate url;
 
 use compositing::CompositorEventListener;
@@ -45,9 +46,9 @@ use net::resource_task::new_resource_task;
 #[cfg(not(test))]
 use gfx::font_cache_task::FontCacheTask;
 #[cfg(not(test))]
-use util::time::TimeProfiler;
+use profile::mem::MemoryProfiler;
 #[cfg(not(test))]
-use util::memory::MemoryProfiler;
+use profile::time::TimeProfiler;
 #[cfg(not(test))]
 use util::opts;
 #[cfg(not(test))]

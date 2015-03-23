@@ -43,6 +43,8 @@ extern crate style;
 extern crate "plugins" as servo_plugins;
 extern crate net;
 extern crate msg;
+#[macro_use]
+extern crate profile;
 extern crate selectors;
 #[macro_use]
 extern crate util;

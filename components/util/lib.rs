@@ -12,7 +12,6 @@
 #![feature(io)]
 #![feature(old_io)]
 #![feature(optin_builtin_traits)]
-#![cfg_attr(target_os = "linux", feature(page_size, str_words))]
 #![feature(path)]
 #![feature(path_ext)]
 #![feature(plugin)]
@@ -27,7 +26,6 @@
 
 extern crate alloc;
 #[macro_use] extern crate bitflags;
-extern crate collections;
 extern crate cssparser;
 extern crate geom;
 extern crate getopts;
@@ -35,19 +33,10 @@ extern crate layers;
 extern crate libc;
 #[no_link] #[macro_use] extern crate cssparser;
 extern crate rand;
-#[cfg(target_os="linux")]
-extern crate regex;
 extern crate "rustc-serialize" as rustc_serialize;
-#[cfg(target_os="macos")]
-extern crate task_info;
-extern crate "time" as std_time;
 extern crate text_writer;
 extern crate selectors;
 extern crate string_cache;
-extern crate unicode;
-extern crate url;
-
-extern crate lazy_static;
 
 pub use selectors::smallvec;
 
@@ -70,7 +59,6 @@ pub mod resource_files;
 pub mod str;
 pub mod task;
 pub mod tid;
-pub mod time;
 pub mod taskpool;
 pub mod task_state;
 pub mod vec;

@@ -14,8 +14,8 @@ use std::num::Float;
 use std::sync::mpsc::{Sender, channel, Receiver};
 use std::time::duration::Duration;
 use std_time::precise_time_ns;
-use task::{spawn_named};
 use url::Url;
+use util::task::spawn_named;
 
 // front-end representation of the profiler used to communicate with the profiler
 #[derive(Clone)]
