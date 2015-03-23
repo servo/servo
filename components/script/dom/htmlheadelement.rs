@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -51,7 +50,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLHeadElement> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, _tree_in_doc: bool) {
         if !opts::get().userscripts {
             return;
         }
@@ -79,7 +78,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLHeadElement> {
             let new_script = new_script.r();
             new_script.set_string_attribute(&atom!("src"), name);
             let new_script_node: &JSRef<Node> = NodeCast::from_borrowed_ref(&new_script);
-            node.InsertBefore(*new_script_node, first_child.r());
+            node.InsertBefore(*new_script_node, first_child.r()).unwrap();
         }
     }
 }
