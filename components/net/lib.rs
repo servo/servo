@@ -17,8 +17,6 @@
 #![feature(std_misc)]
 #![feature(unboxed_closures)]
 
-#![allow(missing_copy_implementations)]
-
 #![plugin(regex_macros)]
 
 extern crate "cookie" as cookie_rs;

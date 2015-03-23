@@ -3395,7 +3395,6 @@ pub mod shorthands {
             use parser::ParserContext;
             use properties::longhands;
 
-            #[allow(missing_copy_implementations)]
             pub struct Longhands {
                 % for sub_property in shorthand.sub_properties:
                     pub ${sub_property.ident}:
@@ -4203,7 +4202,6 @@ pub mod style_structs {
     use super::longhands;
 
     % for style_struct in STYLE_STRUCTS:
-        #[allow(missing_copy_implementations)]
         #[derive(PartialEq, Clone)]
         pub struct ${style_struct.name} {
             % for longhand in style_struct.longhands:
