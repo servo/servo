@@ -104,6 +104,22 @@ pub mod specified {
     use util::geometry::Au;
     use super::CSSFloat;
 
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    pub enum AllowedNumericType {
+        All,
+        NonNegative
+    }
+
+    impl AllowedNumericType {
+        #[inline]
+        pub fn is_ok(&self, value: f64) -> bool {
+            match self {
+                &AllowedNumericType::All => true,
+                &AllowedNumericType::NonNegative => value >= 0.,
+            }
+        }
+    }
+
     #[derive(Clone, PartialEq)]
     pub struct CSSColor {
         pub parsed: cssparser::Color,
@@ -442,33 +458,32 @@ pub mod specified {
             }
         }
     }
+
     impl LengthOrPercentageOrAuto {
-        fn parse_internal(input: &mut Parser, negative_ok: bool)
-                     -> Result<LengthOrPercentageOrAuto, ()> {
+        fn parse_internal(input: &mut Parser, context: &AllowedNumericType)
+                          -> Result<LengthOrPercentageOrAuto, ()>
+        {
             match try!(input.next()) {
-                Token::Dimension(ref value, ref unit) if negative_ok || value.value >= 0. => {
+                Token::Dimension(ref value, ref unit) if context.is_ok(value.value) => {
                     Length::parse_dimension(value.value, unit)
-                    .map(LengthOrPercentageOrAuto::Length)
+                        .map(LengthOrPercentageOrAuto::Length)
                 }
-                Token::Percentage(ref value) if negative_ok || value.unit_value >= 0. => {
-                    Ok(LengthOrPercentageOrAuto::Percentage(value.unit_value))
-                }
-                Token::Number(ref value) if value.value == 0. => {
-                    Ok(LengthOrPercentageOrAuto::Length(Length::Absolute(Au(0))))
-                }
-                Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") => {
-                    Ok(LengthOrPercentageOrAuto::Auto)
-                }
+                Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
+                    Ok(LengthOrPercentageOrAuto::Percentage(value.unit_value)),
+                Token::Number(ref value) if context.is_ok(value.value) =>
+                    Ok(LengthOrPercentageOrAuto::Length(Length::Absolute(Au(0)))),
+                Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
+                    Ok(LengthOrPercentageOrAuto::Auto),
                 _ => Err(())
             }
         }
         #[inline]
         pub fn parse(input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
-            LengthOrPercentageOrAuto::parse_internal(input, /* negative_ok = */ true)
+            LengthOrPercentageOrAuto::parse_internal(input, &AllowedNumericType::All)
         }
         #[inline]
         pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
-            LengthOrPercentageOrAuto::parse_internal(input, /* negative_ok = */ false)
+            LengthOrPercentageOrAuto::parse_internal(input, &AllowedNumericType::NonNegative)
         }
     }
 

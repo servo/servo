@@ -9,6 +9,7 @@
 #![feature(collections)]
 #![feature(hash)]
 #![feature(rustc_private)]
+#![feature(std_misc)]
 
 #![plugin(string_cache_plugin)]
 #![plugin(mod_path)]
@@ -51,6 +52,7 @@ pub mod media_queries;
 pub mod font_face;
 pub mod legacy;
 pub mod animation;
+pub mod viewport;
 
 macro_rules! reexport_computed_values {
     ( $( $name: ident )+ ) => {

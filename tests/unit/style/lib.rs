@@ -16,6 +16,7 @@ extern crate util;
 
 #[cfg(test)] mod stylesheets;
 #[cfg(test)] mod media_queries;
+#[cfg(test)] mod viewport;
 
 #[cfg(test)] mod writing_modes {
     use util::logical_geometry::WritingMode;
