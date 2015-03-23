@@ -259,6 +259,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     fn SetValue(self, value: DOMString) {
         self.textinput.borrow_mut().set_content(value);
         self.value_changed.set(true);
+        self.force_relayout();
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-defaultvalue
@@ -427,6 +428,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
 
         self.SetValue(self.DefaultValue());
         self.value_changed.set(false);
+        self.force_relayout();
     }
 }
 
