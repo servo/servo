@@ -1461,7 +1461,7 @@ impl DocumentProgressHandler {
                                                               subpage_id,
                                                               "mozbrowserloadend".to_owned(),
                                                               None);
-                chan.send(event);
+                chan.send(event).unwrap();
             }
         }
 
