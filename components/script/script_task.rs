@@ -25,7 +25,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLIFr
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, RootedReference};
-use dom::bindings::js::{RootCollection, RootCollectionPtr};
+use dom::bindings::js::{RootCollection, RootCollectionPtr, Unrooted};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
@@ -303,14 +303,15 @@ impl<'a> ScriptMemoryFailsafe<'a> {
 
 #[unsafe_destructor]
 impl<'a> Drop for ScriptMemoryFailsafe<'a> {
+    #[allow(unrooted_must_root)]
     fn drop(&mut self) {
         match self.owner {
             Some(owner) => {
                 unsafe {
                     let page = owner.page.borrow_for_script_deallocation();
                     for page in page.iter() {
-                        let window = page.window().root();
-                        window.r().clear_js_context_for_script_deallocation();
+                        let window = Unrooted::from_temporary(page.window());
+                        (*window.unsafe_get()).clear_js_context_for_script_deallocation();
                     }
                     *owner.js_context.borrow_for_script_deallocation() = None;
                 }
