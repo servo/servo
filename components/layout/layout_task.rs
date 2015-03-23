@@ -482,7 +482,7 @@ impl LayoutTask {
         let rw_data = self.lock_rw_data(possibly_locked_rw_data);
         let stacking_context = rw_data.stacking_context.as_ref();
         reports.push(MemoryReport {
-            name: format!("display-list::{}", self.url),
+            path: path!["pages", format!("url({})", self.url), "display-list"],
             size: stacking_context.map_or(0, |sc| sc.size_of_excluding_self() as u64),
         });
 
