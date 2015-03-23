@@ -24,7 +24,6 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLIFrameElementCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, RootedReference};
 use dom::bindings::js::{RootCollection, RootCollectionPtr};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};

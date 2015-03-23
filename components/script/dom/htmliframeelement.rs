@@ -19,7 +19,7 @@ use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::Element;
 use dom::element::AttributeHandlers;
-use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
+use dom::event::{Event, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
