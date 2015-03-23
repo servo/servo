@@ -10,14 +10,16 @@ use dom::node::LayoutData;
 
 use geom::point::Point2D;
 use geom::rect::Rect;
+use libc::uintptr_t;
 use msg::constellation_msg::{PipelineExitType, WindowSizeData};
 use profile::mem::{Reporter, ReportsChan};
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel, UntrustedNodeAddress};
 use std::any::Any;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::boxed::BoxAny;
-use style::stylesheets::Stylesheet;
+use style::animation::PropertyAnimation;
 use style::media_queries::MediaQueryList;
+use style::stylesheets::Stylesheet;
 use url::Url;
 use util::geometry::Au;
 
@@ -35,10 +37,13 @@ pub enum Msg {
     SetQuirksMode,
 
     /// Requests a reflow.
-    Reflow(Box<Reflow>),
+    Reflow(Box<ScriptReflow>),
 
     /// Get an RPC interface.
     GetRPC(Sender<Box<LayoutRPC + Send>>),
+
+    /// Requests that the layout task render the next frame of all animations.
+    TickAnimations,
 
     /// Destroys layout data associated with a DOM node.
     ///
@@ -100,14 +105,22 @@ pub enum ReflowQueryType {
 
 /// Information needed for a reflow.
 pub struct Reflow {
-    /// The document node.
-    pub document_root: TrustedNodeAddress,
     /// The goal of reflow: either to render to the screen or to flush layout info for script.
     pub goal: ReflowGoal,
     /// The URL of the page.
     pub url: Url,
     /// Is the current reflow of an iframe, as opposed to a root window?
     pub iframe: bool,
+    ///  A clipping rectangle for the page, an enlarged rectangle containing the viewport.
+    pub page_clip_rect: Rect<Au>,
+}
+
+/// Information needed for a script-initiated reflow.
+pub struct ScriptReflow {
+    /// General reflow data.
+    pub reflow_info: Reflow,
+    /// The document node.
+    pub document_root: TrustedNodeAddress,
     /// The channel through which messages can be sent back to the script task.
     pub script_chan: ScriptControlChan,
     /// The current window size.
@@ -118,8 +131,6 @@ pub struct Reflow {
     pub id: u32,
     /// The type of query if any to perform during this reflow.
     pub query_type: ReflowQueryType,
-    ///  A clipping rectangle for the page, an enlarged rectangle containing the viewport.
-    pub page_clip_rect: Rect<Au>,
 }
 
 /// Encapsulates a channel to the layout task.
@@ -165,3 +176,28 @@ impl ScriptLayoutChan for OpaqueScriptLayoutChannel {
         *receiver.downcast::<Receiver<Msg>>().unwrap()
     }
 }
+
+/// Type of an opaque node.
+pub type OpaqueNode = uintptr_t;
+
+/// State relating to an animation.
+#[derive(Copy, Clone)]
+pub struct Animation {
+    /// An opaque reference to the DOM node participating in the animation.
+    pub node: OpaqueNode,
+    /// A description of the property animation that is occurring.
+    pub property_animation: PropertyAnimation,
+    /// The start time of the animation, as returned by `time::precise_time_s()`.
+    pub start_time: f64,
+    /// The end time of the animation, as returned by `time::precise_time_s()`.
+    pub end_time: f64,
+}
+
+impl Animation {
+    /// Returns the duration of this animation in seconds.
+    #[inline]
+    pub fn duration(&self) -> f64 {
+        self.end_time - self.start_time
+    }
+}
+

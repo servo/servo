@@ -201,6 +201,8 @@ pub enum Msg {
     ChangePageTitle(PipelineId, Option<String>),
     /// Alerts the compositor that the current page has changed its URL.
     ChangePageUrl(PipelineId, Url),
+    /// Alerts the compositor that the given pipeline has changed whether it is running animations.
+    ChangeRunningAnimationsState(PipelineId, bool),
     /// Alerts the compositor that a `PaintMsg` has been discarded.
     PaintMsgDiscarded,
     /// Replaces the current frame tree, typically called during main frame navigation.
@@ -231,6 +233,7 @@ impl Debug for Msg {
             Msg::AssignPaintedBuffers(..) => write!(f, "AssignPaintedBuffers"),
             Msg::ChangeReadyState(..) => write!(f, "ChangeReadyState"),
             Msg::ChangePaintState(..) => write!(f, "ChangePaintState"),
+            Msg::ChangeRunningAnimationsState(..) => write!(f, "ChangeRunningAnimationsState"),
             Msg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             Msg::ChangePageUrl(..) => write!(f, "ChangePageUrl"),
             Msg::PaintMsgDiscarded(..) => write!(f, "PaintMsgDiscarded"),

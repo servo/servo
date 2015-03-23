@@ -11,26 +11,22 @@ use geom::point::Point2D;
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
 use gfx::font_cache_task::FontCacheTask;
-use layout_traits::LayoutTaskFactory;
+use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use libc;
-use script_traits::{CompositorEvent, ConstellationControlMsg};
-use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use msg::compositor_msg::LayerId;
-use msg::constellation_msg::{self, ConstellationChan, Failure};
-use msg::constellation_msg::{IFrameSandboxState, NavigationDirection};
-use msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
-use msg::constellation_msg::{FrameId, PipelineExitType, PipelineId};
-use msg::constellation_msg::{SubpageId, WindowSizeData, MozBrowserEvent};
 use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::{FrameId, PipelineExitType, PipelineId};
+use msg::constellation_msg::{IFrameSandboxState, MozBrowserEvent, NavigationDirection};
+use msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
+use msg::constellation_msg::{SubpageId, WindowSizeData};
+use msg::constellation_msg::{self, ConstellationChan, Failure};
 use net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use net::resource_task::{self, ResourceTask};
 use net::storage_task::{StorageTask, StorageTaskMsg};
 use profile::mem;
 use profile::time;
-use util::cursor::Cursor;
-use util::geometry::PagePx;
-use util::opts;
-use util::task::spawn_named;
+use script_traits::{CompositorEvent, ConstellationControlMsg};
+use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::{self, Write};
@@ -38,6 +34,10 @@ use std::marker::PhantomData;
 use std::mem::replace;
 use std::sync::mpsc::{Receiver, channel};
 use url::Url;
+use util::cursor::Cursor;
+use util::geometry::PagePx;
+use util::opts;
+use util::task::spawn_named;
 
 /// Maintains the pipelines and navigation context and grants permission to composite.
 pub struct Constellation<LTF, STF> {
@@ -201,8 +201,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 time_profiler_chan: time_profiler_chan,
                 mem_profiler_chan: mem_profiler_chan,
                 window_size: WindowSizeData {
-                    visible_viewport: opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0),
-                    initial_viewport: opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0),
+                    visible_viewport: opts::get().initial_window_size.as_f32() *
+                                          ScaleFactor::new(1.0),
+                    initial_viewport: opts::get().initial_window_size.as_f32() *
+                        ScaleFactor::new(1.0),
                     device_pixel_ratio: ScaleFactor::new(1.0),
                 },
                 phantom: PhantomData,
@@ -321,7 +323,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                       new_subpage_id,
                                                       old_subpage_id,
                                                       sandbox) => {
-                debug!("constellation got iframe URL load message {:?} {:?} {:?}", source_pipeline_id, old_subpage_id, new_subpage_id);
+                debug!("constellation got iframe URL load message {:?} {:?} {:?}",
+                       source_pipeline_id,
+                       old_subpage_id,
+                       new_subpage_id);
                 self.handle_script_loaded_url_in_iframe_msg(url,
                                                             source_pipeline_id,
                                                             new_subpage_id,
@@ -329,6 +334,12 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                             sandbox);
             }
             ConstellationMsg::SetCursor(cursor) => self.handle_set_cursor_msg(cursor),
+            ConstellationMsg::ChangeRunningAnimationsState(pipeline_id, animations_running) => {
+                self.handle_change_running_animations_state(pipeline_id, animations_running)
+            }
+            ConstellationMsg::TickAnimation(pipeline_id) => {
+                self.handle_tick_animation(pipeline_id)
+            }
             // Load a new page, usually -- but not always -- from a mouse click or typed url
             // If there is already a pending page (self.pending_frames), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
@@ -420,15 +431,19 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         debug!("creating replacement pipeline for about:failure");
 
         let window_rect = self.pipeline(pipeline_id).rect;
-        let new_pipeline_id = self.new_pipeline(parent_info, window_rect, None,
-                                                LoadData::new(Url::parse("about:failure").unwrap()));
+        let new_pipeline_id =
+            self.new_pipeline(parent_info,
+                              window_rect,
+                              None,
+                              LoadData::new(Url::parse("about:failure").unwrap()));
 
         self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
     }
 
     fn handle_init_load(&mut self, url: Url) {
         let window_rect = Rect(Point2D::zero(), self.window_size.visible_viewport);
-        let root_pipeline_id = self.new_pipeline(None, Some(window_rect), None, LoadData::new(url));
+        let root_pipeline_id =
+            self.new_pipeline(None, Some(window_rect), None, LoadData::new(url));
         self.push_pending_frame(root_pipeline_id, None);
     }
 
@@ -507,6 +522,21 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     fn handle_set_cursor_msg(&mut self, cursor: Cursor) {
         self.compositor_proxy.send(CompositorMsg::SetCursor(cursor))
+    }
+
+    fn handle_change_running_animations_state(&mut self,
+                                              pipeline_id: PipelineId,
+                                              animations_running: bool) {
+        self.compositor_proxy.send(CompositorMsg::ChangeRunningAnimationsState(pipeline_id,
+                                                                               animations_running))
+    }
+
+    fn handle_tick_animation(&mut self, pipeline_id: PipelineId) {
+        self.pipeline(pipeline_id)
+            .layout_chan
+            .0
+            .send(LayoutControlMsg::TickAnimationsMsg)
+            .unwrap();
     }
 
     fn handle_load_url_msg(&mut self, source_id: PipelineId, load_data: LoadData) {
@@ -907,7 +937,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn find_subpage(&mut self, containing_pipeline_id: PipelineId, subpage_id: SubpageId) -> &mut Pipeline {
-        let pipeline_id = *self.subpage_map.get(&(containing_pipeline_id, subpage_id)).expect("no subpage pipeline_id");
+        let pipeline_id = *self.subpage_map
+                               .get(&(containing_pipeline_id, subpage_id))
+                               .expect("no subpage pipeline_id");
         self.mut_pipeline(pipeline_id)
     }
 }

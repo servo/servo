@@ -41,6 +41,7 @@ pub use selectors::smallvec;
 
 use std::sync::Arc;
 
+pub mod bezier;
 pub mod cache;
 pub mod cursor;
 pub mod debug_utils;

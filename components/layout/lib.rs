@@ -25,40 +25,45 @@
 #[macro_use]
 extern crate log;
 
-#[macro_use]extern crate bitflags;
-extern crate azure;
-extern crate cssparser;
-extern crate canvas;
-extern crate geom;
-extern crate gfx;
-extern crate layout_traits;
-extern crate script;
-extern crate script_traits;
-extern crate "rustc-serialize" as rustc_serialize;
-extern crate png;
-extern crate style;
+#[macro_use]
+extern crate bitflags;
+
 #[macro_use]
 #[no_link]
 extern crate "plugins" as servo_plugins;
-extern crate net;
-extern crate msg;
+
 #[macro_use]
 extern crate profile;
-extern crate selectors;
+
 #[macro_use]
 extern crate util;
 
-extern crate string_cache;
-
+extern crate "rustc-serialize" as rustc_serialize;
 extern crate alloc;
+extern crate azure;
+extern crate canvas;
+extern crate clock_ticks;
 extern crate collections;
+extern crate cssparser;
 extern crate encoding;
+extern crate geom;
+extern crate gfx;
+extern crate layout_traits;
 extern crate libc;
+extern crate msg;
+extern crate net;
+extern crate png;
+extern crate script;
+extern crate script_traits;
+extern crate selectors;
+extern crate string_cache;
+extern crate style;
 extern crate url;
 
 // Listed first because of macro definitions
 pub mod layout_debug;
 
+pub mod animation;
 pub mod block;
 pub mod construct;
 pub mod context;

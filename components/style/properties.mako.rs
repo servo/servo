@@ -3377,6 +3377,367 @@ pub mod longhands {
             }
         }
     </%self:longhand>
+
+    ${new_style_struct("Animation", is_inherited=False)}
+
+    // TODO(pcwalton): Multiple transitions.
+    <%self:longhand name="transition-duration">
+        use values::specified::Time;
+
+        pub use self::computed_value::T as SpecifiedValue;
+        pub use values::specified::Time as SingleSpecifiedValue;
+
+        pub mod computed_value {
+            use cssparser::ToCss;
+            use text_writer::{self, TextWriter};
+            use values::computed::{Context, ToComputedValue};
+
+            pub use values::computed::Time as SingleComputedValue;
+
+            #[derive(Clone, PartialEq)]
+            pub struct T(pub Vec<SingleComputedValue>);
+
+            impl ToComputedValue for T {
+                type ComputedValue = T;
+
+                #[inline]
+                fn to_computed_value(&self, _: &Context) -> T {
+                    (*self).clone()
+                }
+            }
+
+            impl ToCss for T {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                    if self.0.is_empty() {
+                        return dest.write_str("none")
+                    }
+                    for (i, value) in self.0.iter().enumerate() {
+                        if i != 0 {
+                            try!(dest.write_str(", "))
+                        }
+                        try!(value.to_css(dest))
+                    }
+                    Ok(())
+                }
+            }
+        }
+
+        #[inline]
+        pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue,()> {
+            Time::parse(input)
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T(vec![get_initial_single_value()])
+        }
+
+        #[inline]
+        pub fn get_initial_single_value() -> Time {
+            Time(0.0)
+        }
+
+        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
+        }
+    </%self:longhand>
+
+    // TODO(pcwalton): Lots more timing functions.
+    // TODO(pcwalton): Multiple transitions.
+    <%self:longhand name="transition-timing-function">
+        use self::computed_value::{StartEnd, TransitionTimingFunction};
+        use values::computed::{Context, ToComputedValue};
+
+        use geom::point::Point2D;
+
+        pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
+        pub use self::computed_value::T as SpecifiedValue;
+
+        static EASE: TransitionTimingFunction = TransitionTimingFunction::CubicBezier(Point2D {
+            x: 0.25,
+            y: 0.1,
+        }, Point2D {
+            x: 0.25,
+            y: 1.0,
+        });
+        static LINEAR: TransitionTimingFunction = TransitionTimingFunction::CubicBezier(Point2D {
+            x: 0.0,
+            y: 0.0,
+        }, Point2D {
+            x: 1.0,
+            y: 1.0,
+        });
+        static EASE_IN: TransitionTimingFunction = TransitionTimingFunction::CubicBezier(Point2D {
+            x: 0.42,
+            y: 0.0,
+        }, Point2D {
+            x: 1.0,
+            y: 1.0,
+        });
+        static EASE_OUT: TransitionTimingFunction = TransitionTimingFunction::CubicBezier(Point2D {
+            x: 0.0,
+            y: 0.0,
+        }, Point2D {
+            x: 0.58,
+            y: 1.0,
+        });
+        static EASE_IN_OUT: TransitionTimingFunction =
+            TransitionTimingFunction::CubicBezier(Point2D {
+                x: 0.42,
+                y: 0.0,
+            }, Point2D {
+                x: 0.58,
+                y: 1.0,
+            });
+        static STEP_START: TransitionTimingFunction =
+            TransitionTimingFunction::Steps(1, StartEnd::Start);
+        static STEP_END: TransitionTimingFunction =
+            TransitionTimingFunction::Steps(1, StartEnd::End);
+
+        pub mod computed_value {
+            use cssparser::ToCss;
+            use geom::point::Point2D;
+            use text_writer::{self, TextWriter};
+
+            pub use self::TransitionTimingFunction as SingleComputedValue;
+
+            #[derive(Copy, Clone, Debug, PartialEq)]
+            pub enum TransitionTimingFunction {
+                CubicBezier(Point2D<f64>, Point2D<f64>),
+                Steps(u32, StartEnd),
+            }
+
+            impl ToCss for TransitionTimingFunction {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                    match *self {
+                        TransitionTimingFunction::CubicBezier(p1, p2) => {
+                            try!(dest.write_str("cubic-bezier("));
+                            try!(p1.x.to_css(dest));
+                            try!(dest.write_str(", "));
+                            try!(p1.y.to_css(dest));
+                            try!(dest.write_str(", "));
+                            try!(p2.x.to_css(dest));
+                            try!(dest.write_str(", "));
+                            try!(p2.y.to_css(dest));
+                            dest.write_str(")")
+                        }
+                        TransitionTimingFunction::Steps(steps, start_end) => {
+                            try!(dest.write_str("steps("));
+                            try!(steps.to_css(dest));
+                            try!(dest.write_str(", "));
+                            try!(start_end.to_css(dest));
+                            dest.write_str(")")
+                        }
+                    }
+                }
+            }
+
+            #[derive(Copy, Clone, Debug, PartialEq)]
+            pub enum StartEnd {
+                Start,
+                End,
+            }
+
+            impl ToCss for StartEnd {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                    match *self {
+                        StartEnd::Start => dest.write_str("start"),
+                        StartEnd::End => dest.write_str("end"),
+                    }
+                }
+            }
+
+            #[derive(Clone, Debug, PartialEq)]
+            pub struct T(pub Vec<TransitionTimingFunction>);
+
+            impl ToCss for T {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                    if self.0.is_empty() {
+                        return dest.write_str("none")
+                    }
+                    for (i, value) in self.0.iter().enumerate() {
+                        if i != 0 {
+                            try!(dest.write_str(", "))
+                        }
+                        try!(value.to_css(dest))
+                    }
+                    Ok(())
+                }
+            }
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, _: &Context) -> computed_value::T {
+                (*self).clone()
+            }
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T(vec![get_initial_single_value()])
+        }
+
+        #[inline]
+        pub fn get_initial_single_value() -> TransitionTimingFunction {
+            EASE
+        }
+
+        pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue,()> {
+            if let Ok(function_name) = input.try(|input| input.expect_function()) {
+                return match_ignore_ascii_case! {
+                    function_name,
+                    "cubic-bezier" => {
+                        let (mut p1x, mut p1y, mut p2x, mut p2y) = (0.0, 0.0, 0.0, 0.0);
+                        try!(input.parse_nested_block(|input| {
+                            p1x = try!(input.expect_number());
+                            try!(input.expect_comma());
+                            p1y = try!(input.expect_number());
+                            try!(input.expect_comma());
+                            p2x = try!(input.expect_number());
+                            try!(input.expect_comma());
+                            p2y = try!(input.expect_number());
+                            Ok(())
+                        }));
+                        let (p1, p2) = (Point2D(p1x, p1y), Point2D(p2x, p2y));
+                        Ok(TransitionTimingFunction::CubicBezier(p1, p2))
+                    },
+                    "steps" => {
+                        let (mut step_count, mut start_end) = (0, computed_value::StartEnd::Start);
+                        try!(input.parse_nested_block(|input| {
+                            step_count = try!(input.expect_integer());
+                            try!(input.expect_comma());
+                            start_end = try!(match_ignore_ascii_case! {
+                                try!(input.expect_ident()),
+                                "start" => Ok(computed_value::StartEnd::Start),
+                                "end" => Ok(computed_value::StartEnd::End)
+                                _ => Err(())
+                            });
+                            Ok(())
+                        }));
+                        Ok(TransitionTimingFunction::Steps(step_count as u32, start_end))
+                    }
+                    _ => Err(())
+                }
+            }
+            match_ignore_ascii_case! {
+                try!(input.expect_ident()),
+                "ease" => Ok(EASE),
+                "linear" => Ok(LINEAR),
+                "ease-in" => Ok(EASE_IN),
+                "ease-out" => Ok(EASE_OUT),
+                "ease-in-out" => Ok(EASE_IN_OUT),
+                "step-start" => Ok(STEP_START),
+                "step-end" => Ok(STEP_END)
+                _ => Err(())
+            }
+        }
+
+        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
+        }
+    </%self:longhand>
+
+    // TODO(pcwalton): Lots more properties.
+    <%self:longhand name="transition-property">
+        use self::computed_value::TransitionProperty;
+        use values::computed::{ToComputedValue, Context};
+
+        pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
+        pub use self::computed_value::T as SpecifiedValue;
+
+        pub mod computed_value {
+            use cssparser::ToCss;
+            use text_writer::{self, TextWriter};
+
+            pub use self::TransitionProperty as SingleComputedValue;
+
+            #[derive(Copy, Clone, Debug, PartialEq)]
+            pub enum TransitionProperty {
+                All,
+                Top,
+                Right,
+                Bottom,
+                Left,
+            }
+
+            pub static ALL_TRANSITION_PROPERTIES: [TransitionProperty; 4] = [
+                TransitionProperty::Top,
+                TransitionProperty::Right,
+                TransitionProperty::Bottom,
+                TransitionProperty::Left,
+            ];
+
+            impl ToCss for TransitionProperty {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                    match *self {
+                        TransitionProperty::All => dest.write_str("all"),
+                        TransitionProperty::Top => dest.write_str("top"),
+                        TransitionProperty::Right => dest.write_str("right"),
+                        TransitionProperty::Bottom => dest.write_str("bottom"),
+                        TransitionProperty::Left => dest.write_str("left"),
+                    }
+                }
+            }
+
+            #[derive(Clone, Debug, PartialEq)]
+            pub struct T(pub Vec<SingleComputedValue>);
+
+            impl ToCss for T {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                    if self.0.is_empty() {
+                        return dest.write_str("none")
+                    }
+                    for (i, value) in self.0.iter().enumerate() {
+                        if i != 0 {
+                            try!(dest.write_str(", "))
+                        }
+                        try!(value.to_css(dest))
+                    }
+                    Ok(())
+                }
+            }
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T(Vec::new())
+        }
+
+        pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue,()> {
+            match_ignore_ascii_case! {
+                try!(input.expect_ident()),
+                "all" => Ok(TransitionProperty::All),
+                "top" => Ok(TransitionProperty::Top),
+                "right" => Ok(TransitionProperty::Right),
+                "bottom" => Ok(TransitionProperty::Bottom),
+                "left" => Ok(TransitionProperty::Left)
+                _ => Err(())
+            }
+        }
+
+        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, _: &Context) -> computed_value::T {
+                (*self).clone()
+            }
+        }
+    </%self:longhand>
+
+    <%self:longhand name="transition-delay">
+        pub use properties::longhands::transition_duration::{SingleSpecifiedValue, SpecifiedValue};
+        pub use properties::longhands::transition_duration::{computed_value};
+        pub use properties::longhands::transition_duration::{get_initial_single_value};
+        pub use properties::longhands::transition_duration::{get_initial_value, parse, parse_one};
+    </%self:longhand>
 }
 
 
@@ -3401,6 +3762,8 @@ pub mod shorthands {
                         Option<longhands::${sub_property.ident}::SpecifiedValue>,
                 % endfor
             }
+
+            #[allow(unused_variables)]
             pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
                 ${caller.body()}
             }
@@ -3879,6 +4242,99 @@ pub mod shorthands {
             overflow_y: Some(overflow_y::SpecifiedValue(overflow)),
         })
     </%self:shorthand>
+
+    <%self:shorthand name="transition"
+                     sub_properties="transition-property transition-duration transition-timing-function transition-delay">
+        use properties::longhands::{transition_delay, transition_duration, transition_property};
+        use properties::longhands::{transition_timing_function};
+
+        struct SingleTransition {
+            transition_property: transition_property::SingleSpecifiedValue,
+            transition_duration: transition_duration::SingleSpecifiedValue,
+            transition_timing_function: transition_timing_function::SingleSpecifiedValue,
+            transition_delay: transition_delay::SingleSpecifiedValue,
+        }
+
+        fn parse_one_transition(input: &mut Parser) -> Result<SingleTransition,()> {
+            let (mut property, mut duration) = (None, None);
+            let (mut timing_function, mut delay) = (None, None);
+            loop {
+                if property.is_none() {
+                    if let Ok(value) = input.try(|input| transition_property::parse_one(input)) {
+                        property = Some(value);
+                        continue
+                    }
+                }
+
+                if duration.is_none() {
+                    if let Ok(value) = input.try(|input| transition_duration::parse_one(input)) {
+                        duration = Some(value);
+                        continue
+                    }
+                }
+
+                if timing_function.is_none() {
+                    if let Ok(value) = input.try(|input| {
+                        transition_timing_function::parse_one(input)
+                    }) {
+                        timing_function = Some(value);
+                        continue
+                    }
+                }
+
+                if delay.is_none() {
+                    if let Ok(value) = input.try(|input| transition_delay::parse_one(input)) {
+                        delay = Some(value);
+                        continue;
+                    }
+                }
+
+                break
+            }
+
+            if let Some(property) = property {
+                Ok(SingleTransition {
+                    transition_property: property,
+                    transition_duration:
+                        duration.unwrap_or(transition_duration::get_initial_single_value()),
+                    transition_timing_function:
+                        timing_function.unwrap_or(
+                            transition_timing_function::get_initial_single_value()),
+                    transition_delay:
+                        delay.unwrap_or(transition_delay::get_initial_single_value()),
+                })
+            } else {
+                Err(())
+            }
+        }
+
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            return Ok(Longhands {
+                transition_property: None,
+                transition_duration: None,
+                transition_timing_function: None,
+                transition_delay: None,
+            })
+        }
+
+        let results = try!(input.parse_comma_separated(parse_one_transition));
+        let (mut properties, mut durations) = (Vec::new(), Vec::new());
+        let (mut timing_functions, mut delays) = (Vec::new(), Vec::new());
+        for result in results.into_iter() {
+            properties.push(result.transition_property);
+            durations.push(result.transition_duration);
+            timing_functions.push(result.transition_timing_function);
+            delays.push(result.transition_delay);
+        }
+
+        Ok(Longhands {
+            transition_property: Some(transition_property::SpecifiedValue(properties)),
+            transition_duration: Some(transition_duration::SpecifiedValue(durations)),
+            transition_timing_function:
+                Some(transition_timing_function::SpecifiedValue(timing_functions)),
+            transition_delay: Some(transition_delay::SpecifiedValue(delays)),
+        })
+    </%self:shorthand>
 }
 
 
@@ -4328,6 +4784,11 @@ impl ComputedValues {
                 <'a>(&'a self) -> &'a style_structs::${style_struct.name} {
             &*self.${style_struct.ident}
         }
+        #[inline]
+        pub fn mutate_${style_struct.name.lower()}
+                <'a>(&'a mut self) -> &'a mut style_structs::${style_struct.name} {
+            &mut *self.${style_struct.ident}.make_unique()
+        }
     % endfor
 }
 
@@ -4391,12 +4852,13 @@ fn initial_writing_mode_is_empty() {
 
 /// Fast path for the function below. Only computes new inherited styles.
 #[allow(unused_mut)]
-fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
-                                    shareable: bool,
-                                    parent_style: &ComputedValues,
-                                    cached_style: &ComputedValues,
-                                    context: &computed::Context)
-                                    -> ComputedValues {
+fn cascade_with_cached_declarations(
+        applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
+        shareable: bool,
+        parent_style: &ComputedValues,
+        cached_style: &ComputedValues,
+        context: &computed::Context)
+        -> ComputedValues {
     % for style_struct in STYLE_STRUCTS:
         % if style_struct.inherited:
             let mut style_${style_struct.ident} = parent_style.${style_struct.ident}.clone();
@@ -4415,7 +4877,9 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock<
                 % for style_struct in STYLE_STRUCTS:
                     % for property in style_struct.longhands:
                         % if property.derived_from is None:
-                            PropertyDeclaration::${property.camel_case}(ref ${'_' if not style_struct.inherited else ''}declared_value) => {
+                            PropertyDeclaration::${property.camel_case}(ref
+                                    ${'_' if not style_struct.inherited else ''}declared_value)
+                                    => {
                                 % if style_struct.inherited:
                                     if seen.get_${property.ident}() {
                                         continue
@@ -4556,9 +5020,13 @@ pub fn cascade(viewport_size: Size2D<Au>,
                     context.font_size = match *value {
                         DeclaredValue::SpecifiedValue(ref specified_value) => {
                             match specified_value.0 {
-                                Length::FontRelative(value) => value.to_computed_value(context.inherited_font_size,
-                                                                                       context.root_font_size),
-                                Length::ServoCharacterWidth(value) => value.to_computed_value(context.inherited_font_size),
+                                Length::FontRelative(value) => {
+                                    value.to_computed_value(context.inherited_font_size,
+                                                            context.root_font_size)
+                                }
+                                Length::ServoCharacterWidth(value) => {
+                                    value.to_computed_value(context.inherited_font_size)
+                                }
                                 _ => specified_value.0.to_computed_value(&context)
                             }
                         }
@@ -4568,7 +5036,9 @@ pub fn cascade(viewport_size: Size2D<Au>,
                 }
                 PropertyDeclaration::Color(ref value) => {
                     context.color = match *value {
-                        DeclaredValue::SpecifiedValue(ref specified_value) => specified_value.parsed,
+                        DeclaredValue::SpecifiedValue(ref specified_value) => {
+                            specified_value.parsed
+                        }
                         DeclaredValue::Initial => longhands::color::get_initial_value(),
                         DeclaredValue::Inherit => inherited_style.get_color().color.clone(),
                     };

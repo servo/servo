@@ -333,11 +333,16 @@ impl<'ln> LayoutNode<'ln> {
     /// While doing a reflow, the node at the root has no parent, as far as we're
     /// concerned. This method returns `None` at the reflow root.
     pub fn layout_parent_node(self, shared: &SharedLayoutContext) -> Option<LayoutNode<'ln>> {
-        let opaque_node: OpaqueNode = OpaqueNodeMethods::from_layout_node(&self);
-        if opaque_node == shared.reflow_root {
-            None
-        } else {
-            self.parent_node()
+        match shared.reflow_root {
+            None => panic!("layout_parent_node(): This layout has no access to the DOM!"),
+            Some(reflow_root) => {
+                let opaque_node: OpaqueNode = OpaqueNodeMethods::from_layout_node(&self);
+                if opaque_node == reflow_root {
+                    None
+                } else {
+                    self.parent_node()
+                }
+            }
         }
     }
 
