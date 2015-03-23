@@ -182,7 +182,7 @@ impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
     fn to_c(buffer: &'a [u16]) -> *const cef_string_t {
         unsafe {
             let ptr: *mut c_ushort = mem::transmute(libc::malloc(((buffer.len() + 1) * 2) as u64));
-            ptr::copy_memory(ptr, mem::transmute(buffer.as_ptr()), buffer.len());
+            ptr::copy(ptr, mem::transmute(buffer.as_ptr()), buffer.len());
             *ptr.offset(buffer.len() as int) = 0;
 
             // FIXME(pcwalton): This leaks!! We should instead have the caller pass some scratch
