@@ -50,6 +50,7 @@ pub mod media_queries;
 pub mod font_face;
 pub mod legacy;
 pub mod animation;
+pub mod viewport;
 
 macro_rules! reexport_computed_values {
     ( $( $name: ident )+ ) => {
@@ -63,4 +64,3 @@ macro_rules! reexport_computed_values {
     }
 }
 longhand_properties_idents!(reexport_computed_values);
-
