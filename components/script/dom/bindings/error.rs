@@ -71,10 +71,9 @@ pub type Fallible<T> = Result<T, Error>;
 /// return `()`.
 pub type ErrorResult = Fallible<()>;
 
-/// Set a pending DOM exception for the given `result` on `cx`.
+/// Set a pending exception for the given `result` on `cx`.
 pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
                            result: Error) {
-    assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
     let code = match result {
         Error::IndexSize => DOMErrorName::IndexSizeError,
         Error::NotFound => DOMErrorName::NotFoundError,
@@ -93,11 +92,17 @@ pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
         Error::DataClone => DOMErrorName::DataCloneError,
         Error::NoModificationAllowed => DOMErrorName::NoModificationAllowedError,
         Error::Type(message) => {
+            assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
             throw_type_error(cx, &message);
             return;
         }
-        Error::JSFailed => panic!(),
+        Error::JSFailed => {
+            assert!(unsafe { JS_IsExceptionPending(cx) } == 1);
+            return;
+        }
     };
+
+    assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
     let exception = DOMException::new(global, code).root();
     let thrown = exception.to_jsval(cx);
     unsafe {
