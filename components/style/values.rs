@@ -878,7 +878,6 @@ pub mod computed {
     use url::Url;
     use util::geometry::Au;
 
-    #[allow(missing_copy_implementations)]  // It’s kinda big
     pub struct Context {
         pub inherited_font_weight: longhands::font_weight::computed_value::T,
         pub inherited_font_size: longhands::font_size::computed_value::T,

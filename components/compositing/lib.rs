@@ -10,8 +10,6 @@
 #![feature(rustc_private)]
 #![feature(std_misc)]
 
-#![allow(missing_copy_implementations)]
-
 #[macro_use]
 extern crate log;
 

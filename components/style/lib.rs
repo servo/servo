@@ -10,8 +10,6 @@
 #![feature(collections)]
 #![feature(rustc_private)]
 
-#![allow(missing_copy_implementations)]
-
 #![plugin(string_cache_plugin)]
 #![plugin(mod_path)]
 

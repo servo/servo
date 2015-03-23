@@ -23,7 +23,6 @@ declare_lint!(UNROOTED_MUST_ROOT, Deny,
 ///  - Not being bound locally in a `let` statement, assignment, `for` loop, or `match` statement.
 ///
 /// This helps catch most situations where pointers like `JS<T>` are used in a way that they can be invalidated by a GC pass.
-#[allow(missing_copy_implementations)]
 pub struct UnrootedPass;
 
 // Checks if a type has the #[must_root] annotation.
