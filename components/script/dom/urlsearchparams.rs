@@ -37,10 +37,12 @@ impl URLSearchParams {
     }
 
     pub fn new(global: GlobalRef) -> Temporary<URLSearchParams> {
-        reflect_dom_object(box URLSearchParams::new_inherited(), global, URLSearchParamsBinding::Wrap)
+        reflect_dom_object(box URLSearchParams::new_inherited(), global,
+                           URLSearchParamsBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef, init: Option<StringOrURLSearchParams>) -> Fallible<Temporary<URLSearchParams>> {
+    pub fn Constructor(global: GlobalRef, init: Option<StringOrURLSearchParams>) ->
+                       Fallible<Temporary<URLSearchParams>> {
         let usp = URLSearchParams::new(global).root();
         match init {
             Some(eString(_s)) => {
@@ -115,15 +117,25 @@ impl URLSearchParamsHelpers for URLSearchParams {
             let value = value.as_slice();
             // XXXManishearth should this be a strict encoding? Can unwrap()ing the result fail?
             let value = encoding.encode(value, EncoderTrap::Replace).unwrap();
+
+            // Step 1.
             let mut buf = vec!();
-            for i in value.iter() {
+
+            // Step 2.
+            for i in &value {
                 let append = match *i {
+                    // Convert spaces:
+                    // ' ' => '+'
                     0x20 => vec!(0x2B),
-                    0x2A | 0x2D | 0x2E |
-                    0x30 ... 0x39 | 0x41 ... 0x5A |
-                    0x5F | 0x61...0x7A => vec!(*i),
+
+                    // Retain the following characters:
+                    // '*', '-', '.', '0'...'9', 'A'...'Z', '_', 'a'...'z'
+                    0x2A | 0x2D | 0x2E | 0x30...0x39 |
+                        0x41...0x5A | 0x5F | 0x61...0x7A => vec!(*i),
+
+                    // Encode everything else using 'percented-encoded bytes'
+                    // http://url.spec.whatwg.org/#percent-encode
                     a => {
-                        // http://url.spec.whatwg.org/#percent-encode
                         let mut encoded = vec!(0x25); // %
                         let s = format!("{}", radix(a, 16)).into_ascii_uppercase();
                         let bytes = s.as_bytes();
@@ -131,8 +143,10 @@ impl URLSearchParamsHelpers for URLSearchParams {
                         encoded
                     }
                 };
-                buf.push_all(append.as_slice());
+                buf.push_all(&append);
             }
+
+            // Step 3.
             buf
         }
         let encoding = encoding.unwrap_or(UTF_8 as EncodingRef);
@@ -140,16 +154,16 @@ impl URLSearchParamsHelpers for URLSearchParams {
         let mut first_pair = true;
         for (k, v) in self.data.borrow().iter() {
             let name = serialize_string(k, encoding);
-            for val in v.iter() {
+            for val in v {
                 let value = serialize_string(val, encoding);
                 if first_pair {
                     first_pair = false;
                 } else {
                     buf.push(0x26); // &
                 }
-                buf.push_all(name.as_slice());
+                buf.push_all(&name);
                 buf.push(0x3D); // =
-                buf.push_all(value.as_slice())
+                buf.push_all(&value)
             }
         }
         buf
