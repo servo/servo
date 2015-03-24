@@ -23,8 +23,10 @@ extern crate gleam;
 extern crate layers;
 extern crate egl;
 extern crate url;
+extern crate net;
 
 use util::opts;
+use net::resource_task;
 use servo::Browser;
 use compositing::windowing::WindowEvent;
 
@@ -39,6 +41,8 @@ struct BrowserWrapper {
 
 fn main() {
     if opts::from_cmdline_args(env::args().collect::<Vec<_>>().as_slice()) {
+        resource_task::global_init();
+
         let window = if opts::get().headless {
             None
         } else {
