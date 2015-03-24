@@ -597,6 +597,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // Set paint permissions correctly for the compositor layers.
         self.revoke_paint_permission(prev_pipeline_id);
         self.send_frame_tree_and_grant_paint_permission();
+
+        // Update the owning iframe to point to the new subpage id.
+        // This makes things like contentDocument work correctly.
+        if let Some((parent_pipeline_id, subpage_id)) = pipeline_info {
+            let ScriptControlChan(ref script_chan) = self.pipeline(parent_pipeline_id).script_chan;
+            let (_, new_subpage_id) = self.pipeline(next_pipeline_id).parent_info.unwrap();
+            script_chan.send(ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
+                                                                      subpage_id,
+                                                                      new_subpage_id)).unwrap();
+        }
     }
 
     fn handle_key_msg(&self, key: Key, state: KeyState, mods: KeyModifiers) {
