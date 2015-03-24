@@ -37,6 +37,7 @@ pub enum EventTypeId {
     MessageEvent,
     MouseEvent,
     ProgressEvent,
+    StorageEvent,
     UIEvent,
     ErrorEvent
 }

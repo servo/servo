@@ -310,6 +310,7 @@ pub mod range;
 pub mod screen;
 pub mod servohtmlparser;
 pub mod storage;
+pub mod storageevent;
 pub mod text;
 pub mod treewalker;
 pub mod uievent;
