@@ -11,8 +11,6 @@ use scrolling::ScrollingTimerProxy;
 use windowing;
 use windowing::{MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
-use std::cmp;
-use std::mem;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
 use geom::size::{Size2D, TypedSize2D};
@@ -35,20 +33,23 @@ use msg::constellation_msg::{ConstellationChan, NavigationDirection};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineId, WindowSizeData};
-use util::geometry::{PagePx, ScreenPx, ViewportPx};
-use util::memory::MemoryProfilerChan;
-use util::opts;
-use util::time::{TimeProfilerCategory, profile, TimeProfilerChan};
-use util::{memory, time};
+use profile::mem;
+use profile::mem::{MemoryProfilerChan};
+use profile::time;
+use profile::time::{TimeProfilerCategory, profile, TimeProfilerChan};
+use std::cmp;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::old_path::Path;
+use std::mem::replace;
 use std::num::Float;
 use std::rc::Rc;
 use std::slice::bytes::copy_memory;
 use std::sync::mpsc::Sender;
 use time::{precise_time_ns, precise_time_s};
 use url::Url;
+use util::geometry::{PagePx, ScreenPx, ViewportPx};
+use util::opts;
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
 pub struct IOCompositor<Window: WindowMethods> {
@@ -869,7 +870,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn process_pending_scroll_events(&mut self) {
         let had_scroll_events = self.pending_scroll_events.len() > 0;
-        for scroll_event in mem::replace(&mut self.pending_scroll_events, Vec::new()).into_iter() {
+        for scroll_event in replace(&mut self.pending_scroll_events, Vec::new()).into_iter() {
             let delta = scroll_event.delta / self.scene.scale;
             let cursor = scroll_event.cursor.as_f32() / self.scene.scale;
 
@@ -1356,7 +1357,7 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
 
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
         self.time_profiler_chan.send(time::TimeProfilerMsg::Exit);
-        self.memory_profiler_chan.send(memory::MemoryProfilerMsg::Exit);
+        self.memory_profiler_chan.send(mem::MemoryProfilerMsg::Exit);
         self.scrolling_timer.shutdown();
     }
 

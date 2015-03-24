@@ -11,6 +11,7 @@ extern crate compositing;
 extern crate devtools;
 extern crate net;
 extern crate msg;
+extern crate profile;
 #[macro_use]
 extern crate util;
 extern crate script;
@@ -40,9 +41,9 @@ use net::storage_task::{StorageTaskFactory, StorageTask};
 #[cfg(not(test))]
 use gfx::font_cache_task::FontCacheTask;
 #[cfg(not(test))]
-use util::time::TimeProfiler;
+use profile::mem::MemoryProfiler;
 #[cfg(not(test))]
-use util::memory::MemoryProfiler;
+use profile::time::TimeProfiler;
 #[cfg(not(test))]
 use util::opts;
 #[cfg(not(test))]

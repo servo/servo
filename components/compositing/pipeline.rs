@@ -19,11 +19,11 @@ use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
 use net::storage_task::StorageTask;
+use profile::mem::MemoryProfilerChan;
+use profile::time::TimeProfilerChan;
+use std::sync::mpsc::{Receiver, channel};
 use url::Url;
 use util::geometry::{PagePx, ViewportPx};
-use util::memory::MemoryProfilerChan;
-use util::time::TimeProfilerChan;
-use std::sync::mpsc::{Receiver, channel};
 
 /// A uniquely-identifiable pipeline of script task, layout task, and paint task.
 pub struct Pipeline {

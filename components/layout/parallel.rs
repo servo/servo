@@ -20,12 +20,12 @@ use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_
 use wrapper::{PostorderNodeMutTraversal, UnsafeLayoutNode};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
-use util::opts;
-use util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan, profile};
-use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
+use profile::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan, profile};
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicIsize, Ordering};
+use util::opts;
+use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeLayoutNode) {
