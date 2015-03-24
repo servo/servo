@@ -339,15 +339,12 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                 let root: JSRef<Node> = NodeCast::from_ref(root.r());
                 for node in root.traverse_preorder() {
                     let elem: Option<JSRef<Element>> = ElementCast::to_ref(node);
-                    match elem {
-                        None => {},
-                        Some(elem) => {
-                            if (*elements)[head].root().r() == elem {
-                                head += 1;
-                            }
-                            if new_node == node || head == elements.len() {
-                                break;
-                            }
+                    if let Some(elem) = elem {
+                        if (*elements)[head].root().r() == elem {
+                            head += 1;
+                        }
+                        if new_node == node || head == elements.len() {
+                            break;
                         }
                     }
                 }
@@ -392,9 +389,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let root = NodeCast::from_ref(root);
         let win = self.window.root();
         let address = match win.r().layout().hit_test(root.to_trusted_node_address(), *point) {
-            Ok(HitTestResponse(node_address)) => {
-                Some(node_address)
-            }
+            Ok(HitTestResponse(node_address)) => Some(node_address),
             Err(()) => {
                 debug!("layout query error");
                 None
@@ -412,12 +407,8 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let root: JSRef<Node> = NodeCast::from_ref(root);
         let win = self.window.root();
         match win.r().layout().mouse_over(root.to_trusted_node_address(), *point) {
-            Ok(MouseOverResponse(node_address)) => {
-                node_address
-            }
-            Err(()) => {
-                vec!()
-            }
+            Ok(MouseOverResponse(node_address)) => node_address,
+            Err(()) => vec!(),
         }
     }
 
@@ -918,27 +909,22 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(self, id: DOMString) -> Option<Temporary<Element>> {
-        let id = Atom::from_slice(id.as_slice());
+        let id = Atom::from_slice(&id);
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let idmap = self.idmap.borrow();
-        match idmap.get(&id) {
-            None => None,
-            Some(ref elements) => Some(Temporary::new((*elements)[0].clone())),
-        }
+        idmap.get(&id).map(|ref elements| Temporary::new((*elements)[0].clone()))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelement
-    fn CreateElement(self, local_name: DOMString) -> Fallible<Temporary<Element>> {
-        if xml_name_type(local_name.as_slice()) == InvalidXMLName {
+    fn CreateElement(self, mut local_name: DOMString) -> Fallible<Temporary<Element>> {
+        if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
             return Err(InvalidCharacter);
         }
-        let local_name = if self.is_html_document {
-            local_name.as_slice().to_ascii_lowercase()
-        } else {
-            local_name
-        };
-        let name = QualName::new(ns!(HTML), Atom::from_slice(local_name.as_slice()));
+        if self.is_html_document {
+            local_name = local_name.to_ascii_lowercase()
+        }
+        let name = QualName::new(ns!(HTML), Atom::from_slice(&local_name));
         Ok(Element::create(name, None, self, ElementCreator::ScriptCreated))
     }
 
@@ -947,7 +933,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                        namespace: Option<DOMString>,
                        qualified_name: DOMString) -> Fallible<Temporary<Element>> {
         let ns = namespace::from_domstring(namespace);
-        match xml_name_type(qualified_name.as_slice()) {
+        match xml_name_type(&qualified_name) {
             InvalidXMLName => {
                 debug!("Not a valid element name");
                 return Err(InvalidCharacter);
@@ -960,7 +946,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
 
         let (prefix_from_qname, local_name_from_qname)
-            = get_attribute_parts(qualified_name.as_slice());
+            = get_attribute_parts(&qualified_name);
         match (&ns, prefix_from_qname, local_name_from_qname) {
             // throw if prefix is not null and namespace is null
             (&ns!(""), Some(_), _) => {
@@ -968,12 +954,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 return Err(NamespaceError);
             },
             // throw if prefix is "xml" and namespace is not the XML namespace
-            (_, Some(ref prefix), _) if "xml" == prefix.as_slice() && ns != ns!(XML) => {
+            (_, Some(ref prefix), _) if "xml" == *prefix && ns != ns!(XML) => {
                 debug!("Namespace must be the xml namespace if the prefix is 'xml'");
                 return Err(NamespaceError);
             },
             // throw if namespace is the XMLNS namespace and neither qualifiedName nor prefix is "xmlns"
-            (&ns!(XMLNS), Some(ref prefix), _) if "xmlns" == prefix.as_slice() => {},
+            (&ns!(XMLNS), Some(ref prefix), _) if "xmlns" == *prefix => {},
             (&ns!(XMLNS), _, "xmlns") => {},
             (&ns!(XMLNS), _, _) => {
                 debug!("The prefix or the qualified name must be 'xmlns' if namespace is the XMLNS namespace ");
@@ -989,15 +975,15 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-createattribute
     fn CreateAttribute(self, local_name: DOMString) -> Fallible<Temporary<Attr>> {
-        if xml_name_type(local_name.as_slice()) == InvalidXMLName {
+        if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
             return Err(InvalidCharacter);
         }
 
         let window = self.window.root();
-        let name = Atom::from_slice(local_name.as_slice());
+        let name = Atom::from_slice(&local_name);
         // repetition used because string_cache::atom::Atom is non-copyable
-        let l_name = Atom::from_slice(local_name.as_slice());
+        let l_name = Atom::from_slice(&local_name);
         let value = AttrValue::String("".to_owned());
 
         Ok(Attr::new(window.r(), name, value, l_name, ns!(""), None, None))
@@ -1009,8 +995,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createtextnode
-    fn CreateTextNode(self, data: DOMString)
-                          -> Temporary<Text> {
+    fn CreateTextNode(self, data: DOMString) -> Temporary<Text> {
         Text::new(data, self)
     }
 
@@ -1020,15 +1005,15 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createprocessinginstruction
-    fn CreateProcessingInstruction(self, target: DOMString,
-                                       data: DOMString) -> Fallible<Temporary<ProcessingInstruction>> {
+    fn CreateProcessingInstruction(self, target: DOMString, data: DOMString) ->
+            Fallible<Temporary<ProcessingInstruction>> {
         // Step 1.
-        if xml_name_type(target.as_slice()) == InvalidXMLName {
+        if xml_name_type(&target) == InvalidXMLName {
             return Err(InvalidCharacter);
         }
 
         // Step 2.
-        if data.as_slice().contains("?>") {
+        if data.contains("?>") {
             return Err(InvalidCharacter);
         }
 
@@ -1070,7 +1055,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn CreateEvent(self, interface: DOMString) -> Fallible<Temporary<Event>> {
         let window = self.window.root();
 
-        match interface.as_slice().to_ascii_lowercase().as_slice() {
+        match interface.to_ascii_lowercase().as_slice() {
             "uievents" | "uievent" => Ok(EventCast::from_temporary(
                 UIEvent::new_uninitialized(window.r()))),
             "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(
@@ -1120,11 +1105,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                         t
                     });
                     for text in children {
-                        title.push_str(text.characterdata().data().as_slice());
+                        title.push_str(&text.characterdata().data());
                     }
                 });
         });
-        let v: Vec<&str> = split_html_space_chars(title.as_slice()).collect();
+        let v: Vec<&str> = split_html_space_chars(&title).collect();
         v.connect(" ")
     }
 
