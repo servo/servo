@@ -34,8 +34,8 @@ path = "../style"
 [dependencies.plugins]
 path = "../plugins"
 
-[dependencies.net]
-path = "../net"
+[dependencies.net_traits]
+path = "../net_traits"
 
 [dependencies.profile]
 path = "../profile"

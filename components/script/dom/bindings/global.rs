@@ -15,8 +15,7 @@ use dom::window::{self, WindowHelpers};
 use script_task::ScriptChan;
 
 use msg::constellation_msg::WorkerId;
-
-use net::resource_task::ResourceTask;
+use net_traits::ResourceTask;
 
 use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::glue::{GetGlobalForObjectCrossCompartment};

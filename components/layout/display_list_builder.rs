@@ -36,7 +36,7 @@ use png::{self, PixelsByColorType};
 use msg::compositor_msg::ScrollPolicy;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::ConstellationChan;
-use net::image::holder::ImageHolder;
+use net_traits::image::holder::ImageHolder;
 use util::cursor::Cursor;
 use util::geometry::{self, Au, ZERO_POINT, to_px, to_frac_px};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};

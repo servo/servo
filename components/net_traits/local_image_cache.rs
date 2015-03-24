@@ -8,14 +8,14 @@ extra message traffic, it also avoids waiting on the same image
 multiple times and thus triggering reflows multiple times.
 */
 
-use image_cache_task::{ImageCacheTask, ImageResponseMsg, Msg};
+use image_cache_task::{ImageResponseMsg, ImageCacheTask, Msg};
+use url::Url;
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::sync::mpsc::{Receiver, channel};
+use std::sync::mpsc::{channel, Receiver};
 use util::task::spawn_named;
-use url::Url;
 
 pub trait ImageResponder<NodeAddress: Send> {
     fn respond(&self) -> Box<Fn(ImageResponseMsg, NodeAddress)+Send>;
@@ -166,3 +166,5 @@ impl<NodeAddress: Send + 'static> LocalImageCache<NodeAddress> {
         }
     }
 }
+
+

@@ -33,7 +33,7 @@ use geom::num::Zero;
 use libc::uintptr_t;
 use paint_task::PaintLayer;
 use msg::compositor_msg::LayerId;
-use net::image::base::Image;
+use net_traits::image::base::Image;
 use util::cursor::Cursor;
 use util::linked_list::prepend_from;
 use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};

@@ -20,8 +20,7 @@ use script_task::{ScriptChan, TimerSource};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
 use msg::constellation_msg::WorkerId;
-
-use net::resource_task::{ResourceTask, load_whole_resource};
+use net_traits::{load_whole_resource, ResourceTask};
 use util::str::DOMString;
 
 use js::jsapi::JSContext;

@@ -21,8 +21,8 @@ path = "../util"
 [dependencies.msg]
 path = "../msg"
 
-[dependencies.net]
-path = "../net"
+[dependencies.net_traits]
+path = "../net_traits"
 
 [dependencies.profile]
 path = "../profile"

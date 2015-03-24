@@ -26,7 +26,7 @@ use parse::Parser;
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
 
-use net::resource_task::{ProgressMsg, LoadResponse};
+use net_traits::{ProgressMsg, LoadResponse};
 use util::task_state;
 use util::task_state::IN_HTML_PARSER;
 use std::ascii::AsciiExt;

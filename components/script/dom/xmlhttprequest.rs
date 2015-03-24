@@ -42,9 +42,9 @@ use js::jsapi::{JS_ParseJSON, JSContext};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
-use net::resource_task::{ResourceTask, ResourceCORSData, LoadData, LoadResponse};
-use net::resource_task::ControlMsg::Load;
-use net::resource_task::ProgressMsg::{Payload, Done};
+use net_traits::ControlMsg::Load;
+use net_traits::ProgressMsg::{Payload, Done};
+use net_traits::{ResourceTask, ResourceCORSData, LoadData, LoadResponse};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode};
 use util::str::DOMString;
 use util::task::spawn_named;

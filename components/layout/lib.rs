@@ -30,7 +30,7 @@ extern crate bitflags;
 #[macro_use]
 #[no_link]
 extern crate "plugins" as servo_plugins;
-
+extern crate net_traits;
 #[macro_use]
 extern crate profile;
 
@@ -50,7 +50,6 @@ extern crate gfx;
 extern crate layout_traits;
 extern crate libc;
 extern crate msg;
-extern crate net;
 extern crate png;
 extern crate script;
 extern crate script_traits;

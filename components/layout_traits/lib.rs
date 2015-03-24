@@ -5,8 +5,8 @@
 extern crate gfx;
 extern crate script_traits;
 extern crate msg;
-extern crate net;
 extern crate profile;
+extern crate net_traits;
 extern crate url;
 extern crate util;
 
@@ -18,13 +18,13 @@ extern crate util;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::PaintChan;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, PipelineExitType};
-use net::image_cache_task::ImageCacheTask;
-use net::resource_task::ResourceTask;
 use profile::mem;
 use profile::time;
+use net_traits::ResourceTask;
+use net_traits::image_cache_task::ImageCacheTask;
+use url::Url;
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel};
 use std::sync::mpsc::{Sender, Receiver};
-use url::Url;
 
 /// Messages sent to the layout task from the constellation
 pub enum LayoutControlMsg {
