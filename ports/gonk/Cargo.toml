@@ -36,6 +36,9 @@ path = "../../components/devtools"
 path = "../../components/servo"
 default-features = false
 
+[dependencies.profile]
+path = "../../components/profile"
+
 [dependencies.util]
 path = "../../components/util"
 

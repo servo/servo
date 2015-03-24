@@ -9,10 +9,10 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, WindowSizeData};
-use util::memory::MemoryProfilerChan;
-use util::memory;
-use util::time::TimeProfilerChan;
-use util::time;
+use profile::mem;
+use profile::mem::MemoryProfilerChan;
+use profile::time;
+use profile::time::TimeProfilerChan;
 
 /// Starts the compositor, which listens for messages on the specified port.
 ///
@@ -121,7 +121,7 @@ impl CompositorEventListener for NullCompositor {
         while self.port.try_recv_compositor_msg().is_some() {}
 
         self.time_profiler_chan.send(time::TimeProfilerMsg::Exit);
-        self.memory_profiler_chan.send(memory::MemoryProfilerMsg::Exit);
+        self.memory_profiler_chan.send(mem::MemoryProfilerMsg::Exit);
     }
 
     fn pinch_zoom_level(&self) -> f32 {

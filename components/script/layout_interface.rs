@@ -10,16 +10,16 @@ use dom::node::LayoutData;
 
 use geom::point::Point2D;
 use geom::rect::Rect;
-use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel, UntrustedNodeAddress};
 use msg::constellation_msg::{PipelineExitType, WindowSizeData};
-use util::geometry::Au;
-use util::memory::{MemoryReporter, MemoryReportsChan};
+use profile::mem::{MemoryReporter, MemoryReportsChan};
+use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel, UntrustedNodeAddress};
 use std::any::Any;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::boxed::BoxAny;
 use style::stylesheets::Stylesheet;
 use style::media_queries::MediaQueryList;
 use url::Url;
+use util::geometry::Au;
 
 pub use dom::node::TrustedNodeAddress;
 

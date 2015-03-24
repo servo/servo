@@ -21,13 +21,13 @@ use msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
 use msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
 use msg::constellation_msg::{ConstellationChan, PipelineId};
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
-use url::Url;
-use util::cursor::Cursor;
-use util::memory::MemoryProfilerChan;
-use util::time::TimeProfilerChan;
+use profile::mem::MemoryProfilerChan;
+use profile::time::TimeProfilerChan;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::fmt::{Error, Formatter, Debug};
 use std::rc::Rc;
+use url::Url;
+use util::cursor::Cursor;
 
 /// Sends messages to the compositor. This is a trait supplied by the port because the method used
 /// to communicate with the compositor may have to kick OS event loops awake, communicate cross-

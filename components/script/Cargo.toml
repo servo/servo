@@ -24,6 +24,9 @@ path = "../msg"
 [dependencies.net]
 path = "../net"
 
+[dependencies.profile]
+path = "../profile"
+
 [dependencies.script_traits]
 path = "../script_traits"
 

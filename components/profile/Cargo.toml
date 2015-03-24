@@ -1,0 +1,20 @@
+[package]
+name = "profile"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "profile"
+path = "lib.rs"
+
+[dependencies.task_info]
+path = "../../support/rust-task_info"
+
+[dependencies.util]
+path = "../util"
+
+[dependencies]
+libc = "*"
+regex = "0.1.14"
+time = "0.1.12"
+url = "0.2.16"

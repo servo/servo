@@ -7,9 +7,7 @@ use resource_task;
 use resource_task::{LoadData, ResourceTask};
 use resource_task::ProgressMsg::{Payload, Done};
 
-use util::task::spawn_named;
-use util::taskpool::TaskPool;
-use util::time::{self, profile, TimeProfilerChan};
+use profile::time::{self, profile, TimeProfilerChan};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -17,6 +15,8 @@ use std::mem::replace;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use url::Url;
+use util::task::spawn_named;
+use util::taskpool::TaskPool;
 
 pub enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted
@@ -495,10 +495,10 @@ mod tests {
     use resource_task::ProgressMsg::{Payload, Done};
     use sniffer_task;
     use image::base::test_image_bin;
-    use util::taskpool::TaskPool;
-    use util::time::{TimeProfiler, TimeProfilerChan};
+    use profile::time::{TimeProfiler, TimeProfilerChan};
     use std::sync::mpsc::{Sender, channel, Receiver};
     use url::Url;
+    use util::taskpool::TaskPool;
 
     trait Closure {
         fn invoke(&self, _response: Sender<resource_task::ProgressMsg>) { }

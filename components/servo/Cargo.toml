@@ -51,6 +51,9 @@ path = "../net"
 [dependencies.msg]
 path = "../msg"
 
+[dependencies.profile]
+path = "../profile"
+
 [dependencies.util]
 path = "../util"
 

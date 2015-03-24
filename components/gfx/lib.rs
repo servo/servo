@@ -27,6 +27,7 @@ extern crate layers;
 extern crate libc;
 extern crate stb_image;
 extern crate png;
+extern crate profile;
 extern crate script_traits;
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate unicode;
