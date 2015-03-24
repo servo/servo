@@ -24,6 +24,9 @@ git = "https://github.com/servo/rust-cssparser"
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
 
+[dependencies.azure]
+git = "https://github.com/servo/rust-azure"
+
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
