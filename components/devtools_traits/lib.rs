@@ -23,6 +23,7 @@ use msg::constellation_msg::PipelineId;
 use util::str::DOMString;
 use url::Url;
 
+use std::old_io::TcpStream;
 use std::sync::mpsc::{Sender, Receiver};
 
 pub type DevtoolsControlChan = Sender<DevtoolsControlMsg>;
@@ -38,6 +39,7 @@ pub struct DevtoolsPageInfo {
 /// Messages to the instruct the devtools server to update its known actors/state
 /// according to changes in the browser.
 pub enum DevtoolsControlMsg {
+    AddClient(TcpStream),
     NewGlobal(PipelineId, Sender<DevtoolScriptControlMsg>, DevtoolsPageInfo),
     SendConsoleMessage(PipelineId, ConsoleMessage),
     ServerExitMsg

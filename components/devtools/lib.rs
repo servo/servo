@@ -10,7 +10,7 @@
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 
-#![feature(int_uint, box_syntax, io, old_io, core, rustc_private)]
+#![feature(int_uint, box_syntax, old_io, core, rustc_private)]
 #![feature(collections, std_misc)]
 
 #![allow(non_snake_case)]
@@ -41,10 +41,9 @@ use util::task::spawn_named;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::sync::mpsc::{channel, Receiver, Sender};
-use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
+use std::sync::mpsc::{channel, Receiver, Sender, RecvError};
 use std::old_io::{TcpListener, TcpStream};
-use std::old_io::{Acceptor, Listener, TimedOut};
+use std::old_io::{Acceptor, Listener};
 use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
 
@@ -78,20 +77,22 @@ struct ConsoleMsg {
 /// Spin up a devtools server that listens for connections on the specified port.
 pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
     let (sender, receiver) = channel();
-    spawn_named("Devtools".to_owned(), move || {
-        run_server(receiver, port)
-    });
+    {
+        let sender = sender.clone();
+        spawn_named("Devtools".to_owned(), move || {
+            run_server(sender, receiver, port)
+        });
+    }
     sender
 }
 
-static POLL_TIMEOUT: u64 = 300;
-
-fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
+fn run_server(sender: Sender<DevtoolsControlMsg>,
+              receiver: Receiver<DevtoolsControlMsg>,
+              port: u16) {
     let listener = TcpListener::bind(&*format!("{}:{}", "127.0.0.1", port));
 
     // bind the listener to the specified address
     let mut acceptor = listener.listen().unwrap();
-    acceptor.set_timeout(Some(POLL_TIMEOUT));
 
     let mut registry = ActorRegistry::new();
 
@@ -145,7 +146,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
     // TODO: move this into the root or tab modules?
     fn handle_new_global(actors: Arc<Mutex<ActorRegistry>>,
                          pipeline: PipelineId,
-                         sender: Sender<DevtoolScriptControlMsg>,
+                         scriptSender: Sender<DevtoolScriptControlMsg>,
                          actor_pipelines: &mut HashMap<PipelineId, String>,
                          page_info: DevtoolsPageInfo) {
         let mut actors = actors.lock().unwrap();
@@ -154,7 +155,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
         let (tab, console, inspector) = {
             let console = ConsoleActor {
                 name: actors.new_name("console"),
-                script_chan: sender.clone(),
+                script_chan: scriptSender.clone(),
                 pipeline: pipeline,
                 streams: RefCell::new(Vec::new()),
             };
@@ -163,7 +164,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
                 walker: RefCell::new(None),
                 pageStyle: RefCell::new(None),
                 highlighter: RefCell::new(None),
-                script_chan: sender,
+                script_chan: scriptSender,
                 pipeline: pipeline,
             };
 
@@ -225,35 +226,30 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
         return console_actor_name;
     }
 
-    //TODO: figure out some system that allows us to watch for new connections,
-    //      shut down existing ones at arbitrary times, and also watch for messages
-    //      from multiple script tasks simultaneously. Polling for new connections
-    //      for 300ms and then checking the receiver is not a good compromise
-    //      (and makes Servo hang on exit if there's an open connection, no less).
-    // accept connections and process them, spawning a new tasks for each one
+    spawn_named("DevtoolsClientAcceptor".to_owned(), move || {
+        // accept connections and process them, spawning a new task for each one
+        for stream in acceptor.incoming() {
+            // connection succeeded
+            sender.send(DevtoolsControlMsg::AddClient(stream.unwrap())).unwrap();
+        }
+    });
+
     loop {
-        match acceptor.accept() {
-            Err(ref e) if e.kind == TimedOut => {
-                match receiver.try_recv() {
-                    Ok(DevtoolsControlMsg::ServerExitMsg) | Err(Disconnected) => break,
-                    Ok(DevtoolsControlMsg::NewGlobal(id, sender, pageinfo)) =>
-                        handle_new_global(actors.clone(), id,sender, &mut actor_pipelines,
-                                          pageinfo),
-                    Ok(DevtoolsControlMsg::SendConsoleMessage(id, console_message)) =>
-                        handle_console_message(actors.clone(), id, console_message,
-                                               &actor_pipelines),
-                    Err(Empty) => acceptor.set_timeout(Some(POLL_TIMEOUT)),
-                }
-            }
-            Err(_e) => { /* connection failed */ }
-            Ok(stream) => {
+        match receiver.recv() {
+            Ok(DevtoolsControlMsg::AddClient(stream)) => {
                 let actors = actors.clone();
                 accepted_connections.push(stream.clone());
                 spawn_named("DevtoolsClientHandler".to_owned(), move || {
-                    // connection succeeded
                     handle_client(actors, stream.clone())
                 })
             }
+            Ok(DevtoolsControlMsg::ServerExitMsg) | Err(RecvError) => break,
+            Ok(DevtoolsControlMsg::NewGlobal(id, scriptSender, pageinfo)) =>
+                handle_new_global(actors.clone(), id, scriptSender, &mut actor_pipelines,
+                                  pageinfo),
+            Ok(DevtoolsControlMsg::SendConsoleMessage(id, console_message)) =>
+                handle_console_message(actors.clone(), id, console_message,
+                                       &actor_pipelines),
         }
     }
 
