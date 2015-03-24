@@ -898,6 +898,7 @@ dependencies = [
 name = "util"
 version = "0.0.1"
 dependencies = [
+ "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.2.0 (git+https://github.com/servo/rust-cssparser)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",

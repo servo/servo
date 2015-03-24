@@ -6,6 +6,12 @@
 enum CanvasWindingRule { "nonzero", "evenodd" };
 
 // http://www.whatwg.org/html/#2dcontext
+typedef (/* HTMLImageElement or
+         HTMLVideoElement or */
+         HTMLCanvasElement or
+         CanvasRenderingContext2D /* or
+         ImageBitmap */) CanvasImageSource;
+
 //[Constructor(optional unsigned long width, unsigned long height), Exposed=Window,Worker]
 interface CanvasRenderingContext2D {
 
@@ -47,7 +53,7 @@ interface CanvasRenderingContext2D {
   //         attribute DOMString globalCompositeOperation; // (default source-over)
 
   // image smoothing
-  //         attribute boolean imageSmoothingEnabled; // (default true)
+           attribute boolean imageSmoothingEnabled; // (default true)
 
   // colours and styles (see also the CanvasDrawingStyles interface)
            attribute (DOMString or CanvasGradient or CanvasPattern) strokeStyle; // (default black)
@@ -101,9 +107,12 @@ interface CanvasRenderingContext2D {
   //TextMetrics measureText(DOMString text);
 
   // drawing images
-  //void drawImage(CanvasImageSource image, unrestricted double dx, unrestricted double dy);
-  //void drawImage(CanvasImageSource image, unrestricted double dx, unrestricted double dy, unrestricted double dw, unrestricted double dh);
-  //void drawImage(CanvasImageSource image, unrestricted double sx, unrestricted double sy, unrestricted double sw, unrestricted double sh, unrestricted double dx, unrestricted double dy, unrestricted double dw, unrestricted double dh);
+  [Throws]
+  void drawImage(CanvasImageSource image, /* unrestricted */ double dx, /* unrestricted */ double dy);
+  [Throws]
+  void drawImage(CanvasImageSource image, /* unrestricted */ double dx, /* unrestricted */ double dy, /* unrestricted */ double dw, /* unrestricted */ double dh);
+  [Throws]
+  void drawImage(CanvasImageSource image, /* unrestricted */ double sx, /* unrestricted */ double sy, /* unrestricted */ double sw, /* unrestricted */ double sh, /* unrestricted */ double dx, /* unrestricted */ double dy, /* unrestricted */ double dw, /* unrestricted */ double dh);
 
   // hit regions
   //void addHitRegion(optional HitRegionOptions options);
@@ -135,7 +144,7 @@ interface CanvasPathMethods {
                      /*unrestricted*/ double x,
                      /*unrestricted*/ double y);
 
-  //void arcTo(double x1, double y1, double x2, double y2, double radius); 
+  //void arcTo(double x1, double y1, double x2, double y2, double radius);
 // NOT IMPLEMENTED  [LenientFloat] void arcTo(double x1, double y1, double x2, double y2, double radiusX, double radiusY, double rotation);
 
   //void rect(double x, double y, double w, double h);
