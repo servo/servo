@@ -7,6 +7,7 @@ use pipeline::{Pipeline, CompositionPipeline};
 use compositor_task::CompositorProxy;
 use compositor_task::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlMsg};
+use geom::point::Point2D;
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
 use gfx::font_cache_task::FontCacheTask;
@@ -220,23 +221,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 
-    /// Gets the current window_size rect for an existing pipeline. This is used
-    /// to initialize the window size for a new pipeline, but may be None
-    /// when a new frame is loading.
-    fn get_window_size_data_for_pipeline(&self, pipeline_id: PipelineId) -> Option<WindowSizeData> {
-        self.pipeline(pipeline_id).rect.map(|rect| {
-            WindowSizeData {
-                visible_viewport: rect.size,
-                initial_viewport: rect.size * ScaleFactor::new(1.0),
-                device_pixel_ratio: self.window_size.device_pixel_ratio,
-            }
-        })
-    }
-
     /// Helper function for creating a pipeline
     fn new_pipeline(&mut self,
                     parent_info: Option<(PipelineId, SubpageId)>,
-                    initial_window_size: Option<WindowSizeData>,
+                    initial_window_rect: Option<TypedRect<PagePx, f32>>,
                     script_channel: Option<ScriptControlChan>,
                     load_data: LoadData)
                     -> PipelineId {
@@ -255,9 +243,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                     self.storage_task.clone(),
                                                     self.time_profiler_chan.clone(),
                                                     self.memory_profiler_chan.clone(),
-                                                    initial_window_size,
+                                                    initial_window_rect,
                                                     script_channel,
-                                                    load_data);
+                                                    load_data,
+                                                    self.window_size.device_pixel_ratio);
 
         assert!(!self.pipelines.contains_key(&pipeline_id));
         self.pipelines.insert(pipeline_id, pipeline);
@@ -433,16 +422,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
         debug!("creating replacement pipeline for about:failure");
 
-        let window_size = self.get_window_size_data_for_pipeline(pipeline_id);
-        let new_pipeline_id = self.new_pipeline(parent_info, window_size, None,
+        let window_rect = self.pipeline(pipeline_id).rect;
+        let new_pipeline_id = self.new_pipeline(parent_info, window_rect, None,
                                                 LoadData::new(Url::parse("about:failure").unwrap()));
 
         self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
     }
 
     fn handle_init_load(&mut self, url: Url) {
-        let window_size = self.window_size;
-        let root_pipeline_id = self.new_pipeline(None, Some(window_size), None, LoadData::new(url));
+        let window_rect = Rect(Point2D::zero(), self.window_size.visible_viewport);
+        let root_pipeline_id = self.new_pipeline(None, Some(window_rect), None, LoadData::new(url));
         self.push_pending_frame(root_pipeline_id, None);
     }
 
@@ -508,11 +497,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let old_pipeline_id = old_subpage_id.map(|old_subpage_id| {
             self.find_subpage(containing_pipeline_id, old_subpage_id).id
         });
-        let window_size = old_pipeline_id.and_then(|old_pipeline_id| {
-            self.get_window_size_data_for_pipeline(old_pipeline_id)
+        let window_rect = old_pipeline_id.and_then(|old_pipeline_id| {
+            self.pipeline(old_pipeline_id).rect
         });
         let new_pipeline_id = self.new_pipeline(Some((containing_pipeline_id, new_subpage_id)),
-                                                window_size,
+                                                window_rect,
                                                 script_chan,
                                                 LoadData::new(url));
         self.subpage_map.insert((containing_pipeline_id, new_subpage_id), new_pipeline_id);
@@ -551,8 +540,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 // changes would be overridden by changing the subframe associated with source_id.
 
                 // Create the new pipeline
-                let window_size = self.get_window_size_data_for_pipeline(source_id);
-                let new_pipeline_id = self.new_pipeline(None, window_size, None, load_data);
+                let window_rect = self.pipeline(source_id).rect;
+                let new_pipeline_id = self.new_pipeline(None, window_rect, None, load_data);
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
 
                 // Send message to ScriptTask that will suspend all timers
