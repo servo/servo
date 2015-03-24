@@ -652,6 +652,10 @@ impl ScriptTask {
                                                  subpage_id,
                                                  event_name,
                                                  event_detail),
+            ConstellationControlMsg::UpdateSubpageId(containing_pipeline_id,
+                                                     old_subpage_id,
+                                                     new_subpage_id) =>
+                self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
         }
     }
 
@@ -815,6 +819,25 @@ impl ScriptTask {
         if let Some(frame_element) = frame_element {
             frame_element.r().dispatch_mozbrowser_event(event_name, event_detail);
         }
+    }
+
+    fn handle_update_subpage_id(&self,
+                                containing_pipeline_id: PipelineId,
+                                old_subpage_id: SubpageId,
+                                new_subpage_id: SubpageId) {
+        let borrowed_page = self.root_page();
+
+        let frame_element = borrowed_page.find(containing_pipeline_id).and_then(|page| {
+            let doc = page.document().root();
+            let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
+
+            doc.traverse_preorder()
+               .filter_map(HTMLIFrameElementCast::to_ref)
+               .find(|node| node.subpage_id() == Some(old_subpage_id))
+               .map(Temporary::from_rooted)
+        }).root();
+
+        frame_element.unwrap().r().update_subpage_id(new_subpage_id);
     }
 
     /// Handles a notification that reflow completed.
