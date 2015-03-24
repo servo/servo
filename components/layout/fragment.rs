@@ -411,12 +411,12 @@ impl ReplacedImageFragmentInfo {
     }
 
     pub fn calculate_replaced_inline_size(&mut self,
-                                          style: ComputedValues,
+                                          style: &ComputedValues,
                                           noncontent_inline_size: Au,
                                           container_inline_size: Au,
                                           fragment_inline_size: Au,
-                                          fragment_block_size: Au) -> Au {
-
+                                          fragment_block_size: Au)
+                                          -> Au {
         let style_inline_size = style.content_inline_size();
         let style_block_size = style.content_block_size();
         let style_min_inline_size = style.min_inline_size();
@@ -468,12 +468,12 @@ impl ReplacedImageFragmentInfo {
     }
 
     pub fn calculate_replaced_block_size(&mut self,
-                                         style: ComputedValues,
+                                         style: &ComputedValues,
                                          noncontent_block_size: Au,
                                          containing_block_block_size: Au,
                                          fragment_inline_size: Au,
-                                         fragment_block_size: Au) -> Au {
-
+                                         fragment_block_size: Au)
+                                         -> Au {
         // TODO(ksh8281): compute border,margin,padding
         let style_block_size = style.content_block_size();
         let style_min_block_size = style.min_block_size();
@@ -528,7 +528,7 @@ impl IframeFragmentInfo {
     }
 
     #[inline]
-    pub fn calculate_replaced_inline_size(style: ComputedValues, containing_size: Au) -> Au {
+    pub fn calculate_replaced_inline_size(style: &ComputedValues, containing_size: Au) -> Au {
         // Calculate the replaced inline size (or default) as per CSS 2.1 § 10.3.2
         IframeFragmentInfo::calculate_replaced_size(style.content_inline_size(),
                                                     style.min_inline_size(),
@@ -538,7 +538,7 @@ impl IframeFragmentInfo {
     }
 
     #[inline]
-    pub fn calculate_replaced_block_size(style: ComputedValues, containing_size: Au) -> Au {
+    pub fn calculate_replaced_block_size(style: &ComputedValues, containing_size: Au) -> Au {
         // Calculate the replaced block size (or default) as per CSS 2.1 § 10.3.2
         IframeFragmentInfo::calculate_replaced_size(style.content_block_size(),
                                                     style.min_block_size(),
@@ -1694,7 +1694,7 @@ impl Fragment {
             SpecificFragmentInfo::ScannedText(_) => {}
         };
 
-        let style = self.style().clone();
+        let style = &*self.style;
         let noncontent_inline_size = self.border_padding.inline_start_end();
 
         match self.specific {
@@ -1776,7 +1776,7 @@ impl Fragment {
             SpecificFragmentInfo::ScannedText(_) => {}
         }
 
-        let style = self.style().clone();
+        let style = &*self.style;
         let noncontent_block_size = self.border_padding.block_start_end();
 
         match self.specific {
@@ -1784,12 +1784,12 @@ impl Fragment {
                 let fragment_inline_size = image_fragment_info.image_inline_size();
                 let fragment_block_size = image_fragment_info.image_block_size();
                 self.border_box.size.block =
-                    image_fragment_info.replaced_image_fragment_info.
-                                       calculate_replaced_block_size(style,
-                                                                     noncontent_block_size,
-                                                                     containing_block_block_size,
-                                                                     fragment_inline_size,
-                                                                     fragment_block_size);
+                    image_fragment_info.replaced_image_fragment_info
+                                       .calculate_replaced_block_size(style,
+                                                                      noncontent_block_size,
+                                                                      containing_block_block_size,
+                                                                      fragment_inline_size,
+                                                                      fragment_block_size);
             }
             SpecificFragmentInfo::Canvas(ref mut canvas_fragment_info) => {
                 let fragment_inline_size = canvas_fragment_info.canvas_inline_size();
