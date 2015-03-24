@@ -9,16 +9,18 @@ use script_traits::{NewLayoutInfo, ConstellationControlMsg};
 
 use devtools_traits::DevtoolsControlChan;
 use geom::rect::{TypedRect};
+use geom::scale_factor::ScaleFactor;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintTask};
 use gfx::font_cache_task::FontCacheTask;
+use layers::geometry::DevicePixel;
 use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
 use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
 use net::storage_task::StorageTask;
 use url::Url;
-use util::geometry::{PagePx};
+use util::geometry::{PagePx, ViewportPx};
 use util::memory::MemoryProfilerChan;
 use util::time::TimeProfilerChan;
 use std::sync::mpsc::{Receiver, channel};
@@ -63,9 +65,10 @@ impl Pipeline {
                            storage_task: StorageTask,
                            time_profiler_chan: TimeProfilerChan,
                            memory_profiler_chan: MemoryProfilerChan,
-                           window_size: Option<WindowSizeData>,
+                           window_rect: Option<TypedRect<PagePx, f32>>,
                            script_chan: Option<ScriptControlChan>,
-                           load_data: LoadData)
+                           load_data: LoadData,
+                           device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>)
                            -> Pipeline
                            where LTF: LayoutTaskFactory, STF:ScriptTaskFactory {
         let layout_pair = ScriptTaskFactory::create_layout_channel(None::<&mut STF>);
@@ -82,6 +85,15 @@ impl Pipeline {
         let script_chan = match script_chan {
             None => {
                 let (script_chan, script_port) = channel();
+
+                let window_size = window_rect.map(|rect| {
+                    WindowSizeData {
+                        visible_viewport: rect.size,
+                        initial_viewport: rect.size * ScaleFactor::new(1.0),
+                        device_pixel_ratio: device_pixel_ratio,
+                    }
+                });
+
                 ScriptTaskFactory::create(None::<&mut STF>,
                                           id,
                                           parent_info,
@@ -147,7 +159,8 @@ impl Pipeline {
                       paint_chan,
                       layout_shutdown_port,
                       paint_shutdown_port,
-                      load_data.url)
+                      load_data.url,
+                      window_rect)
     }
 
     pub fn new(id: PipelineId,
@@ -157,7 +170,8 @@ impl Pipeline {
                paint_chan: PaintChan,
                layout_shutdown_port: Receiver<()>,
                paint_shutdown_port: Receiver<()>,
-               url: Url)
+               url: Url,
+               rect: Option<TypedRect<PagePx, f32>>)
                -> Pipeline {
         Pipeline {
             id: id,
@@ -170,7 +184,7 @@ impl Pipeline {
             url: url,
             title: None,
             children: vec!(),
-            rect: None,
+            rect: rect,
         }
     }
 
