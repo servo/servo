@@ -73,6 +73,7 @@ pub trait HTMLIFrameElementHelpers {
     fn generate_new_subpage_id(self) -> (SubpageId, Option<SubpageId>);
     fn navigate_child_browsing_context(self, url: Url);
     fn dispatch_mozbrowser_event(self, event_name: String, event_detail: Option<String>);
+    fn update_subpage_id(self, new_subpage_id: SubpageId);
 }
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
@@ -155,6 +156,10 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
             let event: JSRef<Event> = EventCast::from_ref(custom_event.r());
             event.fire(target);
         }
+    }
+
+    fn update_subpage_id(self, new_subpage_id: SubpageId) {
+        self.subpage_id.set(Some(new_subpage_id));
     }
 }
 

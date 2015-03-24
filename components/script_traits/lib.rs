@@ -74,6 +74,8 @@ pub enum ConstellationControlMsg {
     Navigate(PipelineId, SubpageId, LoadData),
     /// Requests the script task forward a mozbrowser event to an iframe it owns
     MozBrowserEvent(PipelineId, SubpageId, String, Option<String>),
+    /// Updates the current subpage id of a given iframe
+    UpdateSubpageId(PipelineId, SubpageId, SubpageId),
 }
 
 unsafe impl Send for ConstellationControlMsg {
