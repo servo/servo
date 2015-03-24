@@ -1,3 +1,11 @@
+# For Students doing project review
+
+The goal of this project was to get the crate Rust Websocket running inside servo. The remaining parts of the design doc was to compete other features, which will be part of the final project. 
+
+To test what we implemented, follow the instructions below. It will compile servo using ./mach build. You will see websocket 0.11.0 being compiled as part of servo. ./mach build should finish successfully. This means websocket was compiled succesfully in servo. 
+
+Thanks for the review!
+
 # The Servo Parallel Browser Project
 
 Servo is a prototype web browser engine written in the
