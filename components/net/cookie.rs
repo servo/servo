@@ -13,8 +13,9 @@ use time::{Tm, now, at, Timespec};
 use url::Url;
 use std::borrow::ToOwned;
 use std::i64;
-use std::old_io::net::ip::IpAddr;
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::time::Duration;
+use std::str::FromStr;
 
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
 /// various behaviours defined in the spec that rely on an associated request URL,
@@ -121,7 +122,8 @@ impl Cookie {
         }
         if string.ends_with(domain_string)
             && string.char_at(string.len()-domain_string.len()-1) == '.'
-            && string.parse::<IpAddr>().is_err() {
+            && Ipv4Addr::from_str(string).is_err()
+            && Ipv6Addr::from_str(string).is_err() {
             return true;
         }
         false
