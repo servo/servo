@@ -270,11 +270,9 @@ pub fn base64_atob(atob: DOMString) -> Fallible<DOMString> {
     //  U+002B PLUS SIGN (+)
     //  U+002F SOLIDUS (/)
     //  Alphanumeric ASCII characters"
-    if input.chars()
-        .find(|&c| !(c == '+' || c == '/' || c.is_alphanumeric()))
-        .is_some() {
-            return Err(InvalidCharacter)
-        }
+    if input.chars().any(|c| c != '+' && c != '/' && !c.is_alphanumeric()) {
+        return Err(InvalidCharacter)
+    }
 
     match input.from_base64() {
         Ok(data) => Ok(data.iter().map(|&b| b as char).collect::<String>()),
@@ -631,7 +629,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn load_url(self, href: DOMString) {
         let base_url = self.get_url();
         debug!("current page url is {}", base_url);
-        let url = UrlParser::new().base_url(&base_url).parse(href.as_slice());
+        let url = UrlParser::new().base_url(&base_url).parse(&href);
         // FIXME: handle URL parse errors more gracefully.
         let url = url.unwrap();
         match url.fragment {
@@ -842,30 +840,30 @@ fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool{
 
 fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: &ReflowReason) {
     let mut debug_msg = String::from_str("****");
-    match *goal {
-        ReflowGoal::ForDisplay => debug_msg.push_str("\tForDisplay"),
-        ReflowGoal::ForScriptQuery => debug_msg.push_str("\tForScriptQuery"),
-    }
+    debug_msg.push_str(match *goal {
+        ReflowGoal::ForDisplay => "\tForDisplay",
+        ReflowGoal::ForScriptQuery => "\tForScriptQuery",
+    });
 
-    match *query_type {
-        ReflowQueryType::NoQuery => debug_msg.push_str("\tNoQuery"),
-        ReflowQueryType::ContentBoxQuery(_n) => debug_msg.push_str("\tContentBoxQuery"),
-        ReflowQueryType::ContentBoxesQuery(_n) => debug_msg.push_str("\tContentBoxesQuery"),
-    }
+    debug_msg.push_str(match *query_type {
+        ReflowQueryType::NoQuery => "\tNoQuery",
+        ReflowQueryType::ContentBoxQuery(_n) => "\tContentBoxQuery",
+        ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
+    });
 
-    match *reason {
-        ReflowReason::CachedPageNeededReflow => debug_msg.push_str("\tCachedPageNeededReflow"),
-        ReflowReason::FirstLoad => debug_msg.push_str("\tFirstLoad"),
-        ReflowReason::KeyEvent => debug_msg.push_str("\tKeyEvent"),
-        ReflowReason::MouseEvent => debug_msg.push_str("\tMouseEvent"),
-        ReflowReason::Query => debug_msg.push_str("\tQuery"),
-        ReflowReason::ReceivedReflowEvent => debug_msg.push_str("\tReceivedReflowEvent"),
-        ReflowReason::Timer => debug_msg.push_str("\tTimer"),
-        ReflowReason::Viewport => debug_msg.push_str("\tViewport"),
-        ReflowReason::WindowResize => debug_msg.push_str("\tWindowResize"),
-        ReflowReason::DOMContentLoaded => debug_msg.push_str("\tDOMContentLoaded"),
-        ReflowReason::DocumentLoaded => debug_msg.push_str("\tDocumentLoaded"),
-    }
+    debug_msg.push_str(match *reason {
+        ReflowReason::CachedPageNeededReflow => "\tCachedPageNeededReflow",
+        ReflowReason::FirstLoad => "\tFirstLoad",
+        ReflowReason::KeyEvent => "\tKeyEvent",
+        ReflowReason::MouseEvent => "\tMouseEvent",
+        ReflowReason::Query => "\tQuery",
+        ReflowReason::ReceivedReflowEvent => "\tReceivedReflowEvent",
+        ReflowReason::Timer => "\tTimer",
+        ReflowReason::Viewport => "\tViewport",
+        ReflowReason::WindowResize => "\tWindowResize",
+        ReflowReason::DOMContentLoaded => "\tDOMContentLoaded",
+        ReflowReason::DocumentLoaded => "\tDocumentLoaded",
+    });
 
     println!("{}", debug_msg);
 }
