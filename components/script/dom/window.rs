@@ -761,6 +761,11 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 
     fn thaw(self) {
         self.timers.resume();
+
+        // Push the document title to the compositor since we are
+        // activating this document due to a navigation.
+        let document = self.Document().root();
+        document.r().title_changed();
     }
 
     fn freeze(self) {
