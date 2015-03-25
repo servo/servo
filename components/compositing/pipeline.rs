@@ -24,6 +24,7 @@ use profile::time::TimeProfilerChan;
 use std::sync::mpsc::{Receiver, channel};
 use url::Url;
 use util::geometry::{PagePx, ViewportPx};
+use util::opts;
 
 /// A uniquely-identifiable pipeline of script task, layout task, and paint task.
 pub struct Pipeline {
@@ -243,5 +244,19 @@ impl Pipeline {
 
     pub fn add_child(&mut self, frame_id: FrameId) {
         self.children.push(frame_id);
+    }
+
+    pub fn trigger_mozbrowser_event(&self,
+                                     subpage_id: SubpageId,
+                                     event_name: String,
+                                     event_detail: Option<String>) {
+        assert!(opts::experimental_enabled());
+
+        let ScriptControlChan(ref script_channel) = self.script_chan;
+        let event = ConstellationControlMsg::MozBrowserEvent(self.id,
+                                                             subpage_id,
+                                                             event_name,
+                                                             event_detail);
+        script_channel.send(event).unwrap();
     }
 }

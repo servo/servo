@@ -213,6 +213,7 @@ pub trait DocumentHelpers<'a> {
     fn begin_focus_transaction(self);
     fn request_focus(self, elem: JSRef<Element>);
     fn commit_focus_transaction(self);
+    fn title_changed(self);
     fn send_title_to_compositor(self);
     fn dirty_all_nodes(self);
     fn handle_click_event(self, js_runtime: *mut JSRuntime, _button: uint, point: Point2D<f32>);
@@ -222,6 +223,7 @@ pub trait DocumentHelpers<'a> {
     fn handle_mouse_move_event(self, js_runtime: *mut JSRuntime, point: Point2D<f32>,
                                prev_mouse_over_targets: &mut Vec<JS<Node>>) -> bool;
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>);
+    fn trigger_mozbrowser_event(self, event_name: String, event_detail: Option<String>);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -453,6 +455,14 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         self.focused.assign(self.possibly_focused.get());
     }
 
+    /// Handles any updates when the document's title has changed.
+    fn title_changed(self) {
+        // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsertitlechange
+        self.trigger_mozbrowser_event("mozbrowsertitlechange".to_owned(), Some(self.Title()));
+
+        self.send_title_to_compositor();
+    }
+
     /// Sends this document's title to the compositor.
     fn send_title_to_compositor(self) {
         let window = self.window().root();
@@ -671,6 +681,21 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>) {
         self.current_script.assign(script);
+    }
+
+    fn trigger_mozbrowser_event(self, event_name: String, event_detail: Option<String>) {
+        if opts::experimental_enabled() {
+            let window = self.window.root();
+
+            if let Some((containing_pipeline_id, subpage_id)) = window.r().parent_info() {
+                let ConstellationChan(ref chan) = window.r().constellation_chan();
+                let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
+                                                              subpage_id,
+                                                              event_name,
+                                                              event_detail);
+                chan.send(event).unwrap();
+            }
+        }
     }
 }
 
@@ -1438,19 +1463,8 @@ impl DocumentProgressHandler {
             event.r().fire(target);
         });
 
-        if opts::experimental_enabled() {
-            // If this is a child frame, and experimental mode is enabled,
-            // send the mozbrowserloadend event. For details, see
-            // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
-            if let Some((containing_pipeline_id, subpage_id)) = window_ref.parent_info() {
-                let ConstellationChan(ref chan) = window_ref.constellation_chan();
-                let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
-                                                              subpage_id,
-                                                              "mozbrowserloadend".to_owned(),
-                                                              None);
-                chan.send(event).unwrap();
-            }
-        }
+        // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
+        document.r().trigger_mozbrowser_event("mozbrowserloadend".to_owned(), None);
 
         window_ref.reflow(ReflowGoal::ForDisplay,
                           ReflowQueryType::NoQuery,

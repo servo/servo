@@ -381,6 +381,7 @@ impl Window {
             VirtualKeyCode::Semicolon => Ok(Key::Semicolon),
             VirtualKeyCode::Slash => Ok(Key::Slash),
             VirtualKeyCode::Tab => Ok(Key::Tab),
+            VirtualKeyCode::Subtract => Ok(Key::Minus),
 
             _ => Err(()),
         }
