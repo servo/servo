@@ -98,7 +98,7 @@ impl Actor for TabActor {
                     traits: TabTraits,
                 };
                 let console_actor = registry.find::<ConsoleActor>(&self.console);
-                console_actor.streams.borrow_mut().push(stream.clone());
+                console_actor.streams.borrow_mut().push(stream.try_clone().unwrap());
                 stream.write_json_packet(&msg);
                 console_actor.script_chan.send(
                     WantsLiveNotifications(console_actor.pipeline, true)).unwrap();

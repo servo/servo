@@ -10,6 +10,7 @@
 #![crate_type = "rlib"]
 
 #![feature(int_uint)]
+#![feature(net)]
 
 #![allow(non_snake_case)]
 

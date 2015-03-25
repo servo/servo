@@ -10,7 +10,7 @@
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 
-#![feature(int_uint, box_syntax, old_io, core, rustc_private)]
+#![feature(int_uint, box_syntax, io, net, core, rustc_private)]
 #![feature(collections, std_misc)]
 
 #![allow(non_snake_case)]
@@ -42,8 +42,7 @@ use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver, Sender, RecvError};
-use std::old_io::{Acceptor, Listener};
-use std::net::{TcpListener, TcpStream, Shutdown};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
 
@@ -92,7 +91,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
     let listener = TcpListener::bind(&*format!("{}:{}", "127.0.0.1", port));
 
     // bind the listener to the specified address
-    let mut acceptor = listener.listen().unwrap();
+    let acceptor = listener.unwrap();
 
     let mut registry = ActorRegistry::new();
 
@@ -111,7 +110,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
     /// Process the input from a single devtools client until EOF.
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
-        println!("connection established to {}", stream.peer_name().unwrap());
+        println!("connection established to {}", stream.peer_addr().unwrap());
         {
             let actors = actors.lock().unwrap();
             let msg = actors.find::<RootActor>("root").encodable();
@@ -133,7 +132,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     }
                 }
                 Err(e) => {
-                    println!("error: {}", e.desc);
+                    println!("error: {}", e.description());
                     break 'outer
                 }
             }
@@ -237,9 +236,9 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         match receiver.recv() {
             Ok(DevtoolsControlMsg::AddClient(stream)) => {
                 let actors = actors.clone();
-                accepted_connections.push(stream.clone());
+                accepted_connections.push(stream.try_clone().unwrap());
                 spawn_named("DevtoolsClientHandler".to_owned(), move || {
-                    handle_client(actors, stream.clone())
+                    handle_client(actors, stream.try_clone().unwrap())
                 })
             }
             Ok(DevtoolsControlMsg::ServerExitMsg) | Err(RecvError) => break,
