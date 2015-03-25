@@ -194,6 +194,9 @@ impl Window {
                     self.scroll_window(dx, dy);
                 }
             },
+            Event::Refresh | Event::Awakened => {
+                self.event_queue.borrow_mut().push(WindowEvent::Refresh);
+            }
             _ => {}
         }
 
