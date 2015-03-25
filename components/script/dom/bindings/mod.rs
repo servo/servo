@@ -37,6 +37,7 @@ pub mod callback;
 pub mod error;
 pub mod conversions;
 pub mod proxyhandler;
+pub mod num;
 pub mod str;
 pub mod structuredclone;
 pub mod trace;

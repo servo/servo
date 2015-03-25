@@ -80,8 +80,10 @@ builtinNames = {
     IDLType.Tags.uint16: 'u16',
     IDLType.Tags.uint32: 'u32',
     IDLType.Tags.uint64: 'u64',
-    IDLType.Tags.float: 'f32',
-    IDLType.Tags.double: 'f64'
+    IDLType.Tags.unrestricted_float: 'f32',
+    IDLType.Tags.float: 'Finite<f32>',
+    IDLType.Tags.unrestricted_double: 'f64',
+    IDLType.Tags.double: 'Finite<f64>'
 }
 
 numericTags = [
@@ -89,7 +91,8 @@ numericTags = [
     IDLType.Tags.int16, IDLType.Tags.uint16,
     IDLType.Tags.int32, IDLType.Tags.uint32,
     IDLType.Tags.int64, IDLType.Tags.uint64,
-    IDLType.Tags.float, IDLType.Tags.double
+    IDLType.Tags.unrestricted_float, IDLType.Tags.float,
+    IDLType.Tags.unrestricted_double, IDLType.Tags.double
     ]
 
 class CastableObjectUnwrapper():
@@ -884,12 +887,23 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.nullable():
         declType = CGWrapper(declType, pre="Option<", post=">")
 
-    #XXXjdm support conversionBehavior here
-    template = (
-        "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
-        "    Ok(v) => v,\n"
-        "    Err(_) => { %s }\n"
-        "}" % exceptionCode)
+    template = ""
+    if type.isFloat() and not type.isUnrestricted():
+        template = (
+            "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+            "    Ok(v) => v,\n"
+            "    Err(_) => {\n"
+            "       throw_type_error(cx, \"this argument is not a finite floating-point value\");\n"
+            "       %s\n"
+            "    }\n"
+            "}" % exceptionCode)
+    else:
+        #XXXjdm support conversionBehavior here
+        template = (
+            "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+            "    Ok(v) => v,\n"
+            "    Err(_) => { %s }\n"
+            "}" % exceptionCode)
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
@@ -962,7 +976,8 @@ def convertConstIDLValueToJSVal(value):
         return "DoubleVal(%s)" % (value.value)
     if tag == IDLType.Tags.bool:
         return "BoolVal(true)" if value.value else "BoolVal(false)"
-    if tag in [IDLType.Tags.float, IDLType.Tags.double]:
+    if tag in [IDLType.Tags.unrestricted_float, IDLType.Tags.float,
+               IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
         return "DoubleVal(%s)" % (value.value)
     raise TypeError("Const value of unhandled type: " + value.type)
 
@@ -2880,7 +2895,8 @@ def convertConstIDLValueToRust(value):
                IDLType.Tags.int16, IDLType.Tags.uint16,
                IDLType.Tags.int32, IDLType.Tags.uint32,
                IDLType.Tags.int64, IDLType.Tags.uint64,
-               IDLType.Tags.float, IDLType.Tags.double]:
+               IDLType.Tags.unrestricted_float, IDLType.Tags.float,
+               IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
         return str(value.value)
 
     if tag == IDLType.Tags.bool:
@@ -4683,6 +4699,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::proxyhandler',
             'dom::bindings::proxyhandler::{fill_property_descriptor, get_expando_object}',
             'dom::bindings::proxyhandler::{get_property_descriptor}',
+            'dom::bindings::num::Finite',
             'dom::bindings::str::ByteString',
             'dom::bindings::str::USVString',
             'libc',

@@ -9,6 +9,7 @@ use dom::bindings::codegen::Bindings::CanvasGradientBinding;
 use dom::bindings::codegen::Bindings::CanvasGradientBinding::CanvasGradientMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::canvasrenderingcontext2d::parse_color;
 
@@ -41,7 +42,7 @@ impl CanvasGradient {
 }
 
 impl<'a> CanvasGradientMethods for JSRef<'a, CanvasGradient> {
-    fn AddColorStop(self, offset: f32, color: String) {
+    fn AddColorStop(self, offset: Finite<f32>, color: String) {
         let default_black = RGBA {
             red: 0.0,
             green: 0.0,
@@ -50,7 +51,7 @@ impl<'a> CanvasGradientMethods for JSRef<'a, CanvasGradient> {
         };
 
         self.stops.borrow_mut().push(CanvasGradientStop {
-            offset: offset as f64,
+            offset: (*offset) as f64,
             color: parse_color(color.as_slice()).unwrap_or(default_black),
         });
     }
