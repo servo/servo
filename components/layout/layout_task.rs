@@ -847,19 +847,32 @@ impl LayoutTask {
 
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
 
-        // TODO: Calculate the "actual viewport":
-        // http://www.w3.org/TR/css-device-adapt/#actual-viewport
-        let viewport_size = data.window_size.initial_viewport;
+        let initial_viewport = data.window_size.initial_viewport;
         let old_screen_size = rw_data.screen_size;
-        let current_screen_size = Size2D(Au::from_f32_px(viewport_size.width.get()),
-                                         Au::from_f32_px(viewport_size.height.get()));
+        let current_screen_size = Size2D(Au::from_f32_px(initial_viewport.width.get()),
+                                         Au::from_f32_px(initial_viewport.height.get()));
         rw_data.screen_size = current_screen_size;
 
         // Handle conditions where the entire flow tree is invalid.
         let screen_size_changed = current_screen_size != old_screen_size;
         if screen_size_changed {
-            let device = Device::new(MediaType::Screen, data.window_size.initial_viewport);
+            // Calculate the actual viewport as per DEVICE-ADAPT § 6
+            let device = Device::new(MediaType::Screen, initial_viewport);
             rw_data.stylist.set_device(device);
+
+            if let Some(constraints) = rw_data.stylist.constrain_viewport() {
+                debug!("Viewport constraints: {:?}", constraints);
+
+                // other rules are evaluated against the actual viewport
+                rw_data.screen_size = Size2D(Au::from_f32_px(constraints.size.width.get()),
+                                             Au::from_f32_px(constraints.size.height.get()));
+                let device = Device::new(MediaType::Screen, constraints.size);
+                rw_data.stylist.set_device(device);
+
+                // let the constellation know about the viewport constraints
+                let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
+                constellation_chan.send(ConstellationMsg::ViewportConstrained(self.id, constraints)).unwrap();
+            }
         }
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.

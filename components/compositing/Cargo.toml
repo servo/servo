@@ -28,6 +28,9 @@ path = "../profile_traits"
 [dependencies.net_traits]
 path = "../net_traits"
 
+[dependencies.style]
+path = "../style"
+
 [dependencies.util]
 path = "../util"
 
@@ -62,6 +65,7 @@ git = "https://github.com/servo/gleam"
 git = "https://github.com/servo/rust-x11-clipboard"
 
 [dependencies]
+num = "0.1.24"
 url = "0.2.16"
 time = "0.1.17"
 libc = "*"
