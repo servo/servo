@@ -7,8 +7,8 @@
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::cell::{Cell, RefCell};
-use std::old_io::TcpStream;
 use std::mem::{replace, transmute};
+use std::net::TcpStream;
 use std::raw::TraitObject;
 use rustc_serialize::json;
 

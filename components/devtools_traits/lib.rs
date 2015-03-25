@@ -10,6 +10,7 @@
 #![crate_type = "rlib"]
 
 #![feature(int_uint)]
+#![feature(net)]
 
 #![allow(non_snake_case)]
 
@@ -23,7 +24,7 @@ use msg::constellation_msg::PipelineId;
 use util::str::DOMString;
 use url::Url;
 
-use std::old_io::TcpStream;
+use std::net::TcpStream;
 use std::sync::mpsc::{Sender, Receiver};
 
 pub type DevtoolsControlChan = Sender<DevtoolsControlMsg>;
