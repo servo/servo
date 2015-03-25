@@ -64,10 +64,10 @@ impl<'a> CanvasPaintTask<'a> {
         //start offset of the copyable rectangle
         let mut src = (src_read_rect.origin.y * stride + src_read_rect.origin.x * 4) as usize;
         //copy the data to the destination vector
-        for _ in range(0, src_read_rect.size.height) {
-           let row = &src_data[src .. src + (4 * src_read_rect.size.width) as usize];
-           image_data.push_all(row);
-           src += stride as usize;
+        for _ in 0..src_read_rect.size.height {
+            let row = &src_data[src .. src + (4 * src_read_rect.size.width) as usize];
+            image_data.push_all(row);
+            src += stride as usize;
         }
 
         image_data
@@ -77,31 +77,31 @@ impl<'a> CanvasPaintTask<'a> {
     /// source_rect: the area of the image data to be written
     /// dest_rect: The area of the canvas where the imagedata will be copied
     /// smoothing_enabled: if smoothing is applied to the copied pixels
-    fn write_pixels(&self, imagedata: &Vec<u8>,
-                           image_size: Size2D<i32>,
-                           source_rect: Rect<i32>,
-                           dest_rect: Rect<i32>,
-                           smoothing_enabled: bool) {
+    fn write_pixels(&self, imagedata: &[u8],
+                    image_size: Size2D<i32>,
+                    source_rect: Rect<i32>,
+                    dest_rect: Rect<i32>,
+                    smoothing_enabled: bool) {
         // From spec https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-drawimage
         // When scaling up, if the imageSmoothingEnabled attribute is set to true, the user agent should attempt
         // to apply a smoothing algorithm to the image data when it is scaled.
         // Otherwise, the image must be rendered using nearest-neighbor interpolation.
         let filter = if smoothing_enabled {
-           Filter::Linear
+            Filter::Linear
         } else {
-           Filter::Point
+            Filter::Point
         };
 
-        let source_surface = self.drawtarget.create_source_surface_from_data(imagedata.as_slice(),
-           image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
+        let source_surface = self.drawtarget.create_source_surface_from_data(imagedata,
+            image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
 
         let draw_surface_options = DrawSurfaceOptions::new(filter, true);
         let draw_options = DrawOptions::new(1.0f64 as AzFloat, 0);
 
         self.drawtarget.draw_surface(source_surface,
-                                    dest_rect.to_azfloat(),
-                                    source_rect.to_azfloat(),
-                                    draw_surface_options, draw_options);
+                                     dest_rect.to_azfloat(),
+                                     source_rect.to_azfloat(),
+                                     draw_surface_options, draw_options);
     }
 
     /// dirty_rect: original dirty_rect provided by the putImageData call
