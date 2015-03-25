@@ -17,7 +17,7 @@ use msg::constellation_msg::PipelineId;
 use collections::BTreeMap;
 use core::cell::RefCell;
 use rustc_serialize::json::{self, Json, ToJson};
-use std::old_io::TcpStream;
+use std::net::TcpStream;
 use std::num::Float;
 use std::sync::mpsc::{channel, Sender};
 
