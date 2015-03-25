@@ -13,7 +13,7 @@
 #![feature(old_io)]
 #![feature(optin_builtin_traits)]
 #![feature(path)]
-#![feature(path_ext)]
+#![cfg_attr(not(target_os = "android"), feature(path_ext))]
 #![feature(plugin)]
 #![feature(rustc_private)]
 #![feature(std_misc)]
