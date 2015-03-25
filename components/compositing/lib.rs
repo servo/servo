@@ -24,6 +24,7 @@ extern crate msg;
 extern crate net;
 extern crate profile;
 extern crate net_traits;
+extern crate style;
 #[macro_use]
 extern crate util;
 extern crate gleam;
