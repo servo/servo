@@ -82,7 +82,7 @@ interface CanvasRenderingContext2D {
   void beginPath();
   void fill(optional CanvasWindingRule fillRule = "nonzero");
   //void fill(Path2D path, optional CanvasWindingRule fillRule = "nonzero");
-  //void stroke();
+  void stroke();
   //void stroke(Path2D path);
   //void drawSystemFocusRing(Element element);
   //void drawSystemFocusRing(Path2D path, Element element);

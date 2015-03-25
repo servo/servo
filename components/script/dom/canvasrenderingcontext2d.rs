@@ -311,6 +311,10 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.renderer.send(CanvasMsg::Fill).unwrap();
     }
 
+    fn Stroke(self) {
+        self.renderer.send(CanvasMsg::Stroke).unwrap();
+    }
+
     // https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-drawimage
     fn DrawImage(self, image: HTMLCanvasElementOrCanvasRenderingContext2D,
                  dx: f64, dy: f64) -> Fallible<()> {
