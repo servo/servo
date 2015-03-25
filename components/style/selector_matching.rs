@@ -17,6 +17,7 @@ use media_queries::Device;
 use node::TElementAttributes;
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use stylesheets::{Stylesheet, CSSRuleIteratorExt, Origin};
+use viewport::{ViewportConstraints, ViewportRuleCascade};
 
 
 pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
@@ -67,6 +68,14 @@ impl Stylist {
             stylist.add_stylesheet(ua_stylesheet);
         }
         stylist
+    }
+
+    pub fn constrain_viewport(&self) -> Option<ViewportConstraints> {
+        let cascaded_rule = self.stylesheets.iter()
+            .flat_map(|s| s.effective_rules(&self.device).viewport())
+            .cascade();
+
+        ViewportConstraints::maybe_new(self.device.viewport_size, &cascaded_rule)
     }
 
     pub fn update(&mut self) -> bool {
