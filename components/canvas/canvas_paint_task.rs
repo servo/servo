@@ -77,7 +77,7 @@ impl<'a> CanvasPaintTask<'a> {
     /// source_rect: the area of the image data to be written
     /// dest_rect: The area of the canvas where the imagedata will be copied
     /// smoothing_enabled: if smoothing is applied to the copied pixels
-    fn write_pixels(&self, imagedata: &Vec<u8>,
+    fn write_pixels(&self, imagedata: &[u8],
                     image_size: Size2D<i32>,
                     source_rect: Rect<i32>,
                     dest_rect: Rect<i32>,
@@ -92,7 +92,7 @@ impl<'a> CanvasPaintTask<'a> {
             Filter::Point
         };
 
-        let source_surface = self.drawtarget.create_source_surface_from_data(imagedata.as_slice(),
+        let source_surface = self.drawtarget.create_source_surface_from_data(imagedata,
             image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
 
         let draw_surface_options = DrawSurfaceOptions::new(filter, true);
