@@ -33,7 +33,7 @@ use msg::constellation_msg::ConstellationChan;
 use script::dom::bindings::codegen::RegisterBindings;
 
 #[cfg(not(test))]
-use net::image_cache_task::ImageCacheTask;
+use net::image_cache_task::{ImageCacheTask, LoadPlaceholder};
 #[cfg(not(test))]
 use net::resource_task::new_resource_task;
 #[cfg(not(test))]
@@ -84,10 +84,10 @@ impl Browser  {
         // image.
         let image_cache_task = if opts.output_file.is_some() {
             ImageCacheTask::new_sync(resource_task.clone(), shared_task_pool,
-                                     time_profiler_chan.clone())
+                                     time_profiler_chan.clone(), LoadPlaceholder::Preload)
         } else {
             ImageCacheTask::new(resource_task.clone(), shared_task_pool,
-                                time_profiler_chan.clone())
+                                time_profiler_chan.clone(), LoadPlaceholder::Preload)
         };
 
         let font_cache_task = FontCacheTask::new(resource_task.clone());
