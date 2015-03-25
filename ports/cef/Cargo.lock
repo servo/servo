@@ -358,7 +358,7 @@ dependencies = [
 [[package]]
 name = "glutin"
 version = "0.0.7"
-source = "git+https://github.com/servo/glutin?branch=servo#8138fe5755aa1b23fee704994d52597109f1abe0"
+source = "git+https://github.com/servo/glutin?branch=servo#0feab4842c5b229bfe88739d2c526d03c198fd33"
 dependencies = [
  "android_glue 0.0.1 (git+https://github.com/tomaka/android-rs-glue)",
  "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
@@ -923,6 +923,7 @@ dependencies = [
 name = "util"
 version = "0.0.1"
 dependencies = [
+ "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.2.0 (git+https://github.com/servo/rust-cssparser)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
