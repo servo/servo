@@ -64,7 +64,7 @@ impl<'a> CanvasPaintTask<'a> {
         //start offset of the copyable rectangle
         let mut src = (src_read_rect.origin.y * stride + src_read_rect.origin.x * 4) as usize;
         //copy the data to the destination vector
-        for _ in range(0, src_read_rect.size.height) {
+        for _ in 0..src_read_rect.size.height {
             let row = &src_data[src .. src + (4 * src_read_rect.size.width) as usize];
             image_data.push_all(row);
             src += stride as usize;
