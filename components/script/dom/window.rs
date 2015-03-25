@@ -281,6 +281,7 @@ pub fn base64_atob(atob: DOMString) -> Fallible<DOMString> {
 }
 
 impl<'a> WindowMethods for JSRef<'a, Window> {
+    // https://html.spec.whatwg.org/#dom-alert
     fn Alert(self, s: DOMString) {
         // Right now, just print to the console
         println!("ALERT: {}", s);
@@ -296,14 +297,17 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         context.as_ref().unwrap().active_document()
     }
 
+    // https://html.spec.whatwg.org/#dom-location
     fn Location(self) -> Temporary<Location> {
         self.Document().root().r().Location()
     }
 
+    // https://html.spec.whatwg.org/#dom-sessionstorage
     fn SessionStorage(self) -> Temporary<Storage> {
         self.session_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Session))
     }
 
+    // https://html.spec.whatwg.org/#dom-localstorage
     fn LocalStorage(self) -> Temporary<Storage> {
         self.local_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Local))
     }
@@ -312,16 +316,19 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.console.or_init(|| Console::new(GlobalRef::Window(self)))
     }
 
+    // https://html.spec.whatwg.org/#dom-frameelement
     fn GetFrameElement(self) -> Option<Temporary<Element>> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let context = self.browser_context();
         context.as_ref().unwrap().frame_element()
     }
 
+    // https://html.spec.whatwg.org/#dom-navigator
     fn Navigator(self) -> Temporary<Navigator> {
         self.navigator.or_init(|| Navigator::new(self))
     }
 
+    // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
     fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
@@ -331,6 +338,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
                                             self.script_chan.clone())
     }
 
+    // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
     fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
@@ -340,10 +348,12 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
                                             self.script_chan.clone())
     }
 
+    // https://html.spec.whatwg.org/#dom-windowtimers-cleartimeout
     fn ClearTimeout(self, handle: i32) {
         self.timers.clear_timeout_or_interval(handle);
     }
 
+    // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
     fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
@@ -353,6 +363,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
                                             self.script_chan.clone())
     }
 
+    // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
     fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
@@ -362,6 +373,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
                                             self.script_chan.clone())
     }
 
+    // https://html.spec.whatwg.org/#dom-windowtimers-clearinterval
     fn ClearInterval(self, handle: i32) {
         self.ClearTimeout(handle);
     }
