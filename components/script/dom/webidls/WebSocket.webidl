@@ -12,7 +12,7 @@ readonly attribute DOMString url;
     const unsigned short OPEN = 1;
     const unsigned short CLOSING = 2;
     const unsigned short CLOSED = 3;
-    //readonly attribute unsigned short readyState;
+    readonly attribute unsigned short readyState;
     //readonly attribute unsigned long bufferedAmount;
     //networking
     //attribute EventHandler onopen;
