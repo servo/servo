@@ -14,6 +14,7 @@ use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong::eLong;
 use dom::bindings::global::GlobalField;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::num::Finite;
 use dom::bindings::str::{ByteString, USVString};
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::blob::Blob;
@@ -49,10 +50,14 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetLongLongAttribute(self, _: i64) {}
     fn UnsignedLongLongAttribute(self) -> u64 { 0 }
     fn SetUnsignedLongLongAttribute(self, _: u64) {}
-    fn FloatAttribute(self) -> f32 { 0. }
-    fn SetFloatAttribute(self, _: f32) {}
-    fn DoubleAttribute(self) -> f64 { 0. }
-    fn SetDoubleAttribute(self, _: f64) {}
+    fn UnrestrictedFloatAttribute(self) -> f32 { 0. }
+    fn SetUnrestrictedFloatAttribute(self, _: f32) {}
+    fn FloatAttribute(self) -> Finite<f32> { Finite::wrap(0.) }
+    fn SetFloatAttribute(self, _: Finite<f32>) {}
+    fn UnrestrictedDoubleAttribute(self) -> f64 { 0. }
+    fn SetUnrestrictedDoubleAttribute(self, _: f64) {}
+    fn DoubleAttribute(self) -> Finite<f64> { Finite::wrap(0.) }
+    fn SetDoubleAttribute(self, _: Finite<f64>) {}
     fn StringAttribute(self) -> DOMString { "".to_owned() }
     fn SetStringAttribute(self, _: DOMString) {}
     fn UsvstringAttribute(self) -> USVString { USVString("".to_owned()) }
@@ -92,10 +97,14 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetLongLongAttributeNullable(self, _: Option<i64>) {}
     fn GetUnsignedLongLongAttributeNullable(self) -> Option<u64> { Some(0) }
     fn SetUnsignedLongLongAttributeNullable(self, _: Option<u64>) {}
-    fn GetFloatAttributeNullable(self) -> Option<f32> { Some(0.) }
-    fn SetFloatAttributeNullable(self, _: Option<f32>) {}
-    fn GetDoubleAttributeNullable(self) -> Option<f64> { Some(0.) }
-    fn SetDoubleAttributeNullable(self, _: Option<f64>) {}
+    fn GetUnrestrictedFloatAttributeNullable(self) -> Option<f32> { Some(0.) }
+    fn SetUnrestrictedFloatAttributeNullable(self, _: Option<f32>) {}
+    fn GetFloatAttributeNullable(self) -> Option<Finite<f32>> { Some(Finite::wrap(0.)) }
+    fn SetFloatAttributeNullable(self, _: Option<Finite<f32>>) {}
+    fn GetUnrestrictedDoubleAttributeNullable(self) -> Option<f64> { Some(0.) }
+    fn SetUnrestrictedDoubleAttributeNullable(self, _: Option<f64>) {}
+    fn GetDoubleAttributeNullable(self) -> Option<Finite<f64>> { Some(Finite::wrap(0.)) }
+    fn SetDoubleAttributeNullable(self, _: Option<Finite<f64>>) {}
     fn GetByteStringAttributeNullable(self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn SetByteStringAttributeNullable(self, _: Option<ByteString>) {}
     fn GetStringAttributeNullable(self) -> Option<DOMString> { Some("".to_owned()) }
@@ -125,8 +134,10 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn ReceiveUnsignedLong(self) -> u32 { 0 }
     fn ReceiveLongLong(self) -> i64 { 0 }
     fn ReceiveUnsignedLongLong(self) -> u64 { 0 }
-    fn ReceiveFloat(self) -> f32 { 0. }
-    fn ReceiveDouble(self) -> f64 { 0. }
+    fn ReceiveUnrestrictedFloat(self) -> f32 { 0. }
+    fn ReceiveFloat(self) -> Finite<f32> { Finite::wrap(0.) }
+    fn ReceiveUnrestrictedDouble(self) -> f64 { 0. }
+    fn ReceiveDouble(self) -> Finite<f64> { Finite::wrap(0.) }
     fn ReceiveString(self) -> DOMString { "".to_owned() }
     fn ReceiveUsvstring(self) -> USVString { USVString("".to_owned()) }
     fn ReceiveByteString(self) -> ByteString { ByteString::new(vec!()) }
@@ -148,8 +159,10 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn ReceiveNullableUnsignedLong(self) -> Option<u32> { Some(0) }
     fn ReceiveNullableLongLong(self) -> Option<i64> { Some(0) }
     fn ReceiveNullableUnsignedLongLong(self) -> Option<u64> { Some(0) }
-    fn ReceiveNullableFloat(self) -> Option<f32> { Some(0.) }
-    fn ReceiveNullableDouble(self) -> Option<f64> { Some(0.) }
+    fn ReceiveNullableUnrestrictedFloat(self) -> Option<f32> { Some(0.) }
+    fn ReceiveNullableFloat(self) -> Option<Finite<f32>> { Some(Finite::wrap(0.)) }
+    fn ReceiveNullableUnrestrictedDouble(self) -> Option<f64> { Some(0.) }
+    fn ReceiveNullableDouble(self) -> Option<Finite<f64>> { Some(Finite::wrap(0.)) }
     fn ReceiveNullableString(self) -> Option<DOMString> { Some("".to_owned()) }
     fn ReceiveNullableUsvstring(self) -> Option<USVString> { Some(USVString("".to_owned())) }
     fn ReceiveNullableByteString(self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
@@ -170,8 +183,10 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassUnsignedLong(self, _: u32) {}
     fn PassLongLong(self, _: i64) {}
     fn PassUnsignedLongLong(self, _: u64) {}
-    fn PassFloat(self, _: f32) {}
-    fn PassDouble(self, _: f64) {}
+    fn PassUnrestrictedFloat(self, _: f32) {}
+    fn PassFloat(self, _: Finite<f32>) {}
+    fn PassUnrestrictedDouble(self, _: f64) {}
+    fn PassDouble(self, _: Finite<f64>) {}
     fn PassString(self, _: DOMString) {}
     fn PassUsvstring(self, _: USVString) {}
     fn PassByteString(self, _: ByteString) {}
@@ -193,8 +208,10 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassNullableUnsignedLong(self, _: Option<u32>) {}
     fn PassNullableLongLong(self, _: Option<i64>) {}
     fn PassNullableUnsignedLongLong(self, _: Option<u64>) {}
-    fn PassNullableFloat(self, _: Option<f32>) {}
-    fn PassNullableDouble(self, _: Option<f64>) {}
+    fn PassNullableUnrestrictedFloat(self, _: Option<f32>) {}
+    fn PassNullableFloat(self, _: Option<Finite<f32>>) {}
+    fn PassNullableUnrestrictedDouble(self, _: Option<f64>) {}
+    fn PassNullableDouble(self, _: Option<Finite<f64>>) {}
     fn PassNullableString(self, _: Option<DOMString>) {}
     fn PassNullableUsvstring(self, _: Option<USVString>) {}
     fn PassNullableByteString(self, _: Option<ByteString>) {}
@@ -214,8 +231,10 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalUnsignedLong(self, _: Option<u32>) {}
     fn PassOptionalLongLong(self, _: Option<i64>) {}
     fn PassOptionalUnsignedLongLong(self, _: Option<u64>) {}
-    fn PassOptionalFloat(self, _: Option<f32>) {}
-    fn PassOptionalDouble(self, _: Option<f64>) {}
+    fn PassOptionalUnrestrictedFloat(self, _: Option<f32>) {}
+    fn PassOptionalFloat(self, _: Option<Finite<f32>>) {}
+    fn PassOptionalUnrestrictedDouble(self, _: Option<f64>) {}
+    fn PassOptionalDouble(self, _: Option<Finite<f64>>) {}
     fn PassOptionalString(self, _: Option<DOMString>) {}
     fn PassOptionalUsvstring(self, _: Option<USVString>) {}
     fn PassOptionalByteString(self, _: Option<ByteString>) {}
@@ -236,8 +255,10 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalNullableUnsignedLong(self, _: Option<Option<u32>>) {}
     fn PassOptionalNullableLongLong(self, _: Option<Option<i64>>) {}
     fn PassOptionalNullableUnsignedLongLong(self, _: Option<Option<u64>>) {}
-    fn PassOptionalNullableFloat(self, _: Option<Option<f32>>) {}
-    fn PassOptionalNullableDouble(self, _: Option<Option<f64>>) {}
+    fn PassOptionalNullableUnrestrictedFloat(self, _: Option<Option<f32>>) {}
+    fn PassOptionalNullableFloat(self, _: Option<Option<Finite<f32>>>) {}
+    fn PassOptionalNullableUnrestrictedDouble(self, _: Option<Option<f64>>) {}
+    fn PassOptionalNullableDouble(self, _: Option<Option<Finite<f64>>>) {}
     fn PassOptionalNullableString(self, _: Option<Option<DOMString>>) {}
     fn PassOptionalNullableUsvstring(self, _: Option<Option<USVString>>) {}
     fn PassOptionalNullableByteString(self, _: Option<Option<ByteString>>) {}
@@ -270,8 +291,10 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalNullableUnsignedLongWithDefault(self, _: Option<u32>) {}
     fn PassOptionalNullableLongLongWithDefault(self, _: Option<i64>) {}
     fn PassOptionalNullableUnsignedLongLongWithDefault(self, _: Option<u64>) {}
-    // fn PassOptionalNullableFloatWithDefault(self, _: Option<f32>) {}
-    // fn PassOptionalNullableDoubleWithDefault(self, _: Option<f64>) {}
+    // fn PassOptionalNullableUnrestrictedFloatWithDefault(self, _: Option<f32>) {}
+    // fn PassOptionalNullableFloatWithDefault(self, _: Option<Finite<f32>>) {}
+    // fn PassOptionalNullableUnrestrictedDoubleWithDefault(self, _: Option<f64>) {}
+    // fn PassOptionalNullableDoubleWithDefault(self, _: Option<Finite<f64>>) {}
     fn PassOptionalNullableStringWithDefault(self, _: Option<DOMString>) {}
     fn PassOptionalNullableUsvstringWithDefault(self, _: Option<USVString>) {}
     fn PassOptionalNullableByteStringWithDefault(self, _: Option<ByteString>) {}
@@ -292,8 +315,10 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalNullableUnsignedLongWithNonNullDefault(self, _: Option<u32>) {}
     fn PassOptionalNullableLongLongWithNonNullDefault(self, _: Option<i64>) {}
     fn PassOptionalNullableUnsignedLongLongWithNonNullDefault(self, _: Option<u64>) {}
-    // fn PassOptionalNullableFloatWithNonNullDefault(self, _: Option<f32>) {}
-    // fn PassOptionalNullableDoubleWithNonNullDefault(self, _: Option<f64>) {}
+    // fn PassOptionalNullableUnrestrictedFloatWithNonNullDefault(self, _: Option<f32>) {}
+    // fn PassOptionalNullableFloatWithNonNullDefault(self, _: Option<Finite<f32>>) {}
+    // fn PassOptionalNullableUnrestrictedDoubleWithNonNullDefault(self, _: Option<f64>) {}
+    // fn PassOptionalNullableDoubleWithNonNullDefault(self, _: Option<Finite<f64>>) {}
     fn PassOptionalNullableStringWithNonNullDefault(self, _: Option<DOMString>) {}
     fn PassOptionalNullableUsvstringWithNonNullDefault(self, _: Option<USVString>) {}
     // fn PassOptionalNullableEnumWithNonNullDefault(self, _: Option<TestEnum>) {}
@@ -307,8 +332,10 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassVariadicUnsignedLong(self, _: Vec<u32>) {}
     fn PassVariadicLongLong(self, _: Vec<i64>) {}
     fn PassVariadicUnsignedLongLong(self, _: Vec<u64>) {}
-    fn PassVariadicFloat(self, _: Vec<f32>) {}
-    fn PassVariadicDouble(self, _: Vec<f64>) {}
+    fn PassVariadicUnrestrictedFloat(self, _: Vec<f32>) {}
+    fn PassVariadicFloat(self, _: Vec<Finite<f32>>) {}
+    fn PassVariadicUnrestrictedDouble(self, _: Vec<f64>) {}
+    fn PassVariadicDouble(self, _: Vec<Finite<f64>>) {}
     fn PassVariadicString(self, _: Vec<DOMString>) {}
     fn PassVariadicUsvstring(self, _: Vec<USVString>) {}
     fn PassVariadicByteString(self, _: Vec<ByteString>) {}
