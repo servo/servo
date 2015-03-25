@@ -23,7 +23,7 @@ use msg::constellation_msg::PipelineId;
 use util::str::DOMString;
 use url::Url;
 
-use std::old_io::TcpStream;
+use std::net::TcpStream;
 use std::sync::mpsc::{Sender, Receiver};
 
 pub type DevtoolsControlChan = Sender<DevtoolsControlMsg>;

@@ -11,7 +11,7 @@ use actors::tab::{TabActor, TabActorMsg};
 use protocol::JsonPacketStream;
 
 use rustc_serialize::json;
-use std::old_io::TcpStream;
+use std::net::TcpStream;
 
 #[derive(RustcEncodable)]
 struct ActorTraits {

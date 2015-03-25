@@ -42,8 +42,8 @@ use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver, Sender, RecvError};
-use std::old_io::{TcpListener, TcpStream};
 use std::old_io::{Acceptor, Listener};
+use std::net::{TcpListener, TcpStream, Shutdown};
 use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
 
@@ -127,8 +127,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                         Ok(()) => {},
                         Err(()) => {
                             println!("error: devtools actor stopped responding");
-                            let _ = stream.close_read();
-                            let _ = stream.close_write();
+                            let _ = stream.shutdown(Shutdown::Both);
                             break 'outer
                         }
                     }
@@ -254,7 +253,6 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
     }
 
     for connection in accepted_connections.iter_mut() {
-        let _read = connection.close_read();
-        let _write = connection.close_write();
+        let _ = connection.shutdown(Shutdown::Both);
     }
 }

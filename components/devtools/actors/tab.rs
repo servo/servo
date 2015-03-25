@@ -12,7 +12,7 @@ use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use protocol::JsonPacketStream;
 
 use rustc_serialize::json;
-use std::old_io::TcpStream;
+use std::net::TcpStream;
 
 #[derive(RustcEncodable)]
 struct TabTraits;
