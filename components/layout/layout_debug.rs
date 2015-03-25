@@ -126,7 +126,6 @@ pub fn end_trace() {
     root_scope.post = json::encode(&flow::base(&*task_state.flow_root)).unwrap();
 
     let result = json::encode(&root_scope).unwrap();
-    let path = Path::new("layout_trace.json");
-    let mut file = File::create(&path).unwrap();
+    let mut file = File::create("layout_trace.json").unwrap();
     file.write_all(result.as_bytes()).unwrap();
 }

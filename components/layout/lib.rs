@@ -8,7 +8,6 @@
 #![feature(core)]
 #![feature(int_uint)]
 #![feature(io)]
-#![feature(old_path)]
 #![feature(plugin)]
 #![feature(rustc_private)]
 #![feature(std_misc)]
