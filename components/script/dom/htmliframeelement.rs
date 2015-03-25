@@ -29,7 +29,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::{Window, WindowHelpers};
 use page::IterablePage;
 
-use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan, NavigationDirection};
+use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan, MozBrowserEvent, NavigationDirection};
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use util::opts;
@@ -72,7 +72,7 @@ pub trait HTMLIFrameElementHelpers {
     fn process_the_iframe_attributes(self);
     fn generate_new_subpage_id(self) -> (SubpageId, Option<SubpageId>);
     fn navigate_child_browsing_context(self, url: Url);
-    fn dispatch_mozbrowser_event(self, event_name: String, event_detail: Option<String>);
+    fn dispatch_mozbrowser_event(self, event: MozBrowserEvent);
     fn update_subpage_id(self, new_subpage_id: SubpageId);
 }
 
@@ -125,7 +125,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 
         if opts::experimental_enabled() {
             // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
-            self.dispatch_mozbrowser_event("mozbrowserloadstart".to_owned(), None);
+            self.dispatch_mozbrowser_event(MozBrowserEvent::LoadStart);
         }
     }
 
@@ -138,7 +138,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         self.navigate_child_browsing_context(url);
     }
 
-    fn dispatch_mozbrowser_event(self, event_name: String, event_detail: Option<String>) {
+    fn dispatch_mozbrowser_event(self, event: MozBrowserEvent) {
         // TODO(gw): Support mozbrowser event types that have detail which is not a string.
         // See https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
         // for a list of mozbrowser events.
@@ -148,10 +148,10 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
             let window = window_from_node(self).root();
             let cx = window.r().get_cx();
             let custom_event = CustomEvent::new(GlobalRef::Window(window.r()),
-                                                event_name.to_owned(),
+                                                event.name().to_owned(),
                                                 true,
                                                 true,
-                                                event_detail.to_jsval(cx)).root();
+                                                event.detail().to_jsval(cx)).root();
             let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
             let event: JSRef<Event> = EventCast::from_ref(custom_event.r());
             event.fire(target);

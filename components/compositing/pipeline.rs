@@ -15,7 +15,7 @@ use gfx::paint_task::{PaintChan, PaintTask};
 use gfx::font_cache_task::FontCacheTask;
 use layers::geometry::DevicePixel;
 use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
-use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
+use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType, MozBrowserEvent};
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
 use net::storage_task::StorageTask;
@@ -248,15 +248,13 @@ impl Pipeline {
 
     pub fn trigger_mozbrowser_event(&self,
                                      subpage_id: SubpageId,
-                                     event_name: String,
-                                     event_detail: Option<String>) {
+                                     event: MozBrowserEvent) {
         assert!(opts::experimental_enabled());
 
         let ScriptControlChan(ref script_channel) = self.script_chan;
-        let event = ConstellationControlMsg::MozBrowserEvent(self.id,
-                                                             subpage_id,
-                                                             event_name,
-                                                             event_detail);
+        let event = ConstellationControlMsg::MozBrowserEventMsg(self.id,
+                                                                subpage_id,
+                                                                event);
         script_channel.send(event).unwrap();
     }
 }

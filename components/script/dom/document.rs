@@ -61,7 +61,7 @@ use dom::window::{Window, WindowHelpers, ReflowReason};
 use layout_interface::{HitTestResponse, MouseOverResponse};
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, Key, KeyState, KeyModifiers};
+use msg::constellation_msg::{ConstellationChan, Key, KeyState, KeyModifiers, MozBrowserEvent};
 use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
 use net::resource_task::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
 use net::cookie_storage::CookieSource::NonHTTP;
@@ -223,7 +223,7 @@ pub trait DocumentHelpers<'a> {
     fn handle_mouse_move_event(self, js_runtime: *mut JSRuntime, point: Point2D<f32>,
                                prev_mouse_over_targets: &mut Vec<JS<Node>>) -> bool;
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>);
-    fn trigger_mozbrowser_event(self, event_name: String, event_detail: Option<String>);
+    fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -458,7 +458,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     /// Handles any updates when the document's title has changed.
     fn title_changed(self) {
         // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsertitlechange
-        self.trigger_mozbrowser_event("mozbrowsertitlechange".to_owned(), Some(self.Title()));
+        self.trigger_mozbrowser_event(MozBrowserEvent::TitleChange(self.Title()));
 
         self.send_title_to_compositor();
     }
@@ -683,16 +683,15 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         self.current_script.assign(script);
     }
 
-    fn trigger_mozbrowser_event(self, event_name: String, event_detail: Option<String>) {
+    fn trigger_mozbrowser_event(self, event: MozBrowserEvent) {
         if opts::experimental_enabled() {
             let window = self.window.root();
 
             if let Some((containing_pipeline_id, subpage_id)) = window.r().parent_info() {
                 let ConstellationChan(ref chan) = window.r().constellation_chan();
-                let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
-                                                              subpage_id,
-                                                              event_name,
-                                                              event_detail);
+                let event = ConstellationMsg::MozBrowserEventMsg(containing_pipeline_id,
+                                                                 subpage_id,
+                                                                 event);
                 chan.send(event).unwrap();
             }
         }
@@ -1464,7 +1463,7 @@ impl DocumentProgressHandler {
         });
 
         // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
-        document.r().trigger_mozbrowser_event("mozbrowserloadend".to_owned(), None);
+        document.r().trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
 
         window_ref.reflow(ReflowGoal::ForDisplay,
                           ReflowQueryType::NoQuery,

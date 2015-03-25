@@ -213,8 +213,72 @@ pub enum Msg {
     /// Requests that the constellation inform the compositor of the a cursor change.
     SetCursor(Cursor),
     /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
-    MozBrowserEvent(PipelineId, SubpageId, String, Option<String>),
+    MozBrowserEventMsg(PipelineId, SubpageId, MozBrowserEvent),
 }
+
+// https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
+pub enum MozBrowserEvent {
+    /// Sent when the scroll position within a browser <iframe> changes.
+    AsyncScroll,
+    /// Sent when window.close() is called within a browser <iframe>.
+    Close,
+    /// Sent when a browser <iframe> tries to open a context menu. This allows  handling <menuitem> element available within the browser <iframe>'s content.
+    ContextMenu,
+    /// Sent when an error occurred while trying to load content within a browser <iframe>.
+    Error,
+    /// Sent when the favicon of a browser <iframe> changes.
+    IconChange,
+    /// Sent when the browser <iframe> has finished loading all its assets.
+    LoadEnd,
+    /// Sent when the browser <iframe> starts to load a new page.
+    LoadStart,
+    /// Sent when a browser <iframe>'s location changes.
+    LocationChange(String),
+    /// Sent when window.open() is called within a browser <iframe>.
+    OpenWindow,
+    /// Sent when the SSL state changes within a browser <iframe>.
+    SecurityChange,
+    /// Sent when alert(), confirm(), or prompt() is called within a browser <iframe>.
+    ShowModalPrompt,
+    /// Sent when the document.title changes within a browser <iframe>.
+    TitleChange(String),
+    /// Sent when an HTTP authentification is requested.
+    UsernameAndPasswordRequired,
+    /// Sent when a link to a search engine is found.
+    OpenSearch,
+}
+
+impl MozBrowserEvent {
+    pub fn name(&self) -> &'static str {
+        match *self {
+            MozBrowserEvent::AsyncScroll => "mozbrowserasyncscroll",
+            MozBrowserEvent::Close => "mozbrowserclose",
+            MozBrowserEvent::ContextMenu => "mozbrowsercontextmenu",
+            MozBrowserEvent::Error => "mozbrowsererror",
+            MozBrowserEvent::IconChange => "mozbrowsericonchange",
+            MozBrowserEvent::LoadEnd => "mozbrowserloadend",
+            MozBrowserEvent::LoadStart => "mozbrowserloadstart",
+            MozBrowserEvent::LocationChange(_) => "mozbrowserlocationchange",
+            MozBrowserEvent::OpenWindow => "mozbrowseropenwindow",
+            MozBrowserEvent::SecurityChange => "mozbrowsersecuritychange",
+            MozBrowserEvent::ShowModalPrompt => "mozbrowsershowmodalprompt",
+            MozBrowserEvent::TitleChange(_) => "mozbrowsertitlechange",
+            MozBrowserEvent::UsernameAndPasswordRequired => "mozbrowserusernameandpasswordrequired",
+            MozBrowserEvent::OpenSearch => "mozbrowseropensearch"
+        }
+    }
+    pub fn detail(&self) -> Option<String> {
+        match *self {
+            MozBrowserEvent::AsyncScroll | MozBrowserEvent::Close | MozBrowserEvent::ContextMenu |
+            MozBrowserEvent::Error | MozBrowserEvent::IconChange | MozBrowserEvent::LoadEnd |
+            MozBrowserEvent::LoadStart | MozBrowserEvent::OpenWindow | MozBrowserEvent::SecurityChange |
+            MozBrowserEvent::ShowModalPrompt | MozBrowserEvent::UsernameAndPasswordRequired | MozBrowserEvent::OpenSearch => None,
+            MozBrowserEvent::LocationChange(ref new_location) => Some(new_location.clone()),
+            MozBrowserEvent::TitleChange(ref new_title) => Some(new_title.clone()),
+        }
+    }
+}
+
 
 /// Similar to net::resource_task::LoadData
 /// can be passed to LoadUrl to load a page with GET/POST
