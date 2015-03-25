@@ -155,6 +155,10 @@ pub trait Runnable {
     fn handler(self: Box<Self>);
 }
 
+pub trait MainThreadRunnable {
+    fn handler(self: Box<Self>, script_task: &ScriptTask);
+}
+
 /// Messages used to control script event loops, such as ScriptTask and
 /// DedicatedWorkerGlobalScope.
 pub enum ScriptMsg {
@@ -176,6 +180,8 @@ pub enum ScriptMsg {
     DOMMessage(StructuredCloneData),
     /// Generic message that encapsulates event handling.
     RunnableMsg(Box<Runnable+Send>),
+    /// Generic message for running tasks in the ScriptTask
+    MainThreadRunnableMsg(Box<MainThreadRunnable+Send>),
     /// A DOM object's last pinned reference was removed (dispatched to all tasks).
     RefcountCleanup(TrustedReference),
     /// The final network response for a page has arrived.
@@ -675,6 +681,8 @@ impl ScriptTask {
                 panic!("unexpected message"),
             ScriptMsg::RunnableMsg(runnable) =>
                 runnable.handler(),
+            ScriptMsg::MainThreadRunnableMsg(runnable) =>
+                runnable.handler(self),
             ScriptMsg::RefcountCleanup(addr) =>
                 LiveDOMReferences::cleanup(self.get_cx(), addr),
             ScriptMsg::PageFetchComplete(id, subpage, response) =>
