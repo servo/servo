@@ -10,8 +10,10 @@
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 
-#![feature(int_uint, box_syntax, old_io, core, rustc_private)]
+#![feature(int_uint, box_syntax, core, rustc_private)]
 #![feature(collections, std_misc)]
+#![feature(io)]
+#![feature(net)]
 
 #![allow(non_snake_case)]
 
@@ -42,8 +44,7 @@ use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver, Sender, RecvError};
-use std::old_io::{TcpListener, TcpStream};
-use std::old_io::{Acceptor, Listener};
+use std::net::{TcpListener, TcpStream, Shutdown};
 use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
 
@@ -89,10 +90,7 @@ pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
 fn run_server(sender: Sender<DevtoolsControlMsg>,
               receiver: Receiver<DevtoolsControlMsg>,
               port: u16) {
-    let listener = TcpListener::bind(&*format!("{}:{}", "127.0.0.1", port));
-
-    // bind the listener to the specified address
-    let mut acceptor = listener.listen().unwrap();
+    let listener = TcpListener::bind(&("127.0.0.1", port)).unwrap();
 
     let mut registry = ActorRegistry::new();
 
@@ -111,7 +109,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
     /// Process the input from a single devtools client until EOF.
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
-        println!("connection established to {}", stream.peer_name().unwrap());
+        println!("connection established to {}", stream.peer_addr().unwrap());
         {
             let actors = actors.lock().unwrap();
             let msg = actors.find::<RootActor>("root").encodable();
@@ -127,14 +125,13 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                         Ok(()) => {},
                         Err(()) => {
                             println!("error: devtools actor stopped responding");
-                            let _ = stream.close_read();
-                            let _ = stream.close_write();
+                            let _ = stream.shutdown(Shutdown::Both);
                             break 'outer
                         }
                     }
                 }
                 Err(e) => {
-                    println!("error: {}", e.desc);
+                    println!("error: {}", e.description());
                     break 'outer
                 }
             }
@@ -228,7 +225,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
     spawn_named("DevtoolsClientAcceptor".to_owned(), move || {
         // accept connections and process them, spawning a new task for each one
-        for stream in acceptor.incoming() {
+        for stream in listener.incoming() {
             // connection succeeded
             sender.send(DevtoolsControlMsg::AddClient(stream.unwrap())).unwrap();
         }
@@ -238,9 +235,9 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         match receiver.recv() {
             Ok(DevtoolsControlMsg::AddClient(stream)) => {
                 let actors = actors.clone();
-                accepted_connections.push(stream.clone());
+                accepted_connections.push(stream.try_clone().unwrap());
                 spawn_named("DevtoolsClientHandler".to_owned(), move || {
-                    handle_client(actors, stream.clone())
+                    handle_client(actors, stream.try_clone().unwrap())
                 })
             }
             Ok(DevtoolsControlMsg::ServerExitMsg) | Err(RecvError) => break,
@@ -254,7 +251,6 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
     }
 
     for connection in accepted_connections.iter_mut() {
-        let _read = connection.close_read();
-        let _write = connection.close_write();
+        let _ = connection.shutdown(Shutdown::Both);
     }
 }
