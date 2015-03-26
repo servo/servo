@@ -477,6 +477,19 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         Ok(())
     }
 
+    fn ArcTo(self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, r: f64) -> Fallible<()> {
+        if !([cp1x, cp1y, cp2x, cp2y, r].iter().all(|x| x.is_finite())) {
+            return Ok(());
+        }
+        if r < 0.0 {
+            return Err(IndexSize);
+        }
+        self.renderer.send(CanvasMsg::ArcTo(Point2D(cp1x as f32, cp1y as f32),
+                                            Point2D(cp2x as f32, cp2y as f32),
+                                            r as f32)).unwrap();
+        Ok(())
+    }
+
     // https://html.spec.whatwg.org/#dom-context-2d-imagesmoothingenabled
     fn ImageSmoothingEnabled(self) -> bool {
         self.image_smoothing_enabled.get()
