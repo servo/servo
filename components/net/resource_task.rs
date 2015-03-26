@@ -41,7 +41,7 @@ static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 pub fn global_init() {
     //TODO: handle bad file path
     let path = match env::var("HOST_FILE") {
-        Ok(host_file_path) => Path::new(host_file_path),
+        Ok(host_file_path) => host_file_path,
         Err(_) => return,
     };
 

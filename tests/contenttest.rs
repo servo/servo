@@ -7,7 +7,14 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![feature(collections, core, env, io, os, path, rustc_private, std_misc, test)]
+#![feature(collections)]
+#![feature(core)]
+#![feature(exit_status)]
+#![feature(old_io)]
+#![feature(path)]
+#![feature(rustc_private)]
+#![feature(std_misc)]
+#![feature(test)]
 
 extern crate getopts;
 extern crate test;
@@ -16,10 +23,10 @@ use test::{AutoColor, TestOpts, run_tests_console, TestDesc, TestDescAndFn, DynT
 use test::ShouldPanic;
 use getopts::{getopts, reqopt};
 use std::{str, env};
-use std::old_io::fs;
+use std::ffi::OsStr;
+use std::fs::read_dir;
 use std::old_io::Reader;
 use std::old_io::process::{Command, Ignored, CreatePipe, InheritFd, ExitStatus};
-use std::old_path::Path;
 use std::thunk::Thunk;
 
 #[derive(Clone)]
@@ -67,13 +74,14 @@ fn test_options(config: Config) -> TestOpts {
 }
 
 fn find_tests(config: Config) -> Vec<TestDescAndFn> {
-    let files_res = fs::readdir(&Path::new(config.source_dir));
-    let mut files = match files_res {
-        Ok(files) => files,
-        _ => panic!("Error reading directory."),
-    };
-    files.retain(|file| file.extension_str() == Some("html") );
-    return files.iter().map(|file| make_test(file.display().to_string())).collect();
+    read_dir(&config.source_dir)
+        .ok()
+        .expect("Error reading directory.")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .filter(|file| file.extension().map_or(false, |e| e == OsStr::from_str("html")))
+        .map(|file| make_test(file.display().to_string()))
+        .collect()
 }
 
 fn make_test(file: String) -> TestDescAndFn {
