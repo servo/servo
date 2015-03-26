@@ -38,7 +38,6 @@ use profile::time::{self, ProfilerCategory, profile};
 use std::cmp;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::old_path::Path;
 use std::mem::replace;
 use std::num::Float;
 use std::rc::Rc;
@@ -1131,8 +1130,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         });
 
         if output_image {
-            let path: Path =
-                opts::get().output_file.as_ref().unwrap().parse().unwrap();
+            let path = opts::get().output_file.as_ref().unwrap();
             let mut pixels = gl::read_pixels(0, 0,
                                              width as gl::GLsizei,
                                              height as gl::GLsizei,
