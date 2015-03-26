@@ -169,18 +169,18 @@ macro_rules! make_uint_setter(
 macro_rules! no_jsmanaged_fields(
     ($($ty:ident),+) => (
         $(
-            impl JSTraceable for $ty {
+            impl $crate::dom::bindings::trace::JSTraceable for $ty {
                 #[inline]
-                fn trace(&self, _: *mut JSTracer) {
+                fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
                     // Do nothing
                 }
             }
         )+
     );
     ($ty:ident<$($gen:ident),+>) => (
-        impl<$($gen),+> JSTraceable for $ty<$($gen),+> {
+        impl<$($gen),+> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen),+> {
             #[inline]
-            fn trace(&self, _: *mut JSTracer) {
+            fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
                 // Do nothing
             }
         }
