@@ -6,7 +6,6 @@
 #![feature(core)]
 #![feature(int_uint)]
 #![feature(old_io)]
-#![feature(old_path)]
 #![feature(rustc_private)]
 #![feature(std_misc)]
 

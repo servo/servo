@@ -8,6 +8,7 @@ use resource_task::ProgressMsg::{Payload, Done};
 use std::borrow::ToOwned;
 use std::io;
 use std::fs::File;
+use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use util::task::spawn_named;
 
@@ -37,10 +38,10 @@ pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     };
     let progress_chan = start_sending(senders, Metadata::default(url.clone()));
     spawn_named("file_loader".to_owned(), move || {
-        let file_path: Result<Path, ()> = url.to_file_path();
+        let file_path: Result<PathBuf, ()> = url.to_file_path();
         match file_path {
             Ok(file_path) => {
-                match File::open(&Path::new(file_path)) {
+                match File::open(&file_path) {
                     Ok(ref mut reader) => {
                         let res = read_all(reader, &progress_chan);
                         progress_chan.send(Done(res)).unwrap();
