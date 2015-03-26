@@ -54,7 +54,7 @@ use selectors::matching::matches;
 use style::properties::ComputedValues;
 use style;
 
-use js::jsapi::{JSContext, JSObject, JSTracer, JSRuntime};
+use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsfriendapi;
 use core::nonzero::NonZero;
 use libc;
