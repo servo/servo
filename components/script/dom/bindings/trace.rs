@@ -137,6 +137,26 @@ impl<T: JSTraceable> JSTraceable for Box<T> {
     }
 }
 
+impl<T: JSTraceable> JSTraceable for *const T {
+    fn trace(&self, trc: *mut JSTracer) {
+        if !self.is_null() {
+            unsafe {
+                (**self).trace(trc)
+            }
+        }
+    }
+}
+
+impl<T: JSTraceable> JSTraceable for *mut T {
+    fn trace(&self, trc: *mut JSTracer) {
+        if !self.is_null() {
+            unsafe {
+                (**self).trace(trc)
+            }
+        }
+    }
+}
+
 impl<T: JSTraceable+Copy> JSTraceable for Cell<T> {
     fn trace(&self, trc: *mut JSTracer) {
         self.get().trace(trc)
