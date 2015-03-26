@@ -302,7 +302,8 @@ impl TextInput {
                 KeyReaction::Nothing
             },
             "v" if is_control_key(event) => {
-                self.insert_string(self.clipboard_ctx.get_contents().as_slice());
+                let contents = self.clipboard_ctx.get_contents();
+                self.insert_string(contents.as_slice());
                 KeyReaction::DispatchInput
             },
             // printable characters have single-character key values

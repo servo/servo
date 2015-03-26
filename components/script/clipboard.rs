@@ -4,10 +4,9 @@
 
 // X11 clipboard support
 #[cfg(target_os="linux")]
+#[allow(unsafe_code)]
 mod x11_clipboard {
-    //use dom::bindings::trace::JSTraceable;
-    //use js::jsapi::JSTracer;
-
+    use std::borrow::ToOwned;
     use xlib::{Display, Window};
     use xlib::{XOpenDisplay, XCloseDisplay};
     use xlib::{XCreateSimpleWindow, XDefaultRootWindow};
@@ -18,17 +17,16 @@ mod x11_clipboard {
         display: *mut Display,
         window: Window,
     }
-    no_jsmanaged_fields!(Display);
-    no_jsmanaged_fields!(Window);
+    no_jsmanaged_fields!(c_void);
 
     impl ClipboardContext {
         pub fn new() -> Result<ClipboardContext, &'static str> {
             // http://sourceforge.net/p/xclip/code/HEAD/tree/trunk/xclip.c
-            let dpy = XOpenDisplay(0 as *mut c_char);
-            if dpy == 0 {
+            let dpy = unsafe { XOpenDisplay(0 as *mut c_char) };
+            if dpy.is_null() {
                 return Err("XOpenDisplay")
             }
-            let win = XCreateSimpleWindow(dpy, XDefaultRootWindow(dpy), 0, 0, 1, 1, 0, 0, 0);
+            let win = unsafe { XCreateSimpleWindow(dpy, XDefaultRootWindow(dpy), 0, 0, 1, 1, 0, 0, 0) };
             if win == 0 {
                 return Err("XCreateSimpleWindow")
             }
@@ -44,8 +42,7 @@ mod x11_clipboard {
 
     impl Drop for ClipboardContext {
         fn drop(&mut self) {
-            // TODO: error checking of some sort
-            if XCloseDisplay(self.display) == 0 {
+            if unsafe { XCloseDisplay(self.display) } == 0 {
                 panic!("XCloseDisplay failed.");
             }
         }
