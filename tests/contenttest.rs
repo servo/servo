@@ -7,7 +7,15 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![feature(collections, core, env, io, os, path, rustc_private, std_misc, test)]
+#![feature(collections)]
+#![feature(core)]
+#![feature(exit_status)]
+#![feature(old_io)]
+#![feature(old_path)]
+#![feature(path)]
+#![feature(rustc_private)]
+#![feature(std_misc)]
+#![feature(test)]
 
 extern crate getopts;
 extern crate test;
