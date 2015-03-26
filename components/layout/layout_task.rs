@@ -44,7 +44,7 @@ use net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use net::local_image_cache::{ImageResponder, LocalImageCache};
 use net::resource_task::{ResourceTask, load_bytes_iter};
 use profile::mem::{self, Report, ReportsChan};
-use profile::time::{self, ProfilerCategory, ProfilerMetadata, profile};
+use profile::time::{self, ProfilerMetadata, profile};
 use profile::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::element::ElementTypeId;
