@@ -199,6 +199,8 @@ impl XMLHttpRequest {
                            global,
                            XMLHttpRequestBinding::Wrap)
     }
+
+    // https://xhr.spec.whatwg.org/#constructors
     pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(global))
     }
@@ -344,10 +346,12 @@ impl XMLHttpRequest {
 impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
 
+    // https://xhr.spec.whatwg.org/#dom-xmlhttprequest-readystate
     fn ReadyState(self) -> u16 {
         self.ready_state.get() as u16
     }
 
+    // https://xhr.spec.whatwg.org/#the-open()-method
     fn Open(self, method: ByteString, url: DOMString) -> ErrorResult {
         //FIXME(seanmonstar): use a Trie instead?
         let maybe_method = method.as_str().and_then(|s| {
@@ -411,11 +415,15 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             _ => Err(Syntax), // Step 3
         }
     }
+
+    // https://xhr.spec.whatwg.org/#the-open()-method
     fn Open_(self, method: ByteString, url: DOMString, async: bool,
                  _username: Option<DOMString>, _password: Option<DOMString>) -> ErrorResult {
         self.sync.set(!async);
         self.Open(method, url)
     }
+
+    // https://xhr.spec.whatwg.org/#the-setrequestheader()-method
     fn SetRequestHeader(self, name: ByteString, mut value: ByteString) -> ErrorResult {
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(InvalidState); // Step 1, 2
@@ -464,9 +472,13 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         headers.set_raw(name_str.to_owned(), vec![value.as_slice().to_vec()]);
         Ok(())
     }
+
+    // https://xhr.spec.whatwg.org/#the-timeout-attribute
     fn Timeout(self) -> u32 {
         self.timeout.get()
     }
+
+    // https://xhr.spec.whatwg.org/#the-timeout-attribute
     fn SetTimeout(self, timeout: u32) -> ErrorResult {
         if self.sync.get() {
             // FIXME: Not valid for a worker environment
@@ -489,10 +501,13 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             Ok(())
         }
     }
+
+    // https://xhr.spec.whatwg.org/#the-withcredentials-attribute
     fn WithCredentials(self) -> bool {
         self.with_credentials.get()
     }
-    // Spec for SetWithCredentials: https://xhr.spec.whatwg.org/#dom-xmlhttprequest-withcredentials
+
+    // https://xhr.spec.whatwg.org/#dom-xmlhttprequest-withcredentials
     fn SetWithCredentials(self, with_credentials: bool) -> ErrorResult {
         match self.ready_state.get() {
             XMLHttpRequestState::HeadersReceived |
@@ -508,9 +523,13 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             },
         }
     }
+
+    // https://xhr.spec.whatwg.org/#the-upload-attribute
     fn Upload(self) -> Temporary<XMLHttpRequestUpload> {
         Temporary::new(self.upload)
     }
+
+    // https://xhr.spec.whatwg.org/#the-send()-method
     fn Send(self, data: Option<SendParam>) -> ErrorResult {
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(InvalidState); // Step 1, 2
@@ -656,6 +675,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         }
         Ok(())
     }
+
+    // https://xhr.spec.whatwg.org/#the-abort()-method
     fn Abort(self) {
         self.terminate_ongoing_fetch();
         let state = self.ready_state.get();
@@ -672,17 +693,25 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         }
         self.ready_state.set(XMLHttpRequestState::Unsent);
     }
+
+    // https://xhr.spec.whatwg.org/#the-responseurl-attribute
     fn ResponseURL(self) -> DOMString {
         self.response_url.clone()
     }
+
+    // https://xhr.spec.whatwg.org/#the-status-attribute
     fn Status(self) -> u16 {
         self.status.get()
     }
+
+    // https://xhr.spec.whatwg.org/#the-statustext-attribute
     fn StatusText(self) -> ByteString {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let status_text = self.status_text.borrow();
         status_text.clone()
     }
+
+    // https://xhr.spec.whatwg.org/#the-getresponseheader()-method
     fn GetResponseHeader(self, name: ByteString) -> Option<ByteString> {
         self.filter_response_headers().iter().find(|h| {
             name.eq_ignore_case(&FromStr::from_str(h.name()).unwrap())
@@ -690,12 +719,18 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             ByteString::new(h.value_string().into_bytes())
         })
     }
+
+    // https://xhr.spec.whatwg.org/#the-getallresponseheaders()-method
     fn GetAllResponseHeaders(self) -> ByteString {
         ByteString::new(self.filter_response_headers().to_string().into_bytes())
     }
+
+    // https://xhr.spec.whatwg.org/#the-responsetype-attribute
     fn ResponseType(self) -> XMLHttpRequestResponseType {
         self.response_type.get()
     }
+
+    // https://xhr.spec.whatwg.org/#the-responsetype-attribute
     fn SetResponseType(self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         match self.global.root() {
             GlobalRoot::Worker(_) if response_type == XMLHttpRequestResponseType::Document
@@ -711,6 +746,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             }
         }
     }
+
+    // https://xhr.spec.whatwg.org/#the-response-attribute
     #[allow(unsafe_code)]
     fn Response(self, cx: *mut JSContext) -> JSVal {
          match self.response_type.get() {
@@ -741,6 +778,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             }
         }
     }
+
+    // https://xhr.spec.whatwg.org/#the-responsetext-attribute
     fn GetResponseText(self) -> Fallible<DOMString> {
         match self.response_type.get() {
             _empty | Text => {
@@ -752,6 +791,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             _ => Err(InvalidState)
         }
     }
+
+    // https://xhr.spec.whatwg.org/#the-responsexml-attribute
     fn GetResponseXML(self) -> Option<Temporary<Document>> {
         self.response_xml.get()
     }
