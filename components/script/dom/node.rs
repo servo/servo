@@ -6,6 +6,7 @@
 
 use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -2129,9 +2130,27 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-lookupprefix
-    fn LookupPrefix(self, _prefix: Option<DOMString>) -> Option<DOMString> {
-        // FIXME (#1826) implement.
-        None
+    fn LookupPrefix(self, namespace: Option<DOMString>) -> Option<DOMString> {
+        // Step 1.
+        if null_str_as_empty(&namespace).is_empty() {
+            return None;
+        }
+
+        // Step 2.
+        match self.type_id() {
+            NodeTypeId::Element(..) => ElementCast::to_ref(self).unwrap().lookup_prefix(namespace),
+            NodeTypeId::DocumentType | NodeTypeId::DocumentFragment => None,
+            type_id => {
+                let maybe_element = match type_id {
+                    NodeTypeId::Document => DocumentCast::to_ref(self).unwrap().GetDocumentElement(),
+                    _ => self.GetParentElement(),
+                };
+                match maybe_element {
+                    None => None,
+                    Some(element) => element.root().r().lookup_prefix(namespace),
+                }
+            }
+        }
     }
 
     // http://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
