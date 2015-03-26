@@ -1176,9 +1176,9 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         //    with the new value as markup, and the context object as the context element.
         // 2. Replace all with fragment within the context object.
         let context_node: JSRef<Node> = NodeCast::from_ref(self);
-        context_node.parse_fragment(value)
-                    .and_then(|frag| Ok(Node::replace_all(Some(NodeCast::from_ref(frag.root().r())),
-                                                          context_node)))
+        let frag = try!(context_node.parse_fragment(value));
+        Node::replace_all(Some(NodeCast::from_ref(frag.root().r())), context_node);
+        Ok(())
     }
 
     fn GetOuterHTML(self) -> Fallible<DOMString> {
