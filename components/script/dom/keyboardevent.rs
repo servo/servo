@@ -140,6 +140,8 @@ fn key_value(key: constellation_msg::Key, mods: constellation_msg::KeyModifiers)
         constellation_msg::Key::Period => ".",
         constellation_msg::Key::Slash if shift => "?",
         constellation_msg::Key::Slash => "/",
+        constellation_msg::Key::GraveAccent if shift => "~",
+        constellation_msg::Key::GraveAccent => "`",
         constellation_msg::Key::Num0 if shift => ")",
         constellation_msg::Key::Num0 => "0",
         constellation_msg::Key::Num1 if shift => "!",
@@ -222,7 +224,6 @@ fn key_value(key: constellation_msg::Key, mods: constellation_msg::KeyModifiers)
         constellation_msg::Key::Backslash => "\\",
         constellation_msg::Key::RightBracket if shift => "}",
         constellation_msg::Key::RightBracket => "]",
-        constellation_msg::Key::GraveAccent => "Dead",
         constellation_msg::Key::World1 => "Unidentified",
         constellation_msg::Key::World2 => "Unidentified",
         constellation_msg::Key::Escape => "Escape",
@@ -307,6 +308,7 @@ fn code_value(key: constellation_msg::Key) -> &'static str {
         constellation_msg::Key::Minus => "Minus",
         constellation_msg::Key::Period => "Period",
         constellation_msg::Key::Slash => "Slash",
+        constellation_msg::Key::GraveAccent => "Backquote",
         constellation_msg::Key::Num0 => "Digit0",
         constellation_msg::Key::Num1 => "Digit1",
         constellation_msg::Key::Num2 => "Digit2",
@@ -349,7 +351,6 @@ fn code_value(key: constellation_msg::Key) -> &'static str {
         constellation_msg::Key::Backslash => "Backslash",
         constellation_msg::Key::RightBracket => "BracketRight",
 
-        constellation_msg::Key::GraveAccent |
         constellation_msg::Key::World1 |
         constellation_msg::Key::World2 => panic!("unknown char code for {:?}", key),
 
