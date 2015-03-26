@@ -31,11 +31,6 @@ use std::io::{BufReader, Read};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thunk::Invoke;
 
-#[cfg(test)]
-use std::old_io::{Listener, Acceptor, TimedOut};
-#[cfg(test)]
-use std::old_io::net::tcp::TcpListener;
-
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 
 pub fn global_init() {
@@ -533,6 +528,8 @@ fn test_parse_hostsfile_with_end_of_line_whitespace()
 
 #[test]
 fn test_replace_hosts() {
+    use std::net::TcpListener;
+
     let mut host_table_box = box HashMap::new();
     host_table_box.insert("foo.bar.com".to_owned(), "127.0.0.1".to_owned());
     host_table_box.insert("servo.test.server".to_owned(), "127.0.0.2".to_owned());
@@ -543,8 +540,7 @@ fn test_replace_hosts() {
 
     //Start the TCP server
     let mut listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    let port = listener.socket_name().unwrap().port;
-    let mut acceptor = listener.listen().unwrap();
+    let port = listener.socket_addr().unwrap().port();
 
     //Start the resource task and make a request to our TCP server
     let resource_task = new_resource_task(None);
@@ -552,12 +548,10 @@ fn test_replace_hosts() {
     let url = Url::parse(&format!("http://foo.bar.com:{}", port)).unwrap();
     resource_task.send(ControlMsg::Load(replace_hosts(LoadData::new(url, start_chan), host_table)));
 
-    match acceptor.accept() {
+    match listener.accept() {
         Ok(..) => assert!(true, "received request"),
-        Err(ref e) if e.kind == TimedOut => { assert!(false, "timed out!");  },
         Err(_) => assert!(false, "error")
     }
 
     resource_task.send(ControlMsg::Exit);
-    drop(acceptor);
 }
