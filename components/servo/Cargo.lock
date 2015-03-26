@@ -459,10 +459,10 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#77421145e3d983482939e8f1f1ef3a858eaef46f"
+source = "git+https://github.com/servo/rust-mozjs#879b256e6bc5b38f792b68da130eb7a70633769b"
 dependencies = [
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs)",
+ "mozjs_sys 0.0.0 (git+https://github.com/servo/mozjs)",
 ]
 
 [[package]]
@@ -585,9 +585,9 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "mozjs-sys"
+name = "mozjs_sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#056e1d953b95d7a9545d514cf95772a0a1c69bb2"
+source = "git+https://github.com/servo/mozjs#40e0680008cb129ddf9ccf40c6b0095e14d1cd97"
 
 [[package]]
 name = "msg"
