@@ -57,8 +57,8 @@ use script_traits::ScriptTaskFactory;
 use msg::compositor_msg::ReadyState::{FinishedLoading, Loading, PerformingLayout};
 use msg::compositor_msg::{LayerId, ScriptListener};
 use msg::constellation_msg::{ConstellationChan};
-use msg::constellation_msg::{LoadData, PipelineId, SubpageId};
-use msg::constellation_msg::{Failure, Msg, WindowSizeData, PipelineExitType};
+use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent};
+use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::{ResourceTask, ControlMsg, LoadResponse};
@@ -650,14 +650,12 @@ impl ScriptTask {
                 self.handle_freeze_msg(pipeline_id),
             ConstellationControlMsg::Thaw(pipeline_id) =>
                 self.handle_thaw_msg(pipeline_id),
-            ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
-                                                     subpage_id,
-                                                     event_name,
-                                                     event_detail) =>
+            ConstellationControlMsg::MozBrowserEventMsg(parent_pipeline_id,
+                                                        subpage_id,
+                                                        event) =>
                 self.handle_mozbrowser_event_msg(parent_pipeline_id,
                                                  subpage_id,
-                                                 event_name,
-                                                 event_detail),
+                                                 event),
             ConstellationControlMsg::UpdateSubpageId(containing_pipeline_id,
                                                      old_subpage_id,
                                                      new_subpage_id) =>
@@ -810,8 +808,7 @@ impl ScriptTask {
     fn handle_mozbrowser_event_msg(&self,
                                    parent_pipeline_id: PipelineId,
                                    subpage_id: SubpageId,
-                                   event_name: String,
-                                   event_detail: Option<String>) {
+                                   event: MozBrowserEvent) {
         let borrowed_page = self.root_page();
 
         let frame_element = borrowed_page.find(parent_pipeline_id).and_then(|page| {
@@ -825,7 +822,7 @@ impl ScriptTask {
         }).root();
 
         if let Some(frame_element) = frame_element {
-            frame_element.r().dispatch_mozbrowser_event(event_name, event_detail);
+            frame_element.r().dispatch_mozbrowser_event(event);
         }
     }
 

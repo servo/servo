@@ -20,7 +20,7 @@ use msg::constellation_msg::{self, ConstellationChan, Failure};
 use msg::constellation_msg::{IFrameSandboxState, NavigationDirection};
 use msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
 use msg::constellation_msg::{FrameId, PipelineExitType, PipelineId};
-use msg::constellation_msg::{SubpageId, WindowSizeData};
+use msg::constellation_msg::{SubpageId, WindowSizeData, MozBrowserEvent};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use net::resource_task::{self, ResourceTask};
@@ -364,15 +364,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got get-pipeline-title message");
                 self.handle_get_pipeline_title_msg(pipeline_id);
             }
-            ConstellationMsg::MozBrowserEvent(pipeline_id,
-                                              subpage_id,
-                                              event_name,
-                                              event_detail) => {
+            ConstellationMsg::MozBrowserEventMsg(pipeline_id,
+                                                 subpage_id,
+                                                 event) => {
                 debug!("constellation got mozbrowser event message");
                 self.handle_mozbrowser_event_msg(pipeline_id,
                                                  subpage_id,
-                                                 event_name,
-                                                 event_detail);
+                                                 event);
             }
         }
         true
@@ -643,14 +641,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_mozbrowser_event_msg(&mut self,
                                    containing_pipeline_id: PipelineId,
                                    subpage_id: SubpageId,
-                                   event_name: String,
-                                   event_detail: Option<String>) {
+                                   event: MozBrowserEvent) {
         assert!(opts::experimental_enabled());
 
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script task.
         let pipeline = self.pipeline(containing_pipeline_id);
-        pipeline.trigger_mozbrowser_event(subpage_id, event_name, event_detail);
+        pipeline.trigger_mozbrowser_event(subpage_id, event);
     }
 
     fn add_or_replace_pipeline_in_frame_tree(&mut self, frame_change: FrameChange) {
@@ -880,9 +877,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             // If this is an iframe, then send the event with new url
             if let Some((containing_pipeline_id, subpage_id, url)) = event_info {
                 let parent_pipeline = self.pipeline(containing_pipeline_id);
-                parent_pipeline.trigger_mozbrowser_event(subpage_id,
-                                                         "mozbrowserlocationchange".to_owned(),
-                                                          Some(url));
+                parent_pipeline.trigger_mozbrowser_event(subpage_id, MozBrowserEvent::LocationChange(url));
             }
         }
     }

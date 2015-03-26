@@ -21,7 +21,7 @@ use devtools_traits::DevtoolsControlChan;
 use libc::c_void;
 use msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeData};
 use msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
-use msg::constellation_msg::PipelineExitType;
+use msg::constellation_msg::{MozBrowserEvent, PipelineExitType};
 use msg::compositor_msg::ScriptListener;
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
@@ -73,7 +73,7 @@ pub enum ConstellationControlMsg {
     /// Notifies script task that a url should be loaded in this iframe.
     Navigate(PipelineId, SubpageId, LoadData),
     /// Requests the script task forward a mozbrowser event to an iframe it owns
-    MozBrowserEvent(PipelineId, SubpageId, String, Option<String>),
+    MozBrowserEventMsg(PipelineId, SubpageId, MozBrowserEvent),
     /// Updates the current subpage id of a given iframe
     UpdateSubpageId(PipelineId, SubpageId, SubpageId),
 }
