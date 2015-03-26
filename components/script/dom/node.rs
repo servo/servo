@@ -46,7 +46,7 @@ use dom::window::{Window, WindowHelpers};
 use geom::rect::Rect;
 use layout_interface::{LayoutChan, Msg};
 use devtools_traits::NodeInfo;
-use parse::html::{HTMLInput, parse_html_fragment};
+use parse::html::parse_html_fragment;
 use script_traits::UntrustedNodeAddress;
 use util::geometry::Au;
 use util::str::{DOMString, null_str_as_empty};
@@ -504,7 +504,7 @@ pub trait NodeHelpers<'a> {
 
     fn teardown(self);
 
-    fn parse_fragment(self, markup: HTMLInput) -> Fallible<Temporary<DocumentFragment>>;
+    fn parse_fragment(self, markup: DOMString) -> Fallible<Temporary<DocumentFragment>>;
 }
 
 impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
@@ -933,7 +933,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#dfn-concept-parse-fragment
-    fn parse_fragment(self, markup: HTMLInput) -> Fallible<Temporary<DocumentFragment>> {
+    fn parse_fragment(self, markup: DOMString) -> Fallible<Temporary<DocumentFragment>> {
         let context_node: JSRef<Node> = NodeCast::from_ref(self);
         let context_document = document_from_node(self).root();
         let new_children =

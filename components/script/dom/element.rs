@@ -55,7 +55,6 @@ use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use devtools_traits::AttrInfo;
-use parse::html::HTMLInput;
 use style::legacy::{SimpleColorAttribute, UnsignedIntegerAttribute, IntegerAttribute, LengthAttribute};
 use selectors::matching::matches;
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
@@ -1177,7 +1176,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         //    with the new value as markup, and the context object as the context element.
         // 2. Replace all with fragment within the context object.
         let context_node: JSRef<Node> = NodeCast::from_ref(self);
-        context_node.parse_fragment(HTMLInput::InputString(value))
+        context_node.parse_fragment(value)
                     .and_then(|frag| Ok(Node::replace_all(Some(NodeCast::from_ref(frag.root().r())),
                                                           context_node)))
     }
@@ -1218,7 +1217,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         // 5. Let fragment be the result of invoking the fragment parsing algorithm with
         //    the new value as markup, and parent as the context element.
         // 6. Replace the context object with fragment within the context object's parent.
-        parent.r().parse_fragment(HTMLInput::InputString(value))
+        parent.r().parse_fragment(value)
                   .and_then(|frag| {
                       let frag = frag.root();
                       let frag_node: JSRef<Node> = NodeCast::from_ref(frag.r());

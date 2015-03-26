@@ -31,6 +31,7 @@ use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
 
 use net_traits::{ProgressMsg, LoadResponse};
+use util::str::DOMString;
 use util::task_state;
 use util::task_state::IN_HTML_PARSER;
 use std::ascii::AsciiExt;
@@ -330,7 +331,7 @@ pub fn parse_html(document: JSRef<Document>,
 }
 
 // https://html.spec.whatwg.org/multipage/syntax.html#parsing-html-fragments
-pub fn parse_html_fragment(context_node: JSRef<Node>, input: HTMLInput) -> Vec<Temporary<Node>> {
+pub fn parse_html_fragment(context_node: JSRef<Node>, input: DOMString) -> Vec<Temporary<Node>> {
     let window = window_from_node(context_node).root();
     let context_document = document_from_node(context_node).root();
     let url = context_document.r().url();
@@ -359,7 +360,7 @@ pub fn parse_html_fragment(context_node: JSRef<Node>, input: HTMLInput) -> Vec<T
         context_elem: context_node,
         form_elem: form,
     };
-    parse_html(document.r(), input, &url, Some(fragment_context));
+    parse_html(document.r(), HTMLInput::InputString(input), &url, Some(fragment_context));
 
     // "14. Return the child nodes of root, in tree order."
     let root_element = document.r().GetDocumentElement().expect("no document element").root();
