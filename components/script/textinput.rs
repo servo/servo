@@ -14,6 +14,8 @@ use std::cmp::{min, max};
 use std::default::Default;
 use std::num::SignedInt;
 
+use clipboard::ClipboardContext;
+
 #[derive(Copy, PartialEq)]
 enum Selection {
     Selected,
@@ -40,7 +42,14 @@ pub struct TextInput {
     selection_begin: Option<TextPoint>,
     /// Is this a multiline input?
     multiline: bool,
+    /// Means of accessing the clipboard
+    clipboard_ctx: ClipboardContext,
 }
+
+/*
+lazy_static! {
+    static ref clipboard_ctx: Result<ClipboardContext, &'static str> = ClipboardContext::new();
+}*/
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
 pub enum KeyReaction {
@@ -93,6 +102,7 @@ impl TextInput {
             edit_point: Default::default(),
             selection_begin: None,
             multiline: lines == Lines::Multiple,
+            clipboard_ctx: ClipboardContext::new().unwrap(),
         };
         i.set_content(initial);
         i
@@ -116,6 +126,15 @@ impl TextInput {
             self.selection_begin = Some(self.edit_point);
         }
         self.replace_selection(ch.to_string());
+    }
+
+    /// Insert a string at the current editing point
+    fn insert_string(&mut self, s: &str) {
+        // it looks like this could be made performant by avoiding some redundant 
+        //  selection-related checks, but use the simple implementation for now
+        for ch in s.chars() {
+            self.insert_char(ch);
+        }
     }
 
     fn get_sorted_selection(&self) -> (TextPoint, TextPoint) {
@@ -282,10 +301,14 @@ impl TextInput {
                 self.select_all();
                 KeyReaction::Nothing
             },
+            "v" if is_control_key(event) => {
+                self.insert_string(self.clipboard_ctx.get_contents().as_slice());
+                KeyReaction::DispatchInput
+            },
             // printable characters have single-character key values
             c if c.len() == 1 => {
                 self.insert_char(c.char_at(0));
-                return KeyReaction::DispatchInput;
+                KeyReaction::DispatchInput
             }
             "Space" => {
                 self.insert_char(' ');

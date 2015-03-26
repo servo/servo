@@ -28,6 +28,7 @@
 extern crate log;
 
 #[macro_use] extern crate bitflags;
+//#[macro_use] extern crate lazy_static;
 extern crate core;
 extern crate devtools_traits;
 extern crate cssparser;
@@ -52,6 +53,8 @@ extern crate style;
 extern crate url;
 extern crate uuid;
 extern crate string_cache;
+#[cfg(target_os="linux")]
+extern crate xlib;
 
 pub mod cors;
 
@@ -64,6 +67,7 @@ pub mod layout_interface;
 pub mod page;
 pub mod script_task;
 mod timers;
+pub mod clipboard;
 pub mod textinput;
 mod devtools;
 
