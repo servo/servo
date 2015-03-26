@@ -10,9 +10,7 @@ use geom::size::TypedSize2D;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use profile::mem;
-use profile::mem::MemoryProfilerChan;
 use profile::time;
-use profile::time::TimeProfilerChan;
 
 /// Starts the compositor, which listens for messages on the specified port.
 ///
@@ -24,34 +22,34 @@ pub struct NullCompositor {
     /// A channel to the constellation.
     constellation_chan: ConstellationChan,
     /// A channel to the time profiler.
-    time_profiler_chan: TimeProfilerChan,
+    time_profiler_chan: time::ProfilerChan,
     /// A channel to the memory profiler.
-    memory_profiler_chan: MemoryProfilerChan,
+    mem_profiler_chan: mem::ProfilerChan,
 }
 
 impl NullCompositor {
     fn new(port: Box<CompositorReceiver>,
            constellation_chan: ConstellationChan,
-           time_profiler_chan: TimeProfilerChan,
-           memory_profiler_chan: MemoryProfilerChan)
+           time_profiler_chan: time::ProfilerChan,
+           mem_profiler_chan: mem::ProfilerChan)
            -> NullCompositor {
         NullCompositor {
             port: port,
             constellation_chan: constellation_chan,
             time_profiler_chan: time_profiler_chan,
-            memory_profiler_chan: memory_profiler_chan,
+            mem_profiler_chan: mem_profiler_chan,
         }
     }
 
     pub fn create(port: Box<CompositorReceiver>,
                   constellation_chan: ConstellationChan,
-                  time_profiler_chan: TimeProfilerChan,
-                  memory_profiler_chan: MemoryProfilerChan)
+                  time_profiler_chan: time::ProfilerChan,
+                  mem_profiler_chan: mem::ProfilerChan)
                   -> NullCompositor {
         let compositor = NullCompositor::new(port,
                                              constellation_chan,
                                              time_profiler_chan,
-                                             memory_profiler_chan);
+                                             mem_profiler_chan);
 
         // Tell the constellation about the initial fake size.
         {
@@ -120,8 +118,8 @@ impl CompositorEventListener for NullCompositor {
         // another task from finishing (i.e. SetIds)
         while self.port.try_recv_compositor_msg().is_some() {}
 
-        self.time_profiler_chan.send(time::TimeProfilerMsg::Exit);
-        self.memory_profiler_chan.send(mem::MemoryProfilerMsg::Exit);
+        self.time_profiler_chan.send(time::ProfilerMsg::Exit);
+        self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
     }
 
     fn pinch_zoom_level(&self) -> f32 {

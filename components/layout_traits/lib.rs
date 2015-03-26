@@ -20,8 +20,8 @@ use gfx::paint_task::PaintChan;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, PipelineExitType};
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
-use profile::mem::MemoryProfilerChan;
-use profile::time::TimeProfilerChan;
+use profile::mem;
+use profile::time;
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel};
 use std::sync::mpsc::{Sender, Receiver};
 use url::Url;
@@ -50,7 +50,7 @@ pub trait LayoutTaskFactory {
               resource_task: ResourceTask,
               img_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
-              time_profiler_chan: TimeProfilerChan,
-              memory_profiler_chan: MemoryProfilerChan,
+              time_profiler_chan: time::ProfilerChan,
+              mem_profiler_chan: mem::ProfilerChan,
               shutdown_chan: Sender<()>);
 }

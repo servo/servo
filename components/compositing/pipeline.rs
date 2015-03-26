@@ -19,8 +19,8 @@ use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType, MozBrow
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
 use net::storage_task::StorageTask;
-use profile::mem::MemoryProfilerChan;
-use profile::time::TimeProfilerChan;
+use profile::mem;
+use profile::time;
 use std::sync::mpsc::{Receiver, channel};
 use url::Url;
 use util::geometry::{PagePx, ViewportPx};
@@ -64,8 +64,8 @@ impl Pipeline {
                            font_cache_task: FontCacheTask,
                            resource_task: ResourceTask,
                            storage_task: StorageTask,
-                           time_profiler_chan: TimeProfilerChan,
-                           memory_profiler_chan: MemoryProfilerChan,
+                           time_profiler_chan: time::ProfilerChan,
+                           mem_profiler_chan: mem::ProfilerChan,
                            window_rect: Option<TypedRect<PagePx, f32>>,
                            script_chan: Option<ScriptControlChan>,
                            load_data: LoadData,
@@ -150,7 +150,7 @@ impl Pipeline {
                                   image_cache_task,
                                   font_cache_task,
                                   time_profiler_chan,
-                                  memory_profiler_chan,
+                                  mem_profiler_chan,
                                   layout_shutdown_chan);
 
         Pipeline::new(id,

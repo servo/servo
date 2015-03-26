@@ -46,9 +46,9 @@ use net::resource_task::new_resource_task;
 #[cfg(not(test))]
 use gfx::font_cache_task::FontCacheTask;
 #[cfg(not(test))]
-use profile::mem::MemoryProfiler;
+use profile::mem;
 #[cfg(not(test))]
-use profile::time::TimeProfiler;
+use profile::time;
 #[cfg(not(test))]
 use util::opts;
 #[cfg(not(test))]
@@ -79,15 +79,15 @@ impl Browser {
 
         let (compositor_proxy, compositor_receiver) =
             WindowMethods::create_compositor_channel(&window);
-        let time_profiler_chan = TimeProfiler::create(opts.time_profiler_period);
-        let memory_profiler_chan = MemoryProfiler::create(opts.memory_profiler_period);
+        let time_profiler_chan = time::Profiler::create(opts.time_profiler_period);
+        let mem_profiler_chan = mem::Profiler::create(opts.mem_profiler_period);
         let devtools_chan = opts.devtools_port.map(|port| {
             devtools::start_server(port)
         });
 
         let opts_clone = opts.clone();
         let time_profiler_chan_clone = time_profiler_chan.clone();
-        let memory_profiler_chan_clone = memory_profiler_chan.clone();
+        let mem_profiler_chan_clone = mem_profiler_chan.clone();
 
         let (result_chan, result_port) = channel();
         let compositor_proxy_for_constellation = compositor_proxy.clone_compositor_proxy();
@@ -115,7 +115,7 @@ impl Browser {
                                                           image_cache_task,
                                                           font_cache_task,
                                                           time_profiler_chan_clone,
-                                                          memory_profiler_chan_clone,
+                                                          mem_profiler_chan_clone,
                                                           devtools_chan,
                                                           storage_task);
 
@@ -145,7 +145,7 @@ impl Browser {
                                                 compositor_receiver,
                                                 constellation_chan,
                                                 time_profiler_chan,
-                                                memory_profiler_chan);
+                                                mem_profiler_chan);
 
         Browser {
             compositor: compositor,

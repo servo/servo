@@ -47,7 +47,7 @@ pub struct Opts {
 
     /// `None` to disable the memory profiler or `Some` with an interval in seconds to enable it
     /// and cause it to produce output on that interval (`-m`).
-    pub memory_profiler_period: Option<f64>,
+    pub mem_profiler_period: Option<f64>,
 
     /// Enable experimental web features (`-e`).
     pub enable_experimental: bool,
@@ -176,7 +176,7 @@ pub fn default_opts() -> Opts {
         tile_size: 512,
         device_pixels_per_px: None,
         time_profiler_period: None,
-        memory_profiler_period: None,
+        mem_profiler_period: None,
         enable_experimental: false,
         layout_threads: 1,
         nonincremental_layout: false,
@@ -286,7 +286,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     let time_profiler_period = opt_match.opt_default("p", "5").map(|period| {
         period.parse().unwrap()
     });
-    let memory_profiler_period = opt_match.opt_default("m", "5").map(|period| {
+    let mem_profiler_period = opt_match.opt_default("m", "5").map(|period| {
         period.parse().unwrap()
     });
 
@@ -330,7 +330,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,
         time_profiler_period: time_profiler_period,
-        memory_profiler_period: memory_profiler_period,
+        mem_profiler_period: mem_profiler_period,
         enable_experimental: opt_match.opt_present("e"),
         layout_threads: layout_threads,
         nonincremental_layout: nonincremental_layout,
