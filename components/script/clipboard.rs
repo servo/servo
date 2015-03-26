@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::trace::JSTraceable;
-
 // X11 clipboard support
 #[cfg(target_os="linux")]
 mod x11_clipboard {
+    //use dom::bindings::trace::JSTraceable;
+    //use js::jsapi::JSTracer;
+
     use xlib::{Display, Window};
     use xlib::{XOpenDisplay, XCloseDisplay};
     use xlib::{XCreateSimpleWindow, XDefaultRootWindow};
@@ -17,7 +18,8 @@ mod x11_clipboard {
         display: *mut Display,
         window: Window,
     }
-    no_jsmanaged_fields!(ClipboardContext);
+    no_jsmanaged_fields!(Display);
+    no_jsmanaged_fields!(Window);
 
     impl ClipboardContext {
         pub fn new() -> Result<ClipboardContext, &'static str> {
