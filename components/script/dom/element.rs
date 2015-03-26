@@ -1217,13 +1217,10 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         // 5. Let fragment be the result of invoking the fragment parsing algorithm with
         //    the new value as markup, and parent as the context element.
         // 6. Replace the context object with fragment within the context object's parent.
-        parent.r().parse_fragment(value)
-                  .and_then(|frag| {
-                      let frag = frag.root();
-                      let frag_node: JSRef<Node> = NodeCast::from_ref(frag.r());
-                      try!(context_parent.r().ReplaceChild(frag_node, context_node));
-                      Ok(())
-                  })
+        let frag = try!(parent.r().parse_fragment(value));
+        try!(context_parent.r().ReplaceChild(NodeCast::from_ref(frag.root().r()),
+                                             context_node));
+        Ok(())
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-children
