@@ -71,7 +71,7 @@ enum XMLHttpRequestState {
     Opened = 1,
     HeadersReceived = 2,
     Loading = 3,
-    XHRDone = 4, // So as not to conflict with the ProgressMsg `Done`
+    Done = 4,
 }
 
 struct XHRProgressHandler {
@@ -497,7 +497,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         match self.ready_state.get() {
             XMLHttpRequestState::HeadersReceived |
             XMLHttpRequestState::Loading |
-            XMLHttpRequestState::XHRDone => Err(InvalidState),
+            XMLHttpRequestState::Done => Err(InvalidState),
             _ if self.send_flag.get() => Err(InvalidState),
             _ => match self.global.root() {
                 GlobalRoot::Window(_) if self.sync.get() => Err(InvalidAccess),
@@ -703,7 +703,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             _ => {}
         }
         match self.ready_state.get() {
-            XMLHttpRequestState::Loading | XMLHttpRequestState::XHRDone => Err(InvalidState),
+            XMLHttpRequestState::Loading | XMLHttpRequestState::Done => Err(InvalidState),
             _ if self.sync.get() => Err(InvalidAccess),
             _ => {
                 self.response_type.set(response_type);
@@ -716,13 +716,13 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
          match self.response_type.get() {
             _empty | Text => {
                 let ready_state = self.ready_state.get();
-                if ready_state == XMLHttpRequestState::XHRDone || ready_state == XMLHttpRequestState::Loading {
+                if ready_state == XMLHttpRequestState::Done || ready_state == XMLHttpRequestState::Loading {
                     self.text_response().to_jsval(cx)
                 } else {
                     "".to_jsval(cx)
                 }
             },
-            _ if self.ready_state.get() != XMLHttpRequestState::XHRDone => NullValue(),
+            _ if self.ready_state.get() != XMLHttpRequestState::Done => NullValue(),
             Json => {
                 let decoded = UTF_8.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().to_owned();
                 let decoded: Vec<u16> = decoded.as_slice().utf16_units().collect();
@@ -745,7 +745,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         match self.response_type.get() {
             _empty | Text => {
                 match self.ready_state.get() {
-                    XMLHttpRequestState::Loading | XMLHttpRequestState::XHRDone => Ok(self.text_response()),
+                    XMLHttpRequestState::Loading | XMLHttpRequestState::Done => Ok(self.text_response()),
                     _ => Ok("".to_owned())
                 }
             },
@@ -868,7 +868,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
                 // Subsubsteps 5-7
                 self.send_flag.set(false);
-                self.change_ready_state(XMLHttpRequestState::XHRDone);
+                self.change_ready_state(XMLHttpRequestState::Done);
                 return_if_fetch_was_terminated!();
                 // Subsubsteps 10-12
                 self.dispatch_response_progress_event("progress".to_owned());
@@ -880,7 +880,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
             XHRProgress::Errored(_, e) => {
                 self.send_flag.set(false);
                 // XXXManishearth set response to NetworkError
-                self.change_ready_state(XMLHttpRequestState::XHRDone);
+                self.change_ready_state(XMLHttpRequestState::Done);
                 return_if_fetch_was_terminated!();
 
                 let errormsg = match e {
