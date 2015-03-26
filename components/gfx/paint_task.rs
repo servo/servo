@@ -25,7 +25,7 @@ use msg::compositor_msg::{LayerMetadata, PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::PipelineExitType;
-use profile::time::{TimeProfilerChan, TimeProfilerCategory, profile};
+use profile::time::{self, profile};
 use skia::SkiaGrGLNativeContextRef;
 use std::mem;
 use std::thread::Builder;
@@ -101,7 +101,7 @@ pub struct PaintTask<C> {
     constellation_chan: ConstellationChan,
 
     /// A channel to the time profiler.
-    time_profiler_chan: TimeProfilerChan,
+    time_profiler_chan: time::ProfilerChan,
 
     /// The native graphics context.
     native_graphics_context: Option<NativePaintingGraphicsContext>,
@@ -141,7 +141,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                   constellation_chan: ConstellationChan,
                   font_cache_task: FontCacheTask,
                   failure_msg: Failure,
-                  time_profiler_chan: TimeProfilerChan,
+                  time_profiler_chan: time::ProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(c) = constellation_chan.clone();
         spawn_named_with_send_on_failure("PaintTask", task_state::PAINT, move || {
@@ -336,7 +336,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
               mut tiles: Vec<BufferRequest>,
               scale: f32,
               layer_id: LayerId) {
-        profile(TimeProfilerCategory::Painting, None, self.time_profiler_chan.clone(), || {
+        profile(time::ProfilerCategory::Painting, None, self.time_profiler_chan.clone(), || {
             // Bail out if there is no appropriate stacking context.
             let stacking_context = if let Some(ref stacking_context) = self.root_stacking_context {
                 match display_list::find_stacking_context_with_layer_id(stacking_context,
@@ -419,7 +419,7 @@ struct WorkerThreadProxy {
 impl WorkerThreadProxy {
     fn spawn(native_graphics_metadata: Option<NativeGraphicsMetadata>,
              font_cache_task: FontCacheTask,
-             time_profiler_chan: TimeProfilerChan)
+             time_profiler_chan: time::ProfilerChan)
              -> Vec<WorkerThreadProxy> {
         let thread_count = if opts::get().gpu_painting {
             1
@@ -472,7 +472,7 @@ struct WorkerThread {
     receiver: Receiver<MsgToWorkerThread>,
     native_graphics_context: Option<NativePaintingGraphicsContext>,
     font_context: Box<FontContext>,
-    time_profiler_sender: TimeProfilerChan,
+    time_profiler_sender: time::ProfilerChan,
 }
 
 impl WorkerThread {
@@ -480,7 +480,7 @@ impl WorkerThread {
            receiver: Receiver<MsgToWorkerThread>,
            native_graphics_metadata: Option<NativeGraphicsMetadata>,
            font_cache_task: FontCacheTask,
-           time_profiler_sender: TimeProfilerChan)
+           time_profiler_sender: time::ProfilerChan)
            -> WorkerThread {
         WorkerThread {
             sender: sender,
@@ -559,7 +559,7 @@ impl WorkerThread {
             paint_context.clear();
 
             // Draw the display list.
-            profile(TimeProfilerCategory::PaintingPerTile, None,
+            profile(time::ProfilerCategory::PaintingPerTile, None,
                     self.time_profiler_sender.clone(), || {
                 stacking_context.optimize_and_draw_into_context(&mut paint_context,
                                                                 &tile_bounds,

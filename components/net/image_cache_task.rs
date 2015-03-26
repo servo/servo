@@ -7,7 +7,7 @@ use resource_task;
 use resource_task::{LoadData, ResourceTask};
 use resource_task::ProgressMsg::{Payload, Done};
 
-use profile::time::{self, profile, TimeProfilerChan};
+use profile::time::{self, profile};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -75,7 +75,7 @@ pub struct ImageCacheTask {
 
 impl ImageCacheTask {
     pub fn new(resource_task: ResourceTask, task_pool: TaskPool,
-               time_profiler_chan: TimeProfilerChan) -> ImageCacheTask {
+               time_profiler_chan: time::ProfilerChan) -> ImageCacheTask {
         let (chan, port) = channel();
         let chan_clone = chan.clone();
 
@@ -99,7 +99,7 @@ impl ImageCacheTask {
     }
 
     pub fn new_sync(resource_task: ResourceTask, task_pool: TaskPool,
-                    time_profiler_chan: TimeProfilerChan) -> ImageCacheTask {
+                    time_profiler_chan: time::ProfilerChan) -> ImageCacheTask {
         let (chan, port) = channel();
 
         spawn_named("ImageCacheTask (sync)".to_owned(), move || {
@@ -141,7 +141,7 @@ struct ImageCache {
     wait_map: HashMap<Url, Arc<Mutex<Vec<Sender<ImageResponseMsg>>>>>,
     need_exit: Option<Sender<()>>,
     task_pool: TaskPool,
-    time_profiler_chan: TimeProfilerChan,
+    time_profiler_chan: time::ProfilerChan,
 }
 
 #[derive(Clone)]
@@ -314,7 +314,7 @@ impl ImageCache {
                 self.task_pool.execute(move || {
                     let url = url_clone;
                     debug!("image_cache_task: started image decode for {}", url.serialize());
-                    let image = profile(time::TimeProfilerCategory::ImageDecoding,
+                    let image = profile(time::ProfilerCategory::ImageDecoding,
                                         None, time_profiler_chan, || {
                         load_from_memory(&data)
                     });
@@ -495,7 +495,7 @@ mod tests {
     use resource_task::ProgressMsg::{Payload, Done};
     use sniffer_task;
     use image::base::test_image_bin;
-    use profile::time::{TimeProfiler, TimeProfilerChan};
+    use profile::time;
     use std::sync::mpsc::{Sender, channel, Receiver};
     use url::Url;
     use util::taskpool::TaskPool;
@@ -587,8 +587,8 @@ mod tests {
         })
     }
 
-    fn profiler() -> TimeProfilerChan {
-        TimeProfiler::create(None)
+    fn profiler() -> time::ProfilerChan {
+        time::Profiler::create(None)
     }
 
     #[test]

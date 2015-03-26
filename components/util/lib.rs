@@ -51,7 +51,7 @@ pub mod linked_list;
 pub mod fnv;
 pub mod geometry;
 pub mod logical_geometry;
-pub mod memory;
+pub mod mem;
 pub mod namespace;
 pub mod opts;
 pub mod persistent_list;

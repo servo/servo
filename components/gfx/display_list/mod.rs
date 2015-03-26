@@ -37,7 +37,7 @@ use net::image::base::Image;
 use util::cursor::Cursor;
 use util::linked_list::prepend_from;
 use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
-use util::memory::SizeOf;
+use util::mem::HeapSizeOf;
 use util::range::Range;
 use util::smallvec::{SmallVec, SmallVec8};
 use std::fmt;
@@ -197,14 +197,14 @@ impl DisplayList {
     }
 }
 
-impl SizeOf for DisplayList {
-    fn size_of_excluding_self(&self) -> usize {
-        self.background_and_borders.size_of_excluding_self() +
-            self.block_backgrounds_and_borders.size_of_excluding_self() +
-            self.floats.size_of_excluding_self() +
-            self.content.size_of_excluding_self() +
-            self.outlines.size_of_excluding_self() +
-            self.children.size_of_excluding_self()
+impl HeapSizeOf for DisplayList {
+    fn heap_size_of_children(&self) -> usize {
+        self.background_and_borders.heap_size_of_children() +
+            self.block_backgrounds_and_borders.heap_size_of_children() +
+            self.floats.heap_size_of_children() +
+            self.content.heap_size_of_children() +
+            self.outlines.heap_size_of_children() +
+            self.children.heap_size_of_children()
     }
 }
 
@@ -530,9 +530,9 @@ impl StackingContext {
     }
 }
 
-impl SizeOf for StackingContext {
-    fn size_of_excluding_self(&self) -> usize {
-        self.display_list.size_of_excluding_self()
+impl HeapSizeOf for StackingContext {
+    fn heap_size_of_children(&self) -> usize {
+        self.display_list.heap_size_of_children()
 
         // FIXME(njn): other fields may be measured later, esp. `layer`
     }
@@ -593,10 +593,10 @@ impl BaseDisplayItem {
     }
 }
 
-impl SizeOf for BaseDisplayItem {
-    fn size_of_excluding_self(&self) -> usize {
-        self.metadata.size_of_excluding_self() +
-            self.clip.size_of_excluding_self()
+impl HeapSizeOf for BaseDisplayItem {
+    fn heap_size_of_children(&self) -> usize {
+        self.metadata.heap_size_of_children() +
+            self.clip.heap_size_of_children()
     }
 }
 
@@ -725,14 +725,14 @@ impl ClippingRegion {
     }
 }
 
-impl SizeOf for ClippingRegion {
-    fn size_of_excluding_self(&self) -> usize {
-        self.complex.size_of_excluding_self()
+impl HeapSizeOf for ClippingRegion {
+    fn heap_size_of_children(&self) -> usize {
+        self.complex.heap_size_of_children()
     }
 }
 
-impl SizeOf for ComplexClippingRegion {
-    fn size_of_excluding_self(&self) -> usize {
+impl HeapSizeOf for ComplexClippingRegion {
+    fn heap_size_of_children(&self) -> usize {
         0
     }
 }
@@ -768,8 +768,8 @@ impl DisplayItemMetadata {
     }
 }
 
-impl SizeOf for DisplayItemMetadata {
-    fn size_of_excluding_self(&self) -> usize {
+impl HeapSizeOf for DisplayItemMetadata {
+    fn heap_size_of_children(&self) -> usize {
         0
     }
 }
@@ -784,9 +784,9 @@ pub struct SolidColorDisplayItem {
     pub color: Color,
 }
 
-impl SizeOf for SolidColorDisplayItem {
-    fn size_of_excluding_self(&self) -> usize {
-        self.base.size_of_excluding_self()
+impl HeapSizeOf for SolidColorDisplayItem {
+    fn heap_size_of_children(&self) -> usize {
+        self.base.heap_size_of_children()
     }
 }
 
@@ -815,9 +815,9 @@ pub struct TextDisplayItem {
     pub blur_radius: Au,
 }
 
-impl SizeOf for TextDisplayItem {
-    fn size_of_excluding_self(&self) -> usize {
-        self.base.size_of_excluding_self()
+impl HeapSizeOf for TextDisplayItem {
+    fn heap_size_of_children(&self) -> usize {
+        self.base.heap_size_of_children()
         // We exclude `text_run` because it is non-owning.
     }
 }
@@ -845,9 +845,9 @@ pub struct ImageDisplayItem {
     pub image_rendering: image_rendering::T,
 }
 
-impl SizeOf for ImageDisplayItem {
-    fn size_of_excluding_self(&self) -> usize {
-        self.base.size_of_excluding_self()
+impl HeapSizeOf for ImageDisplayItem {
+    fn heap_size_of_children(&self) -> usize {
+        self.base.heap_size_of_children()
         // We exclude `image` here because it is non-owning.
     }
 }
@@ -868,15 +868,15 @@ pub struct GradientDisplayItem {
     pub stops: Vec<GradientStop>,
 }
 
-impl SizeOf for GradientDisplayItem {
-    fn size_of_excluding_self(&self) -> usize {
+impl HeapSizeOf for GradientDisplayItem {
+    fn heap_size_of_children(&self) -> usize {
         use libc::c_void;
-        use util::memory::heap_size_of;
+        use util::mem::heap_size_of;
 
-        // We can't measure `stops` via Vec's SizeOf implementation because GradientStop isn't
-        // defined in this module, and we don't want to import GradientStop into util::memory where
-        // the SizeOf trait is defined. So we measure the elements directly.
-        self.base.size_of_excluding_self() +
+        // We can't measure `stops` via Vec's HeapSizeOf implementation because GradientStop isn't
+        // defined in this module, and we don't want to import GradientStop into util::mem where
+        // the HeapSizeOf trait is defined. So we measure the elements directly.
+        self.base.heap_size_of_children() +
             heap_size_of(self.stops.as_ptr() as *const c_void)
     }
 }
@@ -903,9 +903,9 @@ pub struct BorderDisplayItem {
     pub radius: BorderRadii<Au>,
 }
 
-impl SizeOf for BorderDisplayItem {
-    fn size_of_excluding_self(&self) -> usize {
-        self.base.size_of_excluding_self()
+impl HeapSizeOf for BorderDisplayItem {
+    fn heap_size_of_children(&self) -> usize {
+        self.base.heap_size_of_children()
     }
 }
 
@@ -953,9 +953,9 @@ pub struct LineDisplayItem {
     pub style: border_style::T
 }
 
-impl SizeOf for LineDisplayItem {
-    fn size_of_excluding_self(&self) -> usize {
-        self.base.size_of_excluding_self()
+impl HeapSizeOf for LineDisplayItem {
+    fn heap_size_of_children(&self) -> usize {
+        self.base.heap_size_of_children()
     }
 }
 
@@ -984,9 +984,9 @@ pub struct BoxShadowDisplayItem {
     pub clip_mode: BoxShadowClipMode,
 }
 
-impl SizeOf for BoxShadowDisplayItem {
-    fn size_of_excluding_self(&self) -> usize {
-        self.base.size_of_excluding_self()
+impl HeapSizeOf for BoxShadowDisplayItem {
+    fn heap_size_of_children(&self) -> usize {
+        self.base.heap_size_of_children()
     }
 }
 
@@ -1152,16 +1152,16 @@ impl fmt::Debug for DisplayItem {
     }
 }
 
-impl SizeOf for DisplayItem {
-    fn size_of_excluding_self(&self) -> usize {
+impl HeapSizeOf for DisplayItem {
+    fn heap_size_of_children(&self) -> usize {
         match *self {
-            SolidColorClass(ref item) => item.size_of_excluding_self(),
-            TextClass(ref item)       => item.size_of_excluding_self(),
-            ImageClass(ref item)      => item.size_of_excluding_self(),
-            BorderClass(ref item)     => item.size_of_excluding_self(),
-            GradientClass(ref item)   => item.size_of_excluding_self(),
-            LineClass(ref item)       => item.size_of_excluding_self(),
-            BoxShadowClass(ref item)  => item.size_of_excluding_self(),
+            SolidColorClass(ref item) => item.heap_size_of_children(),
+            TextClass(ref item)       => item.heap_size_of_children(),
+            ImageClass(ref item)      => item.heap_size_of_children(),
+            BorderClass(ref item)     => item.heap_size_of_children(),
+            GradientClass(ref item)   => item.heap_size_of_children(),
+            LineClass(ref item)       => item.heap_size_of_children(),
+            BoxShadowClass(ref item)  => item.heap_size_of_children(),
         }
     }
 }

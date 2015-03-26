@@ -4,7 +4,7 @@
 
 //! Memory profiling functions.
 
-use self::system_reporter::SystemMemoryReporter;
+use self::system_reporter::SystemReporter;
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -14,11 +14,11 @@ use std::time::duration::Duration;
 use util::task::spawn_named;
 
 #[derive(Clone)]
-pub struct MemoryProfilerChan(pub Sender<MemoryProfilerMsg>);
+pub struct ProfilerChan(pub Sender<ProfilerMsg>);
 
-impl MemoryProfilerChan {
-    pub fn send(&self, msg: MemoryProfilerMsg) {
-        let MemoryProfilerChan(ref c) = *self;
+impl ProfilerChan {
+    pub fn send(&self, msg: ProfilerMsg) {
+        let ProfilerChan(ref c) = *self;
         c.send(msg).unwrap();
     }
 }
@@ -32,7 +32,7 @@ macro_rules! path {
     }}
 }
 
-pub struct MemoryReport {
+pub struct Report {
     /// The identifying path for this report.
     pub path: Vec<String>,
 
@@ -42,36 +42,36 @@ pub struct MemoryReport {
 
 /// A channel through which memory reports can be sent.
 #[derive(Clone)]
-pub struct MemoryReportsChan(pub Sender<Vec<MemoryReport>>);
+pub struct ReportsChan(pub Sender<Vec<Report>>);
 
-impl MemoryReportsChan {
-    pub fn send(&self, report: Vec<MemoryReport>) {
-        let MemoryReportsChan(ref c) = *self;
+impl ReportsChan {
+    pub fn send(&self, report: Vec<Report>) {
+        let ReportsChan(ref c) = *self;
         c.send(report).unwrap();
     }
 }
 
 /// A memory reporter is capable of measuring some data structure of interest. Because it needs
-/// to be passed to and registered with the MemoryProfiler, it's typically a "small" (i.e. easily
+/// to be passed to and registered with the Profiler, it's typically a "small" (i.e. easily
 /// cloneable) value that provides access to a "large" data structure, e.g. a channel that can
 /// inject a request for measurements into the event queue associated with the "large" data
 /// structure.
-pub trait MemoryReporter {
+pub trait Reporter {
     /// Collect one or more memory reports. Returns true on success, and false on failure.
-    fn collect_reports(&self, reports_chan: MemoryReportsChan) -> bool;
+    fn collect_reports(&self, reports_chan: ReportsChan) -> bool;
 }
 
 /// Messages that can be sent to the memory profiler thread.
-pub enum MemoryProfilerMsg {
-    /// Register a MemoryReporter with the memory profiler. The String is only used to identify the
+pub enum ProfilerMsg {
+    /// Register a Reporter with the memory profiler. The String is only used to identify the
     /// reporter so it can be unregistered later. The String must be distinct from that used by any
     /// other registered reporter otherwise a panic will occur.
-    RegisterMemoryReporter(String, Box<MemoryReporter + Send>),
+    RegisterReporter(String, Box<Reporter + Send>),
 
-    /// Unregister a MemoryReporter with the memory profiler. The String must match the name given
-    /// when the reporter was registered. If the String does not match the name of a registered
-    /// reporter a panic will occur.
-    UnregisterMemoryReporter(String),
+    /// Unregister a Reporter with the memory profiler. The String must match the name given when
+    /// the reporter was registered. If the String does not match the name of a registered reporter
+    /// a panic will occur.
+    UnregisterReporter(String),
 
     /// Triggers printing of the memory profiling metrics.
     Print,
@@ -80,16 +80,16 @@ pub enum MemoryProfilerMsg {
     Exit,
 }
 
-pub struct MemoryProfiler {
+pub struct Profiler {
     /// The port through which messages are received.
-    pub port: Receiver<MemoryProfilerMsg>,
+    pub port: Receiver<ProfilerMsg>,
 
     /// Registered memory reporters.
-    reporters: HashMap<String, Box<MemoryReporter + Send>>,
+    reporters: HashMap<String, Box<Reporter + Send>>,
 }
 
-impl MemoryProfiler {
-    pub fn create(period: Option<f64>) -> MemoryProfilerChan {
+impl Profiler {
+    pub fn create(period: Option<f64>) -> ProfilerChan {
         let (chan, port) = channel();
 
         // Create the timer thread if a period was provided.
@@ -99,7 +99,7 @@ impl MemoryProfiler {
             spawn_named("Memory profiler timer".to_owned(), move || {
                 loop {
                     sleep(period_ms);
-                    if chan.send(MemoryProfilerMsg::Print).is_err() {
+                    if chan.send(ProfilerMsg::Print).is_err() {
                         break;
                     }
                 }
@@ -109,24 +109,23 @@ impl MemoryProfiler {
         // Always spawn the memory profiler. If there is no timer thread it won't receive regular
         // `Print` events, but it will still receive the other events.
         spawn_named("Memory profiler".to_owned(), move || {
-            let mut memory_profiler = MemoryProfiler::new(port);
-            memory_profiler.start();
+            let mut mem_profiler = Profiler::new(port);
+            mem_profiler.start();
         });
 
-        let memory_profiler_chan = MemoryProfilerChan(chan);
+        let mem_profiler_chan = ProfilerChan(chan);
 
         // Register the system memory reporter, which will run on the memory profiler's own thread.
         // It never needs to be unregistered, because as long as the memory profiler is running the
         // system memory reporter can make measurements.
-        let system_reporter = Box::new(SystemMemoryReporter);
-        memory_profiler_chan.send(MemoryProfilerMsg::RegisterMemoryReporter("system".to_owned(),
-                                                                            system_reporter));
+        let system_reporter = Box::new(SystemReporter);
+        mem_profiler_chan.send(ProfilerMsg::RegisterReporter("system".to_owned(), system_reporter));
 
-        memory_profiler_chan
+        mem_profiler_chan
     }
 
-    pub fn new(port: Receiver<MemoryProfilerMsg>) -> MemoryProfiler {
-        MemoryProfiler {
+    pub fn new(port: Receiver<ProfilerMsg>) -> Profiler {
+        Profiler {
             port: port,
             reporters: HashMap::new(),
         }
@@ -145,34 +144,33 @@ impl MemoryProfiler {
         }
     }
 
-    fn handle_msg(&mut self, msg: MemoryProfilerMsg) -> bool {
+    fn handle_msg(&mut self, msg: ProfilerMsg) -> bool {
         match msg {
-            MemoryProfilerMsg::RegisterMemoryReporter(name, reporter) => {
+            ProfilerMsg::RegisterReporter(name, reporter) => {
                 // Panic if it has already been registered.
                 let name_clone = name.clone();
                 match self.reporters.insert(name, reporter) {
                     None => true,
-                    Some(_) =>
-                        panic!(format!("RegisterMemoryReporter: '{}' name is already in use",
-                                       name_clone)),
+                    Some(_) => panic!(format!("RegisterReporter: '{}' name is already in use",
+                                              name_clone)),
                 }
             },
 
-            MemoryProfilerMsg::UnregisterMemoryReporter(name) => {
+            ProfilerMsg::UnregisterReporter(name) => {
                 // Panic if it hasn't previously been registered.
                 match self.reporters.remove(&name) {
                     Some(_) => true,
                     None =>
-                        panic!(format!("UnregisterMemoryReporter: '{}' name is unknown", &name)),
+                        panic!(format!("UnregisterReporter: '{}' name is unknown", &name)),
                 }
             },
 
-            MemoryProfilerMsg::Print => {
+            ProfilerMsg::Print => {
                 self.handle_print_msg();
                 true
             },
 
-            MemoryProfilerMsg::Exit => false
+            ProfilerMsg::Exit => false
         }
     }
 
@@ -189,7 +187,7 @@ impl MemoryProfiler {
         let mut forest = ReportsForest::new();
         for reporter in self.reporters.values() {
             let (chan, port) = channel();
-            if reporter.collect_reports(MemoryReportsChan(chan)) {
+            if reporter.collect_reports(ReportsChan(chan)) {
                 if let Ok(reports) = port.recv() {
                     for report in reports.iter() {
                         forest.insert(&report.path, report.size);
@@ -368,20 +366,20 @@ mod system_reporter {
     use std::ffi::CString;
     use std::mem::size_of;
     use std::ptr::null_mut;
-    use super::{MemoryReport, MemoryReporter, MemoryReportsChan};
+    use super::{Report, Reporter, ReportsChan};
     #[cfg(target_os="macos")]
     use task_info::task_basic_info::{virtual_size, resident_size};
 
     /// Collects global measurements from the OS and heap allocators.
-    pub struct SystemMemoryReporter;
+    pub struct SystemReporter;
 
-    impl MemoryReporter for SystemMemoryReporter {
-        fn collect_reports(&self, reports_chan: MemoryReportsChan) -> bool {
+    impl Reporter for SystemReporter {
+        fn collect_reports(&self, reports_chan: ReportsChan) -> bool {
             let mut reports = vec![];
             {
                 let mut report = |path, size| {
                     if let Some(size) = size {
-                        reports.push(MemoryReport { path: path, size: size });
+                        reports.push(Report { path: path, size: size });
                     }
                 };
 

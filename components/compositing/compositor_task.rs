@@ -21,8 +21,8 @@ use msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
 use msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
 use msg::constellation_msg::{ConstellationChan, PipelineId};
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
-use profile::mem::MemoryProfilerChan;
-use profile::time::TimeProfilerChan;
+use profile::mem;
+use profile::time;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::fmt::{Error, Formatter, Debug};
 use std::rc::Rc;
@@ -265,8 +265,8 @@ impl CompositorTask {
                           sender: Box<CompositorProxy+Send>,
                           receiver: Box<CompositorReceiver>,
                           constellation_chan: ConstellationChan,
-                          time_profiler_chan: TimeProfilerChan,
-                          memory_profiler_chan: MemoryProfilerChan)
+                          time_profiler_chan: time::ProfilerChan,
+                          mem_profiler_chan: mem::ProfilerChan)
                           -> Box<CompositorEventListener + 'static>
                           where Window: WindowMethods + 'static {
         match window {
@@ -276,14 +276,14 @@ impl CompositorTask {
                                                      receiver,
                                                      constellation_chan.clone(),
                                                      time_profiler_chan,
-                                                     memory_profiler_chan)
+                                                     mem_profiler_chan)
                     as Box<CompositorEventListener>
             }
             None => {
                 box headless::NullCompositor::create(receiver,
                                                      constellation_chan.clone(),
                                                      time_profiler_chan,
-                                                     memory_profiler_chan)
+                                                     mem_profiler_chan)
                     as Box<CompositorEventListener>
             }
         }

@@ -38,11 +38,11 @@ pub fn heap_size_of(ptr: *const c_void) -> usize {
 // FIXME(njn): it would be nice to be able to derive this trait automatically, given that
 // implementations are mostly repetitive and mechanical.
 //
-pub trait SizeOf {
+pub trait HeapSizeOf {
     /// Measure the size of any heap-allocated structures that hang off this value, but not the
     /// space taken up by the value itself (i.e. what size_of::<T> measures, more or less); that
-    /// space is handled by the implementation of SizeOf for Box<T> below.
-    fn size_of_excluding_self(&self) -> usize;
+    /// space is handled by the implementation of HeapSizeOf for Box<T> below.
+    fn heap_size_of_children(&self) -> usize;
 }
 
 // There are two possible ways to measure the size of `self` when it's on the heap: compute it
@@ -60,49 +60,49 @@ pub trait SizeOf {
 //
 // However, in the best case, the two approaches should give the same results.
 //
-impl<T: SizeOf> SizeOf for Box<T> {
-    fn size_of_excluding_self(&self) -> usize {
+impl<T: HeapSizeOf> HeapSizeOf for Box<T> {
+    fn heap_size_of_children(&self) -> usize {
         // Measure size of `self`.
-        heap_size_of(&**self as *const T as *const c_void) + (**self).size_of_excluding_self()
+        heap_size_of(&**self as *const T as *const c_void) + (**self).heap_size_of_children()
     }
 }
 
-impl SizeOf for String {
-    fn size_of_excluding_self(&self) -> usize {
+impl HeapSizeOf for String {
+    fn heap_size_of_children(&self) -> usize {
         heap_size_of(self.as_ptr() as *const c_void)
     }
 }
 
-impl<T: SizeOf> SizeOf for Option<T> {
-    fn size_of_excluding_self(&self) -> usize {
+impl<T: HeapSizeOf> HeapSizeOf for Option<T> {
+    fn heap_size_of_children(&self) -> usize {
         match *self {
             None => 0,
-            Some(ref x) => x.size_of_excluding_self()
+            Some(ref x) => x.heap_size_of_children()
         }
     }
 }
 
-impl<T: SizeOf> SizeOf for Arc<T> {
-    fn size_of_excluding_self(&self) -> usize {
-        (**self).size_of_excluding_self()
+impl<T: HeapSizeOf> HeapSizeOf for Arc<T> {
+    fn heap_size_of_children(&self) -> usize {
+        (**self).heap_size_of_children()
     }
 }
 
-impl<T: SizeOf> SizeOf for Vec<T> {
-    fn size_of_excluding_self(&self) -> usize {
+impl<T: HeapSizeOf> HeapSizeOf for Vec<T> {
+    fn heap_size_of_children(&self) -> usize {
         heap_size_of(self.as_ptr() as *const c_void) +
-            self.iter().fold(0, |n, elem| n + elem.size_of_excluding_self())
+            self.iter().fold(0, |n, elem| n + elem.heap_size_of_children())
     }
 }
 
-// FIXME(njn): We can't implement SizeOf accurately for LinkedList because it requires access to the
-// private Node type. Eventually we'll want to add SizeOf (or equivalent) to Rust itself. In the
-// meantime, we use the dirty hack of transmuting LinkedList into an identical type (LinkedList2) and
-// measuring that.
-impl<T: SizeOf> SizeOf for LinkedList<T> {
-    fn size_of_excluding_self(&self) -> usize {
+// FIXME(njn): We can't implement HeapSizeOf accurately for LinkedList because it requires access
+// to the private Node type. Eventually we'll want to add HeapSizeOf (or equivalent) to Rust
+// itself. In the meantime, we use the dirty hack of transmuting LinkedList into an identical type
+// (LinkedList2) and measuring that.
+impl<T: HeapSizeOf> HeapSizeOf for LinkedList<T> {
+    fn heap_size_of_children(&self) -> usize {
         let list2: &LinkedList2<T> = unsafe { transmute(self) };
-        list2.size_of_excluding_self()
+        list2.heap_size_of_children()
     }
 }
 
@@ -124,21 +124,21 @@ struct Node<T> {
     value: T,
 }
 
-impl<T: SizeOf> SizeOf for Node<T> {
-    // Unlike most size_of_excluding_self() functions, this one does *not* measure descendents.
-    // Instead, LinkedList2<T>::size_of_excluding_self() handles that, so that it can use iteration
+impl<T: HeapSizeOf> HeapSizeOf for Node<T> {
+    // Unlike most heap_size_of_children() functions, this one does *not* measure descendents.
+    // Instead, LinkedList2<T>::heap_size_of_children() handles that, so that it can use iteration
     // instead of recursion, which avoids potentially blowing the stack.
-    fn size_of_excluding_self(&self) -> usize {
-        self.value.size_of_excluding_self()
+    fn heap_size_of_children(&self) -> usize {
+        self.value.heap_size_of_children()
     }
 }
 
-impl<T: SizeOf> SizeOf for LinkedList2<T> {
-    fn size_of_excluding_self(&self) -> usize {
+impl<T: HeapSizeOf> HeapSizeOf for LinkedList2<T> {
+    fn heap_size_of_children(&self) -> usize {
         let mut size = 0;
         let mut curr: &Link<T> = &self.list_head;
         while curr.is_some() {
-            size += (*curr).size_of_excluding_self();
+            size += (*curr).heap_size_of_children();
             curr = &curr.as_ref().unwrap().next;
         }
         size
