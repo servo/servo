@@ -39,6 +39,16 @@ impl HTMLImageElementDerived for EventTarget {
     }
 }
 
+pub trait HTMLImageElementHelpers {
+    fn get_url(&self) -> Option<Url>;
+}
+
+impl<'a> HTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
+    fn get_url(&self) -> Option<Url>{
+        self.image.borrow().clone()
+    }
+}
+
 trait PrivateHTMLImageElementHelpers {
     fn update_image(self, value: Option<(DOMString, &Url)>);
 }

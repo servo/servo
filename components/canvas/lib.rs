@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(collections)]
+#![feature(core)]
 #![feature(std_misc)]
 
 extern crate azure;
