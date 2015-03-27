@@ -8,7 +8,6 @@
 // except according to those terms.
 
 #![feature(collections)]
-#![feature(core)]
 #![feature(exit_status)]
 #![feature(path)]
 #![feature(rustc_private)]
@@ -48,7 +47,7 @@ fn main() {
 fn parse_config(args: Vec<String>) -> Config {
     let args = args.tail();
     let opts = vec!(reqopt("s", "source-dir", "source-dir", "source-dir"));
-    let matches = match getopts(args, opts.as_slice()) {
+    let matches = match getopts(args, &opts) {
       Ok(m) => m,
       Err(f) => panic!(f.to_string())
     };
@@ -97,7 +96,7 @@ fn run_test(file: String) {
     let path = env::current_dir().unwrap().join(&file);
     // FIXME (#1094): not the right way to transform a path
     let infile = format!("file://{}", path.display());
-    let args = ["-z", "-f", infile.as_slice()];
+    let args = ["-z", "-f", &*infile];
 
     let mut prc_arg = env::current_exe().unwrap();
     let prc_arg = match prc_arg.pop() {
@@ -105,7 +104,7 @@ fn run_test(file: String) {
         _ => panic!("could not pop directory"),
     };
     let output = match Command::new(prc_arg.to_str().unwrap())
-        .args(args.as_slice())
+        .args(&args)
         .stdin(Stdio::null())
         .stderr(Stdio::inherit())
         .output()
