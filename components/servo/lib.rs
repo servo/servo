@@ -21,6 +21,7 @@ extern crate layout;
 extern crate gfx;
 extern crate libc;
 extern crate url;
+extern crate webdriver_server;
 
 use compositing::CompositorEventListener;
 use compositing::windowing::WindowEvent;
@@ -83,6 +84,10 @@ impl Browser  {
         let devtools_chan = opts.devtools_port.map(|port| {
             devtools::start_server(port)
         });
+
+        if let Some(port) = opts.webdriver_port {
+            webdriver_server::start_server(port);
+        }
 
         // Create a Servo instance.
         let resource_task = new_resource_task(opts.user_agent.clone());

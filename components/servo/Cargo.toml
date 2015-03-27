@@ -72,6 +72,9 @@ path = "../gfx"
 [dependencies.devtools]
 path = "../devtools"
 
+[dependencies.webdriver_server]
+path = "../webdriver_server"
+
 [dependencies.glutin_app]
 path = "../../ports/glutin"
 optional = true
