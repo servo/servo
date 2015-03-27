@@ -48,8 +48,8 @@ fn parse_config(args: Vec<String>) -> Config {
     let args = args.tail();
     let opts = vec!(reqopt("s", "source-dir", "source-dir", "source-dir"));
     let matches = match getopts(args, &opts) {
-      Ok(m) => m,
-      Err(f) => panic!(f.to_string())
+        Ok(m) => m,
+        Err(f) => panic!(f.to_string())
     };
 
     Config {
