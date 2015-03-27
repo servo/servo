@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>[PrototypeRoot]
+interface Node {
+  readonly attribute unsigned short nodeType;
+};</webidl>
+  <Interface name="Node" id="::Node">
+    <webidl>[PrototypeRoot]
+interface Node {
+  readonly attribute unsigned short nodeType;
+};</webidl>
+    <ExtendedAttributeList>
+      <ExtendedAttribute name="PrototypeRoot">
+        <webidl>PrototypeRoot</webidl>
+      </ExtendedAttribute>
+    </ExtendedAttributeList>
+    <Attribute readonly="readonly" name="nodeType" id="::Node::nodeType">
+      <webidl>  readonly attribute unsigned short nodeType;</webidl>
+      <Type type="unsigned short"/>
+    </Attribute>
+  </Interface>
+</Definitions>

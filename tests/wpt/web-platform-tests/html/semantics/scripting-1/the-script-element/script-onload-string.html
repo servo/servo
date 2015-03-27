@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Script: setting onload to a string</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+test(function() {
+  var s = document.createElement("script");
+  assert_equals(s.onload, null);
+  var dummy = function() {};
+  s.onload = dummy;
+  assert_equals(s.onload, dummy);
+  s.onload = "w('load DOM appended')";
+  assert_equals(s.onload, null);
+}, "Setting onload to a string should convert to null.");
+</script>

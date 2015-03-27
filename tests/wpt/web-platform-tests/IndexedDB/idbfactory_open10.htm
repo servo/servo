@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<title>IDBFactory.open() - error in upgradeneeded resets db</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js></script>
+
+<script>
+    var db, db2;
+    var open_rq = createdb(async_test(document.title, {timeout: 10000}), undefined, 9);
+
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result;
+
+        var st = db.createObjectStore("store");
+        st.createIndex("index", "i");
+
+        assert_equals(db.version, 9, "first db.version");
+        assert_true(db.objectStoreNames.contains("store"), "objectStoreNames contains store");
+        assert_true(st.indexNames.contains("index"), "indexNames contains index");
+
+        st.add({i: "Joshua"}, 1);
+        st.add({i: "Jonas"}, 2);
+    };
+    open_rq.onsuccess = function(e) {
+        db.close();
+        var open_rq2 = window.indexedDB.open(db.name, 10);
+        open_rq2.onupgradeneeded = this.step_func(function(e) {
+            db2 = e.target.result;
+
+            db2.createObjectStore("store2");
+
+            var store = open_rq2.transaction.objectStore("store")
+            store.createIndex("index2", "i");
+
+            assert_equals(db2.version, 10, "db2.version");
+
+            assert_true(db2.objectStoreNames.contains("store"), "second objectStoreNames contains store");
+            assert_true(db2.objectStoreNames.contains("store2"), "second objectStoreNames contains store2");
+            assert_true(store.indexNames.contains("index"), "second indexNames contains index");
+            assert_true(store.indexNames.contains("index2"), "second indexNames contains index2");
+
+            store.add({i: "Odin"}, 3);
+            store.put({i: "Sicking"}, 2);
+
+            open_rq2.transaction.abort();
+        });
+        open_rq2.onerror = this.step_func(function(e) {
+            assert_equals(db2.version, 9, "db2.version after error");
+            assert_true(db2.objectStoreNames.contains("store"), "objectStoreNames contains store after error");
+            assert_false(db2.objectStoreNames.contains("store2"), "objectStoreNames not contains store2 after error");
+
+            var open_rq3 = window.indexedDB.open(db.name);
+            open_rq3.onsuccess = this.step_func(function(e) {
+                var db3 = e.target.result;
+
+                assert_true(db3.objectStoreNames.contains("store"), "third objectStoreNames contains store");
+                assert_false(db3.objectStoreNames.contains("store2"), "third objectStoreNames contains store2");
+
+                var st = db3.transaction("store").objectStore("store");
+
+                assert_equals(db3.version, 9, "db3.version");
+
+                assert_true(st.indexNames.contains("index"), "third indexNames contains index");
+                assert_false(st.indexNames.contains("index2"), "third indexNames contains index2");
+
+                st.openCursor(null, "prev").onsuccess = this.step_func(function(e) {
+                    assert_equals(e.target.result.key, 2, "opencursor(prev) key");
+                    assert_equals(e.target.result.value.i, "Jonas", "opencursor(prev) value");
+                });
+                st.get(3).onsuccess = this.step_func(function(e) {
+                    assert_equals(e.target.result, undefined, "get(3)");
+                });
+
+                var idx = st.index("index");
+                idx.getKey("Jonas").onsuccess = this.step_func(function(e) {
+                    assert_equals(e.target.result, 2, "getKey(Jonas)");
+                });
+                idx.getKey("Odin").onsuccess = this.step_func(function(e) {
+                    assert_equals(e.target.result, undefined, "getKey(Odin)");
+                });
+                idx.getKey("Sicking").onsuccess = this.step_func(function(e) {
+                    assert_equals(e.target.result, undefined, "getKey(Sicking)");
+                    this.done();
+                });
+            });
+        });
+    };
+</script>
+
+<div id=log></div>

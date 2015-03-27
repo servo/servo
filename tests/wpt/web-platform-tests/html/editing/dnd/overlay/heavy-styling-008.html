@@ -1,0 +1,31 @@
+<!DOCTYPe html>
+<meta charset='utf-8'>
+<title>drag and drop – feedback overlay for heavily styled elements – 008</title>
+<style>
+a {
+  display: block;
+  height: 200px;
+  width: 200px;
+  background-color: green;
+  position: absolute;
+  top: 100px;
+  left: 10px;
+  z-index: 1;
+}
+
+a + a {
+  background-color: red;
+  position: absolute;
+  top: 150px;
+  left: 20px;
+  z-index: 2;
+}
+
+
+</style>
+
+<p>Drag the green box below downwards. The drag placeholder should resemble the green box, including the text within it. It may optionally be a complete square, or the same shape as the visible part of the green box. There should be no red in the drag placeholder.</p>
+
+<a draggable="true" ondragstart="event.dataTransfer.effectAllowed ='copy'">TEST</a>
+
+<a href='#'>TEST</a>

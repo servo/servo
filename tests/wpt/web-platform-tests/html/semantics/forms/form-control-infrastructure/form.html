@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLInputElement#form</title>
+<link rel="author" title="Ms2ger" href="mailto:Ms2ger@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<form id="form">
+<p><button id="button">button</button>
+<p><fieldset id="fieldset">fieldset</fieldset>
+<p><input id="input">
+<p><keygen id="keygen">
+<p><label id="label">label</label>
+<p><object id="object">object</object>
+<p><output id="output">output</output>
+<p><select id="select"><option>select</option></select>
+<p><textarea id="textarea">textarea</textarea>
+</form>
+<script>
+var form;
+setup(function() {
+  form = document.getElementById("form");
+  if (!form) {
+    throw new TypeError("Didn't find form");
+  }
+});
+
+var reassociateableElements = [
+  "button",
+  "fieldset",
+  "input",
+  "keygen",
+  "label",
+  "object",
+  "output",
+  "select",
+  "textarea",
+];
+
+reassociateableElements.forEach(function(localName) {
+  test(function() {
+    var button = document.getElementById(localName);
+    assert_equals(button.form, form);
+  }, localName + ".form");
+});
+</script>

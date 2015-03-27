@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>MediaSource.isTypeSupported() test cases.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          // Generate a distinct test for each type in types
+          function test_type_support(types, expectation, description)
+          {
+              for (var i = 0; i < types.length; ++i) {
+                  test(function()
+                  {
+                      assert_equals(MediaSource.isTypeSupported(types[i]),
+                                    expectation, 'supported');
+                  },  description + ' "' + types[i] + '"');
+              }
+          };
+
+          test_type_support([
+              'video',
+              'video/',
+              'video/webm',
+              'video/webm;',
+              'video/webm;codecs',
+              'video/webm;codecs=',
+              'video/webm;codecs="',
+              'video/webm;codecs=""',
+              'video/webm;codecs=","',
+              '',
+              null
+          ], false, 'Test invalid MIME format');
+
+          test_type_support([
+              'audio/webm;codecs="vp8"',
+              'audio/mp4;codecs="avc1.4d001e"',
+          ], false, 'Test invalid mismatch between major type and codec ID');
+
+          test_type_support([
+              'audio/mp4;codecs="vorbis"',
+              'audio/webm;codecs="mp4a.40.2"',
+              'video/mp4;codecs="vp8"',
+              'video/webm;codecs="mp4a.40.2"',
+              'video/mp4;codecs="vorbis"',
+              'video/webm;codecs="mp4a.40.2"',
+          ], false, 'Test invalid mismatch between minor type and codec ID');
+
+          test_type_support([
+              'audio/mp4;codecs="mp4a"',
+              'audio/mp4;codecs="mp4a.40"',
+              'audio/mp4;codecs="mp4a.40."',
+              'audio/mp4;codecs="mp4a.67.3"'
+          ], false, 'Test invalid codec ID');
+
+          test_type_support([
+              'video/webm;codecs="vp8"',
+              'video/webm;codecs="vorbis"',
+              'video/webm;codecs="vp8,vorbis"',
+              'video/webm;codecs="vorbis, vp8"',
+              'audio/webm;codecs="vorbis"',
+              'AUDIO/WEBM;CODECS="vorbis"',
+          ], true, 'Test valid WebM type');
+
+          test_type_support([
+              'video/mp4;codecs="avc1.4d001e"', // H.264 Main Profile level 3.0
+              'video/mp4;codecs="avc1.42001e"', // H.264 Baseline Profile level 3.0
+              'audio/mp4;codecs="mp4a.40.2"',   // MPEG4 AAC-LC
+              'audio/mp4;codecs="mp4a.40.5"',   // MPEG4 HE-AAC
+              'audio/mp4;codecs="mp4a.67"',     // MPEG2 AAC-LC
+              'video/mp4;codecs="mp4a.40.2"',
+              'video/mp4;codecs="avc1.4d001e,mp4a.40.2"',
+              'video/mp4;codecs="mp4a.40.2 , avc1.4d001e "',
+              'video/mp4;codecs="avc1.4d001e,mp4a.40.5"',
+          ], true, 'Test valid MP4 type');
+        </script>
+    </body>
+</html>

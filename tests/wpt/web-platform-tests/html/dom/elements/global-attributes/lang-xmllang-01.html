@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>Languages</title>
+<link rel="match" href="lang-xmllang-01-ref.html">
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-lang-and-xml:lang-attributes">
+<link tel="help" href="http://www.w3.org/TR/CSS2/selector.html#lang">
+<meta name="flags" content="css21">
+<style>
+#test #a :lang(en) { background: limegreen; }
+#test #b :lang(nl) { background: limegreen; }
+#test #c :lang(en) { background: limegreen; }
+#test #d :lang(nl) { background: limegreen; }
+#test #e :lang(en) { background: limegreen; }
+#test #f :lang(en) { background: limegreen; }
+#test #g :lang(de) { background: limegreen; }
+</style>
+<body>
+<p>All lines below should have a green background.</p>
+<div id="test" lang="nl">
+<div id="a"><p lang="en">{}{lang}{en}</p></div>
+<div id="b"><p xml:lang="en">{}{xml:lang}{en}</p></div>
+<div id="c"><div lang="en"><p>Parent: {}{lang}{en}</p></div></div>
+<div id="d"><div xml:lang="en"><p>Parent: {}{xml:lang}{en}</p></div></div>
+</div>
+<script>
+try {
+  var XML = "http://www.w3.org/XML/1998/namespace";
+  var container = document.getElementById("test");
+
+  var div = document.createElement("div");
+  div.id = "e";
+  var testNode = document.createElement("p");
+  testNode.appendChild(document.createTextNode("{xml}{lang}{en}"));
+  testNode.setAttributeNS(XML, "xml:lang", "en");
+  div.appendChild(testNode);
+  container.appendChild(div);
+
+  div = document.createElement("div");
+  div.id = "f";
+  testNode = document.createElement("p");
+  testNode.appendChild(document.createTextNode("{xml}{lang}{en} - {lang}{de}"));
+  testNode.setAttributeNS(XML, "xml:lang", "en");
+  testNode.setAttributeNS(null, "lang", "de");
+  div.appendChild(testNode);
+  container.appendChild(div);
+
+  div = document.createElement("div");
+  div.id = "g";
+  testNode = document.createElement("p");
+  testNode.appendChild(document.createTextNode("{xml}{lang}{de} - {lang}{en}"));
+  testNode.setAttributeNS(XML, "xml:lang", "de");
+  testNode.setAttributeNS(null, "lang", "en");
+  container.appendChild(testNode);
+  div.appendChild(testNode);
+  container.appendChild(div);
+} catch (e) {
+}
+</script>

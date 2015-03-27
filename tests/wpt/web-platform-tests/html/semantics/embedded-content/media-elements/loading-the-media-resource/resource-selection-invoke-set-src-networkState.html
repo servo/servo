@@ -1,0 +1,16 @@
+<!doctype html>
+<title>invoking load by setting src when networkState is not NETWORK_EMPTY</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+test(function(t) {
+  var v = document.createElement('video');
+  v.play(); // invokes resource selection and sets .paused to false
+  assert_equals(v.networkState, v.NETWORK_NO_SOURCE, 'networkState');
+  assert_false(v.paused, 'paused');
+  v.setAttribute('src', ''); // invokes media load which sets .paused to true
+  assert_equals(v.networkState, v.NETWORK_NO_SOURCE, 'networkState after setting src');
+  assert_true(v.paused, 'paused after setting src');
+});
+</script>

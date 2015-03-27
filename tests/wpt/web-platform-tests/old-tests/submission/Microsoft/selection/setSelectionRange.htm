@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id="desc">HTML5 Selection: Call setSelectionRange() on a text field</title>
+        <script type="text/javascript">
+            var testPassed = true;
+            
+            function checkDefaultSelectionAttributes()
+            {
+                var selection = window.getSelection();
+                if (null != selection.anchorNode)
+                {
+                    testPassed = false;
+                }
+                if (0 != selection.anchorOffset)
+                {
+                    testPassed = false;
+                }
+                if (null != selection.focusNode)
+                {
+                    testPassed = false;
+                }
+                if (0 != selection.focusOffset)
+                {
+                    testPassed = false;
+                }
+                if (!selection.isCollapsed)
+                {
+                    testPassed = false;
+                }
+                if (0 != selection.rangeCount)
+                {
+                    testPassed = false;
+                }  
+            }
+            
+            function RunTest()
+            {
+                try
+                {
+                    var input1 = document.getElementById("input1");
+                    var expectedResult = "input";
+                    
+                    input1.setSelectionRange(16, 21);
+                    
+                    checkDefaultSelectionAttributes();
+                    
+                    var selectionText = input1.value.substring(input1.selectionStart, input1.selectionEnd);
+                    if (expectedResult != selectionText)
+                    {
+                        testPassed = false;
+                    }
+                    
+                    if (testPassed)
+                    {
+                        document.getElementById("testresult").firstChild.data = "PASS";
+                    }
+                }
+                catch (ex)
+                {
+                    document.getElementById("testresult").firstChild.data = "FAIL";
+                }
+            }
+        </script>
+    </head>
+    <body onload="RunTest();">
+        <input style="WIDTH: 500px" id="input1" value="Some text in an input control" type="text" /> 
+        <p>Call setSelectionRange() on the input element to select some of the text</p>
+        <p>Test passes if the word "PASS" appears below.</p>
+        <div>Test result: </div>
+        <div id="testresult">FAIL</div>
+    </body>
+</html>

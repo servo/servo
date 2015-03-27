@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>MP4 video-only frame size change.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+        <script src="mediasource-config-changes.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+            mediaSourceConfigChangeTest("mp4", "v-128k-320x240-30fps-10kfr", "v-128k-640x480-30fps-10kfr", "Tests mp4 video-only frame size changes.");
+        </script>
+    </body>
+</html>

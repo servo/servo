@@ -1,0 +1,41 @@
+<!--
+for (;) // should cause onerror to be invoked, but onerror is null, so
+        // the error is "not handled". should fire an ErrorEvent on the
+        // worker.
+  break;
+postMessage(1); // shouldn't do anything since the script doesn't compile
+/*
+-->
+<!doctype html>
+<title>AbstractWorker.onerror</title>
+<link rel=help href="http://www.whatwg.org/html/#runtime-script-errors-0">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test();
+t.step(function() {
+  var worker = new Worker('#');
+  worker.onerror = function(a, b, c) {
+    t.step(function() {
+      assert_equals('' + a, '[object ErrorEvent]');
+      assert_true("message" in a, 'ErrorEvent.message');
+      assert_equals(typeof a.message, "string", 'ErrorEvent.message');
+      assert_equals(a.filename, document.URL + '#', 'ErrorEvent.filename');
+      assert_true("lineno" in a, 'ErrorEvent.lineno');
+      assert_equals(typeof a.lineno, "number", 'ErrorEvent.lineno');
+      assert_equals(b, undefined, 'unexpected second argument to onerror');
+      assert_equals(c, undefined, 'unexpected third argument to onerror');
+    });
+    t.done();
+  }
+  worker.onmessage = function(e) {
+    t.step(function() {
+      assert_unreached('onmessage was invoked but worker script shouldn\'t have compiled');
+    });
+  }
+});
+</script>
+<!--
+*/
+//-->

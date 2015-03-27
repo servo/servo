@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>&lt;?xml?> is not a ProcessingInstruction</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"/>
+<script>
+test(function() {
+  assert_equals(document.firstChild, document.documentElement)
+})
+</script>
+</body>
+</html>

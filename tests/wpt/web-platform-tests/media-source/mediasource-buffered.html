@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SourceBuffer.buffered test cases.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+            var subType = MediaSourceUtil.getSubType(MediaSourceUtil.AUDIO_ONLY_TYPE);
+
+            var manifestFilenameA = subType + "/test-a-128k-44100Hz-1ch-manifest.json";
+            var manifestFilenameB = subType + "/test-v-128k-320x240-30fps-10kfr-manifest.json";
+
+            var expectationsA = {
+              webm: "{ [0.000, 2.022) }",
+              mp4: "{ [0.000, 2.043) }",
+            };
+
+            var expectationsB = {
+              webm: "{ [0.000, 2.000) }",
+              mp4: "{ [0.000, 2.000) }",
+            };
+
+            function mediaSourceDemuxedTest(callback, description)
+            {
+                mediasource_test(function(test, mediaElement, mediaSource)
+                {
+                    mediaElement.pause();
+                    test.failOnEvent(mediaElement, "error");
+                    test.endOnEvent(mediaElement, "ended");
+
+                    MediaSourceUtil.fetchManifestAndData(test, manifestFilenameA, function(typeA, dataA)
+                    {
+                        MediaSourceUtil.fetchManifestAndData(test, manifestFilenameB, function(typeB, dataB)
+                        {
+                            mediaSource.addSourceBuffer(typeA);
+                            mediaSource.addSourceBuffer(typeB);
+                            assert_equals(mediaSource.sourceBuffers.length, 2);
+
+                            callback(test, mediaElement, mediaSource, dataA, dataB);
+                        });
+                    });
+                }, description);
+            };
+
+            function appendData(test, mediaSource, dataA, dataB, callback)
+            {
+                var sourceBufferA = mediaSource.sourceBuffers[0];
+                var sourceBufferB = mediaSource.sourceBuffers[1];
+
+                test.expectEvent(sourceBufferA, "update");
+                test.expectEvent(sourceBufferA, "updateend");
+                sourceBufferA.appendBuffer(dataA);
+
+                test.expectEvent(sourceBufferB, "update");
+                test.expectEvent(sourceBufferB, "updateend");
+                sourceBufferB.appendBuffer(dataB);
+
+                test.waitForExpectedEvents(function()
+                {
+                     callback();
+                });
+            }
+
+            mediaSourceDemuxedTest(function(test, mediaElement, mediaSource, dataA, dataB) {
+                test.expectEvent(mediaElement, "loadedmetadata");
+                appendData(test, mediaSource, dataA, dataB, function()
+                {
+                    assertBufferedEquals(mediaSource.activeSourceBuffers[0], expectationsA[subType], "mediaSource.activeSourceBuffers[0]");
+                    assertBufferedEquals(mediaSource.activeSourceBuffers[1], expectationsB[subType], "mediaSource.activeSourceBuffers[1]");
+                    assertBufferedEquals(mediaElement, expectationsB[subType], "mediaElement.buffered");
+
+                    mediaSource.endOfStream();
+
+                    assertBufferedEquals(mediaSource.activeSourceBuffers[0], expectationsA[subType], "mediaSource.activeSourceBuffers[0]");
+                    assertBufferedEquals(mediaSource.activeSourceBuffers[1], expectationsB[subType], "mediaSource.activeSourceBuffers[1]");
+                    assertBufferedEquals(mediaElement, expectationsA[subType], "mediaElement.buffered");
+
+                    test.done();
+                });
+            }, "Demuxed content with different lengths");
+
+            mediasource_test(function(test, mediaElement, mediaSource)
+            {
+                mediaElement.pause();
+                test.failOnEvent(mediaElement, "error");
+                test.endOnEvent(mediaElement, "ended");
+
+                MediaSourceUtil.fetchManifestAndData(test, subType + "/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr-manifest.json", function(type, data)
+                {
+                    var sourceBuffer = mediaSource.addSourceBuffer(type);
+                    test.expectEvent(sourceBuffer, "update");
+                    test.expectEvent(sourceBuffer, "updateend");
+                    sourceBuffer.appendBuffer(data);
+
+                    test.waitForExpectedEvents(function()
+                    {
+                        var expectationsAV = {
+                            webm: ["{ [0.000, 2.003) }", "{ [0.000, 2.022) }"],
+                            mp4: ["{ [0.000, 2.000) }", "{ [0.000, 2.043) }"],
+                        };
+
+                        var expectedBeforeEndOfStream = expectationsAV[subType][0];
+                        var expectedAfterEndOfStream = expectationsAV[subType][1];
+
+                        assertBufferedEquals(mediaSource.activeSourceBuffers[0], expectedBeforeEndOfStream, "mediaSource.activeSourceBuffers[0]");
+                        assertBufferedEquals(mediaElement, expectedBeforeEndOfStream, "mediaElement.buffered");
+
+                        mediaSource.endOfStream();
+
+                        assertBufferedEquals(mediaSource.activeSourceBuffers[0], expectedAfterEndOfStream, "mediaSource.activeSourceBuffers[0]");
+                        assertBufferedEquals(mediaElement, expectedAfterEndOfStream, "mediaElement.buffered");
+
+                        test.done();
+                    });
+                });
+            }, "Muxed content with different lengths");
+
+            mediaSourceDemuxedTest(function(test, mediaElement, mediaSource, dataA, dataB) {
+                var dataBSize = {
+                    webm: 318,
+                    mp4: 835,
+                };
+                test.expectEvent(mediaElement, "loadedmetadata");
+                appendData(test, mediaSource, dataA, dataB.subarray(0, dataBSize[subType]), function()
+                {
+                    assertBufferedEquals(mediaSource.activeSourceBuffers[0], expectationsA[subType], "mediaSource.activeSourceBuffers[0]");
+                    assertBufferedEquals(mediaSource.activeSourceBuffers[1], "{ }", "mediaSource.activeSourceBuffers[1]");
+                    assertBufferedEquals(mediaElement, "{ }", "mediaElement.buffered");
+
+                    mediaSource.endOfStream();
+
+                    assertBufferedEquals(mediaSource.activeSourceBuffers[0], expectationsA[subType], "mediaSource.activeSourceBuffers[0]");
+                    assertBufferedEquals(mediaSource.activeSourceBuffers[1], "{ }", "mediaSource.activeSourceBuffers[1]");
+                    assertBufferedEquals(mediaElement, "{ }", "mediaElement.buffered");
+
+                    test.done();
+                });
+            }, "Demuxed content with an empty buffered range on one SourceBuffer");
+
+            mediasource_test(function(test, mediaElement, mediaSource)
+            {
+                mediaElement.pause();
+                test.failOnEvent(mediaElement, "error");
+                test.endOnEvent(mediaElement, "ended");
+
+                MediaSourceUtil.fetchManifestAndData(test, subType + "/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr-manifest.json", function(type, data)
+                {
+                    var sourceBuffer = mediaSource.addSourceBuffer(type);
+                    test.expectEvent(mediaElement, "loadedmetadata");
+                    test.expectEvent(sourceBuffer, "update");
+                    test.expectEvent(sourceBuffer, "updateend");
+                    sourceBuffer.appendBuffer(data.subarray(0, 4052));
+
+                    test.waitForExpectedEvents(function()
+                    {
+                        assertBufferedEquals(mediaSource.activeSourceBuffers[0], "{ }", "mediaSource.activeSourceBuffers[0]");
+                        assertBufferedEquals(mediaElement, "{ }", "mediaElement.buffered");
+
+                        mediaSource.endOfStream();
+
+                        assertBufferedEquals(mediaSource.activeSourceBuffers[0], "{ }", "mediaSource.activeSourceBuffers[0]");
+                        assertBufferedEquals(mediaElement, "{ }", "mediaElement.buffered");
+
+                        test.done();
+                    });
+                });
+            }, "Muxed content empty buffered ranges.");
+
+            mediasource_test(function(test, mediaElement, mediaSource)
+            {
+                mediaElement.pause();
+                test.failOnEvent(mediaElement, "error");
+                test.endOnEvent(mediaElement, "ended");
+
+                var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_ONLY_TYPE);
+
+                assertBufferedEquals(mediaSource.sourceBuffers[0], "{ }", "mediaSource.sourceBuffers[0]");
+                assertBufferedEquals(mediaElement, "{ }", "mediaElement.buffered");
+                test.done();
+
+            }, "Get buffered range when sourcebuffer is empty.");
+
+            mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+            {
+                var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+
+                test.expectEvent(mediaElement, "loadedmetadata");
+                test.expectEvent(sourceBuffer, "updateend", "initSegment append ended.");
+                sourceBuffer.appendBuffer(initSegment);
+                test.waitForExpectedEvents(function()
+                {
+                    assertBufferedEquals(mediaSource.sourceBuffers[0], "{ }", "mediaSource.sourceBuffers[0]");
+                    assertBufferedEquals(mediaSource.activeSourceBuffers[0], "{ }", "mediaSource.activeSourceBuffers[0]");
+                    assertBufferedEquals(mediaElement, "{ }", "mediaElement.buffered");
+                    test.done();
+                });
+
+            }, "Get buffered range when only init segment is appended.");
+
+            mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+            {
+                test.expectEvent(mediaSource.sourceBuffers, "removesourcebuffer", "SourceBuffer removed.");
+                mediaSource.removeSourceBuffer(sourceBuffer);
+
+                test.waitForExpectedEvents(function()
+                {
+                    assert_throws("InvalidStateError",
+                        function() { sourceBuffer.buffered; },
+                        "get sourceBuffer.buffered throws an exception for InvalidStateError.");
+                    test.done();
+                });
+            }, "Get buffered range after removing sourcebuffer.");
+        </script>
+    </body>
+</html>

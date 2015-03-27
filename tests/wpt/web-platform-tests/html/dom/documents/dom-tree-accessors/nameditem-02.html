@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Named items: iframes</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="test">
+<iframe name="test1"></iframe>
+
+<iframe name="test2"></iframe>
+<iframe name="test2"></iframe>
+
+<iframe name="test3"></iframe>
+<img name="test3">
+
+<img name="test4">
+<iframe name="test4"></iframe>
+
+<iframe id="test5"></iframe>
+
+<iframe name="test6" id="fail"></iframe>
+
+<iframe name="fail" id="test7"></iframe>
+
+<iframe name="42"></iframe>
+</div>
+<script>
+test(function() {
+  var iframe = document.getElementsByTagName("iframe")[0];
+  assert_equals(iframe.name, "test1");
+
+  assert_true("test1" in document, '"test1" in document should be true');
+  assert_equals(document.test1, iframe.contentWindow);
+}, "If the only named item is an iframe, the contentWindow should be returned.");
+
+test(function() {
+  var iframe1 = document.getElementsByTagName("iframe")[1];
+  assert_equals(iframe1.name, "test2");
+  var iframe2 = document.getElementsByTagName("iframe")[2];
+  assert_equals(iframe2.name, "test2");
+
+  assert_true("test2" in document, '"test2" in document should be true');
+  var collection = document.test2;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [iframe1, iframe2]);
+}, "If there are two iframes, a collection should be returned.");
+
+test(function() {
+  var iframe = document.getElementsByTagName("iframe")[3];
+  assert_equals(iframe.name, "test3");
+  var img = document.getElementsByTagName("img")[0];
+  assert_equals(img.name, "test3");
+
+  assert_true("test3" in document, '"test3" in document should be true');
+  var collection = document.test3;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [iframe, img]);
+}, "If there are an iframe and another element (iframe first), a collection should be returned.");
+
+test(function() {
+  var iframe = document.getElementsByTagName("iframe")[4];
+  assert_equals(iframe.name, "test4");
+  var img = document.getElementsByTagName("img")[1];
+  assert_equals(img.name, "test4");
+
+  assert_true("test4" in document, '"test4" in document should be true');
+  var collection = document.test4;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [img, iframe]);
+}, "If there are an iframe and another element (iframe last), a collection should be returned.");
+
+test(function() {
+  assert_false("test5" in document, '"test5" in document should be false');
+  assert_equals(document.test5, undefined);
+}, "If an iframe has an id and no name, it should not be returned.");
+
+test(function() {
+  var iframe = document.getElementsByTagName("iframe")[6];
+  assert_equals(iframe.name, "test6");
+
+  assert_true("test6" in document, '"test6" in document should be true');
+  assert_equals(document.test6, iframe.contentWindow);
+}, "If an iframe has a name and a different id, it should be returned by its name.");
+
+test(function() {
+  assert_false("test7" in document, '"test7" in document should be false');
+  assert_equals(document.test7, undefined);
+}, "If an iframe has an id and a different name, it should not be returned by its id.");
+
+test(function() {
+  var iframe = document.getElementsByTagName("iframe")[8];
+  assert_equals(iframe.name, "42");
+
+  assert_true(42 in document, '42 in document should be true');
+  assert_equals(document[42], iframe.contentWindow);
+}, "An iframe whose name looks like an array index should work.");
+</script>

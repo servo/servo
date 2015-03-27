@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<title>WebVTT rendering, repositioning of 9 cues that overlap completely and all cues have the same timestamp</title>
+<link rel="match" href="9_cues_overlapping_completely_all_cues_have_same_timestamp-ref.html">
+<style>
+html { overflow:hidden }
+body { margin:0 }
+::cue {
+    font-family: Ahem, sans-serif;
+}
+::cue(#cue1) {
+    color: #000
+}
+::cue(#cue2) {
+    color: #222
+}
+::cue(#cue3) {
+    color: #444
+}
+::cue(#cue4) {
+    color: #666
+}
+::cue(#cue5) {
+    color: #888
+}
+::cue(#cue6) {
+    color: #aaa
+}
+::cue(#cue7) {
+    color: #ccc
+}
+::cue(#cue8) {
+    color: #eee
+}
+::cue(#cue9) {
+    color: green
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="720" height="720" autoplay ontimeupdate="if (this.currentTime >= 1) { this.ontimeupdate = null; this.pause(); takeScreenshot(); }">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="support/9_cues_overlapping_completely_all_cues_have_same_timestamp.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</video>
+</html>

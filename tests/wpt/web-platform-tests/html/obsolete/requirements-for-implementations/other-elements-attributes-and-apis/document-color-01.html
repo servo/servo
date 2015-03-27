@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>document: fg/bg/link/vlink/alink-color</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-fgcolor">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-body-text">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  document.documentElement.removeChild(document.body);
+  assert_equals(document.fgColor, "");
+  assert_equals(document.bgColor, "");
+  assert_equals(document.linkColor, "");
+  assert_equals(document.vlinkColor, "");
+  assert_equals(document.alinkColor, "");
+})
+</script>

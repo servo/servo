@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test: A_05_04_09</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#events-that-are-always-stopped">
+<meta name="assert" content="The following events must always be stopped at the nearest shadow boundary: abort, error, select, change, load, reset, resize, scroll, selectstart">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+var A_05_04_09_T01 = async_test('A_05_04_09_T01');
+
+A_05_04_09_T01.step(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    host.setAttribute('style', 'height:50%; width:100%');
+    host.setAttribute('id', 'host');
+    d.body.appendChild(host);
+
+    //Shadow root to play with
+    var s = host.createShadowRoot();
+
+    var inp1 = d.createElement('input');
+    inp1.setAttribute('id', 'inp1');
+    inp1.setAttribute('type', 'text');
+    inp1.setAttribute('value', '12345');
+    s.appendChild(inp1);
+
+    s.addEventListener('selectstart', A_05_04_09_T01.step_func(function(event) {
+    	assert_equals(event.target.getAttribute('id'), 'inp1', 'Inside shadoe tree: Wrong target');
+    }), false);
+
+    d.body.addEventListener('selectstart', A_05_04_09_T01.step_func(function(event) {
+    	assert_true(false, 'selectstart event should always be stopped at Shadow boundary');
+    }), false);
+
+    var event = d.createEvent('UIEvent');
+    event.initUIEvent ('selectstart', true, false);
+    inp1.dispatchEvent(event);
+
+    A_05_04_09_T01.done();
+}));
+</script>
+</body>
+</html>

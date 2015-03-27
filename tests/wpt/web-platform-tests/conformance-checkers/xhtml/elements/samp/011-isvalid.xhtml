@@ -1,0 +1,20 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>&lt;samp&gt;</title>
+</head>
+<body>
+  <!-- is structured inline -->
+  <p><samp class="class" xml:lang="en">text</samp></p>
+
+  <!-- is strictly inline -->
+  <p><dfn><samp class="class" xml:lang="en">text</samp></dfn></p>
+
+  <!-- can be empty -->
+  <p>text <samp></samp></p>
+  <p>text <dfn><samp></samp></dfn></p>
+
+  <!-- can contain interactive -->
+  <p><samp><a>text</a></samp></p>
+  <p><dfn><samp><a>text</a></samp></dfn></p>
+</body>
+</html>

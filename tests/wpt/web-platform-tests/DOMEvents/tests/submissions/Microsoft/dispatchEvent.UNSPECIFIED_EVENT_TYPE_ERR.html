@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title id='desc'> EventException.UNSPECIFIED_EVENT_TYPE_ERR and dispatchEvent() </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            window.onload = function()
+            {
+                try
+                {
+                    var evt = document.createEvent("Event");
+                    document.body.dispatchEvent(evt);
+                }
+                catch(ex)
+                {
+                    if ((undefined != ex.code) && (ex instanceof EventException) && (EventException.UNSPECIFIED_EVENT_TYPE_ERR == ex.code))
+                    {
+                        PassTest();
+                    }
+                    else
+                    {
+                        FailTest();
+                    }
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: dispatchEvent - EventException UNSPECIFIED_EVENT_TYPE_ERR raises if the Event.type
+            was not specified by initializing the event before dispatchEvent was called.
+        </h4>
+
+        <p>Test passes if the word "PASS" appears below.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

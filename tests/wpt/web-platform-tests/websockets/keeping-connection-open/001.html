@@ -1,0 +1,26 @@
+<!doctype html>
+<title>WebSockets: 20s inactivity after handshake</title>
+<meta name=timeout content=long>
+<p>Note: This test takes 20 seconds to run.</p>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+async_test(function(t) {
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
+  ws.onclose = ws.onerror = ws.onmessage = t.step_func(function() {assert_unreached()});
+  ws.onopen = t.step_func(function(e) {
+    setTimeout(t.step_func(function() {
+      ws.send('test');
+      ws.onmessage = t.step_func(function(e) {
+        assert_equals(e.data, 'test');
+        ws.onclose = t.step_func(function(e) {
+          setTimeout(t.step_func(function() {t.done();}), 50)
+        });
+        ws.close();
+      });
+    }), 20000);
+  })
+}, null, {timeout:30000});
+</script>

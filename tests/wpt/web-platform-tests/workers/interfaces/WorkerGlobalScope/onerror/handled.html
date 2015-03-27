@@ -1,0 +1,36 @@
+<!--
+onerror = function(a, b, c, d) {
+  postMessage([a, b, c, d]);
+  return true; // the error is "handled"
+}
+function x() {
+  y();
+}
+x();
+/*
+-->
+<!doctype html>
+<title>onerror, "handled"</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(function() {
+  var worker = new Worker('#');
+  worker.onmessage = this.step_func(function(e) {
+    assert_equals(typeof e.data[0], 'string', 'first argument');
+    assert_equals(e.data[1], document.URL+'#', 'second argument');
+    assert_equals(typeof e.data[2], 'number', 'third argument');
+    assert_equals(typeof e.data[3], 'number', 'fourth argument');
+    setTimeout(this.step_func(function() {
+      this.done();
+    }), 100);
+  });
+  worker.onerror = this.step_func(function(e) {
+    assert_unreached();
+  });
+});
+</script>
+<!--
+*/
+//-->

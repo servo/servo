@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+  <title>Forms</title>
+  <script src="../../resources/testharness.js"></script>
+  <script src="../../resources/testharnessreport.js"></script>
+ </head>
+ <body>
+  <p>
+    <h3>keygen_checkValidity</h3>
+  </p>
+  
+  <hr>
+
+  <div id="log"></div>
+
+  <form method="post"
+      enctype="application/x-www-form-urlencoded"
+      action="" 
+      id="input_form">
+   <keygen name='key' id='keygen_id'></keygen>
+  </form>
+  <script>
+
+    var keygen = document.getElementById("keygen_id");
+
+    try
+    {
+      var ret = keygen.checkValidity();
+
+      test(function() {
+        assert_equals(ret, true, "calling of checkValidity method is failed.");
+      });
+    }
+    catch (e) {
+      test(function() {
+        assert_unreached("Error is raised.");
+      });
+    }
+
+  </script>
+
+ </body>
+</html>

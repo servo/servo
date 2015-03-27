@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Video Test: video_loop_current_media_controller</title>
+    <link rel="author" title="Intel" href="http://www.intel.com" />
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-media-loop" />
+    <meta name="flags" content="" />
+    <meta name="assert" content="Check if the video element has a current media controller that expecting the loop attribute has no effect" />
+    <script src="/common/media.js"></script>
+  </head>
+  <body>
+    <p>Test passes if the video doesn't repeatly play and the text 'The user agent doesn't support media element.' does not appear anywhere on this page</p>
+    <video id="m" controls loop mediagroup="movie">The user agent doesn't support media element.</video>
+    <script type="text/javascript">
+        var media = document.getElementById("m");
+        var controller = new MediaController();
+
+        media.controller = controller;
+        media.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
+        media.play();
+    </script>
+  </body>
+</html>

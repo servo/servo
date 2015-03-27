@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SourceBuffer.timestampOffset test cases.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          function simpleTimestampOffsetTest(value, expected, description)
+          {
+              mediasource_test(function(test, mediaElement, mediaSource)
+              {
+                  var segmentInfo = MediaSourceUtil.SEGMENT_INFO;
+                  var sourceBuffer = mediaSource.addSourceBuffer(segmentInfo.type);
+
+                  if (expected == "TypeError")  {
+                      assert_throws({name: "TypeError"},
+                          function() { sourceBuffer.timestampOffset = value; },
+                          "setting timestampOffset to " + description + " throws an exception.");
+                  } else {
+                      sourceBuffer.timestampOffset = value;
+                      assert_equals(sourceBuffer.timestampOffset, expected);
+                  }
+
+                  test.done();
+              }, "Test setting SourceBuffer.timestampOffset to " + description + ".");
+          }
+
+          simpleTimestampOffsetTest(10.5, 10.5, "a positive number");
+          simpleTimestampOffsetTest(-10.4, -10.4, "a negative number");
+          simpleTimestampOffsetTest(0, 0, "zero");
+          simpleTimestampOffsetTest(Number.POSITIVE_INFINITY, "TypeError", "positive infinity");
+          simpleTimestampOffsetTest(Number.NEGATIVE_INFINITY, "TypeError", "negative infinity");
+          simpleTimestampOffsetTest(Number.NaN, "TypeError", "NaN");
+          simpleTimestampOffsetTest(undefined, "TypeError", "undefined");
+          simpleTimestampOffsetTest(null, 0, "null");
+          simpleTimestampOffsetTest(false, 0, "false");
+          simpleTimestampOffsetTest(true, 1, "true");
+          simpleTimestampOffsetTest("10.5", 10.5, "a number string");
+          simpleTimestampOffsetTest("", 0, "an empty string");
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+              var mediaSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.media[0]);
+
+              test.expectEvent(sourceBuffer, "updateend", "initSegment append ended.");
+              sourceBuffer.appendBuffer(initSegment);
+
+              test.waitForExpectedEvents(function()
+              {
+                  test.expectEvent(sourceBuffer, "updateend", "mediaSegment append ended.");
+                  sourceBuffer.appendBuffer(mediaSegment);
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  mediaSource.endOfStream();
+
+                  assert_equals(mediaSource.readyState, "ended");
+
+                  mediaSource.sourceBuffers[0].timestampOffset = 2;
+
+                  assert_equals(mediaSource.readyState, "open");
+
+                  test.expectEvent(mediaSource, "sourceopen", "mediaSource fired 'sourceopen' event.");
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  test.done();
+              });
+          }, "Test setting timestampOffset in 'ended' state causes a transition to 'open'.");
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+              var mediaSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.media[0]);
+
+              test.expectEvent(sourceBuffer, "updateend", "initSegment append ended.");
+              sourceBuffer.appendBuffer(initSegment);
+              assert_equals(mediaSource.sourceBuffers[0].timestampOffset, 0, "read initial value");
+
+              test.waitForExpectedEvents(function()
+              {
+                  test.expectEvent(sourceBuffer, "updateend", "mediaSegment append ended.");
+                  sourceBuffer.appendBuffer(mediaSegment);
+                  assert_equals(mediaSource.sourceBuffers[0].timestampOffset, 0,
+                      "No change to timestampoffset after segments mode init segment append");
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_equals(mediaSource.sourceBuffers[0].timestampOffset, 0,
+                      "No change to timestampoffset after segments mode media segment append");
+                  test.done();
+              });
+          }, "Test getting the initial value of timestampOffset.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+              assert_true(sourceBuffer != null, "New SourceBuffer returned");
+
+              mediaSource.removeSourceBuffer(sourceBuffer);
+              assert_true(mediaSource.sourceBuffers.length == 0, "MediaSource.sourceBuffers is empty");
+              assert_true(mediaSource.activeSourceBuffers.length == 0, "MediaSource.activesourceBuffers is empty");
+
+              assert_throws("InvalidStateError", function()
+              {
+                  sourceBuffer.timestampOffset = 10;
+              });
+
+              test.done();
+          }, "Test setting timestampoffset after removing the sourcebuffer.");
+        </script>
+    </body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang=en>
+  <head>
+   <script type="application/its+xml">  
+    <its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+     <its:param name="locQualityIssueParam">q1</its:param>
+     <its:locQualityIssueRule selector="//h:span[@id=$locQualityIssueParam]"
+      locQualityIssueType="typographical"
+      locQualityIssueComment="sentence without capitalization"
+      locQualityIssueEnabled="yes"/>
+     <its:locQualityIssueRule selector="//h:span[@id='q2']"
+     locQualityIssueType="misspelling"
+     locQualityIssueComment="should be 'Music can'"
+     locQualityIssueEnabled="yes"/>
+    </its:rules>
+    </script>
+    <meta charset=utf-8>
+    <title>Example</title>
+  </head>
+  <body>
+    <p>
+     <span id="q1">music </span> is an art form whose medium is sound and silence.
+     <span id="q2">Musci acn </span> take many different forms and is experienced by individuals in a range of social settings ranging from being alone to attending a large concert. 
+    </p>
+  </body>
+</html>

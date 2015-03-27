@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBDatabase.createObjectStore() - Attampt Create Exsists Object Store With Difference keyPath throw ConstraintError </title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#widl-IDBDatabase-createObjectStore-IDBObjectStore-DOMString-name-IDBObjectStoreParameters-optionalParameters">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test(),
+    open_rq = createdb(t);
+
+open_rq.onupgradeneeded = function (e) {
+    var db = e.target.result;
+    db.createObjectStore("store");
+    assert_throws("ConstraintError", function(){
+        db.createObjectStore("store", {
+            keyPath: "key1",
+        });
+    });
+    t.done();
+}
+</script>
+

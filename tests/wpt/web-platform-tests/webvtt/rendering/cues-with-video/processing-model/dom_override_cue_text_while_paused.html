@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>WebVTT rendering, cue text should be rerendered when overriding them using the DOM APIs while paused</title>
+<link rel="match" href="dom_override_cue_text_while_paused-ref.html">
+<style>
+html { overflow:hidden }
+body { margin:0 }
+::cue {
+    font-family: Ahem, sans-serif;
+    color: green
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script>
+    function updateCue() {
+        var t = document.getElementById('track');
+        var c = t.track.cues[0];
+        c.text = 'f o o';
+        takeScreenshot();
+    }
+</script>
+<video id="video" width="1280" height="720" autoplay onplaying="this.onplaying = null; this.pause(); updateCue();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track id="track" src="support/test.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</video>
+</html>

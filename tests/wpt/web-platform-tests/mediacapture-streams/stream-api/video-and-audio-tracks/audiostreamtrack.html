@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+<title>AudioStreamTrack is defined</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#idl-def-AudioStreamTrack">
+<link rel='stylesheet' href='/resources/testharness.css' media='all'/>
+</head>
+<body>
+
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test verifies the availability of the AudioStreamTrack interface.</p>
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/webidl2/lib/webidl2.js></script>
+<script src=/resources/idlharness.js></script>
+<script>
+var idl_array = new IdlArray();
+idl_array.add_idls("[Constructor(optional MediaTrackConstraints audioConstraints)]\
+interface AudioStreamTrack : MediaStreamTrack {\
+    static sequence<DOMString> getSourceIds ();\
+};");
+idl_array.test();
+</script>
+</body>
+</html>

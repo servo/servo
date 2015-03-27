@@ -1,0 +1,104 @@
+# File containing whiteslist for lint errors
+# Format is:
+# ERROR TYPE:file/name/pattern[:line number]
+# e.g.
+# TRAILING WHITESPACE:example/file.html:128
+# to allow trailing whitespace on example/file.html line 128
+
+## Whitespace rules that we can't enforce yet ##
+
+INDENT TABS: .gitmodules
+INDENT TABS: app-uri/*
+INDENT TABS: conformance-checkers/*
+INDENT TABS: content-security-policy/*
+INDENT TABS: custom-elements/*
+INDENT TABS: DOMEvents/*
+INDENT TABS: eventsource/*
+INDENT TABS: html/editing/dnd/*
+INDENT TABS: html/semantics/*
+INDENT TABS: html/syntax/*
+INDENT TABS: html/webappapis/*
+INDENT TABS: media-source/*
+INDENT TABS: old-tests/*
+INDENT TABS: pointerlock/*
+INDENT TABS: shadow-dom/*
+INDENT TABS: tools/*
+INDENT TABS: touch-events/*
+INDENT TABS: web-animations/*
+INDENT TABS: webaudio/*
+INDENT TABS: webdriver/*
+INDENT TABS: webvtt/*
+INDENT TABS: XMLHttpRequest/*
+
+TRAILING WHITESPACE: app-uri/*
+TRAILING WHITESPACE: battery-status/*
+TRAILING WHITESPACE: conformance-checkers/*
+TRAILING WHITESPACE: content-security-policy/*
+TRAILING WHITESPACE: custom-elements/*
+TRAILING WHITESPACE: DOMEvents/*
+TRAILING WHITESPACE: html-longdesc/*
+TRAILING WHITESPACE: media-source/*
+TRAILING WHITESPACE: microdata/*
+TRAILING WHITESPACE: old-tests/*
+TRAILING WHITESPACE: pointerevents/*
+TRAILING WHITESPACE: progress-events/*
+TRAILING WHITESPACE: shadow-dom/*
+TRAILING WHITESPACE: tools/*
+TRAILING WHITESPACE: webaudio/*
+TRAILING WHITESPACE: webdriver/*
+TRAILING WHITESPACE: WebIDL/*
+TRAILING WHITESPACE: webvtt/*
+TRAILING WHITESPACE: XMLHttpRequest/*
+
+## File types that should never be checked ##
+
+*:*.pdf
+*:*.jpg
+*:*.png
+*:*.gif
+*:*.pdf
+*:*.wav
+*:*.mp3
+*:*.m4a
+*:*.oga
+*:*.ogv
+*:*.webm
+*:*.mp4
+*:*.m4v
+*:*.ttf
+*:*.woff
+*:*.eot
+*:*.sfd
+*:*.swf
+
+## Documentation ##
+
+W3C-TEST.ORG:README.md
+W3C-TEST.ORG:*/README.md
+W3C-TEST.ORG:docs/*
+
+## Helper scripts ##
+
+W3C-TEST.ORG:tools/*
+PRINT STATEMENT:tools/*
+W3C-TEST.ORG:*/tools/*
+PRINT STATEMENT:*/tools/*
+
+### Test exclusions ##
+
+CR AT EOL:WebIDL/valid/idl/documentation-dos.widl
+CR AT EOL:cors/resources/cors-headers.asis
+CR AT EOL:html/semantics/embedded-content/the-canvas-element/size.attributes.parse.whitespace.html
+CR AT EOL:webvtt/webvtt-file-format-parsing/webvtt-file-parsing/support/newlines.vtt
+PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/empty.svg
+PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/empty.xhtml
+PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/minimal_html.svg
+PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/minimal_html.xhtml
+
+# These have undefined entities; should probably find a way to define them
+PARSE-FAILED:ext-xhtml-pubid/the-xhtml-syntax/parsing-xhtml-documents/xhtml-pubid-1.xhtml
+PARSE-FAILED:ext-xhtml-pubid/the-xhtml-syntax/parsing-xhtml-documents/xhtml-pubid-2.xhtml
+PARSE-FAILED:ext-xhtml-pubid/the-xhtml-syntax/parsing-xhtml-documents/xhtml-pubid-3.xhtml
+
+# Test generation files containing print statements
+PRINT STATEMENT:dom/nodes/Document-createElement-namespace-tests/generate.py

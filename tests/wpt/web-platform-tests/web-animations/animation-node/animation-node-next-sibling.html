@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>AnimationNode nextSibling attribute tests</title>
+<meta name="assert" content="The next sibling of this animation node">
+<link rel="help" href="http://w3c.github.io/web-animations/#dom-animationnode-nextsibling">
+<link rel="help" href="http://www.w3.org/TR/dom/#concept-tree-next-sibling">
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+test(function() {
+    var nodes = [newAnimation(createDiv(this)), new AnimationGroup([]), new AnimationSequence([])];
+    nodes.forEach(function(node) {
+        assert_equals(node.nextSibling, null, type(node) + '.nextSibling should be null');
+    });
+}, 'AnimationNode.nextSibling is null if the node is standalone');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node) {
+            var parent = new parentCtor([node]);
+
+            assert_equals(node.nextSibling, null, type(node) + '.nextSibling ' +
+                'should be null');
+        });
+    });
+}, 'AnimationNode.nextSibling is null if the node is the only child of its parent');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node1) {
+            var node2 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2]);
+
+            assert_equals(node1.nextSibling, node2, type(node1) + '.nextSibling should return ' +
+                'next sibling of this animation node');
+            assert_equals(node2.nextSibling, null, type(node2) + '.nextSibling should be null');
+        });
+    });
+}, 'AnimationNode.nextSibling returns next sibling of this animation node. Test first child');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2]);
+
+            assert_equals(node1.nextSibling, node2, type(node1) + '.nextSibling should return ' +
+                'next sibling of this animation node');
+            assert_equals(node2.nextSibling, null, type(node2) + '.nextSibling should be null');
+        });
+    });
+}, 'AnimationNode.nextSibling returns next sibling of this animation node. Test second child');
+
+test(function() {
+    var node1 = newAnimation(createDiv(this));
+    var node2 = newAnimation(createDiv(this));
+    var node3 = newAnimation(createDiv(this));
+    var node4 = newAnimation(createDiv(this));
+    var node5 = newAnimation(createDiv(this));
+    var node6 = newAnimation(createDiv(this));
+    var node7 = new AnimationGroup([node3, node4]);
+    var node8 = new AnimationGroup([node5, node6]);
+    var node9 = newAnimation(createDiv(this));
+    var group = new AnimationGroup([node1, node2, node7, node8, node9]);
+
+    assert_equals(group.nextSibling, null, 'AnimationNode.nextSibling should return ' +
+        'null (root node)');
+    assert_equals(node1.nextSibling, node2, 'AnimationNode.nextSibling should return ' +
+        'next sibling for the first node in the group');
+    assert_equals(node2.nextSibling, node7, 'AnimationNode.nextSibling should return ' +
+        'next sibling of this animation node');
+    assert_equals(node3.nextSibling, node4, 'AnimationNode.nextSibling should return ' +
+        'next sibling of this animation node (first node in the nested group)');
+    assert_equals(node4.nextSibling, null, 'AnimationNode.nextSibling should be null ' +
+        'for the last node in the nested group');
+	assert_equals(node5.nextSibling, node6, 'AnimationNode.nextSibling should return ' +
+        'next sibling of this animation node (first node in the second nested group)');
+    assert_equals(node6.nextSibling, null, 'AnimationNode.nextSibling should be null ' +
+        'for the last node in the second nested group');
+    assert_equals(node7.nextSibling, node8, 'AnimationNode.nextSibling should return ' +
+        'next sibling of this animation node (first nested group)');
+    assert_equals(node8.nextSibling, node9, 'AnimationNode.nextSibling should return ' +
+        'next sibling of this animation node (second nested group)');
+    assert_equals(node9.nextSibling, null, 'AnimationNode.nextSibling should return ' +
+        'null (the last node)');
+}, 'AnimationNode.nextSibling returns next sibling of this animation node. Test ' +
+    'tree structure with AnimationGroup');
+
+test(function() {
+    var node1 = newAnimation(createDiv(this));
+    var node2 = newAnimation(createDiv(this));
+    var node3 = newAnimation(createDiv(this));
+    var node4 = newAnimation(createDiv(this));
+    var node5 = newAnimation(createDiv(this));
+    var node6 = newAnimation(createDiv(this));
+    var node7 = new AnimationSequence([node3, node4]);
+    var node8 = new AnimationSequence([node5, node6]);
+    var node9 = newAnimation(createDiv(this));
+    var sequence = new AnimationSequence([node1, node2, node7, node8, node9]);
+
+    assert_equals(sequence.nextSibling, null, 'AnimationNode.nextSibling should return ' +
+        'null (root node)');
+    assert_equals(node1.nextSibling, node2, 'AnimationNode.nextSibling should return ' +
+        'next sibling for the first node in the sequence');
+    assert_equals(node2.nextSibling, node7, 'AnimationNode.nextSibling should return ' +
+        'next sibling of this animation node');
+    assert_equals(node3.nextSibling, node4, 'AnimationNode.nextSibling should return ' +
+        'next sibling of this animation node (first node in the nested sequence)');
+    assert_equals(node4.nextSibling, null, 'AnimationNode.nextSibling should be null ' +
+        'for the last node in the nested sequence');
+	assert_equals(node5.nextSibling, node6, 'AnimationNode.nextSibling should return ' +
+        'next sibling of this animation node (first node in the second nested sequence)');
+    assert_equals(node6.nextSibling, null, 'AnimationNode.nextSibling should be null ' +
+        'for the last node in the second nested sequence');
+    assert_equals(node7.nextSibling, node8, 'AnimationNode.nextSibling should return ' +
+        'next sibling of this animation node (first nested sequence)');
+    assert_equals(node8.nextSibling, node9, 'AnimationNode.nextSibling should return ' +
+        'next sibling of this animation node (second nested sequence)');
+    assert_equals(node9.nextSibling, null, 'AnimationNode.nextSibling should return ' +
+        'null (the last node)');
+}, 'AnimationNode.nextSibling returns next sibling of this animation node. Test ' +
+    'tree structure with AnimationSequence');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2]);
+            node2.before(node3);
+
+            assert_equals(node1.nextSibling, node3, type(node2) + '.before() should update ' +
+                'next sibling of animation node');
+            assert_equals(node3.nextSibling, node2, type(node2) + '.before() should update ' +
+                'next sibling of animation node');
+            assert_equals(node2.nextSibling, null, type(node2) + '.before() should update ' +
+                'next sibling of animation node');
+        });
+    });
+}, 'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'the next sibling is changed by method before()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node3) {
+            var node1 = newAnimation(createDiv(test));
+            var node2 = newAnimation(createDiv(test));
+            var parent1 = new parentCtor([node1, node2]);
+            var parent2 = new parentCtor([node3]);
+
+            node3.before(node2);
+
+            assert_equals(node1.nextSibling, null, type(node3) + '.before() should update ' +
+                'next sibling of animation node');
+            assert_equals(node2.nextSibling, node3, type(node3) + '.before() should update ' +
+                'next sibling of animation node');
+        });
+    });
+},  'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'the next sibling is removed by method before()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var node4 = new AnimationGroup([]);
+            var node5 = new AnimationSequence([]);
+            var parent = new parentCtor([node1, node2]);
+            node2.before(node3, node4, node5);
+
+            assert_equals(node1.nextSibling, node3, type(node2) + '.before() should update ' +
+                'next sibling of animation node');
+            assert_equals(node3.nextSibling, node4, type(node2) + '.before() should update ' +
+                'next sibling of animation node');
+            assert_equals(node4.nextSibling, node5, type(node2) + '.before() should update ' +
+                'next sibling of animation node');
+            assert_equals(node5.nextSibling, node2, type(node2) + '.before() should update ' +
+                'next sibling of animation node');
+            assert_equals(node2.nextSibling, null, type(node2) + '.before() should update ' +
+                'next sibling of animation node');
+        });
+    });
+}, 'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'several nodes are added by method before()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node1) {
+            var node2 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2]);
+            node1.after(node3);
+
+            assert_equals(node1.nextSibling, node3, type(node1) + '.after() should update ' +
+                'next sibling of animation node');
+            assert_equals(node3.nextSibling, node2, type(node1) + '.after() should update ' +
+                'next sibling of animation node');
+            assert_equals(node2.nextSibling, null, type(node1) + '.after() should update ' +
+                'next sibling of animation node');
+        });
+    });
+}, 'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'the next sibling is changed by method after()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node3) {
+            var node1 = newAnimation(createDiv(test));
+            var node2 = newAnimation(createDiv(test));
+            var parent1 = new parentCtor([node1, node2]);
+            var parent2 = new parentCtor([node3]);
+
+            node3.after(node2);
+
+            assert_equals(node1.nextSibling, null, type(node3) + '.after() should update ' +
+                'next sibling of animation node');
+            assert_equals(node3.nextSibling, node2, type(node3) + '.after() should update ' +
+                'next sibling of animation node');
+        });
+    });
+},  'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'the next sibling is removed by method after()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node1) {
+            var node2 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var node4 = new AnimationGroup([]);
+            var node5 = new AnimationSequence([]);
+            var parent = new parentCtor([node1, node2]);
+            node1.after(node3, node4, node5);
+
+            assert_equals(node1.nextSibling, node3, type(node1) + '.after() should update ' +
+                'next sibling of animation node');
+            assert_equals(node3.nextSibling, node4, type(node1) + '.after() should update ' +
+                'next sibling of animation node');
+            assert_equals(node4.nextSibling, node5, type(node1) + '.after() should update ' +
+                'next sibling of animation node');
+            assert_equals(node5.nextSibling, node2, type(node1) + '.after() should update ' +
+                'next sibling of animation node');
+            assert_equals(node2.nextSibling, null, type(node1) + '.after() should update ' +
+                'next sibling of animation node');
+        });
+    });
+}, 'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'several nodes are added by method after()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var node4 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2, node3]);
+            node2.replace(node4);
+
+            assert_equals(node1.nextSibling, node4, type(node2) + '.replace() should update ' +
+                'next sibling of animation node');
+            assert_equals(node4.nextSibling, node3, type(node2) + '.replace() should update ' +
+                'next sibling of animation node');
+            assert_equals(node2.nextSibling, null, type(node2) + '.replace() should update ' +
+                'next sibling of animation node');
+        });
+    });
+}, 'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'the next sibling is changed by method replace()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node4) {
+            var node1 = newAnimation(createDiv(test));
+            var node2 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var parent1 = new parentCtor([node1, node2, node3]);
+            var parent2 = new parentCtor([node4]);
+
+            node4.replace(node2);
+
+            assert_equals(node1.nextSibling, node3, type(node4) + '.replace() should update ' +
+                'next sibling of animation node');
+            assert_equals(node2.nextSibling, null, type(node4) + '.replace() should update ' +
+                'next sibling of animation node');
+        });
+    });
+},  'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'the next sibling is removed by method replace()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var node4 = newAnimation(createDiv(test));
+            var node5 = new AnimationGroup([]);
+            var node6 = new AnimationSequence([]);
+            var parent = new parentCtor([node1, node2, node3]);
+            node2.replace(node4, node5, node6);
+
+            assert_equals(node1.nextSibling, node4, type(node2) + '.replace() should update ' +
+                'next sibling of animation node');
+            assert_equals(node4.nextSibling, node5, type(node2) + '.replace() should update ' +
+                'next sibling of animation node');
+            assert_equals(node5.nextSibling, node6, type(node2) + '.replace() should update ' +
+                'next sibling of animation node');
+            assert_equals(node6.nextSibling, node3, type(node2) + '.replace() should update ' +
+                'next sibling of animation node');
+            assert_equals(node2.nextSibling, null, type(node2) + '.replace() should update ' +
+                'next sibling of animation node');
+        });
+    });
+}, 'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'several nodes are added by method replace()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2, node3]);
+            node2.remove();
+
+            assert_equals(node1.nextSibling, node3, type(node2) + '.replace() should update ' +
+                'next sibling of animation node');
+            assert_equals(node2.nextSibling, null, type(node2) + '.replace() should update ' +
+                'next sibling of animation node');
+        });
+    });
+}, 'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'the next sibling is changed by method remove()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1]);
+            parent.prepend(node2);
+
+            assert_equals(node2.nextSibling, node1, parentCtor.name + '.prepend() should update ' +
+                'next sibling of animation node');
+        });
+    });
+}, 'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'the next sibling is changed by method AnimationGroup.prepend()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node1) {
+            var node2 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var parent1 = new parentCtor([node1, node2]);
+            var parent2 = new parentCtor([node3]);
+
+            parent2.prepend(node2);
+
+            assert_equals(node1.nextSibling, null, parentCtor.name + '.prepend() should update ' +
+                'next sibling of animation node');
+            assert_equals(node2.nextSibling, node3, parentCtor.name + '.prepend() should update ' +
+                'next sibling of animation node');
+        });
+    });
+},  'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'the next sibling is removed by method AnimationGroup.prepend()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var node1 = newAnimation(createDiv(test));
+        var node2 = new AnimationGroup([]);
+        var node3 = new AnimationSequence([]);
+        var node4 = newAnimation(createDiv(test));
+        var parent = new parentCtor([node1]);
+        parent.prepend(node2, node3, node4);
+
+        assert_equals(node2.nextSibling, node3, parentCtor.name + '.prepend() should update ' +
+            'next sibling of animation node');
+        assert_equals(node3.nextSibling, node4, parentCtor.name + '.prepend() should update ' +
+            'next sibling of animation node');
+        assert_equals(node4.nextSibling, node1, parentCtor.name + '.prepend() should update ' +
+            'next sibling of animation node');
+    });
+}, 'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'several nodes are added by method AnimationGroup.prepend()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node1) {
+            var node2 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1]);
+            parent.append(node2);
+
+            assert_equals(node1.nextSibling, node2, parentCtor.name + '.append() should update ' +
+                'next sibling of animation node');
+            assert_equals(node2.nextSibling, null, parentCtor.name + '.append() should update ' +
+                'next sibling of animation node');
+        });
+    });
+}, 'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'the next sibling is changed by method AnimationGroup.append()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node1) {
+            var node2 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var parent1 = new parentCtor([node1, node2]);
+            var parent2 = new parentCtor([node3]);
+
+            parent2.append(node2);
+
+            assert_equals(node1.nextSibling, null, parentCtor.name + '.append() should update ' +
+                'next sibling of animation node');
+            assert_equals(node3.nextSibling, node2, parentCtor.name + '.append() should update ' +
+                'next sibling of animation node');
+        });
+    });
+},  'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'the next sibling is removed by method AnimationGroup.append()');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node1) {
+            var node2 = newAnimation(createDiv(test));
+            var node3 = new AnimationGroup([]);
+            var node4 = new AnimationSequence([]);
+            var parent = new parentCtor([node1]);
+            parent.append(node2, node3, node4);
+
+            assert_equals(node1.nextSibling, node2, parentCtor.name + '.append() should update ' +
+                'next sibling of animation node');
+            assert_equals(node2.nextSibling, node3, parentCtor.name + '.append() should update ' +
+                'next sibling of animation node');
+            assert_equals(node3.nextSibling, node4, parentCtor.name + '.append() should update ' +
+                'next sibling of animation node');
+            assert_equals(node4.nextSibling, null, parentCtor.name + '.append() should update ' +
+                'next sibling of animation node');
+        });
+    });
+}, 'AnimationNode.nextSibling returns next sibling of this animation node, ' +
+    'several nodes are added by method AnimationGroup.append()');
+</script>
+</body>

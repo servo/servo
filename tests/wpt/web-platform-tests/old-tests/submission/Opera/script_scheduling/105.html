@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html><head>
+	<title> scheduler: adding async attribute at runtime</title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+<body>
+	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+	<script>
+          var t = async_test();
+
+          var sources = ["scripts/include-1.js?pipe=trickle(d2)",
+                         "scripts/include-2.js"]
+          var scripts = sources.map(function(x) {
+            var script = document.createElement("script");
+            script.src = x;
+            script.async = false;
+            document.body.appendChild(script);
+            return script;
+          });
+          scripts[0].async = true;
+
+          addEventListener("load", t.step_func(function () {
+            assert_array_equals(eventOrder, ["external script #1", "external script #2"]);
+            t.done();
+          }), false);
+          
+        </script>
+</body></html>

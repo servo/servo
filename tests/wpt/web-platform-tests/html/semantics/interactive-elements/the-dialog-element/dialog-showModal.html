@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>dialog element: showModal()</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#the-dialog-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<button id="b0">OK</button>
+<dialog id="d1">
+  <p>foobar</p>
+  <button id="b1">OK</button>
+</dialog>
+<dialog id="d2" open>
+  <p>foobar</p>
+  <button>OK</button>
+</dialog>
+<dialog id="d3">
+  <p>foobar</p>
+  <button id="b3">OK</button>
+</dialog>
+<dialog id="d4">
+  <p>foobar</p>
+  <button id="b4">OK</button>
+</dialog>
+<dialog id="d5">
+  <p>foobar</p>
+  <button id="b5">OK</button>
+</dialog>
+<dialog id="d6"></dialog>
+<dialog id="d7">
+  <input id="i71" value="foobar">
+  <input id="i72" value="foobar">
+  <button id="b7">OK</button>
+</dialog>
+<dialog id="d8">
+  <input id="i81" value="foobar">
+  <input id="i82" value="foobar" autofocus>
+  <button id="b8">OK</button>
+</dialog>
+<script>
+  var d1 = document.getElementById('d1'),
+      d2 = document.getElementById('d2'),
+      d3 = document.getElementById('d3'),
+      d4 = document.getElementById('d4'),
+      d5 = document.getElementById('d5'),
+      d6 = document.getElementById('d6'),
+      d7 = document.getElementById('d7'),
+      d8 = document.getElementById('d8'),
+      b0 = document.getElementById('b0'),
+      b1 = document.getElementById('b1'),
+      b3 = document.getElementById('b3'),
+      b4 = document.getElementById('b4'),
+      b5 = document.getElementById('b5');
+
+  test(function(){
+    assert_false(d1.open);
+    assert_false(b0.commandDisabled);
+    d1.showModal();
+    this.add_cleanup(function() { d1.close(); });
+    assert_true(d1.open);
+    assert_true(b0.commandDisabled);
+    assert_equals(document.activeElement, b1);
+  });
+
+  test(function(){
+    assert_throws("INVALID_STATE_ERR", function() {
+      d2.showModal();
+      this.add_cleanup(function() { d2.close(); });
+    });
+  }, "showModal() on a <dialog> that already has an open attribute throws an InvalidStateError exception");
+
+  test(function(){
+    var d = document.createElement("dialog");
+    assert_throws("INVALID_STATE_ERR", function() {
+      d.showModal();
+      this.add_cleanup(function() { d.close(); });
+    });
+  }, "showModal() on a <dialog> not in a Document throws an InvalidStateError exception");
+
+  test(function(){
+    assert_false(d3.open);
+    assert_false(b3.commandDisabled);
+    assert_false(d4.open);
+    assert_false(b4.commandDisabled);
+    assert_false(d5.open);
+    assert_false(b5.commandDisabled);
+    d3.showModal();
+    this.add_cleanup(function() { d3.close(); });
+    d4.showModal();
+    this.add_cleanup(function() { d4.close(); });
+    d5.showModal();
+    this.add_cleanup(function() { d5.close(); });
+    assert_true(d3.open);
+    assert_true(b3.commandDisabled);
+    assert_true(d4.open);
+    assert_true(b4.commandDisabled);
+    assert_true(d5.open);
+    assert_false(b5.commandDisabled);
+  }, "when opening multiple dialogs, only the newest one is non-inert");
+
+  test(function(){
+    assert_false(d6.open);
+    d6.showModal();
+    this.add_cleanup(function() { d6.close(); });
+    assert_true(d6.open);
+    assert_equals(document.activeElement, d6);
+  }, "opening dialog without focusable children");
+
+  test(function(){
+    assert_false(d7.open);
+    d7.showModal();
+    this.add_cleanup(function() { d7.close(); });
+    assert_true(d7.open);
+    assert_equals(document.activeElement, document.getElementById("i71"));
+  }, "opening dialog with multiple focusable children");
+
+  test(function(){
+    assert_false(d8.open);
+    d8.showModal();
+    this.add_cleanup(function() { d8.close(); });
+    assert_true(d8.open);
+    assert_equals(document.activeElement, document.getElementById("i82"));
+  }, "opening dialog with multiple focusable children, one having the autofocus attribute");
+</script>

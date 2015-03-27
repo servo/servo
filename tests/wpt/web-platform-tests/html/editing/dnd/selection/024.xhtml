@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Selection drag and drop from url input to contenteditable element</title>
+<style type="text/css">
+div[contenteditable]
+	{width:300px;
+	height:100px;
+	margin-top:20px;
+	padding:10px;
+	color:white;
+	background-color:navy;}
+</style>
+</head>
+<body onload="document.querySelector('input').select()">
+<p>Drag selected url to the blue box. Selected text should be moved to the blue box once you drop it there.</p>
+<p><input type="url" value="http://example.org"/></p>
+<div contenteditable="true"/>
+</body>
+</html>

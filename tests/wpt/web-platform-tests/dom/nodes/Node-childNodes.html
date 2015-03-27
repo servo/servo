@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Node.childNodes</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-childnodes">
+<link rel=author title="Tim Taubert" href="mailto:ttaubert@mozilla.com">
+<link rel=author title="Ms2ger" href="mailto:Ms2ger@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  var element = document.createElement("p");
+  assert_equals(element.childNodes, element.childNodes);
+}, "Caching of Node.childNodes");
+
+var check_parent_node = function(node) {
+  assert_array_equals(node.childNodes, []);
+
+  var children = node.childNodes;
+  var child = document.createElement("p");
+  node.appendChild(child);
+  assert_equals(node.childNodes, children);
+  assert_array_equals(children, [child]);
+  assert_equals(children.item(0), child);
+
+  var child2 = document.createComment("comment");
+  node.appendChild(child2);
+  assert_array_equals(children, [child, child2]);
+  assert_equals(children.item(0), child);
+  assert_equals(children.item(1), child2);
+
+  assert_false(2 in children);
+  assert_equals(children[2], undefined);
+  assert_equals(children.item(2), null);
+};
+
+test(function() {
+  check_parent_node(document.createElement("p"));
+}, "Node.childNodes on an Element.");
+
+test(function() {
+  check_parent_node(document.createDocumentFragment());
+}, "Node.childNodes on a DocumentFragment.");
+
+test(function() {
+  check_parent_node(new Document());
+}, "Node.childNodes on a Document.");
+</script>

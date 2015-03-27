@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>HTML Media Capture Test: capture_reflect</title>
+    <link rel='author' title='Intel' href='http://www.intel.com/'>
+    <link rel='help' href='http://www.w3.org/TR/html-media-capture/#the-capture-attribute'>
+    <link rel='help' href='http://www.w3.org/html/wg/drafts/html/CR/infrastructure.html#reflect'>
+    <link rel='help' href='http://www.w3.org/html/wg/drafts/html/CR/infrastructure.html#boolean-attributes'>
+    <meta name='flags' content='dom'>
+    <meta name='assert' content='Test checks that the capture IDL attribute must reflect the content attribute of the same name.'>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+  </head>
+  <body>
+    <pre style='display:none'>
+      partial interface HTMLInputElement {
+                attribute boolean capture;
+      };
+    </pre>
+
+    <div style='display:none'>
+      <input id='absent' type='file' accept='image/*'>
+      <input id='present' type='file' accept='image/*' capture>
+      <input id='present-empty-string' type='file' accept='image/*' capture=''>
+      <input id='present-canonical-name' type='file' accept='image/*' capture=capture>
+    </div>
+
+    <div id='log'></div>
+
+    <script>
+      test(function() {
+        var inputs = document.querySelectorAll('input');
+        for (var i=0, obj; i<inputs.length, obj=inputs[i]; i++) {
+          assert_own_property(obj, 'capture');
+          assert_equals(typeof obj.capture, 'boolean');
+        }
+      }, 'Element input should have own property capture');
+
+      test(function() {
+        assert_false(document.querySelector('#absent').capture);
+      }, 'input.capture is false when the capture attribute is absent');
+
+      test(function() {
+        assert_true(document.querySelector('#present').capture);
+      }, 'input.capture is true when the capture attribute is present');
+
+      test(function() {
+        assert_true(document.querySelector('#present-empty-string').capture);
+      }, 'input.capture is true when the capture attribute is present as empty string');
+
+      test(function() {
+        assert_true(document.querySelector('#present-canonical-name').capture);
+      }, 'input.capture is true when the capture attribute is present as canonical name');
+    </script>
+  </body>
+</html>

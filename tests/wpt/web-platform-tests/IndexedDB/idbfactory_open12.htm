@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>IDBFactory.open() - upgradeneeded gets VersionChangeEvent</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js></script>
+
+<script>
+    var db;
+    var open_rq = createdb(async_test(document.title, {timeout: 10000}), undefined, 9);
+    var open2_t = async_test(document.title + " - second upgrade");
+
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result;
+
+        assert_true(e instanceof IDBVersionChangeEvent, "e instanceof IDBVersionChangeEvent");
+        assert_equals(e.oldVersion, 0, "oldVersion");
+        assert_equals(e.newVersion, 9, "newVersion");
+        assert_equals(e.type, "upgradeneeded", "event type");
+
+        assert_equals(db.version, 9, "db.version");
+    };
+    open_rq.onsuccess = function(e) {
+        assert_true(e instanceof Event, "e instanceof Event");
+        assert_false(e instanceof IDBVersionChangeEvent, "e not instanceof IDBVersionChangeEvent");
+        assert_equals(e.type, "success", "event type");
+        this.done();
+
+
+        /**
+         * Second test
+         */
+        db.onversionchange = function() { db.close(); };
+
+        var open_rq2 = createdb(open2_t, db.name, 10);
+        open_rq2.onupgradeneeded = function(e) {
+            var db2 = e.target.result;
+            assert_true(e instanceof IDBVersionChangeEvent, "e instanceof IDBVersionChangeEvent");
+            assert_equals(e.oldVersion, 9, "oldVersion");
+            assert_equals(e.newVersion, 10, "newVersion");
+            assert_equals(e.type, "upgradeneeded", "event type");
+
+            assert_equals(db2.version, 10, "new db.version");
+
+            this.done();
+        };
+    };
+</script>
+
+<div id=log></div>

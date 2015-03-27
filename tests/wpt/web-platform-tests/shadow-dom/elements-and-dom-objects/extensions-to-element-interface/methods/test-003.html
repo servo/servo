@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test: A_10_02_02_03</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#shadow-aware-methods">
+<meta name="assert" content="Extensions to Element Interface: createShadowRoot method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(unit(function (ctx) {
+
+	var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+
+    var span = d.createElement('span');
+    span.setAttribute('id', 'sp0');
+    span.innerHTML = 'Some text';
+    host.appendChild(span);
+
+    //old tree
+    var s1 = host.createShadowRoot();
+    s1.innerHTML = '<span id="sp1">Span 1</span>';
+    //young tree
+    var s2 = host.createShadowRoot();
+    s2.innerHTML = '<span id="sp2">Span 2</span>';
+
+    // span should become invisible as shadow root content
+    assert_equals(span.offsetTop, 0, 'Point 1:createShadowRoot() method should add ' +
+    		'the ShadowRoot object at the top of the tree stack of its host');
+    assert_equals(s1.querySelector('#sp1').offsetTop, 0, 'Point 2:createShadowRoot() method should add ' +
+		'the ShadowRoot object at the top of the tree stack of its host');
+    assert_true(s2.querySelector('#sp2').offsetTop > 0, 'Point 3:createShadowRoot() method should add ' +
+		'the ShadowRoot object at the top of the tree stack of its host');
+
+
+}), 'A_10_02_02_03_T01');
+</script>
+</body>
+</html>

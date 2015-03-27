@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html prefix = "
+air: http://www.daml.org/2001/10/html/airport-ont#
+bio: http://vocab.org/bio/0.1/
+contact: http://www.w3.org/2000/10/swap/pim/contact#
+dc: http://purl.org/dc/terms/
+foaf: http://xmlns.com/foaf/0.1/
+ical: http://www.w3.org/2002/12/cal/icaltzd#
+owl: http://www.w3.org/2002/07/owl#
+rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+rdfs: http://www.w3.org/2000/01/rdf-schema#
+rel: http://vocab.org/relationship/
+openid: http://xmlns.openid.net/auth#
+rss: http://web.resource.org/rss/1.0/
+sioc: http://rdfs.org/sioc/ns#
+xsd: http://www.w3.org/2001/XMLSchema#
+google: http://rdf.data-vocabulary.org/#
+rsa: http://www.w3.org/ns/auth/rsa#
+cert: http://www.w3.org/ns/auth/cert#
+wot: http://xmlns.com/wot/0.1/
+">
+<head>
+   <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+   <title>Test 0216</title>
+</head>
+<body>
+      <!-- Tests whether the Unicode (UTF-8 encoded) characters are properly handled even with a large set of properties
+	  in the html element, ie, when the content sniffing to find out the character encoding may not work -->
+	  <p about="http://www.ivan-herman.net/foaf#me" property="foaf:name">Iván</p>
+</body>
+</html>

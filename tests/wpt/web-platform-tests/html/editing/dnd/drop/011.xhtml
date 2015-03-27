@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Selection drag and drop: allowed effects 'link','copyLink','linkMove'</title>
+<style type="text/css">
+div
+	{display:inline-block;
+	vertical-align:top;
+	background-color:olive;
+	color:white;
+	padding:20px;
+	width:100px;
+	height:100px;}
+div:nth-child(2)
+	{background-color:green;}
+div:nth-child(3)
+	{background-color:teal;}
+</style>
+<script type="application/ecmascript">
+var effects = ['link','copyLink','linkMove'], i = 0;
+function selectText()
+	{window.getSelection().selectAllChildren(document.querySelector('p'))}
+function dropSelection(event)
+	{event.target.appendChild(document.createTextNode((event.dataTransfer.dropEffect == effects[i].substring(0,4) &amp;&amp; event.dataTransfer.effectAllowed == effects[i])?' PASS ':' FAIL '));
+	i = (i + 1)%3;
+	selectText();}
+function start(event)
+	{event.dataTransfer.effectAllowed = effects[i];}
+</script>
+</head>
+<body onload="selectText()">
+<p ondragstart="start(event)">Drag me</p>
+<div ondragenter="event.preventDefault()" ondragover="return false" ondrop="dropSelection(event)"/>
+<div ondragenter="event.preventDefault()" ondragover="return false" ondrop="dropSelection(event)"/>
+<div ondragenter="event.preventDefault()" ondragover="return false" ondrop="dropSelection(event)"/>
+<p>You should be able to drag selection and drop it onto any of the green boxes.</p>
+</body>
+</html>

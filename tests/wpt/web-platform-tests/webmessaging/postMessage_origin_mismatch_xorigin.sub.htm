@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> Cross-origin: Origin of the target window doesn't match the given origin </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<div style="display:none">
+    <iframe width="70%" onload="PostMessageTest()" src="{{location[scheme]}}://{{domains[www1]}}:{{location[port]}}/webmessaging/support/ChildWindowPostMessage.htm"></iframe>
+</div>
+
+<script>
+
+
+    var description = "Test Description: " +
+                      "Cross-origin: If the origin of the target window doesn't match the given origin, " +
+                      "the message is discarded.";
+
+    var t = async_test(description);
+
+    var PORT = location.port !== "" ? ":" + location.port : "";
+    var TARGET = document.querySelector("iframe");
+    var XORIGIN = "{{location[scheme]}}://{{domains[www1]}}" + PORT;
+    var SORIGIN = "{{location[scheme]}}://{{host}}" + PORT;
+    var ExpectedResult = ["#0", XORIGIN, "#3", XORIGIN];
+    var ActualResult = [];
+
+    function PostMessageTest()
+    {
+        TARGET.contentWindow.postMessage("#0", XORIGIN);
+        TARGET.contentWindow.postMessage("#1", "http://www.invalid-domain.com");
+        TARGET.contentWindow.postMessage("#2", SORIGIN);
+        TARGET.contentWindow.postMessage("#3", "*");
+    }
+
+    window.onmessage = t.step_func(function(e)
+    {
+        ActualResult.push(e.data, e.origin);
+
+        if (ActualResult.length >= ExpectedResult.length)
+        {
+            assert_array_equals(ActualResult, ExpectedResult, "ActualResult");
+            t.done();
+        }
+    });
+</script>
+</body>
+</html>

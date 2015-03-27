@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test: Invariants after distribution</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#lower-boundary-encapsulation">
+<meta name="assert" content="Lower-boundary encapsulation: The distribution does not affect the state of the document tree or shadow trees">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+var distributionTest = async_test(
+    'Distribution should not affect the state of the document trees and ' +
+    'the shadow trees.');
+
+distributionTest.step(function () {
+    var shadowHost = document.createElement('ul');
+    shadowHost.innerHTML =
+        '<li class="first">host 1</li>' +
+        '<li class="second">host 2</li>';
+    shadowHost.style.visibility = 'hidden';
+    document.body.appendChild(shadowHost);
+    var host1 = shadowHost.querySelector('.first');
+    var host2 = shadowHost.querySelector('.second');
+
+    var shadowRoot = shadowHost.createShadowRoot();
+    shadowRoot.innerHTML =
+        '<li class="first">shadow 1</li>' +
+        '<content select=".second"></content>' +
+        '<li class="second">shadow 2</li>';
+    var shadow1 = shadowRoot.querySelector('.first');
+    var shadow2 = shadowRoot.querySelector('.second');
+    var content = shadowRoot.querySelector('content');
+
+    // Let the rendering happen.
+    window.setTimeout(distributionTest.step_func(function () {
+        assert_equals(host1.textContent, 'host 1');
+        assert_equals(host2.textContent, 'host 2');
+        assert_equals(shadow1.textContent, 'shadow 1');
+        assert_equals(shadow2.textContent, 'shadow 2');
+        assert_equals(content.textContent, '');
+
+        assert_equals(shadowHost.children.length, 2);
+        assert_equals(shadowHost.children[0], host1);
+        assert_equals(shadowHost.children[1], host2);
+        assert_equals(shadowRoot.children.length, 3);
+        assert_equals(shadowRoot.children[0], shadow1);
+        assert_equals(shadowRoot.children[1], content);
+        assert_equals(shadowRoot.children[2], shadow2);
+
+        assert_equals(host1.tagName, 'LI');
+        assert_equals(shadow1.tagName, 'LI');
+        assert_equals(content.tagName, 'CONTENT');
+
+        document.body.removeChild(shadowHost);
+        distributionTest.done();
+    }), 0);
+});
+</script>
+</body>
+</html>

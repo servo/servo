@@ -1,0 +1,20 @@
+<!doctype html>
+<title>drag &amp; drop - dragging elements by text that extends out of them</title>
+<style type="text/css">
+div {
+	height: 200px;
+	width: 200px;
+	background: blue;
+	white-space: nowrap;
+}
+</style>
+<script type="text/javascript">
+window.onload = function () {
+	document.getElementsByTagName('div')[0].ondragstart = function (e) {
+		e.dataTransfer.effectAllowed = 'copy';
+		e.dataTransfer.setData('text','dummy text');
+	};
+};
+</script>
+<div draggable="true">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drag me</div>
+<p>Drag the above text sideways. Pass if the drag placeholder shows that both the text and blue square are being dragged.</p>

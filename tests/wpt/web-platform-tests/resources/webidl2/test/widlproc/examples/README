@@ -1,0 +1,41 @@
+########################################################################
+# $Id$
+# Copyright 2009 Aplix Corporation. All rights reserved.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+########################################################################
+
+This examples directory contains two of the BONDI .widl files, a Makefile
+that processes them to generate html, and a .css file that the resulting
+html uses.
+
+The Makefile processes the .widl files as follows:
+
+ 1. For each .widl, generate the .widlprocxml file (an XML representation
+    of the information in the .widl) using widlproc.
+
+ 2. Validate (using xmllint) each .widlprocxml against the DTD.
+
+ 3. We want any reference in the resulting html to a type elsewhere in the
+    API to be a link. This is where we achieve this. First generate a
+    list of fqids (fully qualified identifiers) from fqid attributes in
+    the XML by running all .widlprocxml files through the style sheet
+    widlprocxmlfqids.xsl.
+
+ 4. Turn that list of fqids into a sed script that turns a <ref> to an
+    fqid into a <ref ref=".."> to the fqid in the right .html file.
+
+ 5. For each .widlprocxml file, generate a .widlprocxml2 file by running
+    it through the sed script generated above.
+
+ 6. For each .widlprocxml2 file, generate a .html file by running it through
+    the widlprocxmltohtml.xsl style sheet.
+
+See the Makefile for details.

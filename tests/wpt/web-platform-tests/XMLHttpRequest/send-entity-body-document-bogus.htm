@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: send() - unserializable Document</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-XMLHttpRequest-send-document" data-tested-assertations="following::p[3]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      function request_throws(input) {
+        test(function() {
+          var client = new XMLHttpRequest()
+          client.open("POST", "resources/content.py", false)
+          assert_throws("InvalidStateError", function() { client.send(input) })
+        })
+      }
+      var doc = document.implementation.createDocument(null, null, null)
+      while(doc.childNodes.length) {
+        doc.removeChild(doc.childNodes[0])
+      }
+      request_throws(doc)
+    </script>
+  </body>
+</html>

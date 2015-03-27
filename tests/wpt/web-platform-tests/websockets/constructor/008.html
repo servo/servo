@@ -1,0 +1,13 @@
+<!doctype html>
+<title>WebSockets: new WebSocket(url with not blocked port)</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+//Pass condition is to not throw
+test(function(){new WebSocket('ws://example.invalid:80/')});
+test(function(){new WebSocket('ws://example.invalid:443/')});
+test(function(){new WebSocket('wss://example.invalid:80/')});
+test(function(){new WebSocket('wss://example.invalid:443/')});
+</script>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Named items: applets</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="test">
+<applet name=test1></applet>
+
+<applet name=test2></applet>
+<applet name=test2></applet>
+
+<applet id=test3></applet>
+
+<applet id=test4></applet>
+<applet id=test4></applet>
+
+<applet name=test5></applet>
+<applet id=test5></applet>
+
+<applet id=test6></applet>
+<applet name=test6></applet>
+
+<applet id=test7 name=fail></applet>
+
+<applet name=test8 id=fail></applet>
+</div>
+<script>
+test(function() {
+  var applet = document.getElementsByTagName("applet")[0];
+  assert_equals(applet.name, "test1");
+
+  assert_true("test1" in document, '"test1" in document should be true');
+  assert_equals(document.test1, applet);
+}, "If there is one applet, it should be returned (name)");
+
+test(function() {
+  var applet1 = document.getElementsByTagName("applet")[1];
+  assert_equals(applet1.name, "test2");
+  var applet2 = document.getElementsByTagName("applet")[2];
+  assert_equals(applet2.name, "test2");
+
+  assert_true("test2" in document, '"test2" in document should be true');
+  var collection = document.test2;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [applet1, applet2]);
+}, "If there are two applets, a collection should be returned. (name)");
+
+test(function() {
+  var applet = document.getElementsByTagName("applet")[3];
+  assert_equals(applet.id, "test3");
+
+  assert_true("test3" in document, '"test3" in document should be true');
+  assert_equals(document.test3, applet);
+}, "If there is one applet, it should be returned (id)");
+
+test(function() {
+  var applet1 = document.getElementsByTagName("applet")[4];
+  assert_equals(applet1.id, "test4");
+  var applet2 = document.getElementsByTagName("applet")[5];
+  assert_equals(applet2.id, "test4");
+
+  assert_true("test4" in document, '"test4" in document should be true');
+  var collection = document.test4;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [applet1, applet2]);
+}, "If there are two applets, a collection should be returned. (id)");
+
+test(function() {
+  var applet1 = document.getElementsByTagName("applet")[6];
+  assert_equals(applet1.name, "test5");
+  var applet2 = document.getElementsByTagName("applet")[7];
+  assert_equals(applet2.id, "test5");
+
+  assert_true("test5" in document, '"test5" in document should be true');
+  var collection = document.test5;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [applet1, applet2]);
+}, "If there are two applets, a collection should be returned. (name and id)");
+
+test(function() {
+  var applet1 = document.getElementsByTagName("applet")[8];
+  assert_equals(applet1.id, "test6");
+  var applet2 = document.getElementsByTagName("applet")[9];
+  assert_equals(applet2.name, "test6");
+
+  assert_true("test6" in document, '"test6" in document should be true');
+  var collection = document.test6;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [applet1, applet2]);
+}, "If there are two applets, a collection should be returned. (id and name)");
+
+test(function() {
+  var applet = document.getElementsByTagName("applet")[10];
+  assert_equals(applet.id, "test7");
+
+  assert_true("test7" in document, '"test7" in document should be true');
+  assert_equals(document.test7, applet);
+}, "A name shouldn't affect getting an applet by id");
+
+test(function() {
+  var applet = document.getElementsByTagName("applet")[11];
+  assert_equals(applet.name, "test8");
+
+  assert_true("test8" in document, '"test8" in document should be true');
+  assert_equals(document.test8, applet);
+}, "An id shouldn't affect getting an applet by name");
+</script>

@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+  <title>Web Storage</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+    <h1>event_local_StorageEventInit</h1>
+    <div id="log"></div>
+    <script>
+        test(function() {
+            var t = async_test("storageeventinit test");
+            function onStorageEvent(event) {
+                t.step(function() {
+                    assert_equals(event.key, 'key');
+                    assert_equals(event.oldValue, 'oldValue');
+                    assert_equals(event.newValue, 'newValue');
+                    assert_equals(event.url, window.location.href);
+                    assert_equals(event.storageArea, window.localStorage);
+                });
+                t.done();
+            }
+
+            window.addEventListener('storage', onStorageEvent, false);
+
+            var event = new StorageEvent('storage', {
+                key: 'key',
+                oldValue: 'oldValue',
+                newValue: 'newValue',
+                url: window.location.href,
+                storageArea: window.localStorage
+            });
+
+            window.dispatchEvent(event);
+        });
+    </script>
+ </body>
+</html>

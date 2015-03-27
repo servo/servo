@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>form autocomplete attribute</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#the-form-element">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#attr-fe-autocomplete">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<form name="missing_attribute">
+  <input>
+  <input autocomplete="on">
+  <input autocomplete="off">
+  <input autocomplete="foobar">
+</form>
+<form name="autocomplete_on" autocomplete="on">
+  <input>
+  <input autocomplete="on">
+  <input autocomplete="off">
+  <input autocomplete="foobar">
+</form>
+<form name="autocomplete_off" autocomplete="off">
+  <input>
+  <input autocomplete="on">
+  <input autocomplete="off">
+  <input autocomplete="foobar">
+</form>
+<form name="autocomplete_invalid" autocomplete="foobar">
+  <input>
+  <input autocomplete="on">
+  <input autocomplete="off">
+  <input autocomplete="foobar">
+</form>
+<script>
+  function autocompletetest(form, expectedValues, desc) {
+    test(function(){
+      assert_equals(form.autocomplete, expectedValues[0]);
+      assert_equals(form.elements[0].autocomplete, expectedValues[1]);
+      assert_equals(form.elements[1].autocomplete, expectedValues[2]);
+      assert_equals(form.elements[2].autocomplete, expectedValues[3]);
+      assert_equals(form.elements[3].autocomplete, expectedValues[4]);
+    }, desc);
+  }
+
+  autocompletetest(document.forms.missing_attribute, ["on", "on", "on", "off", ""], "form autocomplete attribute missing");
+  autocompletetest(document.forms.autocomplete_on, ["on", "on", "on", "off", ""], "form autocomplete attribute on");
+  autocompletetest(document.forms.autocomplete_off, ["off", "off", "on", "off", ""], "form autocomplete attribute off");
+  autocompletetest(document.forms.autocomplete_invalid, ["on", "on", "on", "off", ""], "form autocomplete attribute invalid");
+
+  var keywords = [ "name", "honorific-prefix", "given-name", "additional-name", "family-name", "honorific-suffix", "nickname", "organization-title", "organization", "street-address", "address-line1", "address-line2", "address-line3", "locality", "region", "country", "country-name", "postal-code", "cc-name", "cc-given-name", "cc-additional-name", "cc-family-name", "cc-number", "cc-exp", "cc-exp-month", "cc-exp-year", "cc-csc", "cc-type", "language", "bday", "bday-day", "bday-month", "bday-year", "sex", "url", "photo", "tel", "tel-country-code", "tel-national", "tel-area-code", "tel-local", "tel-local-prefix", "tel-local-suffix", "tel-extension", "email", "impp" ];
+  keywords.forEach(function(keyword) {
+    test(function(){
+      var input = document.createElement("input");
+      input.setAttribute("autocomplete", keyword);
+      assert_equals(input.autocomplete, keyword);
+    }, keyword + " is an allowed autocomplete field name");
+  });
+</script>

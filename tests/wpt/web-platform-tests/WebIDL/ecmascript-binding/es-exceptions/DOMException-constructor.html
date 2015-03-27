@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>DOMException constructor</title>
+<link rel=help href="https://heycam.github.io/webidl/#es-DOMException-constructor-object">
+<link rel=help href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-error.prototype.message">
+<link rel=help href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-error.prototype.name">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  var ex = new DOMException();
+  assert_equals(ex.name, "Error",
+                "Not passing a name should end up with 'Error' as the name");
+  assert_equals(ex.message, "",
+                "Not passing a message should end up with empty string as the message");
+}, 'new DOMException()');
+
+test(function() {
+  var ex = new DOMException();
+  assert_false(ex.hasOwnProperty("name"),
+               "The name property should be inherited");
+  assert_false(ex.hasOwnProperty("message"),
+               "The message property should be inherited");
+}, 'new DOMException(): own-ness');
+
+test(function() {
+  var ex = new DOMException(undefined);
+  assert_equals(ex.name, "Error",
+                "Not passing a name should end up with 'Error' as the name");
+  assert_equals(ex.message, "",
+                "Not passing a message should end up with empty string as the message");
+}, 'new DOMException(undefined)');
+
+test(function() {
+  var ex = new DOMException(undefined);
+  assert_false(ex.hasOwnProperty("name"),
+               "The name property should be inherited");
+  assert_false(ex.hasOwnProperty("message"),
+               "The message property should be inherited");
+}, 'new DOMException(undefined): own-ness');
+
+test(function() {
+  var ex = new DOMException("foo");
+  assert_equals(ex.name, "Error",
+                "Not passing a name should still end up with 'Error' as the name");
+  assert_equals(ex.message, "foo", "Should be using passed-in message");
+}, 'new DOMException("foo")');
+
+test(function() {
+  var ex = new DOMException("foo");
+  assert_false(ex.hasOwnProperty("name"),
+               "The name property should be inherited");
+  assert_true(ex.hasOwnProperty("message"),
+              "The message property should be own");
+}, 'new DOMException("foo"): own-ness');
+
+test(function() {
+  var ex = new DOMException("bar", "NotSupportedError");
+  assert_equals(ex.name, "NotSupportedError", "Should be using the passed-in name");
+  assert_equals(ex.message, "bar", "Should still be using passed-in message");
+  assert_equals(ex.code, DOMException.NOT_SUPPORTED_ERR,
+                "Should have the right exception code");
+}, 'new DOMException("bar", "NotSupportedError")');
+
+test(function() {
+  var ex = new DOMException("bar", "NotSupportedError");
+  assert_true(ex.hasOwnProperty("name"),
+              "The name property should be own");
+  assert_true(ex.hasOwnProperty("message"),
+              "The message property should be own");
+}, 'new DOMException("bar", "NotSupportedError"): own-ness');
+</script>

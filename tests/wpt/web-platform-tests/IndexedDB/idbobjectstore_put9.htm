@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBObjectStore.put() - Attempt to put a record that does not meet the constraints of an object store's inline key requirements </title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+    var t = async_test(),
+      record = { key: 1, property: "data" };
+
+    var open_rq = createdb(t);
+    open_rq.onupgradeneeded = function(e) {
+        var rq,
+          db = e.target.result,
+          objStore = db.createObjectStore("store", { keyPath: "key" });
+
+        assert_throws("DataError",
+            function() { rq = objStore.put(record, 1); });
+
+        assert_equals(rq, undefined);
+        t.done();
+    };
+</script>
+
+<div id="log"></div>

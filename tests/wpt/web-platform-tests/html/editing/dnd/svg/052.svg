@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="500px" height="500px" viewBox="0 0 500 500">
+<title>Drag and drop of text link inside SVG</title>
+<a xlink:href="data:text/plain,PASS">
+	<text x="10" y="50" font-size="30" fill="navy">Drag me</text>
+</a>
+<textArea x="10" y="70" width="480" height="170" font-size="30">Drag link above and drop it in the gray box below. You should see word PASS once you drop it.</textArea>
+<rect x="10" y="300" width="480" height="190" fill="gray"/>
+<script type="application/ecmascript">
+var a = document.querySelector('a'), rect = document.querySelector('rect'), text = document.querySelector('textArea');
+a.addEventListener('dragstart',
+function (event)
+	{event.dataTransfer.effectAllowed = 'copy'}
+,false);
+rect.addEventListener('dragenter',
+function (event)
+	{event.preventDefault()}
+,false);
+rect.addEventListener('dragover',
+function (event)
+	{event.preventDefault()}
+,false);
+rect.addEventListener('drop',
+function (event)
+	{text.firstChild.nodeValue = event.dataTransfer.getData('text/uri-list').substring(16,20)}
+,false);
+</script>
+</svg>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Web Notifications Test: notification - dir (dir attribute set to "rtl")</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Xin Liu" href="mailto:xinx.liu@intel.com">
+<link rel="help" title="4.1 Direction" href="http://www.w3.org/TR/notifications/#direction-0">
+<meta name="flags" content="interact">
+<meta name="assert" content="The dir attribute set 'rtl', then the notification's direction is the right edge.">
+<body>
+  <p>Test passes if a notification popups and the notification's direction is the right edge.</p>
+  <script>
+    var notification = new Notification("New Email Received", {
+      body: "Room 101",
+      dir: "rtl"
+    });
+  </script>
+</body>
+

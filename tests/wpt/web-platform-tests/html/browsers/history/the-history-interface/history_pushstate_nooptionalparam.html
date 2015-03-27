@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>history_pushState_NoOptionalParam</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    test(function () {
+      window.history.pushState(1, document.title);
+
+      var state;
+      state = window.history.state;
+      assert_equals(state, 1, "history state");
+    }, "history pushState NoOptionalParam");
+    </script>
+  </body>
+</html>

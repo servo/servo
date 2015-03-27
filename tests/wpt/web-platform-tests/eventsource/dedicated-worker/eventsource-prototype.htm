@@ -1,0 +1,36 @@
+<!--
+try {
+  EventSource.prototype.ReturnTrue = function() { return true }
+  var source = new EventSource("../resources/message.py")
+  postMessage([true, source.ReturnTrue(), 'EventSource' in self])
+  source.close()
+} catch(e) {
+  postMessage([false, String(e)])
+}
+/*-->
+<!DoCtYpE hTMl>
+<html>
+  <heAd>
+    <title>dedicated worker - EventSource: prototype et al</tiTle>
+    <scrIpt src="/resources/testharness.js"></scripT>
+    <scriPt src="/resources/testharnessreport.js"></Script>
+  </heaD>
+  <boDy>
+    <diV iD="log"></Div>
+    <sCript>
+      var test = async_test();
+      test.step(function() {
+        var worker = new Worker('#')
+        worker.onmessage = function(e) {
+          test.step(function() {
+            assert_true(e.data[0], e.data[1])
+            assert_true(e.data[1], 'source.ReturnTrue()')
+            assert_true(e.data[2], "'EventSource' in self")
+          })
+          test.done()
+        }
+      })
+    </scrIpt>
+  </bOdy>
+</htMl>
+<!--*/ //-->

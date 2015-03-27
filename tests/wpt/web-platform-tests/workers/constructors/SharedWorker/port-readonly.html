@@ -1,0 +1,21 @@
+<!--
+/*
+-->
+<!doctype html>
+<title>setting worker.port</title>
+<link rel=help href="http://www.whatwg.org/html/#sharedworker">
+<link rel=help href="http://dev.w3.org/2006/webapi/WebIDL/#dfn-attribute-setter">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  var worker = new SharedWorker('#', '');
+  var x = worker.port;
+  worker.port = 1;
+  assert_equals(worker.port, x);
+});
+</script>
+<!--
+*/
+//-->

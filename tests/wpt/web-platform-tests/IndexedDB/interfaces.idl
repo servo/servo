@@ -1,0 +1,145 @@
+enum IDBTransactionMode {
+    "readonly",
+    "readwrite",
+    "versionchange"
+};
+
+enum IDBRequestReadyState {
+    "pending",
+    "done"
+};
+
+interface IDBKeyRange {
+    readonly    attribute any     lower;
+    readonly    attribute any     upper;
+    readonly    attribute boolean lowerOpen;
+    readonly    attribute boolean upperOpen;
+    static IDBKeyRange only (any value);
+    static IDBKeyRange lowerBound (any lower, optional boolean open = false);
+    static IDBKeyRange upperBound (any upper, optional boolean open = false);
+    static IDBKeyRange bound (any lower, any upper, optional boolean lowerOpen = false, optional boolean upperOpen = false);
+};
+
+enum IDBCursorDirection {
+    "next",
+    "nextunique",
+    "prev",
+    "prevunique"
+};
+
+dictionary IDBObjectStoreParameters {
+    (DOMString or sequence<DOMString>)? keyPath = null;
+    boolean                             autoIncrement = false;
+};
+
+dictionary IDBIndexParameters {
+    boolean unique = false;
+    boolean multiEntry = false;
+};
+
+dictionary IDBVersionChangeEventInit : EventInit {
+    unsigned long long  oldVersion = 0;
+    unsigned long long? newVersion = null;
+};
+
+interface IDBRequest : EventTarget {
+    readonly    attribute any                                        result;
+    readonly    attribute DOMError                                   error;
+    readonly    attribute (IDBObjectStore or IDBIndex or IDBCursor)? source;
+    readonly    attribute IDBTransaction                             transaction;
+    readonly    attribute IDBRequestReadyState                       readyState;
+                attribute EventHandler                               onsuccess;
+                attribute EventHandler                               onerror;
+};
+
+interface IDBOpenDBRequest : IDBRequest {
+                attribute EventHandler onblocked;
+                attribute EventHandler onupgradeneeded;
+};
+
+[Constructor(DOMString type, optional IDBVersionChangeEventInit eventInitDict)]
+interface IDBVersionChangeEvent : Event {
+    readonly    attribute unsigned long long  oldVersion;
+    readonly    attribute unsigned long long? newVersion;
+};
+
+[NoInterfaceObject]
+interface IDBEnvironment {
+    readonly    attribute IDBFactory indexedDB;
+};
+
+interface IDBFactory {
+    IDBOpenDBRequest open (DOMString name, [EnforceRange] optional unsigned long long version);
+    IDBOpenDBRequest deleteDatabase (DOMString name);
+    short            cmp (any first, any second);
+};
+
+interface IDBDatabase : EventTarget {
+    readonly    attribute DOMString          name;
+    readonly    attribute unsigned long long version;
+    readonly    attribute DOMStringList      objectStoreNames;
+    IDBObjectStore createObjectStore (DOMString name, optional IDBObjectStoreParameters optionalParameters);
+    void           deleteObjectStore (DOMString name);
+    IDBTransaction transaction ((DOMString or sequence<DOMString>) storeNames, optional IDBTransactionMode mode = "readonly");
+    void           close ();
+                attribute EventHandler       onabort;
+                attribute EventHandler       onerror;
+                attribute EventHandler       onversionchange;
+};
+
+interface IDBObjectStore {
+    readonly    attribute DOMString      name;
+    readonly    attribute any            keyPath;
+    readonly    attribute DOMStringList  indexNames;
+    readonly    attribute IDBTransaction transaction;
+    readonly    attribute boolean        autoIncrement;
+    IDBRequest put (any value, optional any key);
+    IDBRequest add (any value, optional any key);
+    IDBRequest delete (any key);
+    IDBRequest get (any key);
+    IDBRequest clear ();
+    IDBRequest openCursor (optional any range, optional IDBCursorDirection direction = "next");
+    IDBIndex   createIndex (DOMString name, (DOMString or sequence<DOMString>) keyPath, optional IDBIndexParameters optionalParameters);
+    IDBIndex   index (DOMString name);
+    void       deleteIndex (DOMString indexName);
+    IDBRequest count (optional any key);
+};
+
+interface IDBIndex {
+    readonly    attribute DOMString      name;
+    readonly    attribute IDBObjectStore objectStore;
+    readonly    attribute any            keyPath;
+    readonly    attribute boolean        multiEntry;
+    readonly    attribute boolean        unique;
+    IDBRequest openCursor (optional any range, optional IDBCursorDirection direction = "next");
+    IDBRequest openKeyCursor (optional any range, optional IDBCursorDirection direction = "next");
+    IDBRequest get (any key);
+    IDBRequest getKey (any key);
+    IDBRequest count (optional any key);
+};
+
+interface IDBCursor {
+    readonly    attribute (IDBObjectStore or IDBIndex) source;
+    readonly    attribute IDBCursorDirection           direction;
+    readonly    attribute any                          key;
+    readonly    attribute any                          primaryKey;
+    IDBRequest update (any value);
+    void       advance ([EnforceRange] unsigned long count);
+    void       continue (optional any key);
+    IDBRequest delete ();
+};
+
+interface IDBCursorWithValue : IDBCursor {
+    readonly    attribute any value;
+};
+
+interface IDBTransaction : EventTarget {
+    readonly    attribute IDBTransactionMode mode;
+    readonly    attribute IDBDatabase        db;
+    readonly    attribute DOMError           error;
+    IDBObjectStore objectStore (DOMString name);
+    void           abort ();
+                attribute EventHandler       onabort;
+                attribute EventHandler       oncomplete;
+                attribute EventHandler       onerror;
+};

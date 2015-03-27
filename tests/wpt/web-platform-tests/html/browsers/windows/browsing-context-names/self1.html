@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: browsing context name - self</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<script>
+
+window.name = "selfWin1";
+var win = window.open("message.html", "_self");
+win.close();
+
+</script>

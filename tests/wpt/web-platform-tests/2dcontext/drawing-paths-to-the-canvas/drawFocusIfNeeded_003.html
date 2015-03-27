@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>drawFocusIfNeeded()</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="author" title="W3C">
+    <link rel="help" href="http://www.w3.org/TR/2dcontext/#dom-context-2d-drawFocusIfNeeded">
+  </head>
+  <body>
+    <h1>Description</h1>
+    <p>This test uses drawFocusIfNeeded does nothing if the element is not a descendant but comparing ImageData from before and after.</p>
+    <div>
+      <p>Before:</p>
+      <canvas height=100 width=100 id='original'>
+        <label><a href='http://www.w3.org' id='element'>Focus</a></label>
+      </canvas>
+      <p>After:</p>
+      <canvas height=100 width=100 id=canvas>
+      </canvas>
+    </div>
+    <script>
+      test(function() {
+          var canvas = document.getElementById('canvas');
+          var context = canvas.getContext('2d');
+          var element = document.getElementById('element');
+          element.focus();
+          context.fillStyle = 'white';
+          context.fillRect(0, 0, 100, 100);
+          context.beginPath();
+          context.strokeStyle = 'black';
+          context.rect(10, 10, 80, 80);
+          context.stroke();
+          context.save();
+          var refImage = context.getImageData(0, 0, 100, 100);
+
+          assert_equals(40000, refImage.data.length, "ImageData.data.length is 40000");
+
+          var original = document.getElementById('original');
+          var o_context = original.getContext('2d');
+          o_context.fillStyle = 'white';
+          o_context.fillRect(0, 0, 100, 100);
+          o_context.putImageData(refImage, 0, 0, 0, 0, 100, 100);
+
+
+
+          context.strokeStyle = 'blue';
+          context.rect(5, 5, 90, 90);
+          context.drawFocusIfNeeded(element);
+
+          var ringImage = context.getImageData(0, 0, 100, 100);
+          assert_equals(40000, ringImage.data.length, "ImageData.data.length is 40000");
+
+          // make sure refImage and ringImage are different
+          var length = 40000;
+          var index = length;
+          var identical = true;
+          while (--index > 0) {
+            if (refImage.data[index] != ringImage.data[index]) identical = false;
+          }
+
+          assert_true(identical, "No focus ring appears in the canvas");
+
+
+      }, 'drawFocusIfNeeded does not draw a focus ring if the element is not a descendant of the context.');
+    </script>
+    <div id="log"></div>
+  </body>
+</html>

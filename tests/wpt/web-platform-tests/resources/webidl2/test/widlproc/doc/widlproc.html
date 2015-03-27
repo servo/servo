@@ -1,0 +1,1124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!--====================================================================
+Copyright 2009 Aplix Corporation. All rights reserved.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+=====================================================================-->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<title>widlproc</title>
+<style type="text/css">
+    body { color: black; font: 10pt verdana; }
+    a:link { text-decoration: none; }
+    a:visited { text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    dt { margin-top: 0.5em; }
+    dd { margin-left: 1em; margin-bottom: 0.5em; }
+    li { margin-bottom: 0; }
+    h4 { font-size: 10pt; }
+    table { border: 1px solid; border-collapse: collapse; }
+    td { border: 1px solid; }
+    th { border: 1px solid; }
+    code { background-color: #f0f0f0; }
+    pre { background-color: #f0f0f0; }
+    .indent { margin-left: 3em; }
+    .issue { background-color: #00CCCC; }
+</style>
+</head>
+<body>
+<h1>widlproc</h1>
+
+<p>Tim Renouf, Aplix Corp</p>
+<p>$Id$
+</p>
+
+<h2>Introduction</h2>
+
+<p>
+widlproc is a processor that accepts as input
+<a href="#webidl">Web IDL</a> (the 30 September 2009 editor's draft),
+with comments in a subset of the format used by
+<a href="#doxygen">Doxygen</a>.
+The format it accepts is proposed by Aplix for authoring
+<a href="#bondi">BONDI</a> interface definitions.
+</p>
+
+<p>
+The output of widlproc is an XML representation of the
+<a href="#webidl">Web IDL</a> input,
+with added XML elements representing the
+<a href="#doxygen">Doxygen</a>-like comments.
+</p>
+
+<h2>Usage</h2>
+
+<p>
+<code>widlproc <i>filename</i></code>
+</p>
+
+<p>
+widlproc reads the file named <em>filename</em>, and 
+sends its XML output format to stdout.
+</p>
+
+<h2>Input format</h2>
+
+<p>
+The input format accepted by widlproc is
+<a href="#webidl">Web IDL</a>
+(with an extension used in the
+<a href="#w3cgeo">W3C Geolocation API</a>),
+with comments in a format reminiscent of that used by
+<a href="#doxygen">Doxygen</a>.
+</p>
+
+<h3>Web IDL extension from W3C geolocation API</h3>
+
+<h4>double</h4>
+
+<p>
+<code>double</code> is allowed as a DeclarationType or a BoxedType.
+</p>
+
+<h3>Doxygen-like comment introduction</h3>
+
+<p>
+Only a small subset of Doxygen functionality is supported by
+widlproc, plus additions to handle the BONDI concepts of API features
+and device capabilities.
+</p>
+
+<p>
+In particular, no links are added automatically. (This could be added
+in the future.)
+</p>
+
+<h3>Doxygen comment block</h3>
+
+<h4>Comment referral point</h4>
+
+<p>
+Each <em>Doxygen comment block</em> refers to a <em>comment referral
+point</em> in the Web IDL, one of
+module, interface, exception, const, attribute, operation or argument.
+</p>
+
+<h4>Block comment</h4>
+
+<p>
+A block comment (delimited by <code>/* */</code>) whose first character
+after the <code>/*</code> is <code>!</code> or a second <code>*</code>
+is a <em>Doxygen comment block</em>.
+</p>
+
+<p>
+Normally the comment block refers to the next comment referral point in
+the Web IDL.
+If the first character is <code>&lt;</code>, so the comment block is introduced
+with <code>/**&lt;</code> or <code>/*!&lt;</code> , then the comment block
+refers back to the previous comment referral point.
+</p>
+
+<p>
+The text of the comment block
+excludes the initial <code>!</code> or <code>*</code> (and the <code>&lt;</code>
+for a referring back block),
+and excludes an initial (after whitespace) <code>*</code>
+on each line,
+and, when not in a <a href="#code"><code>\code</code></a> block,
+excludes any line consisting entirely of whitespace, then <code>*</code>
+characters, then whitespace.
+</p>
+
+<p>
+widlproc does not support Doxygen commands to force a comment
+block to refer to a different referral point.
+</p>
+
+<h4>Inline comments</h4>
+
+<p>
+The maximal sequence of inline comments (delimited by <code>//</code>)
+on adjacent lines, where all of the following conditions hold:
+</p>
+<ul>
+<li>
+each has a first character after the <code>/</code> of <code>!</code> or
+a third <code>/</code>;
+<li>
+no comment referral point intervenes;
+<li>
+either each comment in the sequence starts with a <code>&lt;</code>
+(see below), or none does;
+<li>
+the sequence contains at least two inline comments, or, if only one,
+then it starts with <code>&lt;</code> (see below);
+</ul>
+<p>
+forms a <em>Doxygen comment block</em>.
+</p>
+
+<p>
+Normally the comment block refers to the next comment referral point in
+the Web IDL.
+If the first character of each comment is <code>&lt;</code>, so each
+comment in the block is introduced
+with <code>///&lt;</code> or <code>//!&lt;</code> , then the comment block
+refers back to the previous comment referral point.
+</p>
+
+<p>
+The text of the comment block
+excludes the initial <code>!</code> or <code>/</code> (and the <code>&lt;</code>
+for a referring back block) of each inline comment,
+and, when not in a <a href="#code"><code>\code</code></a> block,
+excludes any line consisting entirely of whitespace, then <code>/</code>
+characters, then whitespace.
+</p>
+
+<p>
+widlproc does not support Doxygen commands to force a comment
+block to refer to a different referral point.
+</p>
+
+<h3>Paragraph</h3>
+
+<p>
+A comment block is broken into zero or more <em>paragraph</em>s.
+One or more blank lines break the paragraphs (unless in a
+<a href="#code"><code>\code</code></a> block).
+</p>
+
+<p>
+Certain commands (below) also start a new paragraph.
+</p>
+
+<p>
+An
+<a href="#html">HTML block element</a>
+is a paragraph.
+A blank line (other than in a
+<a href="#code"><code>\code</code></a> block)
+implicitly closes any open HTML elements, thus ending the paragraph.
+</p>
+
+<h3>Doxygen-like commands</h3>
+
+<p>
+widlproc supports a small subset of Doxygen commands, plus some additions
+to handle BONDI API features and device capabilities.
+</p>
+
+<p>
+A command is always introduced with a <code>\</code> character.
+The Doxygen alternative (from JavaDoc) of <code>@</code> is not
+supported.
+</p>
+
+<h4 id="api-feature">\api-feature</h4>
+
+<p>
+Starts a new paragraph. The following word is the name of an API feature
+used by the method being documented. The remainder of the paragraph is
+any description required of how (eg in what circumstance) the API feature
+is used.
+</p>
+
+<h4>\name</h4>
+
+<p>
+Declares a name for the document node associated with the current referral
+point. This is useful for the root document node that otherwise does not have
+a WebIDL identifier.
+</p>
+
+<h4>\author</h4>
+
+<p>
+Starts a new paragraph. The remainder of the paragraph contains
+information about a single author of the specification. Multiple
+<code>\author</code> commands should be used for multiple authors.
+</p>
+
+<p>
+(Here widlproc differs from Doxygen; Doxygen also allows
+multiple authors on separate lines to appear in one <code>\author</code>
+paragraph.)
+</p>
+
+<h4>\b</h4>
+
+<p>
+This renders the next word as bold. It is equivalent to enclosing the
+next word with <code>&lt;b> &lt;/b></code>.
+</p>
+
+<h4>\brief</h4>
+
+<p>
+Starts a new paragraph. The remainder of the paragraph contains a brief
+description of the entity being documented.
+</p>
+
+<h4 id="code">\code, \endcode</h4>
+
+<p>
+<code>\code</code>
+starts a new paragraph which is a <em>code block</em>. The code block
+ends at the next <code>\endcode</code> command.
+</p>
+
+<p>
+Within the code block, whitespace and newlines are passed verbatim into
+the output.
+</p>
+
+<h4 id="def-api-feature">\def-api-feature</h4>
+
+<p>
+Starts a new paragraph. The following word is the name of the API feature
+which is defined here. The description is an <em>def-api-feature block</em>,
+consisting of the
+remainder of the paragraph, together with
+further paragraphs in the same block comment each of which is a plain
+paragraph, a paragraph started due to HTML markup, a <code>\brief</code>
+paragraph, or a
+<a href="#device-cap"><code>\device-cap</code></a>
+paragraph.
+</p>
+
+<h4 id="def-api-feature-set">\def-api-feature-set</h4>
+
+<p>
+Starts a new paragraph. The following word is the name of the API feature
+set which is defined here. The description is an <em>def-api-feature-set block</em>,
+consisting of the
+remainder of the paragraph, together with
+further paragraphs in the same block comment each of which is a plain
+paragraph, a paragraph started due to HTML markup, a <code>\brief</code>
+paragraph, or a
+<a href="#device-cap"><code>\api-feature</code></a>
+paragraph.
+</p>
+
+<h4>\def-device-cap</h4>
+
+<p>
+Starts a new paragraph. The following word is the name of the device capability
+which is defined here. The description consists of the
+remainder of the paragraph, together with
+further paragraphs in the same block comment each of which is a plain
+paragraph, a paragraph started due to HTML markup, a <code>\brief</code>
+paragraph, or a
+<a href="#param"><code>\param</code></a>
+paragraph.
+</p>
+
+<h4 id="def-instantiated">\def-instantiated</h4>
+
+<p>
+Starts a new paragraph.  The description is an <em>def-instantiated block</em>,
+consisting of the
+remainder of the paragraph, together with
+further paragraphs in the same block comment each of which is a plain
+paragraph, a paragraph started due to HTML markup, a <code>\brief</code>
+paragraph, or a
+<a href="#api-feature"><code>\api-feature</code></a>
+paragraph.
+</p>
+
+<h4 id="device-cap">\device-cap</h4>
+
+<p>
+Starts a new paragraph.
+This command can appear only inside an
+<a href="#def-api-feature">def-api-feature block</a>.
+The following word is the name of a device capability
+used by the API feature being documented.
+The remainder of the paragraph is
+any description required of how (eg in what circumstance) the device capability
+is used.
+</p>
+
+<h4>\n</h4>
+
+<p>
+Creates a line break in the output.
+</p>
+
+<h4 id="param">\param</h4>
+
+<p>
+Starts a new paragraph. This takes the following word as the name of
+a parameter (argument) of the entity being documented, then makes the
+remainder of the paragraph refer to that parameter.
+</p>
+
+<h4>\return</h4>
+
+<p>
+Starts a new paragraph. The remainder of the paragraph is made to refer to
+the return type of the entity being documented.
+</p>
+
+<h4>\throw</h4>
+
+<p>
+Starts a new paragraph. The next word is taken to be the name of an
+exception thrown by the entity being documented, and the remainder of
+the paragraph documents that exception (in the <code>raises</code> list of
+an <code>operation</code>, or the <code>setraises</code>
+clause of an <code>attribute</code>).
+</p>
+
+<h4>\version</h4>
+
+<p>
+Starts a new paragraph. The remainder of the paragraph contains
+version number information.
+</p>
+
+<h3>Escape sequences</h3>
+
+<p>
+The following escape sequences are recognized in a comment block:
+</p>
+
+<table>
+<tr>
+<th>escape sequence
+<th>result
+<tr>
+<td><code>\\</code>
+<td><code>\</code>
+<tr>
+<td><code>\&amp;</code>
+<td><code>&amp;</code> (escaped to <code>&amp;amp;</code> in output XML)
+<tr>
+<td><code>\$</code>
+<td><code>$</code>
+<tr>
+<td><code>\#</code>
+<td><code>#</code>
+<tr>
+<td><code>\&lt;</code>
+<td><code>&lt;</code> (escaped to <code>&amp;lt;</code> in output XML)
+<tr>
+<td><code>\></code>
+<td><code>></code>
+<tr>
+<td><code>\%</code>
+<td><code>%</code>
+</table>
+
+<p>
+Some of these escape sequences are used to avoid Doxygen features that
+widlproc does not currently implement. In particular,
+widlproc insists on a <code>$</code> being escaped, to
+allow for possible future functionality.
+</p>
+
+<h3 id="html">HTML in comments</h3>
+
+<p>
+widlproc accepts a small subset of HTML elements.
+</p>
+
+<p>
+An HTML block element is a paragraph.
+A blank line (other than in a
+<a href="#code"><code>\code</code></a> block)
+implicitly closes any open HTML elements, thus ending the paragraph.
+</p>
+
+<p>
+The following HTML block elements are accepted:
+<code>dl</code>
+<code>ol</code>
+<code>p</code>
+<code>table</code>
+<code>ul</code>
+</p>
+
+<p>
+The following HTML inline elements are accepted:
+<code>a</code>
+<code>img</code>
+<code>b</code>
+<code>br</code>
+<code>em</code>
+</p>
+
+<p>
+The following HTML elements are accepted where valid inside one of the
+other elements:
+<code>dd</code>
+<code>dt</code>
+<code>li</code>
+<code>td</code>
+<code>th</code>
+<code>tr</code>
+</p>
+
+
+<h2>Output format</h2>
+
+<p>
+The output of widlproc is an XML representation of the
+<a href="#webidl">Web IDL</a>,
+with added XML elements representing the
+<a href="#doxygen">Doxygen</a>-like comments.
+</p>
+
+<h3>Annotated document type declaration</h3>
+
+<pre class="dtd">
+&lt;!-- Autogenerated from widlproc.html : do not edit. -->
+</pre>
+
+<h4>Entities used elsewhere</h4>
+
+<pre class="dtd">
+&lt;!ENTITY % block 'dl | p | table | ul' >
+&lt;!ENTITY % Block '(%block;)*' >
+&lt;!ENTITY % inline 'a | b | br | em | img' >
+&lt;!ENTITY % Inline '(#PCDATA | %inline;)*' >
+&lt;!ENTITY % Flow '(#PCDATA | %inline; | %block;)*' >
+
+&lt;!ELEMENT webidl (#PCDATA | ref)* >
+</pre>
+
+<p>
+The <code>&lt;webidl></code> element contains the literal text of the
+original Web IDL that the parent
+element was parsed from, minus the comments, with each reference to
+an interface name 
+enclosed in a <code>&lt;ref></code>..<code>&lt;/ref></code>.
+</p>
+
+<h4>Definitions</h4>
+
+<p>
+<em>Definitions</em> is the root element of the XML document.
+</p>
+
+<p>
+The <em>ExtendedAttributeList</em> specifies any extended attributes
+for the  <em>Interface</em>, <em>Dictionary</em>, <em>Exception</em>,
+<em>Typedef</em>, <em>Valuetype</em> or <em>Const</em> in the
+<em>Definition</em>.
+</p>
+
+<pre class="dtd">
+&lt;!ELEMENT Definitions ( webidl, descriptive?, (Interface | Dictionary | Callback
+    | Enum | Exception | Typedef | Implements)*) >
+</pre>
+
+<h4>Interface</h4>
+
+<p>
+An <em>Interface</em> represents an interface. The <em>name</em>
+attribute specifies the name of the interface. The <em>descriptive</em> element
+provides its documentation if any.
+The <em>id</em> attribute specifies the absolute scoped name of the interface.
+</p>
+
+<p>The <em>partial</em> attribute indicates that the definition of the interface complements an existing definition. The <em>callback</em> attribute specificies that a given interface is a callback interface.</p>
+
+<p>
+The <em>InterfaceInheritance</em> element indicates that the interface
+inherits from other interface(s). Each <em>Name</em> in the
+<em>InterfaceInheritance</em> has a <em>name</em> attribute giving the
+scoped name of the interface being inherited from.
+</p>
+
+<pre class="dtd">
+&lt;!ELEMENT Interface (webidl, descriptive?, ExtendedAttributeList?,
+        InterfaceInheritance?, (Const | Attribute | Operation | Stringifier* | Serializer* | Iterator | IteratorObject)* ) >
+&lt;!ATTLIST Interface name CDATA #REQUIRED
+                    partial (partial) #IMPLIED
+                    callback (callback) #IMPLIED
+                    id CDATA #REQUIRED >
+
+&lt;!ELEMENT InterfaceInheritance (Name+) >
+
+&lt;!ELEMENT Name EMPTY >
+&lt;!ATTLIST Name name CDATA #REQUIRED >
+</pre>
+
+<h4>Dictionary</h4>
+
+<p>
+A <em>Dictionary</em> represents a dictionary. The <em>name</em>
+attribute specifies the name of the dictionary. The <em>descriptive</em> element
+provides its documentation if any.
+The <em>id</em> attribute specifies the absolute scoped name of the dictionary.
+</p>
+
+<p>The <em>partial</em> attribute indicates that the definition of the interface complements an existing definition.</p>
+
+<p>
+The <em>DictionaryInheritance</em> element indicates that the dictionary
+inherits from other dictionary(s). Each <em>Name</em> in the
+<em>DictionaryInheritance</em> has a <em>name</em> attribute giving the
+scoped name of the dictionary being inherited from.
+</p>
+
+
+<pre class="dtd">
+&lt;!ELEMENT Dictionary (webidl, descriptive?, DictionaryInheritance?, DictionaryMember* ) >
+&lt;!ATTLIST Dictionary name CDATA #REQUIRED
+                    partial (partial) #IMPLIED
+                    id CDATA #REQUIRED >
+
+&lt;!ELEMENT DictionaryInheritance (Name+) >
+</pre>
+
+<h4>Callback</h4>
+
+<p>
+A <em>Callback</em> represents a callback type. The <em>name</em>
+attribute specifies the name of the dictionary. The <em>descriptive</em> element
+provides its documentation if any.</p>
+
+<p>The <em>Type</em> element specifies its return type.</p>
+
+<p>
+An <em>Argument</em> is an argument to an operation.
+The <em>Type</em> element specifies its type. The <em>name</em>
+attribute specifies its name if it has one.
+</p>
+
+<pre class="dtd">
+&lt;!ELEMENT Callback (webidl, descriptive?, Type, ArgumentList? ) >
+&lt;!ATTLIST Callback name CDATA #REQUIRED
+                      id CDATA #REQUIRED>
+</pre>
+
+
+<h4>Enum</h4>
+
+<p>
+An <em>Enum</em> represents an enumeration. The <em>name</em>
+attribute specifies the name of the enumeration. The <em>descriptive</em> element
+provides its documentation if any.
+</p>
+
+<p>
+The <em>EnumValue</em> element indicates the values defined for that enumeration in its <em>stringvalue</em> attribute.
+</p>
+
+
+<pre class="dtd">
+&lt;!ELEMENT Enum (webidl, descriptive?, EnumValue* ) >
+&lt;!ATTLIST Enum name CDATA #REQUIRED 
+                    id CDATA #REQUIRED >
+
+&lt;!ELEMENT EnumValue (webidl, descriptive?) >
+&lt;!ATTLIST EnumValue stringvalue CDATA #REQUIRED >
+</pre>
+
+
+
+<h4>Exception</h4>
+
+<p>
+An <em>Exception</em> represents an exception.
+The <em>name</em>
+attribute specifies the name of the exception.
+The <em>descriptive</em> element
+provides its documentation if any.
+The <em>id</em> attribute specifies the absolute scoped name of the exception.
+</p>
+
+<p>
+An <em>ExceptionField</em> represents a field in an exception.
+The <em>name</em>
+attribute specifies the name of the field.
+The <em>Type</em> element specifies its type.
+The <em>descriptive></em> element
+provides its documentation if any.
+The <em>id</em> attribute specifies the absolute scoped name of the field.
+</p>
+
+<p>
+The <em>ExceptionInheritance</em> element indicates that the exception
+inherits from another exception. The <em>Name</em> in the
+<em>ExceptionInheritance</em> has a <em>name</em> attribute giving the
+scoped name of the exception being inherited from.
+</p>
+
+
+<pre class="dtd">
+&lt;!ELEMENT Exception (webidl, descriptive?, ExtendedAttributeList?, ExceptionInheritance?,
+        (Const | ExceptionField)* ) >
+&lt;!ATTLIST Exception name CDATA #REQUIRED 
+                    id CDATA #REQUIRED >
+
+&lt;!ELEMENT ExceptionInheritance (Name) >
+&lt;!ELEMENT ExceptionField (webidl, descriptive?, ExtendedAttributeList?, (Type)) >
+&lt;!ATTLIST ExceptionField name CDATA #REQUIRED
+                         id CDATA #REQUIRED >
+</pre>
+
+<h4>Typedef</h4>
+
+<p>
+A <em>Typedef</em> represents a type definition.
+The <em>name</em>
+attribute specifies the name of the new type.
+The <em>Type</em> element specifies it in terms of other types.
+The <em>descriptive></em> element
+provides its documentation if any.
+The <em>id</em> attribute specifies the absolute scoped name of the typedef.
+</p>
+
+<pre class="dtd">
+&lt;!ELEMENT Typedef (webidl, descriptive?, ExtendedAttributeList?, (Type)) >
+&lt;!ATTLIST Typedef name CDATA #REQUIRED
+                  id CDATA #REQUIRED >
+</pre>
+
+<h4>Implements</h4>
+
+<p>
+An <em>Implements</em> represents Web IDL's
+<code><i>ScopedName</i> implements <i>ScopedName</i>;</code>
+syntax. The <em>name1</em> and <em>name2</em> attributes give the
+first and second scoped names respectively.
+The <em>descriptive></em> element
+provides the <em>Implements</em>'s documentation if any.
+</p>
+
+<pre class="dtd">
+&lt;!ELEMENT Implements (webidl, descriptive?, ExtendedAttributeList?) >
+&lt;!ATTLIST Implements name1 CDATA #REQUIRED
+                     name2 CDATA #REQUIRED >
+</pre>
+
+<h4>Const</h4>
+
+<p>
+<em>Const</em> represents Web IDL's
+<code>const <i>Type</i> <i>identifier</i> = <i>ConstExpr</i>;</code>
+syntax.
+The <em>Type</em> specifies the constant's type, the
+<em>name</em> attribute specifies the constant's name, and the
+<em>value</em> attribute specifies its value.
+The <em>descriptive></em> element
+provides the <em>Const</em>'s documentation if any.
+The <em>id</em> attribute specifies the absolute scoped name of the const.
+</p>
+
+<pre class="dtd">
+&lt;!ELEMENT Const (webidl, descriptive?, ExtendedAttributeList?, Type) >
+&lt;!ATTLIST Const name CDATA #REQUIRED
+                value CDATA #IMPLIED
+                id CDATA #REQUIRED >
+</pre>
+
+<h4>Stringifier</h4>
+
+<p>
+A <em>Stringifier</em> represents the Web IDL <code>stringifier;</code>
+syntax as an interface member.
+The <em>descriptive></em> element
+provides the <em>Stringifier</em>'s documentation if any.
+</p>
+
+<pre class="dtd">
+&lt;!ELEMENT Stringifier (webidl, descriptive?, ExtendedAttributeList?) >
+</pre>
+
+<h4>Attribute</h4>
+
+<p>
+An <em>Attribute</em> represents an attribute as an interface member.
+The <em>Type</em> element specifies its type. The <em>name</em>
+attribute specifies its name. Each of the <em>stringifier</em>, <em>static</em> and
+<em>readonly</em> attributes is set to a value the same as the attribute
+name when the corresponding keyword appears in the Web IDL input. The <em>inherit</em> attribute is set to <em>inherit</em> when the attribute inherits its getter.
+</p>
+
+
+<p>
+The <em>descriptive></em> element provides the attribute's documentation
+if any.
+The <em>id</em> attribute specifies the absolute scoped name of the attribute.
+</p>
+
+<pre class="dtd">
+&lt;!ELEMENT Attribute (webidl, descriptive?, ExtendedAttributeList?, (Type)) >
+&lt;!ATTLIST Attribute stringifier (stringifier) #IMPLIED
+                    readonly (readonly) #IMPLIED
+                    inherit (inherit) #IMPLIED
+                    static (static) #IMPLIED
+                    name CDATA #REQUIRED
+                    id CDATA #REQUIRED >
+
+</pre>
+
+
+<h4>Operation</h4>
+
+<p>
+An <em>Operation</em> represents a method on interface.
+The <em>Type</em> element specifies its return type. The <em>name</em>
+attribute specifies its name.
+</p>
+
+<p>
+Each of the <em>stringifier</em>, <em>static</em>, <em>getter</em>,
+<em>setter</em>, <em>creator</em>, <em>deleter</em> and <em>legacycaller</em>, <em>serializer</em>
+attributes is set to a value the same as the attribute
+name when the corresponding keyword appears in the Web IDL input.
+</p>
+
+
+<p>
+The <em>descriptive></em> element provides the attribute's documentation
+if any.
+The <em>id</em> attribute specifies the absolute scoped name of the operation if it has one.
+</p>
+
+<p>
+An <em>Argument</em> is an argument to an operation.
+The <em>Type</em> element specifies its type. The <em>name</em>
+attribute specifies its name if it has one.
+</p>
+
+<p>
+Each of the <em>optional</em> and <em>ellipsis</em>
+attributes is set to a value the same as the attribute
+name when the corresponding syntax appears in the Web IDL input.
+</p>
+
+<p>The
+<em>value</em> attribute used on optional arguments specifies default value for non-string values, and <em>stringvalue</em> for string values.</p>
+
+
+<pre class="dtd">
+&lt;!ELEMENT Operation (webidl, descriptive?, ExtendedAttributeList?,
+        (Type), ArgumentList) >
+&lt;!ATTLIST Operation stringifier (stringifier) #IMPLIED
+                    static (static) #IMPLIED
+                    getter (getter) #IMPLIED
+                    setter (setter) #IMPLIED
+                    creator (creator) #IMPLIED
+                    deleter (deleter) #IMPLIED
+                    serializer (serializer) #IMPLIED
+                    legacycaller (legacycaller) #IMPLIED
+                    name NMTOKEN #IMPLIED
+                    id NMTOKEN #IMPLIED >
+
+
+&lt;!ELEMENT ArgumentList (Argument*) >
+
+&lt;!ELEMENT Argument (descriptive?, ExtendedAttributeList?, (Type)) >
+&lt;!ATTLIST Argument
+                   optional (optional) #IMPLIED
+                   ellipsis (ellipsis) #IMPLIED
+                value CDATA #IMPLIED
+                stringvalue CDATA #IMPLIED
+                   name NMTOKEN #REQUIRED >
+</pre>
+
+<h4>Serializer</h4>
+<p>A <em>Serializer</em> represents a serializer for an interface, either defined in the prose or via a pattern.</p>
+
+<p>The <em>descriptive</em> element provides the serializer's documentation if any.</p>
+
+
+<p>The <em>attribute</em> attribute defines the attribute that is used for serialization if any.</p>
+
+<p>The optional <em>Map</em> and <em>List</em> elements describe the pattern (if any) for the serializer. They take <em>PatternAttribute</em> elements with a <em>name</em> attribute that describes the attributes used for serialization.</p>
+
+<p><em>Map</em> elements take a <em>pattern</em> attribute that can be set to either "getter" (if the getter is used for serialization), "all" if all serializable attributes are to be used, or "selection" if the attributes named as children elements are to be used. Optionally, they take a <em>inherit</em> attribute set to "inherit" if the serialization takes also into account inherited attributes.</p>
+
+<p><em>List</em> elements take a <em>pattern</em> attribute that can be set to either "getter" (if the getter is used for serialization), or "selection" if the attributes named as children elements are to be used.</p>
+
+<pre class="dtd">
+&lt;!ELEMENT Serializer (webidl, descriptive?, ExtendedAttributeList?, (Map | List)?) >
+&lt;!ATTLIST Serializer attribute CDATA #IMPLIED >
+
+&lt;!ELEMENT Map  ((PatternAttribute*)) >
+
+&lt;!ATTLIST Map inherit (inherit) #IMPLIED
+                 pattern (getter|all|selection) #REQUIRED>
+
+&lt;!ELEMENT List  ((PatternAttribute*)) >
+
+&lt;!ATTLIST List pattern (getter|selection) #REQUIRED>
+
+&lt;!ELEMENT PatternAttribute EMPTY>
+&lt;!ATTLIST PatternAttribute name CDATA #REQUIRED>
+
+</pre>
+
+<h4>Iterator</h4>
+<p>An <em>Iterator</em> element defines  whether the interface has a custom iterator; the type of the iterated objects is defined in the <em>Type</em> child. If that interator implements a particular interface, the name of that interface is set in the <em>interface</em> attribute.</p>
+<pre class="dtd">
+&lt;!ELEMENT Iterator (webidl, descriptive?, ExtendedAttributeList?, Type) >
+&lt;!ATTLIST Iterator interface CDATA #IMPLIED>
+</pre>
+
+<h4>IteratorObject</h4>
+<p>An <em>IteratorObject</em> element denotes that the interface serves as an iterator object interface; the type of the iterated objects is defined in the <em>Type</em> child.</p>
+
+<pre class="dtd">
+&lt;!ELEMENT IteratorObject (webidl, descriptive?, ExtendedAttributeList?, Type) >
+</pre>
+
+
+<h4>DictionaryMember</h4>
+
+<p>
+A <em>DictionaryMember</em> represents a member of a dictionary.
+The <em>Type</em> element specifies its type. The <em>name</em>
+attribute specifies its name. 
+</p>
+
+<p>
+The <em>descriptive></em> element provides the dictionary member's documentation
+if any.
+The <em>id</em> attribute specifies the absolute scoped name of the attribute.
+</p>
+
+<p>The
+<em>value</em> attribute specifies its value for non-string values, and <em>stringvalue</em> for string values.</p>
+
+<pre class="dtd">
+&lt;!ELEMENT DictionaryMember (webidl, descriptive?, ExtendedAttributeList?, Type) >
+&lt;!ATTLIST DictionaryMember name CDATA #REQUIRED
+                    id CDATA #REQUIRED
+                value CDATA #IMPLIED
+                stringvalue CDATA #IMPLIED >
+
+</pre>
+
+
+<h4>Extended attributes</h4>
+
+<p>
+An <em>ExtendedAttributeList</em> contains one or more
+<em>ExtendedAttribute</em> element. Each <em>ExtendedAttribute</em>
+has:
+</p>
+<ul>
+<li>
+a <em>name</em> attribute giving the name of the extended attribute;
+<li>
+if the extended attribute contains an <code>=</code> sign followed by a
+value, a <em>value</em> attribute giving the value, which is a scoped
+name or an identifier;
+<li>
+if the extended attribute contains parentheses (either with or without
+an <code>=</code> sign), an <em>ArgumentList</em> element giving the
+contents of the parentheses.
+</ul>
+<p>
+If the <em>value</em> attribute and the <em>ArgumentList</em> element are
+both present, then <em>value</em> must give an identifier rather than
+a scoped name.
+</p>
+
+<pre class="dtd">
+&lt;!ELEMENT ExtendedAttributeList (ExtendedAttribute+) >
+
+&lt;!ELEMENT ExtendedAttribute (webidl, ArgumentList?) >
+&lt;!ATTLIST ExtendedAttribute name NMTOKEN #REQUIRED
+                            value CDATA #IMPLIED >
+</pre>
+
+<h4>Type</h4>
+
+<p>
+<em>Type</em> represents a type. It has one of these forms:
+</p>
+<ul>
+<li>
+The <code>any</code>, <code>object</code> and <code>void</code>
+types have the attribute
+<em>type</em> set to the type, and no other attributes or elements.
+Note that the <code>void</code> type appears only when the <em>Type</em>
+element is a child of <em>Operation</em>.
+<li>
+A type that is an interface has the attribute <em>name</em> set to the
+name of that interface, and no other attributes or elements.
+<li>
+For the primitive types <code>short</code>, <code>unsigned short</code>,
+<code>long</code>, <code>unsigned long</code>, <code>long long</code>,
+<code>unsigned long long</code>, <code>float</code>, <code>double</code>,
+<code>boolean</code>, <code>octet</code>, <code>byte</code> and <code>DOMString</code>,
+there is an attribute <em>type</em>
+whose value is one of those strings, and no other attributes or elements.
+However, if the type was specified in the Web IDL with a trailing <code>?</code>
+sign, then there is an attribute <em>nullable</em> with the value
+<code>nullable</code>.
+</ul>
+<p>
+The restrictions on which combinations of elements and attributes are
+permitted are not encoded by the DTD.
+</p>
+<p>
+The <em>descriptive</em> element provides the documentation
+if any, when the <em>Type</em> is a child of <em>Operation</em>, and thus
+representing an operation's return type.
+</p>
+
+<p>The <em>ExtendedAttributeList</em> element provides the optional extended attributes that can be defined for a type through typedef, &agrave; la <code>typedef [Clamp] octet Value;</code>.</p>
+
+<!-- can't use enumerated values for the values of type, since DTD don't allow enumerated values to have space in them (which would be needed e.g. for "long long") -->
+<pre class="dtd">
+&lt;!ELEMENT Type (descriptive?, ExtendedAttributeList?, Type*) >
+&lt;!ATTLIST Type type CDATA #IMPLIED
+               name NMTOKEN #IMPLIED
+               nullable (nullable) #IMPLIED >
+</pre>
+
+<h4>Sequence</h4>
+
+<p>For a sequence type, the <em>Type</em> element with an attribute <em>type</em> set to <em>sequence</em> contains an element <em>Type</em> giving the sequence element type, and no other attributes or elements. If the sequence is specified in the Web IDL with a trailing <code>?</code>
+sign, then there is an attribute <em>nullable</em> with the value
+<code>nullable</code>.
+
+
+<h4>Array</h4>
+
+<p>For an array type, the <em>Type</em> element with an attribute <em>type</em> set to <em>array</em> contains an element <em>Type</em> giving the array element type. If the array is specified in the Web IDL with a trailing <code>?</code>
+sign, then there is an attribute <em>nullable</em> with the value
+<code>nullable</code>.
+
+<h4>Union</h4>
+
+<p>For a union type, the <em>Type</em> element with an attribute <em>type</em> set to <em>union</em> contains at least two element <em>Type</em> giving the union members type. If the union is specified in the Web IDL with a trailing <code>?</code>
+sign, then there is an attribute <em>nullable</em> with the value
+<code>nullable</code>.
+
+
+
+<h4>Descriptive elements</h4>
+
+<p>
+The following elements contain documentation, extracted from the
+Doxygen-like comments in the input. <code>&lt;param></code>
+derives only from a <code>\param</code> command used inside a
+<code>\def-device-cap</code> block; any other <code>\param</code> command
+is linked to a parameter (argument) of the method being documented.
+</p>
+
+<pre class="dtd">
+&lt;!ELEMENT descriptive (description | brief | throw | author
+    | version | Code | api-feature | device-cap | def-api-feature
+    | def-api-feature-set | def-device-cap | def-instantiated | param)* >
+
+&lt;!ELEMENT description %Block; >
+
+&lt;!ELEMENT brief %Inline; >
+
+&lt;!ELEMENT throw %Inline; >
+
+&lt;!ELEMENT author %Inline; >
+
+&lt;!ELEMENT version %Inline; >
+
+&lt;!ELEMENT Code %Inline; >
+
+&lt;!ELEMENT api-feature %Inline; >
+&lt;!ATTLIST api-feature identifier CDATA #REQUIRED >
+
+&lt;!ELEMENT device-cap %Inline; >
+&lt;!ATTLIST device-cap identifier CDATA #REQUIRED >
+
+&lt;!ELEMENT param %Inline; >
+&lt;!ATTLIST param identifier CDATA #REQUIRED >
+
+&lt;!ELEMENT def-api-feature (descriptive?) >
+&lt;!ATTLIST def-api-feature identifier CDATA #REQUIRED >
+
+&lt;!ELEMENT def-api-feature-set (descriptive?) >
+&lt;!ATTLIST def-api-feature-set identifier CDATA #REQUIRED >
+
+&lt;!ELEMENT def-instantiated (descriptive?) >
+
+&lt;!ELEMENT def-device-cap (descriptive?) >
+&lt;!ATTLIST def-device-cap identifier CDATA #REQUIRED >
+
+&lt;!ELEMENT ref (#PCDATA) >
+</pre>
+
+<h4>XHTML elements</h4>
+
+<p>
+The following XHTML elements are part of widlprocxml:
+</p>
+
+<pre class="dtd">
+&lt;!ELEMENT a %Inline; >
+&lt;!ATTLIST a href CDATA #REQUIRED >
+
+&lt;!ELEMENT b %Inline; >
+
+&lt;!ELEMENT br EMPTY >
+
+&lt;!ELEMENT dd %Flow; >
+
+&lt;!ELEMENT dl ((dt | dd)*) >
+
+&lt;!ELEMENT dt %Inline; >
+
+&lt;!ELEMENT em %Inline; >
+
+&lt;!ELEMENT img %Inline; >
+&lt;!ATTLIST img src CDATA #REQUIRED 
+                 alt CDATA #IMPLIED>
+
+
+&lt;!ELEMENT li %Flow; >
+
+&lt;!ELEMENT p %Inline; >
+
+&lt;!ELEMENT table (tr*) >
+
+&lt;!ELEMENT td %Flow; >
+
+&lt;!ELEMENT th %Flow; >
+
+&lt;!ELEMENT tr ((th | td)*) >
+
+&lt;!ELEMENT ul (li*) >
+</pre>
+
+
+<h2>Bibliography</h2>
+
+<p id="bondi">
+BONDI - an open source industry collaboration for widget and web technologies,
+<a href="http://bondi.omtp.org/">http://bondi.omtp.org/</a>
+</p>
+
+<p id="doxygen">
+Doxygen Source code documentation generator tool,
+<a href="http://www.stack.nl/~dimitri/doxygen/index.html">
+http://www.stack.nl/~dimitri/doxygen/index.html</a>
+</p>
+
+<p id="w3cgeo">
+W3C Geolocation API Specification Editor's Draft 3 April 2009,
+<a href="http://dev.w3.org/geo/api/spec-source.html">
+http://dev.w3.org/geo/api/spec-source.html</a>
+</p>
+
+<p id="webidl">
+Web IDL W3C Editor's Draft 3 May 2011,
+<a href="http://dev.w3.org/2006/webapi/WebIDL">http://dev.w3.org/2006/webapi/WebIDL</a>
+</p>
+

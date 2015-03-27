@@ -1,0 +1,1 @@
+invalid/idl/module.widl: 2: at 'gfx': expected 'implements'

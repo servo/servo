@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Basic Notification instance tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  var n = new Notification("Radio check",
+    {
+        dir: "ltr",
+       lang: "aa",
+       body: "This is a radio check.",
+        tag: "radio_check999",
+       icon: "http://example.com/icon.png",
+    }
+  );
+  test(function() {
+    assert_true(n instanceof Notification);
+    },"Notification instance exists.");
+  test(function() {
+    assert_true("close" in n);
+    },"Attribute exists: close");
+  test(function() {
+    assert_true("onclick" in n);
+    },"Attribute exists: onclick");
+  test(function() {
+    assert_true("onshow" in n);
+    },"Attribute exists: onshow");
+  test(function() {
+    assert_true("onerror" in n);
+    },"Attribute exists: onerror");
+  test(function() {
+    assert_true("onclose" in n);
+    },"Attribute exists: onclose");
+  test(function() {
+    assert_equals("Radio check", n.title);
+    },"Attribute exists with expected value: title");
+  test(function() {
+    assert_equals("ltr", n.dir);
+    },"Attribute exists with expected value: dir");
+  test(function() {
+    assert_equals("aa", n.lang);
+    },"Attribute exists with expected value: lang");
+  test(function() {
+    assert_equals("This is a radio check.", n.body);
+    },"Attribute exists with expected value: body");
+  test(function() {
+    assert_equals("radio_check999", n.tag);
+    },"Attribute exists with expected value: tag");
+  test(function() {
+    assert_equals("http://example.com/icon.png", n.icon);
+    },"Attribute exists with expected value: icon");
+</script>

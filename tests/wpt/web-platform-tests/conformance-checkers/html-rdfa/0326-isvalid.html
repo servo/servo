@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="http://example.com/"/>
+  <meta charset=utf-8>
+  <title>Test 0326</title>
+</head>
+<body vocab="http://schema.org/">
+  <div resource="#referencing" typeof="Person">
+    <link property="rdfa:copy" resource="#referenced"/>
+  </div>
+  <p resource="#referenced" typeof="rdfa:Pattern">Name: <span property="name">Bella</span></p>
+  <p resource="#unreferenced" typeof="rdfa:Pattern">Name: <span property="name">Lola</span></p>
+</body>
+</html>

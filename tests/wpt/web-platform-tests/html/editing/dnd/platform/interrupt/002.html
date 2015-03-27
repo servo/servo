@@ -1,0 +1,49 @@
+<!doctype html>
+<title>Interrupted drag with second drag attempt and tab change</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+    display: inline-block;
+  }
+  body > div + div {
+    background-color: navy;
+  }
+  body > div + div + div {
+    background-color: fuchsia;
+  }
+</style>
+<script type="text/javascript">
+window.onload = function () {
+	var orange = document.getElementsByTagName('div')[0], blue = document.getElementsByTagName('div')[1], fuchsia = document.getElementsByTagName('div')[2];
+	orange.ondragstart = function (e) {
+		e.dataTransfer.setData('text','PASS');
+		e.dataTransfer.effectAllowed = 'all';
+	};
+	blue.ondragenter = function (e) {
+		alert('JS alert');
+	};
+	fuchsia.ondragenter = fuchsia.ondragover = function (e) {
+		e.preventDefault();
+	};
+	fuchsia.ondrop = function (e) {
+		document.getElementsByTagName('ol')[0].textContent = e.dataTransfer.getData('text');
+		e.preventDefault();
+	};
+};
+</script>
+<div draggable="true"></div>
+<div></div>
+<div></div>
+
+<ol>
+	<li>Make sure at least one other tab is open.</li>
+	<li>Drag the orange square over the blue square.</li>
+	<li>An alert may appear. Do not dismiss it. If an alert does not appear, PASS, and ignore any further steps.</li>
+	<li>Click the other tab to focus it (or focus it in whatever way works). If you cannot change tabs, PASS, and ignore any further steps.</li>
+	<li>Drag a file that your browser cannot open natively from your computer and drop onto that page, then click the tab for this page to return here. If a download dialog appears at any point after this, cancel it, and return to this page.</li>
+	<li>Dismiss the alert without using the left mouse button (eg. use keyboard, or mouse gestures such as gesture-down,gesture-right).</li>
+	<li>Do a short drag and drop within the pink square. If nothing happens, PASS, and ignore any further steps.</li>
+	<li>The word &quot;PASS&quot; should appear in place of this text.</li>
+</ol>

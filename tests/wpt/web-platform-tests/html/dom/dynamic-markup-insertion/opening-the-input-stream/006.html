@@ -1,0 +1,19 @@
+<!doctype html>
+<title>Cancelling error after document.open</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe src="004-1.html"></iframe>
+<script>
+var t = async_test();
+var iframe;
+onload = t.step_func(function() {
+  var iframe = document.getElementsByTagName("iframe")[0];
+  var img = iframe.contentDocument.createElement("img");
+  img.onerror = t.step_func(function() {assert_unreached()})
+  img.src = "missing";
+  iframe.contentDocument.body.appendChild(img);
+  iframe.contentDocument.open()
+  setTimeout(function() {t.done();}, 500);
+});
+</script>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>HTM document.contentType === 'text/html'</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<iframe style="display:none"></iframe>
+<script>
+async_test(function() {
+  var iframe = document.getElementsByTagName('iframe')[0];
+  iframe.addEventListener('load', this.step_func_done(function() {
+    assert_equals(iframe.contentDocument.contentType, "text/html");
+  }), false);
+  iframe.src = "../resources/blob.htm";
+});
+</script>

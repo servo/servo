@@ -1,0 +1,5579 @@
+{"tests": [
+
+{"description": "valid lang attribute 'roh'",
+"input": "<span lang=roh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gv'",
+"input": "<span lang=gv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gu'",
+"input": "<span lang=gu>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'scn'",
+"input": "<span lang=scn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rom'",
+"input": "<span lang=rom>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ron'",
+"input": "<span lang=ron>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'alg'",
+"input": "<span lang=alg>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'oss'",
+"input": "<span lang=oss>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ale'",
+"input": "<span lang=ale>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'alb'",
+"input": "<span lang=alb>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sco'",
+"input": "<span lang=sco>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'scc'",
+"input": "<span lang=scc>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mni'",
+"input": "<span lang=mni>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gd'",
+"input": "<span lang=gd>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'per'",
+"input": "<span lang=per>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ga'",
+"input": "<span lang=ga>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nwc'",
+"input": "<span lang=nwc>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'osa'",
+"input": "<span lang=osa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gn'",
+"input": "<span lang=gn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'alt'",
+"input": "<span lang=alt>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gl'",
+"input": "<span lang=gl>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'scr'",
+"input": "<span lang=scr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mwr'",
+"input": "<span lang=mwr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ty'",
+"input": "<span lang=ty>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tw'",
+"input": "<span lang=tw>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tt'",
+"input": "<span lang=tt>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tr'",
+"input": "<span lang=tr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ts'",
+"input": "<span lang=ts>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tn'",
+"input": "<span lang=tn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'to'",
+"input": "<span lang=to>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tl'",
+"input": "<span lang=tl>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tk'",
+"input": "<span lang=tk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'th'",
+"input": "<span lang=th>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ti'",
+"input": "<span lang=ti>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ven'",
+"input": "<span lang=ven>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tg'",
+"input": "<span lang=tg>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'te'",
+"input": "<span lang=te>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'uga'",
+"input": "<span lang=uga>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ta'",
+"input": "<span lang=ta>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fas'",
+"input": "<span lang=fas>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fat'",
+"input": "<span lang=fat>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fan'",
+"input": "<span lang=fan>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fao'",
+"input": "<span lang=fao>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'got'",
+"input": "<span lang=got>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sme'",
+"input": "<span lang=sme>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'din'",
+"input": "<span lang=din>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hye'",
+"input": "<span lang=hye>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'guj'",
+"input": "<span lang=guj>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cmc'",
+"input": "<span lang=cmc>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'srd'",
+"input": "<span lang=srd>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mdr'",
+"input": "<span lang=mdr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ml'",
+"input": "<span lang=ml>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'div'",
+"input": "<span lang=div>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zh'",
+"input": "<span lang=zh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tem'",
+"input": "<span lang=tem>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'xho'",
+"input": "<span lang=xho>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mno'",
+"input": "<span lang=mno>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'roa'",
+"input": "<span lang=roa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'za'",
+"input": "<span lang=za>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'deu'",
+"input": "<span lang=deu>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mk'",
+"input": "<span lang=mk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nbl'",
+"input": "<span lang=nbl>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zu'",
+"input": "<span lang=zu>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ter'",
+"input": "<span lang=ter>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tet'",
+"input": "<span lang=tet>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mnc'",
+"input": "<span lang=mnc>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sun'",
+"input": "<span lang=sun>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'abk'",
+"input": "<span lang=abk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'suk'",
+"input": "<span lang=suk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kur'",
+"input": "<span lang=kur>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kum'",
+"input": "<span lang=kum>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'slo'",
+"input": "<span lang=slo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sus'",
+"input": "<span lang=sus>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'new'",
+"input": "<span lang=new>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kua'",
+"input": "<span lang=kua>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sux'",
+"input": "<span lang=sux>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'den'",
+"input": "<span lang=den>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mr'",
+"input": "<span lang=mr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mul'",
+"input": "<span lang=mul>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lez'",
+"input": "<span lang=lez>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gla'",
+"input": "<span lang=gla>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bos'",
+"input": "<span lang=bos>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gle'",
+"input": "<span lang=gle>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'eka'",
+"input": "<span lang=eka>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'glg'",
+"input": "<span lang=glg>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'akk'",
+"input": "<span lang=akk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dra'",
+"input": "<span lang=dra>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'aka'",
+"input": "<span lang=aka>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bod'",
+"input": "<span lang=bod>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'glv'",
+"input": "<span lang=glv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'jrb'",
+"input": "<span lang=jrb>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'vie'",
+"input": "<span lang=vie>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ipk'",
+"input": "<span lang=ipk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'uzb'",
+"input": "<span lang=uzb>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sgn'",
+"input": "<span lang=sgn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sga'",
+"input": "<span lang=sga>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bre'",
+"input": "<span lang=bre>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'apa'",
+"input": "<span lang=apa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bra'",
+"input": "<span lang=bra>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'aym'",
+"input": "<span lang=aym>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cha'",
+"input": "<span lang=cha>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chb'",
+"input": "<span lang=chb>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'che'",
+"input": "<span lang=che>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chg'",
+"input": "<span lang=chg>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chi'",
+"input": "<span lang=chi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chk'",
+"input": "<span lang=chk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'aus'",
+"input": "<span lang=aus>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chn'",
+"input": "<span lang=chn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cho'",
+"input": "<span lang=cho>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chp'",
+"input": "<span lang=chp>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chr'",
+"input": "<span lang=chr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chu'",
+"input": "<span lang=chu>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chv'",
+"input": "<span lang=chv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chy'",
+"input": "<span lang=chy>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'msa'",
+"input": "<span lang=msa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'iii'",
+"input": "<span lang=iii>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'vot'",
+"input": "<span lang=vot>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mg'",
+"input": "<span lang=mg>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ndo'",
+"input": "<span lang=ndo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ibo'",
+"input": "<span lang=ibo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'car'",
+"input": "<span lang=car>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mo'",
+"input": "<span lang=mo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mn'",
+"input": "<span lang=mn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mi'",
+"input": "<span lang=mi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mh'",
+"input": "<span lang=mh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cau'",
+"input": "<span lang=cau>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cat'",
+"input": "<span lang=cat>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bur'",
+"input": "<span lang=bur>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mt'",
+"input": "<span lang=mt>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cai'",
+"input": "<span lang=cai>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'del'",
+"input": "<span lang=del>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ms'",
+"input": "<span lang=ms>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'byn'",
+"input": "<span lang=byn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mwl'",
+"input": "<span lang=mwl>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'my'",
+"input": "<span lang=my>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cad'",
+"input": "<span lang=cad>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tat'",
+"input": "<span lang=tat>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nde'",
+"input": "<span lang=nde>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tam'",
+"input": "<span lang=tam>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'spa'",
+"input": "<span lang=spa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tah'",
+"input": "<span lang=tah>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tai'",
+"input": "<span lang=tai>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cze'",
+"input": "<span lang=cze>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'afh'",
+"input": "<span lang=afh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'eng'",
+"input": "<span lang=eng>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'afa'",
+"input": "<span lang=afa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'id'",
+"input": "<span lang=id>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nyn'",
+"input": "<span lang=nyn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nyo'",
+"input": "<span lang=nyo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gez'",
+"input": "<span lang=gez>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nya'",
+"input": "<span lang=nya>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sio'",
+"input": "<span lang=sio>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sin'",
+"input": "<span lang=sin>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'afr'",
+"input": "<span lang=afr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'map'",
+"input": "<span lang=map>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fr'",
+"input": "<span lang=fr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lao'",
+"input": "<span lang=lao>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lah'",
+"input": "<span lang=lah>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nym'",
+"input": "<span lang=nym>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sna'",
+"input": "<span lang=sna>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lad'",
+"input": "<span lang=lad>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fy'",
+"input": "<span lang=fy>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'snk'",
+"input": "<span lang=snk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fa'",
+"input": "<span lang=fa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mac'",
+"input": "<span lang=mac>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mad'",
+"input": "<span lang=mad>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ff'",
+"input": "<span lang=ff>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lat'",
+"input": "<span lang=lat>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fi'",
+"input": "<span lang=fi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fj'",
+"input": "<span lang=fj>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mal'",
+"input": "<span lang=mal>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mao'",
+"input": "<span lang=mao>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fo'",
+"input": "<span lang=fo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mak'",
+"input": "<span lang=mak>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'egy'",
+"input": "<span lang=egy>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'znd'",
+"input": "<span lang=znd>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ss'",
+"input": "<span lang=ss>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sr'",
+"input": "<span lang=sr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sq'",
+"input": "<span lang=sq>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sit'",
+"input": "<span lang=sit>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sw'",
+"input": "<span lang=sw>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sv'",
+"input": "<span lang=sv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'su'",
+"input": "<span lang=su>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'st'",
+"input": "<span lang=st>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sk'",
+"input": "<span lang=sk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'si'",
+"input": "<span lang=si>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sh'",
+"input": "<span lang=sh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'so'",
+"input": "<span lang=so>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sn'",
+"input": "<span lang=sn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sm'",
+"input": "<span lang=sm>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sl'",
+"input": "<span lang=sl>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sc'",
+"input": "<span lang=sc>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sa'",
+"input": "<span lang=sa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sg'",
+"input": "<span lang=sg>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'se'",
+"input": "<span lang=se>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sd'",
+"input": "<span lang=sd>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zen'",
+"input": "<span lang=zen>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kbd'",
+"input": "<span lang=kbd>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'enm'",
+"input": "<span lang=enm>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'iro'",
+"input": "<span lang=iro>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'vai'",
+"input": "<span lang=vai>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'csb'",
+"input": "<span lang=csb>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tsn'",
+"input": "<span lang=tsn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lg'",
+"input": "<span lang=lg>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lb'",
+"input": "<span lang=lb>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'la'",
+"input": "<span lang=la>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ln'",
+"input": "<span lang=ln>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lo'",
+"input": "<span lang=lo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'li'",
+"input": "<span lang=li>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lv'",
+"input": "<span lang=lv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lt'",
+"input": "<span lang=lt>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lu'",
+"input": "<span lang=lu>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hin'",
+"input": "<span lang=hin>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fij'",
+"input": "<span lang=fij>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fin'",
+"input": "<span lang=fin>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'eus'",
+"input": "<span lang=eus>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'yi'",
+"input": "<span lang=yi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'non'",
+"input": "<span lang=non>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ceb'",
+"input": "<span lang=ceb>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'yo'",
+"input": "<span lang=yo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dan'",
+"input": "<span lang=dan>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cel'",
+"input": "<span lang=cel>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bat'",
+"input": "<span lang=bat>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nob'",
+"input": "<span lang=nob>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dak'",
+"input": "<span lang=dak>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ces'",
+"input": "<span lang=ces>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dar'",
+"input": "<span lang=dar>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'son'",
+"input": "<span lang=son>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'day'",
+"input": "<span lang=day>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nor'",
+"input": "<span lang=nor>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gba'",
+"input": "<span lang=gba>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ssa'",
+"input": "<span lang=ssa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hil'",
+"input": "<span lang=hil>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kpe'",
+"input": "<span lang=kpe>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'man'",
+"input": "<span lang=man>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wel'",
+"input": "<span lang=wel>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'el'",
+"input": "<span lang=el>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'eo'",
+"input": "<span lang=eo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'en'",
+"input": "<span lang=en>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lam'",
+"input": "<span lang=lam>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ee'",
+"input": "<span lang=ee>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tpi'",
+"input": "<span lang=tpi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mdf'",
+"input": "<span lang=mdf>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mas'",
+"input": "<span lang=mas>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mar'",
+"input": "<span lang=mar>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'eu'",
+"input": "<span lang=eu>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'et'",
+"input": "<span lang=et>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'es'",
+"input": "<span lang=es>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ru'",
+"input": "<span lang=ru>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rw'",
+"input": "<span lang=rw>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'goh'",
+"input": "<span lang=goh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sms'",
+"input": "<span lang=sms>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'smo'",
+"input": "<span lang=smo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'smn'",
+"input": "<span lang=smn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'smj'",
+"input": "<span lang=smj>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'smi'",
+"input": "<span lang=smi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nic'",
+"input": "<span lang=nic>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rm'",
+"input": "<span lang=rm>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rn'",
+"input": "<span lang=rn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ro'",
+"input": "<span lang=ro>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dsb'",
+"input": "<span lang=dsb>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sma'",
+"input": "<span lang=sma>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gor'",
+"input": "<span lang=gor>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ast'",
+"input": "<span lang=ast>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'orm'",
+"input": "<span lang=orm>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'que'",
+"input": "<span lang=que>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ori'",
+"input": "<span lang=ori>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'crh'",
+"input": "<span lang=crh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'asm'",
+"input": "<span lang=asm>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pus'",
+"input": "<span lang=pus>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kik'",
+"input": "<span lang=kik>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ltz'",
+"input": "<span lang=ltz>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ath'",
+"input": "<span lang=ath>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wln'",
+"input": "<span lang=wln>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'isl'",
+"input": "<span lang=isl>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'xh'",
+"input": "<span lang=xh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mag'",
+"input": "<span lang=mag>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mai'",
+"input": "<span lang=mai>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'xx'",
+"input": "<span lang=xx>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mah'",
+"input": "<span lang=mah>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tel'",
+"input": "<span lang=tel>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lav'",
+"input": "<span lang=lav>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zap'",
+"input": "<span lang=zap>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'yid'",
+"input": "<span lang=yid>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kok'",
+"input": "<span lang=kok>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kom'",
+"input": "<span lang=kom>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kon'",
+"input": "<span lang=kon>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ukr'",
+"input": "<span lang=ukr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ton'",
+"input": "<span lang=ton>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kos'",
+"input": "<span lang=kos>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kor'",
+"input": "<span lang=kor>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tog'",
+"input": "<span lang=tog>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hun'",
+"input": "<span lang=hun>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hup'",
+"input": "<span lang=hup>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cym'",
+"input": "<span lang=cym>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'udm'",
+"input": "<span lang=udm>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bej'",
+"input": "<span lang=bej>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ben'",
+"input": "<span lang=ben>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bel'",
+"input": "<span lang=bel>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bem'",
+"input": "<span lang=bem>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tsi'",
+"input": "<span lang=tsi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'aar'",
+"input": "<span lang=aar>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ber'",
+"input": "<span lang=ber>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nzi'",
+"input": "<span lang=nzi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sai'",
+"input": "<span lang=sai>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ang'",
+"input": "<span lang=ang>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pra'",
+"input": "<span lang=pra>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'san'",
+"input": "<span lang=san>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bho'",
+"input": "<span lang=bho>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sal'",
+"input": "<span lang=sal>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pro'",
+"input": "<span lang=pro>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'raj'",
+"input": "<span lang=raj>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sad'",
+"input": "<span lang=sad>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'anp'",
+"input": "<span lang=anp>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rap'",
+"input": "<span lang=rap>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sas'",
+"input": "<span lang=sas>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'iba'",
+"input": "<span lang=iba>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'myn'",
+"input": "<span lang=myn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'min'",
+"input": "<span lang=min>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lim'",
+"input": "<span lang=lim>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lin'",
+"input": "<span lang=lin>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nah'",
+"input": "<span lang=nah>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lit'",
+"input": "<span lang=lit>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'efi'",
+"input": "<span lang=efi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'srn'",
+"input": "<span lang=srn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'arn'",
+"input": "<span lang=arn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ypk'",
+"input": "<span lang=ypk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mis'",
+"input": "<span lang=mis>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kac'",
+"input": "<span lang=kac>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kab'",
+"input": "<span lang=kab>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kaa'",
+"input": "<span lang=kaa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kan'",
+"input": "<span lang=kan>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kam'",
+"input": "<span lang=kam>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kal'",
+"input": "<span lang=kal>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kas'",
+"input": "<span lang=kas>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kar'",
+"input": "<span lang=kar>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kaw'",
+"input": "<span lang=kaw>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kau'",
+"input": "<span lang=kau>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kat'",
+"input": "<span lang=kat>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kaz'",
+"input": "<span lang=kaz>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tyv'",
+"input": "<span lang=tyv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'awa'",
+"input": "<span lang=awa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'urd'",
+"input": "<span lang=urd>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ka'",
+"input": "<span lang=ka>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'doi'",
+"input": "<span lang=doi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kg'",
+"input": "<span lang=kg>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kk'",
+"input": "<span lang=kk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kj'",
+"input": "<span lang=kj>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ki'",
+"input": "<span lang=ki>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ko'",
+"input": "<span lang=ko>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kn'",
+"input": "<span lang=kn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'km'",
+"input": "<span lang=km>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kl'",
+"input": "<span lang=kl>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ks'",
+"input": "<span lang=ks>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kr'",
+"input": "<span lang=kr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kw'",
+"input": "<span lang=kw>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kv'",
+"input": "<span lang=kv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ku'",
+"input": "<span lang=ku>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ky'",
+"input": "<span lang=ky>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ota'",
+"input": "<span lang=ota>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kut'",
+"input": "<span lang=kut>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tkl'",
+"input": "<span lang=tkl>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nld'",
+"input": "<span lang=nld>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'oji'",
+"input": "<span lang=oji>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'oci'",
+"input": "<span lang=oci>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ha'",
+"input": "<span lang=ha>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wol'",
+"input": "<span lang=wol>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'jav'",
+"input": "<span lang=jav>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hrv'",
+"input": "<span lang=hrv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ger'",
+"input": "<span lang=ger>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mga'",
+"input": "<span lang=mga>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hit'",
+"input": "<span lang=hit>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dyu'",
+"input": "<span lang=dyu>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ssw'",
+"input": "<span lang=ssw>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'de'",
+"input": "<span lang=de>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'da'",
+"input": "<span lang=da>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dz'",
+"input": "<span lang=dz>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lui'",
+"input": "<span lang=lui>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dv'",
+"input": "<span lang=dv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ita'",
+"input": "<span lang=ita>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'geo'",
+"input": "<span lang=geo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'him'",
+"input": "<span lang=him>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gem'",
+"input": "<span lang=gem>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'crp'",
+"input": "<span lang=crp>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'qu'",
+"input": "<span lang=qu>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bas'",
+"input": "<span lang=bas>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'baq'",
+"input": "<span lang=baq>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bad'",
+"input": "<span lang=bad>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nep'",
+"input": "<span lang=nep>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cre'",
+"input": "<span lang=cre>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ban'",
+"input": "<span lang=ban>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'x'",
+"input": "<span lang=x>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bal'",
+"input": "<span lang=bal>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bam'",
+"input": "<span lang=bam>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bak'",
+"input": "<span lang=bak>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'shn'",
+"input": "<span lang=shn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bai'",
+"input": "<span lang=bai>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'arp'",
+"input": "<span lang=arp>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'art'",
+"input": "<span lang=art>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'arw'",
+"input": "<span lang=arw>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'qtz'",
+"input": "<span lang=qtz>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ara'",
+"input": "<span lang=ara>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'arc'",
+"input": "<span lang=arc>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'arg'",
+"input": "<span lang=arg>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sem'",
+"input": "<span lang=sem>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sel'",
+"input": "<span lang=sel>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nub'",
+"input": "<span lang=nub>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'arm'",
+"input": "<span lang=arm>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'btk'",
+"input": "<span lang=btk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lus'",
+"input": "<span lang=lus>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'iku'",
+"input": "<span lang=iku>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mus'",
+"input": "<span lang=mus>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lua'",
+"input": "<span lang=lua>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lub'",
+"input": "<span lang=lub>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lug'",
+"input": "<span lang=lug>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ira'",
+"input": "<span lang=ira>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mun'",
+"input": "<span lang=mun>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tur'",
+"input": "<span lang=tur>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lun'",
+"input": "<span lang=lun>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'luo'",
+"input": "<span lang=luo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'men'",
+"input": "<span lang=men>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wa'",
+"input": "<span lang=wa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tso'",
+"input": "<span lang=tso>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wo'",
+"input": "<span lang=wo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'jv'",
+"input": "<span lang=jv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tut'",
+"input": "<span lang=tut>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ind'",
+"input": "<span lang=ind>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tuk'",
+"input": "<span lang=tuk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tum'",
+"input": "<span lang=tum>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ja'",
+"input": "<span lang=ja>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cop'",
+"input": "<span lang=cop>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cos'",
+"input": "<span lang=cos>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cor'",
+"input": "<span lang=cor>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ilo'",
+"input": "<span lang=ilo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fiu'",
+"input": "<span lang=fiu>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gwi'",
+"input": "<span lang=gwi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'und'",
+"input": "<span lang=und>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gws'",
+"input": "<span lang=gws>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tli'",
+"input": "<span lang=tli>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tlh'",
+"input": "<span lang=tlh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nno'",
+"input": "<span lang=nno>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ch'",
+"input": "<span lang=ch>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'co'",
+"input": "<span lang=co>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ca'",
+"input": "<span lang=ca>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'por'",
+"input": "<span lang=por>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ce'",
+"input": "<span lang=ce>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pon'",
+"input": "<span lang=pon>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cy'",
+"input": "<span lang=cy>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sah'",
+"input": "<span lang=sah>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cs'",
+"input": "<span lang=cs>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cr'",
+"input": "<span lang=cr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ady'",
+"input": "<span lang=ady>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cv'",
+"input": "<span lang=cv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cu'",
+"input": "<span lang=cu>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ps'",
+"input": "<span lang=ps>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fra'",
+"input": "<span lang=fra>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dum'",
+"input": "<span lang=dum>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pt'",
+"input": "<span lang=pt>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'swa'",
+"input": "<span lang=swa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dua'",
+"input": "<span lang=dua>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fro'",
+"input": "<span lang=fro>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'yap'",
+"input": "<span lang=yap>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'frm'",
+"input": "<span lang=frm>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tiv'",
+"input": "<span lang=tiv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'frs'",
+"input": "<span lang=frs>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'frr'",
+"input": "<span lang=frr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'yao'",
+"input": "<span lang=yao>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pa'",
+"input": "<span lang=pa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'xal'",
+"input": "<span lang=xal>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fry'",
+"input": "<span lang=fry>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pi'",
+"input": "<span lang=pi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dut'",
+"input": "<span lang=dut>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pl'",
+"input": "<span lang=pl>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gay'",
+"input": "<span lang=gay>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'oto'",
+"input": "<span lang=oto>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sag'",
+"input": "<span lang=sag>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hmn'",
+"input": "<span lang=hmn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hmo'",
+"input": "<span lang=hmo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'an'",
+"input": "<span lang=an>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gaa'",
+"input": "<span lang=gaa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fur'",
+"input": "<span lang=fur>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mlg'",
+"input": "<span lang=mlg>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'slv'",
+"input": "<span lang=slv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ain'",
+"input": "<span lang=ain>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fil'",
+"input": "<span lang=fil>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mlt'",
+"input": "<span lang=mlt>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'slk'",
+"input": "<span lang=slk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rar'",
+"input": "<span lang=rar>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ful'",
+"input": "<span lang=ful>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sla'",
+"input": "<span lang=sla>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 've'",
+"input": "<span lang=ve>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'jpn'",
+"input": "<span lang=jpn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'vol'",
+"input": "<span lang=vol>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'vi'",
+"input": "<span lang=vi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'is'",
+"input": "<span lang=is>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kho'",
+"input": "<span lang=kho>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'iu'",
+"input": "<span lang=iu>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'it'",
+"input": "<span lang=it>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'vo'",
+"input": "<span lang=vo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ii'",
+"input": "<span lang=ii>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ay'",
+"input": "<span lang=ay>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ik'",
+"input": "<span lang=ik>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'io'",
+"input": "<span lang=io>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kha'",
+"input": "<span lang=kha>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ia'",
+"input": "<span lang=ia>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ave'",
+"input": "<span lang=ave>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'jpr'",
+"input": "<span lang=jpr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ie'",
+"input": "<span lang=ie>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ava'",
+"input": "<span lang=ava>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ig'",
+"input": "<span lang=ig>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pap'",
+"input": "<span lang=pap>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ewo'",
+"input": "<span lang=ewo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pau'",
+"input": "<span lang=pau>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ewe'",
+"input": "<span lang=ewe>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'paa'",
+"input": "<span lang=paa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'qaa'",
+"input": "<span lang=qaa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pag'",
+"input": "<span lang=pag>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sat'",
+"input": "<span lang=sat>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pal'",
+"input": "<span lang=pal>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pam'",
+"input": "<span lang=pam>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pan'",
+"input": "<span lang=pan>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'phi'",
+"input": "<span lang=phi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nog'",
+"input": "<span lang=nog>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'phn'",
+"input": "<span lang=phn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kir'",
+"input": "<span lang=kir>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nia'",
+"input": "<span lang=nia>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dgr'",
+"input": "<span lang=dgr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'syr'",
+"input": "<span lang=syr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kin'",
+"input": "<span lang=kin>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tup'",
+"input": "<span lang=tup>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'niu'",
+"input": "<span lang=niu>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gsw'",
+"input": "<span lang=gsw>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'epo'",
+"input": "<span lang=epo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'jbo'",
+"input": "<span lang=jbo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mic'",
+"input": "<span lang=mic>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tha'",
+"input": "<span lang=tha>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sam'",
+"input": "<span lang=sam>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hai'",
+"input": "<span lang=hai>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gmh'",
+"input": "<span lang=gmh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cus'",
+"input": "<span lang=cus>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ell'",
+"input": "<span lang=ell>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wen'",
+"input": "<span lang=wen>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bnt'",
+"input": "<span lang=bnt>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fre'",
+"input": "<span lang=fre>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'elx'",
+"input": "<span lang=elx>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ada'",
+"input": "<span lang=ada>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nav'",
+"input": "<span lang=nav>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hat'",
+"input": "<span lang=hat>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hau'",
+"input": "<span lang=hau>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'haw'",
+"input": "<span lang=haw>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bin'",
+"input": "<span lang=bin>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'amh'",
+"input": "<span lang=amh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bik'",
+"input": "<span lang=bik>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bih'",
+"input": "<span lang=bih>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mos'",
+"input": "<span lang=mos>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'moh'",
+"input": "<span lang=moh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mon'",
+"input": "<span lang=mon>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mol'",
+"input": "<span lang=mol>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bis'",
+"input": "<span lang=bis>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bla'",
+"input": "<span lang=bla>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pol'",
+"input": "<span lang=pol>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tib'",
+"input": "<span lang=tib>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tvl'",
+"input": "<span lang=tvl>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tgk'",
+"input": "<span lang=tgk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ijo'",
+"input": "<span lang=ijo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'est'",
+"input": "<span lang=est>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kmb'",
+"input": "<span lang=kmb>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ice'",
+"input": "<span lang=ice>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'peo'",
+"input": "<span lang=peo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tgl'",
+"input": "<span lang=tgl>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'umb'",
+"input": "<span lang=umb>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tmh'",
+"input": "<span lang=tmh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fon'",
+"input": "<span lang=fon>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hsb'",
+"input": "<span lang=hsb>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'be'",
+"input": "<span lang=be>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bg'",
+"input": "<span lang=bg>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'run'",
+"input": "<span lang=run>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ba'",
+"input": "<span lang=ba>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rum'",
+"input": "<span lang=rum>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bm'",
+"input": "<span lang=bm>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bn'",
+"input": "<span lang=bn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bo'",
+"input": "<span lang=bo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bh'",
+"input": "<span lang=bh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bi'",
+"input": "<span lang=bi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'br'",
+"input": "<span lang=br>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bs'",
+"input": "<span lang=bs>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rus'",
+"input": "<span lang=rus>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rup'",
+"input": "<span lang=rup>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pli'",
+"input": "<span lang=pli>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'om'",
+"input": "<span lang=om>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'oj'",
+"input": "<span lang=oj>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ace'",
+"input": "<span lang=ace>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ach'",
+"input": "<span lang=ach>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'oc'",
+"input": "<span lang=oc>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dzo'",
+"input": "<span lang=dzo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kru'",
+"input": "<span lang=kru>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'srr'",
+"input": "<span lang=srr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ido'",
+"input": "<span lang=ido>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'srp'",
+"input": "<span lang=srp>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kro'",
+"input": "<span lang=kro>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'krl'",
+"input": "<span lang=krl>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'krc'",
+"input": "<span lang=krc>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nds'",
+"input": "<span lang=nds>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'os'",
+"input": "<span lang=os>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'or'",
+"input": "<span lang=or>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zul'",
+"input": "<span lang=zul>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'twi'",
+"input": "<span lang=twi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sog'",
+"input": "<span lang=sog>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nso'",
+"input": "<span lang=nso>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'swe'",
+"input": "<span lang=swe>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'som'",
+"input": "<span lang=som>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chm'",
+"input": "<span lang=chm>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'snd'",
+"input": "<span lang=snd>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sot'",
+"input": "<span lang=sot>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mkd'",
+"input": "<span lang=mkd>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wak'",
+"input": "<span lang=wak>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'her'",
+"input": "<span lang=her>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lol'",
+"input": "<span lang=lol>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mkh'",
+"input": "<span lang=mkh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'heb'",
+"input": "<span lang=heb>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'loz'",
+"input": "<span lang=loz>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gil'",
+"input": "<span lang=gil>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'was'",
+"input": "<span lang=was>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'war'",
+"input": "<span lang=war>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hz'",
+"input": "<span lang=hz>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hy'",
+"input": "<span lang=hy>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sid'",
+"input": "<span lang=sid>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hr'",
+"input": "<span lang=hr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ht'",
+"input": "<span lang=ht>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hu'",
+"input": "<span lang=hu>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hi'",
+"input": "<span lang=hi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ho'",
+"input": "<span lang=ho>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bul'",
+"input": "<span lang=bul>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wal'",
+"input": "<span lang=wal>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bua'",
+"input": "<span lang=bua>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bug'",
+"input": "<span lang=bug>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'he'",
+"input": "<span lang=he>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'uz'",
+"input": "<span lang=uz>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'aze'",
+"input": "<span lang=aze>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ur'",
+"input": "<span lang=ur>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zha'",
+"input": "<span lang=zha>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'uk'",
+"input": "<span lang=uk>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ug'",
+"input": "<span lang=ug>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zho'",
+"input": "<span lang=zho>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'aa'",
+"input": "<span lang=aa>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ab'",
+"input": "<span lang=ab>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ae'",
+"input": "<span lang=ae>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'uig'",
+"input": "<span lang=uig>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'af'",
+"input": "<span lang=af>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ak'",
+"input": "<span lang=ak>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'am'",
+"input": "<span lang=am>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'myv'",
+"input": "<span lang=myv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'khi'",
+"input": "<span lang=khi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'as'",
+"input": "<span lang=as>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ar'",
+"input": "<span lang=ar>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'inh'",
+"input": "<span lang=inh>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'khm'",
+"input": "<span lang=khm>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'av'",
+"input": "<span lang=av>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mya'",
+"input": "<span lang=mya>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ine'",
+"input": "<span lang=ine>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'az'",
+"input": "<span lang=az>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ina'",
+"input": "<span lang=ina>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'inc'",
+"input": "<span lang=inc>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nl'",
+"input": "<span lang=nl>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nn'",
+"input": "<span lang=nn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'no'",
+"input": "<span lang=no>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'na'",
+"input": "<span lang=na>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nb'",
+"input": "<span lang=nb>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nai'",
+"input": "<span lang=nai>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nd'",
+"input": "<span lang=nd>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ne'",
+"input": "<span lang=ne>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tir'",
+"input": "<span lang=tir>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ng'",
+"input": "<span lang=ng>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ny'",
+"input": "<span lang=ny>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nap'",
+"input": "<span lang=nap>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gre'",
+"input": "<span lang=gre>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'grb'",
+"input": "<span lang=grb>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'grc'",
+"input": "<span lang=grc>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nau'",
+"input": "<span lang=nau>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'grn'",
+"input": "<span lang=grn>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nr'",
+"input": "<span lang=nr>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tig'",
+"input": "<span lang=tig>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'yor'",
+"input": "<span lang=yor>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nv'",
+"input": "<span lang=nv>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mri'",
+"input": "<span lang=mri>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'may'",
+"input": "<span lang=may>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zun'",
+"input": "<span lang=zun>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ile'",
+"input": "<span lang=ile>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sqi'",
+"input": "<span lang=sqi>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gon'",
+"input": "<span lang=gon>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cpe'",
+"input": "<span lang=cpe>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cpf'",
+"input": "<span lang=cpf>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cpp'",
+"input": "<span lang=cpp>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'roh-foo'",
+"input": "<span lang=roh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gv-foo'",
+"input": "<span lang=gv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gu-foo'",
+"input": "<span lang=gu-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'scn-foo'",
+"input": "<span lang=scn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rom-foo'",
+"input": "<span lang=rom-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ron-foo'",
+"input": "<span lang=ron-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'alg-foo'",
+"input": "<span lang=alg-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'oss-foo'",
+"input": "<span lang=oss-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ale-foo'",
+"input": "<span lang=ale-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'alb-foo'",
+"input": "<span lang=alb-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sco-foo'",
+"input": "<span lang=sco-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'scc-foo'",
+"input": "<span lang=scc-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mni-foo'",
+"input": "<span lang=mni-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gd-foo'",
+"input": "<span lang=gd-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'per-foo'",
+"input": "<span lang=per-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ga-foo'",
+"input": "<span lang=ga-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nwc-foo'",
+"input": "<span lang=nwc-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'osa-foo'",
+"input": "<span lang=osa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gn-foo'",
+"input": "<span lang=gn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'alt-foo'",
+"input": "<span lang=alt-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gl-foo'",
+"input": "<span lang=gl-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'scr-foo'",
+"input": "<span lang=scr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mwr-foo'",
+"input": "<span lang=mwr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ty-foo'",
+"input": "<span lang=ty-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tw-foo'",
+"input": "<span lang=tw-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tt-foo'",
+"input": "<span lang=tt-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tr-foo'",
+"input": "<span lang=tr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ts-foo'",
+"input": "<span lang=ts-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tn-foo'",
+"input": "<span lang=tn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'to-foo'",
+"input": "<span lang=to-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tl-foo'",
+"input": "<span lang=tl-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tk-foo'",
+"input": "<span lang=tk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'th-foo'",
+"input": "<span lang=th-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ti-foo'",
+"input": "<span lang=ti-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ven-foo'",
+"input": "<span lang=ven-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tg-foo'",
+"input": "<span lang=tg-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'te-foo'",
+"input": "<span lang=te-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'uga-foo'",
+"input": "<span lang=uga-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ta-foo'",
+"input": "<span lang=ta-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fas-foo'",
+"input": "<span lang=fas-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fat-foo'",
+"input": "<span lang=fat-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fan-foo'",
+"input": "<span lang=fan-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fao-foo'",
+"input": "<span lang=fao-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'got-foo'",
+"input": "<span lang=got-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sme-foo'",
+"input": "<span lang=sme-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'din-foo'",
+"input": "<span lang=din-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hye-foo'",
+"input": "<span lang=hye-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'guj-foo'",
+"input": "<span lang=guj-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cmc-foo'",
+"input": "<span lang=cmc-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'srd-foo'",
+"input": "<span lang=srd-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mdr-foo'",
+"input": "<span lang=mdr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ml-foo'",
+"input": "<span lang=ml-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'div-foo'",
+"input": "<span lang=div-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zh-foo'",
+"input": "<span lang=zh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tem-foo'",
+"input": "<span lang=tem-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'xho-foo'",
+"input": "<span lang=xho-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mno-foo'",
+"input": "<span lang=mno-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'roa-foo'",
+"input": "<span lang=roa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'za-foo'",
+"input": "<span lang=za-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'deu-foo'",
+"input": "<span lang=deu-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mk-foo'",
+"input": "<span lang=mk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nbl-foo'",
+"input": "<span lang=nbl-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zu-foo'",
+"input": "<span lang=zu-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ter-foo'",
+"input": "<span lang=ter-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tet-foo'",
+"input": "<span lang=tet-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mnc-foo'",
+"input": "<span lang=mnc-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sun-foo'",
+"input": "<span lang=sun-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'abk-foo'",
+"input": "<span lang=abk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'suk-foo'",
+"input": "<span lang=suk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kur-foo'",
+"input": "<span lang=kur-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kum-foo'",
+"input": "<span lang=kum-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'slo-foo'",
+"input": "<span lang=slo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sus-foo'",
+"input": "<span lang=sus-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'new-foo'",
+"input": "<span lang=new-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kua-foo'",
+"input": "<span lang=kua-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sux-foo'",
+"input": "<span lang=sux-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'den-foo'",
+"input": "<span lang=den-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mr-foo'",
+"input": "<span lang=mr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mul-foo'",
+"input": "<span lang=mul-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lez-foo'",
+"input": "<span lang=lez-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gla-foo'",
+"input": "<span lang=gla-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bos-foo'",
+"input": "<span lang=bos-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gle-foo'",
+"input": "<span lang=gle-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'eka-foo'",
+"input": "<span lang=eka-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'glg-foo'",
+"input": "<span lang=glg-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'akk-foo'",
+"input": "<span lang=akk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dra-foo'",
+"input": "<span lang=dra-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'aka-foo'",
+"input": "<span lang=aka-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bod-foo'",
+"input": "<span lang=bod-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'glv-foo'",
+"input": "<span lang=glv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'jrb-foo'",
+"input": "<span lang=jrb-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'vie-foo'",
+"input": "<span lang=vie-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ipk-foo'",
+"input": "<span lang=ipk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'uzb-foo'",
+"input": "<span lang=uzb-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sgn-foo'",
+"input": "<span lang=sgn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sga-foo'",
+"input": "<span lang=sga-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bre-foo'",
+"input": "<span lang=bre-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'apa-foo'",
+"input": "<span lang=apa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bra-foo'",
+"input": "<span lang=bra-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'aym-foo'",
+"input": "<span lang=aym-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cha-foo'",
+"input": "<span lang=cha-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chb-foo'",
+"input": "<span lang=chb-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'che-foo'",
+"input": "<span lang=che-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chg-foo'",
+"input": "<span lang=chg-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chi-foo'",
+"input": "<span lang=chi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chk-foo'",
+"input": "<span lang=chk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'aus-foo'",
+"input": "<span lang=aus-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chn-foo'",
+"input": "<span lang=chn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cho-foo'",
+"input": "<span lang=cho-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chp-foo'",
+"input": "<span lang=chp-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chr-foo'",
+"input": "<span lang=chr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chu-foo'",
+"input": "<span lang=chu-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chv-foo'",
+"input": "<span lang=chv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chy-foo'",
+"input": "<span lang=chy-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'msa-foo'",
+"input": "<span lang=msa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'iii-foo'",
+"input": "<span lang=iii-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'vot-foo'",
+"input": "<span lang=vot-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mg-foo'",
+"input": "<span lang=mg-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ndo-foo'",
+"input": "<span lang=ndo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ibo-foo'",
+"input": "<span lang=ibo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'car-foo'",
+"input": "<span lang=car-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mo-foo'",
+"input": "<span lang=mo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mn-foo'",
+"input": "<span lang=mn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mi-foo'",
+"input": "<span lang=mi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mh-foo'",
+"input": "<span lang=mh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cau-foo'",
+"input": "<span lang=cau-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cat-foo'",
+"input": "<span lang=cat-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bur-foo'",
+"input": "<span lang=bur-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mt-foo'",
+"input": "<span lang=mt-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cai-foo'",
+"input": "<span lang=cai-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'del-foo'",
+"input": "<span lang=del-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ms-foo'",
+"input": "<span lang=ms-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'byn-foo'",
+"input": "<span lang=byn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mwl-foo'",
+"input": "<span lang=mwl-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'my-foo'",
+"input": "<span lang=my-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cad-foo'",
+"input": "<span lang=cad-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tat-foo'",
+"input": "<span lang=tat-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nde-foo'",
+"input": "<span lang=nde-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tam-foo'",
+"input": "<span lang=tam-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'spa-foo'",
+"input": "<span lang=spa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tah-foo'",
+"input": "<span lang=tah-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tai-foo'",
+"input": "<span lang=tai-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cze-foo'",
+"input": "<span lang=cze-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'afh-foo'",
+"input": "<span lang=afh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'eng-foo'",
+"input": "<span lang=eng-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'afa-foo'",
+"input": "<span lang=afa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'id-foo'",
+"input": "<span lang=id-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nyn-foo'",
+"input": "<span lang=nyn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nyo-foo'",
+"input": "<span lang=nyo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gez-foo'",
+"input": "<span lang=gez-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nya-foo'",
+"input": "<span lang=nya-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sio-foo'",
+"input": "<span lang=sio-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sin-foo'",
+"input": "<span lang=sin-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'afr-foo'",
+"input": "<span lang=afr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'map-foo'",
+"input": "<span lang=map-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fr-foo'",
+"input": "<span lang=fr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lao-foo'",
+"input": "<span lang=lao-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lah-foo'",
+"input": "<span lang=lah-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nym-foo'",
+"input": "<span lang=nym-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sna-foo'",
+"input": "<span lang=sna-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lad-foo'",
+"input": "<span lang=lad-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fy-foo'",
+"input": "<span lang=fy-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'snk-foo'",
+"input": "<span lang=snk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fa-foo'",
+"input": "<span lang=fa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mac-foo'",
+"input": "<span lang=mac-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mad-foo'",
+"input": "<span lang=mad-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ff-foo'",
+"input": "<span lang=ff-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lat-foo'",
+"input": "<span lang=lat-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fi-foo'",
+"input": "<span lang=fi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fj-foo'",
+"input": "<span lang=fj-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mal-foo'",
+"input": "<span lang=mal-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mao-foo'",
+"input": "<span lang=mao-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fo-foo'",
+"input": "<span lang=fo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mak-foo'",
+"input": "<span lang=mak-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'egy-foo'",
+"input": "<span lang=egy-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'znd-foo'",
+"input": "<span lang=znd-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ss-foo'",
+"input": "<span lang=ss-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sr-foo'",
+"input": "<span lang=sr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sq-foo'",
+"input": "<span lang=sq-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sit-foo'",
+"input": "<span lang=sit-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sw-foo'",
+"input": "<span lang=sw-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sv-foo'",
+"input": "<span lang=sv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'su-foo'",
+"input": "<span lang=su-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'st-foo'",
+"input": "<span lang=st-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sk-foo'",
+"input": "<span lang=sk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'si-foo'",
+"input": "<span lang=si-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sh-foo'",
+"input": "<span lang=sh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'so-foo'",
+"input": "<span lang=so-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sn-foo'",
+"input": "<span lang=sn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sm-foo'",
+"input": "<span lang=sm-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sl-foo'",
+"input": "<span lang=sl-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sc-foo'",
+"input": "<span lang=sc-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sa-foo'",
+"input": "<span lang=sa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sg-foo'",
+"input": "<span lang=sg-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'se-foo'",
+"input": "<span lang=se-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sd-foo'",
+"input": "<span lang=sd-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zen-foo'",
+"input": "<span lang=zen-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kbd-foo'",
+"input": "<span lang=kbd-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'enm-foo'",
+"input": "<span lang=enm-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'iro-foo'",
+"input": "<span lang=iro-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'vai-foo'",
+"input": "<span lang=vai-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'csb-foo'",
+"input": "<span lang=csb-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tsn-foo'",
+"input": "<span lang=tsn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lg-foo'",
+"input": "<span lang=lg-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lb-foo'",
+"input": "<span lang=lb-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'la-foo'",
+"input": "<span lang=la-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ln-foo'",
+"input": "<span lang=ln-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lo-foo'",
+"input": "<span lang=lo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'li-foo'",
+"input": "<span lang=li-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lv-foo'",
+"input": "<span lang=lv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lt-foo'",
+"input": "<span lang=lt-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lu-foo'",
+"input": "<span lang=lu-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hin-foo'",
+"input": "<span lang=hin-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fij-foo'",
+"input": "<span lang=fij-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fin-foo'",
+"input": "<span lang=fin-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'eus-foo'",
+"input": "<span lang=eus-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'yi-foo'",
+"input": "<span lang=yi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'non-foo'",
+"input": "<span lang=non-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ceb-foo'",
+"input": "<span lang=ceb-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'yo-foo'",
+"input": "<span lang=yo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dan-foo'",
+"input": "<span lang=dan-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cel-foo'",
+"input": "<span lang=cel-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bat-foo'",
+"input": "<span lang=bat-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nob-foo'",
+"input": "<span lang=nob-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dak-foo'",
+"input": "<span lang=dak-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ces-foo'",
+"input": "<span lang=ces-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dar-foo'",
+"input": "<span lang=dar-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'son-foo'",
+"input": "<span lang=son-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'day-foo'",
+"input": "<span lang=day-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nor-foo'",
+"input": "<span lang=nor-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gba-foo'",
+"input": "<span lang=gba-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ssa-foo'",
+"input": "<span lang=ssa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hil-foo'",
+"input": "<span lang=hil-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kpe-foo'",
+"input": "<span lang=kpe-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'man-foo'",
+"input": "<span lang=man-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wel-foo'",
+"input": "<span lang=wel-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'el-foo'",
+"input": "<span lang=el-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'eo-foo'",
+"input": "<span lang=eo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'en-foo'",
+"input": "<span lang=en-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lam-foo'",
+"input": "<span lang=lam-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ee-foo'",
+"input": "<span lang=ee-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tpi-foo'",
+"input": "<span lang=tpi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mdf-foo'",
+"input": "<span lang=mdf-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mas-foo'",
+"input": "<span lang=mas-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mar-foo'",
+"input": "<span lang=mar-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'eu-foo'",
+"input": "<span lang=eu-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'et-foo'",
+"input": "<span lang=et-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'es-foo'",
+"input": "<span lang=es-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ru-foo'",
+"input": "<span lang=ru-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rw-foo'",
+"input": "<span lang=rw-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'goh-foo'",
+"input": "<span lang=goh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sms-foo'",
+"input": "<span lang=sms-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'smo-foo'",
+"input": "<span lang=smo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'smn-foo'",
+"input": "<span lang=smn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'smj-foo'",
+"input": "<span lang=smj-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'smi-foo'",
+"input": "<span lang=smi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nic-foo'",
+"input": "<span lang=nic-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rm-foo'",
+"input": "<span lang=rm-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rn-foo'",
+"input": "<span lang=rn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ro-foo'",
+"input": "<span lang=ro-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dsb-foo'",
+"input": "<span lang=dsb-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sma-foo'",
+"input": "<span lang=sma-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gor-foo'",
+"input": "<span lang=gor-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ast-foo'",
+"input": "<span lang=ast-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'orm-foo'",
+"input": "<span lang=orm-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'que-foo'",
+"input": "<span lang=que-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ori-foo'",
+"input": "<span lang=ori-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'crh-foo'",
+"input": "<span lang=crh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'asm-foo'",
+"input": "<span lang=asm-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pus-foo'",
+"input": "<span lang=pus-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kik-foo'",
+"input": "<span lang=kik-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ltz-foo'",
+"input": "<span lang=ltz-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ath-foo'",
+"input": "<span lang=ath-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wln-foo'",
+"input": "<span lang=wln-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'isl-foo'",
+"input": "<span lang=isl-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'xh-foo'",
+"input": "<span lang=xh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mag-foo'",
+"input": "<span lang=mag-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mai-foo'",
+"input": "<span lang=mai-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'xx-foo'",
+"input": "<span lang=xx-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mah-foo'",
+"input": "<span lang=mah-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tel-foo'",
+"input": "<span lang=tel-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lav-foo'",
+"input": "<span lang=lav-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zap-foo'",
+"input": "<span lang=zap-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'yid-foo'",
+"input": "<span lang=yid-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kok-foo'",
+"input": "<span lang=kok-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kom-foo'",
+"input": "<span lang=kom-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kon-foo'",
+"input": "<span lang=kon-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ukr-foo'",
+"input": "<span lang=ukr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ton-foo'",
+"input": "<span lang=ton-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kos-foo'",
+"input": "<span lang=kos-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kor-foo'",
+"input": "<span lang=kor-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tog-foo'",
+"input": "<span lang=tog-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hun-foo'",
+"input": "<span lang=hun-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hup-foo'",
+"input": "<span lang=hup-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cym-foo'",
+"input": "<span lang=cym-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'udm-foo'",
+"input": "<span lang=udm-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bej-foo'",
+"input": "<span lang=bej-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ben-foo'",
+"input": "<span lang=ben-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bel-foo'",
+"input": "<span lang=bel-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bem-foo'",
+"input": "<span lang=bem-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tsi-foo'",
+"input": "<span lang=tsi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'aar-foo'",
+"input": "<span lang=aar-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ber-foo'",
+"input": "<span lang=ber-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nzi-foo'",
+"input": "<span lang=nzi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sai-foo'",
+"input": "<span lang=sai-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ang-foo'",
+"input": "<span lang=ang-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pra-foo'",
+"input": "<span lang=pra-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'san-foo'",
+"input": "<span lang=san-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bho-foo'",
+"input": "<span lang=bho-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sal-foo'",
+"input": "<span lang=sal-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pro-foo'",
+"input": "<span lang=pro-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'raj-foo'",
+"input": "<span lang=raj-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sad-foo'",
+"input": "<span lang=sad-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'anp-foo'",
+"input": "<span lang=anp-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rap-foo'",
+"input": "<span lang=rap-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sas-foo'",
+"input": "<span lang=sas-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'iba-foo'",
+"input": "<span lang=iba-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'myn-foo'",
+"input": "<span lang=myn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'min-foo'",
+"input": "<span lang=min-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lim-foo'",
+"input": "<span lang=lim-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lin-foo'",
+"input": "<span lang=lin-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nah-foo'",
+"input": "<span lang=nah-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lit-foo'",
+"input": "<span lang=lit-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'efi-foo'",
+"input": "<span lang=efi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'srn-foo'",
+"input": "<span lang=srn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'arn-foo'",
+"input": "<span lang=arn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ypk-foo'",
+"input": "<span lang=ypk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mis-foo'",
+"input": "<span lang=mis-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kac-foo'",
+"input": "<span lang=kac-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kab-foo'",
+"input": "<span lang=kab-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kaa-foo'",
+"input": "<span lang=kaa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kan-foo'",
+"input": "<span lang=kan-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kam-foo'",
+"input": "<span lang=kam-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kal-foo'",
+"input": "<span lang=kal-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kas-foo'",
+"input": "<span lang=kas-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kar-foo'",
+"input": "<span lang=kar-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kaw-foo'",
+"input": "<span lang=kaw-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kau-foo'",
+"input": "<span lang=kau-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kat-foo'",
+"input": "<span lang=kat-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kaz-foo'",
+"input": "<span lang=kaz-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tyv-foo'",
+"input": "<span lang=tyv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'awa-foo'",
+"input": "<span lang=awa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'urd-foo'",
+"input": "<span lang=urd-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ka-foo'",
+"input": "<span lang=ka-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'doi-foo'",
+"input": "<span lang=doi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kg-foo'",
+"input": "<span lang=kg-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kk-foo'",
+"input": "<span lang=kk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kj-foo'",
+"input": "<span lang=kj-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ki-foo'",
+"input": "<span lang=ki-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ko-foo'",
+"input": "<span lang=ko-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kn-foo'",
+"input": "<span lang=kn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'km-foo'",
+"input": "<span lang=km-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kl-foo'",
+"input": "<span lang=kl-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ks-foo'",
+"input": "<span lang=ks-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kr-foo'",
+"input": "<span lang=kr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kw-foo'",
+"input": "<span lang=kw-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kv-foo'",
+"input": "<span lang=kv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ku-foo'",
+"input": "<span lang=ku-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ky-foo'",
+"input": "<span lang=ky-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ota-foo'",
+"input": "<span lang=ota-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kut-foo'",
+"input": "<span lang=kut-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tkl-foo'",
+"input": "<span lang=tkl-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nld-foo'",
+"input": "<span lang=nld-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'oji-foo'",
+"input": "<span lang=oji-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'oci-foo'",
+"input": "<span lang=oci-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ha-foo'",
+"input": "<span lang=ha-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wol-foo'",
+"input": "<span lang=wol-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'jav-foo'",
+"input": "<span lang=jav-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hrv-foo'",
+"input": "<span lang=hrv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ger-foo'",
+"input": "<span lang=ger-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mga-foo'",
+"input": "<span lang=mga-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hit-foo'",
+"input": "<span lang=hit-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dyu-foo'",
+"input": "<span lang=dyu-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ssw-foo'",
+"input": "<span lang=ssw-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'de-foo'",
+"input": "<span lang=de-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'da-foo'",
+"input": "<span lang=da-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dz-foo'",
+"input": "<span lang=dz-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lui-foo'",
+"input": "<span lang=lui-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dv-foo'",
+"input": "<span lang=dv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ita-foo'",
+"input": "<span lang=ita-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'geo-foo'",
+"input": "<span lang=geo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'him-foo'",
+"input": "<span lang=him-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gem-foo'",
+"input": "<span lang=gem-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'crp-foo'",
+"input": "<span lang=crp-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'qu-foo'",
+"input": "<span lang=qu-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bas-foo'",
+"input": "<span lang=bas-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'baq-foo'",
+"input": "<span lang=baq-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bad-foo'",
+"input": "<span lang=bad-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nep-foo'",
+"input": "<span lang=nep-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cre-foo'",
+"input": "<span lang=cre-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ban-foo'",
+"input": "<span lang=ban-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'x-foo'",
+"input": "<span lang=x-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bal-foo'",
+"input": "<span lang=bal-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bam-foo'",
+"input": "<span lang=bam-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bak-foo'",
+"input": "<span lang=bak-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'shn-foo'",
+"input": "<span lang=shn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bai-foo'",
+"input": "<span lang=bai-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'arp-foo'",
+"input": "<span lang=arp-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'art-foo'",
+"input": "<span lang=art-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'arw-foo'",
+"input": "<span lang=arw-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'qtz-foo'",
+"input": "<span lang=qtz-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ara-foo'",
+"input": "<span lang=ara-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'arc-foo'",
+"input": "<span lang=arc-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'arg-foo'",
+"input": "<span lang=arg-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sem-foo'",
+"input": "<span lang=sem-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sel-foo'",
+"input": "<span lang=sel-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nub-foo'",
+"input": "<span lang=nub-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'arm-foo'",
+"input": "<span lang=arm-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'btk-foo'",
+"input": "<span lang=btk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lus-foo'",
+"input": "<span lang=lus-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'iku-foo'",
+"input": "<span lang=iku-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mus-foo'",
+"input": "<span lang=mus-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lua-foo'",
+"input": "<span lang=lua-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lub-foo'",
+"input": "<span lang=lub-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lug-foo'",
+"input": "<span lang=lug-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ira-foo'",
+"input": "<span lang=ira-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mun-foo'",
+"input": "<span lang=mun-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tur-foo'",
+"input": "<span lang=tur-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lun-foo'",
+"input": "<span lang=lun-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'luo-foo'",
+"input": "<span lang=luo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'men-foo'",
+"input": "<span lang=men-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wa-foo'",
+"input": "<span lang=wa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tso-foo'",
+"input": "<span lang=tso-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wo-foo'",
+"input": "<span lang=wo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'jv-foo'",
+"input": "<span lang=jv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tut-foo'",
+"input": "<span lang=tut-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ind-foo'",
+"input": "<span lang=ind-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tuk-foo'",
+"input": "<span lang=tuk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tum-foo'",
+"input": "<span lang=tum-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ja-foo'",
+"input": "<span lang=ja-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cop-foo'",
+"input": "<span lang=cop-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cos-foo'",
+"input": "<span lang=cos-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cor-foo'",
+"input": "<span lang=cor-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ilo-foo'",
+"input": "<span lang=ilo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fiu-foo'",
+"input": "<span lang=fiu-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gwi-foo'",
+"input": "<span lang=gwi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'und-foo'",
+"input": "<span lang=und-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gws-foo'",
+"input": "<span lang=gws-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tli-foo'",
+"input": "<span lang=tli-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tlh-foo'",
+"input": "<span lang=tlh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nno-foo'",
+"input": "<span lang=nno-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ch-foo'",
+"input": "<span lang=ch-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'co-foo'",
+"input": "<span lang=co-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ca-foo'",
+"input": "<span lang=ca-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'por-foo'",
+"input": "<span lang=por-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ce-foo'",
+"input": "<span lang=ce-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pon-foo'",
+"input": "<span lang=pon-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cy-foo'",
+"input": "<span lang=cy-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sah-foo'",
+"input": "<span lang=sah-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cs-foo'",
+"input": "<span lang=cs-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cr-foo'",
+"input": "<span lang=cr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ady-foo'",
+"input": "<span lang=ady-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cv-foo'",
+"input": "<span lang=cv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cu-foo'",
+"input": "<span lang=cu-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ps-foo'",
+"input": "<span lang=ps-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fra-foo'",
+"input": "<span lang=fra-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dum-foo'",
+"input": "<span lang=dum-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pt-foo'",
+"input": "<span lang=pt-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'swa-foo'",
+"input": "<span lang=swa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dua-foo'",
+"input": "<span lang=dua-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fro-foo'",
+"input": "<span lang=fro-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'yap-foo'",
+"input": "<span lang=yap-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'frm-foo'",
+"input": "<span lang=frm-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tiv-foo'",
+"input": "<span lang=tiv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'frs-foo'",
+"input": "<span lang=frs-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'frr-foo'",
+"input": "<span lang=frr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'yao-foo'",
+"input": "<span lang=yao-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pa-foo'",
+"input": "<span lang=pa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'xal-foo'",
+"input": "<span lang=xal-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fry-foo'",
+"input": "<span lang=fry-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pi-foo'",
+"input": "<span lang=pi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dut-foo'",
+"input": "<span lang=dut-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pl-foo'",
+"input": "<span lang=pl-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gay-foo'",
+"input": "<span lang=gay-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'oto-foo'",
+"input": "<span lang=oto-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sag-foo'",
+"input": "<span lang=sag-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hmn-foo'",
+"input": "<span lang=hmn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hmo-foo'",
+"input": "<span lang=hmo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'an-foo'",
+"input": "<span lang=an-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gaa-foo'",
+"input": "<span lang=gaa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fur-foo'",
+"input": "<span lang=fur-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mlg-foo'",
+"input": "<span lang=mlg-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'slv-foo'",
+"input": "<span lang=slv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ain-foo'",
+"input": "<span lang=ain-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fil-foo'",
+"input": "<span lang=fil-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mlt-foo'",
+"input": "<span lang=mlt-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'slk-foo'",
+"input": "<span lang=slk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rar-foo'",
+"input": "<span lang=rar-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ful-foo'",
+"input": "<span lang=ful-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sla-foo'",
+"input": "<span lang=sla-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 've-foo'",
+"input": "<span lang=ve-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'jpn-foo'",
+"input": "<span lang=jpn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'vol-foo'",
+"input": "<span lang=vol-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'vi-foo'",
+"input": "<span lang=vi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'is-foo'",
+"input": "<span lang=is-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kho-foo'",
+"input": "<span lang=kho-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'iu-foo'",
+"input": "<span lang=iu-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'it-foo'",
+"input": "<span lang=it-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'vo-foo'",
+"input": "<span lang=vo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ii-foo'",
+"input": "<span lang=ii-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ay-foo'",
+"input": "<span lang=ay-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ik-foo'",
+"input": "<span lang=ik-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'io-foo'",
+"input": "<span lang=io-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kha-foo'",
+"input": "<span lang=kha-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ia-foo'",
+"input": "<span lang=ia-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ave-foo'",
+"input": "<span lang=ave-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'jpr-foo'",
+"input": "<span lang=jpr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ie-foo'",
+"input": "<span lang=ie-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ava-foo'",
+"input": "<span lang=ava-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ig-foo'",
+"input": "<span lang=ig-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pap-foo'",
+"input": "<span lang=pap-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ewo-foo'",
+"input": "<span lang=ewo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pau-foo'",
+"input": "<span lang=pau-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ewe-foo'",
+"input": "<span lang=ewe-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'paa-foo'",
+"input": "<span lang=paa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'qaa-foo'",
+"input": "<span lang=qaa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pag-foo'",
+"input": "<span lang=pag-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sat-foo'",
+"input": "<span lang=sat-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pal-foo'",
+"input": "<span lang=pal-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pam-foo'",
+"input": "<span lang=pam-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pan-foo'",
+"input": "<span lang=pan-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'phi-foo'",
+"input": "<span lang=phi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nog-foo'",
+"input": "<span lang=nog-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'phn-foo'",
+"input": "<span lang=phn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kir-foo'",
+"input": "<span lang=kir-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nia-foo'",
+"input": "<span lang=nia-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dgr-foo'",
+"input": "<span lang=dgr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'syr-foo'",
+"input": "<span lang=syr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kin-foo'",
+"input": "<span lang=kin-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tup-foo'",
+"input": "<span lang=tup-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'niu-foo'",
+"input": "<span lang=niu-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gsw-foo'",
+"input": "<span lang=gsw-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'epo-foo'",
+"input": "<span lang=epo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'jbo-foo'",
+"input": "<span lang=jbo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mic-foo'",
+"input": "<span lang=mic-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tha-foo'",
+"input": "<span lang=tha-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sam-foo'",
+"input": "<span lang=sam-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hai-foo'",
+"input": "<span lang=hai-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gmh-foo'",
+"input": "<span lang=gmh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cus-foo'",
+"input": "<span lang=cus-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ell-foo'",
+"input": "<span lang=ell-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wen-foo'",
+"input": "<span lang=wen-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bnt-foo'",
+"input": "<span lang=bnt-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fre-foo'",
+"input": "<span lang=fre-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'elx-foo'",
+"input": "<span lang=elx-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ada-foo'",
+"input": "<span lang=ada-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nav-foo'",
+"input": "<span lang=nav-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hat-foo'",
+"input": "<span lang=hat-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hau-foo'",
+"input": "<span lang=hau-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'haw-foo'",
+"input": "<span lang=haw-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bin-foo'",
+"input": "<span lang=bin-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'amh-foo'",
+"input": "<span lang=amh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bik-foo'",
+"input": "<span lang=bik-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bih-foo'",
+"input": "<span lang=bih-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mos-foo'",
+"input": "<span lang=mos-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'moh-foo'",
+"input": "<span lang=moh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mon-foo'",
+"input": "<span lang=mon-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mol-foo'",
+"input": "<span lang=mol-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bis-foo'",
+"input": "<span lang=bis-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bla-foo'",
+"input": "<span lang=bla-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pol-foo'",
+"input": "<span lang=pol-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tib-foo'",
+"input": "<span lang=tib-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tvl-foo'",
+"input": "<span lang=tvl-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tgk-foo'",
+"input": "<span lang=tgk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ijo-foo'",
+"input": "<span lang=ijo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'est-foo'",
+"input": "<span lang=est-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kmb-foo'",
+"input": "<span lang=kmb-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ice-foo'",
+"input": "<span lang=ice-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'peo-foo'",
+"input": "<span lang=peo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tgl-foo'",
+"input": "<span lang=tgl-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'umb-foo'",
+"input": "<span lang=umb-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tmh-foo'",
+"input": "<span lang=tmh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'fon-foo'",
+"input": "<span lang=fon-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hsb-foo'",
+"input": "<span lang=hsb-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'be-foo'",
+"input": "<span lang=be-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bg-foo'",
+"input": "<span lang=bg-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'run-foo'",
+"input": "<span lang=run-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ba-foo'",
+"input": "<span lang=ba-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rum-foo'",
+"input": "<span lang=rum-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bm-foo'",
+"input": "<span lang=bm-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bn-foo'",
+"input": "<span lang=bn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bo-foo'",
+"input": "<span lang=bo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bh-foo'",
+"input": "<span lang=bh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bi-foo'",
+"input": "<span lang=bi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'br-foo'",
+"input": "<span lang=br-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bs-foo'",
+"input": "<span lang=bs-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rus-foo'",
+"input": "<span lang=rus-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'rup-foo'",
+"input": "<span lang=rup-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'pli-foo'",
+"input": "<span lang=pli-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'om-foo'",
+"input": "<span lang=om-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'oj-foo'",
+"input": "<span lang=oj-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ace-foo'",
+"input": "<span lang=ace-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ach-foo'",
+"input": "<span lang=ach-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'oc-foo'",
+"input": "<span lang=oc-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'dzo-foo'",
+"input": "<span lang=dzo-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kru-foo'",
+"input": "<span lang=kru-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'srr-foo'",
+"input": "<span lang=srr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ido-foo'",
+"input": "<span lang=ido-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'srp-foo'",
+"input": "<span lang=srp-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'kro-foo'",
+"input": "<span lang=kro-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'krl-foo'",
+"input": "<span lang=krl-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'krc-foo'",
+"input": "<span lang=krc-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nds-foo'",
+"input": "<span lang=nds-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'os-foo'",
+"input": "<span lang=os-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'or-foo'",
+"input": "<span lang=or-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zul-foo'",
+"input": "<span lang=zul-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'twi-foo'",
+"input": "<span lang=twi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sog-foo'",
+"input": "<span lang=sog-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nso-foo'",
+"input": "<span lang=nso-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'swe-foo'",
+"input": "<span lang=swe-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'som-foo'",
+"input": "<span lang=som-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'chm-foo'",
+"input": "<span lang=chm-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'snd-foo'",
+"input": "<span lang=snd-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sot-foo'",
+"input": "<span lang=sot-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mkd-foo'",
+"input": "<span lang=mkd-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wak-foo'",
+"input": "<span lang=wak-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'her-foo'",
+"input": "<span lang=her-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'lol-foo'",
+"input": "<span lang=lol-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mkh-foo'",
+"input": "<span lang=mkh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'heb-foo'",
+"input": "<span lang=heb-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'loz-foo'",
+"input": "<span lang=loz-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gil-foo'",
+"input": "<span lang=gil-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'was-foo'",
+"input": "<span lang=was-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'war-foo'",
+"input": "<span lang=war-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hz-foo'",
+"input": "<span lang=hz-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hy-foo'",
+"input": "<span lang=hy-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sid-foo'",
+"input": "<span lang=sid-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hr-foo'",
+"input": "<span lang=hr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ht-foo'",
+"input": "<span lang=ht-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hu-foo'",
+"input": "<span lang=hu-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'hi-foo'",
+"input": "<span lang=hi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ho-foo'",
+"input": "<span lang=ho-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bul-foo'",
+"input": "<span lang=bul-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'wal-foo'",
+"input": "<span lang=wal-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bua-foo'",
+"input": "<span lang=bua-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'bug-foo'",
+"input": "<span lang=bug-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'he-foo'",
+"input": "<span lang=he-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'uz-foo'",
+"input": "<span lang=uz-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'aze-foo'",
+"input": "<span lang=aze-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ur-foo'",
+"input": "<span lang=ur-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zha-foo'",
+"input": "<span lang=zha-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'uk-foo'",
+"input": "<span lang=uk-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ug-foo'",
+"input": "<span lang=ug-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zho-foo'",
+"input": "<span lang=zho-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'aa-foo'",
+"input": "<span lang=aa-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ab-foo'",
+"input": "<span lang=ab-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ae-foo'",
+"input": "<span lang=ae-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'uig-foo'",
+"input": "<span lang=uig-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'af-foo'",
+"input": "<span lang=af-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ak-foo'",
+"input": "<span lang=ak-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'am-foo'",
+"input": "<span lang=am-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'myv-foo'",
+"input": "<span lang=myv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'khi-foo'",
+"input": "<span lang=khi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'as-foo'",
+"input": "<span lang=as-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ar-foo'",
+"input": "<span lang=ar-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'inh-foo'",
+"input": "<span lang=inh-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'khm-foo'",
+"input": "<span lang=khm-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'av-foo'",
+"input": "<span lang=av-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mya-foo'",
+"input": "<span lang=mya-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ine-foo'",
+"input": "<span lang=ine-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'az-foo'",
+"input": "<span lang=az-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ina-foo'",
+"input": "<span lang=ina-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'inc-foo'",
+"input": "<span lang=inc-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nl-foo'",
+"input": "<span lang=nl-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nn-foo'",
+"input": "<span lang=nn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'no-foo'",
+"input": "<span lang=no-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'na-foo'",
+"input": "<span lang=na-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nb-foo'",
+"input": "<span lang=nb-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nai-foo'",
+"input": "<span lang=nai-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nd-foo'",
+"input": "<span lang=nd-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ne-foo'",
+"input": "<span lang=ne-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tir-foo'",
+"input": "<span lang=tir-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ng-foo'",
+"input": "<span lang=ng-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ny-foo'",
+"input": "<span lang=ny-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nap-foo'",
+"input": "<span lang=nap-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gre-foo'",
+"input": "<span lang=gre-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'grb-foo'",
+"input": "<span lang=grb-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'grc-foo'",
+"input": "<span lang=grc-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nau-foo'",
+"input": "<span lang=nau-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'grn-foo'",
+"input": "<span lang=grn-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nr-foo'",
+"input": "<span lang=nr-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'tig-foo'",
+"input": "<span lang=tig-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'yor-foo'",
+"input": "<span lang=yor-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'nv-foo'",
+"input": "<span lang=nv-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'mri-foo'",
+"input": "<span lang=mri-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'may-foo'",
+"input": "<span lang=may-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'zun-foo'",
+"input": "<span lang=zun-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'ile-foo'",
+"input": "<span lang=ile-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'sqi-foo'",
+"input": "<span lang=sqi-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'gon-foo'",
+"input": "<span lang=gon-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cpe-foo'",
+"input": "<span lang=cpe-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cpf-foo'",
+"input": "<span lang=cpf-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'cpp-foo'",
+"input": "<span lang=cpp-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "invalid lang attribute 'foo'",
+"input": "<span lang=foo>",
+"fail-unless": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'EN'",
+"input": "<span lang=EN>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "valid lang attribute 'EN-foo'",
+"input": "<span lang=EN-foo>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "lang attribute can be blank",
+"input": "<span lang>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "lang attribute can be blank (with quotes)",
+"input": "<span lang=''>",
+"fail-if": "invalid-lang-code"},
+
+{"description": "lang attribute can not be just space characters",
+"input": "<span lang=' '>",
+"fail-unless": "invalid-lang-code"},
+
+{"description": "lang attribute can not contain leading spaces",
+"input": "<span lang=' en'>",
+"fail-unless": "invalid-lang-code"},
+
+{"description": "lang attribute can not contain trailing spaces",
+"input": "<span lang='en '>",
+"fail-unless": "invalid-lang-code"}
+
+]}

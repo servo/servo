@@ -1,0 +1,22 @@
+<!DOCTYPe html>
+<meta charset='utf-8'>
+<title>drag and drop – draggable area boundaries – transformed elements</title>
+<style>
+a {
+  display: block;
+  height: 200px;
+  width: 200px;
+  background-color: blue;
+  margin-left: 100px;
+  -moz-transform: rotate(-45deg) skew(15deg, 15deg);
+  -o-transform: rotate(-45deg) skew(15deg, 15deg);
+  -webkit-transform: rotate(-45deg) skew(15deg, 15deg);
+  transform: rotate(-45deg) skew(15deg, 15deg);
+}
+</style>
+<ol>
+ <li>Try dragging the blue box below by clicking and holding <em>just</em>
+ outside its skewed edges. It should <em>not</em> be draggable.</li>
+ <li><p>Drag the blue box below. It should be draggable.</p>
+
+<a draggable="true" ondragstart="event.dataTransfer.effectAllowed ='copy'">TEST</a>

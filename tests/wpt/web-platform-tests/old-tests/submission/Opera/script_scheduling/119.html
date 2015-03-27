@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html><head>
+	<title>scheduler: external defer script created with createContextualFragment</title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+        <div id="log"></div>
+	<script>
+                log('inline script #1');
+                var t = async_test();
+	        
+                t.step(function() {
+                  var range = document.createRange();
+                  var fragment = range.createContextualFragment("<script defer src='scripts/include-1.js?pipe=trickle(d1)'><\/script>");
+                  document.body.appendChild(fragment.firstChild);
+                });
+                  
+                addEventListener("DOMContentLoaded", t.step_func(function() {
+			assert_array_equals(eventOrder, ['inline script #1', 'end inline script #1']);
+			t.done();
+	        }));
+
+                addEventListener("load", t.step_func(function() {
+			assert_array_equals(eventOrder, ['inline script #1', 'end inline script #1', 'external script #1']);
+			t.done();
+	        }));
+              
+
+                log('end inline script #1');
+	</script>
+

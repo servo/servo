@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: open() during abort()</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      test(function() {
+        var client = new XMLHttpRequest(),
+            abort_flag = false,
+            result = [],
+            expected = [1, 4, 1] // open() => 1, abort() => 4, open() => 1
+
+        client.onreadystatechange = this.step_func(function() {
+          result.push(client.readyState)
+          if (abort_flag) {
+            abort_flag = false
+            client.open("GET", "...")
+          }
+        })
+        client.open("GET", "resources/well-formed.xml")
+        client.send(null)
+        abort_flag = true
+        client.abort()
+        assert_array_equals(result, expected)
+      })
+    </script>
+  </body>
+</html>

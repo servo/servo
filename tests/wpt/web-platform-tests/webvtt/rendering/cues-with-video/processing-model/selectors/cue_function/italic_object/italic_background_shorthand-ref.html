@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, ::cue(i), background shorthand</title>
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.video {
+    display: inline-block;
+    width: 1280px;
+    height: 720px;
+    position: relative
+}
+.cue {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center
+}
+.cue > span {
+    font-family: sans-serif;
+    font-size: 36px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+}
+.cue > span > i {
+    background: #0f0 url('../../../media/background.gif') repeat-x top left;
+    color: #000;
+}
+</style>
+<div class="video"><span class="cue"><span>This is a <i>test subtitle</i></span></span></div>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBObjectStore.put() - If the transaction this IDBObjectStore belongs to has its mode set to readonly, throw ReadOnlyError</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#widl-IDBObjectStore-put-IDBRequest-any-value-any-key">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+<div id="log"></div>
+<script>
+    var db,
+        t = async_test();
+
+    var open_rq = createdb(t);
+    open_rq.onupgradeneeded = function (event) {
+        db = event.target.result;
+        db.createObjectStore("store", {keyPath:"pKey"});
+    }
+
+    open_rq.onsuccess = function (event) {
+        var txn = db.transaction("store");
+        var ostore = txn.objectStore("store");
+        t.step(function(){
+            assert_throws("ReadOnlyError", function(){
+                ostore.put({pKey: "primaryKey_0"});
+            });
+        });
+        t.done();
+    }
+</script>
+

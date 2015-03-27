@@ -1,0 +1,15 @@
+<!doctype html>
+<title>WebSockets: delete readyState</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+test(function(t) {
+  delete WebSocket.prototype.readyState;
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/');
+  ws.close();
+  delete ws.readyState;
+  assert_equals(ws.readyState, ws.CLOSING);
+});
+</script>

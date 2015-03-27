@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>script beforescriptexecute/afterscriptexecute events</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#the-script-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  var t1 = async_test("'beforescriptexecute'/'afterscriptexecute' events have been fired"),
+      t2 = async_test("default prevented 'beforescriptexecute' event aborts script execution"),
+      a = false,
+      b = false;
+
+  var before = function(e) {
+    b = true;
+    test(function(){
+      assert_true(e.isTrusted);
+      assert_true(e.bubbles);
+      assert_true(e.cancelable);
+    }, "'beforescriptexecute' event is trusted, bubbles and is cancelable");
+  };
+
+  var after = function(e) {
+    a = true;
+    test(function(){
+      assert_true(e.isTrusted);
+      assert_true(e.bubbles);
+      assert_false(e.cancelable);
+    }, "'afterscriptexecute' event is trusted, bubbles and isn't cancelable");
+  };
+
+  var prevent_default = function(e) {
+    t2.step(function() {
+      e.preventDefault();
+      assert_true(e.defaultPrevented);
+    });
+  };
+
+  document.body.onload = function() {
+    t1.step(function() {
+      assert_true(a && b);
+    });
+    t1.done();
+    t2.done();
+  };
+</script>
+<script onbeforescriptexecute=before(event) onafterscriptexecute=after(event)>
+  document.querySelector("script");
+</script>
+<script onbeforescriptexecute=prevent_default(event)>
+  t2.step(function() {
+    assert_unreached("script execution not aborted by default prevented 'beforescriptexecute' event");
+  });
+</script>

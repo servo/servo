@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>HTML Test: formAction_document_address</title>
+    <link rel="author" title="Intel" href="http://www.intel.com/">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-fs-formaction">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-document's-address">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-button-element">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-input-element">
+    <meta name="assert" content="On getting the formAction IDL attribute, when the content attribute is missing or its value is the empty string, the document's address must be returned instead.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+
+    <div id="missing" style="display:none">
+      <button type="submit">Submit</button>
+      <input type="submit">
+    </div>
+
+    <div id="empty_string" style="display:none">
+      <button type="submit" formaction="">Submit</button>
+      <input type="submit" formaction="">
+    </div>
+
+    <div id="no_assigned_value" style="display:none">
+      <button type="submit" formaction>Submit</button>
+      <input type="submit" formaction>
+    </div>
+
+    <script>
+      // formaction content attribute is missing
+      test(function() {
+        var formAction = document.querySelector('#missing button').formAction;
+        var address = document.location.href;
+        assert_equals(formAction, address);
+      }, "Check if button.formAction is the document's address when formaction content attribute is missing");
+
+      test(function() {
+        var formAction = document.querySelector('#missing input').formAction;
+        var address = document.location.href;
+        assert_equals(formAction, address);
+      }, "Check if input.formAction is the document's address when formaction content attribute is missing");
+
+      // formaction content attribute value is empty string
+      test(function() {
+        var formAction = document.querySelector('#empty_string button').formAction;
+        var address = document.location.href;
+        assert_equals(formAction, address);
+      }, "Check if button.formAction is the document's address when formaction content attribute value is empty string");
+
+      test(function() {
+        var formAction = document.querySelector('#empty_string input').formAction;
+        var address = document.location.href;
+        assert_equals(formAction, address);
+      }, "Check if input.formAction is the document's address when formaction content attribute value is empty string");
+
+      // formaction content attribute value is not assigned, just for comparison with empty string above
+      test(function() {
+        var formAction = document.querySelector('#no_assigned_value button').formAction;
+        var address = document.location.href;
+        assert_equals(formAction, address);
+      }, "Check if button.formAction is the document's address when formaction content attribute value is not assigned");
+
+      test(function() {
+        var formAction = document.querySelector('#no_assigned_value input').formAction;
+        var address = document.location.href;
+        assert_equals(formAction, address);
+      }, "Check if input.formAction is the document's address when formaction content attribute value is not assigned");
+    </script>
+  </body>
+</html>

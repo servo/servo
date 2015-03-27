@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Document.createEvent</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-document-createevent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="Document-createEvent.js"></script>
+<div id="log"></div>
+<script>
+function testAlias(arg, iface) {
+  var ev;
+  test(function() {
+    ev = document.createEvent(arg);
+    assert_true(ev instanceof window[iface]);
+    assert_true(ev instanceof Event);
+  }, arg + " should be an alias for " + iface + ".");
+  test(function() {
+    assert_equals(ev.type, "",
+                  "type should be initialized to the empty string");
+    assert_equals(ev.target, null,
+                  "target should be initialized to null");
+    assert_equals(ev.currentTarget, null,
+                  "currentTarget should be initialized to null");
+    assert_equals(ev.eventPhase, 0,
+                  "eventPhase should be initialized to NONE (0)");
+    assert_equals(ev.bubbles, false,
+                  "bubbles should be initialized to false");
+    assert_equals(ev.cancelable, false,
+                  "cancelable should be initialized to false");
+    assert_equals(ev.defaultPrevented, false,
+                  "defaultPrevented should be initialized to false");
+    assert_equals(ev.isTrusted, false,
+                  "isTrusted should be initialized to false");
+  }, "createEvent('" + arg + "') should be initialized correctly.");
+}
+aliases.forEach(function(alias) {
+  testAlias(alias[0], alias[1]);
+  testAlias(alias[0].toLowerCase(), alias[1]);
+  testAlias(alias[0].toUpperCase(), alias[1]);
+});
+
+test(function() {
+  assert_throws("NOT_SUPPORTED_ERR", function() {
+    var evt = document.createEvent("foo");
+  });
+  assert_throws("NOT_SUPPORTED_ERR", function() {
+    // 'LATIN CAPITAL LETTER I WITH DOT ABOVE' (U+0130)
+    var evt = document.createEvent("U\u0130Event");
+  });
+  assert_throws("NOT_SUPPORTED_ERR", function() {
+    // 'LATIN SMALL LETTER DOTLESS I' (U+0131)
+    var evt = document.createEvent("U\u0131Event");
+  });
+}, "Should throw NOT_SUPPORTED_ERR for unrecognized arguments");
+</script>

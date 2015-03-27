@@ -1,0 +1,7 @@
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml"  version="2.0">
+ <its:param name="idvalueparam">text</its:param>
+ <its:idValueRule selector="//h:p" idValue="@id"/>
+ <its:idValueRule selector="//h:b[@id=$idvalueparam]" idValue="@id"/>
+ <its:idValueRule selector="//h:b[@id='crashtext']" idValue="@id"/>
+ <its:idValueRule selector="//h:var" idValue="@id"/>
+</its:rules>

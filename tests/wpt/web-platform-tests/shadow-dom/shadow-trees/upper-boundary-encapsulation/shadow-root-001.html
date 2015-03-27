@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test: Shadow root's parentNode() and parentElement()</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Mikhail Fursov" href="mailto:mfursov@unipro.ru">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#upper-boundary-encapsulation">
+<meta name="assert" content="Upper-boundary encapsulation: The parentNode and parentElement attributes of the shadow root object must always return null.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(function () {
+    var doc = document.implementation.createHTMLDocument('Test');
+    var shadowRoot = doc.body.createShadowRoot();
+    assert_equals(shadowRoot.parentNode, null);
+}, 'The parentNode attribute of a shadow root must always return null.');
+
+test(function () {
+    var doc = document.implementation.createHTMLDocument('Test');
+    var shadowRoot = doc.body.createShadowRoot();
+    assert_equals(shadowRoot.parentElement, null);
+}, 'The parentElement attribute of a shadow root must always return null.');
+
+test(function () {
+    var doc = document.implementation.createHTMLDocument('Test');
+    var outerShadowRoot = doc.body.createShadowRoot();
+    var div = doc.createElement('div');
+    outerShadowRoot.appendChild(div);
+    var innerShadowRoot = div.createShadowRoot();
+    assert_equals(innerShadowRoot.parentNode, null);
+},
+    'The parentNode attribute of a shadow root must always return null, ' +
+    'even if the shadow root is nested inside another shadow root.'
+);
+
+test(function () {
+    var doc = document.implementation.createHTMLDocument('Test');
+    var outerShadowRoot = doc.body.createShadowRoot();
+    var div = doc.createElement('div');
+    outerShadowRoot.appendChild(div);
+    var innerShadowRoot = div.createShadowRoot();
+    assert_equals(innerShadowRoot.parentElement, null);
+},
+    'The parentElement attribute of a shadow root must always return null, ' +
+    'even if the shadow root is nested inside another shadow root.'
+);
+</script>
+</body>
+</html>

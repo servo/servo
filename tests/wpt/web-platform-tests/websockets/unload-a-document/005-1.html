@@ -1,0 +1,23 @@
+<!doctype html>
+<title>WebSockets: navigating nested browsing context with a websocket in top-level</title>
+<script src=../constants.js?pipe=sub></script>
+<script>
+var t = opener.t;
+var assert_unreached = opener.assert_unreached;
+var hasRun = false;
+function run(){
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
+  ws.onopen = t.step_func(function(e) {
+    setTimeout(t.step_func(function() {
+      ws.send('test');
+    }), 1000);
+    window[0].location = 'data:text/html,<body onload="history.back()">';
+    ws.onmessage = t.step_func(function(e) {
+      ws.close();
+      t.done();
+    });
+  });
+  ws.onerror = ws.onmessage = ws.onclose = t.step_func(function(e) {assert_unreached("Got unexpected event " + e.type)});
+}
+</script>
+<iframe src='data:text/html,foo' onload='if (hasRun) return; hasRun = true; t.step(run)'></iframe>

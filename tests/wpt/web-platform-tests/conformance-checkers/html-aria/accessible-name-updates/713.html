@@ -1,0 +1,54 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>ARIA 1.0 Test Case 713</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case 713</h1>
+    
+    <div id="TEST_ID_1">
+    </div>
+    
+    <h2>Description</h2>
+    <p>The aria-live attribute is added to an element in the document by a 
+      script after the onload event completes with the value="polite" and 
+      the element has a child DOM text node with content. After the 
+      aria-live attribute is added, the child DOM text node is deleted.</p>
+    
+    <script type="text/javascript">  
+
+
+      function deleteChildNodes() {
+        var node  = document.getElementById('TEST_ID_2');  
+        while (node.firstChild) node.removeChild(node.firstChild);
+      }
+
+      function addLiveRegion() {
+        var node = document.getElementById('TEST_ID_1');  
+        
+        var live_node = document.createElement('div');
+        live_node.setAttribute('aria-live', 'polite');
+        live_node.setAttribute('id', 'TESTZ');
+
+        var element_node = document.createElement('div');
+        element_node.setAttribute('id', 'TEST_ID_2');
+        
+        var text_node = document.createTextNode('TEST TEXT');
+        
+        element_node.appendChild(text_node);
+        live_node.appendChild(element_node);
+        node.appendChild(live_node);
+        
+        setTimeout(deleteChildNodes,1000);
+      }
+
+      function onload() {
+        setTimeout(addLiveRegion, 1000);
+      }
+     
+      window.addEventListener('load', onload);
+    </script>
+  </body>
+  
+</html>

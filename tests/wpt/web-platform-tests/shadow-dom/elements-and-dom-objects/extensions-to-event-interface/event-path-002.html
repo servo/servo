@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test - event path</title>
+<link rel="author" title="Kazuhito Hokamura" href="mailto:k.hokamura@gmail.com">
+<link rel="help" href="https://dvcs.w3.org/hg/webcomponents/raw-file/tip/spec/shadow/index.html#extensions-to-event">
+<meta name="assert" content="Extensions to Event Interface: event.path is readonly">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+var t = async_test('event.path is readonly');
+
+t.step(unit(function(ctx) {
+    var doc = newRenderedHTMLDocument(ctx);
+    var div = doc.createElement('div');
+    doc.body.appendChild(div);
+
+    div.addEventListener('click', t.step_func(function(e) {
+        var obj = {};
+        e.path = obj;
+        assert_not_equals(e.path, obj);
+
+        t.done();
+    }));
+
+    var event = doc.createEvent('HTMLEvents');
+    event.initEvent('click', true, false);
+    div.dispatchEvent(event);
+}));
+</script>
+</body>
+</html>
+

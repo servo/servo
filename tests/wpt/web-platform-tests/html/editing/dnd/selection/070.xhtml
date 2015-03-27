@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Selection drag and drop to contenteditable element in iframe</title>
+<style type="text/css">
+iframe
+	{width:500px;
+	height:400px;
+	border-style:none;}
+</style>
+</head>
+<body onload="window.getSelection().selectAllChildren(document.querySelector('p'))">
+<p>Drag me</p>
+<p>Drag selected text to the blue box. Copy of selection should end up in the blue box once you drop it there.</p>
+<p><iframe src="helper-drop-here-blue-box-contenteditable.xhtml">XHTML document</iframe></p>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Submitting element directionality: the dirname attribute</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#submitting-element-directionality:-the-dirname-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<form action="dirname-ltr-iframe.html" method=get target="iframe">
+  <p><label>Comment: <input type=text name="comment" dirname="comment.dir" required></label></p>
+  <p><button type=submit>Post Comment</button></p>
+</form>
+<iframe name="iframe"></iframe>
+<script>
+  function getParameterByName(name) {
+    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+    results = regex.exec(document.querySelector("iframe").contentWindow.location.search);
+    return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+  }
+
+  var t = async_test("submit element directionality");
+  document.querySelector("input").value="foobar";
+  document.querySelector("button").click();
+
+  document.querySelector("iframe").onload = t.step_func_done(function() {
+    assert_equals(getParameterByName("comment.dir"), "ltr");
+  });
+</script>

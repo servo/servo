@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>interface Util {
+  const boolean DEBUG = false;
+  const short negative = -1;
+  const octet LF = 10;
+  const unsigned long BIT_MASK = 0x0000fc00;
+  const float AVOGADRO = 6.022e23;
+  const unrestricted float sobig = Infinity;
+  const unrestricted double minusonedividedbyzero = -Infinity;
+  const short notanumber = NaN;
+};
+
+exception Error {
+  const short ERR_UNKNOWN = 0;
+  const short ERR_OUT_OF_MEMORY = 1;
+
+  short errorCode;
+};</webidl>
+  <Interface name="Util" id="::Util">
+    <webidl>interface Util {
+  const boolean DEBUG = false;
+  const short negative = -1;
+  const octet LF = 10;
+  const unsigned long BIT_MASK = 0x0000fc00;
+  const float AVOGADRO = 6.022e23;
+  const unrestricted float sobig = Infinity;
+  const unrestricted double minusonedividedbyzero = -Infinity;
+  const short notanumber = NaN;
+};</webidl>
+    <Const name="DEBUG" value="false" id="::Util::DEBUG">
+      <webidl>  const boolean DEBUG = false;</webidl>
+      <Type type="boolean"/>
+    </Const>
+    <Const name="negative" value="-1" id="::Util::negative">
+      <webidl>  const short negative = -1;</webidl>
+      <Type type="short"/>
+    </Const>
+    <Const name="LF" value="10" id="::Util::LF">
+      <webidl>  const octet LF = 10;</webidl>
+      <Type type="octet"/>
+    </Const>
+    <Const name="BIT_MASK" value="0x0000fc00" id="::Util::BIT_MASK">
+      <webidl>  const unsigned long BIT_MASK = 0x0000fc00;</webidl>
+      <Type type="unsigned long"/>
+    </Const>
+    <Const name="AVOGADRO" value="6.022e23" id="::Util::AVOGADRO">
+      <webidl>  const float AVOGADRO = 6.022e23;</webidl>
+      <Type type="float"/>
+    </Const>
+    <Const name="sobig" value="Infinity" id="::Util::sobig">
+      <webidl>  const unrestricted float sobig = Infinity;</webidl>
+      <Type type="unrestricted float"/>
+    </Const>
+    <Const name="minusonedividedbyzero" value="-Infinity" id="::Util::minusonedividedbyzero">
+      <webidl>  const unrestricted double minusonedividedbyzero = -Infinity;</webidl>
+      <Type type="unrestricted double"/>
+    </Const>
+    <Const name="notanumber" value="NaN" id="::Util::notanumber">
+      <webidl>  const short notanumber = NaN;</webidl>
+      <Type type="short"/>
+    </Const>
+  </Interface>
+  <Exception name="Error" id="::Error">
+    <webidl>exception Error {
+  const short ERR_UNKNOWN = 0;
+  const short ERR_OUT_OF_MEMORY = 1;
+
+  short errorCode;
+};</webidl>
+    <Const name="ERR_UNKNOWN" value="0" id="::Error::ERR_UNKNOWN">
+      <webidl>  const short ERR_UNKNOWN = 0;</webidl>
+      <Type type="short"/>
+    </Const>
+    <Const name="ERR_OUT_OF_MEMORY" value="1" id="::Error::ERR_OUT_OF_MEMORY">
+      <webidl>  const short ERR_OUT_OF_MEMORY = 1;</webidl>
+      <Type type="short"/>
+    </Const>
+    <ExceptionField name="errorCode" id="::Error::errorCode">
+      <webidl>  short errorCode;</webidl>
+      <Type type="short"/>
+    </ExceptionField>
+  </Exception>
+</Definitions>

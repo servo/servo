@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id='desc'> DOMImplementation.hasFeature() with Events, 3.0 and 2.0</title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            window.onload = function()
+            {
+                try
+                {
+                    var SupportEvents3 = document.implementation.hasFeature("Events", "3.0");
+                    SupportEvents3 = SupportEvents3 && document.implementation.hasFeature("Events", "");
+                    var SupportEvents2 = document.implementation.hasFeature("Events", "2.0");
+
+                    if (SupportEvents3 && SupportEvents2)
+                    {
+                        PassTest();
+                    }
+                    else
+                    {
+                        FailTest();
+                    }
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: Since DOM Level 3 Events is built on top of DOM Level 2 Events, an
+            implementation that returns true for "Events" and "3.0" shall also return true for the
+            parameters "Events" and "2.0".
+        </h4>
+
+        <p>Test passes if the word "PASS" appears below.</p>
+           <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

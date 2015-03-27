@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBObjectStore.add() - Add a record where a value being indexed does not meet the constraints of a valid key </title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+    var db,
+      t = async_test(),
+      record = { key: 1, indexedProperty: { property: "data" } };
+
+    var open_rq = createdb(t);
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result;
+
+        var rq,
+          objStore = db.createObjectStore("store", { keyPath: "key" });
+
+        objStore.createIndex("index", "indexedProperty");
+
+        rq = objStore.add(record);
+
+        assert_true(rq instanceof IDBRequest);
+        rq.onsuccess = function() {
+            t.done();
+        }
+    };
+</script>
+
+<div id="log"></div>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>window.performance.navigation enums</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="resources/webperftestharness.js"></script>
+   </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates that the TYPE_* enumerations of window.performance.navigation exist and their values are correct.</p>
+
+        <div id="log"></div>
+
+        <script>
+        test_namespace('navigation');
+
+        test_enum('navigation', 'TYPE_NAVIGATE', 0);
+        test_enum('navigation', 'TYPE_RELOAD', 1);
+        test_enum('navigation', 'TYPE_BACK_FORWARD', 2);
+        test_enum('navigation', 'TYPE_RESERVED', 255);
+        </script>
+    </body>
+</html>

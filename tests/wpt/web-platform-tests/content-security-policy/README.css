@@ -1,0 +1,27 @@
+
+.code {
+    font-family: monospace;
+    color: darkorange;
+}
+
+.codeTitle {
+    font-family: sans-serif;
+    padding: .3em;
+    margin-bottom: -1em;
+    background: #ffe;
+    border-color: #ccc;
+    border-width: 1px;
+    border-style: groove;
+}
+
+.highlight1 {
+    background: yellow;
+}
+
+.highlight2 {
+    background: pink;
+}
+
+body {
+    font-family: sans-serif;
+}

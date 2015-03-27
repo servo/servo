@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id='desc'> CompositionEvent.data for compositionstart Event </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "compositionstart";
+            var TARGET;
+            var ExpectResult = [];
+            var ActualResult = [];
+
+            window.onload = function(e)
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+
+            function TestEvent(evt)
+            {
+                if ((evt.type == EVENT) && (evt.data == ""))
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: The value of the data attribute of the compositionstart event
+            shall be null for new IME input.
+        </h4>
+
+        <pre>
+            <input id="target" value=""/>
+
+            Steps:
+            1) Open Japanese Microsoft IME and select Hiragana input method
+            2) Click at the above textbox and then type 'a' using keyboard
+        </pre>
+
+        <p>Test passes if the word "PASS" appears below after following the above steps.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

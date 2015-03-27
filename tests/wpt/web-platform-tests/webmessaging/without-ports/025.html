@@ -1,0 +1,18 @@
+<!doctype html>
+<title>MessagePort constructor properties</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+   var ch = new MessageChannel();
+   assert_true(ch.port1 instanceof MessagePort, "MessageChannel's port not an instance of MessagePort");
+   assert_throws(new TypeError(), function () { var p = new MessagePort();}, "MessagePort is [[Callable]]");
+   var w = new Worker("025-1.js");
+   w.onmessage = this.step_func(function(e) {
+     assert_true(e.data[0], "Worker MessageChannel's port not an instance of MessagePort");
+     assert_true(e.data[1], "Worker MessagePort is [[Callable]]");
+     this.done();
+   });
+});
+</script>

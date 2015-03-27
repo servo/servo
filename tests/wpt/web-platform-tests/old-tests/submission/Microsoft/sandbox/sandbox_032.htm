@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>HTML5 Sandbox: Block XMLHttpRequest in an iframe with the sandbox attribute.</title>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+    <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+    <link rel="help" href="http://dev.w3.org/html5/spec/Overview.html#sandboxed-origin-browsing-context-flag" />
+    <meta name="assert" content="Block XMLHttpRequest inside sandbox iframe." />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <script type="text/javascript">
+        
+        
+        var t = async_test("Block XMLHttpRequest in an iframe with the sandbox attribute.");
+  
+        function callback(event)
+        {
+            t.step(function(){ 
+                assert_true('sandbox' in document.createElement('iframe')); 
+                assert_equals(event.data, "no access to window.XMLHttpRequest");
+            });
+            t.done();
+        }
+
+        var timer = setTimeout(callback, 4000);
+        window.addEventListener("message", callback, false);
+    </script>
+    <div id=log></div>
+        <iframe src="iframe_sandbox_032.htm" sandbox="allow-scripts" style="display : none"></iframe>
+</body>
+</html>

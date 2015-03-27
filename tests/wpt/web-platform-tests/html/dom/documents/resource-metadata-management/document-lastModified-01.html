@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>document.lastModified should return current local time</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  var d = new Date();
+  var last_modified = document.lastModified;
+  var initial_modified = Date.parse(last_modified) / 1000;
+  var expected = Math.round(d / 1000);
+
+  test(function() {
+    assert_approx_equals(initial_modified, expected, 2.5);
+  }, "Date returned by lastModified is current at page load");
+
+  var pattern = /[0-9]{2}\/[0-9]{2}\/[0-9]{4} ([0-9]{2}):([0-9]{2}):([0-9]{2})/
+
+  test(function() {
+     assert_regexp_match(last_modified, pattern,
+                         "Format should match the pattern \"NN/NN/NNNN NN:NN:NN\".");
+  }, "Date returned by lastModified is in the form \"MM/DD/YYYY hh:mm:ss\".");
+
+
+  var hours = d.getHours()
+  var minutes = d.getMinutes()
+  var seconds = d.getSeconds()
+
+  test(function() {
+    var local_time = hours * 60 * 60 + minutes * 60 + seconds;
+    var m = pattern.exec(last_modified);
+    var last_modified_time = parseInt(m[1]) * 60 * 60 + parseInt(m[2]) * 60 + parseInt(m[3]);
+    assert_approx_equals(last_modified_time, local_time, 2,
+                         "Hours and minutes should match local time.");
+  }, "Date returned by lastModified is in the user's local time zone.");
+
+  var t = async_test("Date returned by lastModified is current after timeout.");
+
+  setTimeout(function() {
+    t.step(function() {
+      var new_modified = Date.parse(document.lastModified) / 1000;
+      var new_expected = Math.round(new Date() / 1000);
+      assert_approx_equals(new_modified, new_expected, 2.5,
+                           "(initial value was " + initial_modified + ")");
+      t.done();
+    });
+  }, 4000);
+</script>

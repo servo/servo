@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="500px" height="500px" viewBox="0 0 500 500">
+<title>Removing dragged element during drag and drop of SVG link</title>
+<a xlink:href="data:text/plain,1">
+	<circle cx="50" cy="50" r="50" fill="green"/>
+</a>
+<textArea x="10" y="100" width="480" height="200" font-size="30">Drag green circle above and drop it in the gray box below. Gray box should turn green once you drop it.</textArea>
+<rect x="10" y="300" width="480" height="190" fill="gray"/>
+<script type="application/ecmascript">
+var a = document.querySelector('a'), rect = document.querySelector('rect');
+a.addEventListener('dragstart',
+function (event)
+	{event.dataTransfer.effectAllowed = 'copy';
+	document.documentElement.removeChild(a);}
+,false);
+rect.addEventListener('dragenter',
+function (event)
+	{event.preventDefault()}
+,false);
+rect.addEventListener('dragover',
+function (event)
+	{event.preventDefault()}
+,false);
+rect.addEventListener('drop',
+function (event)
+	{if(event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,'') == 'data:text/plain,1')
+		{rect.setAttribute('fill','green');}
+	}
+,false);
+</script>
+</svg>

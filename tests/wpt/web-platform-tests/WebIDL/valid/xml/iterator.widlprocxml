@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>interface SessionManager {
+  <ref>Session</ref> getSessionForUser(DOMString username);
+  readonly attribute unsigned long sessionCount;
+
+  <ref>Session</ref> iterator;
+};
+
+interface Session {
+  readonly attribute DOMString username;
+};
+
+interface SessionManager2 {
+  <ref>Session2</ref> getSessionForUser(DOMString username);
+  readonly attribute unsigned long sessionCount;
+
+  <ref>Session2</ref> iterator = SessionIterator;
+};
+
+interface Session2 {
+  readonly attribute DOMString username;
+};
+
+interface SessionIterator {
+  readonly attribute unsigned long remainingSessions;
+};
+
+     interface NodeList {
+       <ref>Node</ref> iterator = NodeIterator;
+     };
+
+     interface NodeIterator {
+       <ref>Node</ref> iterator object;
+     };</webidl>
+  <Interface name="SessionManager" id="::SessionManager">
+    <webidl>interface SessionManager {
+  <ref>Session</ref> getSessionForUser(DOMString username);
+  readonly attribute unsigned long sessionCount;
+
+  <ref>Session</ref> iterator;
+};</webidl>
+    <Operation name="getSessionForUser" id="::SessionManager::getSessionForUser">
+      <webidl>  <ref>Session</ref> getSessionForUser(DOMString username);</webidl>
+      <Type name="Session"/>
+      <ArgumentList>
+        <Argument name="username">
+          <Type type="DOMString"/>
+        </Argument>
+      </ArgumentList>
+    </Operation>
+    <Attribute readonly="readonly" name="sessionCount" id="::SessionManager::sessionCount">
+      <webidl>  readonly attribute unsigned long sessionCount;</webidl>
+      <Type type="unsigned long"/>
+    </Attribute>
+    <Iterator>
+      <webidl>  <ref>Session</ref> iterator;</webidl>
+      <Type name="Session"/>
+    </Iterator>
+  </Interface>
+  <Interface name="Session" id="::Session">
+    <webidl>interface Session {
+  readonly attribute DOMString username;
+};</webidl>
+    <Attribute readonly="readonly" name="username" id="::Session::username">
+      <webidl>  readonly attribute DOMString username;</webidl>
+      <Type type="DOMString"/>
+    </Attribute>
+  </Interface>
+  <Interface name="SessionManager2" id="::SessionManager2">
+    <webidl>interface SessionManager2 {
+  <ref>Session2</ref> getSessionForUser(DOMString username);
+  readonly attribute unsigned long sessionCount;
+
+  <ref>Session2</ref> iterator = SessionIterator;
+};</webidl>
+    <Operation name="getSessionForUser" id="::SessionManager2::getSessionForUser">
+      <webidl>  <ref>Session2</ref> getSessionForUser(DOMString username);</webidl>
+      <Type name="Session2"/>
+      <ArgumentList>
+        <Argument name="username">
+          <Type type="DOMString"/>
+        </Argument>
+      </ArgumentList>
+    </Operation>
+    <Attribute readonly="readonly" name="sessionCount" id="::SessionManager2::sessionCount">
+      <webidl>  readonly attribute unsigned long sessionCount;</webidl>
+      <Type type="unsigned long"/>
+    </Attribute>
+    <Iterator interface="SessionIterator">
+      <webidl>  <ref>Session2</ref> iterator = SessionIterator;</webidl>
+      <Type name="Session2"/>
+    </Iterator>
+  </Interface>
+  <Interface name="Session2" id="::Session2">
+    <webidl>interface Session2 {
+  readonly attribute DOMString username;
+};</webidl>
+    <Attribute readonly="readonly" name="username" id="::Session2::username">
+      <webidl>  readonly attribute DOMString username;</webidl>
+      <Type type="DOMString"/>
+    </Attribute>
+  </Interface>
+  <Interface name="SessionIterator" id="::SessionIterator">
+    <webidl>interface SessionIterator {
+  readonly attribute unsigned long remainingSessions;
+};</webidl>
+    <Attribute readonly="readonly" name="remainingSessions" id="::SessionIterator::remainingSessions">
+      <webidl>  readonly attribute unsigned long remainingSessions;</webidl>
+      <Type type="unsigned long"/>
+    </Attribute>
+  </Interface>
+  <Interface name="NodeList" id="::NodeList">
+    <webidl>     interface NodeList {
+       <ref>Node</ref> iterator = NodeIterator;
+     };</webidl>
+    <Iterator interface="NodeIterator">
+      <webidl>       <ref>Node</ref> iterator = NodeIterator;</webidl>
+      <Type name="Node"/>
+    </Iterator>
+  </Interface>
+  <Interface name="NodeIterator" id="::NodeIterator">
+    <webidl>     interface NodeIterator {
+       <ref>Node</ref> iterator object;
+     };</webidl>
+    <IteratorObject>
+      <webidl>       <ref>Node</ref> iterator object;</webidl>
+      <Type name="Node"/>
+    </IteratorObject>
+  </Interface>
+</Definitions>

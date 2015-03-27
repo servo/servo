@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBIndex.getKey() - returns the record's primary key </title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+    var db,
+      t = async_test(),
+      record = { key:1, indexedProperty:"data" };
+
+    var open_rq = createdb(t);
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result;
+        var objStore = db.createObjectStore("test", { keyPath: "key" });
+        objStore.createIndex("index", "indexedProperty");
+
+        objStore.add(record);
+    };
+
+    open_rq.onsuccess = function(e) {
+        var rq = db.transaction("test")
+                   .objectStore("test");
+
+        rq = rq.index("index");
+
+        rq = rq.getKey("data");
+
+        rq.onsuccess = t.step_func(function(e) {
+            assert_equals(e.target.result, record.key);
+            t.done();
+        });
+    };
+</script>
+
+<div id="log"></div>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head><title>Page with access to localStorage and sessionStorage</title>
+</head>
+<body>
+    <script type="text/javascript">
+        if (window.localStorage && window.sessionStorage) {
+            parent.window.postMessage("access to window.localStorage and window.sessionStorage", "*");            
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Video Test: video_loop_base</title>
+    <link rel="author" title="Intel" href="http://www.intel.com" />
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-media-loop" />
+    <meta name="flags" content="" />
+    <meta name="assert" content="Check if video.loop is set to true that expecting the seeking event is fired more than once" />
+    <meta name=timeout content=long>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/media.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <video id="m" controls>The user agent doesn't support media element.</video>
+    <script type="text/javascript">
+        var media = document.getElementById("m");
+        var name = document.getElementsByName("assert")[0].content;
+        var t = async_test(name);
+        var looped = false;
+
+        function startTest() {
+            if (looped) {
+                t.step(function() {
+                    assert_true(true, "looped");
+                });
+                t.done();
+                media.pause();
+            }
+
+            looped = true;
+        }
+
+        media.addEventListener("seeking", startTest, false);
+        media.loop = true;
+        media.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
+        media.play();
+    </script>
+  </body>
+</html>

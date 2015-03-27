@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Invalid characters in content type in isContentHandlerRegistered</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script type="application/ecmascript">
+test(function() {
+  var ctype = 'application/x-nótRegísteredInOthérTCs-004', url = location.href.replace(/\/[^\/]*$/, "") + '/%s';
+  navigator.registerContentHandler(ctype, url, 'test');
+  assert_equals(navigator.isContentHandlerRegistered(ctype, 'http://t/core/standards/registerhandler/%s'), 'new');
+});
+</script>
+</head>
+<body>
+<div id="log"></div>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!doctype html>
+<title>await a stable state and sync event handlers</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<video></video>
+<script>
+var v;
+var t = async_test(function(t) {
+  v = document.querySelector('video');
+  var a = document.createElement('a');
+  a.onclick = t.step_func(function() {
+    v.setAttribute('src', '#'); // invokes media load which invokes resource selection
+    assert_equals(v.networkState, v.NETWORK_NO_SOURCE, 'networkState in onclick handler');
+  });
+  a.click(); // sync fires click, so sets src
+  // now we should still await a stable state because the script hasn't
+  // finished, the event handler has just returned
+  assert_equals(v.networkState, v.NETWORK_NO_SOURCE, 'networkState after click()');
+  v.removeAttribute('src');
+});
+</script>
+<script>
+t.step(function() {
+  // now the sync section of resource selection should have run and should
+  // have found no src="" or <source> thus networkState being set to NETWORK_EMPTY.
+  // if the sync section was run when onclick returned, then networkState
+  // would be either NETWORK_LOADING or NETWORK_NO_SOURCE.
+  assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState in separate script');
+  t.done();
+});
+</script>

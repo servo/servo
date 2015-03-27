@@ -1,0 +1,36 @@
+<!doctype html>
+<title>Node.contains() tests</title>
+<link rel=author title="Aryeh Gregor" href=ayg@aryeh.name>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../common.js></script>
+<script>
+"use strict";
+
+testNodes.forEach(function(referenceName) {
+  var reference = eval(referenceName);
+
+  test(function() {
+    assert_false(reference.contains(null));
+  }, referenceName + ".contains(null)");
+
+  testNodes.forEach(function(otherName) {
+    var other = eval(otherName);
+    test(function() {
+      var ancestor = other;
+      while (ancestor && ancestor !== reference) {
+        ancestor = ancestor.parentNode;
+      }
+      if (ancestor === reference) {
+        assert_true(reference.contains(other));
+      } else {
+        assert_false(reference.contains(other));
+      }
+    }, referenceName + ".compareDocumentPosition(" + otherName + ")");
+  });
+});
+
+testDiv.parentNode.removeChild(testDiv);
+</script>
+<!-- vim: set expandtab tabstop=2 shiftwidth=2: -->

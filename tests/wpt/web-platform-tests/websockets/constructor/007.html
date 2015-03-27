@@ -1,0 +1,9 @@
+<!doctype html>
+<title>WebSockets: new WebSocket(url, null char)</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+test(function() {assert_throws("SyntaxError", function(){new WebSocket("ws://"+location.host+"/", 'a'+String.fromCharCode(0)+'b')})});
+</script>

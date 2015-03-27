@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CORS - redirect</title>
+<meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+
+<h1>CORS redirect handling</h1>
+
+<div id=log></div>
+
+<script>
+
+    // Test count for cache busting and easy identifying of request in traffic analyzer
+    var num_test = 0,
+
+        origin         = location.protocol + "//" + location.host,
+        remote_origin  = origin.replace('://', '://' + SUBDOMAIN + '.'),
+
+        local   = dirname(location.href) + 'resources/cors-makeheader.py',
+        remote  = local.replace('://', '://' + SUBDOMAIN + '.'),
+        remote2 = local.replace('://', '://' + SUBDOMAIN2 + '.');
+
+
+    /*           First page           Redirect to          Expect what  */
+
+    // local -> remote
+
+    redir_test([ 'local',  '*'    ], [ 'remote', '*'    ], origin    );
+    redir_test([ 'local',  '*'    ], [ 'remote', origin ], origin    );
+    redir_test([ 'local',  '*'    ], [ 'remote', 'null' ], 'disallow');
+    redir_test([ 'local',  '*'    ], [ 'remote', 'none' ], 'disallow');
+
+    redir_test([ 'local',  origin ], [ 'remote', '*'    ], origin    );
+    redir_test([ 'local',  origin ], [ 'remote', origin ], origin    );
+    redir_test([ 'local',  origin ], [ 'remote', 'null' ], 'disallow');
+    redir_test([ 'local',  origin ], [ 'remote', 'none' ], 'disallow');
+
+    redir_test([ 'local',  'null' ], [ 'remote', '*'    ], origin    );
+    redir_test([ 'local',  'none' ], [ 'remote', '*'    ], origin    );
+
+
+    // remote -> local
+
+    redir_test([ 'remote',  '*'    ], [ 'local', '*'    ], 'null'    );
+    redir_test([ 'remote',  '*'    ], [ 'local', origin ], 'disallow');
+    redir_test([ 'remote',  '*'    ], [ 'local', 'null' ], 'null'    );
+    redir_test([ 'remote',  '*'    ], [ 'local', 'none' ], 'disallow');
+
+    redir_test([ 'remote',  origin ], [ 'local', '*'    ], 'null'    );
+    redir_test([ 'remote',  origin ], [ 'local', origin ], 'disallow');
+    redir_test([ 'remote',  origin ], [ 'local', 'null' ], 'null'    );
+    redir_test([ 'remote',  origin ], [ 'local', 'none' ], 'disallow');
+
+    redir_test([ 'remote',  'null' ], [ 'local', '*'    ], 'disallow');
+    redir_test([ 'remote',  'none' ], [ 'local', '*'    ], 'disallow');
+
+
+    // remote -> remote
+
+    redir_test([ 'remote',  '*'    ], [ 'remote', '*'    ], origin    );
+    redir_test([ 'remote',  '*'    ], [ 'remote', origin ], origin    );
+    redir_test([ 'remote',  '*'    ], [ 'remote', 'null' ], 'disallow');
+    redir_test([ 'remote',  '*'    ], [ 'remote', 'none' ], 'disallow');
+
+    redir_test([ 'remote',  origin ], [ 'remote', '*'    ], origin    );
+    redir_test([ 'remote',  origin ], [ 'remote', origin ], origin    );
+    redir_test([ 'remote',  origin ], [ 'remote', 'null' ], 'disallow');
+    redir_test([ 'remote',  origin ], [ 'remote', 'none' ], 'disallow');
+
+    redir_test([ 'remote',  'null' ], [ 'remote', '*'    ], 'disallow');
+    redir_test([ 'remote',  'none' ], [ 'remote', '*'    ], 'disallow');
+
+
+    // remote -> remote2
+
+    redir_test([ 'remote',  '*'    ], [ 'remote2', '*'    ], 'null'    );
+    redir_test([ 'remote',  '*'    ], [ 'remote2', origin ], 'disallow');
+    redir_test([ 'remote',  '*'    ], [ 'remote2', 'null' ], 'null'    );
+    redir_test([ 'remote',  '*'    ], [ 'remote2', 'none' ], 'disallow');
+
+    redir_test([ 'remote',  origin ], [ 'remote2', '*'    ], 'null'    );
+    redir_test([ 'remote',  origin ], [ 'remote2', origin ], 'disallow');
+    redir_test([ 'remote',  origin ], [ 'remote2', 'null' ], 'null');
+    redir_test([ 'remote',  origin ], [ 'remote2', 'none' ], 'disallow');
+
+    redir_test([ 'remote',  'null' ], [ 'remote2', '*'    ], 'disallow');
+    redir_test([ 'remote',  'none' ], [ 'remote2', '*'    ], 'disallow');
+
+
+    // Bonus weird edge checks
+
+    redir_test([ 'remote', '*'           ], [ 'remote',  remote_origin ], 'disallow');
+    redir_test([ 'remote', '*'           ], [ 'remote2', remote_origin ], 'disallow');
+    redir_test([ 'remote', remote_origin ], [ 'remote',  "*"           ], 'disallow');
+
+
+
+    /*
+     * The helpers
+     */
+
+    function redir_test(first, second, expect_origin) {
+        var first_url, second_url,
+            urls = { "remote": remote, "local": local, "remote2": remote2 };
+
+        first_url = urls[first[0]] + "?origin=" + first[1];
+        second_url = urls[second[0]] + "?origin=" + second[1];
+
+        if (expect_origin=="disallow") {
+            shouldFail(first[0]+" ("+first[1]+") to "
+                + second[0]+" ("+second[1]+"), expect to fail", [ first_url, second_url ]);
+        }
+        else {
+            shouldPass(first[0]+" ("+first[1]+") to "
+                + second[0]+" ("+second[1]+"), expect origin="+expect_origin, expect_origin, [ first_url, second_url ]);
+        }
+
+    }
+
+    function shouldPass(desc, expected_origin, urls) {
+        var test_id = num_test,
+            t = async_test(desc);
+
+        num_test++;
+
+        t.step(function() {
+            var final_url,
+                client = new XMLHttpRequest();
+
+            client.open('GET', buildURL(urls, test_id));
+
+            client.onreadystatechange = t.step_func(function() {
+                if (client.readyState != client.DONE)
+                    return;
+                assert_true(!!client.response, "Got response");
+                r = JSON.parse(client.response)
+                assert_equals(r['origin'], expected_origin, 'Origin Header')
+                assert_equals(r['get_value'], 'last', 'get_value')
+                t.done();
+            });
+            client.send(null)
+        });
+    }
+
+    function shouldFail(desc, urls) {
+        var test_id = num_test,
+            t = async_test(desc);
+
+        num_test++;
+
+        t.step(function() {
+            var client = new XMLHttpRequest();
+
+            client.open('GET', buildURL(urls, test_id));
+
+            client.onreadystatechange = t.step_func(function() {
+                if (client.readyState != client.DONE)
+                    return;
+                assert_false(!!client.response, "Got response");
+            });
+            client.onerror = t.step_func(function(e) {
+                t.done();
+            });
+
+            client.send(null)
+        });
+    }
+
+
+    function buildURL(urls, id) {
+        var tmp_url;
+
+        if (typeof(urls) == "string") {
+            return urls + "&" + id + "_0";
+        }
+
+        for (var i = urls.length; i--; ) {
+            if (!tmp_url)
+            {
+                tmp_url = urls[i] + "&get_value=last&" + id + "_" + i;
+                continue;
+            }
+            tmp_url = urls[i]
+                        + "&location="
+                        + encodeURIComponent(tmp_url)
+                        + "&" + id + "_" + i;
+        }
+
+        return tmp_url;
+    }
+
+</script>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;obj&gt;</title>
+</head>
+<body>
+  <!-- classid, codebase, data, usemap are uris; archive is uri list
+       width and height are positive integers
+       type and codetype are MIME types -->
+  <p><object archive="&lt;"></object></p>
+  <p><object classid="&lt;"></object></p>
+  <p><object codebase="&lt;"></object></p>
+  <p><object codetype="//"></object></p>
+  <p><object data="&lt;"></object></p>
+  <p><object height="4.2"></object></p>
+  <p><object type="//"></object></p>
+  <p><object usemap="&lt;"></object></p>
+  <p><object width="0"></object></p>
+
+  <!-- cannot contain blocks while in inline context -->
+  <p>paragraph
+    <object>
+        <p>para</p>
+    </object>
+  </p>
+
+  <!-- cannot contain blocks while in strictly inline context -->
+  <p><dfn>strictly inline
+    <object>
+        <p>para</p>
+    </object>
+  </dfn></p>
+
+  <!-- cannot contain structured inline while in strictly inline context -->
+  <p><dfn>strictly inline
+    <object>
+        <ul><li>para</li></ul>
+    </object>
+  </dfn></p>
+
+  <!-- cannot contain inline while in block context -->
+  <object>
+    <em>inline</em> text
+  </object>
+
+  <!-- param must be first -->
+  <p>paragraph
+    <object>
+      <em>text</em>
+      <param name="foo">
+    </object>
+  </p>
+  <p><dfn>strictly inline
+    <object>
+      text
+      <param name="foo">
+    </object>
+  </dfn></p>
+  <object>
+    <p>para</p>
+    <param name="foo">
+  </object>
+
+  <!-- cannot contain interactive if ancestor forbids it -->
+  <p><a>paragraph
+    <object>
+      <a>para</a>
+    </object>
+  </a></p>
+  <p><dfn><a>strictly inline
+    <object>
+      <a>para</a>
+    </object>
+  </a></dfn></p>
+
+  <!-- object with flow content and phrasing parent -->
+  <span><object data=foo><p>foo</p></object></span>
+
+</body>
+</html>

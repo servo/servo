@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>HTML 5 Foreign Content SVG in HTML </title>
+        <meta description="Test to verify SVG elements are styled using SCRIPT and STYLE element" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" /> 
+        
+        <style>
+            svg
+            {
+                display: block;
+                fill: black;
+            }
+        </style>
+        <script>
+            function ChangeColor()
+            {
+                document.getElementById("rect1").style.fill = "green";
+            }
+        </script>
+    </head>
+    
+    <body onload="ChangeColor()">
+
+        <div class="testdata">
+            <p id="instructions">Test passes if a green square appears above a black square. </p>
+        </div>
+        <svg width="200px" height="200px">
+            <rect id="rect1" x="0" y="0" width="100px" height="100px" />
+            <rect id="rect2" x="0" y="150"  width="100px" height="100px" />
+        </svg>
+    </body>
+</html>

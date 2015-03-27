@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+  <title>Web Storage</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+      function fail(msg) {
+          t.step(function() {
+              assert_unreached(msg);
+          });
+          t.done();
+      }
+  </script>
+ </head>
+ <body>
+    <h1>event_local_storageArea</h1>
+    <div id="log"></div>
+    <script>
+        test(function() {
+            localStorage.clear();
+            var t = async_test("storageArea property test of local event");
+            function onStorageEvent(event) {
+                t.step(function() {
+                    assert_equals(event.storageArea.length, 1);
+                    var key = event.storageArea.key(0);
+                    var value = event.storageArea.getItem(key);
+                    assert_equals(key, "name");
+                    assert_equals(value, "user1");
+                });
+                t.done();
+            }
+
+            window.addEventListener('storage', onStorageEvent, false);
+
+            var el = document.createElement("iframe");
+            el.setAttribute('id', 'ifrm');
+            el.setAttribute('src', 'iframe/local_set_item_iframe.html');
+            document.body.appendChild(el);
+        });
+    </script>
+ </body>
+</html>

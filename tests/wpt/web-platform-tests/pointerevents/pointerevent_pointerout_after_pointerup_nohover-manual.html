@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+    <head>
+        <title>pointerout</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+    </head>
+    <body onload="run()">
+        <h2>pointerout</h2>
+        <h4>Test Description: This test checks if pointerout event triggers for devices that don't support hover. Tap the black rectangle. </h4>
+        <p>Note: this test is only for devices that do not support hover.</p>
+        <div id="target0"></div>
+        <script>
+            var test_pointerout = async_test("pointerout event received");
+            // showPointerTypes is defined in pointerevent_support.js
+            // Requirements: the callback function will reference the test_pointerEvent object and
+            // will fail unless the async_test is created with the var name "test_pointerEvent".
+            add_completion_callback(showPointerTypes);
+
+            var eventTested = false;
+            var pointerup_event = null;
+            var detected_pointertypes = {};
+
+            function run() {
+                var target0 = document.getElementById("target0");
+
+                on_event(target0, "pointerup", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    pointerup_event = event;
+                });
+
+                // For input devices that do not support hover, a pointerout event must follow the pointerup event.
+                // TA: 3.6
+                on_event(target0, "pointerout", function (event) {
+                    if(event.pointerType == 'touch') {
+                        if(pointerup_event != null) {
+                            if(eventTested == false) {
+                                test_pointerout.step(function() {
+                                    assert_equals(event.pointerType, pointerup_event.pointerType, "pointerType is same for pointerup and pointerout");
+                                    assert_equals(event.isPrimary, pointerup_event.isPrimary, "isPrimary is same for pointerup and pointerout");
+                                });
+                                eventTested = true;
+                                test_pointerout.done();
+                            }
+                        }
+                        else {
+                            test_pointerout.step(function() {
+                                assert_true(false,
+                                "pointerup received before pointerout");
+                            }, "pointerup received before pointerout");
+                        }
+                    }
+                });
+            }
+
+        </script>
+        <h1>Pointer Events pointerout tests</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

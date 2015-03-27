@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Event: The pointerenter event does not bubble </title>
+        <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/"/>
+        <meta name="assert" content="The pointerenter event must not bubble up to parent elements."/>
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <!-- /resources/testharness.js -->
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <script type="text/javascript">
+            var detected_pointertypes = {};
+            var test_pointerEvent = async_test("pointerEnter event does not bubble"); // set up test harness
+            // showPointerTypes is defined in pointerevent_support.js
+            // Requirements: the callback function will reference the test_pointerEvent object and
+            // will fail unless the async_test is created with the var name "test_pointerEvent".
+            add_completion_callback(showPointerTypes);
+
+            var pointerenter_event = null;
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                var parent0 = document.getElementById("parent0");
+
+                on_event(target0, "pointerenter", function (event) {
+                    pointerenter_event = event;
+
+                    check_PointerEvent(event);
+                    test_pointerEvent.step(function () {
+                        assert_equals(event.type, "pointerenter", "pointer event received: " + event.type);
+                        assert_false(event.bubbles, "pointerenter event.bubbles should be false: " + event.bubbles);
+                    });
+                });
+                on_event(target0, "pointerout", function (event) {
+                    test_pointerEvent.step(function () {
+                        assert_not_equals(pointerenter_event, null, "pointerout event was never received: ");
+                    });
+                    test_pointerEvent.done(); // complete test
+                });
+
+                // parent
+                on_event(parent0, "pointerenter", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    test_pointerEvent.step(function () {
+                        assert_equals(event.target.id, "parent0", "Recieved " + event.type + " in parent for " + event.target.id);
+                    });
+                });
+            }
+
+        </script>
+        <style>
+            #target0 {
+            background: purple;
+            border: 1px solid orange;
+            width:50px;
+            height:50px;
+            }
+            #parent0 {
+            background: black;
+            border: 1px solid orange;
+            width:100px;
+            height:100px;
+            }
+        </style>
+    </head>
+    <body onload="run()">
+        <h1> Pointer Event: pointerenter does not bubble</h1>
+        <h4>
+            Test Description:
+            The pointerenter event must not bubble up to parent elements.
+        </h4>
+        <div id="instructions">
+            Use the mouse or pen to hover over then out of the purple box nested in the black box. Or with touch, tap on the purple box.
+        </div>
+        <div id="parent0">
+            <div id="target0"></div>
+        </div>
+        <div id="complete-notice">
+            <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

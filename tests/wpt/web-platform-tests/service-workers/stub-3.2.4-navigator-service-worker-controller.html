@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<title>Service Workers: controller</title>
+    <head>
+        <link rel="help" href="https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#navigator-service-worker-controller">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+    </head>
+    <body>
+
+<!--
+
+`navigator.serviceWorker.controller` must return a [ServiceWorker][1] object
+representing the [active worker][2] that currently handles resource requests
+for the document. `navigator.serviceWorker.controller` returns `null` if the
+current document was not [created under a Service Worker][3] (See step 6-1 of
+[_OnFetchRequest][3] algorithm) or the request is a force refresh
+(shift+refresh).
+
+[1]: #service-worker-interface
+[2]: #active-worker
+[3]: #on-fetch-request-algorithm
+
+-->
+
+
+
+    <script>
+        test(function() {
+            // not_implemented();
+        }, "There are no tests for section controller so far.");
+    </script>
+
+    </body>
+</html>
+

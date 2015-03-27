@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>HTMLVideoElement.getVideoPlaybackQuality() test cases.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              var previousQuality = mediaElement.getVideoPlaybackQuality();
+              var timeUpdateCount = 0;
+              mediaElement.addEventListener("timeupdate", test.step_func(function (e)
+              {
+                  var videoElement = e.target;
+                  var newQuality = videoElement.getVideoPlaybackQuality();
+
+                  assert_not_equals(previousQuality, newQuality, "Verify new object");
+                  assert_greater_than(newQuality.creationTime, previousQuality.creationTime, "creationTime");
+
+                  assert_greater_than_equal(newQuality.totalVideoFrames, 0, "totalVideoFrames >= 0");
+                  assert_greater_than_equal(newQuality.totalVideoFrames, previousQuality.totalVideoFrames, "totalVideoFrames");
+
+                  assert_greater_than_equal(newQuality.droppedVideoFrames, 0, "droppedVideoFrames >= 0");
+                  assert_greater_than_equal(newQuality.droppedVideoFrames, previousQuality.droppedVideoFrames, "droppedVideoFrames");
+
+                  assert_greater_than_equal(newQuality.corruptedVideoFrames, 0, "corruptedVideoFrames >= 0");
+                  assert_greater_than_equal(newQuality.corruptedVideoFrames, previousQuality.corruptedVideoFrames, "corruptedVideoFrames");
+                  previousQuality = newQuality;
+                  timeUpdateCount++;
+              }));
+
+              test.failOnEvent(mediaElement, 'error');
+
+              test.expectEvent(sourceBuffer, 'updatestart', 'sourceBuffer');
+              test.expectEvent(sourceBuffer, 'update', 'sourceBuffer');
+              test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
+              sourceBuffer.appendBuffer(mediaData);
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_false(sourceBuffer.updating, "updating");
+                  assert_greater_than(mediaSource.duration, 1, "duration");
+
+                  mediaSource.duration = 1;
+
+                  assert_true(sourceBuffer.updating, "updating");
+                  test.expectEvent(sourceBuffer, 'updatestart', 'sourceBuffer');
+                  test.expectEvent(sourceBuffer, 'update', 'sourceBuffer');
+                  test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  mediaSource.endOfStream();
+                  mediaElement.play();
+                  test.expectEvent(mediaElement, 'ended', 'mediaElement');
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_greater_than(timeUpdateCount, 2, "timeUpdateCount");
+                  test.done();
+              });
+          }, "Test HTMLVideoElement.getVideoPlaybackQuality() with MediaSource API", {timeout: 5000});
+        </script>
+    </body>
+</html>

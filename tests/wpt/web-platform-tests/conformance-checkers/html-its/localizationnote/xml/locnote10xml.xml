@@ -1,0 +1,33 @@
+<msgList>
+<head>
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+<its:param name="DisableInfoParam">DisableInfo</its:param>
+<its:locNoteRule selector="//@alt" locNoteType="description">
+<its:locNote>This text will be displayed over the image.</its:locNote>
+</its:locNoteRule>
+<its:locNoteRule selector="//msg[@id='1']/img/@alt" locNoteType="alert">
+<its:locNote>Do not translate the word "Chobe"</its:locNote>
+</its:locNoteRule>
+<its:locNoteRule locNoteType="alert" selector="//msg[@id=$DisableInfoParam]">
+<its:locNote>
+The variable
+{0}
+has three possible values: 'printer', 'stacker' and 'stapler options'.
+</its:locNote>
+</its:locNoteRule>
+</its:rules>
+</head>
+<body>
+<msg id="1">
+This is a hippoptamus:
+<img src="hippo.png" alt="Hippo in the Chobe River"/>
+.
+</msg>
+<msg id="2">
+This is an elephant:
+<img src="elephants.png" alt="Elephants taking a mud bath"/>
+.
+</msg>
+<msg id="DisableInfo">The {0} has been disabled.</msg>
+</body>
+</msgList>

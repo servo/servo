@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>IDBDatabase.createObjectStore() - create an object store with an unknown optional parameter </title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+
+var t = async_test(document.title, {timeout: 10000}),
+    open_rq = createdb(t)
+
+open_rq.onupgradeneeded = function(e) {
+    var db = e.target.result
+    db.createObjectStore("with unknown param", { parameter: 0 });
+
+    t.done()
+}
+
+</script>
+
+
+<div id="log"></div>
+
+

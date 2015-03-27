@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+  <title>Web Storage</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+      function fail(msg) {
+          t.step(function() {
+              assert_unreached(msg);
+          });
+          t.done();
+      }
+  </script>
+ </head>
+ <body>
+    <h1>event_session_key</h1>
+    <div id="log"></div>
+    <script>
+        test(function() {
+            sessionStorage.clear();
+            var t = async_test("key property test of session event");
+            var expected = ['name', null]
+            function onStorageEvent(event) {
+                t.step(function() {
+                    assert_equals(event.key, expected.shift());
+                });
+                if (!expected.length) {
+                    t.done();
+                }
+            }
+
+            window.addEventListener('storage', onStorageEvent, false);
+
+            var el = document.createElement("iframe");
+            el.setAttribute('id', 'ifrm');
+            el.setAttribute('src', 'iframe/session_set_item_clear_iframe.html');
+            document.body.appendChild(el);
+        });
+    </script>
+ </body>
+</html>

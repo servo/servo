@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> Same-origin: event.source returns the WindowProxy of the source window </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<div style="display:none">
+    <iframe width="70%" onload="PostMessageTest()" src="./support/ChildWindowPostMessage.htm"></iframe>
+</div>
+
+<script>
+
+
+    var description = "Test Description: Same-origin: event.source returns the WindowProxy of the source window.";
+
+    var t = async_test(description);
+
+    var DATA = "foo";
+    var TARGET = document.querySelector("iframe");
+    var SORIGIN = location.protocol + "//" + location.host;
+    var ExpectedResult = [SORIGIN, "AccessCookieAllowed"];
+    var ActualResult = [];
+
+    function PostMessageTest()
+    {
+        TARGET.contentWindow.postMessage(DATA, SORIGIN);
+    }
+
+    window.onmessage = t.step_func(function(e)
+    {
+        try
+        {
+            var sdomainCookie = e.source.document.cookie;
+            ActualResult.push(e.origin, "AccessCookieAllowed");
+        }
+        catch(ex)
+        {
+            ActualResult.push(e.origin, "AccessCookieDenied");
+        }
+
+        assert_true(e.source === TARGET.contentWindow);
+        assert_array_equals(ActualResult, ExpectedResult, "ActualResult");
+        t.done();
+    });
+</script>
+</body>
+</html>

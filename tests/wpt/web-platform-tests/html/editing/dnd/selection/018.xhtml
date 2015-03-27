@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Selection drag and drop from password input to textarea</title>
+<style type="text/css">
+textarea
+	{width:300px;
+	height:100px;
+	margin-top:20px;
+	padding:10px;}
+</style>
+</head>
+<body onload="document.querySelector('input').select()">
+<p>You should not be able to drag and drop selection from password field to the textarea.</p>
+<p><input type="password" value="FAIL"/></p>
+<p><textarea placeholder="Drop selection here"/></p>
+</body>
+</html>

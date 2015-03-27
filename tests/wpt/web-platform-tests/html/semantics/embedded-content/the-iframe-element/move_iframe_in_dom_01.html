@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>moving modified IFRAME in document (original page about:blank, DOM modification)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/#iframe-load-event-steps">
+<iframe src="about:blank"></iframe>
+<div id="target"></div>
+<script>
+onload = function() {
+  var ifr = document.getElementsByTagName('iframe')[0];
+  ifr.contentDocument.body.appendChild(ifr.contentDocument.createElement('p')).textContent = 'Modified document';
+  setTimeout(function() {
+    ifr.onload = function() {
+      assert_equals(ifr.contentDocument.body.textContent.indexOf('Modified'), -1);
+      done();
+    };
+    document.getElementById('target').appendChild(ifr);
+  }, 100);
+}
+</script>

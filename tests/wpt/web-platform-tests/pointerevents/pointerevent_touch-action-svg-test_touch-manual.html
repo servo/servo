@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+    <head>
+        <title>SVG test</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="pointerevent_support.js"></script>
+        <style>
+            #target0 {
+            height: 350px;
+            width: 300px;
+            overflow-y: auto;
+            background: black;
+            padding: 100px;
+            position: relative;
+            }
+        </style>
+    </head>
+    <body onload="run()">
+        <h2>Pointer Events touch-action attribute support</h2>
+        <h4 id="desc">Test Description: Try to scroll black element DOWN moving your touch outside of the red border. Wait for description update.</h4>
+        <p>Note: this test is for touch only</p>
+        <div id="target0">
+            <svg width="555" height="555" style="touch-action: none;  border: 4px double red;">
+                <circle cx="305" cy="305" r="250" stroke="green" stroke-width="4" fill="yellow" />
+                Sorry, your browser does not support inline SVG.
+            </svg>
+        </div>
+        <br>
+        <input type="button" id="btnComplete" value="Complete test">
+        <script type='text/javascript'>
+            var detected_pointertypes = {};
+            var xScrollIsReceived = false;
+            var yScrollIsReceived = false;
+            var xScr0, yScr0, xScr1, yScr1;
+            var scrollReturnInterval = 1000;
+            var isFirstPart = true;
+            setup({ explicit_timeout: true });
+            add_completion_callback(showPointerTypes);
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                var btnComplete = document.getElementById("btnComplete");
+
+                var test_touchaction_div = async_test("touch-action attribute test out of SVG");
+                var test_touchaction_svg = async_test("touch-action attribute test in SVG");
+
+                xScr0 = target0.scrollLeft;
+                yScr0 = target0.scrollTop;
+
+                on_event(btnComplete, 'click', function(event) {
+                    test_touchaction_svg.step(function() {
+                        assert_equals(target0.scrollLeft, 0, "SVG scroll x offset should be 0 in the end of the test");
+                        assert_equals(target0.scrollTop, 0, "SVG scroll y offset should be 0 in the end of the test");
+                    });
+                    test_touchaction_svg.done();
+                    updateDescriptionComplete();
+                });
+
+                on_event(btnComplete, 'pointerdown', function(event) {
+                    detected_pointertypes[event.pointerType] = true;
+                });
+
+                on_event(target0, 'scroll', function(event) {
+                    if(isFirstPart) {
+                        xScr1 = target0.scrollLeft;
+                        yScr1 = target0.scrollTop;
+
+                        if(xScr1 != xScr0) {
+                            xScrollIsReceived = true;
+                        }
+
+                        if(yScr1 != yScr0) {
+                            test_touchaction_div.step(function () {
+                                yScrollIsReceived = true;
+                                assert_true(true, "y-scroll received.");
+                            });
+                            updateDescriptionSecondStepSVG();
+                        }
+
+                        if(xScrollIsReceived && yScrollIsReceived) {
+                            test_touchaction_div.done();
+                            updateDescriptionThirdStepSVG();
+                            setTimeout(function() {
+                                isFirstPart = false;
+                            }, 2 * scrollReturnInterval);
+                        }
+                    }
+                });
+            }
+
+            function updateDescriptionSecondStepSVG() {
+                window.setTimeout(function() {
+                objectScroller(target0, 'up', 0);}
+                , scrollReturnInterval);
+                document.getElementById('desc').innerHTML = "Test Description: Try to scroll element RIGHT moving your touch outside of the red border";
+            }
+
+            function updateDescriptionThirdStepSVG() {
+                window.setTimeout(function() {
+                objectScroller(target0, 'left', 0);}
+                , scrollReturnInterval);
+                document.getElementById('desc').innerHTML = "Test Description: Try to scroll element DOWN then RIGHT starting your touch inside of the circle. Tap Complete button under the rectangle when done";
+            }
+
+            function objectScroller(target, direction, value) {
+                if (direction == 'up') {
+                    target.scrollTop = 0;
+                } else if (direction == 'left') {
+                    target.scrollLeft = 0;
+                }
+            }
+        </script>
+        <h1>touch-action: none</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

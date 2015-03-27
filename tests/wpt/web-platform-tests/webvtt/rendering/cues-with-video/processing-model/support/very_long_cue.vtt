@@ -1,0 +1,4 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:10.000 size:50%
+This is a test subtitle that should wrap several times and become so long that the cue must be cut when displayed, because it does not fit on the screen. This is a test subtitle that should wrap several times and become so long that the cue must be cut when displayed, because it does not fit on the screen.

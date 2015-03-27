@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CORS - request headers - Access-Control-Allow-Headers</title>
+<meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+
+<h1>Request headers</h1>
+<div id=log></div>
+<script>
+
+/*
+ * Request Headers
+ */
+
+test(function() {
+    var client = new XMLHttpRequest()
+    client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?headers=x-print', false)
+    client.setRequestHeader('x-print', 'unicorn')
+    client.send(null)
+
+    res = JSON.parse(client.response)
+    assert_equals(res['x-print'], 'unicorn')
+}, 'basic request header')
+
+test(function() {
+    var client = new XMLHttpRequest()
+    client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?headers=x-print,', false)
+    client.setRequestHeader('x-print', 'unicorn')
+    client.setRequestHeader('content-type', 'text/plain')
+    client.setRequestHeader('accept', 'test')
+    client.setRequestHeader('accept-language', 'nn')
+    client.setRequestHeader('content-language', 'nn')
+    client.send(null)
+
+    res = JSON.parse(client.response)
+    assert_equals(res['x-print'], 'unicorn')
+    assert_equals(res['content-type'], 'text/plain')
+    assert_equals(res['accept'], 'test')
+    assert_equals(res['accept-language'], 'nn')
+    assert_equals(res['content-language'], 'nn')
+}, 'Simple request headers need not be in allow-headers')
+
+test(function() {
+    var client = new XMLHttpRequest()
+    client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?headers=x-print', false)
+    client.setRequestHeader('x-print', 'unicorn')
+    client.setRequestHeader('y-print', 'unicorn')
+    assert_throws(null, function() { client.send(null) })
+}, 'Unspecified request headers are disallowed')
+
+test(function() {
+    var client = new XMLHttpRequest()
+    client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?headers=,y-lol,x-PriNT,%20,,,Y-PRINT', false)
+    client.setRequestHeader('x-print', 'unicorn')
+    client.setRequestHeader('y-print', 'narwhal')
+    client.send(null)
+
+    res = JSON.parse(client.response)
+    assert_equals(res['x-print'], 'unicorn')
+    assert_equals(res['y-print'], 'narwhal')
+}, 'Strange allowheaders (case insensitive)')
+
+test(function() {
+    var client = new XMLHttpRequest()
+    assert_throws('INVALID_STATE_ERR', function() { client.setRequestHeader('x-print', 'unicorn') })
+},
+'INVALID_STATE_ERR on setRequestHeader before open()')
+
+test(function() {
+    var client = new XMLHttpRequest()
+    client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?headers=,y-lol,x-PriNT,%20,,,Y-PRINT', false)
+    client.send()
+    assert_throws('INVALID_STATE_ERR', function() { client.setRequestHeader('x-print', 'unicorn') })
+},
+'INVALID_STATE_ERR on setRequestHeader after send()')
+
+</script>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>HTML Templates: Template element as a descendant of the frameset element.</title>
+<meta name="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
+<meta name="assert" content="Template element can be a descendant of the frameset element">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-html-templates-20130214/#template-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='../testcommon.js'></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script type="text/javascript">
+
+testInIFrame('../resources/template-descendant-frameset.html', function(context) {
+    var doc = context.iframes[0].contentDocument;
+
+    var frameset = doc.querySelector('frameset');
+
+    assert_not_equals(frameset.querySelector('template'), null,
+        'Template element should be a descendant of the frameset element');
+
+}, 'Template element as a descendant of the frameset element. Test loading from a file');
+
+
+testInIFrame('../resources/template-descendant-frameset.html', function(context) {
+    var doc = context.iframes[0].contentDocument;
+
+    var frameset = doc.querySelector('frameset');
+
+    frameset.innerHTML = '';
+    assert_equals(doc.querySelector('template'), null,
+            'Initial conditions are not satisfied');
+
+    frameset.innerHTML = '<template>some text</template>';
+
+    assert_not_equals(frameset.querySelector('template'), null,
+        'Template element should be a descendant of the frameset element');
+
+}, 'Template element as a descendant of the frameset element. '
+    + 'Test template element is assigned to frameset\'s innerHTML)');
+
+
+testInIFrame('../resources/template-descendant-frameset.html', function(context) {
+    var doc = context.iframes[0].contentDocument;
+
+    var frameset = doc.querySelector('frameset');
+
+    var template = doc.createElement('template');
+    frameset.appendChild(template);
+
+    assert_equals(frameset.querySelectorAll('template').length, 2,
+        'Template element should be a descendant of the frameset element');
+
+}, 'Template element as a descendant of the frameset element. '
+    + 'Test template element appended to frameset by appendChild()');
+
+
+</script>
+</body>
+</html>

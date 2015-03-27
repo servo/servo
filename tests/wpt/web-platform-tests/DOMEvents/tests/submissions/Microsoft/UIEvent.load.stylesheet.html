@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title id='desc'> UIEvent: load event for style sheets </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            function TestEvent(evt)
+            {
+                if ((evt.type == EVENT) && (evt.currentTarget == TARGET))
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+
+            var EVENT = "load";
+            var TARGET;
+
+            window.onload = function()
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener(EVENT, TestEvent, false);
+                    TARGET.href = "./support/style01.css";
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: UIEvent - load event fires when the DOM Implementation finishes loading
+            dependent resources, such as style sheets.
+        </h4>
+
+        <LINK id="target" rel="stylesheet" />
+
+        <p>Test passes if the word "PASS" appears below.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

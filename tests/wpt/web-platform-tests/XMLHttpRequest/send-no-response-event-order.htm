@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onloadstart" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onloadend" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#event-xhr-loadstart" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#event-xhr-loadend" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following-sibling::ol/li[9]/ol/li[2]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#infrastructure-for-the-send()-method" data-tested-assertations="following::dt[10] following::a[contains(@href,'#switch-done')]/.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#switch-done" data-tested-assertations="following::ol[1]/li[3] following::ol[1]/li[4] following::ol[1]/li[6] following::ol[1]/li[7]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-response-attribute" data-tested-assertations="following-sibling::ol/li[1]" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>XMLHttpRequest: The send() method: event order when there is no response entity body</title>
+</head>
+
+<body>
+    <div id="log"></div>
+
+    <script type="text/javascript">
+        var test = async_test();
+
+        test.step(function()
+        {
+            var xhr = new XMLHttpRequest();
+            var expect = ["loadstart", 4, "load", "loadend"];
+            var actual = [];
+
+            xhr.onreadystatechange = test.step_func(function()
+            {
+                test.step(function()
+                {
+                    if (xhr.readyState == 3)
+                    {
+                        assert_equals(xhr.response, "");
+                    }
+                    else if (xhr.readyState == 4)
+                    {
+                        actual.push(xhr.readyState);
+                    }
+                });
+            });
+
+            xhr.onloadstart        = test.step_func(function(e){ actual.push(e.type); });
+            xhr.onload             = test.step_func(function(e){ actual.push(e.type); });
+            xhr.onloadend          = test.step_func(function(e){
+                actual.push(e.type);
+                assert_array_equals(actual, expect);
+                test.done();
+            });
+
+            xhr.upload.onloadstart = test.step_func(function(e){ assert_unreached('upload.'+e.type); });
+            xhr.upload.onload      = test.step_func(function(e){ assert_unreached('upload.'+e.type); });
+            xhr.upload.onloadend   = test.step_func(function(e){ assert_unreached('upload.'+e.type); });
+
+            xhr.open("POST", "./resources/content.py", true);
+            xhr.send();
+        });
+    </script>
+</body>
+</html>

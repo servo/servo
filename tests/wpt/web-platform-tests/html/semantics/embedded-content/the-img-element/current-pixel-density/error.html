@@ -1,0 +1,30 @@
+<!doctype html>
+<title>img current pixel density error</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<img id=ref src="404" alt="testing">
+<img srcset="404" alt="testing">
+<img srcset="404 0.5x" alt="testing">
+<img srcset="404 2x" alt="testing">
+<img srcset="404 100w" alt="testing">
+<img srcset="404 100w" sizes="500px" alt="testing">
+<picture><img src="404 100w" sizes="500px" alt="testing"></picture>
+<script>
+setup({explicit_done:true});
+onload = function() {
+  var expected_width = ref.width;
+  var expected_height = ref.height;
+  [].forEach.call(document.images, function(img) {
+    test(function() {
+      assert_not_equals(expected_width, 0, 'expected_width');
+      assert_not_equals(expected_height, 0, 'expected_height');
+      assert_equals(img.width, expected_width, 'width');
+      assert_equals(img.height, expected_height, 'height');
+      assert_equals(img.naturalWidth, 0, 'naturalWidth');
+      assert_equals(img.naturalHeight, 0, 'naturalHeight');
+    }, img.outerHTML);
+  });
+  done();
+};
+</script>

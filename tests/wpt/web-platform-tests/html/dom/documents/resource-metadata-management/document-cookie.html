@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>document.cookie</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#resource-metadata-management">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function(){
+  assert_equals(document.cookie, "");
+}, "document has no cookie");
+
+test(function(){
+  var doc = document.implementation.createHTMLDocument("doc");
+  assert_equals(doc.cookie, "");
+  doc.cookie = "test=foobar";
+  assert_equals(doc.cookie, "");
+}, "getting cookie for a cookie-averse document returns empty string, setting does nothing");
+</script>

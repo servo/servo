@@ -1,0 +1,21 @@
+<!doctype html>
+<title>moving the candidate source</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+var s;
+var t = async_test(function(t) {
+  var v = document.createElement('video');
+  s = document.createElement('source');
+  s.src = 'resources/delayed-broken-video.py';
+  s.onerror = t.step_func(function() { t.done(); });
+  v.appendChild(s); // invokes resource selection
+  onload = t.step_func(function() { assert_unreached(); });
+});
+</script>
+<script>
+t.step(function() {
+  document.body.appendChild(s);
+});
+</script>

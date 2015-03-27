@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: abort() after send()</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-abort()-method" data-tested-assertations="following-sibling::ol/li[1] following-sibling::ol/li[3] following-sibling::ol/li[4] following-sibling::ol/li[4]/ol/li[1] following-sibling::ol/li[4]/ol/li[3] following-sibling::ol/li[4]/ol/li[4] following-sibling::ol/li[4]/ol/li[5] following-sibling::ol/li[4]/ol/li[6] following-sibling::ol/li[5]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsetext-attribute" data-tested-assertations="following::ol/li[3]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsexml-attribute" data-tested-assertations="following::ol/li[3]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-xmlhttprequest-getallresponseheaders" data-tested-assertations="following::ol/li[2]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-xmlhttprequest-getresponseheader" data-tested-assertations="following::ol/li[2]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-status-attribute" data-tested-assertations="following::ol/li[2]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-statustext-attribute" data-tested-assertations="following::ol/li[2]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#infrastructure-for-the-send()-method" data-tested-assertations="following::dt[1] following::dd[1]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test()
+      test.step(function() {
+        var client = new XMLHttpRequest(),
+            control_flag = false,
+            result = [],
+            expected = [1, 4, 'progress', 'abort', 'loadend'] // open() -> 1, abort() -> 4
+        client.onreadystatechange = function() {
+          test.step(function() {
+            result.push(client.readyState)
+            if(client.readyState == 4) {
+              control_flag = true
+              assert_equals(client.responseXML, null)
+              assert_equals(client.responseText, "")
+              assert_equals(client.status, 0)
+              assert_equals(client.statusText, "")
+              assert_equals(client.getAllResponseHeaders(), "")
+              assert_equals(client.getResponseHeader('Content-Type'), null)
+            }
+          })
+        }
+        client.open("GET", "resources/well-formed.xml", true)
+        client.send(null)
+        client.addEventListener('progress', logEvt)
+        client.addEventListener('abort', logEvt)
+        client.addEventListener('loadend', logEvt)
+        client.abort()
+        assert_true(control_flag)
+        assert_equals(client.readyState, 0)
+        assert_array_equals(result, expected)
+        test.done()
+        function logEvt (e) {
+          result.push(e.type)
+        }
+      })
+    </script>
+  </body>
+</html>

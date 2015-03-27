@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+  <title>Web Storage</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+      function fail(msg) {
+          t.step(function() {
+              assert_unreached(msg);
+          });
+          t.done();
+      }
+  </script>
+ </head>
+ <body>
+    <h1>event_local_url</h1>
+    <div id="log"></div>
+    <script>
+        test(function() {
+            localStorage.clear();
+            var t = async_test("url property test of local event");
+            function onStorageEvent(event) {
+                t.step(function() {
+                    var url = window.location.href;
+
+                    var pos = url.lastIndexOf("/");
+                    if (pos != -1) {
+                        url = url.substr(0, pos + 1);
+                        url = url + "iframe/local_set_item_iframe.html";
+                    }
+
+                   assert_equals(event.url, url);
+                });
+                t.done();
+            }
+
+            window.addEventListener('storage', onStorageEvent, false);
+
+            var el = document.createElement("iframe");
+            el.setAttribute('id', 'ifrm');
+            el.setAttribute('src', 'iframe/local_set_item_iframe.html');
+            document.body.appendChild(el);
+        });
+    </script>
+ </body>
+</html>

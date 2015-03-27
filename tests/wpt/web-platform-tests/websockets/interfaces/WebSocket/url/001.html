@@ -1,0 +1,11 @@
+<!doctype html>
+<title>WebSockets: getting url</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+test(function() {
+  assert_equals((new WebSocket(SCHEME_DOMAIN_PORT)).url, SCHEME_DOMAIN_PORT+'/');
+});
+</script>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Web Notifications Test: notification - icon (invalid)</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Xin Liu" href="mailto:xinx.liu@intel.com">
+<link rel="help" title="5 API" href="http://www.w3.org/TR/notifications/">
+<meta name="flags" content="interact">
+<meta name="assert" content="The icon attribute set invalid URL, then notificaiton icon content will show nothing.">
+<body>
+  <p>Test passes if a notificaiton popups and notification's icon content show nothing.</p>
+  <script>
+    var notification = new Notification("New Email Received", {
+      body: "Room 101",
+      icon: ""
+    });
+  </script>
+</body>
+

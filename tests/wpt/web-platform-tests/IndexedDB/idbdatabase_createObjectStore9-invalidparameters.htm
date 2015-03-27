@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>createObjectStore: Invalid optionalParameters</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js></script>
+
+<script>
+    function invalid_optionalParameters(desc, params) {
+        var t = async_test(document.title + " - " + desc);
+
+        createdb(t).onupgradeneeded = function(e) {
+            assert_throws(null, function() {
+                e.target.result.createObjectStore("store", params);
+            });
+
+            this.done();
+        };
+    }
+
+    invalid_optionalParameters("autoInc and empty keyPath", {autoIncrement: true, keyPath: ""});
+    invalid_optionalParameters("autoInc and keyPath array", {autoIncrement: true, keyPath: []});
+    invalid_optionalParameters("autoInc and keyPath array 2", {autoIncrement: true, keyPath: ["hey"]});
+    invalid_optionalParameters("autoInc and keyPath object", {autoIncrement: true, keyPath: {a:"hey", b:2}});
+
+</script>
+
+<div id=log></div>

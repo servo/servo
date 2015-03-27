@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>FileAPI Test: filereader_result</title>
+    <link rel="author" title="Intel" href="http://www.intel.com">
+    <link rel="help" href="http://dev.w3.org/2006/webapi/FileAPI/#filedata-attr">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+
+    <script>
+    var blob;
+    setup(function() {
+      blob = new Blob(["This test the result attribute"]);
+    });
+
+    async_test(function() {
+      var readText = new FileReader();
+      assert_equals(readText.result, null);
+
+      readText.onloadend = this.step_func(function(evt) {
+        assert_equals(typeof readText.result, "string", "The result type is string");
+        assert_equals(readText.result, "This test the result attribute", "The result is correct");
+        this.done();
+      });
+
+      readText.readAsText(blob);
+    }, "readAsText");
+
+    async_test(function() {
+      var readDataURL = new FileReader();
+      assert_equals(readDataURL.result, null);
+
+      readDataURL.onloadend = this.step_func(function(evt) {
+        assert_equals(typeof readDataURL.result, "string", "The result type is string");
+        assert_true(readDataURL.result.indexOf("VGhpcyB0ZXN0IHRoZSByZXN1bHQgYXR0cmlidXRl") != -1, "return the right base64 string");
+        this.done();
+      });
+
+      readDataURL.readAsDataURL(blob);
+    }, "readAsDataURL");
+
+    async_test(function() {
+      var readArrayBuffer = new FileReader();
+      assert_equals(readArrayBuffer.result, null);
+
+      readArrayBuffer.onloadend = this.step_func(function(evt) {
+        assert_true(readArrayBuffer.result instanceof ArrayBuffer, "The result is instanceof ArrayBuffer");
+        this.done();
+      });
+
+      readArrayBuffer.readAsArrayBuffer(blob);
+    }, "readAsArrayBuffer");
+    </script>
+  </body>
+</html>

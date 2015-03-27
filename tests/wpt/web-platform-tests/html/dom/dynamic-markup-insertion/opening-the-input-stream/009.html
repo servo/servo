@@ -1,0 +1,34 @@
+<!doctype html>
+<title>document.open replacing singleton</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe src="004-1.html"></iframe>
+<script>
+var iframe = document.getElementsByTagName("iframe")[0];
+var steps;
+iframe.onload = function() {
+steps = ["window", "location", "history", "navigator", "applicationCache", "sessionStorage", "localStorage", "locationbar"].map(
+function(x) {
+  var t = async_test(document.title + " " + x);
+  var handle = iframe.contentWindow[x];
+  handle.test_state = 1;
+  return t.step_func(
+      function() {
+        var new_handle = iframe.contentWindow[x];
+        assert_equals(new_handle.test_state, undefined);
+        if (x !== "window") {
+          assert_not_equals(new_handle, handle);
+        } else {
+          assert_equals(new_handle, handle);
+        }
+        t.done();
+      });
+  }
+);
+}
+onload = function() {
+  iframe.contentDocument.open();
+  steps.forEach(function(x) {x()});
+}
+</script>

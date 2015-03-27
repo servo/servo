@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Scrollable element inside draggable element</title>
+		<style type="text/css">
+div div { width: 300px; height: 100px; overflow: auto; border: 1px solid orange; }
+		</style>
+		<script type="text/javascript">
+window.onload = function () {
+	document.getElementsByTagName('div')[0].ondragstart = function (e) {
+		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('Text', 'dummy text');
+	};
+};
+		</script>
+	</head>
+	<body>
+
+		<p>It should be possible to drag the scrollbar thumbs of the box below without dragging the whole box.</p>
+		<div draggable="true">
+			<div>Dummy text<br>Dummy text<br>Dummy text<br>Dummy text<br>Dummy text<br>Dummy text<br>Dummy text<br>Dummy text<br>Dummy text<br>Dummy text<br>Dummy text<br>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</div>
+		</div>
+
+	</body>
+</html>

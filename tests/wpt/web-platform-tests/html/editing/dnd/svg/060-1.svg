@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="500px" height="500px" viewBox="0 0 500 500">
+<title>SVG link drag and drop: helper file</title>
+<textArea x="10" y="10" width="480" height="200" font-size="30">Drag circle over arrow below but don't drop it yet. You should be returned back to start page.</textArea>
+<polygon points="10,400 100,300 100,350 480,350 480,450  100,450 100,500 10,400" fill="navy"/>
+<script type="application/ecmascript">
+document.querySelector('polygon').addEventListener('dragenter',
+function (event)
+	{window.location = '060.svg'}
+,false);
+</script>
+</svg>

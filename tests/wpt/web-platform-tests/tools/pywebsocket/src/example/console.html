@@ -1,0 +1,317 @@
+<!--
+Copyright 2011, Google Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+    * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+    * Neither the name of Google Inc. nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<!--
+A simple console for testing WebSocket server.
+
+Type an address into the top text input and click connect to establish
+WebSocket. Then, type some message into the bottom text input and click send
+to send the message. Received/sent messages and connection state will be shown
+on the middle textarea.
+-->
+
+<html>
+<head>
+<title>WebSocket console</title>
+<script>
+var socket = null;
+
+var showTimeStamp = false;
+
+var addressBox = null;
+var protocolsBox = null;
+var logBox = null;
+var messageBox = null;
+var fileBox = null;
+var codeBox = null;
+var reasonBox = null;
+
+function getTimeStamp() {
+  return new Date().getTime();
+}
+
+function addToLog(log) {
+  if (showTimeStamp) {
+    logBox.value += '[' + getTimeStamp() + '] ';
+  }
+  logBox.value += log + '\n'
+  // Large enough to keep showing the latest message.
+  logBox.scrollTop = 1000000;
+}
+
+function setbinarytype(binaryType) {
+  if (!socket) {
+    addToLog('Not connected');
+    return;
+  }
+
+  socket.binaryType = binaryType;
+  addToLog('Set binaryType to ' + binaryType);
+}
+
+function send() {
+  if (!socket) {
+    addToLog('Not connected');
+    return;
+  }
+
+  socket.send(messageBox.value);
+  addToLog('> ' + messageBox.value);
+  messageBox.value = '';
+}
+
+function sendfile() {
+  if (!socket) {
+    addToLog('Not connected');
+    return;
+  }
+
+  var files = fileBox.files;
+
+  if (files.length == 0) {
+    addToLog('File not selected');
+    return;
+  }
+
+  socket.send(files[0]);
+  addToLog('> Send ' + files[0].name);
+}
+
+function parseProtocols(protocolsText) {
+  var protocols = protocolsText.split(',');
+  for (var i = 0; i < protocols.length; ++i) {
+    protocols[i] = protocols[i].trim();
+  }
+
+  if (protocols.length == 0) {
+    // Don't pass.
+    protocols = null;
+  } else if (protocols.length == 1) {
+    if (protocols[0].length == 0) {
+      // Don't pass.
+      protocols = null;
+    } else {
+      // Pass as a string.
+      protocols = protocols[0];
+    }
+  }
+
+  return protocols;
+}
+
+function connect() {
+  var url = addressBox.value;
+  var protocols = parseProtocols(protocolsBox.value);
+
+  if ('WebSocket' in window) {
+    if (protocols) {
+      socket = new WebSocket(url, protocols);
+    } else {
+      socket = new WebSocket(url);
+    }
+  } else {
+    return;
+  }
+
+  socket.onopen = function () {
+    var extraInfo = [];
+    if (('protocol' in socket) && socket.protocol) {
+      extraInfo.push('protocol = ' + socket.protocol);
+    }
+    if (('extensions' in socket) && socket.extensions) {
+      extraInfo.push('extensions = ' + socket.extensions);
+    }
+
+    var logMessage = 'Opened';
+    if (extraInfo.length > 0) {
+      logMessage += ' (' + extraInfo.join(', ') + ')';
+    }
+    addToLog(logMessage);
+  };
+  socket.onmessage = function (event) {
+    if (('ArrayBuffer' in window) && (event.data instanceof ArrayBuffer)) {
+      addToLog('< Received an ArrayBuffer of ' + event.data.byteLength +
+               ' bytes')
+    } else if (('Blob' in window) && (event.data instanceof Blob)) {
+      addToLog('< Received a Blob of ' + event.data.size + ' bytes')
+    } else {
+      addToLog('< ' + event.data);
+    }
+  };
+  socket.onerror = function () {
+    addToLog('Error');
+  };
+  socket.onclose = function (event) {
+    var logMessage = 'Closed (';
+    if ((arguments.length == 1) && ('CloseEvent' in window) &&
+        (event instanceof CloseEvent)) {
+      logMessage += 'wasClean = ' + event.wasClean;
+      // code and reason are present only for
+      // draft-ietf-hybi-thewebsocketprotocol-06 and later
+      if ('code' in event) {
+        logMessage += ', code = ' + event.code;
+      }
+      if ('reason' in event) {
+        logMessage += ', reason = ' + event.reason;
+      }
+    } else {
+      logMessage += 'CloseEvent is not available';
+    }
+    addToLog(logMessage + ')');
+  };
+
+  if (protocols) {
+    addToLog('Connect ' + url + ' (protocols = ' + protocols + ')');
+  } else {
+    addToLog('Connect ' + url);
+  }
+}
+
+function closeSocket() {
+  if (!socket) {
+    addToLog('Not connected');
+    return;
+  }
+
+  if (codeBox.value || reasonBox.value) {
+    socket.close(codeBox.value, reasonBox.value);
+  } else {
+    socket.close();
+  }
+}
+
+function printState() {
+  if (!socket) {
+    addToLog('Not connected');
+    return;
+  }
+
+  addToLog(
+      'url = ' + socket.url +
+      ', readyState = ' + socket.readyState +
+      ', bufferedAmount = ' + socket.bufferedAmount);
+}
+
+function init() {
+  var scheme = window.location.protocol == 'https:' ? 'wss://' : 'ws://';
+  var defaultAddress = scheme + window.location.host + '/echo';
+
+  addressBox = document.getElementById('address');
+  protocolsBox = document.getElementById('protocols');
+  logBox = document.getElementById('log');
+  messageBox = document.getElementById('message');
+  fileBox = document.getElementById('file');
+  codeBox = document.getElementById('code');
+  reasonBox = document.getElementById('reason');
+
+  addressBox.value = defaultAddress;
+
+  if (!('WebSocket' in window)) {
+    addToLog('WebSocket is not available');
+  }
+}
+</script>
+<style type="text/css">
+form {
+  margin: 0px;
+}
+
+#connect_div, #log_div, #send_div, #sendfile_div, #close_div, #printstate_div {
+  padding: 5px;
+  margin: 5px;
+  border-width: 0px 0px 0px 10px;
+  border-style: solid;
+  border-color: silver;
+}
+</style>
+</head>
+<body onload="init()">
+
+<div>
+
+<div id="connect_div">
+  <form action="#" onsubmit="connect(); return false;">
+    url <input type="text" id="address" size="40">
+    <input type="submit" value="connect">
+    <br/>
+    protocols <input type="text" id="protocols" size="20">
+  </form>
+</div>
+
+<div id="log_div">
+  <textarea id="log" rows="10" cols="40" readonly></textarea>
+  <br/>
+  <input type="checkbox"
+         name="showtimestamp"
+         value="showtimestamp"
+         onclick="showTimeStamp = this.checked">Show time stamp
+</div>
+
+<div id="send_div">
+  <form action="#" onsubmit="send(); return false;">
+    data <input type="text" id="message" size="40">
+    <input type="submit" value="send">
+  </form>
+</div>
+
+<div id="sendfile_div">
+  <form action="#" onsubmit="sendfile(); return false;">
+    <input type="file" id="file" size="40">
+    <input type="submit" value="send file">
+  </form>
+
+  Set binaryType
+  <input type="radio"
+         name="binarytype"
+         value="blob"
+         onclick="setbinarytype('blob')" checked>blob
+  <input type="radio"
+         name="binarytype"
+         value="arraybuffer"
+         onclick="setbinarytype('arraybuffer')">arraybuffer
+</div>
+
+<div id="close_div">
+  <form action="#" onsubmit="closeSocket(); return false;">
+    code <input type="text" id="code" size="10">
+    reason <input type="text" id="reason" size="20">
+    <input type="submit" value="close">
+  </form>
+</div>
+
+<div id="printstate_div">
+  <input type="button" value="print state" onclick="printState();">
+</div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+  <title>Web Storage</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+    <h1>missing_arguments</h1>
+    <div id="log"></div>
+    <script>
+        var tests = [
+            function() { localStorage.key(); },
+            function() { localStorage.getItem(); },
+            function() { localStorage.setItem(); },
+            function() { localStorage.setItem("a"); },
+            function() { localStorage.removeItem(); },
+            function() { sessionStorage.key(); },
+            function() { sessionStorage.getItem(); },
+            function() { sessionStorage.setItem(); },
+            function() { sessionStorage.setItem("a"); },
+            function() { sessionStorage.removeItem(); },
+            function() { new StorageEvent(); }
+        ];
+        tests.forEach(function(fun) {
+            test(function() {
+                assert_throws(new TypeError(), fun);
+            }, "Should throw TypeError for " + format_value(fun) + ".");
+        });
+    </script>
+ </body>
+</html>

@@ -1,0 +1,17 @@
+interface Foo {
+  Promise<ResponsePromise<sequence<DOMString?>>> bar();
+};
+
+// Extracted from https://slightlyoff.github.io/ServiceWorker/spec/service_worker/ on 2014-05-08
+
+interface ServiceWorkerClients {
+  Promise<Client[]?> getServiced();
+  Promise<any> reloadAll();
+};
+
+// Extracted from https://slightlyoff.github.io/ServiceWorker/spec/service_worker/ on 2014-05-13
+
+interface FetchEvent : Event {
+  ResponsePromise<any> default();
+};
+

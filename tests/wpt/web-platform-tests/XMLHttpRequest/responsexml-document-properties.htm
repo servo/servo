@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: responseXML document properties</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsexml-attribute" data-tested-assertations="following::ol[1]/li[4]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#document-response-entity-body" data-tested-assertations="following::ol[1]/li[6] following::ol[1]/li[7] following::ol[1]/li[8] following::ol[1]/li[10]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var client = new XMLHttpRequest()
+      client.open("GET", "resources/well-formed.xml", false)
+      client.send(null)
+      var expected = {
+        domain:undefined,
+        URL:location.href.replace(/[^/]*$/, 'resources/well-formed.xml'),
+        documentURI:location.href.replace(/[^/]*$/, 'resources/well-formed.xml'),
+        referrer:'',
+        title:'',
+        contentType:'application/xml',
+        readyState:'complete',
+        location:null,
+        defaultView:null,
+        body:undefined,
+        images: undefined,
+        doctype:null,
+        forms:undefined,
+        all:undefined,
+        links: undefined,
+        cookie:''
+      }
+
+      for (var name in expected) {
+        runTest(name, expected[name])
+      }
+
+      function runTest(name, value){
+        test(function(){
+          assert_equals(client.responseXML[name], value)
+        }, name)
+      }
+
+      test(function() {
+        assert_equals((new Date(client.getResponseHeader('Last-Modified'))).getTime(), (new Date(client.responseXML.lastModified)).getTime()) 
+      }, 'lastModified set according to HTTP header')
+
+      test(function() {
+        client.responseXML.cookie = "thisshouldbeignored"
+        assert_equals(client.responseXML.cookie, "")
+      }, 'cookie (after setting it)')
+
+      test(function() {
+        assert_equals(typeof(client.responseXML.styleSheets), "object")
+      }, 'styleSheets')
+
+      test(function() {
+        assert_equals(typeof(client.responseXML.implementation), "object")
+      }, 'implementation')
+    </script>
+  </body>
+</html>

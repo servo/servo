@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>XMLHttpRequest: The send() method: receive data which is UTF-16 encoded</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#text-response" data-tested-assertations="following::ol/li[9]" />
+<div id="log"></div>
+
+<script>
+  async_test(function() {
+    var client = new XMLHttpRequest();
+    client.onload = this.step_func_done(function(e) {
+      assert_equals(client.responseText, 'æøå\nテスト\n')
+    });
+    client.open("GET", "resources/utf16.txt");
+    client.send(null);
+  }, 'UTF-16 with BOM, no encoding in content-type');
+
+  async_test(function() {
+    var client = new XMLHttpRequest();
+    client.onload = this.step_func_done(function(e) {
+      assert_equals(client.responseText, 'æøå\nテスト\n')
+    });
+    client.open("GET", "resources/status.py?code=200&type=text%2Fplain%3Bcharset%3DUTF-16&content=%E6%00%F8%00%E5%00%0A%00%C6%30%B9%30%C8%30%0A%00");
+    client.send(null);
+  }, 'UTF-16 without BOM, with charset label in content-type');
+
+  async_test(function() {
+    var client = new XMLHttpRequest();
+    client.onload = this.step_func_done(function(e) {
+      // plenty of EF BF BD Replacement Character in this invalid input..
+      assert_equals(client.responseText, "\ufffd\u0000\ufffd\u0000\ufffd\u0000\u000a\u0000\ufffd\u0030\ufffd\u0030\ufffd\u0030\u000a\u0000")
+    });
+    client.open("GET", "resources/status.py?code=200&type=text%2Fplain%3Bcharset%3DUTF-8&content=%E6%00%F8%00%E5%00%0A%00%C6%30%B9%30%C8%30%0A%00");
+    client.send(null);
+  }, 'UTF-16 without BOM, mislabelled as UTF-8 in content-type');
+</script>

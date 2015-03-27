@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Encoding API: Legacy encodings</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/encodings.js"></script>
+<script>
+
+encodings_table.forEach(function(section) {
+    section.encodings.filter(function(encoding) {
+        return encoding.name !== 'replacement';
+    }).forEach(function(encoding) {
+        if (utf_encodings.indexOf(encoding.name) !== -1) {
+            test(function() {
+                assert_equals(new TextDecoder(encoding.name).encoding, encoding.name);
+                assert_equals(new TextEncoder(encoding.name).encoding, encoding.name);
+            }, 'UTF encodings are supported for encode and decode: ' + encoding.name);
+        } else {
+            test(function() {
+                assert_equals(new TextDecoder(encoding.name).encoding, encoding.name);
+                assert_throws({name: 'RangeError'}, function() { new TextEncoder(encoding.name); });
+            }, 'Non-UTF encodings supported only for decode, not encode: ' + encoding.name);
+        }
+    });
+});
+
+</script>

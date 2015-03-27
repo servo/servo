@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang=en>
+  <head>
+    <meta charset=utf-8>
+    <title>Sentences about European capitals.</title>
+    <script type="application/its+xml">
+     <its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+       <its:param name="mtParam">ireland</its:param>
+        <its:mtConfidenceRule selector="/h:html/h:body/h:p/h:span[@id=$mtParam]" mtConfidence="0.8982"/>
+     </its:rules>
+    </script>
+  </head>
+  <body>
+    <p its-annotators-ref="mt-confidence|file:///tools.xml#T1">
+      <span id="ireland"> Dublin is the capital of Ireland.</span>
+      <span> The capital of the Czech Republic is Prague.</span>
+      <span>Madrid is the capital of Spain.</span>
+      <span>Berlin is the capital of Germany.</span>
+    </p>
+  </body>
+</html>

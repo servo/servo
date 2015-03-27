@@ -1,0 +1,18 @@
+<!doctype html>
+<title>WebSockets: defineProperty setter for constants</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+var constants = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+for (var i = 0; i < constants.length; ++i) {
+  test(function() {
+    assert_throws(new TypeError(), function(){
+      Object.defineProperty(WebSocket.prototype, constants[i], {
+        set: function() { return 'foo'; }
+      });
+    });
+  }, "defineProperty setter " + constants[i])
+};
+</script>

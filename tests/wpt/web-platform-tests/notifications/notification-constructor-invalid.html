@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Web Notifications Test: notification - constructor (invalid)</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Xin Liu" href="mailto:xinx.liu@intel.com">
+<link rel="help" title="5 API" href="http://www.w3.org/TR/notifications/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div id="log"></div>
+  <script>
+    test(function() {
+      assert_throws("new TypeError()", function() {
+        var notification = new Notification();
+      });
+    }, "Test checks that notification constructor arguments can't be empty");
+  </script>
+</body>
+

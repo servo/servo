@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: Browsing context - Default name</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe src="message.html" style="display:none"></iframe>
+<script>
+
+test(function () {
+  assert_equals(window.frames[0].name, "", "The browsing context should not have a default name.");
+}, "A embedded browsing context has no default name");
+
+test(function () {
+  var win = window.open("about:blank", "_blank");
+  assert_equals(win.name, "", "The browsing context should not have a name.");
+  win.close();
+}, "A browsing context which is opened by window.open() method with '_blank' parameter has no default name");
+
+//This test must be run when the current browsing context's name is not set
+test(function () {
+  assert_equals(window.name, "", "The browsing context should not have a name.");
+}, "A browsing context has no default name");
+
+</script>

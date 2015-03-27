@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<title>The :unresolved pseudoclass matching custom tag</title>
+<link rel="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
+<meta name="assert" content="The :unresolved pseudoclass must match all custom elements whose created callback has not yet been invoked">
+<link rel="help" href="http://www.w3.org/TR/custom-elements/#unresolved-element-pseudoclass">
+<link rel="match" href="unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html">
+<style>
+    :unresolved {
+        background-color: red;
+    }
+    x-element {
+        background-color: yellow;
+    }
+    body {
+        background-color: white;
+    }
+</style>
+<body onload="document.registerElement('x-element');">
+    <p>Test passes if x-element background below is yellow</p>
+    <x-element>
+        x-element
+    </x-element>
+</body>
+</html>
+

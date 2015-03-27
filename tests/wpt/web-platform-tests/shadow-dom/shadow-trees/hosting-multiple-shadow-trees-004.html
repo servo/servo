@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Shadow DOM Test - The only first shadow element is used.</title>
+    <link rel="match" href="hosting-multiple-shadow-trees-004-ref.html">
+    <link rel="author" title="Hiroyuki Hayashi" href="mailto:hyshhryk@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/shadow-dom/#multiple-shadow-trees">
+    <script src="../testcommon.js"></script>
+    <meta name="assert" content="The only first <shadow> element is used when the shadow tree has multiple <shadow> elements. Original tree's node is not inserted into the second <shadow> element.">
+  </head>
+  <body>
+    <div id='host'>
+      <p>Original tree's node</p>
+    </div>
+  <script>
+    var shadowRoot = host.createShadowRoot();
+    shadowRoot.innerHTML = "<div><p>1st shadow tree's node</p></div>";
+    var shadowRoot = host.createShadowRoot();
+    shadowRoot.innerHTML = "<div><shadow></shadow><p>2nd shadow tree's node</p><shadow></shadow></div>";
+  </script>
+  </body>
+</html>

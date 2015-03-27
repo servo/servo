@@ -1,0 +1,29 @@
+<!--
+var log = postMessage;
+importScripts('data:text/javascript,function run() { for(var i = 0; i < 1000; ++i) { if (i == 500) log(true); } return 1; }');
+postMessage(run());
+/*
+-->
+<!doctype html>
+<title>variables and functions crossing importScripts boundary, take 2</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(function() {
+  var worker = new Worker('#');
+  var i = 0;
+  worker.onmessage = this.step_func(function(e) {
+    i++;
+    if (i == 1) {
+      assert_true(e.data);
+    } else {
+      assert_equals(e.data, 1);
+      this.done();
+    }
+  });
+});
+</script>
+<!--
+*/
+//-->

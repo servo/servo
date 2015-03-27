@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<title>Service Workers: caches</title>
+    <head>
+        <link rel="help" href="https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-global-scope-caches">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+    </head>
+    <body>
+
+<!--
+
+`self.caches` must return the `[CacheStorage][1]` object that is the global
+asynchronous map object for the `[ServiceWorkerGlobalScope][2]` execution
+context containing the cache objects keyed by the name of the caches. Caches
+are always enumerable via `self.caches` in insertion order (per [ECMAScript 6
+Map objects][3].)
+
+[1]: #cache-storage-interface
+[2]: #service-worker-global-scope-interface
+[3]: http://goo.gl/gNnDPO
+
+-->
+
+
+
+    <script>
+        test(function() {
+            // not_implemented();
+        }, "There are no tests for section caches so far.");
+    </script>
+
+    </body>
+</html>
+

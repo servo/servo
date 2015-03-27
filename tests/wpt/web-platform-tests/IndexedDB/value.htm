@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Values</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+function value(value, _instanceof) {
+    var t = async_test(document.title + " - " + _instanceof.name);
+    t.step(function() {
+        assert_true(value instanceof _instanceof, "TEST ERROR, instanceof");
+    });
+
+    createdb(t).onupgradeneeded = function(e) {
+        e.target.result
+                .createObjectStore("store")
+                .add(value, 1);
+
+        e.target.onsuccess = t.step_func(function(e) {
+            e.target.result
+                    .transaction("store")
+                    .objectStore("store")
+                    .get(1)
+                    .onsuccess = t.step_func(function(e)
+            {
+                assert_true(e.target.result instanceof _instanceof, "instanceof")
+                t.done();
+            });
+        });
+    };
+}
+
+value(new Date(), Date);
+value(new Array(), Array);
+
+</script>
+
+<div id="log"></div>

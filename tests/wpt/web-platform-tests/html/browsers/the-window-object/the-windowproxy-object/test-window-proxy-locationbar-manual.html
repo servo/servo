@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Window Proxy locationbar visible flag Test</title>
+    <link rel="author" title='JuneyoungOh' href="juneyoung85@gmail.com">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <h1>Description</h1>
+    <p>WindowProxy.locationbar Test</p>
+
+    <h1>Manual Test Steps:</h1>
+    <ol>
+        <li>Make the locationbar visible in the user agent before executing this test.</li>
+        <li>You may need to manually reload afterwards.</li>
+    </ol>
+
+    <div id="log"></div>
+
+    <script>
+    test(function() {
+        assert_not_equals(typeof window.locationbar, undefined, 'window.locationbar is undefined');
+        assert_true(window.locationbar.visible)
+    }, "window.locationbar.visible");
+    </script>
+</body>
+</html>

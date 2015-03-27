@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebM muxed audio &amp; video with an audio bitrate change.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+        <script src="mediasource-config-changes.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+            mediaSourceConfigChangeTest("webm", "av-384k-44100Hz-1ch-640x480-30fps-10kfr", "av-448k-44100Hz-1ch-640x480-30fps-10kfr", "Tests webm audio bitrate changes in multiplexed content.");
+        </script>
+    </body>
+</html>

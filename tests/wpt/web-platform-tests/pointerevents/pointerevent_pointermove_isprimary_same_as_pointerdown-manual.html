@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Event: pointermove has same isPrimary as last pointerdown with the same pointerId</title>
+        <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/"/>
+        <meta name="assert" content="The isPrimary attribute of a pointermove event must have the same value as the isPrimary attribute of the last pointerdown event with the same pointerId attribute."/>
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <!-- /resources/testharness.js -->
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <script type="text/javascript">
+            var detected_pointertypes = {};
+            var test_pointerEvent = async_test("pointermove has same isPrimary as last pointerdown"); // set up test harness
+            // showPointerTypes is defined in pointerevent_support.js
+            // Requirements: the callback function will reference the test_pointerEvent object and
+            // will fail unless the async_test is created with the var name "test_pointerEvent".
+            add_completion_callback(showPointerTypes);
+
+            var pointermove_event = null;
+            var pointerdown_event = null;
+
+            function run() {
+                var target0 = document.getElementById("target0");
+
+                on_event(target0, "pointermove", function (event) {
+                    if (pointerdown_event != null) {
+                        test_pointerEvent.step(function () {
+                            assert_equals(event.pointerId, pointerdown_event.pointerId, "pointermove.pointerId should be the same as pointerdown.pointerId.");
+                            assert_equals(event.isPrimary, pointerdown_event.isPrimary, "pointermove.isPrimary should be the same as pointerdown.isPrimary.");
+                        });
+                        pointermove_event = event;
+                    }
+                });
+
+                on_event(target0, "pointerdown", function (event) {
+                    pointerdown_event = event;
+                    detected_pointertypes[event.pointerType] = true;
+                });
+
+                on_event(target0, "pointerup", function (event) {
+                    test_pointerEvent.step(function () {
+                        assert_not_equals(pointermove_event, null, "pointermove event was never received: ");
+                    });
+                    test_pointerEvent.done(); // complete test
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Event: pointermove has the same isPrimary as last pointerdown with the same pointerId</h1>
+        <h4>Test Description:
+            The isPrimary attribute of a pointermove event must have the same value as the isPrimary attribute of the last pointerdown event with the same pointerId attribute.
+        </h4>
+        <div id="instructions">
+            Press and hold a mouse button, touch contact or pen contact on this element. Move around inside the element while maintaining contact/button down. Only use one device per test run.
+            <p>Lift off of the element to complete the test.</p>
+        </div>
+        <div id="target0" style="touch-action: none;">
+        </div>
+        <div id="complete-notice">
+            <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

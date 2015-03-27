@@ -1,0 +1,156 @@
+[
+    {
+        "type": "interface",
+        "name": "Foo",
+        "partial": false,
+        "members": [
+            {
+                "type": "operation",
+                "getter": false,
+                "setter": false,
+                "creator": false,
+                "deleter": false,
+                "legacycaller": false,
+                "static": false,
+                "stringifier": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": "Promise",
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": {
+                        "sequence": false,
+                        "generic": "ResponsePromise",
+                        "nullable": false,
+                        "array": false,
+                        "union": false,
+                        "idlType": {
+                            "sequence": true,
+                            "generic": "sequence",
+                            "nullable": false,
+                            "array": false,
+                            "union": false,
+                            "idlType": {
+                                "sequence": false,
+                                "generic": null,
+                                "nullable": true,
+                                "array": false,
+                                "union": false,
+                                "idlType": "DOMString"
+                            }
+                        }
+                    }
+                },
+                "name": "bar",
+                "arguments": [],
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    },
+    {
+        "type": "interface",
+        "name": "ServiceWorkerClients",
+        "partial": false,
+        "members": [
+            {
+                "type": "operation",
+                "getter": false,
+                "setter": false,
+                "creator": false,
+                "deleter": false,
+                "legacycaller": false,
+                "static": false,
+                "stringifier": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": "Promise",
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": {
+                        "sequence": false,
+                        "generic": null,
+                        "nullable": true,
+                        "nullableArray": [false],
+                        "array": 1,
+                        "union": false,
+                        "idlType": "Client"
+                    }
+                },
+                "name": "getServiced",
+                "arguments": [],
+                "extAttrs": []
+            },
+            {
+                "type": "operation",
+                "getter": false,
+                "setter": false,
+                "creator": false,
+                "deleter": false,
+                "legacycaller": false,
+                "static": false,
+                "stringifier": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": "Promise",
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": {
+                        "sequence": false,
+                        "generic": null,
+                        "nullable": false,
+                        "array": false,
+                        "union": false,
+                        "idlType": "any"
+                    }
+                },
+                "name": "reloadAll",
+                "arguments": [],
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    },
+    {
+        "type": "interface",
+        "name": "FetchEvent",
+        "partial": false,
+        "members": [
+            {
+                "type": "operation",
+                "getter": false,
+                "setter": false,
+                "creator": false,
+                "deleter": false,
+                "legacycaller": false,
+                "static": false,
+                "stringifier": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": "ResponsePromise",
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": {
+                        "sequence": false,
+                        "generic": null,
+                        "nullable": false,
+                        "array": false,
+                        "union": false,
+                        "idlType": "any"
+                    }
+                },
+                "name": "default",
+                "arguments": [],
+                "extAttrs": []
+            }
+        ],
+        "inheritance": "Event",
+        "extAttrs": []
+    }
+]

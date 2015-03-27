@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="http://example.com/"/>
+  <meta charset=utf-8>
+  <title>Test 0327</title>
+</head>
+<body>
+  <div typeof="schema:Person">
+    <link property="rdfa:copy" resource="_:a"/>
+    <link property="rdfa:copy" resource="_:b"/>
+  </div>
+  <p resource="_:a" typeof="rdfa:Pattern">Name: <span property="schema:name">Amanda</span></p>
+  <div resource="_:b" typeof="rdfa:Pattern">
+    <div property="schema:band" typeof=" schema:MusicGroup">
+      <link property="rdfa:copy" resource="_:c"/>
+    </div>
+  </div>
+  <div resource="_:c" typeof="rdfa:Pattern">
+   <p>Band: <span property="schema:name">Jazz Band</span></p>
+   <p>Size: <span property="schema:size">12</span> players</p>
+  </div>
+</body>
+</html>

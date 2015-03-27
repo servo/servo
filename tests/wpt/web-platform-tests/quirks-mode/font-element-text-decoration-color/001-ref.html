@@ -1,0 +1,21 @@
+<title>Reference for The font element text decoration color quirk, 001</title>
+<style>
+span, div > div { color:fuchsia }
+.under { text-decoration:underline }
+.over { text-decoration:overline }
+.strike { text-decoration:line-through }
+</style>
+<div>Quirk should apply:</div>
+<div><u>foo </u><span class="under">style</span><u> bar</u></div>
+<div><u>foo </u><span class="under">color</span><u> bar</u></div>
+<div><u>foo </u><span class="under">color and style</span><u> bar</u></div>
+<div><u>foo </u><span class="under">color=x and style</span><u> bar</u></div>
+<div><u>foo </u><span class="under">color=transparent and style</span><u> bar</u></div>
+<div><u>foo </u><span class="under">color="" and style</span><u> bar</u></div>
+<div><u>foo</u><div class="under">block</div><u>bar</u></div>
+<div><s>foo </s><span class="strike">line-through</span><s> bar</s></div>
+<div><u class="over">foo </u><span class="over">overline</span><u class="over"> bar</u></div>
+<div>Quirks should not apply:</div>
+<div><u>foo <span>span</span> bar</u></div>
+<div><u>foo <span>no-namespace font element</span> bar</u></div>
+<div><u>foo <span>uppercase FONT element</span> bar</u></div>

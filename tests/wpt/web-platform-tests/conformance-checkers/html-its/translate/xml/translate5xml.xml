@@ -1,0 +1,13 @@
+<book xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:noNamespaceSchemaLocation="EX-ways-to-use-its-5.xsd"
+ xmlns:its="http://www.w3.org/2005/11/its"
+ its:version="2.0">
+ <head>
+  <title>The Life of a Simple Man</title>
+ </head>
+ <body>
+  <p>Everything started when Zebulon discovered that he had 
+   a <its:span translate="no">doppelgänger</its:span> who was a
+   serious baseball <its:span translate="no">aficionado</its:span>.</p>
+ </body>
+</book>

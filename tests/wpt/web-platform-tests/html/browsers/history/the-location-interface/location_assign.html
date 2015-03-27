@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>location_assign</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    test(function () {
+      var href = location.href;
+      location.assign('#x');
+
+      assert_equals((href + "#x"), location.href, "location href");
+
+    }, "location assign");
+    </script>
+  </body>
+</html>

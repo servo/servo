@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<!--
+Test adapted from https://mxr.mozilla.org/chromium/source/src/third_party/WebKit/LayoutTests/fast/dom/TreeWalker/TreeWalker-basic.html
+-->
+<head>
+<title>TreeWalker: Basic test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="traversal-support.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<div id=log></div>
+</head>
+<body>
+<p>This test checks the basic functionality of TreeWalker.</p>
+<script>
+function createSampleDOM()
+{
+    // Tree structure:
+    //             #a
+    //             |
+    //        +----+----+
+    //        |         |
+    //       "b"        #c
+    //                  |
+    //             +----+----+
+    //             |         |
+    //            #d      <!--j-->
+    //             |
+    //        +----+----+
+    //        |    |    |
+    //       "e"  #f   "i"
+    //             |
+    //          +--+--+
+    //          |     |
+    //         "g" <!--h-->
+    var div = document.createElement('div');
+    div.id = 'a';
+    // div.innerHTML = 'b<div id="c"><div id="d">e<span id="f">g<!--h--></span>i</div><!--j--></div>';
+
+    div.appendChild(document.createTextNode("b"));
+
+    var c = document.createElement("div");
+    c.id = 'c';
+    div.appendChild(c);
+
+    var d = document.createElement("div");
+    d.id = 'd';
+    c.appendChild(d);
+
+    var e = document.createTextNode("e");
+    d.appendChild(e);
+
+    var f = document.createElement("span");
+    f.id = 'f';
+    d.appendChild(f);
+
+    var g = document.createTextNode("g");
+    f.appendChild(g);
+
+    var h = document.createComment("h");
+    f.appendChild(h);
+
+    var i = document.createTextNode("i");
+    d.appendChild(i);
+
+    var j = document.createComment("j");
+    c.appendChild(j);
+
+    return div;
+}
+
+function check_walker(walker, root)
+{
+    assert_equals(walker.toString(), '[object TreeWalker]');
+    assert_equals(walker.root, root);
+    assert_equals(walker.whatToShow, 0xFFFFFFFF);
+    assert_equals(walker.filter, null);
+    assert_equals(walker.currentNode, root);
+    assert_readonly(walker, 'root');
+    assert_readonly(walker, 'whatToShow');
+    assert_readonly(walker, 'filter');
+}
+
+test(function ()
+{
+    var root = createSampleDOM();
+    var walker = document.createTreeWalker(root);
+    check_walker(walker, root);
+}, 'Construct a TreeWalker by document.createTreeWalker(root).');
+
+test(function ()
+{
+    var root = createSampleDOM();
+    var walker = document.createTreeWalker(root, undefined, undefined);
+    check_walker(walker, root);
+}, 'Construct a TreeWalker by document.createTreeWalker(root, undefined, undefined).');
+
+test(function ()
+{
+    assert_throws(new TypeError(), function () { document.createTreeWalker(); });
+    assert_throws(new TypeError(), function () { document.createTreeWalker(null); });
+    assert_throws(new TypeError(), function () { document.createTreeWalker(undefined); });
+    assert_throws(new TypeError(), function () { document.createTreeWalker(new Object()); });
+    assert_throws(new TypeError(), function () { document.createTreeWalker(1); });
+}, 'Give an invalid root node to document.createTreeWalker().');
+
+test(function ()
+{
+    var root = createSampleDOM();
+    var walker = document.createTreeWalker(root);
+    var f = root.lastChild.firstChild.childNodes[1];  // An element node: div#f.
+
+    assert_node(walker.currentNode, { type: Element, id: 'a' });
+    assert_equals(walker.parentNode(), null);
+    assert_node(walker.currentNode, { type: Element, id: 'a' });
+    assert_node(walker.firstChild(), { type: Text, nodeValue: 'b' });
+    assert_node(walker.currentNode, { type: Text, nodeValue: 'b' });
+    assert_node(walker.nextSibling(), { type: Element, id: 'c' });
+    assert_node(walker.currentNode, { type: Element, id: 'c' });
+    assert_node(walker.lastChild(), { type: Comment, nodeValue: 'j' });
+    assert_node(walker.currentNode, { type: Comment, nodeValue: 'j' });
+    assert_node(walker.previousSibling(), { type: Element, id: 'd' });
+    assert_node(walker.currentNode, { type: Element, id: 'd' });
+    assert_node(walker.nextNode(), { type: Text, nodeValue: 'e' });
+    assert_node(walker.currentNode, { type: Text, nodeValue: 'e' });
+    assert_node(walker.parentNode(), { type: Element, id: 'd' });
+    assert_node(walker.currentNode, { type: Element, id: 'd' });
+    assert_node(walker.previousNode(), { type: Element, id: 'c' });
+    assert_node(walker.currentNode, { type: Element, id: 'c' });
+    assert_equals(walker.nextSibling(), null);
+    assert_node(walker.currentNode, { type: Element, id: 'c' });
+    walker.currentNode = f;
+    assert_equals(walker.currentNode, f);
+}, 'Walk over nodes.');
+
+test(function() {
+    var treeWalker = document.createTreeWalker(document.body, 42, null);
+    assert_equals(treeWalker.root, document.body);
+    assert_equals(treeWalker.currentNode, document.body);
+    assert_equals(treeWalker.whatToShow, 42);
+    assert_equals(treeWalker.filter, null);
+}, "Optional arguments to createTreeWalker should be optional (3 passed, null).");
+</script>
+</body>
+</html>

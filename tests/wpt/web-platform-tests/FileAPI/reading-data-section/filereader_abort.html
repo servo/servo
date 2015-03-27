@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>FileAPI Test: filereader_abort</title>
+    <link rel="author" title="Intel" href="http://www.intel.com">
+    <link rel="help" href="http://dev.w3.org/2006/webapi/FileAPI/#abort">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+
+    <script>
+    test(function() {
+      var readerNoRead = new FileReader();
+      readerNoRead.abort();
+      assert_equals(readerNoRead.readyState, readerNoRead.EMPTY);
+      assert_equals(readerNoRead.result, null);
+    }, "Aborting before read");
+
+    async_test(function() {
+      var blob = new Blob(["TEST THE ABORT METHOD"]);
+      var readerAbort = new FileReader();
+
+      readerAbort.onabort = this.step_func(function(evt) {
+        assert_equals(readerAbort.readyState, readerAbort.DONE);
+      });
+
+      readerAbort.onloadstart = this.step_func(function(evt) {
+        assert_equals(readerAbort.readyState, readerAbort.LOADING);
+        readerAbort.abort();
+      });
+
+      readerAbort.onloadend = this.step_func(function(evt) {
+        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=24401
+        assert_equals(readerAbort.result, null);
+        assert_equals(readerAbort.readyState, readerAbort.DONE);
+        this.done();
+      });
+
+      readerAbort.readAsText(blob);
+    }, "Aborting after read");
+    </script>
+  </body>
+</html>

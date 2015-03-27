@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Event: Dispatch pointerleave (touch). </title>
+        <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/"/>
+        <meta name="assert" content="When a pointing device that does not support hover (such as a finger) leaves the hit test boundaries as a result of a pointerup event, the pointerleave event must be dispatched. "/>
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <!-- /resources/testharness.js -->
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <script type="text/javascript">
+            var detected_pointertypes = {};
+            var test_pointerEvent = async_test("pointerleave event");
+            // showPointerTypes is defined in pointerevent_support.js
+            // Requirements: the callback function will reference the test_pointerEvent object and
+            // will fail unless the async_test is created with the var name "test_pointerEvent".
+            add_completion_callback(showPointerTypes);
+
+            function run() {
+                var target0 = document.getElementById("target0");
+
+                on_event(target0, "pointerleave", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    check_PointerEvent(event);
+                    test_pointerEvent.step(function () {
+                        assert_equals(event.pointerType, "touch", "Test should be run using touch input");
+                        assert_equals(event.type, "pointerleave", "The " + event.type + " event received");
+                    });
+                    test_pointerEvent.done(); // complete test
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Event: Dispatch pointerleave (touch)</h1>
+        <h4>
+            Test Description:
+            When a pointing device that does not support hover (such as a finger) leaves the hit test boundaries as a result of a pointerup event, the pointerleave event must be dispatched.
+        </h4>
+        <br />
+        <div id="target0">
+            Use touch to tap on this box.
+        </div>
+        <div id="complete-notice">
+            <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

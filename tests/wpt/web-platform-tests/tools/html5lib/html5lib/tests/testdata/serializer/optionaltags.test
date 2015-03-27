@@ -1,0 +1,965 @@
+{"tests": [
+
+{"description": "html start-tag followed by text, with attributes",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "html", [{"namespace": null, "name": "lang", "value": "en"}]], ["Characters", "foo"]],
+ "expected": ["<html lang=en>foo"]
+},
+
+
+
+{"description": "html start-tag followed by comment",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "html", {}], ["Comment", "foo"]],
+ "expected": ["<html><!--foo-->"]
+},
+
+{"description": "html start-tag followed by space character",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "html", {}], ["Characters", " foo"]],
+ "expected": ["<html> foo"]
+},
+
+{"description": "html start-tag followed by text",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "html", {}], ["Characters", "foo"]],
+ "expected": ["foo"]
+},
+
+{"description": "html start-tag followed by start-tag",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "html", {}], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["<foo>"]
+},
+
+{"description": "html start-tag followed by end-tag",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "html", {}], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "html start-tag at EOF (shouldn't ever happen?!)",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "html", {}]],
+ "expected": [""]
+},
+
+
+
+{"description": "html end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "html"], ["Comment", "foo"]],
+ "expected": ["</html><!--foo-->"]
+},
+
+{"description": "html end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "html"], ["Characters", " foo"]],
+ "expected": ["</html> foo"]
+},
+
+{"description": "html end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "html"], ["Characters", "foo"]],
+ "expected": ["foo"]
+},
+
+{"description": "html end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "html"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["<foo>"]
+},
+
+{"description": "html end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "html"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "html end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "html"]],
+ "expected": [""]
+},
+
+
+
+
+{"description": "head start-tag followed by comment",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "head", {}], ["Comment", "foo"]],
+ "expected": ["<head><!--foo-->"]
+},
+
+{"description": "head start-tag followed by space character",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "head", {}], ["Characters", " foo"]],
+ "expected": ["<head> foo"]
+},
+
+{"description": "head start-tag followed by text",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "head", {}], ["Characters", "foo"]],
+ "expected": ["<head>foo"]
+},
+
+{"description": "head start-tag followed by start-tag",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "head", {}], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["<foo>"]
+},
+
+{"description": "head start-tag followed by end-tag (shouldn't ever happen?!)",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "head", {}], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["<head></foo>", "</foo>"]
+},
+
+{"description": "empty head element",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "head", {}], ["EndTag", "http://www.w3.org/1999/xhtml", "head"]],
+ "expected": [""]
+},
+
+{"description": "head start-tag followed by empty-tag",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "head", {}], ["EmptyTag", "foo", {}]],
+ "expected": ["<foo>"]
+},
+
+{"description": "head start-tag at EOF (shouldn't ever happen?!)",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "head", {}]],
+ "expected": ["<head>", ""]
+},
+
+
+
+{"description": "head end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "head"], ["Comment", "foo"]],
+ "expected": ["</head><!--foo-->"]
+},
+
+{"description": "head end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "head"], ["Characters", " foo"]],
+ "expected": ["</head> foo"]
+},
+
+{"description": "head end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "head"], ["Characters", "foo"]],
+ "expected": ["foo"]
+},
+
+{"description": "head end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "head"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["<foo>"]
+},
+
+{"description": "head end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "head"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "head end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "head"]],
+ "expected": [""]
+},
+
+
+
+
+{"description": "body start-tag followed by comment",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "body", {}], ["Comment", "foo"]],
+ "expected": ["<body><!--foo-->"]
+},
+
+{"description": "body start-tag followed by space character",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "body", {}], ["Characters", " foo"]],
+ "expected": ["<body> foo"]
+},
+
+{"description": "body start-tag followed by text",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "body", {}], ["Characters", "foo"]],
+ "expected": ["foo"]
+},
+
+{"description": "body start-tag followed by start-tag",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "body", {}], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["<foo>"]
+},
+
+{"description": "body start-tag followed by end-tag",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "body", {}], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "body start-tag at EOF (shouldn't ever happen?!)",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "body", {}]],
+ "expected": [""]
+},
+
+
+
+{"description": "body end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "body"], ["Comment", "foo"]],
+ "expected": ["</body><!--foo-->"]
+},
+
+{"description": "body end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "body"], ["Characters", " foo"]],
+ "expected": ["</body> foo"]
+},
+
+{"description": "body end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "body"], ["Characters", "foo"]],
+ "expected": ["foo"]
+},
+
+{"description": "body end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "body"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["<foo>"]
+},
+
+{"description": "body end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "body"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "body end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "body"]],
+ "expected": [""]
+},
+
+
+
+
+{"description": "li end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "li"], ["Comment", "foo"]],
+ "expected": ["</li><!--foo-->"]
+},
+
+{"description": "li end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "li"], ["Characters", " foo"]],
+ "expected": ["</li> foo"]
+},
+
+{"description": "li end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "li"], ["Characters", "foo"]],
+ "expected": ["</li>foo"]
+},
+
+{"description": "li end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "li"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["</li><foo>"]
+},
+
+{"description": "li end-tag followed by li start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "li"], ["StartTag", "http://www.w3.org/1999/xhtml", "li", {}]],
+ "expected": ["<li>"]
+},
+
+{"description": "li end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "li"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "li end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "li"]],
+ "expected": [""]
+},
+
+
+
+
+{"description": "dt end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dt"], ["Comment", "foo"]],
+ "expected": ["</dt><!--foo-->"]
+},
+
+{"description": "dt end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dt"], ["Characters", " foo"]],
+ "expected": ["</dt> foo"]
+},
+
+{"description": "dt end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dt"], ["Characters", "foo"]],
+ "expected": ["</dt>foo"]
+},
+
+{"description": "dt end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dt"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["</dt><foo>"]
+},
+
+{"description": "dt end-tag followed by dt start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dt"], ["StartTag", "http://www.w3.org/1999/xhtml", "dt", {}]],
+ "expected": ["<dt>"]
+},
+
+{"description": "dt end-tag followed by dd start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dt"], ["StartTag", "http://www.w3.org/1999/xhtml", "dd", {}]],
+ "expected": ["<dd>"]
+},
+
+{"description": "dt end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dt"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</dt></foo>"]
+},
+
+{"description": "dt end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dt"]],
+ "expected": ["</dt>"]
+},
+
+
+
+
+{"description": "dd end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dd"], ["Comment", "foo"]],
+ "expected": ["</dd><!--foo-->"]
+},
+
+{"description": "dd end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dd"], ["Characters", " foo"]],
+ "expected": ["</dd> foo"]
+},
+
+{"description": "dd end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dd"], ["Characters", "foo"]],
+ "expected": ["</dd>foo"]
+},
+
+{"description": "dd end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dd"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["</dd><foo>"]
+},
+
+{"description": "dd end-tag followed by dd start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dd"], ["StartTag", "http://www.w3.org/1999/xhtml", "dd", {}]],
+ "expected": ["<dd>"]
+},
+
+{"description": "dd end-tag followed by dt start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dd"], ["StartTag", "http://www.w3.org/1999/xhtml", "dt", {}]],
+ "expected": ["<dt>"]
+},
+
+{"description": "dd end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dd"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "dd end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "dd"]],
+ "expected": [""]
+},
+
+
+
+
+{"description": "p end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["Comment", "foo"]],
+ "expected": ["</p><!--foo-->"]
+},
+
+{"description": "p end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["Characters", " foo"]],
+ "expected": ["</p> foo"]
+},
+
+{"description": "p end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["Characters", "foo"]],
+ "expected": ["</p>foo"]
+},
+
+{"description": "p end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["</p><foo>"]
+},
+
+{"description": "p end-tag followed by address start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "address", {}]],
+ "expected": ["<address>"]
+},
+
+{"description": "p end-tag followed by article start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "article", {}]],
+ "expected": ["<article>"]
+},
+
+{"description": "p end-tag followed by aside start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "aside", {}]],
+ "expected": ["<aside>"]
+},
+
+{"description": "p end-tag followed by blockquote start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "blockquote", {}]],
+ "expected": ["<blockquote>"]
+},
+
+{"description": "p end-tag followed by datagrid start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "datagrid", {}]],
+ "expected": ["<datagrid>"]
+},
+
+{"description": "p end-tag followed by dialog start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "dialog", {}]],
+ "expected": ["<dialog>"]
+},
+
+{"description": "p end-tag followed by dir start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "dir", {}]],
+ "expected": ["<dir>"]
+},
+
+{"description": "p end-tag followed by div start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "div", {}]],
+ "expected": ["<div>"]
+},
+
+{"description": "p end-tag followed by dl start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "dl", {}]],
+ "expected": ["<dl>"]
+},
+
+{"description": "p end-tag followed by fieldset start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "fieldset", {}]],
+ "expected": ["<fieldset>"]
+},
+
+{"description": "p end-tag followed by footer start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "footer", {}]],
+ "expected": ["<footer>"]
+},
+
+{"description": "p end-tag followed by form start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "form", {}]],
+ "expected": ["<form>"]
+},
+
+{"description": "p end-tag followed by h1 start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "h1", {}]],
+ "expected": ["<h1>"]
+},
+
+{"description": "p end-tag followed by h2 start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "h2", {}]],
+ "expected": ["<h2>"]
+},
+
+{"description": "p end-tag followed by h3 start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "h3", {}]],
+ "expected": ["<h3>"]
+},
+
+{"description": "p end-tag followed by h4 start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "h4", {}]],
+ "expected": ["<h4>"]
+},
+
+{"description": "p end-tag followed by h5 start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "h5", {}]],
+ "expected": ["<h5>"]
+},
+
+{"description": "p end-tag followed by h6 start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "h6", {}]],
+ "expected": ["<h6>"]
+},
+
+{"description": "p end-tag followed by header start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "header", {}]],
+ "expected": ["<header>"]
+},
+
+{"description": "p end-tag followed by hr empty-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["EmptyTag", "hr", {}]],
+ "expected": ["<hr>"]
+},
+
+{"description": "p end-tag followed by menu start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "menu", {}]],
+ "expected": ["<menu>"]
+},
+
+{"description": "p end-tag followed by nav start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "nav", {}]],
+ "expected": ["<nav>"]
+},
+
+{"description": "p end-tag followed by ol start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "ol", {}]],
+ "expected": ["<ol>"]
+},
+
+{"description": "p end-tag followed by p start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "p", {}]],
+ "expected": ["<p>"]
+},
+
+{"description": "p end-tag followed by pre start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "pre", {}]],
+ "expected": ["<pre>"]
+},
+
+{"description": "p end-tag followed by section start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "section", {}]],
+ "expected": ["<section>"]
+},
+
+{"description": "p end-tag followed by table start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "table", {}]],
+ "expected": ["<table>"]
+},
+
+{"description": "p end-tag followed by ul start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["StartTag", "http://www.w3.org/1999/xhtml", "ul", {}]],
+ "expected": ["<ul>"]
+},
+
+{"description": "p end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "p end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "p"]],
+ "expected": [""]
+},
+
+
+
+
+{"description": "optgroup end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "optgroup"], ["Comment", "foo"]],
+ "expected": ["</optgroup><!--foo-->"]
+},
+
+{"description": "optgroup end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "optgroup"], ["Characters", " foo"]],
+ "expected": ["</optgroup> foo"]
+},
+
+{"description": "optgroup end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "optgroup"], ["Characters", "foo"]],
+ "expected": ["</optgroup>foo"]
+},
+
+{"description": "optgroup end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "optgroup"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["</optgroup><foo>"]
+},
+
+{"description": "optgroup end-tag followed by optgroup start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "optgroup"], ["StartTag", "http://www.w3.org/1999/xhtml", "optgroup", {}]],
+ "expected": ["<optgroup>"]
+},
+
+{"description": "optgroup end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "optgroup"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "optgroup end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "optgroup"]],
+ "expected": [""]
+},
+
+
+
+
+{"description": "option end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "option"], ["Comment", "foo"]],
+ "expected": ["</option><!--foo-->"]
+},
+
+{"description": "option end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "option"], ["Characters", " foo"]],
+ "expected": ["</option> foo"]
+},
+
+{"description": "option end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "option"], ["Characters", "foo"]],
+ "expected": ["</option>foo"]
+},
+
+{"description": "option end-tag followed by optgroup start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "option"], ["StartTag", "http://www.w3.org/1999/xhtml", "optgroup", {}]],
+ "expected": ["<optgroup>"]
+},
+
+{"description": "option end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "option"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["</option><foo>"]
+},
+
+{"description": "option end-tag followed by option start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "option"], ["StartTag", "http://www.w3.org/1999/xhtml", "option", {}]],
+ "expected": ["<option>"]
+},
+
+{"description": "option end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "option"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "option end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "option"]],
+ "expected": [""]
+},
+
+
+
+
+{"description": "colgroup start-tag followed by comment",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "colgroup", {}], ["Comment", "foo"]],
+ "expected": ["<colgroup><!--foo-->"]
+},
+
+{"description": "colgroup start-tag followed by space character",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "colgroup", {}], ["Characters", " foo"]],
+ "expected": ["<colgroup> foo"]
+},
+
+{"description": "colgroup start-tag followed by text",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "colgroup", {}], ["Characters", "foo"]],
+ "expected": ["<colgroup>foo"]
+},
+
+{"description": "colgroup start-tag followed by start-tag",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "colgroup", {}], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["<colgroup><foo>"]
+},
+
+{"description": "first colgroup in a table with a col child",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "table", {}], ["StartTag", "http://www.w3.org/1999/xhtml", "colgroup", {}], ["EmptyTag", "col", {}]],
+ "expected": ["<table><col>"]
+},
+
+{"description": "colgroup with a col child, following another colgroup",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "colgroup"], ["StartTag", "http://www.w3.org/1999/xhtml", "colgroup", {}], ["StartTag", "http://www.w3.org/1999/xhtml", "col", {}]],
+ "expected": ["</colgroup><col>", "<colgroup><col>"]
+},
+
+{"description": "colgroup start-tag followed by end-tag",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "colgroup", {}], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["<colgroup></foo>"]
+},
+
+{"description": "colgroup start-tag at EOF",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "colgroup", {}]],
+ "expected": ["<colgroup>"]
+},
+
+
+
+{"description": "colgroup end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "colgroup"], ["Comment", "foo"]],
+ "expected": ["</colgroup><!--foo-->"]
+},
+
+{"description": "colgroup end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "colgroup"], ["Characters", " foo"]],
+ "expected": ["</colgroup> foo"]
+},
+
+{"description": "colgroup end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "colgroup"], ["Characters", "foo"]],
+ "expected": ["foo"]
+},
+
+{"description": "colgroup end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "colgroup"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["<foo>"]
+},
+
+{"description": "colgroup end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "colgroup"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "colgroup end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "colgroup"]],
+ "expected": [""]
+},
+
+
+
+
+{"description": "thead end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "thead"], ["Comment", "foo"]],
+ "expected": ["</thead><!--foo-->"]
+},
+
+{"description": "thead end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "thead"], ["Characters", " foo"]],
+ "expected": ["</thead> foo"]
+},
+
+{"description": "thead end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "thead"], ["Characters", "foo"]],
+ "expected": ["</thead>foo"]
+},
+
+{"description": "thead end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "thead"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["</thead><foo>"]
+},
+
+{"description": "thead end-tag followed by tbody start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "thead"], ["StartTag", "http://www.w3.org/1999/xhtml", "tbody", {}]],
+ "expected": ["<tbody>"]
+},
+
+{"description": "thead end-tag followed by tfoot start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "thead"], ["StartTag", "http://www.w3.org/1999/xhtml", "tfoot", {}]],
+ "expected": ["<tfoot>"]
+},
+
+{"description": "thead end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "thead"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</thead></foo>"]
+},
+
+{"description": "thead end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "thead"]],
+ "expected": ["</thead>"]
+},
+
+
+
+
+{"description": "tbody start-tag followed by comment",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "tbody", {}], ["Comment", "foo"]],
+ "expected": ["<tbody><!--foo-->"]
+},
+
+{"description": "tbody start-tag followed by space character",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "tbody", {}], ["Characters", " foo"]],
+ "expected": ["<tbody> foo"]
+},
+
+{"description": "tbody start-tag followed by text",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "tbody", {}], ["Characters", "foo"]],
+ "expected": ["<tbody>foo"]
+},
+
+{"description": "tbody start-tag followed by start-tag",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "tbody", {}], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["<tbody><foo>"]
+},
+
+{"description": "first tbody in a table with a tr child",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "table", {}], ["StartTag", "http://www.w3.org/1999/xhtml", "tbody", {}], ["StartTag", "http://www.w3.org/1999/xhtml", "tr", {}]],
+ "expected": ["<table><tr>"]
+},
+
+{"description": "tbody with a tr child, following another tbody",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tbody"], ["StartTag", "http://www.w3.org/1999/xhtml", "tbody", {}], ["StartTag", "http://www.w3.org/1999/xhtml", "tr", {}]],
+ "expected": ["<tbody><tr>", "</tbody><tr>"]
+},
+
+{"description": "tbody with a tr child, following a thead",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "thead"], ["StartTag", "http://www.w3.org/1999/xhtml", "tbody", {}], ["StartTag", "http://www.w3.org/1999/xhtml", "tr", {}]],
+ "expected": ["<tbody><tr>", "</thead><tr>"]
+},
+
+{"description": "tbody with a tr child, following a tfoot",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tfoot"], ["StartTag", "http://www.w3.org/1999/xhtml", "tbody", {}], ["StartTag", "http://www.w3.org/1999/xhtml", "tr", {}]],
+ "expected": ["<tbody><tr>", "</tfoot><tr>"]
+},
+
+{"description": "tbody start-tag followed by end-tag",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "tbody", {}], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["<tbody></foo>"]
+},
+
+{"description": "tbody start-tag at EOF",
+ "input": [["StartTag", "http://www.w3.org/1999/xhtml", "tbody", {}]],
+ "expected": ["<tbody>"]
+},
+
+
+
+{"description": "tbody end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tbody"], ["Comment", "foo"]],
+ "expected": ["</tbody><!--foo-->"]
+},
+
+{"description": "tbody end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tbody"], ["Characters", " foo"]],
+ "expected": ["</tbody> foo"]
+},
+
+{"description": "tbody end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tbody"], ["Characters", "foo"]],
+ "expected": ["</tbody>foo"]
+},
+
+{"description": "tbody end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tbody"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["</tbody><foo>"]
+},
+
+{"description": "tbody end-tag followed by tbody start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tbody"], ["StartTag", "http://www.w3.org/1999/xhtml", "tbody", {}]],
+ "expected": ["<tbody>", "</tbody>"]
+},
+
+{"description": "tbody end-tag followed by tfoot start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tbody"], ["StartTag", "http://www.w3.org/1999/xhtml", "tfoot", {}]],
+ "expected": ["<tfoot>"]
+},
+
+{"description": "tbody end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tbody"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "tbody end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tbody"]],
+ "expected": [""]
+},
+
+
+
+
+{"description": "tfoot end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tfoot"], ["Comment", "foo"]],
+ "expected": ["</tfoot><!--foo-->"]
+},
+
+{"description": "tfoot end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tfoot"], ["Characters", " foo"]],
+ "expected": ["</tfoot> foo"]
+},
+
+{"description": "tfoot end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tfoot"], ["Characters", "foo"]],
+ "expected": ["</tfoot>foo"]
+},
+
+{"description": "tfoot end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tfoot"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["</tfoot><foo>"]
+},
+
+{"description": "tfoot end-tag followed by tbody start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tfoot"], ["StartTag", "http://www.w3.org/1999/xhtml", "tbody", {}]],
+ "expected": ["<tbody>", "</tfoot>"]
+},
+
+{"description": "tfoot end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tfoot"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "tfoot end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tfoot"]],
+ "expected": [""]
+},
+
+
+
+
+{"description": "tr end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tr"], ["Comment", "foo"]],
+ "expected": ["</tr><!--foo-->"]
+},
+
+{"description": "tr end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tr"], ["Characters", " foo"]],
+ "expected": ["</tr> foo"]
+},
+
+{"description": "tr end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tr"], ["Characters", "foo"]],
+ "expected": ["</tr>foo"]
+},
+
+{"description": "tr end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tr"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["</tr><foo>"]
+},
+
+{"description": "tr end-tag followed by tr start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tr"], ["StartTag", "http://www.w3.org/1999/xhtml", "tr", {}]],
+ "expected": ["<tr>", "</tr>"]
+},
+
+{"description": "tr end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tr"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "tr end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "tr"]],
+ "expected": [""]
+},
+
+
+
+
+{"description": "td end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "td"], ["Comment", "foo"]],
+ "expected": ["</td><!--foo-->"]
+},
+
+{"description": "td end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "td"], ["Characters", " foo"]],
+ "expected": ["</td> foo"]
+},
+
+{"description": "td end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "td"], ["Characters", "foo"]],
+ "expected": ["</td>foo"]
+},
+
+{"description": "td end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "td"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["</td><foo>"]
+},
+
+{"description": "td end-tag followed by td start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "td"], ["StartTag", "http://www.w3.org/1999/xhtml", "td", {}]],
+ "expected": ["<td>", "</td>"]
+},
+
+{"description": "td end-tag followed by th start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "td"], ["StartTag", "http://www.w3.org/1999/xhtml", "th", {}]],
+ "expected": ["<th>", "</td>"]
+},
+
+{"description": "td end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "td"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "td end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "td"]],
+ "expected": [""]
+},
+
+
+
+
+{"description": "th end-tag followed by comment",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "th"], ["Comment", "foo"]],
+ "expected": ["</th><!--foo-->"]
+},
+
+{"description": "th end-tag followed by space character",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "th"], ["Characters", " foo"]],
+ "expected": ["</th> foo"]
+},
+
+{"description": "th end-tag followed by text",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "th"], ["Characters", "foo"]],
+ "expected": ["</th>foo"]
+},
+
+{"description": "th end-tag followed by start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "th"], ["StartTag", "http://www.w3.org/1999/xhtml", "foo", {}]],
+ "expected": ["</th><foo>"]
+},
+
+{"description": "th end-tag followed by th start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "th"], ["StartTag", "http://www.w3.org/1999/xhtml", "th", {}]],
+ "expected": ["<th>", "</th>"]
+},
+
+{"description": "th end-tag followed by td start-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "th"], ["StartTag", "http://www.w3.org/1999/xhtml", "td", {}]],
+ "expected": ["<td>", "</th>"]
+},
+
+{"description": "th end-tag followed by end-tag",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml", "th"], ["EndTag", "http://www.w3.org/1999/xhtml", "foo"]],
+ "expected": ["</foo>"]
+},
+
+{"description": "th end-tag at EOF",
+ "input": [["EndTag", "http://www.w3.org/1999/xhtml"    , "th"]],
+ "expected": [""]
+}
+
+]}

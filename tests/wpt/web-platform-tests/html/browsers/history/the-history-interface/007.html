@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Firing popstate after onload with pushed state</title>
+                <meta name=timeout content=long>
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+    <div id="log">It looks like the browser stopped loading the page when encountering a .go(-1) command pointing to a pushed state. This will break the tests.</div>
+    <script type="text/javascript">
+
+//spec (25 March 2011 draft) states that popstate must fire before onload if there is a pushed/replaced state that is navigated
+var popfired = false;
+setup({explicit_done:true});
+test(function () {
+  assert_equals( history.state, null );
+}, 'history.state should initially be null');
+window.addEventListener('popstate',function (e) { popfired = e.state; },false);
+test(function () {
+  history.pushState('state1','');
+  history.pushState('state2','');
+}, 'history.pushState support is needed for this testcase');
+test(function () {
+  assert_equals( history.state, 'state2' );
+}, 'history.state should reflect pushed state');
+if( history.pushState ) { history.go(-1); }
+window.onload = function () {
+  test(function () {
+    assert_true( !!popfired );
+  }, 'popstate event should fire before onload fires');
+  test(function () {
+    assert_equals( popfired, 'state1' );
+  }, 'the correct state should be restored when navigating during initial load');
+  test(function () {
+    assert_equals( history.state, 'state1' );
+  }, 'history.state should reflect the navigated state onload');
+  popfired = false;
+  setTimeout(function () {
+    test(function () {
+      assert_false( !!popfired );
+    }, 'popstate event should not fire after onload fires');
+    test(function () {
+      assert_equals( history.state, 'state1' );
+    }, 'history.state should reflect the navigated state after onload');
+    done();
+    if( history.pushState ) { history.go(-1); } //go back to the start to avoid state recovery when reloading
+  },100);
+};
+
+    </script>
+
+  </body>
+</html>

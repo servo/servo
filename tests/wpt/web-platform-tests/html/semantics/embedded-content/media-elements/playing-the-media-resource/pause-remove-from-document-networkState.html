@@ -1,0 +1,21 @@
+<!doctype html>
+<title>paused state when removing from a document when networkState is NETWORK_EMPTY</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<video hidden></video>
+<script>
+// Negative test for the specified behavior prior to HTML r8447.
+async_test(function(t) {
+  var v = document.querySelector('video');
+  v.play();
+  setTimeout(t.step_func(function() {
+    assert_equals(v.networkState, v.NETWORK_EMPTY,
+                  'networkState after stable state');
+    assert_false(v.paused, 'paused after stable state');
+    v.parentNode.removeChild(v);
+    assert_false(v.paused, 'paused after removing');
+    v.onpause = t.step_func(function() { t.done(); });
+  }), 0);
+});
+</script>

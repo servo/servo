@@ -1,0 +1,13 @@
+<!doctype html>
+<title>WebSockets: setting readyState</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+test(function(t) {
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/');
+  ws.readyState = 5;
+  assert_equals(ws.readyState, ws.CONNECTING);
+});
+</script>

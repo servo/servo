@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - file drop prompt for basic server name</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+  }
+</style>
+
+<script>
+window.onload = function() {
+	if( location.protocol != 'http:' && location.protocol != 'https:' ) {
+		document.getElementsByTagName('p')[0].innerHTML = 'This test should be loaded over http or https.';
+		return;
+	}
+	var orange = document.getElementsByTagName('div')[0];
+	orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {
+   	e.preventDefault();
+  };
+  document.getElementsByTagName('span')[0].innerHTML = location.hostname;
+};
+</script>
+
+<div></div>
+
+<p>Drag a file from your desktop onto the orange square. A prompt should appear, correctly identifying the server name as <span></span></p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

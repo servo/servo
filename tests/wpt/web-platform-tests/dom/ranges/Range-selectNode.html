@@ -1,0 +1,99 @@
+<!doctype html>
+<title>Range.selectNode() and .selectNodeContents() tests</title>
+<link rel="author" title="Aryeh Gregor" href=ayg@aryeh.name>
+<meta name=timeout content=long>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../common.js></script>
+<script>
+"use strict";
+
+function testSelectNode(range, node) {
+    try {
+        range.collapsed;
+    } catch (e) {
+        // Range is detached
+        assert_throws("INVALID_STATE_ERR", function () {
+            range.selectNode(node);
+        }, "selectNode() on a detached node must throw INVALID_STATE_ERR");
+        assert_throws("INVALID_STATE_ERR", function () {
+            range.selectNodeContents(node);
+        }, "selectNodeContents() on a detached node must throw INVALID_STATE_ERR");
+        return;
+    }
+
+    if (!node.parentNode) {
+        assert_throws("INVALID_NODE_TYPE_ERR", function() {
+            range.selectNode(node);
+        }, "selectNode() on a node with no parent must throw INVALID_NODE_TYPE_ERR");
+    } else {
+        var index = 0;
+        while (node.parentNode.childNodes[index] != node) {
+            index++;
+        }
+
+        range.selectNode(node);
+        assert_equals(range.startContainer, node.parentNode,
+            "After selectNode(), startContainer must equal parent node");
+        assert_equals(range.endContainer, node.parentNode,
+            "After selectNode(), endContainer must equal parent node");
+        assert_equals(range.startOffset, index,
+            "After selectNode(), startOffset must be index of node in parent (" + index + ")");
+        assert_equals(range.endOffset, index + 1,
+            "After selectNode(), endOffset must be one plus index of node in parent (" + (index + 1) + ")");
+    }
+
+    if (node.nodeType == Node.DOCUMENT_TYPE_NODE) {
+        assert_throws("INVALID_NODE_TYPE_ERR", function () {
+            range.selectNodeContents(node);
+        }, "selectNodeContents() on a doctype must throw INVALID_NODE_TYPE_ERR");
+    } else {
+        range.selectNodeContents(node);
+        assert_equals(range.startContainer, node,
+            "After selectNodeContents(), startContainer must equal node");
+        assert_equals(range.endContainer, node,
+            "After selectNodeContents(), endContainer must equal node");
+        assert_equals(range.startOffset, 0,
+            "After selectNodeContents(), startOffset must equal 0");
+        var len = nodeLength(node);
+        assert_equals(range.endOffset, len,
+            "After selectNodeContents(), endOffset must equal node length (" + len + ")");
+    }
+}
+
+var range = document.createRange();
+var foreignRange = foreignDoc.createRange();
+var xmlRange = xmlDoc.createRange();
+var detachedRange = document.createRange();
+detachedRange.detach();
+var tests = [];
+function testTree(root, marker) {
+    if (root.nodeType == Node.ELEMENT_NODE && root.id == "log") {
+        // This is being modified during the tests, so let's not test it.
+        return;
+    }
+    tests.push([marker + root.nodeName.toLowerCase() + " node, current doc's range, type " + root.nodeType, range, root]);
+    tests.push([marker + root.nodeName.toLowerCase() + " node, foreign doc's range, type " + root.nodeType, foreignRange, root]);
+    tests.push([marker + root.nodeName.toLowerCase() + " node, XML doc's range, type " + root.nodeType, xmlRange, root]);
+    tests.push([marker + root.nodeName.toLowerCase() + " node, detached range, type " + root.nodeType, detachedRange, root]);
+    for (var i = 0; i < root.childNodes.length; i++) {
+        testTree(root.childNodes[i], "**" + marker);
+    }
+}
+testTree(document, " current doc: ");
+testTree(foreignDoc, " foreign doc: ");
+testTree(detachedDiv, " detached div in current doc: ");
+
+var otherTests = [xmlDoc, xmlElement, detachedTextNode, foreignTextNode,
+xmlTextNode, processingInstruction, comment, foreignComment, xmlComment,
+docfrag, foreignDocfrag, xmlDocfrag];
+
+for (var i = 0; i < otherTests.length; i++) {
+    testTree(otherTests[i], " ");
+}
+
+generate_tests(testSelectNode, tests);
+
+testDiv.style.display = "none";
+</script>

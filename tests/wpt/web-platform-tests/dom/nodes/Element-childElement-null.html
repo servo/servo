@@ -1,0 +1,15 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Null test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<h1>Test of firstElementChild and lastChildElement returning null</h1>
+<div id="log"></div>
+<p id="parentEl" style="font-weight:bold;">Test.</p>
+<script>
+test(function() {
+  var parentEl = document.getElementById("parentEl")
+  assert_equals(parentEl.firstElementChild, null)
+  assert_equals(parentEl.lastElementChild, null)
+})
+</script>

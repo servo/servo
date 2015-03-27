@@ -1,0 +1,16 @@
+<!doctype html>
+<title>Cancelling timeout after document.open</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe src="004-1.html"></iframe>
+<script>
+var t = async_test();
+var iframe;
+onload = t.step_func(function() {
+  var iframe = document.getElementsByTagName("iframe")[0];
+  iframe.contentWindow.setTimeout(t.step_func(function() {assert_unreached()}), 100);
+  iframe.contentDocument.open()
+  setTimeout(function() {t.done();}, 200);
+});
+</script>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: send() - Redirects (basics)</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#infrastructure-for-the-send()-method" data-tested-assertations="following::dl[1]/dt[2] following::dl[1]/dd[2]/ol/li[1] following::dl[1]/dd[2]/ol/li[2]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      function redirect(code) {
+        var test = async_test(document.title + " (" + code + ")")
+        test.step(function() {
+          var client = new XMLHttpRequest()
+          client.onreadystatechange = function() {
+            test.step(function() {
+              if(client.readyState == 4) {
+                assert_equals(client.getResponseHeader("x-request-method"), "GET")
+                assert_equals(client.getResponseHeader("x-request-content-type"), "application/x-pony")
+                test.done()
+              }
+            })
+          }
+          client.open("GET", "resources/redirect.py?location=content.py&code=" + code)
+          client.setRequestHeader("Content-Type", "application/x-pony")
+          client.send(null)
+        })
+      }
+      redirect("301")
+      redirect("302")
+      redirect("303")
+      redirect("307")
+    </script>
+  </body>
+</html>

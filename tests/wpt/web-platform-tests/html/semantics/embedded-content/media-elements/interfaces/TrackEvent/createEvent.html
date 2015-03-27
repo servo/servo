@@ -1,0 +1,15 @@
+<!doctype html>
+<title>TrackEvent created with createEvent</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function(){
+    // https://www.w3.org/Bugs/Public/show_bug.cgi?id=17268
+    assert_throws('NOT_SUPPORTED_ERR', function() {
+        var ev = document.createEvent('TrackEvent');
+    });
+    var ev = new TrackEvent('foo');
+    assert_false('initTrackEvent' in ev, 'initTrackEvent');
+});
+</script>

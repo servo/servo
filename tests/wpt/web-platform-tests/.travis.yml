@@ -1,0 +1,7 @@
+language: python
+python:
+  - "2.7"
+before_install:
+  - git submodule update --init --recursive
+# command to run tests, e.g. python setup.py test
+script:  ./lint

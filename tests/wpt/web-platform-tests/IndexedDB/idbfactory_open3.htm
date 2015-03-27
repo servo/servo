@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>IDBFactory.open() - no version opens current database</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js></script>
+
+<script>
+    var open_rq = createdb(async_test(), undefined, 13);
+    var did_upgrade = false;
+
+    open_rq.onupgradeneeded = function() {};
+    open_rq.onsuccess = function(e) {
+        var db = e.target.result;
+        db.close();
+
+        var open_rq2 = window.indexedDB.open(db.name);
+        open_rq2.onsuccess = this.step_func(function(e) {
+            assert_equals(e.target.result.version, 13, "db.version")
+            this.done();
+        });
+        open_rq2.onupgradeneeded = fail(this, 'Unexpected upgradeneeded')
+        open_rq2.onerror = fail(this, 'Unexpected error')
+    }
+</script>
+
+<div id=log></div>

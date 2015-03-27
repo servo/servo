@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<meta charset=UTF-8>
+<title>Video elements should initially be paused</title>
+<link rel="match" href="video_initially_paused-ref.html">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-media-paused">
+<script src="/common/media.js"></script>
+<style>
+div#video {
+  padding: 6px 3px;
+}
+</style>
+<p>The following video element should be paused. (All clocks at zero).</p>
+<div id=video>
+<script>
+document.write(
+  "<video src='"+ getVideoURI('/media/movie_300') + "' >" +
+  "Your browser does not support the video element." +
+  "<\/video>");
+</script>
+</div>

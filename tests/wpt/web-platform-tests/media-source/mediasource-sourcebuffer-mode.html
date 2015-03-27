@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SourceBuffer.mode test cases.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              assert_equals(sourceBuffer.mode, 'segments', 'default append mode should be \'segments\'');
+              test.done();
+          }, 'Test initial value of SourceBuffer.mode is "segments"');
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              sourceBuffer.mode = 'sequence';
+              assert_equals(sourceBuffer.mode, 'sequence', 'mode after setting it to \'sequence\'');
+
+              // Setting a mode that is not in AppendMode IDL enum should be ignored and not cause exception.
+              sourceBuffer.mode = 'invalidmode';
+              sourceBuffer.mode = null;
+              sourceBuffer.mode = '';
+              sourceBuffer.mode = 'Segments';
+              assert_equals(sourceBuffer.mode, 'sequence', 'mode unchanged by attempts to set invalid modes');
+
+              sourceBuffer.mode = 'segments';
+              assert_equals(sourceBuffer.mode, 'segments', 'mode after setting it to \'segments\'');
+              test.done();
+          }, 'Test setting SourceBuffer.mode');
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              mediaSource.removeSourceBuffer(sourceBuffer);
+              assert_throws('InvalidStateError',
+                  function() { sourceBuffer.mode = 'segments'; },
+                  'Setting valid sourceBuffer.mode on removed SourceBuffer should throw InvalidStateError.');
+              test.done();
+          }, 'Test setting a removed SourceBuffer\'s mode');
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              sourceBuffer.appendBuffer(mediaData);
+              assert_true(sourceBuffer.updating, 'updating attribute is true');
+              assert_throws('InvalidStateError',
+                  function() { sourceBuffer.mode = 'segments'; },
+                  'Setting valid sourceBuffer.mode on updating SourceBuffer threw InvalidStateError.');
+              test.done();
+          }, 'Test setting SourceBuffer.mode while still updating');
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              test.expectEvent(sourceBuffer, 'updateend', 'Append ended.');
+              sourceBuffer.appendBuffer(mediaData);
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_false(sourceBuffer.updating, 'updating attribute is false');
+
+                  test.expectEvent(mediaSource, 'sourceended', 'MediaSource sourceended event');
+                  mediaSource.endOfStream();
+                  assert_equals(mediaSource.readyState, 'ended', 'MediaSource readyState is \'ended\'');
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_equals(mediaSource.readyState, 'ended', 'MediaSource readyState is \'ended\'');
+
+                  test.expectEvent(mediaSource, 'sourceopen', 'MediaSource sourceopen event');
+                  sourceBuffer.mode = 'segments';
+
+                  assert_equals(mediaSource.readyState, 'open', 'MediaSource readyState is \'open\'');
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_equals(mediaSource.readyState, 'open', 'MediaSource readyState is \'open\'');
+                  test.done();
+              });
+          }, 'Test setting SourceBuffer.mode triggers parent MediaSource \'ended\' to \'open\' transition.');
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+              var fullMediaSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.media[0]);
+              var truncateAt = Math.floor(segmentInfo.media[0].size * 0.5);  // Pick first 50% of segment bytes.
+              var partialMediaSegment = fullMediaSegment.subarray(0, truncateAt);
+              var mediaSegmentRemainder = fullMediaSegment.subarray(truncateAt);
+
+              // Append init segment.
+              test.expectEvent(sourceBuffer, 'updateend', 'Init segment append ended.');
+              sourceBuffer.appendBuffer(initSegment);
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_false(sourceBuffer.updating, 'updating attribute is false');
+                  assert_equals(sourceBuffer.mode, 'segments');
+                  sourceBuffer.mode = 'segments';  // No exception should occur.
+                  assert_equals(sourceBuffer.timestampOffset, 0.0);
+                  sourceBuffer.timestampOffset = 10.123456789;  // No exception should occur.
+                  assert_equals(sourceBuffer.timestampOffset, 10.123456789);  // Super-precise offsets should round-trip.
+
+                  // Append first part of media segment.
+                  test.expectEvent(sourceBuffer, 'updateend', 'Partial media segment append ended.');
+                  sourceBuffer.appendBuffer(partialMediaSegment);
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_false(sourceBuffer.updating, 'updating attribute is false');
+                  assert_equals(sourceBuffer.mode, 'segments');
+                  assert_throws('InvalidStateError',
+                      function() { sourceBuffer.mode = 'segments'; },
+                      'Setting valid sourceBuffer.mode while still parsing media segment threw InvalidStateError.');
+                  assert_equals(sourceBuffer.timestampOffset, 10.123456789);
+                  assert_throws('InvalidStateError',
+                      function() { sourceBuffer.timestampOffset = 20.0; },
+                      'Setting valid sourceBuffer.timestampOffset while still parsing media segment threw InvalidStateError.');
+
+                  // Append remainder of media segment.
+                  test.expectEvent(sourceBuffer, 'updateend', 'Append ended of remainder of media segment.');
+                  sourceBuffer.appendBuffer(mediaSegmentRemainder);
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_false(sourceBuffer.updating, 'updating attribute is false');
+                  assert_equals(sourceBuffer.mode, 'segments');
+                  sourceBuffer.mode = 'segments';  // No exception should occur.
+                  assert_equals(sourceBuffer.timestampOffset, 10.123456789);
+                  sourceBuffer.timestampOffset = 20.0;  // No exception should occur.
+                  test.done();
+              });
+          }, 'Test setting SourceBuffer.mode and SourceBuffer.timestampOffset while parsing media segment.');
+        </script>
+    </body>
+</html>

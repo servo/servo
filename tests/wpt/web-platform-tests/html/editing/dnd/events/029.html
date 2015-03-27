@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Drag and drop without cancelling dragenter</title>
+		<style type="text/css">
+div:first-child {
+	height: 100px;
+	width: 100px;
+	background: orange;
+	display: inline-block;
+}
+div:first-child + div {
+	height: 100px;
+	width: 100px;
+	background: blue;
+	display: inline-block;
+}
+		</style>
+		<script type="text/javascript">
+
+window.onload = function () {
+	var drag = document.getElementsByTagName('div')[0], sequence = [];
+	drag.ondragstart = function (e) {
+		e.dataTransfer.setData('text','hello');
+		e.dataTransfer.effectAllowed = 'copy';
+	};
+	drag.ondragenter = drag.ondragover = function (e) {
+		e.preventDefault();
+	};
+	var drop = document.getElementsByTagName('div')[1], dragoverhasfired = false;
+	drop.ondragenter = function (e) {
+		dragoverhasfired = true; //events targeting body will be ignored until this event has fired
+		sequence[sequence.length] = 'drop.dragenter';
+	};
+	drop.ondragover = function (e) {
+		e.preventDefault();
+		if( sequence[sequence.length-1] != 'drop.dragover' ) {
+			sequence[sequence.length] = 'drop.dragover';
+		}
+	};
+	drop.ondrop = function (e) {
+		e.preventDefault();
+		sequence[sequence.length] = 'drop.ondrop';
+	};
+	document.body.ondragenter = function (e) {
+		if( e.target != this ) { return; }
+		if( dragoverhasfired ) {
+			sequence[sequence.length] = 'body.dragenter';
+		}
+	};
+	document.body.ondragover = function (e) {
+		if( e.target != this ) { return; }
+		if( dragoverhasfired ) {
+			if( sequence[sequence.length-1] != 'body.dragover' ) {
+				sequence[sequence.length] = 'body.dragover';
+			}
+		}
+	};
+	drag.ondragend = function (e) {
+		sequence = sequence.join('=&gt;')
+		var desiredsequence = (['drop.dragenter','body.dragenter','body.dragover']).join('=&gt;')
+		if( sequence == desiredsequence ) {
+			document.getElementsByTagName('div')[2].innerHTML = 'PASS';
+		} else {
+			document.getElementsByTagName('div')[2].innerHTML = 'FAIL, got:<br>'+sequence+'<br>instead of:<br>'+desiredsequence;
+		}
+	};
+};
+		</script>
+	</head>
+	<body>
+
+		<div draggable="true"></div><div></div>
+		<div>&nbsp;</div>
+		<p>Drag the orange square onto the blue square and release it.</p>
+		<noscript><p>Enable JavaScript and reload</p></noscript>
+
+	</body>
+</html>

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Window Proxy scrollbars visible flag Test</title>
+    <link rel="author" title="vanessa" href="vanessaohsy@gmail.com">
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <h1>Description</h1>
+    <p>WindowProxy.scrollbars Test</p>
+
+    <h1>Manual Test Steps:</h1>
+    <ol>
+        <li>Make the scrollbars visible in the user agent before executing this test.</li>
+        <li>You may need to manually reload afterwards.</li>
+    </ol>
+
+    <div id="log"></div>
+
+    <script type="text/javascript" >
+    test(function () {
+        assert_not_equals(window.scrollbars, undefined, "window.scrollbars is undefined");
+        assert_true(window.scrollbars.visible, "window.scrollbars.visible");
+    });
+    </script>
+</body>
+</html>

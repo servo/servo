@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method"  data-tested-assertations="following::ol[1]/li[4] following::ol[1]/li[4]/dl[1]/dd[1]"/>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-status-attribute"  data-tested-assertations="following::ol[1]/li[3]"/>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-response-attribute"  data-tested-assertations="following::ol[1]/li[3]"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>XMLHttpRequest: The send() method: ArrayBuffer data</title>
+</head>
+
+<body>
+    <div id="log"></div>
+
+    <script type="text/javascript">
+        var test = async_test();
+
+        test.step(function()
+        {
+            var xhr = new XMLHttpRequest();
+            var buf = new ArrayBuffer(5);
+            var arr = new Uint8Array(buf);
+            arr[0] = 0x48;
+            arr[1] = 0x65;
+            arr[2] = 0x6c;
+            arr[3] = 0x6c;
+            arr[4] = 0x6f;
+
+            xhr.onreadystatechange = function()
+            {
+                if (xhr.readyState == 4)
+                {
+                    test.step(function()
+                    {
+                        assert_equals(xhr.status, 200);
+                        assert_equals(xhr.response, "Hello");
+
+                        test.done();
+                    });
+                }
+            };
+
+            xhr.open("POST", "./resources/content.py", true);
+            xhr.send(buf);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Dragging multiline text selection from textarea to contenteditable element</title>
+<style type="text/css">
+div[contenteditable]
+	{width:300px;
+	height:100px;
+	margin-top:20px;
+	padding:10px;
+	color:white;
+	background-color:navy;}
+textarea
+	{width:300px;
+	height:100px;}
+</style>
+</head>
+<body onload="var t = document.querySelector('textarea');t.select();t.setSelectionRange(24,58)">
+<p>
+<textarea>
+Here is textarea with selection
+that spans
+three lines. Drag selected text to the blue box.
+Selected text should be moved to the blue box once you drop it there.
+</textarea>
+</p>
+<div contenteditable="true"/>
+</body>
+</html>

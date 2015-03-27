@@ -1,0 +1,33 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>ARIA 1.0 Test Case 669</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case 669</h1>
+    
+    <ul role="listbox" id="ID_LISTBOX" tabindex="0" aria-activedescendant="ID_OPTION_1">
+      <li id="ID_OPTION_1" role="option">Option 1</li> 
+      <li id="ID_OPTION_2" role="option">Option 2</li> 
+    </ul>
+    
+    <h2>Description</h2>
+    <p>An element with role "listbox" with two descendants having role "option" 
+      and aria-activedescendant set to the id of the first option for which an 
+      assistive technology or API test tool requests to move focus to option 2.</p>
+    
+    <script type="text/javascript">  
+      
+     function setFocus() {
+       var node = document.getElementById('ID_LISTBOX');  
+       node.focus();
+     }
+     
+     window.addEventListener('load', setFocus);
+    </script>
+  </body>
+  
+</html>
+
+

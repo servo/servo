@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The constraint validation API Test: element.validity.patternMismatch</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-validitystate-patternmismatch">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-constraint-validation-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/validator.js"></script>
+<div id="log"></div>
+<script>
+  var testElements = [
+    {
+      tag: "input",
+      types: ["text", "search", "tel", "url", "email", "password"],
+      testData: [
+        {conditions: {pattern: null, value: "abc"}, expected: false, name: "[target] The pattern attribute is not set"},
+        {conditions: {pattern: "[A-Z]+", value: ""}, expected: false, name: "[target] The value attibute is empty string"},
+        {conditions: {pattern: "[A-Z]{1}", value: "A"}, expected: false, name: "[target] The value attribute matches the pattern attribute"},
+        {conditions: {pattern: "[A-Z]+", value: "\u0041\u0042\u0043"}, expected: false, name: "[target] The value(ABC) in unicode attribute matches the pattern attribute"},
+        {conditions: {pattern: "[a-z]{3,}", value: "ABCD"}, expected: true, name: "[target] The value attribute mismatches the pattern attribute"}
+      ]
+    }
+  ];
+
+  validator.run_test (testElements, "patternMismatch");
+</script>

@@ -1,0 +1,33 @@
+<!doctype html>
+<title>TextTrackList.onaddtrack</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+setup(function(){
+    window.tracks = document.createElement('video').textTracks;
+    window.ev = new Event('addtrack');
+    window.ran = false;
+    window.cb = function() { ran = true; };
+});
+test(function(){
+    assert_equals(tracks.onaddtrack, null);
+    tracks.onaddtrack = cb;
+    assert_equals(tracks.onaddtrack, cb);
+    tracks.dispatchEvent(ev);
+    assert_true(ran);
+    tracks.onaddtrack = null;
+    ran = false;
+    tracks.dispatchEvent(ev);
+    assert_false(ran);
+});
+test(function(){
+    tracks.addEventListener('addtrack', cb, false);
+    tracks.dispatchEvent(ev);
+    assert_true(ran);
+    tracks.removeEventListener('addtrack', cb, false);
+    ran = false;
+    tracks.dispatchEvent(ev);
+    assert_false(ran);
+}, 'TextTrackList.addEventListener/removeEventListener');
+</script>

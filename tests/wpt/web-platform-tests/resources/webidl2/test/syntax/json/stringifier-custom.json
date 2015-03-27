@@ -1,0 +1,88 @@
+[
+    {
+        "type": "interface",
+        "name": "Student",
+        "partial": false,
+        "members": [
+            {
+                "type": "attribute",
+                "static": false,
+                "stringifier": false,
+                "inherit": false,
+                "readonly": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "unsigned long"
+                },
+                "name": "id",
+                "extAttrs": []
+            },
+            {
+                "type": "attribute",
+                "static": false,
+                "stringifier": false,
+                "inherit": false,
+                "readonly": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": true,
+                    "array": false,
+                    "union": false,
+                    "idlType": "DOMString"
+                },
+                "name": "familyName",
+                "extAttrs": []
+            },
+            {
+                "type": "attribute",
+                "static": false,
+                "stringifier": false,
+                "inherit": false,
+                "readonly": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "DOMString"
+                },
+                "name": "givenName",
+                "extAttrs": []
+            },
+            {
+                "type": "operation",
+                "getter": false,
+                "setter": false,
+                "creator": false,
+                "deleter": false,
+                "legacycaller": false,
+                "static": false,
+                "stringifier": true,
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "DOMString"
+                },
+                "name": null,
+                "arguments": [],
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": [
+            {
+                "name": "Constructor",
+                "arguments": null
+            }
+        ]
+    }
+]

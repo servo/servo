@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Reference for WebVTT rendering, &lt;audio&gt; should not have subtitles</title>
+<style>
+audio {
+    width: 1280px;
+    height: 720px;
+    outline: solid
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<audio autoplay controls onplaying="this.onplaying = null; this.pause(); this.currentTime = 0; takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+</audio>

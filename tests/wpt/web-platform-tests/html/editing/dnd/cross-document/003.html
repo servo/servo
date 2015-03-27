@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - cross-document variable retention within event handlers</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+  }
+</style>
+
+<script>
+var evs = {};
+window.onload = function() {
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragstart = function(e) {
+    e.dataTransfer.effectAllowed = 'copy';
+		e.dataTransfer.setData('text', 'dummy text');
+		evs[e.type] = {};
+		evs[e.type].dataTransfer = e.dataTransfer;
+		evs[e.type].items = e.dataTransfer.items;
+		evs[e.type].types = e.dataTransfer.types;
+		evs[e.type].files = e.dataTransfer.files;
+  };
+};
+</script>
+
+<div draggable="true"></div>
+<p><iframe src="003-1.html" height="300" width="500"></iframe></p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

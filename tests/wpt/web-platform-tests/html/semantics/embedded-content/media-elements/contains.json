@@ -1,0 +1,132 @@
+[
+    {
+        "id": "error-codes",
+        "original_id": "error-codes"
+    },
+    {
+        "id": "location-of-the-media-resource",
+        "original_id": "location-of-the-media-resource"
+    },
+    {
+        "id": "mime-types",
+        "original_id": "mime-types"
+    },
+    {
+        "id": "network-states",
+        "original_id": "network-states"
+    },
+    {
+        "id": "loading-the-media-resource",
+        "original_id": "loading-the-media-resource"
+    },
+    {
+        "id": "offsets-into-the-media-resource",
+        "original_id": "offsets-into-the-media-resource"
+    },
+    {
+        "id": "ready-states",
+        "original_id": "ready-states"
+    },
+    {
+        "id": "playing-the-media-resource",
+        "original_id": "playing-the-media-resource"
+    },
+    {
+        "id": "seeking",
+        "original_id": "seeking"
+    },
+    {
+        "id": "media-resources-with-multiple-media-tracks",
+        "original_id": "media-resources-with-multiple-media-tracks",
+        "children": [
+            {
+                "id": "audiotracklist-and-videotracklist-objects",
+                "original_id": "audiotracklist-and-videotracklist-objects"
+            },
+            {
+                "id": "selecting-specific-audio-and-video-tracks-declaratively",
+                "original_id": "selecting-specific-audio-and-video-tracks-declaratively"
+            }
+        ]
+    },
+    {
+        "id": "synchronising-multiple-media-elements",
+        "original_id": "synchronising-multiple-media-elements",
+        "children": [
+            {
+                "id": "introduction-0",
+                "original_id": "introduction-0"
+            },
+            {
+                "id": "media-controllers",
+                "original_id": "media-controllers"
+            },
+            {
+                "id": "assigning-a-media-controller-declaratively",
+                "original_id": "assigning-a-media-controller-declaratively"
+            }
+        ]
+    },
+    {
+        "id": "timed-text-tracks",
+        "original_id": "timed-text-tracks",
+        "children": [
+            {
+                "id": "text-track-model",
+                "original_id": "text-track-model"
+            },
+            {
+                "id": "sourcing-in-band-text-tracks",
+                "original_id": "sourcing-in-band-text-tracks"
+            },
+            {
+                "id": "sourcing-out-of-band-text-tracks",
+                "original_id": "sourcing-out-of-band-text-tracks"
+            },
+            {
+                "id": "guidelines-for-exposing-cues-in-various-formats-as-text-track-cues",
+                "original_id": "guidelines-for-exposing-cues-in-various-formats-as-text-track-cues"
+            },
+            {
+                "id": "text-track-api",
+                "original_id": "text-track-api"
+            },
+            {
+                "id": "text-tracks-describing-chapters",
+                "original_id": "text-tracks-describing-chapters"
+            },
+            {
+                "id": "cue-events",
+                "original_id": "cue-events"
+            }
+        ]
+    },
+    {
+        "id": "user-interface",
+        "original_id": "user-interface"
+    },
+    {
+        "id": "time-ranges",
+        "original_id": "time-ranges"
+    },
+    {
+        "id": "event-definitions",
+        "original_id": "event-definitions"
+    },
+    {
+        "id": "mediaevents",
+        "original_id": "mediaevents"
+    },
+    {
+        "id": "security-and-privacy-considerations",
+        "original_id": "security-and-privacy-considerations"
+    },
+    {
+        "id": "best-practices-for-authors-using-media-elements",
+        "original_id": "best-practices-for-authors-using-media-elements"
+    },
+    {
+        "id": "best-practices-for-implementors-of-media-elements",
+        "original_id": "best-practices-for-implementors-of-media-elements"
+    }
+]

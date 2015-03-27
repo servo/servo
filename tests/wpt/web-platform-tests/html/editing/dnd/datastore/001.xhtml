@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>dataTransfer.setData/getData during canvas drag and drop</title>
+<style type="text/css">
+div
+	{height:100px;
+	width:100px;
+	padding:20px;
+	background-color:silver;}
+</style>
+<script type="application/ecmascript">
+<![CDATA[
+var dataTypes = ['text/plain', 'text/uri-list', 'application/xml', 'application/xhtml+xml', 'application/mathml+xml', 'image/svg+xml', 'text/html', 'text/x-example'],
+data = ['PASS', 'data:text/plain,1', '<result>PASS</result>', '<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Data store item</title></head><body><p>PASS</p></body></html>', '<math xmlns="http://www.w3.org/1998/Math/MathML"><mn>1</mn></math>', '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="100px" height="50px" viewBox="0 0 100 50"><text x="0" y="40" font-size="40" fill="green">PASS</text></svg>', '<!DOCTYPE html><html><head><title>Data store item</title></head><body><p>PASS</p></body></html>', 'PASS'];
+function start(event)
+	{event.dataTransfer.effectAllowed = 'copy';
+	for(var i = 0; i != dataTypes.length; i++)
+		{event.dataTransfer.setData(dataTypes[i], data[i]);}
+	say('items.length (dragstart) : ' + ((event.dataTransfer.items.length >= dataTypes.length)?'PASS':'FAIL'));
+	}
+function dragElement(event)
+	{for(var i = 0; i != dataTypes.length; i++)
+		{event.dataTransfer.setData(dataTypes[i], 'FAIL');
+		if(event.dataTransfer.getData(dataTypes[i]))
+			{say('getData(' + dataTypes[i] + ') : FAIL (data store should not be readable during drag)')}
+		}
+	if(event.dataTransfer.items.length < dataTypes.length)
+		{say('items.length (dragover) : FAIL')}
+	}
+function enterElement(event)
+	{event.preventDefault();
+	for(var i = 0; i != dataTypes.length; i++)
+		{event.dataTransfer.setData(dataTypes[i], 'FAIL');
+		if(event.dataTransfer.getData(dataTypes[i]))
+			{say('getData(' + dataTypes[i] + ') : FAIL (data store should not be readable during dragenter)')}
+		}
+	say('items.length (dragenter) : ' + ((event.dataTransfer.items.length >= dataTypes.length)?'PASS':'FAIL'));}
+function dataDrop(event)
+	{say('items.length (drop) : ' + ((event.dataTransfer.items.length >= dataTypes.length)?'PASS':'FAIL'));
+	for(var i = 0; i != dataTypes.length; i++)
+		{say('getData(' + dataTypes[i] + ') : ' + ((event.dataTransfer.getData(dataTypes[i]) == data[i])?'PASS':'FAIL'));}
+	document.querySelector('div').setAttribute('style','background-color:green');}
+function say(it)
+	{document.querySelector('pre').appendChild(document.createTextNode(it + '\n'));}
+]]>
+</script>
+</head>
+<body>
+<p>
+	<canvas width="100" height="100" draggable="true" ondragstart="start(event)" ondrag="dragElement(event)">Canvas</canvas>
+</p>
+<p>Drag canvas pattern to the silver box below and drop it. Silver box should turn green and test results should appear below.</p>
+<div ondragenter="enterElement(event)" ondragover="return false;" ondrop="dataDrop(event)"/>
+<pre/>
+<script type="application/ecmascript">
+var canvas = document.querySelector('canvas'),
+c = canvas.getContext('2d');
+for(var x = 0; x != 50; x++)
+	{c.fillStyle = (x%2 == 0)?'navy':'white';
+	c.beginPath();
+	c.moveTo(x,x);
+	c.lineTo(100-x,x);
+	c.lineTo(100-x,100-x);
+	c.lineTo(x,100-x);
+	c.closePath();
+	c.fill();}
+data[1] = canvas.toDataURL('image/png');
+</script>
+</body>
+</html>

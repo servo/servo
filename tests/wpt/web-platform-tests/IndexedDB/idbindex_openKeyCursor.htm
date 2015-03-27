@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBIndex.openKeyCursor() - throw DataError when using a invalid key</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#widl-IDBIndex-openKeyCursor-IDBRequest-any-range-IDBCursorDirection-direction">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js></script>
+<div id="log"></div>
+<script>
+    var db,
+        t = async_test();
+
+    var open_rq = createdb(t);
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result;
+        var store = db.createObjectStore("store", { keyPath: "key" });
+        var index = store.createIndex("index", "indexedProperty");
+
+        store.add({ key: 1, indexedProperty: "data" });
+
+        assert_throws("DataError", function(){
+            index.openKeyCursor(NaN);
+        });
+        t.done();
+    }
+</script>
+

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<title>IDBCursor direction - index with keyrange</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<link rel=help href="http://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#cursor-iteration-operation">
+<link rel=assert title='If direction is "next", let found record be the first record in records which satisfy all of the following requirements'>
+<link rel=assert title="If position is defined, and source is an index, the record's key is equal to position and the record's value is greater than object store position or the record's key is greater than position.">
+<link rel=assert title='If direction is "prev", let found record be the last record in records which satisfy all of the following requirements'>
+<link rel=assert title="If position is defined, and source is an index, the record's key is equal to position and the record's value is less than object store position or the record's key is less than position.">
+<link rel=assert title="If range is defined, the record's key is in range.">
+<link rel=assert title="If temp record is defined, let found record be the first record in records whose key is equal to temp record's key.">
+<link rel=assert title="records is always sorted in ascending key order. In the case of source being an index, records is secondarily sorted in ascending value order.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+    var records = [ 1337, "Alice", "Bob", "Bob", "Greg", "Åke", ["Anne"] ];
+    var directions = ["next", "prev", "nextunique", "prevunique"];
+    var tests = {};
+
+    directions.forEach(function(dir) {
+        tests[dir] = async_test(document.title + ' - ' + dir);
+    });
+
+    var open_rq = indexedDB.open("testdb-" + new Date().getTime() + Math.random());
+
+    open_rq.onupgradeneeded = function(e) {
+        var objStore = e.target.result.createObjectStore("test");
+        objStore.createIndex("idx", "name");
+
+        for (var i = 0; i < records.length; i++)
+            objStore.add({ name: records[i] }, i);
+    };
+
+    open_rq.onsuccess = function(e) {
+        var db = e.target.result;
+        db.onerror = fail_helper("db.onerror");
+
+
+        // The tests
+        testdir('next',       ['Alice:1', 'Bob:2', 'Bob:3', 'Greg:4']);
+        testdir('prev',       ['Greg:4',  'Bob:3', 'Bob:2', 'Alice:1']);
+        testdir('nextunique', ['Alice:1', 'Bob:2', 'Greg:4']);
+        testdir('prevunique', ['Greg:4',  'Bob:2', 'Alice:1']);
+
+
+        // Test function
+        function testdir(dir, expect) {
+            var count = 0;
+            var t = tests[dir];
+            var rq = db.transaction("test").objectStore("test").index("idx").openCursor(IDBKeyRange.bound("AA", "ZZ"), dir);
+            rq.onsuccess = t.step_func(function(e) {
+                var cursor = e.target.result;
+                if (!cursor) {
+                    assert_equals(count, expect.length, "cursor runs");
+                    t.done();
+                }
+                assert_equals(cursor.value.name + ":" + cursor.primaryKey, expect[count], "cursor.value");
+                count++;
+                cursor.continue();
+            });
+            rq.onerror = t.step_func(function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                assert_unreached("rq.onerror - " + e.message);
+            });
+        }
+    };
+
+    // Fail handling
+    function fail_helper(name) {
+        return function() {
+            directions.forEach(function(dir) {
+                tests[dir].step(function() { assert_unreached(name); });
+            });
+        };
+    }
+    open_rq.onblocked = fail_helper('open_rq.onblocked');
+    open_rq.onerror = fail_helper('open_rq.onerror');
+</script>
+
+<div id=log> </div>

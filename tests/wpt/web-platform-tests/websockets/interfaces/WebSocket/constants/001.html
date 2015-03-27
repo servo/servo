@@ -1,0 +1,15 @@
+<!doctype html>
+<title>WebSockets: getting constants on constructor</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+var constants = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+for (var i = 0; i < constants.length; ++i) {
+  test(function(){
+    var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/');
+    assert_equals(WebSocket[constants[i]], i, 'WebSocket.'+constants[i]);
+  }, "Constants on constructors " + constants[i]);
+};
+</script>

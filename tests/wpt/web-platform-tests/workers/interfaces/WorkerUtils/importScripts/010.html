@@ -1,0 +1,34 @@
+<!--
+// prevent recursion
+if ('beenThere' in self) {
+  throw 'undefined stringified to the empty string';
+}
+beenThere = true;
+try {
+  importScripts(undefined);
+  postMessage(got);
+} catch(ex) {
+  postMessage(String(ex));
+}
+/*
+-->
+<!doctype html>
+<title>importScripts(undefined)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(function() {
+  var worker = new Worker('#');
+  worker.onmessage = this.step_func(function(e) {
+    assert_equals(e.data, 'undefined');
+    this.done();
+  })
+  worker.onerror = this.step_func(function(e) {
+    assert_unreached(e.message);
+  });
+});
+</script>
+<!--
+*/
+//-->

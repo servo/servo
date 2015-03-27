@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>IDBFactory.deleteDatabase() - request has no source </title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js></script>
+
+<script>
+    var open_rq = createdb(async_test(), undefined, 9);
+
+    open_rq.onupgradeneeded = function(e) {};
+    open_rq.onsuccess = function(e) {
+        var db = e.target.result;
+        db.close();
+
+        var delete_rq = window.indexedDB.deleteDatabase(db.name);
+        delete_rq.onerror = fail(this, "Unexpected delete_rq.error event");
+        delete_rq.onsuccess = this.step_func( function (e) {
+            assert_equals(e.target.source, null, "event.target.source")
+            this.done();
+        });
+    }
+</script>
+
+<div id=log></div>

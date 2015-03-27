@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Document.createTreeWalker</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+  assert_throws(new TypeError(), function() {
+    document.createTreeWalker();
+  });
+}, "Required arguments to createTreeWalker should be required.");
+test(function() {
+  var tw = document.createTreeWalker(document.body);
+  assert_equals(tw.root, document.body);
+  assert_equals(tw.currentNode, document.body);
+  assert_equals(tw.whatToShow, 0xFFFFFFFF);
+  assert_equals(tw.filter, null);
+}, "Optional arguments to createTreeWalker should be optional (1 passed).");
+test(function() {
+  var tw = document.createTreeWalker(document.body, 42);
+  assert_equals(tw.root, document.body);
+  assert_equals(tw.currentNode, document.body);
+  assert_equals(tw.whatToShow, 42);
+  assert_equals(tw.filter, null);
+}, "Optional arguments to createTreeWalker should be optional (2 passed).");
+test(function() {
+  var tw = document.createTreeWalker(document.body, 42, null);
+  assert_equals(tw.root, document.body);
+  assert_equals(tw.currentNode, document.body);
+  assert_equals(tw.whatToShow, 42);
+  assert_equals(tw.filter, null);
+}, "Optional arguments to createTreeWalker should be optional (3 passed, null).");
+test(function() {
+  var fn = function() {};
+  var tw = document.createTreeWalker(document.body, 42, fn);
+  assert_equals(tw.root, document.body);
+  assert_equals(tw.currentNode, document.body);
+  assert_equals(tw.whatToShow, 42);
+  assert_equals(tw.filter, fn);
+}, "Optional arguments to createTreeWalker should be optional (3 passed, function).");
+</script>

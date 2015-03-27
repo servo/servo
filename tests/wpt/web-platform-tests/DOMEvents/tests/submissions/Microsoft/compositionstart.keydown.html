@@ -1,0 +1,76 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id='desc'> compositionstart Event and keydown Event </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var TARGET;
+            var ExpectResult = ["keydown", "compositionstart", "keyup"];
+            var ActualResult = [];
+
+            window.onload = function(e)
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener("compositionstart", TestEvent, true);
+                    TARGET.addEventListener("keydown", TestEvent, true);
+                    TARGET.addEventListener("keyup", TestEvent, true);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+
+            function TestEvent(evt)
+            {
+                ActualResult.push(evt.type);
+
+                if (evt.type == "keyup")
+                {
+                    if (ExpectResult.toString() == ActualResult.toString())
+                    {
+                        PassTest();
+                    }
+                    else
+                    {
+                        FailTest();
+                    }
+                    TARGET.removeEventListener("compositionstart", TestEvent, true);
+                    TARGET.removeEventListener("keydown", TestEvent, true);
+                    TARGET.removeEventListener("keyup", TestEvent, true);
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: When a keyboard is used to feed an input method editor,
+            compositionstart event type is generated after a keydown event.
+        </h4>
+
+        <pre>
+            <input id="target" value=""/>
+
+            Steps:
+            1) Open Japanese Microsoft IME and select Hiragana input method
+            2) Type 'a' in the above textbox using keyboard
+            3) <a href="compositionstart.keydown.html">Click here</a> to test again if not following the steps exactly
+        </pre>
+
+        <p>Test passes if the word "PASS" appears below after following the above steps.</p>
+           <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

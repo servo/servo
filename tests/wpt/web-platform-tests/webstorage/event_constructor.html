@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+  <title>Web Storage</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+    <h1>event_session_Constructor</h1>
+    <div id="log"></div>
+    <script>
+        test(function() {
+            var t = async_test("storageeventinit test");
+            function onStorageEvent(event) {
+                t.step(function() {
+                    assert_equals(event.type, 'storage');
+                    assert_equals(event.key, null);
+                    assert_equals(event.oldValue, null);
+                    assert_equals(event.newValue, null);
+                    assert_equals(event.url, '');
+                    assert_equals(event.storageArea, null);
+                });
+                t.done();
+            }
+
+            window.addEventListener('storage', onStorageEvent, false);
+            var event = new StorageEvent('storage');
+            window.dispatchEvent(event);
+        });
+    </script>
+ </body>
+</html>

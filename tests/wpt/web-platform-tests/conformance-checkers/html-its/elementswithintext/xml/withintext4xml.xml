@@ -1,0 +1,12 @@
+<text xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+ <prolog>
+  <its:span withinText="no">Designing User Interfaces</its:span>
+  <its:span withinText="no">Janice Prakash</its:span>
+  <its:span withinText="no">user interface, ui, software interface</its:span>
+ </prolog>
+ <body>
+  <p>The book <its:span withinText="yes">Of Mice and Screens</its:span> by <its:span withinText="yes">Aldus 
+     Brandywine</its:span> is one of the best introductions to the vast topic of designing user interfaces.</p>
+ </body>
+</text>
+

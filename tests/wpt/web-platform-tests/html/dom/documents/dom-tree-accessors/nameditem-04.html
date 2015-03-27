@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Named items: forms</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="test">
+<form name=test1></form>
+
+<form name=test2></form>
+<form name=test2></form>
+
+<form id=test3></form>
+
+<form id=test4></form>
+<form id=test4></form>
+
+<form name=test5></form>
+<form id=test5></form>
+
+<form id=test6></form>
+<form name=test6></form>
+
+<form id=test7 name=fail></form>
+
+<form name=test8 id=fail></form>
+</div>
+<script>
+test(function() {
+  var form = document.getElementsByTagName("form")[0];
+  assert_equals(form.name, "test1");
+
+  assert_true("test1" in document, '"test1" in document should be true');
+  assert_equals(document.test1, form);
+}, "If there is one form, it should be returned (name)");
+
+test(function() {
+  var form1 = document.getElementsByTagName("form")[1];
+  assert_equals(form1.name, "test2");
+  var form2 = document.getElementsByTagName("form")[2];
+  assert_equals(form2.name, "test2");
+
+  assert_true("test2" in document, '"test2" in document should be true');
+  var collection = document.test2;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [form1, form2]);
+}, "If there are two forms, a collection should be returned. (name)");
+
+test(function() {
+  var form = document.getElementsByTagName("form")[3];
+  assert_equals(form.id, "test3");
+
+  assert_false("test3" in document, '"test3" in document should be false');
+  assert_equals(document.test3, undefined);
+}, "If there is one form, it should not be returned (id)");
+
+test(function() {
+  var form1 = document.getElementsByTagName("form")[4];
+  assert_equals(form1.id, "test4");
+  var form2 = document.getElementsByTagName("form")[5];
+  assert_equals(form2.id, "test4");
+
+  assert_false("test4" in document, '"test4" in document should be false');
+  assert_equals(document.test4, undefined);
+}, "If there are two forms, nothing should be returned. (id)");
+
+test(function() {
+  var form1 = document.getElementsByTagName("form")[6];
+  assert_equals(form1.name, "test5");
+  var form2 = document.getElementsByTagName("form")[7];
+  assert_equals(form2.id, "test5");
+
+  assert_true("test5" in document, '"test5" in document should be true');
+  assert_equals(document.test5, form1);
+}, "If there are two forms, a collection should be returned. (name and id)");
+
+test(function() {
+  var form1 = document.getElementsByTagName("form")[8];
+  assert_equals(form1.id, "test6");
+  var form2 = document.getElementsByTagName("form")[9];
+  assert_equals(form2.name, "test6");
+
+  assert_true("test6" in document, '"test6" in document should be true');
+  assert_equals(document.test6, form2);
+}, "If there are two forms, a collection should be returned. (id and name)");
+
+test(function() {
+  var form = document.getElementsByTagName("form")[10];
+  assert_equals(form.id, "test7");
+
+  assert_false("test7" in document, '"test7" in document should be false');
+  assert_equals(document.test7, undefined);
+}, "A name shouldn't affect getting an form by id");
+
+test(function() {
+  var form = document.getElementsByTagName("form")[11];
+  assert_equals(form.name, "test8");
+
+  assert_true("test8" in document, '"test8" in document should be true');
+  assert_equals(document.test8, form);
+}, "An id shouldn't affect getting an form by name");
+</script>

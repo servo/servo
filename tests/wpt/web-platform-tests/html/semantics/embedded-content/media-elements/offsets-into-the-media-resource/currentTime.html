@@ -1,0 +1,40 @@
+<!doctype html>
+<title>currentTime</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<div id=log></div>
+<script>
+test(function() {
+  var v = document.createElement('video');
+  assert_equals(v.currentTime, 0);
+}, 'currentTime initial value');
+
+test(function() {
+  var v = document.createElement('video');
+  v.controller = new MediaController();
+  assert_true(v.controller instanceof MediaController);
+  assert_throws('InvalidStateError', function() { v.currentTime = 1; });
+  assert_false(v.seeking);
+}, 'setting currentTime with a media controller present');
+
+test(function() {
+  var v = document.createElement('video');
+  assert_equals(v.readyState, v.HAVE_NOTHING);
+  v.currentTime = Number.MAX_VALUE;
+  assert_equals(v.currentTime, Number.MAX_VALUE);
+  assert_false(v.seeking);
+}, 'setting currentTime when readyState is HAVE_NOTHING');
+
+async_test(function(t) {
+  var v = document.createElement('video');
+  v.src = getVideoURI('/media/movie_5');
+  v.onloadedmetadata = t.step_func(function() {
+    assert_greater_than(v.readyState, v.HAVE_NOTHING);
+    assert_false(v.seeking);
+    v.currentTime = 1;
+    assert_true(v.seeking);
+    t.done();
+  });
+}, 'setting currentTime when readyState is greater than HAVE_NOTHING');
+</script>

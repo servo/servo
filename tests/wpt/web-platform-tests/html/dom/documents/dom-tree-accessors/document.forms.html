@@ -1,0 +1,58 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Document.forms</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<form id="form1">
+<input type="button" name="thebutton" value="alpha">
+<input type=radio name=r1 value=a>
+<input type=radio name=r1 value=b>
+<input type=radio name=r1 value=c>
+<input type=radio name=r1 value=d>
+<input type=radio name=r1 value=e>
+</form>
+
+<form id="form2">
+<input type="button" name="thebutton" value="alpha">
+<input type=radio name=r1 value="a">
+<input type=radio name=r1 value="b">
+<input type=radio name=r1 value="c">
+<input type=radio name=r1 value="d">
+<input type=radio name=r1 value="e">
+</form>
+
+<form id=""></form>
+<script>
+test(function() {
+  assert_equals(document.forms.length, 3);
+  assert_equals(document.forms[0].id, "form1");
+  assert_equals(document.forms[1].id, "form2");
+  assert_equals(document.forms.form1.id, "form1");
+  assert_equals(document.forms.form2.id, "form2");
+  assert_equals(document.forms.item(0).id, "form1");
+  assert_equals(document.forms.item(1).id, "form2");
+  assert_equals(document.forms.namedItem("form1").id, "form1");
+  assert_equals(document.forms.namedItem("form2").id, "form2");
+  assert_equals(document.forms.item("form1").id, "form1");
+  assert_equals(document.forms.item("form2").id, "form2");
+}, "document.forms")
+
+test(function() {
+  assert_equals(document.forms[""], undefined);
+  assert_equals(document.forms.namedItem(""), null);
+}, "document.forms with empty string")
+
+test(function() {
+  var result = [];
+  for (var p in document.forms) {
+    result.push(p);
+  }
+  assert_array_equals(result, ["0", "1", "2", "item", "namedItem", "length"])
+}, "document.forms iteration")
+
+test(function() {
+  var result = Object.getOwnPropertyNames(document.forms);
+  assert_array_equals(result, ["0", "1", "2", "form1", "form2"])
+}, "document.forms getOwnPropertyNames")
+</script>

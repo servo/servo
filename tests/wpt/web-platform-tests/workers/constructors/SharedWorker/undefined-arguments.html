@@ -1,0 +1,25 @@
+<!--
+onconnect = function(e) {
+  e.ports[0].postMessage(['FAIL', self.name]);
+}
+/*
+-->
+<!doctype html>
+<title>undefined as arguments</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+(async_test()).step(function() {
+  var worker = new SharedWorker(undefined, undefined);
+  worker.port.addEventListener('message', this.step_func(function(e) {
+    assert_equals(e.data[0], 'undefined', 'first arg');
+    assert_equals(e.data[1], 'undefined', 'second arg');
+    this.done();
+  }), false);
+  worker.port.start();
+});
+</script>
+<!--
+*/
+//-->

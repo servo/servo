@@ -1,0 +1,3 @@
+interface Union {
+ attribute (float or (Date or Event) or (Node or DOMString)?) test;
+};

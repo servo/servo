@@ -1,0 +1,185 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+    Test cases for Touch Events v1 Recommendation
+    http://www.w3.org/TR/touch-events/
+
+    These tests are based on Mozilla-Nokia-Google's single-touch tests.
+
+    The primary purpose of the tests in this document is checking that the createTouch and
+    createTouchList interfaces of the Touch Events APIs are correctly implemented.
+    Other interactions are covered in other test files.
+
+    This document references Test Assertions (abbrev TA below) written by Cathy Chan
+    http://www.w3.org/2010/webevents/wiki/TestAssertions
+-->
+
+<head>
+<title>Touch Events createTouch and createTouchList Interface Tests</title>
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+        setup({explicit_done: true});
+
+        // Check a Touch object's atttributes for existence and correct type
+        // TA: 1.1.2, 1.1.3
+        function check_Touch_object (t) {
+                test(function() {
+                        assert_equals(Object.prototype.toString.call(t), "[object Touch]", "touch is of type Touch");
+                }, "touch point is a Touch object");
+                [
+                        ["long", "identifier"],
+                        ["EventTarget", "target"],
+                        ["long", "screenX"],
+                        ["long", "screenY"],
+                        ["long", "clientX"],
+                        ["long", "clientY"],
+                        ["long", "pageX"],
+                        ["long", "pageY"],
+                ].forEach(function(attr) {
+                        var type = attr[0];
+                        var name = attr[1];
+
+                        // existence check
+                        test(function() {
+                                assert_true(name in t, name + " attribute in Touch object");
+                        }, "Touch." + name + " attribute exists");
+
+                        // type check
+                        switch(type) {
+                        case "long":
+                                test(function() {
+                                        assert_equals(typeof t[name], "number", name + " attribute of type long");
+                                }, "Touch." + name + " attribute is of type number (long)");
+                                break;
+                        case "EventTarget":
+                                // An event target is some type of Element
+                                test(function() {
+                                        assert_true(t[name] instanceof Element, "EventTarget must be an Element.");
+                                }, "Touch." + name + " attribute is of type Element");
+                                break;
+                        default:
+                                break;
+                        }
+                });
+        }
+
+        // Check a TouchList object's attributes and methods for existence and proper type
+        // Also make sure all of the members of the list are Touch objects
+        // TA: 1.2.1, 1.2.2, 1.2.5, 1.2.6
+        function check_TouchList_object (tl) {
+                test(function() {
+                        assert_equals(Object.prototype.toString.call(tl), "[object TouchList]", "touch list is of type TouchList");
+                }, "touch list is a TouchList object");
+                [
+                        ["unsigned long", "length"],
+                        ["function", "item"],
+                ].forEach(function(attr) {
+                        var type = attr[0];
+                        var name = attr[1];
+
+                        // existence check
+                        test(function() {
+                                assert_true(name in tl, name + " attribute in TouchList");
+                        }, "TouchList." + name + " attribute exists");
+
+                        // type check
+                        switch(type) {
+                        case "unsigned long":
+                                test(function() {
+                                        assert_equals(typeof tl[name], "number", name + " attribute of type long");
+                                }, "TouchList." + name + " attribute is of type number (unsigned long)");
+                                break;
+                        case "function":
+                                test(function() {
+                                        assert_equals(typeof tl[name], "function", name + " attribute of type function");
+                                }, "TouchList." + name + " attribute is of type function");
+                                break;
+                        default:
+                                break;
+                        }
+                });
+                // Each member of tl should be a proper Touch object
+                for (var i=0; i < tl.length; i++) {
+                        check_Touch_object(tl.item(i));
+                }
+                // TouchList.item(x) should return null if x is >= TouchList.length
+                test(function() {
+                        var t = tl.item(tl.length);
+                        assert_equals(t, null, "TouchList.item(TouchList.length) must return null");
+                }, "TouchList.item returns null if the index is >= the length of the list");
+        }
+
+    function check_touch_clientXY(touch) {
+                assert_equals(touch.clientX, touch.pageX - window.pageXOffset, "touch.clientX is touch.pageX - window.pageXOffset.");
+                assert_equals(touch.clientY, touch.pageY - window.pageYOffset, "touch.clientY is touch.pageY - window.pageYOffset.");
+    }
+
+        function run() {
+                var target0 = document.getElementById("target0");
+                var touch1, touch2;
+
+                test(function() {
+                        touch1 = document.createTouch(window, target0, 42, 15, 20, 35, 40);
+                        assert_equals(touch1.target, target0, "touch.target is target0");
+                        assert_equals(touch1.identifier, 42, "touch.identifier is requested value");
+                        assert_equals(touch1.pageX, 15, "touch.pageX is requested value");
+                        assert_equals(touch1.pageY, 20, "touch.pageY is requested value");
+                        check_touch_clientXY(touch1);
+                        assert_equals(touch1.screenX, 35, "touch.screenX is requested value");
+                        assert_equals(touch1.screenY, 40, "touch.screenY is requested value");
+                }, "document.createTouch exists and creates a Touch object with requested properties");
+
+                touch2 = document.createTouch(window, target0, 44, 25, 30, 45, 50);
+
+                var touchList;
+
+                test(function() {
+                        touchList = document.createTouchList();
+                        assert_equals(touchList.length, 0, "touchList.length is 0");
+                }, "document.createTouchList exists and correctly creates a TouchList from zero Touch objects");
+
+                if (touchList)
+                        check_TouchList_object(touchList);
+
+                test(function() {
+                        touchList = document.createTouchList(touch1);
+                        assert_equals(touchList.length, 1, "touchList.length is 1");
+                        assert_equals(touchList.item(0), touch1, "touchList.item(0) is input touch1");
+                }, "document.createTouchList exists and correctly creates a TouchList from a single Touch");
+
+                if (touchList)
+                        check_TouchList_object(touchList);
+
+                test(function() {
+                        touchList = document.createTouchList(touch1, touch2);
+                        assert_equals(touchList.length, 2, "touchList.length is 2");
+                        assert_equals(touchList.item(0), touch1, "touchList.item(0) is input touch1");
+                        assert_equals(touchList.item(1), touch2, "touchList.item(1) is input touch2");
+                }, "document.createTouchList exists and correctly creates a TouchList from two Touch objects");
+
+                if (touchList)
+                        check_TouchList_object(touchList);
+
+                target0.innerHTML = "Test complete."
+                done();
+        }
+</script>
+<style>
+        div {
+                margin: 0em;
+                padding: 2em;
+        }
+    #target0 {
+                background: yellow;
+                border: 1px solid orange;
+    }
+</style>
+</head>
+<body onload="run()">
+        <h1>Touch Events: createTouch and createTouchList tests</h1>
+        <div id="target0">Please wait for test to complete...</div>
+        <div id="log"></div>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<title>Service Workers: event.replace()</title>
+    <head>
+        <link rel="help" href="https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#replace-method">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+    </head>
+    <body>
+
+<!--
+
+`replace()` interacts with `waitUntil` method in the following way:
+
+-   Successful installation can be delayed by `waitUntil`, perhaps by
+    subsequent event handlers.
+-   Replacement only happens upon successful installation
+-   Therefore, replacement of the [active worker][1] (if any) is not
+    immediate, however it may occur as soon as the end of the current turn.
+
+
+
+[1]: #navigator-service-worker-active
+
+-->
+
+
+
+    <script>
+        test(function() {
+            // not_implemented();
+        }, "There are no tests for section event.replace() so far.");
+    </script>
+
+    </body>
+</html>
+

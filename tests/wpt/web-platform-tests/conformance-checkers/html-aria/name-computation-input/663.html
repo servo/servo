@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>Text input with @title and :before and :after content rule</title>
+         <style type="text/css">
+        label:before { content: "foo "; }
+        label:after { content: " baz"; }
+      </style>
+   </head>
+   <body>
+      <form>
+         <label for="test"><input id="test" type="file" name="test" title="bar"></label> 
+      </form>
+   </body>
+</html>
