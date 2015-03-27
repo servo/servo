@@ -5,6 +5,7 @@
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 
+#![feature(box_syntax)]
 #![feature(int_uint)]
 #![feature(core, os, path, io, std_misc)]
 // For FFI
