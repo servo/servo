@@ -846,7 +846,7 @@ impl ScriptTask {
     }
 
     /// Handles a notification that reflow completed.
-    fn handle_reflow_complete_msg(&self, pipeline_id: PipelineId, reflow_id: uint) {
+    fn handle_reflow_complete_msg(&self, pipeline_id: PipelineId, reflow_id: u32) {
         debug!("Script: Reflow {:?} complete for {:?}", reflow_id, pipeline_id);
         let page = self.root_page();
         let page = page.find(pipeline_id).expect(
