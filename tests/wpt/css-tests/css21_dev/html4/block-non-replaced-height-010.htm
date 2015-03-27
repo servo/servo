@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: Height determination for block-level non-replaced elements in normal flow when 'overflow' does not compute to 'visible' and elements' margins do not collapse</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#normal-block">
+        <meta name="flags" content="">
+        <meta name="assert" content="When a block-level non-replaced element is in normal flow, 'overflow' does not compute to 'visible', the 'height' is 'auto' and top and bottom margins do not collapse. The 'height' is the sized from the top of the topmost margin edge of the content to the bottom of the bottom most margin edge of the content.">
+        <style type="text/css">
+            html, body
+            {
+                overflow: scroll;
+            }
+            #div1
+            {
+                position: relative;
+            }
+            #div2
+            {
+                background: blue;
+                border-bottom: 0.25in solid blue;
+                border-top: 0.25in solid blue;
+            }
+            #div2, #div3, #div4, #div5
+            {
+                width: 1in;
+            }
+            #div3, #div4
+            {
+                background: blue;
+                height: 0.25in;
+            }
+            #div3
+            {
+                border-top: 0.25in solid blue;
+                margin-top: 0.25in;
+            }
+            #div4
+            {
+                border-bottom: 0.25in solid blue;
+                margin-bottom: 0.25in;
+            }
+            #div5
+            {
+                background: blue;
+                height: 2in;
+                left: 1in;
+                position: absolute;
+                top: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a blue square below.</p>
+        <div id="div1">
+            <div id="div2">
+                <div id="div3"></div>
+                <div id="div4"></div>
+            </div>
+            <div id="div5"></div>
+        </div>
+    </body>
+</html>

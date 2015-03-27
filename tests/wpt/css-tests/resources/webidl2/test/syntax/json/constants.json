@@ -1,0 +1,141 @@
+[
+    {
+        "type": "interface",
+        "name": "Util",
+        "partial": false,
+        "members": [
+            {
+                "type": "const",
+                "nullable": false,
+                "idlType": "boolean",
+                "name": "DEBUG",
+                "value": {
+                    "type": "boolean",
+                    "value": false
+                },
+                "extAttrs": []
+            },
+            {
+                "type": "const",
+                "nullable": false,
+                "idlType": "short",
+                "name": "negative",
+                "value": {
+                    "type": "number",
+                    "value": -1
+                },
+                "extAttrs": []
+            },
+            {
+                "type": "const",
+                "nullable": false,
+                "idlType": "octet",
+                "name": "LF",
+                "value": {
+                    "type": "number",
+                    "value": 10
+                },
+                "extAttrs": []
+            },
+            {
+                "type": "const",
+                "nullable": false,
+                "idlType": "unsigned long",
+                "name": "BIT_MASK",
+                "value": {
+                    "type": "number",
+                    "value": 64512
+                },
+                "extAttrs": []
+            },
+            {
+                "type": "const",
+                "nullable": false,
+                "idlType": "float",
+                "name": "AVOGADRO",
+                "value": {
+                    "type": "number",
+                    "value": 6.022e+23
+                },
+                "extAttrs": []
+            },
+            {
+                "type": "const",
+                "nullable": false,
+                "idlType": "unrestricted float",
+                "name": "sobig",
+                "value": {
+                    "type": "Infinity",
+                    "negative": false
+                },
+                "extAttrs": []
+            },
+            {
+                "type": "const",
+                "nullable": false,
+                "idlType": "unrestricted double",
+                "name": "minusonedividedbyzero",
+                "value": {
+                    "type": "Infinity",
+                    "negative": true
+                },
+                "extAttrs": []
+            },
+            {
+                "type": "const",
+                "nullable": false,
+                "idlType": "short",
+                "name": "notanumber",
+                "value": {
+                    "type": "NaN"
+                },
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    },
+    {
+        "type": "exception",
+        "name": "Error",
+        "members": [
+            {
+                "type": "const",
+                "nullable": false,
+                "idlType": "short",
+                "name": "ERR_UNKNOWN",
+                "value": {
+                    "type": "number",
+                    "value": 0
+                },
+                "extAttrs": []
+            },
+            {
+                "type": "const",
+                "nullable": false,
+                "idlType": "short",
+                "name": "ERR_OUT_OF_MEMORY",
+                "value": {
+                    "type": "number",
+                    "value": 1
+                },
+                "extAttrs": []
+            },
+            {
+                "type": "field",
+                "name": "errorCode",
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "short"
+                },
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    }
+]

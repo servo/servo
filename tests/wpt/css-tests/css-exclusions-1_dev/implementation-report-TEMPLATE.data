@@ -1,0 +1,27 @@
+# UA version OS version
+# UA string (if applicable)
+# http://test.csswg.org/suites/css-exclusions-1_dev/DATESTAMP/
+# See http://wiki.csswg.org/test/implementation-report for instructions
+testname    result  comment
+html4/exclusions-wrap-flow-01.htm	?	
+xhtml1/exclusions-wrap-flow-01.xht	?	
+html4/exclusions-wrap-flow-02.htm	?	
+xhtml1/exclusions-wrap-flow-02.xht	?	
+html4/exclusions-wrap-flow-03.htm	?	
+xhtml1/exclusions-wrap-flow-03.xht	?	
+html4/exclusions-wrap-flow-04.htm	?	
+xhtml1/exclusions-wrap-flow-04.xht	?	
+html4/wrap-flow-001.htm	?	
+xhtml1/wrap-flow-001.xht	?	
+html4/wrap-flow-002.htm	?	
+xhtml1/wrap-flow-002.xht	?	
+html4/wrap-flow-003.htm	?	
+xhtml1/wrap-flow-003.xht	?	
+html4/wrap-flow-004.htm	?	
+xhtml1/wrap-flow-004.xht	?	
+html4/wrap-flow-005.htm	?	
+xhtml1/wrap-flow-005.xht	?	
+html4/wrap-flow-006.htm	?	
+xhtml1/wrap-flow-006.xht	?	
+html4/wrap-through-001.htm	?	
+xhtml1/wrap-through-001.xht	?	

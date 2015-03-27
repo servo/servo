@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: Border-spacing and 'display: table-caption' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-spacing">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders">
+        <meta name="flags" content="">
+        <meta name="assert" content="Border-spacing does not apply to 'display: table-caption' elements.">
+        <style type="text/css">
+            #table
+            {
+                display: table;
+            }
+            .caption1, .caption2
+            {
+                border-spacing: 20px;
+                display: table-caption;
+                height: 100px;
+                width: 100px;
+            }
+            .caption1
+            {
+                border: 10px solid blue;
+            }
+            .caption2
+            {
+                border: 10px solid orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a blue and orange square below and there is no vertical gap between the squares.</p>
+        <div id="table">
+            <div class="caption1"></div>
+            <div class="caption2"></div>
+        </div>
+    </body>
+</html>

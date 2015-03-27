@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<glyph name="vatu.alt1" format="1">
+  <advance width="2304"/>
+  <unicode hex="E399"/>
+  <outline>
+    <contour>
+      <point x="787" y="0" type="line"/>
+      <point x="577" y="0" type="line"/>
+      <point x="790" y="700" type="line"/>
+      <point x="1086" y="700" type="line"/>
+      <point x="1299" y="0" type="line"/>
+      <point x="1053" y="0" type="line"/>
+      <point x="1021" y="119" type="line"/>
+      <point x="818" y="119" type="line"/>
+    </contour>
+    <contour>
+      <point x="100" y="0" type="line"/>
+      <point x="100" y="700" type="line"/>
+      <point x="624" y="700" type="line"/>
+      <point x="624" y="536" type="line"/>
+      <point x="337" y="536" type="line"/>
+      <point x="337" y="406" type="line"/>
+      <point x="582" y="406" type="line"/>
+      <point x="582" y="244" type="line"/>
+      <point x="337" y="244" type="line"/>
+      <point x="337" y="0" type="line"/>
+    </contour>
+    <contour>
+      <point x="1686" y="0" type="line"/>
+      <point x="1686" y="700" type="line"/>
+      <point x="1923" y="700" type="line"/>
+      <point x="1923" y="180" type="line"/>
+      <point x="2204" y="180" type="line"/>
+      <point x="2204" y="0" type="line"/>
+    </contour>
+    <contour>
+      <point x="1354" y="0" type="line"/>
+      <point x="1354" y="700" type="line"/>
+      <point x="1591" y="700" type="line"/>
+      <point x="1591" y="0" type="line"/>
+    </contour>
+    <contour>
+      <point x="920" y="504" type="line"/>
+      <point x="860" y="276" type="line"/>
+      <point x="980" y="276" type="line"/>
+    </contour>
+  </outline>
+</glyph>

@@ -1,0 +1,36 @@
+# UA version OS version
+# UA string (if applicable)
+# http://test.csswg.org/suites/css-style-attr-1_dev/DATESTAMP/
+# See http://wiki.csswg.org/test/implementation-report for instructions
+testname    result  comment
+html4/style-attr-braces-001.htm	?	
+xhtml1/style-attr-braces-001.xht	?	
+html4/style-attr-braces-002-quirks.htm	?	
+xhtml1/style-attr-braces-002-quirks.xht	?	
+html4/style-attr-braces-002.htm	?	
+xhtml1/style-attr-braces-002.xht	?	
+html4/style-attr-braces-003.htm	?	
+xhtml1/style-attr-braces-003.xht	?	
+html4/style-attr-cascade-001.htm	?	
+xhtml1/style-attr-cascade-001.xht	?	
+html4/style-attr-cascade-002.htm	?	
+xhtml1/style-attr-cascade-002.xht	?	
+html4/style-attr-cascade-003.htm	?	
+xhtml1/style-attr-cascade-003.xht	?	
+html4/style-attr-cascade-004.htm	?	
+xhtml1/style-attr-cascade-004.xht	?	
+html4/style-attr-cascade-005.htm	?	
+xhtml1/style-attr-cascade-005.xht	?	
+html4/style-attr-cascade-006.htm	?	
+xhtml1/style-attr-cascade-006.xht	?	
+html4/style-attr-cascade-007.htm	?	
+xhtml1/style-attr-cascade-007.xht	?	
+html4/style-attr-specificity-001.htm	?	
+xhtml1/style-attr-specificity-001.xht	?	
+html4/style-attr-specificity-002.htm	?	
+xhtml1/style-attr-specificity-002.xht	?	
+html4/style-attr-urls-001.htm	?	
+xhtml1/style-attr-urls-001.xht	?	
+html4/style-attr-urls-002.htm	?	
+xhtml1/style-attr-urls-002.xht	?	
+xhtml1/style-attr-urls-003.xht	?	

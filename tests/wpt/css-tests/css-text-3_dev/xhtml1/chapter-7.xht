@@ -1,0 +1,337 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Alignment and Justification - CSS Text Module Level 3 CR Test Suite</title>
+  <style type="text/css">
+    @import "http://www.w3.org/StyleSheets/TR/base.css";
+    @import "../indices.css";
+  </style>
+ </head>
+
+ <body>
+
+  <h1>CSS Text Module Level 3 CR Test Suite</h1>
+  <h2>Alignment and Justification (17 tests)</h2>
+  <table width="100%">
+    <col id="test-column"></col>
+    <col id="refs-column"></col>
+    <col id="flags-column"></col>
+    <col id="info-column"></col>
+    <thead>
+      <tr>
+        <th>Test</th>
+        <th><abbr title="Rendering References">Refs</abbr></th>
+        <th>Flags</th>
+        <th>Info</th>
+      </tr>
+    </thead>
+    <tbody id="s7">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#justification">7 Alignment and Justification</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.1">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.1">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#text-align-property">7.1 Text Alignment: the &#8216;text-align&#8217; property</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.1.#center">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.1.#end">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.1.#justify">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.1.#left">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.1.#match-parent">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.1.#right">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.1.#start">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.1.#start-end">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.1.#text-align">
+      <!-- 3 tests -->
+      <tr id="text-align-006-7.1.#text-align" class="primary">
+        <td><strong>
+            <a href="text-align-006.xht">text-align-006</a></strong></td>
+        <td><a href="reference/text-align-006-ref.xht">=</a> </td>
+        <td></td>
+        <td>text-align - start (basic)
+          <ul class="assert">
+            <li>The 'text-align' property set to 'start' on a block element aligns the text to the start edge.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-007-7.1.#text-align" class="primary">
+        <td><strong>
+            <a href="text-align-007.xht">text-align-007</a></strong></td>
+        <td><a href="reference/text-align-007-ref.xht">=</a> </td>
+        <td></td>
+        <td>text-align - end (basic)
+          <ul class="assert">
+            <li>The 'text-align' property set to 'end' on a block element aligns the text to the end edge.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-008-7.1.#text-align" class="primary">
+        <td><strong>
+            <a href="text-align-008.xht">text-align-008</a></strong></td>
+        <td><a href="reference/text-align-007-ref.xht">=</a> </td>
+        <td></td>
+        <td>text-align - match-parent (basic)
+          <ul class="assert">
+            <li>The 'text-align' property set to 'match-parent' on a block element behaves the same as 'inherit'.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s7.2">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.2">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#text-align-last-property">7.2 Last Line Alignment: the &#8216;text-align-last&#8217; property</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.2.#auto1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.2.#text-align-last">
+      <!-- 14 tests -->
+      <tr id="text-align-last-001-7.2.#text-align-last" class="primary">
+        <td><strong>
+            <a href="text-align-last-001.xht">text-align-last-001</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>text-align-last - start (basic)
+          <ul class="assert">
+            <li>The 'text-align-last' property set to 'start' on a block element aligns the last line text to the start edge.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-last-002-7.2.#text-align-last" class="primary">
+        <td><strong>
+            <a href="text-align-last-002.xht">text-align-last-002</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>text-align-last - end (basic)
+          <ul class="assert">
+            <li>The 'text-align-last' property set to 'right' on a block element aligns the last line text to the end edge.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-last-003-7.2.#text-align-last" class="primary">
+        <td><strong>
+            <a href="text-align-last-003.xht">text-align-last-003</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>text-align-last - left (basic)
+          <ul class="assert">
+            <li>The 'text-align-last' property set to 'left' on a block element aligns the last line text to the left.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-last-004-7.2.#text-align-last" class="primary">
+        <td><strong>
+            <a href="text-align-last-004.xht">text-align-last-004</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>text-align-last - right (basic)
+          <ul class="assert">
+            <li>The 'text-align-last' property set to 'right' on a block element aligns the last line text to the right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-last-005-7.2.#text-align-last" class="primary">
+        <td><strong>
+            <a href="text-align-last-005.xht">text-align-last-005</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>text-align-last - center (basic)
+          <ul class="assert">
+            <li>The 'text-align-last' property set to 'center' on a block element aligns the last line text to the center.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-last-006-7.2.#text-align-last" class="primary">
+        <td><strong>
+            <a href="text-align-last-006.xht">text-align-last-006</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>text-align-last - justify (basic)
+          <ul class="assert">
+            <li>The 'text-align-last' property set to 'justify' on a block element aligns the last line text to both left and right edges</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-last-007-7.2.#text-align-last" class="primary">
+        <td><strong>
+            <a href="text-align-last-007.xht">text-align-last-007</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>text-align-last - auto and text-align - right
+          <ul class="assert">
+            <li>The 'text-align-last' property set to 'auto' on a block element aligns the last line text to the right when text-align set 'right'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-last-008-7.2.#text-align-last" class="primary">
+        <td><strong>
+            <a href="text-align-last-008.xht">text-align-last-008</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>text-align-last - auto and text-align - end
+          <ul class="assert">
+            <li>The 'text-align-last' property set to 'auto' on a block element aligns the last line text to the right when text-align set 'end'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-last-009-7.2.#text-align-last" class="primary">
+        <td><strong>
+            <a href="text-align-last-009.xht">text-align-last-009</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>text-align-last - auto and text-align - center
+          <ul class="assert">
+            <li>The 'text-align-last' property set to 'auto' on a block element aligns the last line text to the center when text-align set 'center'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-last-010-7.2.#text-align-last" class="primary">
+        <td><strong>
+            <a href="text-align-last-010.xht">text-align-last-010</a></strong></td>
+        <td><a href="reference/text-align-last-010-ref.xht">=</a> </td>
+        <td></td>
+        <td>text-align-last - right(one line inside block element)
+          <ul class="assert">
+            <li>The 'text-align-last' property set to 'right' on a block element aligns the only one line text to the right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-last-011-7.2.#text-align-last" class="primary">
+        <td><strong>
+            <a href="text-align-last-011.xht">text-align-last-011</a></strong></td>
+        <td><a href="reference/text-align-last-010-ref.xht">=</a> </td>
+        <td></td>
+        <td>text-align-last - end(one line inside block element)
+          <ul class="assert">
+            <li>The 'text-align-last' property set to 'end' on a block element aligns the only one line text to the right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-last-012-7.2.#text-align-last" class="primary">
+        <td><strong>
+            <a href="text-align-last-012.xht">text-align-last-012</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>text-align-last - center(one line inside block element)
+          <ul class="assert">
+            <li>The 'text-align-last' property set to 'center' on a block element aligns the only one line text to the center.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-last-013-7.2.#text-align-last" class="primary">
+        <td><strong>
+            <a href="text-align-last-013.xht">text-align-last-013</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>text-align-last applied to &quot;display: inline&quot; div element
+          <ul class="assert">
+            <li>Test checks that the 'text-align-last' property is invalid if the container element is not block element.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-last-014-7.2.#text-align-last" class="primary">
+        <td><strong>
+            <a href="text-align-last-014.xht">text-align-last-014</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>text-align-last applied to &quot;display: block&quot; span element
+          <ul class="assert">
+            <li>Test checks that the 'text-align-last' property is valid if the span element set 'display: block'.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s7.3">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.3">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#text-justify-property">7.3 Justification Method: the &#8216;text-justify&#8217; property</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.#auto2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.#distribute">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.#fig-text-justify-compromise">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.#fig-text-justify-cursive">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.#fig-text-justify-distribute">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.#fig-text-justify-interword">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.#inter-word">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.#none1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.#text-justify">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.1">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.3.1">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#expanding-text">7.3.1 Expanding and Compressing Text</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.1.#expansion-opportunity">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.2">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.3.2">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#justify-symbols">7.3.2 Handling Symbols and Punctuation</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.3">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.3.3">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#justify-limits">7.3.3 Unexpandable Text</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.4">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.3.4">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#justify-cursive">7.3.4 Cursive Scripts</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.5">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.3.5">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#justify-algos">7.3.5 Possible Algorithms</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+  </table>
+
+ </body>
+</html>

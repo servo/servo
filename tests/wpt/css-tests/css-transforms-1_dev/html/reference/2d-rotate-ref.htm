@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html><head>
+	    <title>CSS Test: CSS Transform using 2d rotate()</title>
+	    <link href="http://mrkn.co/axegs" rel="author" title="Rick Hurst">
+		<link href="reference/2d-rotate-notref.htm" rel="mismatch">
+	    <meta content="svg" name="flags">
+	    <style type="text/css">
+			svg{
+				position: absolute;
+				top: 220px;
+				left: 60px;
+			}
+		</style>
+	</head>
+	<body>
+		<p>You should only see one block with color green, and you should not see any red</p>
+		<section>
+			<svg width="300" xmlns:xmlns="http://www.w3.org/2000/svg" version="1.1" height="200">
+				<style type="text/css">
+				rect{
+					stroke-width: 10;
+					stroke: green;
+					fill: none;
+		   	 	}
+			    </style>
+				<rect y="-38" x="120" width="110" transform="rotate(30)" height="110"></rect>
+			</svg>
+		</section>
+	
+
+</body></html>

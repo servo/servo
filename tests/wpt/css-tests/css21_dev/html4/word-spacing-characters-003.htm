@@ -1,0 +1,77 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+ <head>
+  <title>CSS Test: word-spacing on Zero-Width Characters</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props">
+  <meta name="flags" content="">
+  <meta name="assert" content="Word-spacing does not affect zero-width characters.">
+  <style type="text/css">
+    div {
+      margin: 1em;
+      font-family: monospace;
+      page-break-inside: avoid;
+    }
+    div p {
+      margin: 0;
+    }
+
+    .control span {
+      background: blue;
+      color: blue;
+    }
+    .test span {
+      word-spacing: 4em;
+      background: orange;
+      color: orange;
+    }
+    .ws-pre p {
+      white-space: pre;
+    }
+  </style>
+ </head>
+ <body>
+   <p>In each of the following pairs, the blue and orange bars must have equal lengths.</p>
+
+   <!-- ZERO-WIDTH SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x200B;&#x200B;&#x200B;&#x200B;B</span></p>
+     <p class="test"><span>A&#x200B;&#x200B;&#x200B;&#x200B;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x200B;&#x200B;&#x200B;&#x200B;B</span></p>
+     <p class="test"><span>A&#x200B;&#x200B;&#x200B;&#x200B;B</span></p>
+   </div>
+
+   <!-- ZERO-WIDTH NO-BREAK SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A﻿﻿﻿﻿B</span></p>
+     <p class="test"><span>A﻿﻿﻿﻿B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A﻿﻿﻿﻿B</span></p>
+     <p class="test"><span>A﻿﻿﻿﻿B</span></p>
+   </div>
+
+   <!-- ZERO-WIDTH NON-JOINER -->
+   <div class="ws-normal">
+     <p class="control"><span>A&zwnj;&zwnj;&zwnj;&zwnj;B</span></p>
+     <p class="test"><span>A&zwnj;&zwnj;&zwnj;&zwnj;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&zwnj;&zwnj;&zwnj;&zwnj;B</span></p>
+     <p class="test"><span>A&zwnj;&zwnj;&zwnj;&zwnj;B</span></p>
+   </div>
+
+   <!-- ZERO-WIDTH JOINER -->
+   <div class="ws-normal">
+     <p class="control"><span>A&zwj;&zwj;&zwj;&zwj;B</span></p>
+     <p class="test"><span>A&zwj;&zwj;&zwj;&zwj;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&zwj;&zwj;&zwj;&zwj;B</span></p>
+     <p class="test"><span>A&zwj;&zwj;&zwj;&zwj;B</span></p>
+   </div>
+
+ </body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+  <!--
+  Inspired by
+  https://bugzilla.mozilla.org/attachment.cgi?id=386881
+  coming from
+  https://bugzilla.mozilla.org/show_bug.cgi?id=266122
+
+  Credits must go to "j.j."
+  -->
+
+  <title>CSS Test: outline - minimum that encloses all the element's boxes</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS 2.1 Conformance Test Suite"; }
+            @top-right { content: "Test outline-layout-006"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="18.4 Dynamic outlines: the 'outline' property" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+  <link rel="match" href="reference/outline-layout-006-ref.xht" />
+
+  <meta content="" name="flags" />
+  <meta content="The outline of an element is the minimum outline that encloses all the element's boxes." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body {margin: 8px;}
+
+  div#test
+  {
+  color: white;
+  font: 3.125em/1 Ahem;
+  margin: -1.8em auto auto 10px;
+  }
+
+  span#outline-wrapper {outline: blue solid 10px;}
+
+  span {vertical-align: bottom;}
+
+  span#outline-wrapper > span {line-height: 3em;}
+
+  span#outline-wrapper > span > span {line-height: 5em;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a blue line that creates<br />
+  the shape of a staircase (or a small pyramid)<br />
+  that go 3 steps up and then go 3 steps down.</p>
+
+  <div id="test">
+      <span id="outline-wrapper">1<span>2<span>3</span>4</span>5</span>
+  </div>
+
+ </body>
+</html>

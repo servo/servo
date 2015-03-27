@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: Horizontally aligning table caption content</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#caption-position">
+        <meta name="flags" content="">
+        <meta name="assert" content="Table caption content can be horizontally aligned with the 'text-align' property.">
+        <style type="text/css">
+            caption
+            {
+                border: 1px solid black;
+                text-align: right;
+                width: 200px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is on the right side of the box.</p>
+        <table>
+            <caption>Filler Text</caption>
+            <tr>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

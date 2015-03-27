@@ -1,0 +1,99 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <title>CSS Writing Modes Test: inline-block alignment - inline-block without content (alphabetical alignment with horizontal layout)</title>
+    <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com">
+    <link rel="help" title="CSS3 Writing modes: 4.3. Atomic Inline Baseline" href="http://www.w3.org/TR/css-writing-modes-3/#replaced-baselines">
+    <link rel="help" title="CSS2.1 9.2.2 Inline-level elements and inline boxes" href="http://www.w3.org/TR/CSS21/visuren.html#inline-boxes">
+    <link rel="match" href="reference/inline-block-alignment-004-ref.htm">
+    <meta name="assert" content="This test checks the generation of empty inline-block baseline. When 'writing-mode' is horizontal, then the alphabetical baseline is used as the dominant baseline.">
+    <meta name="flags" content="image">
+    <style type="text/css">
+      div > p, div.control {
+        font-size: 2em;
+        background-color: orange;
+      }
+      img {
+        margin-left: -300px;
+      }
+
+      /* writing-mode property */
+      .horizontal-tb {
+        writing-mode: horizontal-tb;
+      }
+
+      /* text-orientation property */
+      .mixed {
+        text-orientation: mixed;
+      }
+      .upright {
+        text-orientation: upright;
+      }
+      .sideways-right {
+        text-orientation: sideways-right;
+      }
+      .sideways-left {
+        text-orientation: sideways-left;
+      }
+      .sideways {
+        text-orientation: sideways;
+      }
+      .use-glyph-orientation {
+        text-orientation: use-glyph-orientation;
+      }
+
+      /* inline-block */
+      .inline-block {
+        display: inline-block;
+      }
+      .descendant-block {
+        display: block;
+        height: 1em;
+        background-color: yellow;
+        padding-left: 1em;
+        padding-right: 1em;
+      }
+  </style>
+  </head>
+  <body>
+    <p>Test passes if ...</p>
+    <ol>
+      <li>the bottom of glyph 'L' and the bottom of yellow square is touching a thin blue line in each 7 orange rectangles and</li>
+      <li>all 7 orange rectangles are <strong>identical</strong>.</li>
+    </ol>
+
+    <div id="control">
+      <p>LLLLL<span class="inline-block">
+          <span class="descendant-block"></span>
+          <span class="descendant-block"></span>
+        </span>LLLLL<img src="support/blue-horiz-line-320x1.png" alt="Image download support must be enabled"></p>
+    </div>
+
+    <div class="horizontal-tb">
+      <p class="mixed">LLLLL<span class="inline-block">
+          <span class="descendant-block"></span>
+          <span class="descendant-block"></span>
+        </span>LLLLL<img src="support/blue-horiz-line-320x1.png" alt="Image download support must be enabled"></p>
+      <p class="upright">LLLLL<span class="inline-block">
+          <span class="descendant-block"></span>
+          <span class="descendant-block"></span>
+        </span>LLLLL<img src="support/blue-horiz-line-320x1.png" alt="Image download support must be enabled"></p>
+      <p class="sideways-right">LLLLL<span class="inline-block">
+          <span class="descendant-block"></span>
+          <span class="descendant-block"></span>
+        </span>LLLLL<img src="support/blue-horiz-line-320x1.png" alt="Image download support must be enabled"></p>
+      <p class="sideways-left">LLLLL<span class="inline-block">
+          <span class="descendant-block"></span>
+          <span class="descendant-block"></span>
+        </span>LLLLL<img src="support/blue-horiz-line-320x1.png" alt="Image download support must be enabled"></p>
+      <p class="sideways">LLLLL<span class="inline-block">
+          <span class="descendant-block"></span>
+          <span class="descendant-block"></span>
+        </span>LLLLL<img src="support/blue-horiz-line-320x1.png" alt="Image download support must be enabled"></p>
+      <p class="use-glyph-orientation">LLLLL<span class="inline-block">
+          <span class="descendant-block"></span>
+          <span class="descendant-block"></span>
+        </span>LLLLL<img src="support/blue-horiz-line-320x1.png" alt="Image download support must be enabled"></p>
+    </div>
+  </body>
+</html>

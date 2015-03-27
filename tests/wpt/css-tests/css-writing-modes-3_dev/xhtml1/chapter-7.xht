@@ -1,0 +1,2606 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Abstract Box Layout - CSS Writing Modes Module Level 3 CR Test Suite</title>
+  <style type="text/css">
+    @import "http://www.w3.org/StyleSheets/TR/base.css";
+    @import "../indices.css";
+  </style>
+ </head>
+
+ <body>
+
+  <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
+  <h2>Abstract Box Layout (229 tests)</h2>
+  <table width="100%">
+    <col id="test-column"></col>
+    <col id="refs-column"></col>
+    <col id="flags-column"></col>
+    <col id="info-column"></col>
+    <thead>
+      <tr>
+        <th>Test</th>
+        <th><abbr title="Rendering References">Refs</abbr></th>
+        <th>Flags</th>
+        <th>Info</th>
+      </tr>
+    </thead>
+    <tbody id="s7">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#abstract-layout">7 Abstract Box Layout</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.1">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.1">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout">7.1 Principles of Layout in Vertical Writing Modes</a></th></tr>
+      <!-- 177 tests -->
+      <tr id="abs-pos-non-replaced-vlr-003-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-003.xht">abs-pos-non-replaced-vlr-003</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-003-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top', 'height' and 'bottom' are 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top', 'height' and 'bottom' are 'auto', then the height becomes shrink-to-fit and then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-005-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-005.xht">abs-pos-non-replaced-vlr-005</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'left', 'width' and 'right' are 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'left', 'width' and 'right' are 'auto', then the width becomes shrink-to-fit and then solve for 'right'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-007-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-007.xht">abs-pos-non-replaced-vlr-007</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-007-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top', 'height' and 'bottom' are 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top', 'height' and 'bottom' are 'auto', then the height becomes shrink-to-fit and then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-009-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-009.xht">abs-pos-non-replaced-vlr-009</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top', 'height' and 'bottom' are 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top', 'height' and 'bottom' are 'auto', then the height becomes shrink-to-fit and then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-011-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-011.xht">abs-pos-non-replaced-vlr-011</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'left', 'width' and 'right' are 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'left', 'width' and 'right' are 'auto', then the width becomes shrink-to-fit and then solve for 'left'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-013-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-013.xht">abs-pos-non-replaced-vlr-013</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-013-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top', 'height' and 'bottom' are 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top', 'height' and 'bottom' are 'auto', then the height becomes shrink-to-fit and then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-015-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-015.xht">abs-pos-non-replaced-vlr-015</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top', 'height' are 'auto' and bottom is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top', 'height' are 'auto' and bottom is not 'auto', then the height becomes shrink-to-fit and then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-017-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-017.xht">abs-pos-non-replaced-vlr-017</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-003-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'left' and 'width' are 'auto' and 'right' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'left' and 'width' are 'auto' and 'right' is not 'auto', then the width becomes shrink-to-fit and then solve for 'left'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-019-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-019.xht">abs-pos-non-replaced-vlr-019</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-013-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top' and 'height' are 'auto and 'bottom' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top' and 'height' are 'auto and 'bottom' is not 'auto', then the height becomes shrink-to-fit and then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-021-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-021.xht">abs-pos-non-replaced-vlr-021</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top' and 'height' are 'auto and 'bottom' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top' and 'height' are 'auto and 'bottom' is not 'auto', then the height becomes shrink-to-fit and then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-023-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-023.xht">abs-pos-non-replaced-vlr-023</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'left' and 'width' are 'auto' and 'right' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'left' and 'width' are 'auto' and 'right' is not 'auto', then the width becomes shrink-to-fit and then solve for 'left'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-025-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-025.xht">abs-pos-non-replaced-vlr-025</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-013-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top' and 'height' are 'auto' and 'bottom' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top' and 'height' are 'auto' and 'bottom' is not 'auto', then the height becomes shrink-to-fit and then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-027-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-027.xht">abs-pos-non-replaced-vlr-027</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-003-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top' and 'bottom are 'auto' and 'height' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top' and 'bottom are 'auto' and 'height' is not 'auto', then set 'top' to static position and solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-029-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-029.xht">abs-pos-non-replaced-vlr-029</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'left' and 'right' are 'auto' and 'width' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'left' and 'right' are 'auto' and 'width' is not 'auto', then set 'left' to the static position and then solve for 'right'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-031-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-031.xht">abs-pos-non-replaced-vlr-031</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-007-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top' and 'bottom are 'auto' and 'height' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top' and 'bottom are 'auto' and 'height' is not 'auto', then set 'top' to static position and solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-033-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-033.xht">abs-pos-non-replaced-vlr-033</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top' and 'bottom' are 'auto and 'height' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top' and 'bottom' are 'auto' and 'height' is not 'auto', then set 'bottom' to static position and solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-035-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-035.xht">abs-pos-non-replaced-vlr-035</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'left' and 'right' are 'auto' and 'width' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'left' and 'right' are 'auto' and 'width' is not 'auto', then set 'right' to the static position and then solve for 'left'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-037-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-037.xht">abs-pos-non-replaced-vlr-037</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-013-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top' and 'bottom' are 'auto' and 'height' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top' and 'bottom' are 'auto' and 'height' is not 'auto', then set 'bottom' to static position and then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-039-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-039.xht">abs-pos-non-replaced-vlr-039</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'height' and 'bottom' are 'auto' and 'top' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'height' and 'bottom' are 'auto' and 'top' is not 'auto', then the height becomes shrink-to-fit and then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-041-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-041.xht">abs-pos-non-replaced-vlr-041</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'width' and 'right' are 'auto' and 'left' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'width' and 'right' are 'auto' and 'left' is not 'auto', then the width becomes shrink-to-fit and then solve for 'right'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-043-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-043.xht">abs-pos-non-replaced-vlr-043</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-013-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'height' and 'bottom' are 'auto' and 'top' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'height' and 'bottom' are 'auto' and 'top' is not 'auto', then the height becomes shrink-to-fit and then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-045-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-045.xht">abs-pos-non-replaced-vlr-045</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'height' and 'bottom' are 'auto' and 'top' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top', 'height' and 'bottom' are 'auto' and 'top' is not 'auto', then the height becomes shrink-to-fit and then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-047-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-047.xht">abs-pos-non-replaced-vlr-047</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'width' and 'right' are 'auto' and 'left' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'width' and 'right' are 'auto' and 'left' is not 'auto', then the width becomes shrink-to-fit and then solve for 'right'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-049-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-049.xht">abs-pos-non-replaced-vlr-049</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-013-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'height' and 'bottom' are 'auto' and 'top' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'height' and 'bottom' are 'auto' and 'top' is not 'auto', then the height becomes shrink-to-fit and then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-051-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-051.xht">abs-pos-non-replaced-vlr-051</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-003-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto', then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-053-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-053.xht">abs-pos-non-replaced-vlr-053</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'left' is 'auto', 'width' and 'right' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'left' is 'auto', 'width' and 'right' are not 'auto', then solve for 'left'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-055-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-055.xht">abs-pos-non-replaced-vlr-055</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-007-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto', then then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-057-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-057.xht">abs-pos-non-replaced-vlr-057</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-003-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto', then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-059-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-059.xht">abs-pos-non-replaced-vlr-059</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'left' is 'auto', 'width' and 'right' are not 'auto', then solve for 'left'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'left' is 'auto', 'width' and 'right' are not 'auto', then solve for 'left', then solve for 'left'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-061-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-061.xht">abs-pos-non-replaced-vlr-061</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-007-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto', then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-063-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-063.xht">abs-pos-non-replaced-vlr-063</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-003-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto', then then solve for 'height'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-065-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-065.xht">abs-pos-non-replaced-vlr-065</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'width' is 'auto', 'left' and 'right' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'left', 'width' is 'auto', 'left' and 'right' are not 'auto', then solve for 'width'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-067-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-067.xht">abs-pos-non-replaced-vlr-067</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-007-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto', then solve for 'height'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-069-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-069.xht">abs-pos-non-replaced-vlr-069</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-003-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto', then solve for 'height'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-071-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-071.xht">abs-pos-non-replaced-vlr-071</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'width' is 'auto', 'left' and 'right' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'width' is 'auto', 'left' and 'right' are not 'auto', then solve for 'width'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-073-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-073.xht">abs-pos-non-replaced-vlr-073</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-007-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto', then then solve for 'height'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-075-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-075.xht">abs-pos-non-replaced-vlr-075</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto', then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-077-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-077.xht">abs-pos-non-replaced-vlr-077</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'right' is 'auto', 'left' and 'width' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'right' is 'auto', 'left' and 'width' are not 'auto', then solve for 'right'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-079-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-079.xht">abs-pos-non-replaced-vlr-079</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-013-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto', then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-081-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-081.xht">abs-pos-non-replaced-vlr-081</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto', then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-083-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-083.xht">abs-pos-non-replaced-vlr-083</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'right' is 'auto', 'left' and 'width' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'right' is 'auto', 'left' and 'width' are not 'auto', then solve for 'right'</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-085-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-085.xht">abs-pos-non-replaced-vlr-085</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-013-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto', then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-087-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-087.xht">abs-pos-non-replaced-vlr-087</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-003-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top', 'height' and 'bottom' are not 'auto' (overconstrained)
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top', 'height' and 'bottom' are not 'auto' and if the values are overconstrained, then ignore 'bottom' and solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-089-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-089.xht">abs-pos-non-replaced-vlr-089</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'left', 'width' and 'right' are not 'auto' (overconstrained)
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'left', 'width' and 'right' are not 'auto' (overconstrained), then ignore 'right' and then solve for 'right'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-091-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-091.xht">abs-pos-non-replaced-vlr-091</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-007-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top', 'height' and 'bottom' are not 'auto' (overconstrained)
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top', 'height' and 'bottom' are not 'auto' and if the values are overconstrained, then ignore 'bottom' and solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-093-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-093.xht">abs-pos-non-replaced-vlr-093</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top', 'height' and 'bottom' are not 'auto' (overconstrained)
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top', 'height' and 'bottom' are not 'auto' and if the values are overconstrained, then ignore 'top' and solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-095-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-095.xht">abs-pos-non-replaced-vlr-095</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'left', 'width' and 'right' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'left', 'width' and 'right' are not 'auto' and if the values are overconstrained, then ignore 'left' and then solve for 'left'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vlr-097-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vlr-097.xht">abs-pos-non-replaced-vlr-097</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-013-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top', 'height' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top', 'height' and 'bottom' are not 'auto' and if the values are overconstrained, then ignore 'top' and solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-002-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-002.xht">abs-pos-non-replaced-vrl-002</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top', 'height' and 'bottom' are 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top', 'height' and 'bottom' are 'auto', then the height becomes shrink-to-fit and then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-004-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-004.xht">abs-pos-non-replaced-vrl-004</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'left', 'width' and 'right' are 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'left', 'width' and 'right' are 'auto', then the width becomes shrink-to-fit and then solve for 'right'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-006-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-006.xht">abs-pos-non-replaced-vrl-006</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-006-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top', 'height' and 'bottom' are 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top', 'height' and 'bottom' are 'auto', then the height becomes shrink-to-fit and then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-008-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-008.xht">abs-pos-non-replaced-vrl-008</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top', 'height' and 'bottom' are 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top', 'height' and 'bottom' are 'auto', then the height becomes shrink-to-fit and then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-010-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-010.xht">abs-pos-non-replaced-vrl-010</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'left', 'width' and 'right' are 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'left', 'width' and 'right' are 'auto', then the width becomes shrink-to-fit and then solve for 'left'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-012-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-012.xht">abs-pos-non-replaced-vrl-012</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-012-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top', 'height' and 'bottom' are 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top', 'height' and 'bottom' are 'auto', then the height becomes shrink-to-fit and then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-014-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-014.xht">abs-pos-non-replaced-vrl-014</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top', 'height' are 'auto' and bottom is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top', 'height' are 'auto' and 'bottom' is not 'auto', then the height becomes shrink-to-fit and then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-016-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-016.xht">abs-pos-non-replaced-vrl-016</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-003-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'left' and 'width' are 'auto' and 'right' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'left' and 'width' are 'auto' and 'right' is not 'auto', then the width becomes shrink-to-fit and then solve for 'left'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-018-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-018.xht">abs-pos-non-replaced-vrl-018</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-012-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top' and 'height' are 'auto and 'bottom' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top' and 'height' are 'auto and 'bottom' is not 'auto', then the height becomes shrink-to-fit and then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-020-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-020.xht">abs-pos-non-replaced-vrl-020</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top' and 'height' are 'auto and 'bottom' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top' and 'height' are 'auto and 'bottom' is not 'auto', then the height becomes shrink-to-fit and then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-022-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-022.xht">abs-pos-non-replaced-vrl-022</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'left' and 'width' are 'auto' and 'right' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'left' and 'width' are 'auto' and 'right' is not 'auto', then the width becomes shrink-to-fit and then solve for 'left'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-024-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-024.xht">abs-pos-non-replaced-vrl-024</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-012-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top' and 'height' are 'auto' and 'bottom' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top' and 'height' are 'auto' and 'bottom' is not 'auto', then the height becomes shrink-to-fit and then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-026-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-026.xht">abs-pos-non-replaced-vrl-026</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top' and 'bottom are 'auto' and 'height' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top' and 'bottom are 'auto' and 'height' is not 'auto', then set 'top' to static position and solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-028-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-028.xht">abs-pos-non-replaced-vrl-028</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'left' and 'right' are 'auto' and 'width' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'left' and 'right' are 'auto' and 'width' is not 'auto', then set 'left' to the static position and then solve for 'right'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-030-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-030.xht">abs-pos-non-replaced-vrl-030</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-006-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top' and 'bottom are 'auto' and 'height' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top' and 'bottom are 'auto' and 'height' is not 'auto', then set 'top' to static position and solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-032-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-032.xht">abs-pos-non-replaced-vrl-032</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top' and 'bottom' are 'auto and 'height' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top' and 'bottom' are 'auto' and 'height' is not 'auto', then set 'bottom' to static position and solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-034-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-034.xht">abs-pos-non-replaced-vrl-034</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'left' and 'right' are 'auto' and 'width' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'left' and 'right' are 'auto' and 'width' is not 'auto', then set 'right' to the static position and then solve for 'left'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-036-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-036.xht">abs-pos-non-replaced-vrl-036</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-012-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top' and 'bottom' are 'auto' and 'height' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top' and 'bottom' are 'auto' and 'height' is not 'auto', then set 'bottom' to static position and then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-038-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-038.xht">abs-pos-non-replaced-vrl-038</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'height' and 'bottom' are 'auto' and 'top' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'height' and 'bottom' are 'auto' and 'top' is not 'auto', then the height becomes shrink-to-fit and then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-040-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-040.xht">abs-pos-non-replaced-vrl-040</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'width' and 'right' are 'auto' and 'left' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'width' and 'right' are 'auto' and 'left' is not 'auto', then the width becomes shrink-to-fit and then solve for 'right'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-042-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-042.xht">abs-pos-non-replaced-vrl-042</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-012-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'height' and 'bottom' are 'auto' and 'top' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'height' and 'bottom' are 'auto' and 'top' is not 'auto', then the height becomes shrink-to-fit and then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-044-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-044.xht">abs-pos-non-replaced-vrl-044</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'height' and 'bottom' are 'auto' and 'top' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top', 'height' and 'bottom' are 'auto' and 'top' is not 'auto', then the height becomes shrink-to-fit and then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-046-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-046.xht">abs-pos-non-replaced-vrl-046</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'width' and 'right' are 'auto' and 'left' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'width' and 'right' are 'auto' and 'left' is not 'auto', then the width becomes shrink-to-fit and then solve for 'right'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-048-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-048.xht">abs-pos-non-replaced-vrl-048</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-012-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'height' and 'bottom' are 'auto' and 'top' is not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'height' and 'bottom' are 'auto' and 'top' is not 'auto', then the height becomes shrink-to-fit and then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-050-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-050.xht">abs-pos-non-replaced-vrl-050</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto', then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-052-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-052.xht">abs-pos-non-replaced-vrl-052</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'left' is 'auto', 'width' and 'right' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'left' is 'auto', 'width' and 'right' are not 'auto', then solve for 'left'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-054-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-054.xht">abs-pos-non-replaced-vrl-054</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-006-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto', then then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-056-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-056.xht">abs-pos-non-replaced-vrl-056</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto', then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-058-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-058.xht">abs-pos-non-replaced-vrl-058</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'left' is 'auto', 'width' and 'right' are not 'auto', then solve for 'left'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'left' is 'auto', 'width' and 'right' are not 'auto', then solve for 'left', then solve for 'left'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-060-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-060.xht">abs-pos-non-replaced-vrl-060</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-006-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top' is 'auto' and 'height' and 'bottom' are not 'auto', then solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-062-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-062.xht">abs-pos-non-replaced-vrl-062</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto', then then solve for 'height'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-064-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-064.xht">abs-pos-non-replaced-vrl-064</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'width' is 'auto', 'left' and 'right' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'left', 'width' is 'auto', 'left' and 'right' are not 'auto', then solve for 'width'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-066-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-066.xht">abs-pos-non-replaced-vrl-066</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-006-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto', then solve for 'height'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-068-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-068.xht">abs-pos-non-replaced-vrl-068</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto', then solve for 'height'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-070-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-070.xht">abs-pos-non-replaced-vrl-070</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'width' is 'auto', 'left' and 'right' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'width' is 'auto', 'left' and 'right' are not 'auto', then solve for 'width'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-072-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-072.xht">abs-pos-non-replaced-vrl-072</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-006-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'height' is 'auto' and 'top' and 'bottom' are not 'auto', then then solve for 'height'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-074-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-074.xht">abs-pos-non-replaced-vrl-074</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto', then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-076-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-076.xht">abs-pos-non-replaced-vrl-076</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'right' is 'auto', 'left' and 'width' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'right' is 'auto', 'left' and 'width' are not 'auto', then solve for 'right'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-078-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-078.xht">abs-pos-non-replaced-vrl-078</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-012-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto', then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-080-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-080.xht">abs-pos-non-replaced-vrl-080</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto', then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-082-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-082.xht">abs-pos-non-replaced-vrl-082</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'right' is 'auto', 'left' and 'width' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'right' is 'auto', 'left' and 'width' are not 'auto', then solve for 'right'</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-084-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-084.xht">abs-pos-non-replaced-vrl-084</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-012-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'bottom' is 'auto' and 'top' and 'height' are not 'auto', then solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-086-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-086.xht">abs-pos-non-replaced-vrl-086</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top', 'height' and 'bottom' are not 'auto' (overconstrained)
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top', 'height' and 'bottom' are not 'auto' and if the values are overconstrained, then ignore 'bottom' and solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-088-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-088.xht">abs-pos-non-replaced-vrl-088</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'left', 'width' and 'right' are not 'auto' (overconstrained)
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'left', 'width' and 'right' are not 'auto' (overconstrained), then ignore 'right' and then solve for 'right'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-090-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-090.xht">abs-pos-non-replaced-vrl-090</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-006-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: ltr' and 'top', 'height' and 'bottom' are not 'auto' (overconstrained)
+          <ul class="assert">
+            <li>When 'direction' is 'ltr' and 'top', 'height' and 'bottom' are not 'auto' and if the values are overconstrained, then ignore 'bottom' and solve for 'bottom'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-092-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-092.xht">abs-pos-non-replaced-vrl-092</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top', 'height' and 'bottom' are not 'auto' (overconstrained)
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top', 'height' and 'bottom' are not 'auto' and if the values are overconstrained, then ignore 'top' and solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-094-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-094.xht">abs-pos-non-replaced-vrl-094</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'left', 'width' and 'right' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'left', 'width' and 'right' are not 'auto' and if the values are overconstrained, then ignore 'left' and then solve for 'left'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="abs-pos-non-replaced-vrl-096-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="abs-pos-non-replaced-vrl-096.xht">abs-pos-non-replaced-vrl-096</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-012-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>absolutely positioned non-replaced element - 'direction: rtl' and 'top', 'height' and 'bottom' are not 'auto'
+          <ul class="assert">
+            <li>When 'direction' is 'rtl' and 'top', 'height' and 'bottom' are not 'auto' and if the values are overconstrained, then ignore 'top' and solve for 'top'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-vlr-007-7.1" class="primary image">
+        <td><strong>
+            <a href="border-vlr-007.xht">border-vlr-007</a></strong></td>
+        <td><a href="reference/margin-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>border in 'vertical-lr' writing-mode context
+          <ul class="assert">
+            <li>This test checks that border-left, border-right, border-top and border-bottom do not change in vertical writing-mode. The border-left property of a box still affects the lefthand border of such box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-vrl-006-7.1" class="primary image">
+        <td><strong>
+            <a href="border-vrl-006.xht">border-vrl-006</a></strong></td>
+        <td><a href="reference/margin-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>border in 'vertical-rl' writing-mode context
+          <ul class="assert">
+            <li>This test checks that border-left, border-right, border-top and border-bottom do not change in vertical writing-mode. The border-left property of a box still affects the lefthand border of such box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="box-offsets-rel-pos-vlr-003-7.1" class="primary image">
+        <td><strong>
+            <a href="box-offsets-rel-pos-vlr-003.xht">box-offsets-rel-pos-vlr-003</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vlr-013-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>box offsets - position relative
+          <ul class="assert">
+            <li>The 'top', 'right', 'bottom', 'left' property, for relative positioning, specify the offset of the box itself from its normal in-flow position, from the position it would have had if it had been static. The 'top', 'right', 'bottom', 'left' offset property are physical properties, not logical ones in vertical writing-modes.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="box-offsets-rel-pos-vlr-005-7.1" class="primary image">
+        <td><strong>
+            <a href="box-offsets-rel-pos-vlr-005.xht">box-offsets-rel-pos-vlr-005</a></strong></td>
+        <td><a href="reference/box-offsets-rel-pos-vlr-005-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>box offsets - relatively positioned boxes
+          <ul class="assert">
+            <li>Box offsets (bottom, left, right, top) expressed in absolute units (not with percentage unit) for relatively positioned boxes are with respect to the edges of the boxes themselves.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="box-offsets-rel-pos-vrl-002-7.1" class="primary image">
+        <td><strong>
+            <a href="box-offsets-rel-pos-vrl-002.xht">box-offsets-rel-pos-vrl-002</a></strong></td>
+        <td><a href="reference/abs-pos-non-replaced-vrl-012-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>box offsets - position relative
+          <ul class="assert">
+            <li>The 'top', 'right', 'bottom', 'left' property, for relative positioning, specify the offset of the box itself from its normal in-flow position, from the position it would have had if it had been static. The 'top', 'right', 'bottom', 'left' offset property are physical properties, not logical ones in vertical writing-modes.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="box-offsets-rel-pos-vrl-004-7.1" class="primary image">
+        <td><strong>
+            <a href="box-offsets-rel-pos-vrl-004.xht">box-offsets-rel-pos-vrl-004</a></strong></td>
+        <td><a href="reference/box-offsets-rel-pos-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>box offsets - relatively positioned boxes
+          <ul class="assert">
+            <li>Box offsets (bottom, left, right, top) expressed in absolute units (not with percentage unit) for relatively positioned boxes are with respect to the edges of the boxes themselves.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="clearance-calculations-vrl-002-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="clearance-calculations-vrl-002.xht">clearance-calculations-vrl-002</a></strong></td>
+        <td><a href="reference/clearance-calculations-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>Clearance calculations - clearing box has larger margin than width of float
+          <ul class="assert">
+            <li>This test checks that when a clearing element has a right margin (in a block formating context with 'writing-mode' set to 'vertical-rl') larger than the width of a floated element, then the right margin is collapsed with the margin-left of preceding in-flow sibling. The clearing element is then placed at the point of the resulting collapsed margin.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="clearance-calculations-vrl-004-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="clearance-calculations-vrl-004.xht">clearance-calculations-vrl-004</a></strong></td>
+        <td><a href="reference/clearance-calculations-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>Clearance calculations - clearing box has narrower margin than clearance
+          <ul class="assert">
+            <li>This test checks that if, after margin collapsing, the position of the clearing element is on the right of the float or would be hypothetically positioned within the layout position of the float, then the clearing element is positioned directly on the left of the floated element.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="clearance-calculations-vrl-006-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="clearance-calculations-vrl-006.xht">clearance-calculations-vrl-006</a></strong></td>
+        <td><a href="reference/clearance-calculations-vrl-006-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>Clearance calculations - clearing box has larger margin than width of float
+          <ul class="assert">
+            <li>This test checks that when a clearing element (in a block formating context with 'writing-mode' set to 'vertical-rl') has a right margin larger than the width of a floated element, then the right margin is collapsed with the margin-left of preceding in-flow sibling. The clearing element is then placed at the point of the resulting collapsed margin.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="clearance-calculations-vrl-008-7.1" class="primary image">
+        <td><strong>
+            <a href="clearance-calculations-vrl-008.xht">clearance-calculations-vrl-008</a></strong></td>
+        <td><a href="reference/clearance-calculations-vrl-008-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>clearance calculations
+          <ul class="assert">
+            <li>In this test, the right border edge of div#clearing-left must be on the left side of div#floated-left, i.e., 50px further on its left-hand side. That means that the margin-left of div#preceding-sibling must not collapse with the right margin of the div#clearing-left and clearance must be added such that clearance + margin-right of div#clearing-left = 50px, i.e., clearance = 50px - margin-right of div#clearing-left; therefore clearance is equal to 50px - 75px = - 25px.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-clear-vlr-003-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-clear-vlr-003.xht">float-clear-vlr-003</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: right' and 'clear: right' in 'vertical-lr' block formating context (basic)
+        </td>
+      </tr>
+      <tr id="float-clear-vlr-005-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-clear-vlr-005.xht">float-clear-vlr-005</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: left' and 'clear: left' in 'vertical-lr' block formating context (basic)
+        </td>
+      </tr>
+      <tr id="float-clear-vlr-007-7.1" class="primary image">
+        <td><strong>
+            <a href="float-clear-vlr-007.xht">float-clear-vlr-007</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: left' and 'clear: left' in 'vertical-lr' block formating context (intermediate)
+          <ul class="assert">
+            <li>This test checks that a block container box which has floats will not extend its logical height (it will appear to not be aware of its floats) unless it has a clearing block. This test is important for CSS columnar layout page based on floats.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-clear-vlr-009-7.1" class="primary image">
+        <td><strong>
+            <a href="float-clear-vlr-009.xht">float-clear-vlr-009</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: right', 'float: left' and 'clear: both' in 'vertical-lr' block formating context (intermediate)
+          <ul class="assert">
+            <li>This test checks that a block container box which has floats will not extend its logical height (it will appear to not be aware of its floats) unless it has a clearing block. This test is important for CSS columnar layout page based on floats.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-clear-vrl-002-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-clear-vrl-002.xht">float-clear-vrl-002</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: right' and 'clear: right' in 'vertical-rl' block formating context (basic)
+        </td>
+      </tr>
+      <tr id="float-clear-vrl-004-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-clear-vrl-004.xht">float-clear-vrl-004</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: left' and 'clear: left' in 'vertical-rl' block formating context (basic)
+        </td>
+      </tr>
+      <tr id="float-clear-vrl-006-7.1" class="primary image">
+        <td><strong>
+            <a href="float-clear-vrl-006.xht">float-clear-vrl-006</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: left' and 'clear: left' in 'vertical-rl' block formating context (intermediate)
+          <ul class="assert">
+            <li>This test checks that a block container box which has floats will not extend its logical height (it will appear to not be aware of its floats) unless it has a clearing block. This test is important for CSS columnar layout page based on floats.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-clear-vrl-008-7.1" class="primary image">
+        <td><strong>
+            <a href="float-clear-vrl-008.xht">float-clear-vrl-008</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: right', 'float: left' and 'clear: both' in 'vertical-rl' block formating context (intermediate)
+          <ul class="assert">
+            <li>This test checks that a block container box which has floats will not extend its logical height (it will appear to not be aware of its floats) unless it has a clearing block. This test is important for CSS columnar layout page based on floats.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-contiguous-vlr-003-7.1" class="primary image">
+        <td><strong>
+            <a href="float-contiguous-vlr-003.xht">float-contiguous-vlr-003</a></strong></td>
+        <td><a href="reference/inline-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>contiguous left-floating boxes in a 'vertical-lr' block formating context
+          <ul class="assert">
+            <li>This test checks the flow of contiguous left-floating boxes. The later (in source document) left-floating box must be to the right of the right outer edge of earlier floating boxes otherwise (if there is not enough available horizontal space) below the margin box of the earlier box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-contiguous-vlr-005-7.1" class="primary image">
+        <td><strong>
+            <a href="float-contiguous-vlr-005.xht">float-contiguous-vlr-005</a></strong></td>
+        <td><a href="reference/inline-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>contiguous right-floating boxes in a 'vertical-lr' block formating context
+          <ul class="assert">
+            <li>This test checks the flow of contiguous right-floating boxes. The later (in source document) right-floating box must be to the left of the left outer edge of earlier floating boxes otherwise (if there is not enough available horizontal space) below the margin box of the earlier box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-contiguous-vlr-007-7.1" class="primary image">
+        <td><strong>
+            <a href="float-contiguous-vlr-007.xht">float-contiguous-vlr-007</a></strong></td>
+        <td><a href="reference/float-contiguous-vlr-007-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>contiguous left-floating boxes in a 'vertical-lr' block formating context
+          <ul class="assert">
+            <li>This test checks the flow of contiguous left-floating boxes. The later (in source document) left-floating box must be to the right of the right outer edge of earlier floating boxes otherwise (if there is not enough available horizontal space) below the margin box of the earlier box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-contiguous-vlr-009-7.1" class="primary image">
+        <td><strong>
+            <a href="float-contiguous-vlr-009.xht">float-contiguous-vlr-009</a></strong></td>
+        <td><a href="reference/float-contiguous-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>contiguous right-floating boxes in a 'vertical-lr' block formating context
+          <ul class="assert">
+            <li>This test checks the flow of contiguous right-floating boxes. The later (in source document) right-floating box must be to the left of the left outer edge of earlier floating boxes otherwise (if there is not enough available horizontal space) below the margin box of the earlier box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-contiguous-vlr-011-7.1" class="primary ahem">
+        <td><strong>
+            <a href="float-contiguous-vlr-011.xht">float-contiguous-vlr-011</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>contiguous left-floating boxes with 'writing-mode' set to 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks the flow of contiguous left-floated boxes with 'writing-mode' set to 'vertical-lr'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-contiguous-vlr-013-7.1" class="primary ahem">
+        <td><strong>
+            <a href="float-contiguous-vlr-013.xht">float-contiguous-vlr-013</a></strong></td>
+        <td><a href="reference/float-contiguous-vrl-012-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>contiguous right-floating boxes with 'writing-mode' set to 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks the flow of contiguous right-floated boxes with 'writing-mode' set to 'vertical-lr'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-contiguous-vrl-002-7.1" class="primary image">
+        <td><strong>
+            <a href="float-contiguous-vrl-002.xht">float-contiguous-vrl-002</a></strong></td>
+        <td><a href="reference/inline-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>contiguous left-floating boxes in a 'vertical-rl' block formating context
+          <ul class="assert">
+            <li>This test checks the flow of contiguous left-floating boxes. The later (in source document) left-floating box must be to the right of the right outer edge of earlier floating boxes otherwise (if there is not enough available horizontal space) below the margin box of the earlier box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-contiguous-vrl-004-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-contiguous-vrl-004.xht">float-contiguous-vrl-004</a></strong></td>
+        <td><a href="reference/inline-replaced-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>contiguous right-floating boxes in a 'vertical-rl' block formating context
+          <ul class="assert">
+            <li>This test checks the flow of contiguous right-floating boxes. The later (in source document) right-floating box must be to the left of the left outer edge of earlier floating boxes, otherwise (if there is not enough available horizontal space) below the margin box of the earlier box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-contiguous-vrl-006-7.1" class="primary image">
+        <td><strong>
+            <a href="float-contiguous-vrl-006.xht">float-contiguous-vrl-006</a></strong></td>
+        <td><a href="reference/float-contiguous-vrl-006-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>contiguous left-floating boxes in a 'vertical-rl' block formating context
+          <ul class="assert">
+            <li>This test checks the flow of contiguous left-floating boxes. The later (in source document) left-floating box must be to the right of the right outer edge of earlier floating boxes otherwise (if there is not enough available horizontal space) below the margin box of the earlier box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-contiguous-vrl-008-7.1" class="primary image">
+        <td><strong>
+            <a href="float-contiguous-vrl-008.xht">float-contiguous-vrl-008</a></strong></td>
+        <td><a href="reference/float-contiguous-vrl-008-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>contiguous right-floating boxes in a 'vertical-rl' block formating context
+          <ul class="assert">
+            <li>This test checks the flow of contiguous right-floating boxes. The later (in source document) right-floating box must be to the left of the left outer edge of earlier floating boxes, otherwise (if there is not enough available horizontal space) below the margin box of the earlier box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-contiguous-vrl-010-7.1" class="primary ahem">
+        <td><strong>
+            <a href="float-contiguous-vrl-010.xht">float-contiguous-vrl-010</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>contiguous left-floating boxes with 'writing-mode' set to 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks the flow of contiguous left-floated boxes with 'writing-mode' set to 'vertical-rl'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-contiguous-vrl-012-7.1" class="primary ahem">
+        <td><strong>
+            <a href="float-contiguous-vrl-012.xht">float-contiguous-vrl-012</a></strong></td>
+        <td><a href="reference/float-contiguous-vrl-012-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>contiguous right-floating boxes with 'writing-mode' set to 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks the flow of contiguous right-floated boxes with 'writing-mode' set to 'vertical-rl'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-shrink-to-fit-vlr-003-7.1" class="primary ahem">
+        <td><strong>
+            <a href="float-shrink-to-fit-vlr-003.xht">float-shrink-to-fit-vlr-003</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float' and 'shrink-to-fit' logical width in 'vertical-lr' context
+          <ul class="assert">
+            <li>This test checks that 'shrink-to-fit' width is applied on logical width (measure).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-shrink-to-fit-vlr-005-7.1" class="primary ahem">
+        <td><strong>
+            <a href="float-shrink-to-fit-vlr-005.xht">float-shrink-to-fit-vlr-005</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float' and 'shrink-to-fit' logical width in 'vertical-lr' context
+          <ul class="assert">
+            <li>This test checks that 'shrink-to-fit' width is applied on logical width (measure).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-shrink-to-fit-vlr-007-7.1" class="primary ahem">
+        <td><strong>
+            <a href="float-shrink-to-fit-vlr-007.xht">float-shrink-to-fit-vlr-007</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float' and 'shrink-to-fit' logical width in 'vertical-lr' context
+          <ul class="assert">
+            <li>This test checks that 'shrink-to-fit' width is applied on logical width (measure).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-shrink-to-fit-vlr-009-7.1" class="primary ahem">
+        <td><strong>
+            <a href="float-shrink-to-fit-vlr-009.xht">float-shrink-to-fit-vlr-009</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float' and 'shrink-to-fit' logical width (height: auto) in 'vertical-lr' context
+          <ul class="assert">
+            <li>This test checks that 'shrink-to-fit' applying on logical width must not reduce content but size to fit to its content. In this test, 'L' and 'R' glyphs must be rendered.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-shrink-to-fit-vrl-002-7.1" class="primary ahem">
+        <td><strong>
+            <a href="float-shrink-to-fit-vrl-002.xht">float-shrink-to-fit-vrl-002</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float' and 'shrink-to-fit' logical width in 'vertical-rl' context
+          <ul class="assert">
+            <li>This test checks that 'shrink-to-fit' width is applied on logical width (measure).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-shrink-to-fit-vrl-004-7.1" class="primary ahem">
+        <td><strong>
+            <a href="float-shrink-to-fit-vrl-004.xht">float-shrink-to-fit-vrl-004</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float' and 'shrink-to-fit' logical width in 'vertical-rl' context
+          <ul class="assert">
+            <li>This test checks that 'shrink-to-fit' width is applied on logical width (measure).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-shrink-to-fit-vrl-006-7.1" class="primary ahem">
+        <td><strong>
+            <a href="float-shrink-to-fit-vrl-006.xht">float-shrink-to-fit-vrl-006</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float' and 'shrink-to-fit' logical width in 'vertical-rl' context
+          <ul class="assert">
+            <li>This test checks that 'shrink-to-fit' width is applied on logical width (measure).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-shrink-to-fit-vrl-008-7.1" class="primary ahem">
+        <td><strong>
+            <a href="float-shrink-to-fit-vrl-008.xht">float-shrink-to-fit-vrl-008</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float' and 'shrink-to-fit' logical width (height: auto) in 'vertical-rl' context
+          <ul class="assert">
+            <li>This test checks that 'shrink-to-fit' applying on logical width must not reduce content but size to fit to its content. In this test, 'L' and 'R' glyphs must be rendered.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-shrink-to-fit-vrl-vlr-016-7.1" class="primary ahem">
+        <td><strong>
+            <a href="float-shrink-to-fit-vrl-vlr-016.xht">float-shrink-to-fit-vrl-vlr-016</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float' and 'shrink-to-fit' logical width (16 sub-tests)
+          <ul class="assert">
+            <li>This test checks that 'shrink-to-fit' rule (CSS2.1, &amp;sect;10.3.5) is applied onto logical width in vertical writing-modes. This test thoroughly checks systematically the 16 combinations of 'writing-mode: vertical-rl', 'writing-mode: vertical-lr', with 'float: left', with 'float: right' and with left and/or right border(s). Not tested here is 'padding-left' and 'padding-right'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-vlr-003-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-vlr-003.xht">float-vlr-003</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: right' in a 'vertical-lr' block formating context (basic)
+          <ul class="assert">
+            <li>This test checks that a floated right box in a containing block with 'writing-mode' set to 'vertical-lr' will be floated at the line-right side of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-vlr-005-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-vlr-005.xht">float-vlr-005</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: right' in a 'vertical-lr' block formating context (basic)
+          <ul class="assert">
+            <li>This test checks that a floated right box in a containing block with 'writing-mode' set to 'vertical-lr' will be floated at the line-right side of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-vlr-007-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-vlr-007.xht">float-vlr-007</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: left' in a 'vertical-lr' block formating context (basic)
+          <ul class="assert">
+            <li>This test checks that a floated left box in a containing block with 'writing-mode' set to 'vertical-lr' will be floated at the line-left side of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-vlr-009-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-vlr-009.xht">float-vlr-009</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: left' in a 'vertical-lr' block formating context (basic)
+          <ul class="assert">
+            <li>This test checks that a floated left box in a containing block with 'writing-mode' set to 'vertical-lr' will be floated at the line-left side of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-vlr-011-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-vlr-011.xht">float-vlr-011</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: left' and 'float: right' in a 'vertical-lr' block formating context (basic)
+          <ul class="assert">
+            <li>This test checks that a floated left box and a floated right box in a containing block with 'writing-mode' set to 'vertical-lr' will be respectively floated at the line-left side of its line box and floated at line-right of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-vlr-013-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-vlr-013.xht">float-vlr-013</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: left' and 'float: right' in a 'vertical-lr' block formating context (basic)
+          <ul class="assert">
+            <li>This test checks that a floated left box and a floated right box in a containing block with 'writing-mode' set to 'vertical-lr' will be respectively floated at the line-left side of its line box and floated at line-right of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-vrl-002-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-vrl-002.xht">float-vrl-002</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: right' in a 'vertical-rl' block formating context (basic)
+          <ul class="assert">
+            <li>This test checks that a floated right box in a containing block with 'writing-mode' set to 'vertical-rl' will be floated at the line-right side of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-vrl-004-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-vrl-004.xht">float-vrl-004</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: right' in a 'vertical-rl' block formating context (basic)
+          <ul class="assert">
+            <li>This test checks that a floated right box in a containing block with 'writing-mode' set to 'vertical-rl' will be floated at the line-right side of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-vrl-006-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-vrl-006.xht">float-vrl-006</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: left' in a 'vertical-rl' block formating context (basic)
+          <ul class="assert">
+            <li>This test checks that a floated left box in a containing block with 'writing-mode' set to 'vertical-rl' will be floated at the line-left side of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-vrl-008-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-vrl-008.xht">float-vrl-008</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: left' in a 'vertical-rl' block formating context (basic)
+          <ul class="assert">
+            <li>This test checks that a floated left box in a containing block with 'writing-mode' set to 'vertical-rl' will be floated at the line-left side of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-vrl-010-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-vrl-010.xht">float-vrl-010</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: left' and 'float: right' in a 'vertical-rl' block formating context (basic)
+          <ul class="assert">
+            <li>This test checks that a floated left box and a floated right box in a containing block with 'writing-mode' set to 'vertical-rl' will be respectively floated at the line-left side of its line box and floated at line-right of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="float-vrl-012-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="float-vrl-012.xht">float-vrl-012</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'float: left' and 'float: right' in a 'vertical-rl' block formating context (basic)
+          <ul class="assert">
+            <li>This test checks that a floated left box and a floated right box in a containing block with 'writing-mode' set to 'vertical-rl' will be respectively floated at the line-left side of its line box and floated at line-right of its line box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="horizontal-rule-vlr-003-7.1" class="primary image">
+        <td><strong>
+            <a href="horizontal-rule-vlr-003.xht">horizontal-rule-vlr-003</a></strong></td>
+        <td><a href="reference/horizontal-rule-vlr-003-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>horizontal rule - 'vertical-lr' and orthogonal flow
+          <ul class="assert">
+            <li>This test checks that an horizontal rule (&lt;hr&gt; element) in 'vertical-lr' writing-mode must be rendered as a vertical rule.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="horizontal-rule-vlr-005-7.1" class="primary">
+        <td><strong>
+            <a href="horizontal-rule-vlr-005.xht">horizontal-rule-vlr-005</a></strong></td>
+        <td><a href="reference/horizontal-rule-vrl-004-ref.xht">=</a> </td>
+        <td></td>
+        <td>horizontal rule - 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that an horizontal rule (&lt;hr&gt; element) with 'vertical-lr' writing-mode but inside an 'horizontal-tb' writing-mode context must be rendered as an horizontal rule.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="horizontal-rule-vrl-002-7.1" class="primary image">
+        <td><strong>
+            <a href="horizontal-rule-vrl-002.xht">horizontal-rule-vrl-002</a></strong></td>
+        <td><a href="reference/horizontal-rule-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>horizontal rule - 'vertical-rl' and orthogonal flow
+          <ul class="assert">
+            <li>This test checks that an horizontal rule (&lt;hr&gt; element) in 'vertical-rl' writing-mode must be rendered as a vertical rule.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="horizontal-rule-vrl-004-7.1" class="primary">
+        <td><strong>
+            <a href="horizontal-rule-vrl-004.xht">horizontal-rule-vrl-004</a></strong></td>
+        <td><a href="reference/horizontal-rule-vrl-004-ref.xht">=</a> </td>
+        <td></td>
+        <td>horizontal rule - 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that an horizontal rule (&lt;hr&gt; element) with 'vertical-rl' writing-mode but inside an 'horizontal-tb' writing-mode context must be rendered as an horizontal rule.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-vlr-003-7.1" class="primary image">
+        <td><strong>
+            <a href="margin-vlr-003.xht">margin-vlr-003</a></strong></td>
+        <td><a href="reference/margin-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>margin in 'vertical-lr' writing-mode context
+          <ul class="assert">
+            <li>This test checks that margin-left, margin-right, margin-top and margin-bottom do not change in vertical writing-mode. The margin-left property of a box still affects the lefthand margin of such box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-vrl-002-7.1" class="primary image">
+        <td><strong>
+            <a href="margin-vrl-002.xht">margin-vrl-002</a></strong></td>
+        <td><a href="reference/margin-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>margin in 'vertical-rl' writing-mode context
+          <ul class="assert">
+            <li>This test checks that margin-left, margin-right, margin-top and margin-bottom do not change in vertical writing-mode. The margin-left property of a box still affects the lefthand margin of such box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="padding-vlr-005-7.1" class="primary image">
+        <td><strong>
+            <a href="padding-vlr-005.xht">padding-vlr-005</a></strong></td>
+        <td><a href="reference/margin-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>padding in 'vertical-lr' writing-mode context
+          <ul class="assert">
+            <li>This test checks that padding-left, padding-right, padding-top and padding-bottom do not change in vertical writing-mode. The padding-left property of a box still affects the lefthand padding of such box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="padding-vrl-004-7.1" class="primary image">
+        <td><strong>
+            <a href="padding-vrl-004.xht">padding-vrl-004</a></strong></td>
+        <td><a href="reference/margin-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>padding in 'vertical-rl' writing-mode context
+          <ul class="assert">
+            <li>This test checks that padding-left, padding-right, padding-top and padding-bottom do not change in vertical writing-mode. The padding-left property of a box still affects the lefthand padding of such box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-column-order-002-7.1" class="ahem">
+        <td>
+            <a href="table-column-order-002.xht">table-column-order-002</a></td>
+        <td><a href="reference/block-flow-direction-001-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'direction: rtl' - table columns order and vertical-rl
+          <ul class="assert">
+            <li>This test checks that a table with 'writing-mode' set to 'vertical-rl' and with 'direction' set to 'rtl' will have its column displayed from bottom (1st column) to top (last column). The inline base direction is still from top to bottom.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-column-order-003-7.1" class="ahem">
+        <td>
+            <a href="table-column-order-003.xht">table-column-order-003</a></td>
+        <td><a href="reference/block-flow-direction-001-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'direction: rtl' - table columns order and vertical-lr
+          <ul class="assert">
+            <li>This test checks that a table with 'writing-mode' set to 'vertical-lr' and with 'direction' set to 'rtl' will have its column displayed from bottom (1st column) to top (last column). The inline base direction is still from top to bottom.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-column-order-004-7.1" class="ahem">
+        <td>
+            <a href="table-column-order-004.xht">table-column-order-004</a></td>
+        <td><a href="reference/block-flow-direction-001-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'direction: rtl' - table columns order and vertical-rl
+          <ul class="assert">
+            <li>This test checks that colspanned cells in a table with 'direction' set to 'rtl' are handled according to a bottom-to-top column direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-column-order-005-7.1" class="ahem">
+        <td>
+            <a href="table-column-order-005.xht">table-column-order-005</a></td>
+        <td><a href="reference/block-flow-direction-001-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'direction: rtl' - table columns order and vertical-lr
+          <ul class="assert">
+            <li>This test checks that colspanned cells in a table with 'direction' set to 'rtl' are handled according to a bottom-to-top column direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-vlr-003-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vlr-003.xht">text-align-vlr-003</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: left' - 'vertical-lr' and 'direction: ltr'
+        </td>
+      </tr>
+      <tr id="text-align-vlr-005-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vlr-005.xht">text-align-vlr-005</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: left' - 'vertical-lr' and 'direction: rtl'
+          <ul class="assert">
+            <li>This test checks that 'text-align: left' aligns an inline box within a line box with respect to the line box's logical left side (line-left side). Here, 'direction: rtl' has no impact, no influence on such alignment.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-vlr-007-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vlr-007.xht">text-align-vlr-007</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: left' - 'vertical-lr' and initial, default 'direction'
+        </td>
+      </tr>
+      <tr id="text-align-vlr-009-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vlr-009.xht">text-align-vlr-009</a></strong></td>
+        <td><a href="reference/text-align-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: center' - 'vertical-lr' and 'direction: ltr'
+        </td>
+      </tr>
+      <tr id="text-align-vlr-011-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vlr-011.xht">text-align-vlr-011</a></strong></td>
+        <td><a href="reference/text-align-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: center' - 'vertical-lr' and 'direction: rtl'
+          <ul class="assert">
+            <li>This test checks that 'text-align: center' centers an inline box within a line box with respect to the line box's logical left and right sides (line-left and line-right sides).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-vlr-013-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vlr-013.xht">text-align-vlr-013</a></strong></td>
+        <td><a href="reference/text-align-vlr-009-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: center' - 'vertical-lr' and initial, default 'direction'
+        </td>
+      </tr>
+      <tr id="text-align-vlr-015-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vlr-015.xht">text-align-vlr-015</a></strong></td>
+        <td><a href="reference/direction-vlr-003-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: right' - 'vertical-lr' and 'direction: ltr'
+        </td>
+      </tr>
+      <tr id="text-align-vlr-017-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vlr-017.xht">text-align-vlr-017</a></strong></td>
+        <td><a href="reference/direction-vlr-003-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: right' - 'vertical-lr' and 'direction: rtl'
+          <ul class="assert">
+            <li>This test checks that 'text-align: right' aligns an inline box within a line box with respect to the line box's logical right side (line-right side). Here, 'direction: rtl' has no impact, no influence on such alignment.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-vlr-019-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vlr-019.xht">text-align-vlr-019</a></strong></td>
+        <td><a href="reference/direction-vlr-003-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: right' - 'vertical-lr' and initial, default 'direction'
+          <ul class="assert">
+            <li>This test checks that 'text-align: right' aligns an inline box within a line box with respect to such line box's logical right side (line-right side).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-vrl-002-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vrl-002.xht">text-align-vrl-002</a></strong></td>
+        <td><a href="reference/direction-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: left' - 'vertical-rl' and 'direction: ltr'
+          <ul class="assert">
+            <li>This test checks that 'text-align: left' aligns an inline box within a line box with respect to such line box's logical left side (line-left side).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-vrl-004-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vrl-004.xht">text-align-vrl-004</a></strong></td>
+        <td><a href="reference/direction-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: left' - 'vertical-rl' and 'direction: rtl'
+          <ul class="assert">
+            <li>This test checks that 'text-align: left' aligns an inline box within a line box with respect to the line box's logical left side (line-left side). Here, 'direction: rtl' has no impact, no influence on such alignment.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-vrl-006-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vrl-006.xht">text-align-vrl-006</a></strong></td>
+        <td><a href="reference/direction-vrl-004-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: left' - 'vertical-rl' and initial, default 'direction'
+          <ul class="assert">
+            <li>This test checks that 'text-align: left' aligns an inline box within a line box with respect to such line box's logical left side (line-left side).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-vrl-008-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vrl-008.xht">text-align-vrl-008</a></strong></td>
+        <td><a href="reference/text-align-vrl-008-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: center' - 'vertical-rl' and 'direction: ltr'
+          <ul class="assert">
+            <li>This test checks that 'text-align: center' centers an inline box within a line box with respect to such line box's logical left and right sides (line-left and line-right sides).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-vrl-010-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vrl-010.xht">text-align-vrl-010</a></strong></td>
+        <td><a href="reference/text-align-vrl-008-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: center' - 'vertical-rl' and 'direction: rtl'
+          <ul class="assert">
+            <li>This test checks that 'text-align: center' centers an inline box within a line box with respect to the line box's logical left and right sides (line-left and line-right sides).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-vrl-012-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vrl-012.xht">text-align-vrl-012</a></strong></td>
+        <td><a href="reference/text-align-vrl-008-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: center' - 'vertical-rl' and initial, default 'direction'
+          <ul class="assert">
+            <li>This test checks that 'text-align: center' centers an inline box within a line box with respect to the line box's logical left and right sides (line-left and line-right sides).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-vrl-014-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vrl-014.xht">text-align-vrl-014</a></strong></td>
+        <td><a href="reference/direction-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: right' - 'vertical-rl' and 'direction: ltr'
+          <ul class="assert">
+            <li>This test checks that 'text-align: right' aligns an inline box within a line box with respect to such line box's logical right side (line-right side).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-vrl-016-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vrl-016.xht">text-align-vrl-016</a></strong></td>
+        <td><a href="reference/direction-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: right' - 'vertical-rl' and 'direction: rtl'
+          <ul class="assert">
+            <li>This test checks that 'text-align: right' aligns an inline box within a line box with respect to the line box's logical right side (line-right side). Here, 'direction: rtl' has no impact, no influence on such alignment.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-align-vrl-018-7.1" class="primary ahem image">
+        <td><strong>
+            <a href="text-align-vrl-018.xht">text-align-vrl-018</a></strong></td>
+        <td><a href="reference/direction-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'text-align: right' - 'vertical-rl' and initial, default 'direction'
+          <ul class="assert">
+            <li>This test checks that 'text-align: right' aligns an inline box within a line box with respect to such line box's logical right side (line-right side).</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s7.2">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.2">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#dimension-mapping">7.2 Dimensional Mapping</a></th></tr>
+      <!-- 12 tests -->
+      <tr id="border-spacing-vlr-003-7.2" class="primary ahem">
+        <td><strong>
+            <a href="border-spacing-vlr-003.xht">border-spacing-vlr-003</a></strong></td>
+        <td><a href="reference/border-spacing-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>border-spacing - first value is specified and non-zero in 'vertical-lr' table
+          <ul class="assert">
+            <li>This test checks that first value of 'border-spacing' represents, from top to bottom, a) spacing between logical table left padding (physical table top padding) and leftmost cells and b) inter-column spacing and c) spacing between rightmost cells and logical table right padding (physical table bottom padding).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-spacing-vlr-005-7.2" class="primary ahem">
+        <td><strong>
+            <a href="border-spacing-vlr-005.xht">border-spacing-vlr-005</a></strong></td>
+        <td><a href="reference/border-spacing-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>border-spacing - second value is specified and non-zero in 'vertical-lr' table
+          <ul class="assert">
+            <li>This test checks that second value of 'border-spacing' represents, from left to right, a) spacing between logical table top padding (physical table left padding) and topmost cells and b) inter-row spacing and c) spacing between bottommost cells and logical table bottom padding (physical table right padding).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-spacing-vrl-002-7.2" class="primary ahem">
+        <td><strong>
+            <a href="border-spacing-vrl-002.xht">border-spacing-vrl-002</a></strong></td>
+        <td><a href="reference/border-spacing-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>border-spacing - first value is specified and non-zero in 'vertical-rl' table
+          <ul class="assert">
+            <li>This test checks that first value of 'border-spacing' represents, from top to bottom, a) spacing between logical table right padding (physical table top padding) and rightmost cells and b) inter-column spacing and c) spacing between leftmost cells and logical table left padding (physical table bottom padding).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-spacing-vrl-004-7.2" class="primary ahem">
+        <td><strong>
+            <a href="border-spacing-vrl-004.xht">border-spacing-vrl-004</a></strong></td>
+        <td><a href="reference/border-spacing-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>border-spacing - second value is specified and non-zero in 'vertical-rl' table
+          <ul class="assert">
+            <li>This test checks that second value of 'border-spacing' represents, from right to left, a) spacing between logical table top padding (physical table right padding) and topmost cells and b) inter-row spacing and c) between bottommost cells and logical table bottom padding (physical table left padding).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="percent-margin-vlr-003-7.2" class="primary image">
+        <td><strong>
+            <a href="percent-margin-vlr-003.xht">percent-margin-vlr-003</a></strong></td>
+        <td><a href="reference/margin-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>margin percentage and 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that percentages on the margin are calculated with respect to the width of the containing block if the 'writing-mode' of such containing block is 'horizontal-tb'. In this test, div.outer's computed 'writing-mode' value is 'horizontal-tb' and it is the div.inner's containing block.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="percent-margin-vlr-005-7.2" class="primary image">
+        <td><strong>
+            <a href="percent-margin-vlr-005.xht">percent-margin-vlr-005</a></strong></td>
+        <td><a href="reference/margin-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>margin percentage and 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that percentages on the margin are calculated with respect to the height of the containing block if the 'writing-mode' of such containing block is 'vertical-lr'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="percent-margin-vrl-002-7.2" class="primary image">
+        <td><strong>
+            <a href="percent-margin-vrl-002.xht">percent-margin-vrl-002</a></strong></td>
+        <td><a href="reference/margin-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>margin percentage and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that percentages on the margin are calculated with respect to the width of the containing block if 'writing-mode' of such containing block is 'horizontal-tb'. In this test, div.outer's computed 'writing-mode' value is 'horizontal-tb' and it is the div.inner's containing block.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="percent-margin-vrl-004-7.2" class="primary image">
+        <td><strong>
+            <a href="percent-margin-vrl-004.xht">percent-margin-vrl-004</a></strong></td>
+        <td><a href="reference/margin-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>margin percentage and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that percentages on the margin are calculated with respect to the height of the containing block if the 'writing-mode' of such containing block is 'vertical-rl'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="percent-padding-vlr-003-7.2" class="primary image">
+        <td><strong>
+            <a href="percent-padding-vlr-003.xht">percent-padding-vlr-003</a></strong></td>
+        <td><a href="reference/margin-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>padding percentage and 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that percentages on the padding are calculated with respect to the width of the containing block if 'writing-mode' of such containing block is 'horizontal-tb'. In this test, div.outer's computed 'writing-mode' value is 'horizontal-tb' and it is the div.inner's containing block.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="percent-padding-vlr-005-7.2" class="primary image">
+        <td><strong>
+            <a href="percent-padding-vlr-005.xht">percent-padding-vlr-005</a></strong></td>
+        <td><a href="reference/margin-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>padding percentage and 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that percentages on the padding are calculated with respect to the height of the containing block if the 'writing-mode' of such containing block is 'vertical-lr'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="percent-padding-vrl-002-7.2" class="primary image">
+        <td><strong>
+            <a href="percent-padding-vrl-002.xht">percent-padding-vrl-002</a></strong></td>
+        <td><a href="reference/margin-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>padding percentage and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that percentages on the padding are calculated with respect to the width of the containing block if the 'writing-mode' of such containing block is 'horizontal-tb'. In this test, div.outer's computed 'writing-mode' value is 'horizontal-tb' and it is the div.inner's containing block.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="percent-padding-vrl-004-7.2" class="primary image">
+        <td><strong>
+            <a href="percent-padding-vrl-004.xht">percent-padding-vrl-004</a></strong></td>
+        <td><a href="reference/margin-vrl-002-ref.xht">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>padding percentage and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that percentages on the padding are calculated with respect to the height of the containing block if the 'writing-mode' of such containing block is 'vertical-rl'.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s7.3">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.3">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#orthogonal-flows">7.3 Orthogonal Flows</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.#establish-an-orthogonal-flow-">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.1">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.3.1">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#orthogonal-auto">7.3.1 Auto-sizing in Orthogonal Flows</a></th></tr>
+      <!-- 4 tests -->
+      <tr id="height-auto-non-replaced-block-vlr-003-7.3.1" class="primary scroll">
+        <td><strong>
+            <a href="height-auto-non-replaced-block-vlr-003.xht">height-auto-non-replaced-block-vlr-003</a></strong></td>
+        <td></td>
+        <td><abbr class="scroll" title="Only valid for continuous media">Scroll</abbr></td>
+        <td>'height: auto' - non-replaced block in orthogonal flow ('vertical-lr')
+          <ul class="assert">
+            <li>This test checks that the initial containing block's height (which is the size of viewport height) is used for determination of a block's measure (inline-size) in orthogonal flow when such measure is 'auto'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="height-auto-non-replaced-block-vlr-005-7.3.1" class="primary scroll">
+        <td><strong>
+            <a href="height-auto-non-replaced-block-vlr-005.xht">height-auto-non-replaced-block-vlr-005</a></strong></td>
+        <td></td>
+        <td><abbr class="scroll" title="Only valid for continuous media">Scroll</abbr></td>
+        <td>'height: auto' - non-replaced block in orthogonal flow ('vertical-rl')
+          <ul class="assert">
+            <li>This test checks that the initial containing block's height (which is the size of viewport height) is used for determination of a block's measure (inline-size) in orthogonal flow when such measure is 'auto'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="height-auto-non-replaced-block-vrl-002-7.3.1" class="primary scroll">
+        <td><strong>
+            <a href="height-auto-non-replaced-block-vrl-002.xht">height-auto-non-replaced-block-vrl-002</a></strong></td>
+        <td></td>
+        <td><abbr class="scroll" title="Only valid for continuous media">Scroll</abbr></td>
+        <td>'height: auto' - non-replaced block in orthogonal flow ('vertical-rl')
+          <ul class="assert">
+            <li>This test checks that the initial containing block's height (which is the size of viewport height) is used for determination of a block's measure (inline-size) in orthogonal flow when such measure is 'auto'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="height-auto-non-replaced-block-vrl-004-7.3.1" class="primary scroll">
+        <td><strong>
+            <a href="height-auto-non-replaced-block-vrl-004.xht">height-auto-non-replaced-block-vrl-004</a></strong></td>
+        <td></td>
+        <td><abbr class="scroll" title="Only valid for continuous media">Scroll</abbr></td>
+        <td>'height: auto' - non-replaced block in orthogonal flow ('vertical-rl')
+          <ul class="assert">
+            <li>This test checks that the initial containing block's height (which is the size of viewport height) is used for determination of a block's measure (inline-size) in orthogonal flow when such measure is 'auto'.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s7.3.2">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.3.2">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#auto-multicol">7.3.2 Auto-sizing Block Containers in Orthogonal Flows</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.3">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.3.3">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#orthogonal-layout">7.3.3 Auto-sizing Orthogonal Flows</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.3.4">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.3.4">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#orthogonal-pagination">7.3.4 Fragmenting Orthogonal Flows</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.4">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.4">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#logical-direction-layout">7.4 Flow-Relative Mappings</a></th></tr>
+      <!-- 20 tests -->
+      <tr id="margin-collapse-vlr-003-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vlr-003.xht">margin-collapse-vlr-003</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-lr' and margin collapsing - maximum of 2 adjoining margins
+          <ul class="assert">
+            <li>This test checks that margin-end and margin-start of adjacent blocks collapse into its maximum in 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vlr-009-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vlr-009.xht">margin-collapse-vlr-009</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-lr' and margin collapsing - adjoining margins of non-siblings or ancestors
+          <ul class="assert">
+            <li>This test checks that adjoining margin-end and margin-start boxes generated by elements, that are not related by siblings or ancestors, collapse in 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vlr-011-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vlr-011.xht">margin-collapse-vlr-011</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-lr' and margin collapsing - floated elements do not collapse margins
+          <ul class="assert">
+            <li>This test checks that margin-end of floated box does not collapse with the margin-start of a preceding block box in 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vlr-015-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vlr-015.xht">margin-collapse-vlr-015</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-lr' and margin collapsing - elements with 'overflow' set to 'visible'
+          <ul class="assert">
+            <li>This test checks that elements with 'overflow' set to 'visible' collapse margin with in-flow children in 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vlr-017-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vlr-017.xht">margin-collapse-vlr-017</a></strong></td>
+        <td><a href="reference/ref-if-there-is-no-red.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-lr' and margin collapsing - elements with 'overflow' set to 'hidden'
+          <ul class="assert">
+            <li>This test checks that elements with 'overflow' set to 'hidden' do not collapse margin with in-flow children in 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vlr-023-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vlr-023.xht">margin-collapse-vlr-023</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-lr' and margin collapsing - absolute positioning and siblings
+          <ul class="assert">
+            <li>This test checks that absolutely positioned boxes do not collapse margins with siblings in 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vlr-025-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vlr-025.xht">margin-collapse-vlr-025</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-lr' and margin collapsing - collapse through empty siblings
+          <ul class="assert">
+            <li>This test checks that margins can collapse through empty elements in 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vlr-031-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vlr-031.xht">margin-collapse-vlr-031</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-lr' and margin collapsing - collapse through sibling
+          <ul class="assert">
+            <li>This test checks that horizontal margins of boxes can collapse through a sibling box whose left and right margins collapse in 'vertical-lr' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vlr-035-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vlr-035.xht">margin-collapse-vlr-035</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-lr' and margin collapsing - left margin of a block collapses with left margin of its first child
+          <ul class="assert">
+            <li>This test checks that, in a vertical-lr context, the left margin an in-flow block element collapses with its first in-flow block-level child's left margin if the element has no top border, no top padding, and the child has no clearance.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vlr-037-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vlr-037.xht">margin-collapse-vlr-037</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-lr' and margin collapsing - right margin of a block collapses with right margin of its last child
+          <ul class="assert">
+            <li>This test checks that, in a vertical-lr context, the right margin an in-flow block box collapses with its last in-flow block-level child's right margin if the element has no right padding and no right border and the child's right margin does not collapse with a left margin that has clearance.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vrl-002-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vrl-002.xht">margin-collapse-vrl-002</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-rl' and margin collapsing - maximum of 2 adjoining margins
+          <ul class="assert">
+            <li>This test checks that margin-end and margin-start of adjacent blocks collapse into its maximum in 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vrl-008-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vrl-008.xht">margin-collapse-vrl-008</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-rl' and margin collapsing - adjoining margins of non-siblings or ancestors
+          <ul class="assert">
+            <li>This test checks that adjoining margin-end and margin-start boxes generated by elements, that are not related by siblings or ancestors, collapse in 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vrl-010-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vrl-010.xht">margin-collapse-vrl-010</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-rl' and margin collapsing - floated elements do not collapse margins
+          <ul class="assert">
+            <li>This test checks that margin-start of floated box does not collapse with the margin-end of a preceding block box in 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vrl-014-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vrl-014.xht">margin-collapse-vrl-014</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-rl' and margin collapsing - elements with 'overflow' set to 'visible'
+          <ul class="assert">
+            <li>This test checks that elements with 'overflow' set to 'visible' collapse margin with in-flow children in 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vrl-016-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vrl-016.xht">margin-collapse-vrl-016</a></strong></td>
+        <td><a href="reference/ref-if-there-is-no-red.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-rl' and margin collapsing - elements with 'overflow' set to 'hidden'
+          <ul class="assert">
+            <li>This test checks that elements with 'overflow' set to 'hidden' do not collapse margin with in-flow children in 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vrl-022-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vrl-022.xht">margin-collapse-vrl-022</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-rl' and margin collapsing - absolute positioning and siblings
+          <ul class="assert">
+            <li>This test checks that absolutely positioned boxes do not collapse margins with siblings in 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vrl-024-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vrl-024.xht">margin-collapse-vrl-024</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-rl' and margin collapsing - collapse through empty siblings
+          <ul class="assert">
+            <li>This test checks that margins can collapse through empty elements in 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vrl-030-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vrl-030.xht">margin-collapse-vrl-030</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-rl' and margin collapsing - collapse through sibling
+          <ul class="assert">
+            <li>This test checks that horizontal margins of boxes can collapse through a sibling box whose left and right margins collapse in 'vertical-rl' writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vrl-034-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vrl-034.xht">margin-collapse-vrl-034</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-rl' and margin collapsing - right margin of a block collapses with right margin of its first child
+          <ul class="assert">
+            <li>This test checks that, in a vertical-rl context, the right margin an in-flow block box collapses with its first in-flow block-level child's right margin if the element has no top border, no top padding, and the child has no clearance.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="margin-collapse-vrl-036-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="margin-collapse-vrl-036.xht">margin-collapse-vrl-036</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'vertical-rl' and margin collapsing - left margin of a block collapses with left margin of its last child
+          <ul class="assert">
+            <li>This test checks that, in a vertical-rl context, the left margin an in-flow block box collapses with its last in-flow block-level child's left margin if the element has no left padding and no left border and the child's left margin does not collapse with a right margin that has clearance.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s7.5">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.5">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#line-mappings">7.5 Line-Relative Mappings</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.6">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.6">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#physical-only">7.6 Purely Physical Mappings</a></th></tr>
+      <!-- 16 tests -->
+      <tr id="background-position-vlr-003-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vlr-003.xht">background-position-vlr-003</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: left top' and 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that 'background-position: left top' will make background-image start at upper left corner of page (even in case there is an horizontal resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vlr-005-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vlr-005.xht">background-position-vlr-005</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: left bottom' and 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that 'background-position: left bottom' will make background-image start at lower right corner of page (even in case there is an horizontal resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vlr-007-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vlr-007.xht">background-position-vlr-007</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: right top' and 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that 'background-position: right top' will make background-image start at upper right corner of page (even in case there is an horizontal resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vlr-009-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vlr-009.xht">background-position-vlr-009</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: right bottom' and 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that 'background-position: right bottom' will make background-image start at lower right corner of page (even in case there is resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vlr-011-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vlr-011.xht">background-position-vlr-011</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: left top' and 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that 'background-position: left top' will make background-image start at upper left corner of page (even in case there is resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vlr-013-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vlr-013.xht">background-position-vlr-013</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: left bottom' and 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that 'background-position: left bottom' will make background-image start at lower left corner of page (even in case there is resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vlr-015-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vlr-015.xht">background-position-vlr-015</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: right top' and 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that 'background-position: right top' will make background-image start at upper right corner of page (even in case there is resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vlr-017-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vlr-017.xht">background-position-vlr-017</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: right bottom' and 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that 'background-position: right bottom' will make background-image start at lower right corner of page (even in case there is resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vrl-002-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vrl-002.xht">background-position-vrl-002</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: left top' and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that 'background-position: left top' will make background-image start at upper left corner of page (even in case there is an horizontal resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vrl-004-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vrl-004.xht">background-position-vrl-004</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: left bottom' and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that 'background-position: left bottom' will make background-image start at lower left corner of page (even in case there is an horizontal resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vrl-006-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vrl-006.xht">background-position-vrl-006</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: right top' and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that 'background-position: right top' will make background-image start at upper right corner of page (even in case there is an horizontal resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vrl-008-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vrl-008.xht">background-position-vrl-008</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: right bottom' and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that 'background-position: right bottom' will make background-image start at lower right corner of page (even in case there is resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vrl-010-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vrl-010.xht">background-position-vrl-010</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: left top' and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that 'background-position: left top' will make background-image start at upper left corner of page (even in case there is resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vrl-012-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vrl-012.xht">background-position-vrl-012</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: left bottom' and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that 'background-position: left bottom' will make background-image start at lower left corner of page (even in case there is resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vrl-014-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vrl-014.xht">background-position-vrl-014</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: right top' and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that 'background-position: right top' will make background-image start at upper right corner of page (even in case there is resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-position-vrl-016-7.6" class="primary image interact">
+        <td><strong>
+            <a href="background-position-vrl-016.xht">background-position-vrl-016</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>'background-position: right bottom' and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that 'background-position: right bottom' will make background-image start at lower right corner of page (even in case there is resizing of the window) because background properties should not be affected by vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s7.7">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s7.7">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#caption-side">7.7 Table Caption Mappings: the caption-side keywords</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.7.#valuedef-block-end">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.7.#valuedef-block-start">
+      <!-- 0 tests -->
+    </tbody>
+  </table>
+
+ </body>
+</html>

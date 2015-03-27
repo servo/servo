@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: @import following garbage</title>
+        <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#at-rules">
+        <meta name="flags" content="invalid">
+        <meta name="assert" content="@import is parsed as part of invalid ruleset           after garbage.">
+        <style type="text/css">
+           # :unknownpseudo
+           @import "support/import-red.css";
+           .import { color: red; }
+           p { color: green; }
+        </style>
+    </head>
+    <body>
+        <p class="import">This sentence must be green.</p>
+    </body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: Inline-tables with and without the optional caption</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-display">
+        <meta name="flags" content="may">
+        <meta name="assert" content="A caption on an inline-table is optional - an inline table can be rendered with or without it.">
+        <style type="text/css">
+            .table
+            {
+                display: inline-table;
+            }
+            .caption
+            {
+                display: table-caption;
+            }
+            .tr
+            {
+                display: table-row;
+            }
+            .td
+            {
+                background: black;
+                display: table-cell;
+                height: 50px;
+                width: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the left square below has "Filler Text" directly above it and the square on the right does not.</p>
+        <div>
+            <span class="table">
+                <span class="caption">Filler Text</span>
+                <span class="tr">
+                    <span class="td"></span>
+                    <span class="td"></span>
+                </span>
+                <span class="tr">
+                    <span class="td"></span>
+                    <span class="td"></span>
+                </span>
+            </span>
+            &nbsp;&nbsp;
+            <span class="table">
+                <span class="tr">
+                    <span class="td"></span>
+                    <span class="td"></span>
+                </span>
+                <span class="tr">
+                    <span class="td"></span>
+                    <span class="td"></span>
+                </span>
+            </span>
+        </div>
+    </body>
+ </html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>lower-roman, outside range</title>
+<link href="mailto:ishida@w3.org" rel="author" title="Richard Ishida">
+<link href="http://www.w3.org/TR/css-counter-styles-3/#simple-numeric" rel="help">
+<link href="mailto:chris@w3.org" rel="reviewer" title="Chris Lilley">
+<meta content="font" name="flags">
+<meta content="With list-style-type set to lower-roman, list markers above the limit specified in CSS3 will be rendered in the fallback counter style." name="assert">
+<style type="text/css">
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: lower-roman;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol start="3999"><li title="3999">mmmcmxcix.</li></ol>
+<ol start="4000"><li title="4000">4000.</li></ol>
+<ol start="4001"><li title="4001">4001.</li></ol>
+<ol start="4002"><li title="4002">4002.</li></ol>
+</div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+
+
+</body></html>

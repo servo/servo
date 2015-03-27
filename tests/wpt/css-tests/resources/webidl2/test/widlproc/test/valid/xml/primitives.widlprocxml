@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>interface Primitives {
+  attribute boolean truth;
+  attribute byte character;
+  attribute octet value;
+  attribute short number;
+  attribute unsigned short positive;
+  attribute long big;
+  attribute unsigned long bigpositive;
+  attribute long long bigbig;
+  attribute  unsigned long long bigbigpositive;
+  attribute float real;
+  attribute double bigreal; 
+  attribute unrestricted float realwithinfinity;
+  attribute unrestricted double bigrealwithinfinity; 
+  attribute DOMString string; 
+  attribute ByteString bytes; 
+  attribute Date date;
+  attribute RegExp regexp;
+};</webidl>
+  <Interface name="Primitives" id="::Primitives">
+    <webidl>interface Primitives {
+  attribute boolean truth;
+  attribute byte character;
+  attribute octet value;
+  attribute short number;
+  attribute unsigned short positive;
+  attribute long big;
+  attribute unsigned long bigpositive;
+  attribute long long bigbig;
+  attribute  unsigned long long bigbigpositive;
+  attribute float real;
+  attribute double bigreal; 
+  attribute unrestricted float realwithinfinity;
+  attribute unrestricted double bigrealwithinfinity; 
+  attribute DOMString string; 
+  attribute ByteString bytes; 
+  attribute Date date;
+  attribute RegExp regexp;
+};</webidl>
+    <Attribute name="truth" id="::Primitives::truth">
+      <webidl>  attribute boolean truth;</webidl>
+      <Type type="boolean"/>
+    </Attribute>
+    <Attribute name="character" id="::Primitives::character">
+      <webidl>  attribute byte character;</webidl>
+      <Type type="byte"/>
+    </Attribute>
+    <Attribute name="value" id="::Primitives::value">
+      <webidl>  attribute octet value;</webidl>
+      <Type type="octet"/>
+    </Attribute>
+    <Attribute name="number" id="::Primitives::number">
+      <webidl>  attribute short number;</webidl>
+      <Type type="short"/>
+    </Attribute>
+    <Attribute name="positive" id="::Primitives::positive">
+      <webidl>  attribute unsigned short positive;</webidl>
+      <Type type="unsigned short"/>
+    </Attribute>
+    <Attribute name="big" id="::Primitives::big">
+      <webidl>  attribute long big;</webidl>
+      <Type type="long"/>
+    </Attribute>
+    <Attribute name="bigpositive" id="::Primitives::bigpositive">
+      <webidl>  attribute unsigned long bigpositive;</webidl>
+      <Type type="unsigned long"/>
+    </Attribute>
+    <Attribute name="bigbig" id="::Primitives::bigbig">
+      <webidl>  attribute long long bigbig;</webidl>
+      <Type type="long long"/>
+    </Attribute>
+    <Attribute name="bigbigpositive" id="::Primitives::bigbigpositive">
+      <webidl>  attribute  unsigned long long bigbigpositive;</webidl>
+      <Type type="unsigned long long"/>
+    </Attribute>
+    <Attribute name="real" id="::Primitives::real">
+      <webidl>  attribute float real;</webidl>
+      <Type type="float"/>
+    </Attribute>
+    <Attribute name="bigreal" id="::Primitives::bigreal">
+      <webidl>  attribute double bigreal;</webidl>
+      <Type type="double"/>
+    </Attribute>
+    <Attribute name="realwithinfinity" id="::Primitives::realwithinfinity">
+      <webidl>  attribute unrestricted float realwithinfinity;</webidl>
+      <Type type="unrestricted float"/>
+    </Attribute>
+    <Attribute name="bigrealwithinfinity" id="::Primitives::bigrealwithinfinity">
+      <webidl>  attribute unrestricted double bigrealwithinfinity;</webidl>
+      <Type type="unrestricted double"/>
+    </Attribute>
+    <Attribute name="string" id="::Primitives::string">
+      <webidl>  attribute DOMString string;</webidl>
+      <Type type="DOMString"/>
+    </Attribute>
+    <Attribute name="bytes" id="::Primitives::bytes">
+      <webidl>  attribute ByteString bytes;</webidl>
+      <Type type="ByteString"/>
+    </Attribute>
+    <Attribute name="date" id="::Primitives::date">
+      <webidl>  attribute Date date;</webidl>
+      <Type type="Date"/>
+    </Attribute>
+    <Attribute name="regexp" id="::Primitives::regexp">
+      <webidl>  attribute RegExp regexp;</webidl>
+      <Type type="RegExp"/>
+    </Attribute>
+  </Interface>
+</Definitions>

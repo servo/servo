@@ -1,0 +1,7 @@
+{"tests": [
+
+{"description": "invalid style scoped attribute value 'inherit'",
+"input": "<style scoped=inherit>",
+"fail-unless": "invalid-boolean-value"}
+
+]}

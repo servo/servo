@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+        <title>Shape Outside Shape Number Values</title>
+        <link href="http://html.adobe.com/" rel="author" title="Adobe" />
+        <link href="mailto:betravis@adobe.com" rel="author" title="Bear Travis" />
+        <link href="mailto:stearns@adobe.com" rel="reviewer" title="Alan Stearns" /> <!-- 2014-03-04 -->
+        <link href="http://www.w3.org/TR/css-shapes-1/#typedef-basic-shape" rel="help" />
+        <link href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property" rel="help" />
+        <link href="http://www.w3.org/TR/cssom/#serializing-css-values" rel="help" />
+        <meta content="The basic shape can contain all valid number formats" name="assert" />
+        <meta content="dom" name="flags" />
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/parsing-utils.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script type="text/javascript">
+            // number forms: d, +d, -d, .d, +.d, -.d, d.d, +d.d, -d.d
+            var shape_number_values_tests = [
+                {
+                  "name": "Positive number variations",
+                  "actual": "polygon(nonzero, 1px +2px, .3px +.4px, 5.5px +6.6px)",
+                  "expected_inline": "polygon(1px 2px, 0.3px 0.4px, 5.5px 6.6px)",
+                  "expected_computed": "polygon(1px 2px, 0.3px 0.4px, 5.5px 6.6px)"
+                },
+                {
+                  "name": "Negative number variations",
+                  "actual": "polygon(nonzero, -1px -.2px, -1.1px 0px)",
+                  "expected_inline": "polygon(-1px -0.2px, -1.1px 0px)",
+                  "expected_computed": "polygon(-1px -0.2px, -1.1px 0px)"
+                }
+            ];
+            generate_tests( ParsingUtils.testInlineStyle,
+                            ParsingUtils.buildTestCases(shape_number_values_tests, "inline") );
+            generate_tests( ParsingUtils.testComputedStyle,
+                            ParsingUtils.buildTestCases(shape_number_values_tests, "computed") );
+        </script>
+    
+
+</body></html>

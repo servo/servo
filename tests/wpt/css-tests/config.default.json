@@ -1,0 +1,22 @@
+{"host": "web-platform.test",
+ "external_host": null,
+ "ports":{"http":[8000, "auto"],
+          "https":[8443],
+          "ws":["auto"]},
+ "check_subdomains": true,
+ "log_level":"debug",
+ "bind_hostname": true,
+ "ssl": {"type": "openssl",
+         "encrypt_after_connect": false,
+         "openssl": {
+             "openssl_binary": "openssl",
+             "base_path": "_certs",
+             "force_regenerate": false
+         },
+         "pregenerated": {
+             "host_key_path": null,
+             "host_cert_path": null
+         },
+         "none": {}
+        }
+}

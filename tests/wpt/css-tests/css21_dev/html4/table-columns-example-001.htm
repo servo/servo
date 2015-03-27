@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: Table columns - Emulating the HTML table 'rules' attribute on columns</title>
+        <link rel="author" title="W3C" href="http://www.w3c.org">
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#columns">
+        <meta name="flags" content="">
+        <meta name="assert" content="CSS can be used to emmulate the HTML 'rules = cols' attribute (example from section 17.3).">
+        <style type="text/css">
+            .t1
+            {
+                border-collapse: collapse;
+                border-style: hidden;
+            }
+            .col1
+            {
+                border-style: none solid;
+            }
+            td
+            {
+                height: 2em;
+                width: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <table class="t1">
+            <col class="col1">
+            <col class="col1">
+            <col class="col1">
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+        <p>Test passes if the vertical lines above this text match the vertical lines below this text (differing only in boldness).</p>
+        <table rules="cols">
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

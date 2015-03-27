@@ -1,0 +1,97 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+  <title>CSS Test: vertical baseline alignment of an element with 'display' set to 'inline-table' with a 'border-bottom' and with a first row made of empty cells</title>
+
+  <!--
+  Inspired by
+  http://test.csswg.org/suites/css2.1/nightly-unstable/html4/margin-applies-to-014.htm
+  http://test.csswg.org/suites/css2.1/nightly-unstable/html4/border-bottom-width-applies-to-014.htm
+  and
+  http://lists.w3.org/Archives/Public/public-css-testsuite/2012Aug/0040.html
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <!--
+  Credits must go to Anton Prowse for answering an accurate
+  question with regards to this test.
+  -->
+  <link rel="bookmark" href="http://lists.w3.org/Archives/Public/www-style/2012Sep/0270.html" title="[CSS21] baseline of an inline-table question" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" title="10.8.1 Leading and half-leading" />
+  <link rel="match" href="reference/inline-table-valign-002-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+  <meta name="assert" content="The baseline of an 'inline-table' is the baseline of the first row of the table. If the content of cells in such first row are empty, then the baseline of such first row coincides with the bottom edge of the content box of cells." />
+
+  <style type="text/css"><![CDATA[
+  p#ahem-font-required-for-test
+  {
+  background-color: red;
+  color: white;
+  display: inline;
+  font: 1.25em/1 Ahem, serif;
+  /*
+  To download Ahem font:
+  http://www.w3.org/Style/CSS/Test/Fonts/Ahem/
+  */
+  }
+
+  div#wrapper
+  {
+  border-bottom: blue solid 10px;
+  font: 3.125em/1 Ahem;
+  /*
+  equivalent to font-size: 50px with a line-box of 50px;
+  50px was chosen so that É, which sits on the
+  baseline, is 0.8 times 50px == 40px;
+  */
+
+  /*
+  "
+  'É' U+00C9
+  A rectangle exactly 0.8em high, 1em wide, and aligned so
+  that its bottom is flush with the baseline.
+  "
+  http://www.w3.org/Style/CSS/Test/Fonts/Ahem/
+  */
+  }
+
+  div#inline-table
+  {
+  border-bottom: orange solid 40px;
+  display: inline-table;
+  margin-left: -200px; /* set to 0 to debug */
+  margin-right: -200px; /* set to 0 to debug */
+  vertical-align: baseline;
+  }
+
+  div#row {display: table-row;}
+
+  div.cell
+  {
+  display: table-cell;
+  height: 40px;
+  width: 100px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p id="ahem-font-required-for-test">Ahem_font_required_for_this_test</p>
+
+  <p>Test passes if the following 5 conditions are met: there is a black stripe, there is an orange stripe, there is a blue line, the black stripe's bottom is touching the top of the orange stripe and the orange stripe's bottom is touching the top of the blue line.</p>
+
+  <div id="wrapper">
+    ÉÉÉÉ<div id="inline-table">
+       <div id="row">
+           <div class="cell"></div><div class="cell"></div>
+       </div>
+    </div>ÉÉÉÉ
+  </div>
+
+ </body>
+</html>

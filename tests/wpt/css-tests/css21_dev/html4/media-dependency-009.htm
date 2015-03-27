@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: Matching the 'All' target medium</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/media.html">
+        <meta name="flags" content="">
+        <meta name="assert" content="The 'all' media type applies to the screen medium.">
+        <style type="text/css">
+            @media all
+            {
+                div
+                {
+                    color: green;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

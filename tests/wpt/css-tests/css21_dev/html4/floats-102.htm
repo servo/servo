@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+ <head>
+  <title>CSS Test: CSS Floats: Nested floats (some inline content before nested float)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch">
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/002-demo.html" type="text/html">
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats">
+  <style type="text/css">
+   div { border: 1px solid teal; padding: 4px; margin: 4px; }
+   .left { float: left; }
+   .right { float: right; }
+   .size { width: 150px; height: 150px; }
+  </style>
+ </head>
+ <body>
+
+  <p>The content before should be to the right of the inner square,
+     and both it and the inner square should be surrounded by an outer box.</p>
+
+  <div class="left">content before <div class="size left"></div></div>
+
+ </body>
+</html>

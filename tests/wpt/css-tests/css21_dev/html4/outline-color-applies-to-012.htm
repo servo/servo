@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: Outline-color applied to element with display inline-block</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-outline-color">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines">
+        <meta name="flags" content="">
+        <meta name="assert" content="The 'outline-color' property applies to elements with a display of inline-block.">
+        <style type="text/css">
+            div
+            {
+                display: inline-block;
+                height: 1in;
+                outline-color: blue;
+                outline-style: solid;
+                outline-width: 10px;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the box below is blue.</p>
+        <div></div>
+    </body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: border</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#border"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   p { color: blue; padding: 1em; }
+   .one {border: orange solid;}
+   .three {border: thick orange outset;}
+   .four {border: thick orange inset;}
+   .two {border: 10px orange ridge;}
+   .six {border: 10px orange double;}
+   .five {border: 10px red;}
+   .seven {border: left red solid;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-properties" title="8.5 Border properties"/>
+ </head>
+ <body>
+  <p>The borders should be as described.</p>
+  <p class="one">
+   Orange and solid.
+  </p>
+  <p class="three">
+   Orange and outset.
+  </p>
+  <p class="four">
+   Orange and inset.
+  </p>
+  <p class="two">
+   Orange and ridged.
+  </p>
+  <p class="six">
+   Orange and double.
+  </p>
+  <p class="five">
+   No border.
+  </p>
+  <p class="seven">
+   No border.
+  </p>
+  <p>
+   No border.
+  </p>
+ </body>
+</html>

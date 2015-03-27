@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <Module name="gfx" id="::gfx">
+    <webidl>module gfx {
+
+  module geom {
+    interface Shape {  };
+    interface Rectangle : <ref>Shape</ref> {  };
+    interface Path : <ref>Shape</ref> {  };
+  };
+
+  interface GraphicsContext {
+    void fillShape(<ref>geom::Shape</ref> s);
+    void strokeShape(<ref>geom::Shape</ref> s);
+  };
+};</webidl>
+    <Module name="geom" id="::gfx::geom">
+      <webidl>  module geom {
+    interface Shape {  };
+    interface Rectangle : <ref>Shape</ref> {  };
+    interface Path : <ref>Shape</ref> {  };
+  };</webidl>
+      <Interface name="Shape" id="::gfx::geom::Shape">
+        <webidl>    interface Shape {  };</webidl>
+      </Interface>
+      <Interface name="Rectangle" id="::gfx::geom::Rectangle">
+        <webidl>    interface Rectangle : <ref>Shape</ref> {  };</webidl>
+        <InterfaceInheritance>
+          <Name name="Shape"/>
+        </InterfaceInheritance>
+      </Interface>
+      <Interface name="Path" id="::gfx::geom::Path">
+        <webidl>    interface Path : <ref>Shape</ref> {  };</webidl>
+        <InterfaceInheritance>
+          <Name name="Shape"/>
+        </InterfaceInheritance>
+      </Interface>
+    </Module>
+    <Interface name="GraphicsContext" id="::gfx::GraphicsContext">
+      <webidl>  interface GraphicsContext {
+    void fillShape(<ref>geom::Shape</ref> s);
+    void strokeShape(<ref>geom::Shape</ref> s);
+  };</webidl>
+      <Operation name="fillShape" id="::gfx::GraphicsContext::fillShape">
+        <webidl>    void fillShape(<ref>geom::Shape</ref> s);</webidl>
+        <Type type="void"/>
+        <ArgumentList>
+          <Argument name="s">
+            <Type name="geom::Shape"/>
+          </Argument>
+        </ArgumentList>
+      </Operation>
+      <Operation name="strokeShape" id="::gfx::GraphicsContext::strokeShape">
+        <webidl>    void strokeShape(<ref>geom::Shape</ref> s);</webidl>
+        <Type type="void"/>
+        <ArgumentList>
+          <Argument name="s">
+            <Type name="geom::Shape"/>
+          </Argument>
+        </ArgumentList>
+      </Operation>
+    </Interface>
+  </Module>
+  <Module name="gui" id="::gui">
+    <webidl>module gui {
+
+  interface Widget {   };
+
+  interface Window : <ref>Widget</ref> {
+    <ref>gfx::GraphicsContext</ref> getGraphicsContext();
+  };
+
+  interface Button : <ref>Widget</ref> {   };
+};</webidl>
+    <Interface name="Widget" id="::gui::Widget">
+      <webidl>  interface Widget {   };</webidl>
+    </Interface>
+    <Interface name="Window" id="::gui::Window">
+      <webidl>  interface Window : <ref>Widget</ref> {
+    <ref>gfx::GraphicsContext</ref> getGraphicsContext();
+  };</webidl>
+      <InterfaceInheritance>
+        <Name name="Widget"/>
+      </InterfaceInheritance>
+      <Operation name="getGraphicsContext" id="::gui::Window::getGraphicsContext">
+        <webidl>    <ref>gfx::GraphicsContext</ref> getGraphicsContext();</webidl>
+        <Type name="gfx::GraphicsContext"/>
+        <ArgumentList/>
+      </Operation>
+    </Interface>
+    <Interface name="Button" id="::gui::Button">
+      <webidl>  interface Button : <ref>Widget</ref> {   };</webidl>
+      <InterfaceInheritance>
+        <Name name="Widget"/>
+      </InterfaceInheritance>
+    </Interface>
+  </Module>
+</Definitions>

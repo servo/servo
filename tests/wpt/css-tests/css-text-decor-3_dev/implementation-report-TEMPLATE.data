@@ -1,0 +1,47 @@
+# UA version OS version
+# UA string (if applicable)
+# http://test.csswg.org/suites/css-text-decor-3_dev/DATESTAMP/
+# See http://wiki.csswg.org/test/implementation-report for instructions
+testname    result  comment
+html4/ruby-text-decoration-01.htm	?	
+xhtml1/ruby-text-decoration-01.xht	?	
+html4/text-decoration-line-010.htm	?	
+xhtml1/text-decoration-line-010.xht	?	
+html4/text-decoration-line-011.htm	?	
+xhtml1/text-decoration-line-011.xht	?	
+html4/text-decoration-line-012.htm	?	
+xhtml1/text-decoration-line-012.xht	?	
+html4/text-decoration-line-013.htm	?	
+xhtml1/text-decoration-line-013.xht	?	
+html4/text-decoration-line-014.htm	?	
+xhtml1/text-decoration-line-014.xht	?	
+html4/text-emphasis-style-002.htm	?	
+xhtml1/text-emphasis-style-002.xht	?	
+html4/text-emphasis-style-006.htm	?	
+xhtml1/text-emphasis-style-006.xht	?	
+html4/text-emphasis-style-007.htm	?	
+xhtml1/text-emphasis-style-007.xht	?	
+html4/text-emphasis-style-008.htm	?	
+xhtml1/text-emphasis-style-008.xht	?	
+html4/text-emphasis-style-010.htm	?	
+xhtml1/text-emphasis-style-010.xht	?	
+html4/text-emphasis-style-012.htm	?	
+xhtml1/text-emphasis-style-012.xht	?	
+html4/text-emphasis-style-016.htm	?	
+xhtml1/text-emphasis-style-016.xht	?	
+html4/text-emphasis-style-021.htm	?	
+xhtml1/text-emphasis-style-021.xht	?	
+html4/text-underline-position-alphabetic-001.htm	?	
+xhtml1/text-underline-position-alphabetic-001.xht	?	
+html4/text-underline-position-auto-001.htm	?	
+xhtml1/text-underline-position-auto-001.xht	?	
+html4/text-underline-position-left-001.htm	?	
+xhtml1/text-underline-position-left-001.xht	?	
+html4/text-underline-position-left-002.htm	?	
+xhtml1/text-underline-position-left-002.xht	?	
+html4/text-underline-position-right-001.htm	?	
+xhtml1/text-underline-position-right-001.xht	?	
+html4/text-underline-position-right-002.htm	?	
+xhtml1/text-underline-position-right-002.xht	?	
+html4/text-underline-position-under-001.htm	?	
+xhtml1/text-underline-position-under-001.xht	?	

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+--><html><head><title>CSS Test: Test declaring a non-custom property with a variable reference that has a non-top level '!' token.</title>
+<link href="mailto:cam@mcc.id.au" rel="author" title="Cameron McCormack">
+<link href="http://www.w3.org/TR/css-variables-1/#using-variables" rel="help">
+<link href="support/color-green-ref.htm" rel="match">
+<style>
+body {
+  --a: green;
+  color: crimson;
+}
+p {
+  color: red;
+  color: var(--a,(!));
+}
+</style>
+</head><body><p>This text must be green.</p>
+</body></html>

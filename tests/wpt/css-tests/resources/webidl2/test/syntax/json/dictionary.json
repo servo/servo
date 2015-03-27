@@ -1,0 +1,91 @@
+[
+    {
+        "type": "dictionary",
+        "name": "PaintOptions",
+        "partial": false,
+        "members": [
+            {
+                "type": "field",
+                "name": "fillPattern",
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": true,
+                    "array": false,
+                    "union": false,
+                    "idlType": "DOMString"
+                },
+                "extAttrs": [],
+                "default": {
+                    "type": "string",
+                    "value": "black"
+                }
+            },
+            {
+                "type": "field",
+                "name": "strokePattern",
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": true,
+                    "array": false,
+                    "union": false,
+                    "idlType": "DOMString"
+                },
+                "extAttrs": [],
+                "default": {
+                    "type": "null"
+                }
+            },
+            {
+                "type": "field",
+                "name": "position",
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "Point"
+                },
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    },
+    {
+        "type": "dictionary",
+        "name": "A",
+        "partial": true,
+        "members": [
+            {
+                "type": "field",
+                "name": "h",
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "long"
+                },
+                "extAttrs": []
+            },
+            {
+                "type": "field",
+                "name": "d",
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "long"
+                },
+                "extAttrs": []
+            }
+        ],
+        "extAttrs": []
+    }
+]

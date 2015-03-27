@@ -1,0 +1,903 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+ <head>
+  <title>Inline-level Alignment - CSS Writing Modes Module Level 3 CR Test Suite</title>
+  <style type="text/css">
+    @import "http://www.w3.org/StyleSheets/TR/base.css";
+    @import "../indices.css";
+  </style>
+ </head>
+
+ <body>
+
+  <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
+  <h2>Inline-level Alignment (75 tests)</h2>
+  <table width="100%">
+    <col id="test-column">
+    <col id="refs-column">
+    <col id="flags-column">
+    <col id="info-column">
+    <thead>
+      <tr>
+        <th>Test</th>
+        <th><abbr title="Rendering References">Refs</abbr></th>
+        <th>Flags</th>
+        <th>Info</th>
+      </tr>
+    </thead>
+    <tbody id="s4">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s4">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#inline-alignment">4 Inline-level Alignment</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.1">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s4.1">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#intro-baselines">4.1 Introduction to Baselines</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.1.#baseline">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.1.#baseline-table">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.2">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s4.2">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#text-baselines">4.2 Text Baselines</a></th></tr>
+      <!-- 12 tests -->
+      <tr id="central-baseline-alignment-002-4.2" class="primary ahem">
+        <td><strong>
+            <a href="central-baseline-alignment-002.htm">central-baseline-alignment-002</a></strong></td>
+        <td><a href="reference/central-baseline-alignment-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>central baseline-alignment of text with 'text-orientation: upright' (vertical-rl)
+          <ul class="assert">
+            <li>This test checks that the central baseline is used as the dominant baseline when 'text-orientation' is 'upright' in vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="central-baseline-alignment-003-4.2" class="primary ahem">
+        <td><strong>
+            <a href="central-baseline-alignment-003.htm">central-baseline-alignment-003</a></strong></td>
+        <td><a href="reference/central-baseline-alignment-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>central baseline-alignment of text with 'text-orientation: upright' (vertical-lr)
+          <ul class="assert">
+            <li>This test checks that the central baseline is used as the dominant baseline when 'text-orientation' is 'upright' in vertical writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-baseline-002-4.2" class="primary ahem">
+        <td><strong>
+            <a href="text-baseline-002.htm">text-baseline-002</a></strong></td>
+        <td><a href="reference/text-baseline-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>text baseline alignment - central alignment with vertical layout
+          <ul class="assert">
+            <li>This test checks the generation of text baseline. When 'writing-mode' is 'vertical-rl' and when 'text-orientation' is 'mixed', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-baseline-003-4.2" class="primary ahem">
+        <td><strong>
+            <a href="text-baseline-003.htm">text-baseline-003</a></strong></td>
+        <td><a href="reference/text-baseline-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>text baseline alignment - central alignment with vertical layout
+          <ul class="assert">
+            <li>This test checks the generation of text baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'mixed', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-baseline-004-4.2" class="primary ahem">
+        <td><strong>
+            <a href="text-baseline-004.htm">text-baseline-004</a></strong></td>
+        <td><a href="reference/text-baseline-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>text baseline alignment - central alignment with vertical layout
+          <ul class="assert">
+            <li>This test checks the generation of text baseline. When 'writing-mode' is 'vertical-rl' and when 'text-orientation' is 'upright', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-baseline-005-4.2" class="primary ahem">
+        <td><strong>
+            <a href="text-baseline-005.htm">text-baseline-005</a></strong></td>
+        <td><a href="reference/text-baseline-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>text baseline alignment - central alignment with vertical layout
+          <ul class="assert">
+            <li>This test checks the generation of text baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'upright', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-baseline-006-4.2" class="primary ahem">
+        <td><strong>
+            <a href="text-baseline-006.htm">text-baseline-006</a></strong></td>
+        <td><a href="reference/text-baseline-006-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>text baseline alignment - alphabetical alignment with vertical layout
+          <ul class="assert">
+            <li>This test checks the generation of text baseline. When 'writing-mode' is 'vertical-rl' and when 'text-orientation' is 'sideways', then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-baseline-007-4.2" class="primary ahem">
+        <td><strong>
+            <a href="text-baseline-007.htm">text-baseline-007</a></strong></td>
+        <td><a href="reference/text-baseline-007-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>text baseline alignment - alphabetical alignment with vertical layout
+          <ul class="assert">
+            <li>This test checks the generation of text baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'sideways', then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-baseline-008-4.2" class="primary ahem">
+        <td><strong>
+            <a href="text-baseline-008.htm">text-baseline-008</a></strong></td>
+        <td><a href="reference/text-baseline-006-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>text baseline alignment - alphabetical alignment with vertical layout
+          <ul class="assert">
+            <li>This test checks the generation of text baseline. When 'writing-mode' is 'vertical-rl' and when 'text-orientation' is 'sideways-right', then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-baseline-009-4.2" class="primary ahem">
+        <td><strong>
+            <a href="text-baseline-009.htm">text-baseline-009</a></strong></td>
+        <td><a href="reference/text-baseline-006-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>text baseline alignment - alphabetical alignment with vertical layout
+          <ul class="assert">
+            <li>This test checks the generation of text baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'sideways-right', then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-baseline-010-4.2" class="primary ahem">
+        <td><strong>
+            <a href="text-baseline-010.htm">text-baseline-010</a></strong></td>
+        <td><a href="reference/text-baseline-007-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>text baseline alignment - alphabetical alignment with vertical layout
+          <ul class="assert">
+            <li>This test checks the generation of text baseline. When 'writing-mode' is 'vertical-rl' and when 'text-orientation' is 'sideways-left', then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-baseline-011-4.2" class="primary ahem">
+        <td><strong>
+            <a href="text-baseline-011.htm">text-baseline-011</a></strong></td>
+        <td><a href="reference/text-baseline-007-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>text baseline alignment - alphabetical alignment with vertical layout
+          <ul class="assert">
+            <li>This test checks the generation of text baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'sideways-left', then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s4.2.#alphabetic-baseline">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.2.#central-baseline">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.3">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s4.3">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#replaced-baselines">4.3 Atomic Inline Baselines</a></th></tr>
+      <!-- 18 tests -->
+      <tr id="baseline-inline-non-replaced-002-4.3" class="primary ahem">
+        <td><strong>
+            <a href="baseline-inline-non-replaced-002.htm">baseline-inline-non-replaced-002</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>baseline-alignment of empty non-replaced inline-block element and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that the baseline-alignment of an empty inline-block box in the line box with 'writing-mode' set to 'vertical-rl' is 'central' and not 'alphabetic'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="baseline-inline-non-replaced-003-4.3" class="primary ahem">
+        <td><strong>
+            <a href="baseline-inline-non-replaced-003.htm">baseline-inline-non-replaced-003</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>baseline-alignment of empty non-replaced inline-block element and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that the baseline-alignment of an empty inline-block box in the line box with 'writing-mode' set to 'vertical-rl' is 'central' and not 'alphabetic'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="baseline-inline-non-replaced-004-4.3" class="primary ahem">
+        <td><strong>
+            <a href="baseline-inline-non-replaced-004.htm">baseline-inline-non-replaced-004</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>baseline-alignment of non-empty non-replaced inline-block element and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that the baseline-alignment of a non-empty inline-block box in the line box with 'writing-mode' set to 'vertical-rl' is 'central' and not 'alphabetic'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="baseline-inline-non-replaced-005-4.3" class="primary ahem">
+        <td><strong>
+            <a href="baseline-inline-non-replaced-005.htm">baseline-inline-non-replaced-005</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>baseline-alignment of non-empty non-replaced inline-block element and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that the baseline-alignment of a non-empty inline-block box in the line box with 'writing-mode' set to 'vertical-rl' is 'central' and not 'alphabetic'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="baseline-inline-replaced-002-4.3" class="primary ahem image">
+        <td><strong>
+            <a href="baseline-inline-replaced-002.htm">baseline-inline-replaced-002</a></strong></td>
+        <td><a href="reference/baseline-inline-replaced-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>baseline-alignment of inline replaced element and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that the baseline-alignment of an image in the line box of a block with 'writing-mode' set to 'vertical-rl' is 'central' and not 'alphabetic'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="baseline-inline-replaced-003-4.3" class="primary ahem image">
+        <td><strong>
+            <a href="baseline-inline-replaced-003.htm">baseline-inline-replaced-003</a></strong></td>
+        <td><a href="reference/baseline-inline-replaced-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>baseline-alignment of inline replaced element and 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that the baseline-alignment of an image in the line box of a block with 'writing-mode' set to 'vertical-lr' is 'central' and not 'alphabetic'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-block-alignment-001-4.3" class="primary image">
+        <td><strong>
+            <a href="inline-block-alignment-001.htm">inline-block-alignment-001</a></strong></td>
+        <td><a href="reference/inline-block-alignment-001-ref.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>inline-block alignment - inline-block with content (alphabetical alignment with horizontal layout)
+          <ul class="assert">
+            <li>This test checks the generation of inline-block baseline. When 'writing-mode' is horizontal, then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-block-alignment-002-sidewaysleft-4.3" class="primary image">
+        <td><strong>
+            <a href="inline-block-alignment-002-sidewaysleft.htm">inline-block-alignment-002-sidewaysleft</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>inline-block alignment - inline-block with content (alphabetical alignment with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of inline-block baseline. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-block-alignment-002-sidewaysright-4.3" class="primary image">
+        <td><strong>
+            <a href="inline-block-alignment-002-sidewaysright.htm">inline-block-alignment-002-sidewaysright</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>inline-block alignment - inline-block with content (alphabetical alignment with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of inline-block baseline. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-block-alignment-003-lr-4.3" class="primary ahem image">
+        <td><strong>
+            <a href="inline-block-alignment-003-lr.htm">inline-block-alignment-003-lr</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>inline-block alignment - inline-block with content (central alignment with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of inline-block baseline. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-block-alignment-003-rl-4.3" class="primary ahem image">
+        <td><strong>
+            <a href="inline-block-alignment-003-rl.htm">inline-block-alignment-003-rl</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>inline-block alignment - inline-block with content (central alignment with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of inline-block baseline. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-block-alignment-004-4.3" class="primary image">
+        <td><strong>
+            <a href="inline-block-alignment-004.htm">inline-block-alignment-004</a></strong></td>
+        <td><a href="reference/inline-block-alignment-004-ref.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>inline-block alignment - inline-block without content (alphabetical alignment with horizontal layout)
+          <ul class="assert">
+            <li>This test checks the generation of empty inline-block baseline. When 'writing-mode' is horizontal, then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-block-alignment-005-sidewaysleft-4.3" class="primary image">
+        <td><strong>
+            <a href="inline-block-alignment-005-sidewaysleft.htm">inline-block-alignment-005-sidewaysleft</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>inline-block alignment - inline-block without content (alphabetical alignment with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of empty inline-block baseline. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-block-alignment-005-sidewaysright-4.3" class="primary image">
+        <td><strong>
+            <a href="inline-block-alignment-005-sidewaysright.htm">inline-block-alignment-005-sidewaysright</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>inline-block alignment - inline-block without content (alphabetical alignment with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of empty inline-block baseline. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-block-alignment-006-lr-4.3" class="primary ahem image">
+        <td><strong>
+            <a href="inline-block-alignment-006-lr.htm">inline-block-alignment-006-lr</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>inline-block alignment - inline-block without content (central alignment with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of empty inline-block baseline. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-block-alignment-006-rl-4.3" class="primary ahem image">
+        <td><strong>
+            <a href="inline-block-alignment-006-rl.htm">inline-block-alignment-006-rl</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>inline-block alignment - inline-block without content (central alignment with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of empty inline-block baseline. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-replaced-vlr-005-4.3" class="primary ahem image">
+        <td><strong>
+            <a href="inline-replaced-vlr-005.htm">inline-replaced-vlr-005</a></strong></td>
+        <td><a href="reference/inline-replaced-vrl-004-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>inline replaced element and 'vertical-lr' (advanced)
+          <ul class="assert">
+            <li>This test checks that, while the content of inline replaced elements do not rotate in vertical writing mode, they are nevertheless laid out from top to bottom (inline base direction) in a line box and their baseline-alignment is central (not alphabetic) and then the following lines boxes (line box direction within a block container) are ordered from left to right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-replaced-vrl-004-4.3" class="primary ahem image">
+        <td><strong>
+            <a href="inline-replaced-vrl-004.htm">inline-replaced-vrl-004</a></strong></td>
+        <td><a href="reference/inline-replaced-vrl-004-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>inline replaced element and 'vertical-rl' (advanced)
+          <ul class="assert">
+            <li>This test checks that, while the content of inline replaced elements do not rotate in vertical writing mode, they are nevertheless laid out from top to bottom (inline base direction) in a line box and their baseline-alignment is central (not alphabetic) and then the following lines boxes (line box direction within a block container) are ordered from right to left.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s4.4">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s4.4">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#baseline-alignment">4.4 Baseline Alignment</a></th></tr>
+      <!-- 45 tests -->
+      <tr id="vertical-alignment-001-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-001.htm">vertical-alignment-001</a></strong></td>
+        <td><a href="reference/vertical-alignment-001-ref.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'baseline' (alphabetical baseline with horizontal layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is horizontal, then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-002-sidewaysleft-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-002-sidewaysleft.htm">vertical-alignment-002-sidewaysleft</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'baseline' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-002-sidewaysright-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-002-sidewaysright.htm">vertical-alignment-002-sidewaysright</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'baseline' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-003-lr-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-003-lr.htm">vertical-alignment-003-lr</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'baseline' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-003-rl-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-003-rl.htm">vertical-alignment-003-rl</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'baseline' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-004-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-004.htm">vertical-alignment-004</a></strong></td>
+        <td><a href="reference/vertical-alignment-004-ref.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'sub' (alphabetical baseline with horizontal layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is horizontal, then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-005-sidewaysleft-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-005-sidewaysleft.htm">vertical-alignment-005-sidewaysleft</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'sub' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-005-sidewaysright-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-005-sidewaysright.htm">vertical-alignment-005-sidewaysright</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'sub' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-006-lr-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-006-lr.htm">vertical-alignment-006-lr</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'sub' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-006-rl-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-006-rl.htm">vertical-alignment-006-rl</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'sub' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-007-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-007.htm">vertical-alignment-007</a></strong></td>
+        <td><a href="reference/vertical-alignment-007-ref.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'super' (alphabetical baseline with horizontal layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is horizontal, then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-008-sidewaysleft-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-008-sidewaysleft.htm">vertical-alignment-008-sidewaysleft</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'super' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-008-sidewaysright-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-008-sidewaysright.htm">vertical-alignment-008-sidewaysright</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'super' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-009-lr-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-009-lr.htm">vertical-alignment-009-lr</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'super' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-009-rl-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-009-rl.htm">vertical-alignment-009-rl</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'super' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-010-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-010.htm">vertical-alignment-010</a></strong></td>
+        <td><a href="reference/vertical-alignment-010-ref.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'zero length (0em)' (alphabetical baseline with horizontal layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is horizontal, then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-011-sidewaysleft-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-011-sidewaysleft.htm">vertical-alignment-011-sidewaysleft</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'zero length (0em)' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-011-sidewaysright-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-011-sidewaysright.htm">vertical-alignment-011-sidewaysright</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'zero length (0em)' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-012-lr-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-012-lr.htm">vertical-alignment-012-lr</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'zero length (0em)' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-012-rl-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-012-rl.htm">vertical-alignment-012-rl</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'zero length (0em)' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-013-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-013.htm">vertical-alignment-013</a></strong></td>
+        <td><a href="reference/vertical-alignment-013-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'positive length (0.8em)' (alphabetical baseline with horizontal layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is horizontal, then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-014-sidewaysleft-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-014-sidewaysleft.htm">vertical-alignment-014-sidewaysleft</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'positive length (0.8em)' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-014-sidewaysright-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-014-sidewaysright.htm">vertical-alignment-014-sidewaysright</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'positive length (0.8em)' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-015-lr-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-015-lr.htm">vertical-alignment-015-lr</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'positive length (0.5em)' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-015-rl-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-015-rl.htm">vertical-alignment-015-rl</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'positive length (0.5em)' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-016-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-016.htm">vertical-alignment-016</a></strong></td>
+        <td><a href="reference/vertical-alignment-016-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'negative length (-0.2em)' (alphabetical baseline with horizontal layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is horizontal, then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-017-sidewaysleft-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-017-sidewaysleft.htm">vertical-alignment-017-sidewaysleft</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'negative length (-0.2em)' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-017-sidewaysright-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-017-sidewaysright.htm">vertical-alignment-017-sidewaysright</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'negative length (-0.2em)' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-018-lr-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-018-lr.htm">vertical-alignment-018-lr</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'negative length (-0.5em)' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-018-rl-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-018-rl.htm">vertical-alignment-018-rl</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'negative length (-0.5em)' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-019-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-019.htm">vertical-alignment-019</a></strong></td>
+        <td><a href="reference/vertical-alignment-019-ref.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'zero percentage (0%)' (alphabetical baseline with horizontal layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is horizontal, then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-020-sidewaysleft-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-020-sidewaysleft.htm">vertical-alignment-020-sidewaysleft</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'zero percentage (0%)' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-020-sidewaysright-4.4" class="primary image">
+        <td><strong>
+            <a href="vertical-alignment-020-sidewaysright.htm">vertical-alignment-020-sidewaysright</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'zero percentage (0%)' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-021-lr-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-021-lr.htm">vertical-alignment-021-lr</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'zero percentage (0%)' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-021-rl-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-021-rl.htm">vertical-alignment-021-rl</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'zero percentage (0%)' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-022-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-022.htm">vertical-alignment-022</a></strong></td>
+        <td><a href="reference/vertical-alignment-022-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'positive percentage (80%)' (alphabetical baseline with horizontal layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is horizontal, then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-023-sidewaysleft-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-023-sidewaysleft.htm">vertical-alignment-023-sidewaysleft</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'positive length (0.8em)' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-023-sidewaysright-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-023-sidewaysright.htm">vertical-alignment-023-sidewaysright</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'positive percentage (80%)' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-024-lr-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-024-lr.htm">vertical-alignment-024-lr</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'positive percentage (50%)' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-024-rl-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-024-rl.htm">vertical-alignment-024-rl</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'positive percentage (50%)' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-025-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-025.htm">vertical-alignment-025</a></strong></td>
+        <td><a href="reference/vertical-alignment-025-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'negative percent (-20%)' (alphabetical baseline with horizontal layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is horizontal, then the alphabetical baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-026-sidewaysleft-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-026-sidewaysleft.htm">vertical-alignment-026-sidewaysleft</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'negative percentage (-20%)' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-026-sidewaysright-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-026-sidewaysright.htm">vertical-alignment-026-sidewaysright</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'negative length (-20%)' (alphabetical baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'sideways-left', 'sideways-right' or 'sideways', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-027-lr-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-027-lr.htm">vertical-alignment-027-lr</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'negative percentage (-50%)' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-027-rl-4.4" class="primary ahem image">
+        <td><strong>
+            <a href="vertical-alignment-027-rl.htm">vertical-alignment-027-rl</a></strong></td>
+        <td></td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>vertical align - 'negative percentage (-50%)' (central baseline with vertical layout)
+          <ul class="assert">
+            <li>This test checks the generation of text baseline with vertical align property. When 'writing-mode' is vertical and when 'text-orientation' is 'mixed', 'upright' or 'use-glyph-orientation', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s4.4.#dominant-baseline">
+      <!-- 0 tests -->
+    </tbody>
+  </table>
+
+ </body>
+</html>

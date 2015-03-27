@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+ <head> 
+  <title>CSS Test: Empty inlines being displaced by floats</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch">
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"> <!-- 2012-07-01 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/049.html" type="text/html">
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats">
+  <link rel="match" href="reference/floats-149-ref.htm">
+
+  <style type="text/css">
+    .block { display: block; background: green; }
+    .inline { display: inline; margin-left: 40px; }
+    span { float: left; width: 50%; background: white; }
+  </style> 
+ </head> 
+ <body> 
+  <div class="block">
+   <div class="inline"> 
+    <span>There should be a green bar to the right: ⇨</span>
+    <span></span> <!-- this float should be on the second "line" -->
+   </div> 
+  </div>
+ </body>
+</html>

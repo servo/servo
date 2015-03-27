@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>interface Transaction {
+  readonly attribute <ref>Account</ref> from;
+  readonly attribute <ref>Account</ref> to;
+  readonly attribute float amount;
+  readonly attribute DOMString description;
+  readonly attribute unsigned long number;
+
+  serializer;
+};
+
+interface Account {
+  attribute DOMString name;
+  attribute unsigned long number;
+  serializer DOMString serialize();
+};
+
+interface Transaction2 {
+  readonly attribute <ref>Account2</ref> from;
+  readonly attribute <ref>Account2</ref> to;
+  readonly attribute float amount;
+  readonly attribute DOMString description;
+  readonly attribute unsigned long number;
+
+  serializer = { from, to, amount, description };
+};
+
+interface Account2 {
+  attribute DOMString name;
+  attribute unsigned long number;
+  serializer = number;
+};
+
+interface Account3 {
+  attribute DOMString name;
+  attribute unsigned long number;
+
+  serializer = { attribute };
+};
+
+interface Account4 {
+  getter object getItem(unsigned long index);
+  serializer = { getter };
+};
+
+interface Account5 : <ref>Account</ref> {
+  attribute DOMString secondname;
+  serializer = { inherit, secondname };
+};
+
+interface Account6 : <ref>Account</ref> {
+  attribute DOMString secondname;
+  serializer = { inherit, attribute };
+};
+
+interface Account7 {
+  attribute DOMString name;
+  attribute unsigned long number;
+  serializer = [ name, number ];
+};
+
+interface Account8 {
+  getter object getItem(unsigned long index);
+  serializer = [ getter ];
+};</webidl>
+  <Interface name="Transaction" id="::Transaction">
+    <webidl>interface Transaction {
+  readonly attribute <ref>Account</ref> from;
+  readonly attribute <ref>Account</ref> to;
+  readonly attribute float amount;
+  readonly attribute DOMString description;
+  readonly attribute unsigned long number;
+
+  serializer;
+};</webidl>
+    <Attribute readonly="readonly" name="from" id="::Transaction::from">
+      <webidl>  readonly attribute <ref>Account</ref> from;</webidl>
+      <Type name="Account"/>
+    </Attribute>
+    <Attribute readonly="readonly" name="to" id="::Transaction::to">
+      <webidl>  readonly attribute <ref>Account</ref> to;</webidl>
+      <Type name="Account"/>
+    </Attribute>
+    <Attribute readonly="readonly" name="amount" id="::Transaction::amount">
+      <webidl>  readonly attribute float amount;</webidl>
+      <Type type="float"/>
+    </Attribute>
+    <Attribute readonly="readonly" name="description" id="::Transaction::description">
+      <webidl>  readonly attribute DOMString description;</webidl>
+      <Type type="DOMString"/>
+    </Attribute>
+    <Attribute readonly="readonly" name="number" id="::Transaction::number">
+      <webidl>  readonly attribute unsigned long number;</webidl>
+      <Type type="unsigned long"/>
+    </Attribute>
+    <Serializer>
+      <webidl>  serializer;</webidl>
+    </Serializer>
+  </Interface>
+  <Interface name="Account" id="::Account">
+    <webidl>interface Account {
+  attribute DOMString name;
+  attribute unsigned long number;
+  serializer DOMString serialize();
+};</webidl>
+    <Attribute name="name" id="::Account::name">
+      <webidl>  attribute DOMString name;</webidl>
+      <Type type="DOMString"/>
+    </Attribute>
+    <Attribute name="number" id="::Account::number">
+      <webidl>  attribute unsigned long number;</webidl>
+      <Type type="unsigned long"/>
+    </Attribute>
+    <Operation serializer="serializer" name="serialize" id="::Account::serialize">
+      <webidl>  serializer DOMString serialize();</webidl>
+      <Type type="DOMString"/>
+      <ArgumentList/>
+    </Operation>
+  </Interface>
+  <Interface name="Transaction2" id="::Transaction2">
+    <webidl>interface Transaction2 {
+  readonly attribute <ref>Account2</ref> from;
+  readonly attribute <ref>Account2</ref> to;
+  readonly attribute float amount;
+  readonly attribute DOMString description;
+  readonly attribute unsigned long number;
+
+  serializer = { from, to, amount, description };
+};</webidl>
+    <Attribute readonly="readonly" name="from" id="::Transaction2::from">
+      <webidl>  readonly attribute <ref>Account2</ref> from;</webidl>
+      <Type name="Account2"/>
+    </Attribute>
+    <Attribute readonly="readonly" name="to" id="::Transaction2::to">
+      <webidl>  readonly attribute <ref>Account2</ref> to;</webidl>
+      <Type name="Account2"/>
+    </Attribute>
+    <Attribute readonly="readonly" name="amount" id="::Transaction2::amount">
+      <webidl>  readonly attribute float amount;</webidl>
+      <Type type="float"/>
+    </Attribute>
+    <Attribute readonly="readonly" name="description" id="::Transaction2::description">
+      <webidl>  readonly attribute DOMString description;</webidl>
+      <Type type="DOMString"/>
+    </Attribute>
+    <Attribute readonly="readonly" name="number" id="::Transaction2::number">
+      <webidl>  readonly attribute unsigned long number;</webidl>
+      <Type type="unsigned long"/>
+    </Attribute>
+    <Serializer>
+      <webidl>  serializer = { from, to, amount, description };</webidl>
+      <Map pattern="selection">
+        <PatternAttribute name="from"/>
+        <PatternAttribute name="to"/>
+        <PatternAttribute name="amount"/>
+        <PatternAttribute name="description"/>
+      </Map>
+    </Serializer>
+  </Interface>
+  <Interface name="Account2" id="::Account2">
+    <webidl>interface Account2 {
+  attribute DOMString name;
+  attribute unsigned long number;
+  serializer = number;
+};</webidl>
+    <Attribute name="name" id="::Account2::name">
+      <webidl>  attribute DOMString name;</webidl>
+      <Type type="DOMString"/>
+    </Attribute>
+    <Attribute name="number" id="::Account2::number">
+      <webidl>  attribute unsigned long number;</webidl>
+      <Type type="unsigned long"/>
+    </Attribute>
+    <Serializer attribute="number">
+      <webidl>  serializer = number;</webidl>
+    </Serializer>
+  </Interface>
+  <Interface name="Account3" id="::Account3">
+    <webidl>interface Account3 {
+  attribute DOMString name;
+  attribute unsigned long number;
+
+  serializer = { attribute };
+};</webidl>
+    <Attribute name="name" id="::Account3::name">
+      <webidl>  attribute DOMString name;</webidl>
+      <Type type="DOMString"/>
+    </Attribute>
+    <Attribute name="number" id="::Account3::number">
+      <webidl>  attribute unsigned long number;</webidl>
+      <Type type="unsigned long"/>
+    </Attribute>
+    <Serializer>
+      <webidl>  serializer = { attribute };</webidl>
+      <Map pattern="all"/>
+    </Serializer>
+  </Interface>
+  <Interface name="Account4" id="::Account4">
+    <webidl>interface Account4 {
+  getter object getItem(unsigned long index);
+  serializer = { getter };
+};</webidl>
+    <Operation getter="getter" name="getItem" id="::Account4::getItem">
+      <webidl>  getter object getItem(unsigned long index);</webidl>
+      <Type type="object"/>
+      <ArgumentList>
+        <Argument name="index">
+          <Type type="unsigned long"/>
+        </Argument>
+      </ArgumentList>
+    </Operation>
+    <Serializer>
+      <webidl>  serializer = { getter };</webidl>
+      <Map pattern="getter"/>
+    </Serializer>
+  </Interface>
+  <Interface name="Account5" id="::Account5">
+    <webidl>interface Account5 : <ref>Account</ref> {
+  attribute DOMString secondname;
+  serializer = { inherit, secondname };
+};</webidl>
+    <InterfaceInheritance>
+      <Name name="Account"/>
+    </InterfaceInheritance>
+    <Attribute name="secondname" id="::Account5::secondname">
+      <webidl>  attribute DOMString secondname;</webidl>
+      <Type type="DOMString"/>
+    </Attribute>
+    <Serializer>
+      <webidl>  serializer = { inherit, secondname };</webidl>
+      <Map inherit="inherit" pattern="selection">
+        <PatternAttribute name="secondname"/>
+      </Map>
+    </Serializer>
+  </Interface>
+  <Interface name="Account6" id="::Account6">
+    <webidl>interface Account6 : <ref>Account</ref> {
+  attribute DOMString secondname;
+  serializer = { inherit, attribute };
+};</webidl>
+    <InterfaceInheritance>
+      <Name name="Account"/>
+    </InterfaceInheritance>
+    <Attribute name="secondname" id="::Account6::secondname">
+      <webidl>  attribute DOMString secondname;</webidl>
+      <Type type="DOMString"/>
+    </Attribute>
+    <Serializer>
+      <webidl>  serializer = { inherit, attribute };</webidl>
+      <Map inherit="inherit" pattern="all"/>
+    </Serializer>
+  </Interface>
+  <Interface name="Account7" id="::Account7">
+    <webidl>interface Account7 {
+  attribute DOMString name;
+  attribute unsigned long number;
+  serializer = [ name, number ];
+};</webidl>
+    <Attribute name="name" id="::Account7::name">
+      <webidl>  attribute DOMString name;</webidl>
+      <Type type="DOMString"/>
+    </Attribute>
+    <Attribute name="number" id="::Account7::number">
+      <webidl>  attribute unsigned long number;</webidl>
+      <Type type="unsigned long"/>
+    </Attribute>
+    <Serializer>
+      <webidl>  serializer = [ name, number ];</webidl>
+      <List pattern="selection">
+        <PatternAttribute name="name"/>
+        <PatternAttribute name="number"/>
+      </List>
+    </Serializer>
+  </Interface>
+  <Interface name="Account8" id="::Account8">
+    <webidl>interface Account8 {
+  getter object getItem(unsigned long index);
+  serializer = [ getter ];
+};</webidl>
+    <Operation getter="getter" name="getItem" id="::Account8::getItem">
+      <webidl>  getter object getItem(unsigned long index);</webidl>
+      <Type type="object"/>
+      <ArgumentList>
+        <Argument name="index">
+          <Type type="unsigned long"/>
+        </Argument>
+      </ArgumentList>
+    </Operation>
+    <Serializer>
+      <webidl>  serializer = [ getter ];</webidl>
+      <List pattern="getter"/>
+    </Serializer>
+  </Interface>
+</Definitions>
