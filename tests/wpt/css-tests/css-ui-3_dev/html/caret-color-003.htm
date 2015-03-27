@@ -1,0 +1,28 @@
+﻿<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>CSS Basic User Interface Test: caret-color auto</title>
+<link href="mailto:chris@w3.org" rel="author" title="Chris Lilley">
+<link href="http://www.w3.org/TR/css3-ui/#caret-color" rel="help" title="7.2.1. Coloring the insertion caret: caret-color">
+<meta content="" name="flags">
+<meta content="Test checks that caret-color: auto resolves to currentColor" name="assert">
+<style>
+  #container {
+    color: green;
+  }
+  #test {
+    font-size: 2em;
+    font-weight: bold;
+    color:currentColor;
+    caret-color:auto;
+    width: 10em;
+  }
+  }
+</style>
+</head><body>
+  <p>Test passes if, when the cursor is placed in the textarea for editing, the caret and the text are both green.</p>
+  <p>The shape of the caret, and whether it flashes, are not part of the test.</p>
+  <div id="container">
+    <textarea id="test">Textarea must be green</textarea>
+  </div>
+
+</body></html>

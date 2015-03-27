@@ -1,0 +1,210 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+ <head>
+  <title>Color properties - CSS Color Module Level 3 Conformance Test Suite</title>
+  <style type="text/css">
+    @import "http://www.w3.org/StyleSheets/TR/base.css";
+    @import "../indices.css";
+  </style>
+ </head>
+
+ <body>
+
+  <h1>CSS Color Module Level 3 Conformance Test Suite</h1>
+  <h2>Color properties (12 tests)</h2>
+  <table width="100%">
+    <col id="test-column">
+    <col id="refs-column">
+    <col id="flags-column">
+    <col id="info-column">
+    <thead>
+      <tr>
+        <th>Test</th>
+        <th><abbr title="Rendering References">Refs</abbr></th>
+        <th>Flags</th>
+        <th>Info</th>
+      </tr>
+    </thead>
+    <tbody id="s3">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s3">+</a>
+        <a href="http://www.w3.org/TR/css3-color/#color">3 Color properties</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s3.1">+</a>
+        <a href="http://www.w3.org/TR/css3-color/#foreground">3.1 Foreground color: the &#8216;color&#8217; property</a></th></tr>
+      <!-- 2 tests -->
+      <tr id="t31-color-currentcolor-b-3.1" class="primary">
+        <td><strong>
+            <a href="t31-color-currentColor-b.htm">t31-color-currentcolor-b</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>color
+          <ul class="assert">
+            <li>That currentColor on the color property acts like inherit.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t31-color-text-a-3.1" class="primary">
+        <td><strong>
+            <a href="t31-color-text-a.htm">t31-color-text-a</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>color
+          <ul class="assert">
+            <li>That color sets the color of the text.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s3.1.#color0">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1.#currentcolor0">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1.#currentcolor1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1.#currentcolor2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1.#ltcolorgt">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1.#transparent0">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.2">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s3.2">+</a>
+        <a href="http://www.w3.org/TR/css3-color/#transparency">3.2 Transparency: the &#8216;opacity&#8217; property</a></th></tr>
+      <!-- 10 tests -->
+      <tr id="t32-opacity-basic-0.0-a-3.2" class="primary">
+        <td><strong>
+            <a href="t32-opacity-basic-0.0-a.htm">t32-opacity-basic-0.0-a</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>opacity
+          <ul class="assert">
+            <li>Opacity of 0.0 makes box transparent.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t32-opacity-basic-0.6-a-3.2" class="primary">
+        <td><strong>
+            <a href="t32-opacity-basic-0.6-a.htm">t32-opacity-basic-0.6-a</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>opacity
+          <ul class="assert">
+            <li>Opacity of 0.6 makes box partially opaque. Colors are in sRGB color space (may test).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t32-opacity-basic-1.0-a-3.2" class="primary">
+        <td><strong>
+            <a href="t32-opacity-basic-1.0-a.htm">t32-opacity-basic-1.0-a</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>opacity
+          <ul class="assert">
+            <li>Opacity of 1.0 makes box fully opaque.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t32-opacity-clamping-0.0-b-3.2" class="primary">
+        <td><strong>
+            <a href="t32-opacity-clamping-0.0-b.htm">t32-opacity-clamping-0.0-b</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>opacity
+          <ul class="assert">
+            <li>Opacity values less than 0.0 are clamped to 0.0</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t32-opacity-clamping-1.0-b-3.2" class="primary">
+        <td><strong>
+            <a href="t32-opacity-clamping-1.0-b.htm">t32-opacity-clamping-1.0-b</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>opacity
+          <ul class="assert">
+            <li>Opacity values greater than 1.0 are clamped to 1.0</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t32-opacity-offscreen-b-3.2" class="primary">
+        <td><strong>
+            <a href="t32-opacity-offscreen-b.htm">t32-opacity-offscreen-b</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>opacity
+          <ul class="assert">
+            <li>That opacity specifies compositing the contents as a single offscreen buffer.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t32-opacity-offscreen-multiple-boxes-1-c-3.2" class="primary">
+        <td><strong>
+            <a href="t32-opacity-offscreen-multiple-boxes-1-c.htm">t32-opacity-offscreen-multiple-boxes-1-c</a></strong></td>
+        <td><a href="reference/t32-opacity-offscreen-multiple-boxes-1-c-ref.htm">=</a> </td>
+        <td></td>
+        <td>opacity
+          <ul class="assert">
+            <li>Opacity is group opacity over elements (not boxes).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t32-opacity-offscreen-multiple-boxes-2-c-3.2" class="primary">
+        <td><strong>
+            <a href="t32-opacity-offscreen-multiple-boxes-2-c.htm">t32-opacity-offscreen-multiple-boxes-2-c</a></strong></td>
+        <td><a href="reference/t32-opacity-offscreen-multiple-boxes-2-c-ref.htm">=</a> </td>
+        <td></td>
+        <td>opacity
+          <ul class="assert">
+            <li>Opacity is group opacity over elements (not boxes).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t32-opacity-offscreen-with-alpha-c-3.2" class="primary">
+        <td><strong>
+            <a href="t32-opacity-offscreen-with-alpha-c.htm">t32-opacity-offscreen-with-alpha-c</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>opacity
+          <ul class="assert">
+            <li>That alpha within the offscreen buffer is composited correctly.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="t32-opacity-zorder-c-3.2" class="primary">
+        <td><strong>
+            <a href="t32-opacity-zorder-c.htm">t32-opacity-zorder-c</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>opacity
+          <ul class="assert">
+            <li>Opacity has z-ordering treatment of positioned elements and z-index applies.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s3.2.#alphavalue-def">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.2.#alphavaluedt">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.2.#opacity">
+      <!-- 0 tests -->
+    </tbody>
+  </table>
+
+ </body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: Media dependency on @import set to 'screen'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html">
+        <meta name="flags" content="">
+        <meta name="assert" content="Specifying the media-dependent import rules to 'screen' applies to user agent display.">
+        <style type="text/css">
+            @import url("support/at-import-006.css") screen;
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

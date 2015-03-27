@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: Border Conflict Resolution (element) - cell vs. cell - element with highest priority is the dominant border</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution">
+        <meta name="flags" content="">
+        <meta name="assert" content="With adjacent cells of same border-style and width, border collapsing favors the cell furthest to the top and left (in a 'left-to-right' table).">
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+                height: 2in;
+                width: 2in;
+            }
+            td
+            {
+                border: 5px solid black;
+            }
+            .collapsing1
+            {
+                border-left: red;
+            }
+            #collapsing2
+            {
+                border-top: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <table>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="collapsing1"></td>
+                <td class="collapsing1"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td id="collapsing2"></td>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>interface Dimensions {
+  attribute unsigned long width;
+  attribute unsigned long height;
+};
+
+exception NoPointerDevice { };
+
+interface Button {
+
+  boolean isMouseOver();
+
+  void setDimensions(<ref>Dimensions</ref> size);
+  void setDimensions(unsigned long width, unsigned long height);
+};</webidl>
+  <Interface name="Dimensions" id="::Dimensions">
+    <webidl>interface Dimensions {
+  attribute unsigned long width;
+  attribute unsigned long height;
+};</webidl>
+    <Attribute name="width" id="::Dimensions::width">
+      <webidl>  attribute unsigned long width;</webidl>
+      <Type type="unsigned long"/>
+    </Attribute>
+    <Attribute name="height" id="::Dimensions::height">
+      <webidl>  attribute unsigned long height;</webidl>
+      <Type type="unsigned long"/>
+    </Attribute>
+  </Interface>
+  <Exception name="NoPointerDevice" id="::NoPointerDevice">
+    <webidl>exception NoPointerDevice { };</webidl>
+  </Exception>
+  <Interface name="Button" id="::Button">
+    <webidl>interface Button {
+
+  boolean isMouseOver();
+
+  void setDimensions(<ref>Dimensions</ref> size);
+  void setDimensions(unsigned long width, unsigned long height);
+};</webidl>
+    <Operation name="isMouseOver" id="::Button::isMouseOver">
+      <webidl>  boolean isMouseOver();</webidl>
+      <Type type="boolean"/>
+      <ArgumentList/>
+    </Operation>
+    <Operation name="setDimensions" id="::Button::setDimensions">
+      <webidl>  void setDimensions(<ref>Dimensions</ref> size);</webidl>
+      <Type type="void"/>
+      <ArgumentList>
+        <Argument name="size">
+          <Type name="Dimensions"/>
+        </Argument>
+      </ArgumentList>
+    </Operation>
+    <Operation name="setDimensions" id="::Button::setDimensions">
+      <webidl>  void setDimensions(unsigned long width, unsigned long height);</webidl>
+      <Type type="void"/>
+      <ArgumentList>
+        <Argument name="width">
+          <Type type="unsigned long"/>
+        </Argument>
+        <Argument name="height">
+          <Type type="unsigned long"/>
+        </Argument>
+      </ArgumentList>
+    </Operation>
+  </Interface>
+</Definitions>

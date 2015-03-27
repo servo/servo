@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+    <title>CSS Transforms API Test: transform translate with maximum translation value</title>
+    <link href="http://www.intel.com" rel="author" title="Intel" />
+    <link href="http://www.w3.org/TR/css-transforms-1/#transform-property" rel="help" />
+    <link href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions" rel="help" />
+    <meta content="dom" name="flags" />
+    <meta content="Check if transform sets translate(INFINITE, INFINITE) that an expection is to be thrown" name="assert" /> 
+    <script src="/resources/testharness.js" type="text/javascript"></script>
+    <script src="/resources/testharnessreport.js" type="text/javascript"></script>    
+</head>
+<body>
+    <div id="test"></div>
+    <div id="log"></div>
+    <script type="text/javascript">
+        // Set the transform 
+        document.getElementById("test").style.webkitTransform = "translate(INFINITE, INFINITE)";
+        /* document.getElementById("test").style.mozkitTransform = "translate(INFINITE, INFINITE)";
+        document.getElementById("test").style.msTransform = "translate(INFINITE, INFINITE)";
+        document.getElementById("test").style.oTransform = "translate(INFINITE, INFINITE)";
+        document.getElementById("test").style.transform = "translate(INFINITE, INFINITE)"; */
+ 
+        // Verify that the transform was set as expected
+        var result;
+        var value;
+        try {
+            value = document.getElementById("test").style.getPropertyCSSValue("-webkit-transform").cssText;
+            /* value = document.getElementById("test").style.getPropertyCSSValue("-moz-transform").cssText;
+            value = document.getElementById("test").style.getPropertyCSSValue("-ms-transform").cssText;
+            value = document.getElementById("test").style.getPropertyCSSValue("-0-transform").cssText;
+            value = document.getElementById("test").style.getPropertyCSSValue("transform").cssText; */
+            result = false;
+        } catch (e) {
+            result = true;
+            value = e.message;
+        }
+        
+        test(function() {assert_true(result,
+                        "transform should be translate(INFINITE, INFINITE)")}, 
+                        "transform_translate_max");
+    </script>    
+
+
+</body></html>

@@ -1,0 +1,5 @@
+callback AsyncOperationCallback = void (DOMString status);
+
+callback interface EventHandler {
+  void eventOccurred(DOMString details);
+};

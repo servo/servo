@@ -1,0 +1,162 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml"><head>
+  <meta charset="UTF-8" />
+  <title>CSS Test: Grid Layout - Properties exist</title>
+  <link href="mailto:johnhax@gmail.com" rel="author" title="贺师俊" />
+  <link href="mailto:shendayang@baidu.com" rel="reviewer" title="Dayang Shen" /> <!-- 2013-09-30 -->
+  <link href="http://www.w3.org/TR/css-grid-1/#property-index" rel="help" />
+  <meta content="dom" name="flags" />
+  <meta content="Test checks that css properties of grid layout exist." name="assert" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="myDiv"></div>
+  <div id="log"></div>
+
+  <script>
+    var myDiv = document.getElementById('myDiv')
+
+    test(function(){
+      myDiv.style.display = 'grid'
+      assert_equals(myDiv.style.display, 'grid',
+        'display should be "grid"')
+    }, 'display: grid')
+
+    test(function(){
+      myDiv.style.display = 'inline-grid'
+      assert_equals(myDiv.style.display, 'inline-grid',
+        'display should be "inline-grid"')
+    }, 'display: inline-grid')
+
+    void function(data){
+
+      myDiv.style.display = 'grid'
+
+      Object.keys(data).forEach(function(prop){
+        test(function(){
+          assert_own_property(myDiv.style, prop)
+        }, prop)
+
+        if ('initial' in data[prop]) test(function(){
+          var initial = data[prop].initial
+          delete data[prop].initial
+          assert_equals(getComputedStyle(myDiv)[prop], initial, 'initial value of ' + prop + ' should be ' + initial)
+        }, prop + '.initial')
+
+        var syntaxTests = data[prop]
+        Object.keys(syntaxTests).forEach(function(testcase){
+          test(function(){
+            assert_own_property(myDiv.style, prop)
+            myDiv.style[prop] = syntaxTests[testcase]
+            assert_equals(getComputedStyle(myDiv)[prop], syntaxTests[testcase], testcase)
+            //assert_equals(myDiv.style[prop], syntaxTests[testcase], testcase)
+          }, prop + '.' + testcase)
+        })
+      })
+
+    }({
+      'grid-template-columns': { // named 'grid-definition-columns' in last draft
+        initial: 'none',
+        'none': 'none',
+        '&lt;line-names&gt;': 'a b c',
+        '&lt;track-size&gt;.auto': 'auto',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;length&gt;': '100px',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;percentage&gt;': '100%',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;flex&gt;': '1fr',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.min-content': 'min-content',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.max-content': 'max-content',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.minmax()': 'minmax(100px, 200px)',
+      },
+      'grid-template-rows': { // named 'grid-definition-rows' in last draft
+        initial: 'none',
+        'none': 'none',
+        '&lt;line-names&gt;': 'a b c',
+        '&lt;track-size&gt;.auto': 'auto',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;length&gt;': '100px',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;percentage&gt;': '100%',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;flex&gt;': '1fr',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.min-content': 'min-content',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.max-content': 'max-content',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.minmax()': 'minmax(100px, 200px)',
+      },
+      'grid-template-areas': {
+        initial: 'none',
+        '&lt;string&gt;+': 'a',
+      },
+      'grid-template': {
+        'none': 'none',
+        '&lt;grid-template-columns&gt; / &lt;grid-template-rows&gt;': '100px / 100px',
+        '&lt;line-names&gt;': 'a b c',
+      },
+      'grid-auto-columns': {
+        initial: 'auto',
+        '&lt;track-size&gt;.auto': 'auto',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;length&gt;': '100px',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;percentage&gt;': '100%',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;flex&gt;': '1fr',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.min-content': 'min-content',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.max-content': 'max-content',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.minmax()': 'minmax(100px, 200px)',
+      },
+      'grid-auto-rows': {
+        initial: 'auto',
+        '&lt;track-size&gt;.auto': 'auto',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;length&gt;': '100px',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;percentage&gt;': '100%',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.&lt;flex&gt;': '1fr',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.min-content': 'min-content',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.max-content': 'max-content',
+        '&lt;track-size&gt;.&lt;track-breadth&gt;.minmax()': 'minmax(100px, 200px)',
+      },
+      'grid-auto-flow': {
+        initial: 'rows',
+        'rows': 'rows',
+        'columns': 'columns',
+        'dense': 'rows dense',
+      },
+      'grid-auto': {
+      },
+      'grid-row-start': {
+        initial: 'auto',
+        'auto': 'auto',
+        '&lt;indent&gt;': 'a',
+        '&lt;integer&gt;': '1',
+        '&lt;integer&gt; &amp;&amp; &lt;indent&gt;': '1 a',
+        'span': 'span 1',
+      },
+      'grid-column-start': {
+        initial: 'auto',
+        'auto': 'auto',
+        '&lt;indent&gt;': 'a',
+        '&lt;integer&gt;': '1',
+        '&lt;integer&gt; &amp;&amp; &lt;indent&gt;': '1 a',
+        'span': 'span 1',
+      },
+      'grid-row-end': {
+        initial: 'auto',
+        'auto': 'auto',
+        '&lt;indent&gt;': 'a',
+        '&lt;integer&gt;': '1',
+        '&lt;integer&gt; &amp;&amp; &lt;indent&gt;': '1 a',
+        'span': 'span 1',
+      },
+      'grid-column-end': {
+        initial: 'auto',
+        'auto': 'auto',
+        '&lt;indent&gt;': 'a',
+        '&lt;integer&gt;': '1',
+        '&lt;integer&gt; &amp;&amp; &lt;indent&gt;': '1 a',
+        'span': 'span 1',
+      },
+      'grid-column': {
+      },
+      'grid-row': {
+      },
+      'grid-area': {
+      },
+    })
+  </script>
+
+
+</body></html>

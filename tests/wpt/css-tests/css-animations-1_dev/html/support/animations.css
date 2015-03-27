@@ -1,0 +1,80 @@
+/* Duration classes */
+
+.once {
+	animation-duration: 2s;
+	animation-timing-function: linear;
+	animation-iteration-count: 1;
+}
+
+.infinite {
+	animation-duration: 2s;
+	animation-timing-function: linear;
+	animation-iteration-count: infinite;
+}
+
+.infinite-reversed {
+	animation-duration: 2s;
+	animation-timing-function: linear;
+	animation-iteration-count: infinite;
+	animation-direction: alternate;
+}
+
+.fast {
+	animation-duration: 0.5s;
+}
+
+/* Animation declarations */
+
+@keyframes pulse {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0.25;
+	}
+}
+
+@keyframes spin {
+	from {
+		transform: rotateY(0);
+	}
+	to {
+		transform: rotateY(360deg);
+	}
+}
+
+@keyframes rotate {
+	from {
+		transform: rotateZ(45deg);
+	}
+	to {
+		transform: rotateZ(405deg);
+	}
+}
+
+@keyframes slant {
+	from {
+		transform: rotate3d(0.23, 1.2, 0.83, 40deg);
+	}
+	to {
+		transform: rotate3d(1, 0.75, 1.3, 240deg);
+	}
+}
+
+/* Animation classes */
+
+.pulse {
+	animation-name: pulse;
+}
+
+.spin {
+	animation-name: spin;
+}
+
+.rotate {
+	animation-name: rotate;
+}
+
+.slant {
+	animation-name: slant;
+}

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+--><!-- Reference case, using inline-block instead of inline-flex. --><html><head>
+  <title>CSS Reftest Reference</title>
+  <link href="mailto:dholbert@mozilla.com" rel="author" title="Daniel Holbert">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: inline-block;
+      height: 16px;
+      width: 16px;
+      background: purple;
+      border: 0px dotted black;
+      /* (Elements that want a border will set their border-width.) */
+    }
+  </style>
+</head>
+<body>
+  A
+  <div class="flexContainer">a</div>
+  <div style="padding-bottom: 20px" class="flexContainer">a</div>
+  <div style="padding: 10px" class="flexContainer">a</div>
+  <div style="border-width: 3px" class="flexContainer">a</div>
+  <div style="border-bottom-width: 4px" class="flexContainer">a</div>
+
+
+</body></html>

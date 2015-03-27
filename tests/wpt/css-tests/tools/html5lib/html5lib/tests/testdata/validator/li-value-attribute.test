@@ -1,0 +1,7 @@
+{"tests": [
+
+{"description": "invalid li value attribute value due to leading junk",
+"input": "<li value=a1>",
+"fail-unless": "invalid-integer-value"}
+
+]}

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>enum MealType { &quot;rice&quot;, &quot;noodles&quot;, &quot;other&quot; };
+
+interface Meal {
+  attribute <ref>MealType</ref> type;
+  attribute float size;     
+
+  void initialize(<ref>MealType</ref> type, float size);
+};</webidl>
+  <Enum name="MealType" id="::MealType">
+    <webidl>enum MealType { &quot;rice&quot;, &quot;noodles&quot;, &quot;other&quot; };</webidl>
+    <EnumValue stringvalue="rice">
+      <webidl> &quot;rice</webidl>
+    </EnumValue>
+    <EnumValue stringvalue="noodles">
+      <webidl> &quot;noodles</webidl>
+    </EnumValue>
+    <EnumValue stringvalue="other">
+      <webidl> &quot;other</webidl>
+    </EnumValue>
+  </Enum>
+  <Interface name="Meal" id="::Meal">
+    <webidl>interface Meal {
+  attribute <ref>MealType</ref> type;
+  attribute float size;     
+
+  void initialize(<ref>MealType</ref> type, float size);
+};</webidl>
+    <Attribute name="type" id="::Meal::type">
+      <webidl>  attribute <ref>MealType</ref> type;</webidl>
+      <Type name="MealType"/>
+    </Attribute>
+    <Attribute name="size" id="::Meal::size">
+      <webidl>  attribute float size;</webidl>
+      <Type type="float"/>
+    </Attribute>
+    <Operation name="initialize" id="::Meal::initialize">
+      <webidl>  void initialize(<ref>MealType</ref> type, float size);</webidl>
+      <Type type="void"/>
+      <ArgumentList>
+        <Argument name="type">
+          <Type name="MealType"/>
+        </Argument>
+        <Argument name="size">
+          <Type type="float"/>
+        </Argument>
+      </ArgumentList>
+    </Operation>
+  </Interface>
+</Definitions>

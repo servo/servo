@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+--><html><head><title>CSS Test: Test declaring a variable that consists of a reference to an invalid inherited variable.</title>
+<link href="mailto:cam@mcc.id.au" rel="author" title="Cameron McCormack">
+<link href="http://www.w3.org/TR/css-variables-1/#invalid-variables" rel="help">
+<link href="support/color-green-ref.htm" rel="match">
+<style>
+body {
+  color: orange;
+  --c: var(--a);
+}
+p {
+  --a: var(--b);
+}
+p {
+  color: red;
+  --b: var(--c,green);
+  color: var(--a);
+}
+</style>
+</head><body><p>This text must be green.</p>
+</body></html>

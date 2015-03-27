@@ -1,0 +1,178 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+ <head>
+  <title>CSS Test: word-spacing on Fixed-Width Space Characters</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props">
+  <meta name="flags" content="">
+  <meta name="assert" content="Word-spacing does not affect fixed-width spaces.">
+  <style type="text/css">
+    div {
+      margin: 1em;
+      font-family: monospace;
+      page-break-inside: avoid;
+    }
+    div p {
+      margin: 0;
+    }
+
+    .control span {
+      background: blue;
+      color: blue;
+    }
+    .test span {
+      word-spacing: 4em;
+      background: orange;
+      color: orange;
+    }
+    .ws-pre p {
+      white-space: pre;
+    }
+  </style>
+ </head>
+ <body>
+   <p>In each of the following pairs, the blue and orange bars must have equal lengths.</p>
+
+   <!-- IDEOGRAPHIC SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x3000;&#x3000;&#x3000;&#x3000;B</span></p>
+     <p class="test"><span>A&#x3000;&#x3000;&#x3000;&#x3000;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x3000;&#x3000;&#x3000;&#x3000;B</span></p>
+     <p class="test"><span>A&#x3000;&#x3000;&#x3000;&#x3000;B</span></p>
+   </div>
+
+   <!-- EN QUAD -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x2000;&#x2000;&#x2000;&#x2000;B</span></p>
+     <p class="test"><span>A&#x2000;&#x2000;&#x2000;&#x2000;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x2000;&#x2000;&#x2000;&#x2000;B</span></p>
+     <p class="test"><span>A&#x2000;&#x2000;&#x2000;&#x2000;B</span></p>
+   </div>
+
+   <!-- EM QUAD -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x2001;&#x2001;&#x2001;&#x2001;B</span></p>
+     <p class="test"><span>A&#x2001;&#x2001;&#x2001;&#x2001;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x2001;&#x2001;&#x2001;&#x2001;B</span></p>
+     <p class="test"><span>A&#x2001;&#x2001;&#x2001;&#x2001;B</span></p>
+   </div>
+
+   <!-- EN SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A&ensp;&ensp;&ensp;&ensp;B</span></p>
+     <p class="test"><span>A&ensp;&ensp;&ensp;&ensp;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&ensp;&ensp;&ensp;&ensp;B</span></p>
+     <p class="test"><span>A&ensp;&ensp;&ensp;&ensp;B</span></p>
+   </div>
+
+   <!-- EM SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A&emsp;&emsp;&emsp;&emsp;B</span></p>
+     <p class="test"><span>A&emsp;&emsp;&emsp;&emsp;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&emsp;&emsp;&emsp;&emsp;B</span></p>
+     <p class="test"><span>A&emsp;&emsp;&emsp;&emsp;B</span></p>
+   </div>
+
+   <!-- THREE-PER-EM SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x2004;&#x2004;&#x2004;&#x2004;B</span></p>
+     <p class="test"><span>A&#x2004;&#x2004;&#x2004;&#x2004;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x2004;&#x2004;&#x2004;&#x2004;B</span></p>
+     <p class="test"><span>A&#x2004;&#x2004;&#x2004;&#x2004;B</span></p>
+   </div>
+
+   <!-- FOUR-PER-EM SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x2005;&#x2005;&#x2005;&#x2005;B</span></p>
+     <p class="test"><span>A&#x2005;&#x2005;&#x2005;&#x2005;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x2005;&#x2005;&#x2005;&#x2005;B</span></p>
+     <p class="test"><span>A&#x2005;&#x2005;&#x2005;&#x2005;B</span></p>
+   </div>
+
+   <!-- SIX-PER-EM SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x2006;&#x2006;&#x2006;&#x2006;B</span></p>
+     <p class="test"><span>A&#x2006;&#x2006;&#x2006;&#x2006;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x2006;&#x2006;&#x2006;&#x2006;B</span></p>
+     <p class="test"><span>A&#x2006;&#x2006;&#x2006;&#x2006;B</span></p>
+   </div>
+
+   <!-- FIGURE SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x2007;&#x2007;&#x2007;&#x2007;B</span></p>
+     <p class="test"><span>A&#x2007;&#x2007;&#x2007;&#x2007;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x2007;&#x2007;&#x2007;&#x2007;B</span></p>
+     <p class="test"><span>A&#x2007;&#x2007;&#x2007;&#x2007;B</span></p>
+   </div>
+
+   <!-- PUNCTUATION SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x2008;&#x2008;&#x2008;&#x2008;B</span></p>
+     <p class="test"><span>A&#x2008;&#x2008;&#x2008;&#x2008;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x2008;&#x2008;&#x2008;&#x2008;B</span></p>
+     <p class="test"><span>A&#x2008;&#x2008;&#x2008;&#x2008;B</span></p>
+   </div>
+
+   <!--THIN SPACE  -->
+   <div class="ws-normal">
+     <p class="control"><span>A&thinsp;&thinsp;&thinsp;&thinsp;B</span></p>
+     <p class="test"><span>A&thinsp;&thinsp;&thinsp;&thinsp;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&thinsp;&thinsp;&thinsp;&thinsp;B</span></p>
+     <p class="test"><span>A&thinsp;&thinsp;&thinsp;&thinsp;B</span></p>
+   </div>
+
+   <!-- HAIR SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x200A;&#x200A;&#x200A;&#x200A;B</span></p>
+     <p class="test"><span>A&#x200A;&#x200A;&#x200A;&#x200A;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x200A;&#x200A;&#x200A;&#x200A;B</span></p>
+     <p class="test"><span>A&#x200A;&#x200A;&#x200A;&#x200A;B</span></p>
+   </div>
+
+   <!-- NARROW NO-BREAK SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x202F;&#x202F;&#x202F;&#x202F;B</span></p>
+     <p class="test"><span>A&#x202F;&#x202F;&#x202F;&#x202F;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x202F;&#x202F;&#x202F;&#x202F;B</span></p>
+     <p class="test"><span>A&#x202F;&#x202F;&#x202F;&#x202F;B</span></p>
+   </div>
+
+   <!-- MEDIUM MATHEMATICAL SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x205F;&#x205F;&#x205F;&#x205F;B</span></p>
+     <p class="test"><span>A&#x205F;&#x205F;&#x205F;&#x205F;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x205F;&#x205F;&#x205F;&#x205F;B</span></p>
+     <p class="test"><span>A&#x205F;&#x205F;&#x205F;&#x205F;B</span></p>
+   </div>
+
+
+ </body>
+</html>

@@ -1,0 +1,79 @@
+[
+    {
+        "type": "dictionary",
+        "name": "PaintOptions",
+        "partial": false,
+        "members": [
+            {
+                "type": "field",
+                "name": "fillPattern",
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": true,
+                    "array": false,
+                    "union": false,
+                    "idlType": "DOMString"
+                },
+                "extAttrs": [],
+                "default": {
+                    "type": "string",
+                    "value": "black"
+                }
+            },
+            {
+                "type": "field",
+                "name": "strokePattern",
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": true,
+                    "array": false,
+                    "union": false,
+                    "idlType": "DOMString"
+                },
+                "extAttrs": [],
+                "default": {
+                    "type": "null"
+                }
+            },
+            {
+                "type": "field",
+                "name": "position",
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "Point"
+                },
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    },
+    {
+        "type": "dictionary",
+        "name": "WetPaintOptions",
+        "partial": false,
+        "members": [
+            {
+                "type": "field",
+                "name": "hydrometry",
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "float"
+                },
+                "extAttrs": []
+            }
+        ],
+        "inheritance": "PaintOptions",
+        "extAttrs": []
+    }
+]

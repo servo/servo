@@ -1,0 +1,3 @@
+Custom-Header: PASS
+Another-Header: {{$id:uuid()}}
+Same-Value-Header: {{$id}}

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>CSS Writing Modes: text-combine-upright on full-width characters</title>
+<link href="http://google.com/+MasatakaYakura" rel="author" title="Masataka Yakura">
+<link href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-fullwidth" rel="help">
+<link href="http://www.w3.org/TR/css-text-3/#full-width" rel="help">
+<link href="reference/full-width-ref.htm" rel="match">
+<link href="reference/full-width-notcu-notref.htm" rel="mismatch">
+<link href="reference/full-width-horizontal-notref.htm" rel="mismatch">
+<meta content="When two or more full-width characters are combined, they are first converted to non-full-width characters." name="assert">
+<style>
+.test {
+  writing-mode: vertical-rl;
+}
+.tcy {
+  text-combine-upright: digits 2;
+  text-transform: full-width;
+}
+
+.tcu-all {
+  text-combine-upright: all;
+}
+
+</style>
+</head>
+<body>
+
+<p>Test passes if the following paragraphs are identical:</p>
+
+<div class="test">
+  <p><span class="tcy">6</span>月<span class="tcy">19</span>日</p>
+  <p>６月<span class="tcu-all">19</span>日</p>
+</div>
+
+
+</body></html>

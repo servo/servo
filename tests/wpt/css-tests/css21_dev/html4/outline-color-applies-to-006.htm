@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: Outline-color applied to element with display table-column</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-outline-color">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines">
+        <meta name="flags" content="">
+        <meta name="assert" content="The 'outline-color' property does not apply to elements with a display of table-column.">
+        <style type="text/css">
+            #test
+            {
+                display: table-column;
+                outline-color: red;
+                outline-style: solid;
+                outline-width: 10px;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            #table
+            {
+                display: table;
+                table-layout: fixed;
+            }
+            #cell
+            {
+                display: table-cell;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="table">
+            <div id="test"></div>
+            <div id="row">
+                <div id="cell"></div>
+            </div>
+        </div>
+    </body>
+</html>

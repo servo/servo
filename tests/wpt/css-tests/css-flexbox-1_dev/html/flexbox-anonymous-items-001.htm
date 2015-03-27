@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+--><html><head>
+  <title>CSS Test: Testing that we gracefully handle cases where two anonymous flex items become adjacent due to "order" reordering</title>
+  <link href="mailto:dholbert@mozilla.com" rel="author" title="Daniel Holbert">
+  <link href="http://www.w3.org/TR/css-flexbox-1/#flex-items" rel="help">
+  <link href="reference/flexbox-anonymous-items-001-ref.htm" rel="match">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer">
+    a a
+    <div style="order: 1">x x</div>
+    b b
+  </div>
+
+
+</body></html>

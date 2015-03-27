@@ -1,0 +1,47 @@
+#data
+<isindex>
+#errors
+(1,9): expected-doctype-but-got-start-tag
+(1,9): deprecated-tag
+#document
+| <html>
+|   <head>
+|   <body>
+|     <form>
+|       <hr>
+|       <label>
+|         "This is a searchable index. Enter search keywords: "
+|         <input>
+|           name="isindex"
+|       <hr>
+
+#data
+<isindex name="A" action="B" prompt="C" foo="D">
+#errors
+(1,48): expected-doctype-but-got-start-tag
+(1,48): deprecated-tag
+#document
+| <html>
+|   <head>
+|   <body>
+|     <form>
+|       action="B"
+|       <hr>
+|       <label>
+|         "C"
+|         <input>
+|           foo="D"
+|           name="isindex"
+|       <hr>
+
+#data
+<form><isindex>
+#errors
+(1,6): expected-doctype-but-got-start-tag
+(1,15): deprecated-tag
+(1,15): expected-closing-tag-but-got-eof
+#document
+| <html>
+|   <head>
+|   <body>
+|     <form>

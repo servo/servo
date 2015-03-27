@@ -1,0 +1,22 @@
+{
+    "name":         "webidl2"
+,   "description":  "A WebIDL Parser"
+,   "version":      "2.0.4"
+,   "author":       "Robin Berjon <robin@berjon.com>"
+,   "license":      "MIT"
+,   "dependencies": {
+    }
+,   "devDependencies": {
+        "mocha":            "1.7.4"
+    ,   "expect.js":        "0.2.0"
+    ,   "underscore":       "1.4.3"
+    ,   "jsondiffpatch":    "0.0.5"
+    ,   "benchmark":        "*"
+    ,   "microtime":        "*"
+    }
+,   "scripts": {
+        "test": "mocha"
+    }
+,   "repository":   "git://github.com/darobin/webidl2.js"
+,   "main":         "index"
+}

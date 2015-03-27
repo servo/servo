@@ -1,0 +1,14 @@
+[submodule "tools/wptserve"]
+	path = wptserve
+	url = https://github.com/w3c/wptserve.git
+	ignore = dirty
+[submodule "tools/pywebsocket"]
+	path = pywebsocket
+	url = https://github.com/w3c/pywebsocket.git
+	ignore = dirty
+[submodule "html5lib"]
+	path = html5lib
+	url = https://github.com/html5lib/html5lib-python.git
+[submodule "tools/six"]
+	path = six
+	url = https://github.com/jgraham/six.git

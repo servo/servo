@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: Border Conflict Resolution (by element): row vs. column group - element with highest priority is the dominant border</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution">
+        <meta name="flags" content="">
+        <meta name="assert" content="With embedded elements (row, column group) of same border-style and width, border collapsing favors the row.">
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+                height: 2in;
+                width: 2in;
+            }
+            colgroup
+            {
+                border: 5px solid red;
+            }
+            tr
+            {
+                border: 5px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <table>
+            <colgroup></colgroup>
+            <tr>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

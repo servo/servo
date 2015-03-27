@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: Border Conflict Resolution (by border style): 'ridge' vs. 'outset' - border with highest priority border style should dominate</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution">
+        <meta name="flags" content="">
+        <meta name="assert" content="The 'ridge' border is the dominant border when it is collapsed with an 'outset' border of the same size.">
+        <style type="text/css">
+            #table1
+            {
+                margin-bottom: 20px;
+            }
+            table
+            {
+                border-collapse: collapse;
+            }
+            td
+            {
+                border: 5px ridge lime;
+                height: 3em;
+                width: 3em;
+            }
+            #center
+            {
+                border: 5px outset red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the center box in the table below has a border similar to this:</p>
+        <table id="table1">
+            <tr>
+                <td></td>
+            </tr>
+        </table>
+        <table>
+            <tr>
+                <td>ridge</td>
+                <td>ridge</td>
+                <td>ridge</td>
+            </tr>
+            <tr>
+                <td>ridge</td>
+                <td id="center">outset</td>
+                <td>ridge</td>
+            </tr>
+            <tr>
+                <td>ridge</td>
+                <td>ridge</td>
+                <td>ridge</td>
+            </tr>
+        </table>
+    </body>
+</html>

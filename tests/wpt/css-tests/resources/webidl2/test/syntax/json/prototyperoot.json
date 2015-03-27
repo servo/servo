@@ -1,0 +1,33 @@
+[
+    {
+        "type": "interface",
+        "name": "Node",
+        "partial": false,
+        "members": [
+            {
+                "type": "attribute",
+                "static": false,
+                "stringifier": false,
+                "inherit": false,
+                "readonly": true,
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "unsigned short"
+                },
+                "name": "nodeType",
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": [
+            {
+                "name": "PrototypeRoot",
+                "arguments": null
+            }
+        ]
+    }
+]

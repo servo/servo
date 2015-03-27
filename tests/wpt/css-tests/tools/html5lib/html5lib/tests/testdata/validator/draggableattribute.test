@@ -1,0 +1,63 @@
+{"tests": [
+
+{"description": "valid draggable attribute value 'true'",
+"input": "<span draggable=true>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "valid draggable attribute value 'TRUE'",
+"input": "<span draggable=TRUE>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "valid draggable attribute value 'TrUe'",
+"input": "<span draggable=TrUe>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "valid draggable attribute value 'false'",
+"input": "<span draggable=false>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "valid draggable attribute value 'FALSE'",
+"input": "<span draggable=FALSE>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "valid draggable attribute value 'FalSe'",
+"input": "<span draggable=FalSe>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "invalid draggable attribute value ''",
+"input": "<span draggable=''>",
+"fail-unless": "attribute-value-can-not-be-blank"},
+
+{"description": "valid draggable attribute value (not specified)",
+"input": "<span draggable>",
+"fail-unless": "attribute-value-can-not-be-blank"},
+
+{"description": "invalid draggable attribute value 'foo'",
+"input": "<span draggable=foo>",
+"fail-unless": "invalid-enumerated-value"},
+
+{"description": "invalid draggable attribute value '0'",
+"input": "<span draggable=0>",
+"fail-unless": "invalid-enumerated-value"},
+
+{"description": "invalid draggable attribute value '1'",
+"input": "<span draggable=1>",
+"fail-unless": "invalid-enumerated-value"},
+
+{"description": "invalid draggable attribute value 'yes'",
+"input": "<span draggable=yes>",
+"fail-unless": "invalid-enumerated-value"},
+
+{"description": "invalid draggable attribute value 'no'",
+"input": "<span draggable=no>",
+"fail-unless": "invalid-enumerated-value"},
+
+{"description": "invalid draggable attribute value 'auto'",
+"input": "<span draggable=auto>",
+"fail-unless": "invalid-enumerated-value"},
+
+{"description": "invalid draggable attribute value 'inherit'",
+"input": "<span draggable=inherit>",
+"fail-unless": "invalid-enumerated-value"}
+
+]}

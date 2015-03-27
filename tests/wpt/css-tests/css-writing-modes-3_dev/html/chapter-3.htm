@@ -1,0 +1,899 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+ <head>
+  <title>Introduction to Vertical Text - CSS Writing Modes Module Level 3 CR Test Suite</title>
+  <style type="text/css">
+    @import "http://www.w3.org/StyleSheets/TR/base.css";
+    @import "../indices.css";
+  </style>
+ </head>
+
+ <body>
+
+  <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
+  <h2>Introduction to Vertical Text (76 tests)</h2>
+  <table width="100%">
+    <col id="test-column">
+    <col id="refs-column">
+    <col id="flags-column">
+    <col id="info-column">
+    <thead>
+      <tr>
+        <th>Test</th>
+        <th><abbr title="Rendering References">Refs</abbr></th>
+        <th>Flags</th>
+        <th>Info</th>
+      </tr>
+    </thead>
+    <tbody id="s3">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s3">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#vertical-intro">3 Introduction to Vertical Text</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.#fig-mac">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s3.1">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode">3.1 Block Flow Direction: the writing-mode property</a></th></tr>
+      <!-- 65 tests -->
+      <tr id="block-flow-direction-001-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-001.htm">block-flow-direction-001</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>horizontal-tb - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that block-level boxes in a 'horizontal-tb' writing mode are laid out one after the other, vertically, with the first beginning at the top of a containing block; they are ordered from top to bottom meaning that the 1st block box is the topmost one, then the 2nd block is juxtaposed at its bottom, then the 3rd block is juxtaposed to the 2nd block at its bottom, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-002-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-002.htm">block-flow-direction-002</a></strong></td>
+        <td><a href="reference/block-flow-direction-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-rl - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that block-level boxes in a block formating context with 'writing-mode' set to 'vertical-rl' are laid out one after the other with the first beginning at the right-hand side of its containing block; they are ordered from right to left meaning that the 1st block box is the rightmost one, then the 2nd block is juxtaposed at its left-hand side, then the 3rd block is juxtaposed at the 2nd block on its left-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-003-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-003.htm">block-flow-direction-003</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-lr - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that block-level boxes in a block formating context with 'writing-mode' set to 'vertical-lr' are laid out one after the other with the first beginning at the left-hand side of its containing block; they are ordered from left to right meaning that the 1st block box is the leftmost one and, then the 2nd block is juxtaposed at the right-hand side of 1st block, then the 3rd block is juxtaposed at the 2nd block on its right-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-004-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-004.htm">block-flow-direction-004</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'writing-mode' - initial value is 'horizontal-tb'
+          <ul class="assert">
+            <li>This test checks that the default, initial value of writing-mode is 'horizontal-tb'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-005-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-005.htm">block-flow-direction-005</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float: left' and 'vertical-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that a left-floated box with its 'writing-mode' set to 'vertical-rl' establishes a block formating context with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-006-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-006.htm">block-flow-direction-006</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float: left' and 'vertical-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that left-floated boxes with 'writing-mode' set to 'vertical-rl' establish block formating contexts with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-007-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-007.htm">block-flow-direction-007</a></strong></td>
+        <td><a href="reference/block-flow-direction-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float: right' and 'vertical-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that a right-floated box with its 'writing-mode' set to 'vertical-lr' establishes a block formating context with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-008-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-008.htm">block-flow-direction-008</a></strong></td>
+        <td><a href="reference/block-flow-direction-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float: right' and 'vertical-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that right-floated boxes with 'writing-mode' set to 'vertical-lr' establish block formating contexts with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-009-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-009.htm">block-flow-direction-009</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>position absolute and 'vertical-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an absolutely positioned box with its 'writing-mode' set to 'vertical-rl' establishes a block formating context with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-010-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-010.htm">block-flow-direction-010</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>position absolute and 'vertical-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an absolutely positioned box with its 'writing-mode' set to 'vertical-lr' establishes a block formating context with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-011-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-011.htm">block-flow-direction-011</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'vertical-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an inline-block with its 'writing-mode' set to 'vertical-rl' establishes a block formating context with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-012-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-012.htm">block-flow-direction-012</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'vertical-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an inline-block with its 'writing-mode' set to 'vertical-rl' establishes a block formating context with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-013-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-013.htm">block-flow-direction-013</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'vertical-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an inline-block with its 'writing-mode' set to 'vertical-rl' establishes a block formating context with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-014-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-014.htm">block-flow-direction-014</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'vertical-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an inline-block with its 'writing-mode' set to 'vertical-lr' establishes a block formating context with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-015-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-015.htm">block-flow-direction-015</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'vertical-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an inline-block with its 'writing-mode' set to 'vertical-lr' establishes a block formating context with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-016-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-016.htm">block-flow-direction-016</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'vertical-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that an inline-block with its 'writing-mode' set to 'vertical-lr' establishes a block formating context with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-017-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-017.htm">block-flow-direction-017</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>table-cell and 'vertical-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that a table-cell with its 'writing-mode' set to 'vertical-rl' establishes a block formating context with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-018-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-018.htm">block-flow-direction-018</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>table-cell and 'vertical-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that a table-cell with its 'writing-mode' set to 'vertical-lr' establishes a block formating context with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-019-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-019.htm">block-flow-direction-019</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>table-caption and 'vertical-rl' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that a table-caption with its 'writing-mode' set to 'vertical-rl' establishes a block formating context with a right-to-left block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-020-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-020.htm">block-flow-direction-020</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>table-caption and 'vertical-lr' - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that a table-caption with its 'writing-mode' set to 'vertical-lr' establishes a block formating context with a left-to-right block flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-021-3.1" class="primary ahem image">
+        <td><strong>
+            <a href="block-flow-direction-021.htm">block-flow-direction-021</a></strong></td>
+        <td><a href="reference/block-flow-direction-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>list and vertical-rl - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that block-level boxes in a block formating context with 'writing-mode' set to 'vertical-rl' are laid out one after the other with the first beginning at the right-hand side of its containing block; they are ordered from right to left meaning that the 1st block box is the rightmost one and then the 2nd block is juxtaposed to its left-hand side, the 3rd block is juxtaposed to the 2nd block on its left-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-022-3.1" class="primary ahem image">
+        <td><strong>
+            <a href="block-flow-direction-022.htm">block-flow-direction-022</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>list and vertical-lr - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that block-level boxes in a block formating context with 'writing-mode' set to 'vertical-lr' are laid out one after the other with the first beginning at the left-hand side of its containing block; they are ordered from left to right meaning that the 1st block box is the leftmost one and then the 2nd block is juxtaposed to the right-hand side of 1st block, the 3rd block is juxtaposed to the 2nd block on its right-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-023-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-023.htm">block-flow-direction-023</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-lr - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that block-level boxes in a block formating context with 'writing-mode' set to 'vertical-lr' are laid out one after the other with the first beginning at the left-hand side of its containing block; they are ordered from left to right meaning that the 1st block box is the leftmost one and, then the 2nd block is juxtaposed at the right-hand side of 1st block, then the 3rd block is juxtaposed at the 2nd block on its right-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-024-3.1" class="primary ahem">
+        <td><strong>
+            <a href="block-flow-direction-024.htm">block-flow-direction-024</a></strong></td>
+        <td><a href="reference/block-flow-direction-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-rl - block flow direction of block-level boxes
+          <ul class="assert">
+            <li>This test checks that block-level boxes in a block formating context with 'writing-mode' set to 'vertical-rl' are laid out one after the other with the first beginning at the right-hand side of its containing block; they are ordered from right to left meaning that the 1st block box is the rightmost one, then the 2nd block is juxtaposed at its left-hand side, then the 3rd block is juxtaposed at the 2nd block on its left-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-flow-direction-025-3.1" class="primary image">
+        <td><strong>
+            <a href="block-flow-direction-025.htm">block-flow-direction-025</a></strong></td>
+        <td><a href="reference/block-flow-direction-025-ref.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>writing mode of document - horizontal position of first block
+          <ul class="assert">
+            <li>This test checks that, when 'writing-mode' value of the root element is set to 'vertical-rl', then its block boxes are laid out leftwardedly (from right to left) one after the other beginning at its righthand side.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="different-block-flow-dir-001-3.1" class="primary">
+        <td><strong>
+            <a href="different-block-flow-dir-001.htm">different-block-flow-dir-001</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>descendant inline with a different 'writing-mode' value
+          <ul class="assert">
+            <li>This test checks that if an inline box has a different block flow direction than its containing block then its display computes to 'inline-block' in which case its specified width and specified height are not ignored and have to be rendered.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="different-block-flow-dir-002-3.1" class="primary">
+        <td><strong>
+            <a href="different-block-flow-dir-002.htm">different-block-flow-dir-002</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>descendant inline with a different 'writing-mode' value
+          <ul class="assert">
+            <li>This test checks that if an inline box has a different block flow direction than its containing block then its display computes to 'inline-block' in which case its specified width and specified height are not ignored and have to be rendered.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="form-controls-vert-rl-004-3.1" class="primary image should">
+        <td><strong>
+            <a href="form-controls-vert-rl-004.htm">form-controls-vert-rl-004</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="should" title="Behavior tested is recommended but not required">Recommend</abbr></td>
+        <td>order, orientation and layout of form controls in 'vertical-rl' writing-mode
+          <ul class="assert">
+            <li>This test checks the order, the flow, the orientation and layout of form controls used in Example 4 of section 3.1.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="form-controls-vert-rl-005-3.1" class="primary should">
+        <td><strong>
+            <a href="form-controls-vert-rl-005.htm">form-controls-vert-rl-005</a></strong></td>
+        <td></td>
+        <td><abbr class="should" title="Behavior tested is recommended but not required">Recommend</abbr></td>
+        <td>form controls in 'vertical-rl' writing-mode
+          <ul class="assert">
+            <li>This test checks the rendering of various form controls (select, optgroup, options, various types of input and buttons) written with latin text in 'vertical-rl' writing mode. The text of replaced content should match the replaced element's writing mode and line orientation; therefore, in this test, a) the text's inline base direction must be from top to bottom, b) the glyphs must be rotated 90&amp;deg; clockwise and c) the block flow direction must be from right to left.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-replaced-vlr-003-3.1" class="primary image">
+        <td><strong>
+            <a href="inline-replaced-vlr-003.htm">inline-replaced-vlr-003</a></strong></td>
+        <td><a href="reference/inline-replaced-vrl-002-ref.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>inline replaced element and 'vertical-lr'
+          <ul class="assert">
+            <li>This test checks that the content of an inline replaced element does not rotate due to the writing mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-replaced-vrl-002-3.1" class="primary image">
+        <td><strong>
+            <a href="inline-replaced-vrl-002.htm">inline-replaced-vrl-002</a></strong></td>
+        <td><a href="reference/inline-replaced-vrl-002-ref.htm">=</a> </td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>inline replaced element and 'vertical-rl'
+          <ul class="assert">
+            <li>This test checks that the content of an inline replaced element does not rotate due to the writing mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-001-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-001.htm">line-box-direction-001</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>horizontal-tb - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that line boxes of a block box in a 'horizontal-tb' writing mode are laid out one after the other, vertically, with the first beginning at the top of the block box; they are ordered from top to bottom meaning that the 1st line box is the topmost one and then the 2nd block is juxtaposed to its bottom, the 3rd block is juxtaposed to the 2nd block on its left-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-002-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-002.htm">line-box-direction-002</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-rl - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that line boxes of a block box in a 'vertical-rl' writing mode are laid out one after the other, leftwardedly, with the first beginning at the rightmost line of the block box; they are ordered from right to left meaning that the 1st line box is the rightmost one and then the 2nd line box is juxtaposed to its left-hand side, the 3rd block is juxtaposed to the 2nd line box on its left-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-003-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-003.htm">line-box-direction-003</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-lr - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that line boxes in a block box with 'writing-mode' set to 'vertical-lr' are laid out one after the other with the first beginning at the left-hand side of the block box; they are ordered from left to right meaning that the 1st line box is the leftmost one and then the 2nd line box is juxtaposed to the right-hand side of 1st line box, the 3rd line box is juxtaposed to the 2nd line box on its right-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-005-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-005.htm">line-box-direction-005</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float: left' and 'vertical-rl' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that the line boxes of a left-floated box with its 'writing-mode' set to 'vertical-rl' will be ordered from right to left.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-006-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-006.htm">line-box-direction-006</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float: left' and 'vertical-rl' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that the line boxes of left-floated boxes with 'writing-mode' set to 'vertical-lr' will be ordered from right to left.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-007-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-007.htm">line-box-direction-007</a></strong></td>
+        <td><a href="reference/block-flow-direction-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float: right' and 'vertical-lr' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that the line boxes of a right-floated box with its 'writing-mode' set to 'vertical-lr' will be ordered from left to right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-008-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-008.htm">line-box-direction-008</a></strong></td>
+        <td><a href="reference/block-flow-direction-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'float: right' and 'vertical-lr' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that the line boxes of right-floated boxes with 'writing-mode' set to 'vertical-lr' will be ordered from left to right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-009-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-009.htm">line-box-direction-009</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>position absolute and 'vertical-rl' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that line boxes of an absolutely positioned box with its 'writing-mode' set to 'vertical-rl' will be ordered from right to left.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-010-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-010.htm">line-box-direction-010</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>position absolute and 'vertical-lr' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that line boxes of an absolutely positioned box with its 'writing-mode' set to 'vertical-lr' will be ordered from left to right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-011-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-011.htm">line-box-direction-011</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'vertical-rl' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that lines boxes of descendant block boxes of an inline-block with its 'writing-mode' set to 'vertical-rl' are ordered from right to left.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-012-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-012.htm">line-box-direction-012</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'vertical-rl' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that lines boxes of descendant block boxes of inline-blocks with 'writing-mode' set to 'vertical-rl' are ordered from right to left.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-013-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-013.htm">line-box-direction-013</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'vertical-lr' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that lines boxes of descendant block boxes of an inline-block with its 'writing-mode' set to 'vertical-lr' are ordered from left to right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-014-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-014.htm">line-box-direction-014</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-block and 'vertical-lr' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that lines boxes of descendant block boxes of inline-blocks with 'writing-mode' set to 'vertical-lr' are ordered from left to right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-015-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-015.htm">line-box-direction-015</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>table-cell and 'vertical-rl' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that the lines boxes of a table-cell with its 'writing-mode' set to 'vertical-rl' are ordered from right to left.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-016-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-016.htm">line-box-direction-016</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>table-cell and 'vertical-lr' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that the lines boxes of a table-cell with its 'writing-mode' set to 'vertical-lr' are ordered from left to right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-017-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-017.htm">line-box-direction-017</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>table-caption and 'vertical-rl' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that the lines boxes of a table-caption with its 'writing-mode' set to 'vertical-rl' are ordered from right to left.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-018-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-018.htm">line-box-direction-018</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>table-caption and 'vertical-lr' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that the lines boxes of a table-caption with its 'writing-mode' set to 'vertical-lr' are ordered from left to right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-019-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-019.htm">line-box-direction-019</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>list and 'vertical-rl' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that line boxes of a block box in a 'vertical-rl' writing mode are laid out one after the other, leftwardedly, with the first beginning at the rightmost line of the block box; they are ordered from right to left meaning that the 1st line box is the rightmost one and then the 2nd line box is juxtaposed to its left-hand side, the 3rd block is juxtaposed to the 2nd line box on its left-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-box-direction-020-3.1" class="primary ahem">
+        <td><strong>
+            <a href="line-box-direction-020.htm">line-box-direction-020</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>list and 'vertical-lr' - ordering direction of line boxes
+          <ul class="assert">
+            <li>This test checks that line boxes in a block box with 'writing-mode' set to 'vertical-lr' are laid out one after the other with the first beginning at the left-hand side of the block box; they are ordered from left to right meaning that the 1st line box is the leftmost one and then the 2nd line box is juxtaposed to the right-hand side of 1st line box, the 3rd line box is juxtaposed to the 2nd line box on its right-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="list-items-vert-rl-005-3.1" class="primary image">
+        <td><strong>
+            <a href="list-items-vert-rl-005.htm">list-items-vert-rl-005</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>order, orientation and layout of list items in a 'vertical-rl' writing-mode
+          <ul class="assert">
+            <li>This test checks the order, the orientation and layout of list items when in a 'vertical-rl' writing mode as illustrated by and according to Example 5 of section 3.1.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="page-flow-direction-002-3.1" class="primary image paged">
+        <td><strong>
+            <a href="page-flow-direction-002.htm">page-flow-direction-002</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
+        <td>'writing-mode: vertical-rl' - default page flow (progression) direction
+          <ul class="assert">
+            <li>This test checks that when 'writing-mode' is set on the root element, then it determines the default page flow (or progression) direction. In this test, the page flow (or progression) direction is right-to-left.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="page-flow-direction-003-3.1" class="primary image paged">
+        <td><strong>
+            <a href="page-flow-direction-003.htm">page-flow-direction-003</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
+        <td>'writing-mode: vertical-lr' - default page flow (progression) direction
+          <ul class="assert">
+            <li>This test checks that when 'writing-mode' is set on the root element, then it determines the default page flow (or progression) direction. In this test, the page flow (or progression) direction is left-to-right.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="replaced-content-image-002-3.1" class="primary should">
+        <td><strong>
+            <a href="replaced-content-image-002.htm">replaced-content-image-002</a></strong></td>
+        <td></td>
+        <td><abbr class="should" title="Behavior tested is recommended but not required">Recommend</abbr></td>
+        <td>alternate text of image and vertical writing mode
+          <ul class="assert">
+            <li>This test checks that alternate text (latin) of image rotates 90&amp;deg; clockwise in vertical writing mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="replaced-content-image-003-3.1" class="primary should">
+        <td><strong>
+            <a href="replaced-content-image-003.htm">replaced-content-image-003</a></strong></td>
+        <td></td>
+        <td><abbr class="should" title="Behavior tested is recommended but not required">Recommend</abbr></td>
+        <td>alternate text of image and vertical writing mode
+          <ul class="assert">
+            <li>This test checks that alternate text (latin) of image rotates 90&amp;deg; clockwise in vertical writing mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="row-progression-002-3.1" class="primary ahem">
+        <td><strong>
+            <a href="row-progression-002.htm">row-progression-002</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-rl - table rows progression
+          <ul class="assert">
+            <li>This test checks that rows of a table element with in a 'vertical-rl' writing mode are laid out one after the other, leftwardedly, with the first beginning at the rightmost side of the table box; table rows are ordered from right to left meaning that the 1st row is the rightmost one and then the 2nd row is juxtaposed to its left-hand side, the 3rd row is juxtaposed to the 2nd row on its left-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="row-progression-003-3.1" class="primary ahem">
+        <td><strong>
+            <a href="row-progression-003.htm">row-progression-003</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-lr - table rows progression
+          <ul class="assert">
+            <li>This test checks that rows of a table element with in a 'vertical-lr' writing mode are laid out one after the other, rightwardedly, with the first beginning at the leftmost side of the table box; table rows are ordered from left to right meaning that the 1st row is the leftmost one and then the 2nd row is juxtaposed to its right-hand side, the 3rd row is juxtaposed to the 2nd row on its right-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="row-progression-004-3.1" class="primary ahem">
+        <td><strong>
+            <a href="row-progression-004.htm">row-progression-004</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-rl - table rows progression and colspan
+          <ul class="assert">
+            <li>This test checks that colspanned cells in a table are handled according to a top-to-bottom inline flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="row-progression-005-3.1" class="primary ahem">
+        <td><strong>
+            <a href="row-progression-005.htm">row-progression-005</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-lr - table rows progression and colspan
+          <ul class="assert">
+            <li>This test checks that colspanned cells in a table are handled according to a top-to-bottom inline flow direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="row-progression-006-3.1" class="primary ahem">
+        <td><strong>
+            <a href="row-progression-006.htm">row-progression-006</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-rl - table rows progression and rowspan
+          <ul class="assert">
+            <li>This test checks that rowspanned cells in a table are handled according to a right-to-left direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="row-progression-007-3.1" class="primary ahem">
+        <td><strong>
+            <a href="row-progression-007.htm">row-progression-007</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-lr - table rows progression and rowspan
+          <ul class="assert">
+            <li>This test checks that rowspanned cells in a table are handled according to a left-to-right direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="row-progression-008-3.1" class="primary ahem">
+        <td><strong>
+            <a href="row-progression-008.htm">row-progression-008</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-rl - table rows progression (thead, 2 tbodies, tfoot)
+          <ul class="assert">
+            <li>This test checks that rows of a table element with in a 'vertical-rl' writing mode are laid out one after the other, leftwardedly, with the first beginning at the rightmost side of the table box; table rows are ordered from right to left meaning that the 1st row is the rightmost one and then the 2nd row is juxtaposed to its left-hand side, the 3rd row is juxtaposed to the 2nd row on its left-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="row-progression-009-3.1" class="primary ahem">
+        <td><strong>
+            <a href="row-progression-009.htm">row-progression-009</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>vertical-lr - table rows progression (thead, 2 tbodies, tfoot)
+          <ul class="assert">
+            <li>This test checks that rows of a table element with in a 'vertical-lr' writing mode are laid out one after the other, rightwardedly, with the first beginning at the leftmost side of the table box; table rows are ordered from left to right meaning that the 1st row is the leftmost one and then the 2nd row is juxtaposed to its right-hand side, the 3rd row is juxtaposed to the 2nd row on its right-hand side, etc...</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="writing-mode-stretch-001-3.1" class="primary">
+        <td><strong>
+            <a href="writing-mode-stretch-001.htm">writing-mode-stretch-001</a></strong></td>
+        <td><a href="reference/writing-mode-stretch-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>writing-mode vertical-lr and vertical-rl
+          <ul class="assert">
+            <li>vertical-writing-mode flex items should stretch</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="writing-mode-vertical-rl-003-3.1" class="primary ahem">
+        <td><strong>
+            <a href="writing-mode-vertical-rl-003.htm">writing-mode-vertical-rl-003</a></strong></td>
+        <td><a href="reference/writing-mode-vertical-rl-003-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>writing-mode: horizontal-tb nested in vertical-rl
+          <ul class="assert">
+            <li>when child block has its own writing-mode, child block's writing-mode overwrites parent block's writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s3.1.#principal-writing-mode">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1.#propdef-writing-mode">
+      <!-- 11 tests -->
+      <tr id="autoheight-regions-in-autoheight-flexbox-002-3.1.#propdef-writing-mode" class="ahem">
+        <td>
+            <a href="autoheight-regions-in-autoheight-flexbox-002.htm">autoheight-regions-in-autoheight-flexbox-002</a></td>
+        <td><a href="reference/autoheight-regions-in-autoheight-flexbox-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>CSS Regions: Auto-height regions with vertical writing mode in auto-height flexbox
+          <ul class="assert">
+            <li>Test checks that auto-height regions having content with vertical writing mode are sized correctly when placed inside a flex container. The flowed content should be displayed as a horizontal green stripe.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css-flexbox-row-3.1.#propdef-writing-mode" class="">
+        <td>
+            <a href="css-flexbox-row.htm">css-flexbox-row</a></td>
+        <td><a href="reference/css-flexbox-row-ref.htm">=</a> </td>
+        <td></td>
+        <td>flex direction: row, writing mode vertical
+          <ul class="assert">
+            <li>Test checks that when writing mode is vertical and flex-flow: row, the flex container is vertical.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css-flexbox-row-reverse-3.1.#propdef-writing-mode" class="">
+        <td>
+            <a href="css-flexbox-row-reverse.htm">css-flexbox-row-reverse</a></td>
+        <td><a href="reference/css-flexbox-row-ref.htm">=</a> </td>
+        <td></td>
+        <td>flex direction: row, writing mode vertical
+          <ul class="assert">
+            <li>Test checks that when writing mode is vertical and flex-flow: row-reverse, the flex container is vertical.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css-flexbox-row-reverse-wrap-3.1.#propdef-writing-mode" class="">
+        <td>
+            <a href="css-flexbox-row-reverse-wrap.htm">css-flexbox-row-reverse-wrap</a></td>
+        <td><a href="reference/css-flexbox-row-ref.htm">=</a> </td>
+        <td></td>
+        <td>flex direction: row, writing mode vertical
+          <ul class="assert">
+            <li>Test checks that when writing mode is vertical and flex-flow: row-reverse wrap, the flex container is vertical.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css-flexbox-row-reverse-wrap-reverse-3.1.#propdef-writing-mode" class="">
+        <td>
+            <a href="css-flexbox-row-reverse-wrap-reverse.htm">css-flexbox-row-reverse-wrap-reverse</a></td>
+        <td><a href="reference/css-flexbox-row-ref.htm">=</a> </td>
+        <td></td>
+        <td>flex direction: row, writing mode vertical
+          <ul class="assert">
+            <li>Test checks that when writing mode is vertical and flex-flow: row-reverse wrap-reverse, the flex container is vertical.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css-flexbox-row-wrap-3.1.#propdef-writing-mode" class="">
+        <td>
+            <a href="css-flexbox-row-wrap.htm">css-flexbox-row-wrap</a></td>
+        <td><a href="reference/css-flexbox-row-ref.htm">=</a> </td>
+        <td></td>
+        <td>flex direction: row, writing mode vertical
+          <ul class="assert">
+            <li>Test checks that when writing mode is vertical and flex-flow: row wrap, the flex container is vertical.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css-flexbox-row-wrap-reverse-3.1.#propdef-writing-mode" class="">
+        <td>
+            <a href="css-flexbox-row-wrap-reverse.htm">css-flexbox-row-wrap-reverse</a></td>
+        <td><a href="reference/css-flexbox-row-ref.htm">=</a> </td>
+        <td></td>
+        <td>flex direction: row, writing mode vertical
+          <ul class="assert">
+            <li>Test checks that when writing mode is vertical and flex-flow: row wrap-reverse, the flex container is vertical.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="extract-ordered-list-direction-and-writing-modes-3.1.#propdef-writing-mode" class="">
+        <td>
+            <a href="extract-ordered-list-direction-and-writing-modes.htm">extract-ordered-list-direction-and-writing-modes</a></td>
+        <td><a href="reference/extract-ordered-list-direction-and-writing-modes-ref.htm">=</a> </td>
+        <td></td>
+        <td>flow-into on list items that use different text directions or writing modes
+          <ul class="assert">
+            <li>The flow-into property can be applied to elements that have different text directions and writing modes. This tests that the rendering for lists that use different text directions/writing modes are not affected when they are extracted in a named flow and rendered in a region.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="writing-mode-vertical-lr-002-3.1.#propdef-writing-mode" class="primary ahem">
+        <td><strong>
+            <a href="writing-mode-vertical-lr-002.htm">writing-mode-vertical-lr-002</a></strong></td>
+        <td><a href="reference/writing-mode-vertical-lr-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>writing-mode: vertical-lr - basic inline case
+        </td>
+      </tr>
+      <tr id="writing-mode-vertical-rl-001-3.1.#propdef-writing-mode" class="primary ahem">
+        <td><strong>
+            <a href="writing-mode-vertical-rl-001.htm">writing-mode-vertical-rl-001</a></strong></td>
+        <td><a href="reference/writing-mode-vertical-rl-001-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>writing-mode: vertical-rl - basic inline case
+        </td>
+      </tr>
+      <tr id="writing-mode-vertical-rl-002-3.1.#propdef-writing-mode" class="primary ahem">
+        <td><strong>
+            <a href="writing-mode-vertical-rl-002.htm">writing-mode-vertical-rl-002</a></strong></td>
+        <td><a href="reference/writing-mode-vertical-rl-002-ref.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>writing-mode: vertical-rl - basic inline case
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s3.1.#valuedef-horizontal-tb">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1.#valuedef-vertical-lr">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1.#valuedef-vertical-rl">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1.1">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s3.1.1">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#svg-writing-mode">3.1.1 SVG1.1 writing-mode Values</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1.1.#inline-progression-direction">
+      <!-- 0 tests -->
+    </tbody>
+  </table>
+
+ </body>
+</html>

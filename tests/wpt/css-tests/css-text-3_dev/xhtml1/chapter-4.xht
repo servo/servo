@@ -1,0 +1,159 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>White Space Processing Details - CSS Text Module Level 3 CR Test Suite</title>
+  <style type="text/css">
+    @import "http://www.w3.org/StyleSheets/TR/base.css";
+    @import "../indices.css";
+  </style>
+ </head>
+
+ <body>
+
+  <h1>CSS Text Module Level 3 CR Test Suite</h1>
+  <h2>White Space Processing Details (6 tests)</h2>
+  <table width="100%">
+    <col id="test-column"></col>
+    <col id="refs-column"></col>
+    <col id="flags-column"></col>
+    <col id="info-column"></col>
+    <thead>
+      <tr>
+        <th>Test</th>
+        <th><abbr title="Rendering References">Refs</abbr></th>
+        <th>Flags</th>
+        <th>Info</th>
+      </tr>
+    </thead>
+    <tbody id="s4">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s4">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#white-space-processing">4 White Space Processing Details</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.#segment-break">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.#segment-normalization">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.1">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s4.1">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#white-space-rules">4.1 The White Space Processing Rules</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.1.1">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s4.1.1">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#white-space-phase-1">4.1.1 Phase I: Collapsing and Transformation</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.1.1.#collapse">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.1.1.#collapsible">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.1.1.#egbidiwscollapse">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.1.2">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s4.1.2">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#line-break-transform">4.1.2 Segment Break Transformation Rules</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.1.3">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s4.1.3">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#white-space-phase-2">4.1.3 Phase II: Trimming and Positioning</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.1.3.#preserved">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.1.3.#tab-stops">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.2">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s4.2">+</a>
+        <a href="http://www.w3.org/TR/css-text-3/#tab-size-property">4.2 Tab Character Size: the &#8216;tab-size&#8217; property</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s4.2.#tab-size">
+      <!-- 6 tests -->
+      <tr id="tab-size-integer-001-4.2.#tab-size" class="primary">
+        <td><strong>
+            <a href="tab-size-integer-001.xht">tab-size-integer-001</a></strong></td>
+        <td><a href="reference/tab-size-integer-001-ref.xht">=</a> </td>
+        <td></td>
+        <td>tab-size: 4
+          <ul class="assert">
+            <li>Tab should be rendered as 4 times the space character&amp;#8217;s advance width (U+0020)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="tab-size-integer-002-4.2.#tab-size" class="primary">
+        <td><strong>
+            <a href="tab-size-integer-002.xht">tab-size-integer-002</a></strong></td>
+        <td><a href="reference/tab-size-integer-001-ref.xht">=</a> </td>
+        <td></td>
+        <td>tab-size: -4
+          <ul class="assert">
+            <li>Tab-size negative values are not allowed</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="tab-size-integer-003-4.2.#tab-size" class="primary">
+        <td><strong>
+            <a href="tab-size-integer-003.xht">tab-size-integer-003</a></strong></td>
+        <td><a href="reference/tab-size-integer-001-ref.xht">=</a> </td>
+        <td></td>
+        <td>tab-size: 0
+          <ul class="assert">
+            <li>Tab should be rendered as 0 times the space character&amp;#8217;s advance width (U+0020)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="tab-size-length-001-4.2.#tab-size" class="primary">
+        <td><strong>
+            <a href="tab-size-length-001.xht">tab-size-length-001</a></strong></td>
+        <td><a href="reference/tab-size-length-001-ref.xht">=</a> </td>
+        <td></td>
+        <td>tab-size: 1em
+          <ul class="assert">
+            <li>Tab should be rendered as 1em (20px)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="tab-size-length-002-4.2.#tab-size" class="primary">
+        <td><strong>
+            <a href="tab-size-length-002.xht">tab-size-length-002</a></strong></td>
+        <td><a href="reference/tab-size-length-001-ref.xht">=</a> </td>
+        <td></td>
+        <td>tab-size: -1em
+          <ul class="assert">
+            <li>Tab-size negative length values are not allowed</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="tab-size-percent-001-4.2.#tab-size" class="primary">
+        <td><strong>
+            <a href="tab-size-percent-001.xht">tab-size-percent-001</a></strong></td>
+        <td><a href="reference/tab-size-length-001-ref.xht">=</a> </td>
+        <td></td>
+        <td>tab-size: 100%
+          <ul class="assert">
+            <li>Tab-size percentage values are not allowed</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+ </body>
+</html>
