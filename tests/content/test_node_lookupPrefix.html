@@ -24,15 +24,15 @@
             is(document.lookupPrefix(""), null);
             is(document.lookupPrefix(null), null);
 
-            // Sub step 1 test
+            // Element step 1
             is(yprefix.lookupPrefix("ynamespace"), "yprefix");
             is(ynoprefix.lookupPrefix("ynamespace"), null);
-            
-            // Sub step 2 test
+
+            // Element step 2
             is(x.lookupPrefix("test"), "t");
             is(ynoprefix.lookupPrefix("yval"), "yattr");
-            
-            // analogous to wpt
+
+            // analogous to wpt - https://github.com/w3c/web-platform-tests/blob/master/dom/nodes/Node-lookupPrefix.xhtml
             is(document.lookupPrefix("test"), "x");
             is(x.lookupPrefix("test"), "t");
             is(x.lookupPrefix("http://www.w3.org/1999/xhtml"), null);

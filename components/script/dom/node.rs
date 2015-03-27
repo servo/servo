@@ -2139,16 +2139,16 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         // Step 2.
         match self.type_id() {
             NodeTypeId::Element(..) => ElementCast::to_ref(self).unwrap().lookup_prefix(namespace),
+            NodeTypeId::Document => {
+                DocumentCast::to_ref(self).unwrap().GetDocumentElement().and_then(|element| {
+                    element.root().r().lookup_prefix(namespace)
+                })
+            },
             NodeTypeId::DocumentType | NodeTypeId::DocumentFragment => None,
-            type_id => {
-                let maybe_element = match type_id {
-                    NodeTypeId::Document => DocumentCast::to_ref(self).unwrap().GetDocumentElement(),
-                    _ => self.GetParentElement(),
-                };
-                match maybe_element {
-                    None => None,
-                    Some(element) => element.root().r().lookup_prefix(namespace),
-                }
+            _ => {
+                self.GetParentElement().and_then(|element| {
+                    element.root().r().lookup_prefix(namespace)
+                })
             }
         }
     }
