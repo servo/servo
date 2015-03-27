@@ -1,0 +1,13 @@
+exclude MANIFEST.in
+include requirements.txt
+include wptrunner/browsers/b2g_setup/*
+include wptrunner.default.ini
+include wptrunner/testharness_runner.html
+include wptrunner/testharnessreport.js
+include wptrunner/testharnessreport-servo.js
+include wptrunner/executors/testharness_marionette.js
+include wptrunner/executors/testharness_webdriver.js
+include wptrunner/executors/reftest.js
+include wptrunner/executors/reftest-wait.js
+include wptrunner/config.json
+include wptrunner/browsers/server-locations.txt
