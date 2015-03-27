@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang=en>
+   <head>
+<script type="application/its+xml">
+  <its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+   <its:param name="locnoteparam">DisableInfo</its:param>
+   <its:locNoteRule locNoteType="alert" selector="//h:p[@id=$locnoteparam]">
+    <its:locNote>The variable {0} has three possible values: 'printer', 
+    'stacker' and 'stapler options'.</its:locNote>
+   </its:locNoteRule>
+  </its:rules>
+</script>	
+  <meta charset=utf-8>
+   <title>Example</title>	
+  </head>	
+<body>
+  <p id="DisableInfo">The {0} has been disabled.</p>
+ </body>
+</html>
+

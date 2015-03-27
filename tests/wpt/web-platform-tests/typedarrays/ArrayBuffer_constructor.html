@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Typed Arrays Test: ArrayBuffer constructor</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://www.khronos.org/registry/typedarray/specs/latest/#5">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+
+var args = [
+  /* numbers */
+  [NaN, 0], [+Infinity, 0], [-Infinity, 0], [+0, 0], [-0, 0],
+  [-0.4, 0], [-0.9, 0], [1.1, 1], [2.9, 2],
+  [1, 1], [-0xF1000000, 0xF000000],
+  /* strings */
+  ["1", 1], ["1e2", 100],
+  /* null, undefined, booleans */
+  [undefined, 0], [null, 0], [false, 0], [true, 1]
+];
+
+args.forEach(function (arg, i) {
+  test(function () {
+    var abuffer = new ArrayBuffer(arg[0]);
+    assert_equals(abuffer.byteLength, arg[1]);
+  }, "The argument " + format_value(arg[0]) + " should be interpreted as " +
+     arg[1] + " for ArrayBuffer constructor." + i);
+});
+
+</script>

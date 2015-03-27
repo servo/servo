@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>XMLHttpRequest: send() - non same-origin</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <base href="http://{{domains[www2]}}:{{ports[http][0]}}">
+    <link rel="help" href="https://xhr.spec.whatwg.org/#cross-origin-request-steps" data-tested-assertations="/following::DL[2]/DT[1] /following::DL[2]/DD[1]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#cross-origin-request-event-rules" data-tested-assertations="/following::DL[1]/DT[2] /following::DL[1]/DD[2]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      function url(url) {
+        test(function() {
+          var client = new XMLHttpRequest()
+          client.open("GET", url, false)
+          assert_throws("NetworkError", function() { client.send() })
+        }, document.title + " (" + url + ")")
+      }
+      url("mailto:test@example.org")
+      url("tel:+31600000000")
+      url("http://{{domains[www2]}}:{{ports[http][0]}}/")
+      url("javascript:alert('FAIL')")
+      url("folder.txt")
+    </script>
+  </body>
+</html>

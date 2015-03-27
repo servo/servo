@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<title>Service Workers: Origin Relativity</title>
+    <head>
+        <link rel="help" href="https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#origin-relativity">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+    </head>
+    <body>
+
+<!--
+
+One of the advanced concerns that major applications would encounter is whether
+they can be hosted from a CDN. By definition, these are servers in other
+places, often on other domains. Therefore, Service Workers cannot be hosted on
+CDNs. But they can include resources via [importScripts()][1]. The reason for
+this restriction is that Service Workers create the opportunity for a bad actor
+to turn a bad day into a bad eternity.
+
+[1]: http://goo.gl/Owcfs2
+
+-->
+
+
+
+    <script>
+        test(function() {
+            // not_implemented();
+        }, "There are no tests for section Origin Relativity so far.");
+    </script>
+
+    </body>
+</html>
+

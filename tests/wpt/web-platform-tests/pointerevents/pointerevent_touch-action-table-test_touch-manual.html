@@ -1,0 +1,141 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Table touch-action test</title>
+        <meta name="assert" content="TA15.19 The touch-action CSS property applies to all elements except table rows, row groups, table columns, and column groups.">
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="pointerevent_support.js"></script>
+        <style>
+            #target0 {
+            height: 150px;
+            width: 200px;
+            overflow-y: auto;
+            background: black;
+            padding: 100px;
+            position: relative;
+            }
+            #testtable{
+            color: white;
+            width: 350px;
+            padding: 0px 0px 200px 0px;
+            border: 2px solid green;
+            }
+            .testtd, .testth {
+            border: 2px solid green;
+            height: 80px;
+            }
+            #row1 {
+            touch-action: none;
+            }
+            #cell3 {
+            touch-action: none;
+            }
+        </style>
+    </head>
+    <body onload="run()">
+        <h2>Pointer Events touch-action attribute support</h2>
+        <h4 id="desc">Test Description: Try to scroll element DOWN starting your touch over the 1st Row. Wait for description update.</h4>
+        <p>Note: this test is for touch only</p>
+        <div id="target0">
+            <table id="testtable">
+                <caption>The caption, first row element, and cell 3 have touch-action: none.</caption>
+                <tr id="row1"><th class="testth">Header 1  <td class="testtd">Cell 1  <td class="testtd">Cell 2</tr>
+                <tr id="row2"><th class="testth">Header 2  <td id="cell3" class="testtd">Cell 3  <td class="testtd">Cell 4</tr>
+                <tr id="row3"> <th class="testth">Header 3  <td class="testtd">Cell 5  <td class="testtd"> Cell 6</tr>
+            </table>
+        </div>
+        <br>
+        <input type="button" id="btnComplete" value="Complete test">
+
+        <script type='text/javascript'>
+            var detected_pointertypes = {};
+            var xScrollIsReceived = false;
+            var yScrollIsReceived = false;
+            var xScr0, yScr0, xScr1, yScr1;
+            var scrollReturnInterval = 1000;
+            var isFirstPart = true;
+            setup({ explicit_timeout: true });
+            add_completion_callback(showPointerTypes);
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                var btnComplete = document.getElementById("btnComplete");
+
+                //TA 15.19
+                var test_touchaction_cell = async_test("touch-action attribute test on the cell");
+                var test_touchaction_row = async_test("touch-action attribute test on the row");
+
+                xScr0 = target0.scrollLeft;
+                yScr0 = target0.scrollTop;
+
+                on_event(btnComplete, 'click', function(event) {
+                    test_touchaction_cell.step(function() {
+                        assert_equals(target0.scrollLeft, 0, "table scroll x offset should be 0 in the end of the test");
+                        assert_equals(target0.scrollTop, 0, "table scroll y offset should be 0 in the end of the test");
+                        assert_true(xScrollIsReceived && yScrollIsReceived, "target0 x and y scroll offsets should be greater than 0 after first two interactions (outside red border) respectively");
+                    });
+                    test_touchaction_cell.done();
+                    updateDescriptionComplete();
+                });
+
+                on_event(btnComplete, 'pointerdown', function(event) {
+                    detected_pointertypes[event.pointerType] = true;
+                });
+
+                on_event(target0, 'scroll', function(event) {
+                    if(isFirstPart) {
+                        xScr1 = target0.scrollLeft;
+                        yScr1 = target0.scrollTop;
+
+                        if(xScr1 != xScr0) {
+                            xScrollIsReceived = true;
+                        }
+
+                        if(yScr1 != yScr0) {
+                            test_touchaction_row.step(function () {
+                                yScrollIsReceived = true;
+                            });
+                            updateDescriptionSecondStepTable(target0, scrollReturnInterval);
+                        }
+
+                        if(xScrollIsReceived && yScrollIsReceived) {
+                            test_touchaction_row.done();
+                            updateDescriptionThirdStepTable(target0, scrollReturnInterval);
+                            setTimeout(function() {
+                                isFirstPart = false;
+                            }, 2 * scrollReturnInterval); // avoid immediate triggering while scroll is still being performed
+                        }
+                    }
+                    else {
+                        test_touchaction_cell.step(failOnScroll, "scroll received while shouldn't");
+                    }
+                });
+            }
+
+            function updateDescriptionSecondStepTable(target, scrollReturnInterval, element) {
+                window.setTimeout(function() {
+                    objectScroller(target, 'up', 0);
+                }
+                , scrollReturnInterval);
+                document.getElementById('desc').innerHTML = "Test Description: Try to scroll element RIGHT staring your touch over the Row 1";
+            }
+
+            function updateDescriptionThirdStepTable(target, scrollReturnInterval) {
+                window.setTimeout(function() {
+                    objectScroller(target, 'left', 0);
+                }
+                , scrollReturnInterval);
+                document.getElementById('desc').innerHTML = "Test Description: Try to scroll element DOWN then RIGHT starting your touch inside of the Cell 3";
+            }
+
+        </script>
+        <h1>touch-action: none</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Change touch-action on pointerdown</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="pointerevent_support.js"></script>
+        <style>
+            #target0 {
+            background: black;
+            width: 700px;
+            height: 430px;
+            color: white;
+            overflow-y: auto;
+            overflow-x: auto;
+            white-space: nowrap;
+            }
+        </style>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events touch-action attribute support</h1>
+        <h4>Test Description: Press and hold your touch. Try to scroll text in any direction.
+            Then release your touch and try to scroll again. Expected: no panning.
+        </h4>
+        <p>Note: this test is for touch-devices only</p>
+        <div id="target0" style="touch-action: auto;">
+            <p>
+                Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                lobortis nisl ut aliquip ex ea commodo consequat.
+            </p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>
+                Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                lobortis nisl ut aliquip ex ea commodo consequat.
+            </p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>
+                Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                lobortis nisl ut aliquip ex ea commodo consequat.
+            </p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>
+                Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                lobortis nisl ut aliquip ex ea commodo consequat.
+            </p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+        </div>
+        <script type='text/javascript'>
+            var detected_pointertypes = {};
+
+            var styleIsChanged = false;
+            var scrollIsReceived = false;
+            var firstTouchCompleted = false;
+            var countToPass = 50;
+            var xScr0, yScr0, xScr1, yScr1;
+
+            setup({ explicit_done: true });
+            add_completion_callback(showPointerTypes);
+
+            function run() {
+                var target0 = document.getElementById("target0");
+
+                on_event(target0, 'scroll', function(event) {
+                    if(!scrollIsReceived && firstTouchCompleted) {
+                        test(function() {
+                            failOnScroll();
+                        }, "scroll was received while shouldn't");
+                        scrollIsReceived = true;
+                    }
+                    done();
+                });
+
+                on_event(target0, 'pointerdown', function(event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    if(!styleIsChanged) {
+                        var before = document.getElementById('target0').style.touchAction;
+
+                        document.getElementById('target0').style.touchAction = 'none';
+
+                        var after = document.getElementById('target0').style.touchAction;
+
+                        test(function() {
+                            assert_true(before != after, "touch-action was changed");
+                        }, "touch-action was changed");
+
+                        styleIsChanged = true;
+                    }
+                });
+
+                on_event(target0, 'pointerup', function(event) {
+                    firstTouchCompleted = true;
+                });
+            }
+        </script>
+        <h1>touch-action: auto to none</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Location stringifier</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://heycam.github.io/webidl/#es-stringifier">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/stringifiers.js></script>
+<div id=log></div>
+<script>
+test_stringifier_attribute(location, "href", true);
+</script>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: send(null) - no entity body</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::ol[1]/li[4] following::ol[1]/li[7]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      test(function() {
+        var client = new XMLHttpRequest()
+        client.open("POST", "resources/content.py", false)
+        client.upload.onloadstart = function(){assert_unreached('this event should not fire for null')}
+        client.send(null)
+        assert_equals(client.getResponseHeader("x-request-content-length"), "0")
+        assert_equals(client.getResponseHeader("x-request-content-type"), "NO")
+      }, "No content type")
+
+      test(function() {
+        var client = new XMLHttpRequest()
+        client.open("POST", "resources/content.py", false)
+        var content_type = 'application/x-foo'
+        client.setRequestHeader('Content-Type', content_type)
+        client.send(null)
+        assert_equals(client.getResponseHeader("x-request-content-length"), "0")
+        assert_equals(client.getResponseHeader("x-request-content-type"), content_type)
+      }, "Explicit content type")
+    </script>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<script>
+ var t = opener.t;
+
+ var do_test = t.step_func(function() {
+   localStorage.test6564729 += '1';
+   var d = document;
+   var e = document.open(); // unload triggered here - beforeunload 2, 3 in 002b; pagehide 4, unload 5, pagehide 6 in 002b, unload 7 in 002b
+   localStorage.test6564729 += (e == d) ? '8' : 'X';
+   var s = 'FAIL if you see this | ' + localStorage.test6564729;
+   document.write(s);
+   localStorage.test6564729 += document.body.textContent == s ? '9' : 'x';
+   document.close();
+   localStorage.test6564729 += 'Z';
+   document.body.textContent += ' // ' + localStorage.test6564729;
+   location = '002a.html'; // unload triggers again here, but they're not registered event listeners any more
+ });
+
+onload = t.step_func(function() {
+  localStorage.test6564729 = '0';
+  setTimeout(function() {document.getElementsByTagName("input")[0].click()}, 100);
+});
+</script>
+<body onbeforeunload="localStorage.test6564729 += '2'"
+      onpagehide="localStorage.test6564729 += '4'"
+      onunload="localStorage.test6564729 += '5'">
+<input type=button value="Activate this button to run the test" onclick="do_test()">
+<p><iframe src="002b.html"></iframe>

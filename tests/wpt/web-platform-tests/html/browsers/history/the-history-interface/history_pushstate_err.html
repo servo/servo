@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>history_pushState SECURITY_ERR</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    test(function () {
+      assert_throws("SecurityError", function () {
+        window.history.pushState(1, document.title, 'http://www.microsoft.com/test.html');
+      });
+    }, "history pushState SECURITY_ERR");
+    </script>
+ </body>
+</html>

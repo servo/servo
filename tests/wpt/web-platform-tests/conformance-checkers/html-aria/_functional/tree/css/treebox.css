@@ -1,0 +1,65 @@
+
+/* variant of treesimple.css, that adds slightly more complex styling. */
+
+html, body {
+	color:#333;
+	background-color:#fff;
+	font-family:"helvetica neue", arial, helvetica, sans-serif;
+	font-size:12px;
+	line-height:1.4em;
+}
+h1{
+	font-size:14px;
+}
+[role="tree"]{
+	border:solid 1px #000;
+	width:300px; /* hardcoded for example */
+	cursor:default;
+}
+ul[role="tree"], [role="tree"] li, [role="tree"] ul {
+	display:block;
+	list-style:none;
+	margin:0;
+	padding:0;
+}
+li[role="treeitem"] {
+	position:relative;
+}
+
+[role="treeitem"] > span{ display:block; }
+
+/* looks kinda redundant, but is necessary to get the full left bleed on sub-level items */
+[role="treeitem"] > span{ padding-left:15px; }
+[role="treeitem"] [role="treeitem"] > span{ padding-left:30px; }
+[role="treeitem"] [role="treeitem"] [role="treeitem"] > span{ padding-left:45px; }
+[role="treeitem"] [role="treeitem"] [role="treeitem"] [role="treeitem"] > span{ padding-left:60px; }
+[role="treeitem"] [role="treeitem"] [role="treeitem"] [role="treeitem"] [role="treeitem"] > span{ padding-left:75px; }
+
+.expander {
+	display:block;
+	position:absolute;
+	left:2px;
+	top:0.3em;
+	width:9px;
+	height:9px;
+	background:transparent url(./img/expander.gif) -9px 0 no-repeat;
+}
+[aria-expanded="false"] > * > .expander {
+	background-position:0 0;
+}
+[role="treeitem"] [role="treeitem"] .expander { left:17px; }
+[role="treeitem"] [role="treeitem"] [role="treeitem"] .expander { left:32px; }
+[role="treeitem"] [role="treeitem"] [role="treeitem"] [role="treeitem"] .expander { left:47px; }
+[role="treeitem"] [role="treeitem"] [role="treeitem"] [role="treeitem"] [role="treeitem"] .expander { left:62px; }
+
+
+[aria-expanded="false"] [role="group"] {
+	display:none;
+}
+[role="tree"] .activedescendant > span {
+	background-color:#ccc;
+}
+[role="tree"]:focus .activedescendant > span {
+	color:#fff;
+	background-color:#03c;
+}

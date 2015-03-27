@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>MediaSource.addSourceBuffer() test cases</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              mediaSource.endOfStream();
+              assert_throws("InvalidStateError",
+                          function() { mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE); },
+                          "addSourceBuffer() threw an exception when in 'ended' state.");
+              test.done();
+          }, "Test addSourceBuffer() in 'ended' state.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              assert_throws("InvalidAccessError",
+                          function() { mediaSource.addSourceBuffer(""); },
+                          "addSourceBuffer() threw an exception when passed an empty string.");
+              test.done();
+          }, "Test addSourceBuffer() with empty type");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              assert_throws("NotSupportedError",
+                          function() { mediaSource.addSourceBuffer(null); },
+                          "addSourceBuffer() threw an exception when passed null.");
+              test.done();
+          }, "Test addSourceBuffer() with null");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              assert_throws("NotSupportedError",
+                          function() { mediaSource.addSourceBuffer("invalidType"); },
+                          "addSourceBuffer() threw an exception for an unsupported type.");
+              test.done();
+          }, "Test addSourceBuffer() with unsupported type");
+
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var mimetype = 'video/webm;codecs="vp8,vorbis"';
+
+              assert_true(MediaSource.isTypeSupported(mimetype), mimetype + " is supported");
+
+              var sourceBuffer = mediaSource.addSourceBuffer(mimetype);
+              assert_true(sourceBuffer != null, "New SourceBuffer returned");
+              assert_equals(mediaSource.sourceBuffers[0], sourceBuffer, "SourceBuffer is in mediaSource.sourceBuffers");
+              assert_equals(mediaSource.activeSourceBuffers.length, 0, "SourceBuffer is not in mediaSource.activeSourceBuffers");
+              test.done();
+          }, "Test addSourceBuffer() with Vorbis and VP8");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var videoMimetype = 'video/webm;codecs="vp8"';
+              var audioMimetype = 'audio/webm;codecs="vorbis"';
+
+              assert_true(MediaSource.isTypeSupported(videoMimetype), videoMimetype + " is supported");
+              assert_true(MediaSource.isTypeSupported(audioMimetype), audioMimetype + " is supported");
+
+              var sourceBufferA = mediaSource.addSourceBuffer(videoMimetype);
+              var sourceBufferB = mediaSource.addSourceBuffer(audioMimetype);
+              assert_equals(mediaSource.sourceBuffers[0], sourceBufferA, "sourceBufferA is in mediaSource.sourceBuffers");
+              assert_equals(mediaSource.activeSourceBuffers.length, 0, "SourceBufferA is not in mediaSource.activeSourceBuffers");
+              assert_equals(mediaSource.sourceBuffers[1], sourceBufferB, "sourceBufferB is in mediaSource.sourceBuffers");
+              assert_equals(mediaSource.activeSourceBuffers.length, 0, "SourceBufferB is not in mediaSource.activeSourceBuffers");
+              test.done();
+          }, "Test addSourceBuffer() with Vorbis and VP8 in separate SourceBuffers");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var mimetype = MediaSourceUtil.VIDEO_ONLY_TYPE;
+
+              assert_true(MediaSource.isTypeSupported(mimetype), mimetype + " is supported");
+
+              var sourceBuffer = mediaSource.addSourceBuffer(mimetype);
+              assert_true(sourceBuffer != null, "New SourceBuffer returned");
+              assert_equals(mediaSource.sourceBuffers[0], sourceBuffer, "SourceBuffer is in mediaSource.sourceBuffers");
+              assert_equals(mediaSource.activeSourceBuffers.length, 0, "SourceBuffer is in mediaSource.activeSourceBuffers");
+              test.done();
+          }, "Test addSourceBuffer() video only");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var mimetype = MediaSourceUtil.AUDIO_ONLY_TYPE;
+
+              assert_true(MediaSource.isTypeSupported(mimetype), mimetype + " is supported");
+
+              var sourceBuffer = mediaSource.addSourceBuffer(mimetype);
+              assert_true(sourceBuffer != null, "New SourceBuffer returned");
+              assert_equals(mediaSource.sourceBuffers[0], sourceBuffer, "SourceBuffer is in mediaSource.sourceBuffers");
+              assert_equals(mediaSource.activeSourceBuffers.length, 0, "SourceBuffer is in mediaSource.activeSourceBuffers");
+              test.done();
+          }, "Test addSourceBuffer() audio only");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var mimetype = 'video/mp4;codecs="avc1.4D4001,mp4a.40.2"';
+
+              assert_true(MediaSource.isTypeSupported(mimetype), mimetype + " is supported");
+
+              var sourceBuffer = mediaSource.addSourceBuffer(mimetype);
+              assert_true(sourceBuffer != null, "New SourceBuffer returned");
+              assert_equals(mediaSource.sourceBuffers[0], sourceBuffer, "SourceBuffer is in mediaSource.sourceBuffers");
+              assert_equals(mediaSource.activeSourceBuffers.length, 0, "SourceBuffer is not in mediaSource.activeSourceBuffers");
+              test.done();
+          }, "Test addSourceBuffer() with AAC and H.264");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var videoMimetype = 'video/mp4;codecs="avc1.4D4001"';
+              var audioMimetype = 'audio/mp4;codecs="mp4a.40.2"';
+
+              assert_true(MediaSource.isTypeSupported(videoMimetype), videoMimetype + " is supported");
+              assert_true(MediaSource.isTypeSupported(audioMimetype), audioMimetype + " is supported");
+
+              var sourceBufferA = mediaSource.addSourceBuffer(videoMimetype);
+              var sourceBufferB = mediaSource.addSourceBuffer(audioMimetype);
+              assert_equals(mediaSource.sourceBuffers[0], sourceBufferA, "sourceBufferA is in mediaSource.sourceBuffers");
+              assert_equals(mediaSource.activeSourceBuffers.length, 0, "SourceBufferA is not in mediaSource.activeSourceBuffers");
+              assert_equals(mediaSource.sourceBuffers[1], sourceBufferB, "sourceBufferB is in mediaSource.sourceBuffers");
+              assert_equals(mediaSource.activeSourceBuffers.length, 0, "SourceBufferB is not in mediaSource.activeSourceBuffers");
+              test.done();
+          }, "Test addSourceBuffer() with AAC and H.264 in separate SourceBuffers");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var reachedLimit = false;
+
+             // The 20 here is an arbitrary upper limit to make sure the test terminates. This test
+             // assumes that implementations won't support more than 20 SourceBuffers simultaneously.
+             for (var i = 0; i < 20; ++i) {
+                 try {
+                     mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+                 } catch(e) {
+                     assert_equals(e.name, "QuotaExceededError");
+                     reachedLimit = true;
+                     break;
+                 }
+             }
+             assert_true(reachedLimit, "Reached SourceBuffer limit.");
+             test.done();
+          }, "Test addSourceBuffer() QuotaExceededError.");
+
+        </script>
+    </body>
+</html>

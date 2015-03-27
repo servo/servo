@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Dynamic Removal of Elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<h1>Test of Removal Adding of Elements</h1>
+<div id="log"></div>
+<p id="parentEl">The result of this test is
+<span id="first_element_child" style="font-weight:bold;">logged above.</span><span id="last_element_child"> </span></p>
+<script><![CDATA[
+test(function() {
+  var parentEl = document.getElementById("parentEl");
+  var lec = parentEl.lastElementChild;
+  parentEl.removeChild(lec);
+  assert_equals(parentEl.childElementCount, 1)
+})
+]]></script>
+</body>
+</html>

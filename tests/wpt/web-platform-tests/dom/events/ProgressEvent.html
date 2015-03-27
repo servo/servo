@@ -1,0 +1,25 @@
+<!doctype html>
+<title>ProgressEvent constructor</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+  var ev = new ProgressEvent("test")
+  assert_equals(ev.type, "test")
+  assert_equals(ev.target, null)
+  assert_equals(ev.currentTarget, null)
+  assert_equals(ev.eventPhase, Event.NONE)
+  assert_equals(ev.bubbles, false)
+  assert_equals(ev.cancelable, false)
+  assert_equals(ev.defaultPrevented, false)
+  assert_equals(ev.isTrusted, false)
+  assert_true(ev.timeStamp > 0)
+  assert_true("initEvent" in ev)
+}, "Default event values.")
+test(function() {
+  assert_throws("NotSupportedError", function() {
+    document.createEvent("ProgressEvent")
+  })
+}, "document.createEvent() should not work with ProgressEvent.")
+</script>

@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id="desc">HTML5 Selection: Call selectAllChildren() where the parameter is a text node</title>
+        <script type="text/javascript">
+            function RunTest()
+            {
+                try
+                {
+                    var selection = window.getSelection();
+                    var div1 = document.getElementById("div1");
+                    selection.selectAllChildren(div1.firstChild);
+                    
+                    if ("" == selection.toString())
+                    {
+                        document.getElementById("testresult").firstChild.data = "PASS";
+                    }
+                }
+                catch (ex)
+                {
+                    document.getElementById("testresult").firstChild.data = "FAIL";
+                }
+            }
+        </script>
+    </head>
+    <body onload="RunTest();">
+        <div id="div1">Call selectAllChildren() where the parameter is a text node</div>
+        <p>Test passes if the word "PASS" appears below.</p>
+        <div>Test result: </div>
+        <div id="testresult">FAIL</div>
+    </body>
+</html>

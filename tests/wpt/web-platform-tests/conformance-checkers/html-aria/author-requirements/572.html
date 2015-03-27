@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>In a &lt;div&gt; element with role="combobox" and aria-autocomplete="inline", change values of the combobox by adjusting the up and down arrow keys with focus on the textfield in the combobox.</title>
+    <style type="text/css">
+      .hasFocus { border: 2px solid red; }
+    </style>
+    <script type="text/javascript">
+      var UP = 38;
+      var DOWN = 40;
+      comboInfo = {};
+      
+      function toArray (/* NodeList */ nodeList) {
+          var result = [];
+          for (var i=0; i < nodeList.length; i++) {
+              result[i] = nodeList[i];
+          }
+          return result;
+      }
+      
+      function initComboInfo() {
+          comboInfo.comboBox = document.getElementById ('test');
+          comboInfo.textEntry = document.getElementById ('testEntry');
+          var active = document.getElementById (comboInfo.comboBox.getAttribute ('aria-activedescendant'));
+          comboInfo.options = toArray (active.parentElement.children);
+          return active;
+      }
+
+      function handleArrow (/* Event */ event) {
+          /* NOTE:  With respect to IE, assumes IE9 as per CR criteria (http://www.w3.org/WAI/ARIA/1.0/CR/implementation-report) */
+          var active = document.getElementById (comboInfo.comboBox.getAttribute ('aria-activedescendant'));
+          var currentIndex = comboInfo.options.indexOf (active);
+          var nextIndex = currentIndex;
+          if (event.which == DOWN) {
+              nextIndex = (currentIndex + 1) % comboInfo.options.length;
+          }
+          else if (event.which == UP) {
+              nextIndex = currentIndex - 1;
+              if (nextIndex < 0)
+                  nextIndex = comboInfo.options.length - 1;
+          }
+          
+          if (nextIndex != currentIndex) {
+              active.removeAttribute ('class');
+              active = comboInfo.options[nextIndex];
+              comboInfo.comboBox.setAttribute ('aria-activedescendant', active.getAttribute ('id'));
+              active.setAttribute ('class', 'hasFocus');
+              event.target.value = active.innerHTML;
+          }
+      }
+      
+      function doOnload() {
+          var active = initComboInfo();
+          comboInfo.textEntry.value = active.innerHTML;
+          comboInfo.textEntry.focus();
+          active.setAttribute ('class', 'hasFocus');
+      }
+      
+    </script>
+  </head>
+  <body onload='doOnload()'>
+    <div id="test" role="combobox" aria-expanded="true" aria-label="Tag" aria-autocomplete="inline" aria-activedescendant="o1">
+      <input id="testEntry" type="text" role="textbox" aria-owns="owned_listbox" onkeydown='handleArrow (event)'>
+      <ul role="listbox" id="owned_listbox" style="list-style-type: none;">
+        <li role="option" id="o1">Zebra</li>
+        <li role="option" id="o2">Zoom</li>
+        <li role="option" id="o3">Zeta</li>
+        <li role="option" id="o4">Zaphod</li>
+      </ul>
+    </div>
+  </body>
+</html>

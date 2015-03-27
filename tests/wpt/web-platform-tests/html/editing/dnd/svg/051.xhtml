@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Drag and drop of link from SVG fragment to XHTML</title>
+<style type="text/css">
+div
+	{width:300px;
+	height:100px;
+	margin-top:20px;
+	padding:10px;
+	color:white;
+	background-color:navy;}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="200px" height="50px" viewBox="0 0 200 50">
+	<a xlink:href="data:text/plain,PASS">
+		<text x="10" y="45" font-size="30" fill="navy">Drag me</text>
+	</a>
+</svg>
+<p>Drag link to the blue box. You should see word PASS once you drop it there.</p>
+<div dropzone="copy string:text/uri-list" ondrop="document.querySelector('div').appendChild(document.createTextNode(event.dataTransfer.getData('text/uri-list').substring(16)))"/>
+</body>
+</html>

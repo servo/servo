@@ -1,0 +1,19 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:01.000 vertical:lr
+{"vertical":"lr"}
+
+00:00:00.000 --> 00:00:01.000 vertical:rl
+{"vertical":"rl"}
+
+00:00:00.000 --> 00:00:01.000 vertical:rl vertical:lr
+{"vertical":"lr"}
+
+00:00:00.000 --> 00:00:01.000 vertical:
+{}
+
+00:00:00.000 --> 00:00:01.000 vertical:RL
+{}
+
+00:00:00.000 --> 00:00:01.000 vertical:vertical-rl
+{}

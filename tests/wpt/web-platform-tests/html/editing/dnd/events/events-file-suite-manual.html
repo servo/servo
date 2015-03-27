@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - event sequence for file drops</title>
+<script type="text/javascript" src="/resources/testharness.js"></script>
+<style type="text/css">
+	/* use margins instead of padding to make sure the body begins at the top of the page */
+	html, body {
+		margin: 0;
+	}
+	body {
+		padding: 116px 8px 8px;
+	}
+  body::before {
+    height: 108px;
+    width: 108px;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    content: "";
+    background-color: orange;
+  }
+  #testhere div {
+    height: 100px;
+    width: 100px;
+    position: absolute;
+    top: 8px;
+  }
+  #fuchsia {
+    background-color: fuchsia;
+    left: 158px;
+  }
+  #yellow {
+    background-color: yellow;
+    left: 308px;
+  }
+  #blue {
+    background-color: navy;
+    left: 458px;
+  }
+</style>
+
+<script>
+setup(function () {},{explicit_done:true,explicit_timeout:true});
+window.onload = function () {
+	var fuchsia = document.querySelector('#fuchsia')
+	var yellow = document.querySelector('#yellow')
+	var blue = document.querySelector('#blue')
+	var body = document.body;
+
+	var events = new Array
+
+	/* Events for the fuchsia box */
+	fuchsia.ondragstart = function () { events.push('pink.ondragstart'); };
+	fuchsia.ondrag = function () { events.push('pink.ondrag'); };
+	fuchsia.ondragenter = function () { events.push('pink.ondragenter'); };
+	fuchsia.ondragover = function () { events.push('pink.ondragover'); };
+	fuchsia.ondragleave = function () { events.push('pink.ondragleave'); };
+	fuchsia.ondrop = function () { events.push('pink.ondrop'); return false; };
+	fuchsia.ondragend = function () { events.push('pink.ondragend'); };
+	fuchsia.onmousedown = function () { events.push('pink.onmousedown'); };
+	fuchsia.onmouseup = function () { events.push('pink.onmouseup'); };
+
+	/* Events for the fuchsia box */
+	yellow.ondragstart = function () { events.push('yellow.ondragstart'); };
+	yellow.ondrag = function () { events.push('yellow.ondrag'); };
+	yellow.ondragenter = function () { events.push('yellow.ondragenter'); return false; };
+	yellow.ondragover = function () { events.push('yellow.ondragover'); return false; };
+	yellow.ondragleave = function () { events.push('yellow.ondragleave'); };
+	yellow.ondrop = function () { events.push('yellow.ondrop'); return false; };
+	yellow.ondragend = function () { events.push('yellow.ondragend'); };
+	yellow.onmousedown = function () { events.push('yellow.onmousedown'); };
+	yellow.onmouseup = function () { events.push('yellow.onmouseup'); };
+
+	/* Events for the blue box (droppable) */
+	blue.ondragstart = function () { events.push('blue.ondragstart'); };
+	blue.ondrag = function () { events.push('blue.ondrag'); };
+	blue.ondragenter = function () { events.push('blue.ondragenter'); return false; };
+	blue.ondragover = function () { events.push('blue.ondragover'); return false; };
+	blue.ondragleave = function () { events.push('blue.ondragleave'); };
+	blue.ondrop = function () { events.push('blue.ondrop'); return false; };
+	blue.ondragend = function () { events.push('blue.ondragend'); };
+	blue.onmousedown = function () { events.push('blue.onmousedown'); };
+	blue.onmouseup = function () { events.push('blue.onmouseup'); };
+
+	/* Events for the page body */
+	body.ondragstart = function (e) { events.push( ( e.target == body ) ? 'body.ondragstart': 'bubble.ondragstart' ); };
+	body.ondrag = function (e) { events.push( ( e.target == body ) ? 'body.ondrag': 'bubble.ondrag' ); };
+	body.ondragenter = function (e) { events.push( ( e.target == body ) ? 'body.ondragenter': 'bubble.ondragenter' ); };
+	body.ondragover = function (e) { events.push( ( e.target == body ) ? 'body.ondragover': 'bubble.ondragover' ); };
+	body.ondragleave = function (e) { events.push( ( e.target == body ) ? 'body.ondragleave': 'bubble.ondragleave' ); };
+	body.ondrop = function (e) { events.push( ( e.target == body ) ? 'body.ondrop': 'bubble.ondrop' ); setTimeout(finish,200); };
+	body.ondragend = function (e) { events.push( ( e.target == body ) ? 'body.ondragend': 'bubble.ondragend' ); };
+	body.onmousedown = function (e) { events.push( ( e.target == body ) ? 'body.onmousedown': 'bubble.onmousedown' ); };
+	body.onmouseup = function (e) { events.push( ( e.target == body ) ? 'body.onmouseup': 'bubble.onmouseup' ); };
+
+	function finish(e) {
+		var i, evindex;
+		events = events.join('-');
+		/*
+			Normalise; reduce repeating event sequences to only 2 occurrences.
+			This makes the final event sequence predictable, no matter how many times the drag->dragover sequences repeat.
+			Two occurrances are kept in each case to allow testing to make sure the sequence really is repeating.
+		*/
+		//spec compliant - div dragenter is not cancelled, so body dragenter fires and body becomes current target
+		//repeats while drag is over fuchsia or the body
+		events = events.replace(/(-body\.ondragover){3,}/g,'$1$1');
+		//repeats while dragging over yellow
+		events = events.replace(/(-yellow\.ondragover-bubble\.ondragover){3,}/g,'$1$1');
+		//repeats while dragging over blue
+		events = events.replace(/(-blue\.ondragover-bubble\.ondragover){3,}/g,'$1$1');
+		//non-spec-compliant repeats while dragging over fuchsia
+		events = events.replace(/(-pink\.ondragover-bubble\.ondragover){3,}/g,'$1$1');
+		events = events.split(/-/g);
+
+		test(function () {
+			assert_array_equals(events,
+
+			[/*  1 */ 'body.ondragenter',   //mouse moves over body, which does not cancel event
+				/*  2 */ 'body.ondragenter',   //so it fires again and sets body as current target
+
+				/*  3 */ 'body.ondragover',    //start repeating over body
+				/*  4 */ 'body.ondragover',    //...twice to make sure it actually repeats
+
+				/*  5 */ 'pink.ondragenter',   //mouse moves over pink - not cancelled
+				/*  6 */ 'bubble.ondragenter',
+
+				/*  7 */ 'body.ondragover',    //so body becomes current target, but since it was already the target, dragenter does not need to fire again
+				/*  8 */ 'body.ondragover',    //...twice to make sure it actually repeats
+
+				/*  9 */ 'yellow.ondragenter', //mouse moves over yellow
+				/* 10 */ 'bubble.ondragenter',
+				/* 11 */ 'body.ondragleave',
+
+				/* 12 */ 'yellow.ondragover',  //start repeating (over yellow)
+				/* 13 */ 'bubble.ondragover',
+				/* 14 */ 'yellow.ondragover',  //...twice to make sure it actually repeats
+				/* 15 */ 'bubble.ondragover',  //end repeating
+
+				/* 16 */ 'body.ondragenter',   //mouse moves over body, not cancelled
+				/* 17 */ 'body.ondragenter',   //so it fires again and sets body as current target
+				/* 18 */ 'yellow.ondragleave',
+				/* 19 */ 'bubble.ondragleave',
+
+				/* 20 */ 'body.ondragover',    //start repeating (over body)
+				/* 21 */ 'body.ondragover',    //...twice to make sure it actually repeats
+
+				/* 22 */ 'blue.ondragenter',   //mouse moves over blue
+				/* 23 */ 'bubble.ondragenter',
+				/* 24 */ 'body.ondragleave',
+
+				/* 25 */ 'blue.ondragover',    //start repeating (over blue)
+				/* 26 */ 'bubble.ondragover',
+				/* 27 */ 'blue.ondragover',    //...twice to make sure it actually repeats
+				/* 28 */ 'bubble.ondragover',
+
+				/* 29 */ 'blue.ondrop',        //release
+				/* 30 */ 'bubble.ondrop']
+
+			);
+		}, 'Overall sequence');
+
+		done();
+	}
+};
+</script>
+
+<div id="testhere">
+<div id='fuchsia'></div>
+<div id='yellow'></div>
+<div id='blue'></div>
+</div>
+
+<p>If you have already clicked on this page, reload it.</p>
+<p>Use your pointing device to slowly drag a file from your system's file manager, over the orange square (ensure that this is the first part of the page that you drag the file over, not an otherwise blank part of the page), then the pink square, then the yellow square, then the blue square, and release it over the blue square (make sure the mouse remains over each square for at least 1 second, and over the gaps between squares for at least 1 second). If a prompt appears, accept it. Fail if no new text appears below.</p>
+
+<div id="log"></div>

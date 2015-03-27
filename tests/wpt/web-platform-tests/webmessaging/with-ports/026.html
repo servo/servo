@@ -1,0 +1,13 @@
+<!doctype html>
+<title>object with length as transferable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+test(function() {
+   assert_throws(new TypeError(), function() {
+      postMessage('', '*', {length:1});
+   });
+});
+</script>
+

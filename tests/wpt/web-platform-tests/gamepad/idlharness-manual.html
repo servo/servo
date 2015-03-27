@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+<head>
+<title>Manual Gamepad IDL tests</title>
+<link rel="help" href="https://dvcs.w3.org/hg/gamepad/raw-file/default/gamepad.html#gamepad-interface">
+<link rel="help" href="https://dvcs.w3.org/hg/gamepad/raw-file/default/gamepad.html#gamepadbutton-interface">
+<link rel="help" href="https://dvcs.w3.org/hg/gamepad/raw-file/default/gamepad.html#gamepadevent-interface">
+<link rel="help" href="https://dvcs.w3.org/hg/gamepad/raw-file/default/gamepad.html#navigator-interface-extension">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script>
+setup({explicit_done: true, explicit_timeout: true});
+
+addEventListener("gamepadconnected", function (e) {
+  var idl_array = new IdlArray();
+  idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
+  idl_array.add_idls(document.getElementById("idl").textContent);
+  idl_array.add_objects({
+    GamepadEvent: [e],
+    Gamepad: [e.gamepad],
+    GamepadButton: [e.gamepad.buttons[0]],
+    Navigator: ["navigator"],
+  });
+  idl_array.test();
+  done();
+});
+</script>
+</head>
+<body>
+<pre id="untested_idl" style="display: none">
+interface Navigator {
+};
+
+interface Event {
+};
+</pre>
+<pre id="idl" style="display: none">
+interface Gamepad {
+    readonly    attribute DOMString           id;
+    readonly    attribute long                index;
+    readonly    attribute boolean             connected;
+    readonly    attribute DOMHighResTimeStamp timestamp;
+    readonly    attribute GamepadMappingType  mapping;
+    readonly    attribute double[]            axes;
+    readonly    attribute GamepadButton[]     buttons;
+};
+
+enum GamepadMappingType {
+  "",
+  "standard"
+};
+
+interface GamepadButton {
+    readonly    attribute boolean pressed;
+    readonly    attribute double  value;
+};
+
+[Constructor(DOMString type, optional GamepadEventInit eventInitDict)]
+interface GamepadEvent : Event
+{
+  readonly attribute Gamepad? gamepad;
+};
+
+dictionary GamepadEventInit : EventInit
+{
+  Gamepad? gamepad = null;
+};
+
+partial interface Navigator {
+    Gamepad[] getGamepads();
+};
+</pre>
+<p id="instructions">This test requires a gamepad. Connect one and press any button to start the test.</p>
+<div id="log"></div>
+</body>
+</html>

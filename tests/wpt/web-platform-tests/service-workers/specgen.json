@@ -1,0 +1,658 @@
+{
+    "sections": [
+        {
+            "href": "#introduction",
+            "id": "introduction",
+            "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+            "secno": "1",
+            "testable": false
+        },
+        {
+            "href": "#about",
+            "id": "about",
+            "hash": "8d3cf149aa73cff52328509ebbaffd933e8fb6af",
+            "secno": "1.1",
+            "testable": false
+        },
+        {
+            "href": "#dependencies",
+            "id": "dependencies",
+            "hash": "1355f2d7ec9bf4e617ee632c0db44f834c96435b",
+            "secno": "1.2",
+            "testable": false
+        },
+        {
+            "href": "#motivations",
+            "id": "motivations",
+            "hash": "92d899bc1e63a170d2324638d16f580b97b4f4d6",
+            "secno": "1.3",
+            "testable": false
+        },
+        {
+            "href": "#concepts",
+            "id": "concepts",
+            "hash": "589023372dc033b0a77be1cd01f54f5f8c3ebfa8",
+            "secno": "2",
+            "testable": false
+        },
+        {
+            "href": "#document-context",
+            "id": "document-context",
+            "hash": "34feeb18dea978349a2f76e6b17c127123b3db74",
+            "secno": "3",
+            "testable": false
+        },
+        {
+            "href": "#service-worker-obj",
+            "id": "service-worker-obj",
+            "hash": "6cbd0107199072ab86b36e72d08d5465b42e6da8",
+            "secno": "3.1",
+            "testPageHash": "8dbbc9aa4300f0203524f3e405dbf7ca462e7164",
+            "testPagePath": "stub-3.1-service-worker-obj.html",
+            "testable": true
+        },
+        {
+            "href": "#service-worker-scope",
+            "id": "service-worker-scope",
+            "hash": "136f25ef227515a7be9b32c44967f68b34ad8924",
+            "secno": "3.1.1",
+            "testPageHash": "965a00b32d56192330aa9f6337072bb3633ad382",
+            "testPagePath": "stub-3.1.1-service-worker-scope.html",
+            "testable": true
+        },
+        {
+            "href": "#service-worker-url",
+            "id": "service-worker-url",
+            "hash": "df66a1b4b3bfa3e7ab96fd491a6829fab1d18a88",
+            "secno": "3.1.2",
+            "testPageHash": "92f6aed1437bb39c5941b495ac6c5f342c025b38",
+            "testPagePath": "stub-3.1.2-service-worker-url.html",
+            "testable": true
+        },
+        {
+            "href": "#service-worker-state",
+            "id": "service-worker-state",
+            "hash": "8f80f2b4cbb1c228867c9dd90c05cbecfc92dd77",
+            "secno": "3.1.3",
+            "testPageHash": "4aad1dc47572879fdc2c79a814ad21e1ef9a64ec",
+            "testPagePath": "stub-3.1.3-service-worker-state.html",
+            "testable": true
+        },
+        {
+            "href": "#service-worker-on-state-change",
+            "id": "service-worker-on-state-change",
+            "hash": "0f8fd9d1431deacea72fe739f42992ab5a396bf2",
+            "secno": "3.1.4",
+            "testPageHash": "6bb309bccc1e7c74ade7fc4c6e400bafb60daceb",
+            "testPagePath": "stub-3.1.4-service-worker-on-state-change.html",
+            "testable": true
+        },
+        {
+            "href": "#navigator-service-worker",
+            "id": "navigator-service-worker",
+            "hash": "22f1ebbafca6976d0f4814b0fbb8f173bf919f06",
+            "secno": "3.2",
+            "testPageHash": "6d597735816a09ec774150029ed5136198f52ab7",
+            "testPagePath": "stub-3.2-navigator-service-worker.html",
+            "testable": true
+        },
+        {
+            "href": "#navigator-service-worker-installing",
+            "id": "navigator-service-worker-installing",
+            "hash": "9675c3cdf5ba4b4155284e06a19e4de631645509",
+            "secno": "3.2.1",
+            "testPageHash": "2c8e56e74c130104e395de46bad20fb5d3021d95",
+            "testPagePath": "stub-3.2.1-navigator-service-worker-installing.html",
+            "testable": true
+        },
+        {
+            "href": "#navigator-service-worker-waiting",
+            "id": "navigator-service-worker-waiting",
+            "hash": "88b4db92cc49109e6a15ddebdd219690d9648e76",
+            "secno": "3.2.2",
+            "testPageHash": "1cf6ed58bf5ecf963fed8c3d9211b853dab564e2",
+            "testPagePath": "stub-3.2.2-navigator-service-worker-waiting.html",
+            "testable": true
+        },
+        {
+            "href": "#navigator-service-worker-active",
+            "id": "navigator-service-worker-active",
+            "hash": "0da48e885c77da60d1837197780049904789e3cb",
+            "secno": "3.2.3",
+            "testPageHash": "f5dca8c6eb5f29a0f9a5f06e25861e7f3106cc67",
+            "testPagePath": "stub-3.2.3-navigator-service-worker-active.html",
+            "testable": true
+        },
+        {
+            "href": "#navigator-service-worker-controller",
+            "id": "navigator-service-worker-controller",
+            "hash": "293433ccb7bb2a22d8d5a81e788892e071b25e65",
+            "secno": "3.2.4",
+            "testPageHash": "6452f431d0765d7aa3135d18fee43e6664dcbb12",
+            "testPagePath": "stub-3.2.4-navigator-service-worker-controller.html",
+            "testable": true
+        },
+        {
+            "href": "#navigator-service-worker-ready",
+            "id": "navigator-service-worker-ready",
+            "hash": "6240fde8d7168beeb95f4f36aa9e143319b2061b",
+            "secno": "3.2.5",
+            "testPageHash": "ae4fd694c88bab72f338d97bf96b7d23e2e83e87",
+            "testPagePath": "stub-3.2.5-navigator-service-worker-ready.html",
+            "testable": true
+        },
+        {
+            "href": "#navigator-service-worker-getAll",
+            "id": "navigator-service-worker-getAll",
+            "hash": "292ee3af2cc8fadc24302446809d04bf2e9811a5",
+            "secno": "3.2.6",
+            "testPageHash": "4096ae712cc3e753456fbe05bb4d0cfc4399d2c9",
+            "testPagePath": "stub-3.2.6-navigator-service-worker-getAll.html",
+            "testable": true
+        },
+        {
+            "href": "#navigator-service-worker-register",
+            "id": "navigator-service-worker-register",
+            "hash": "c999dc5f67126c9f0f02b25fd943a34b48cff618",
+            "secno": "3.2.7",
+            "testPageHash": "bde900b97dbb08b053ff8115775ea3b79a124b6e",
+            "testPagePath": "stub-3.2.7-navigator-service-worker-register.html",
+            "testable": true
+        },
+        {
+            "href": "#navigator-service-worker-unregister",
+            "id": "navigator-service-worker-unregister",
+            "hash": "fd196f926f181563855e4683cc995405c1e611d0",
+            "secno": "3.2.8",
+            "testPageHash": "dbd99a1dcbcb629431617790a305e840495049eb",
+            "testPagePath": "stub-3.2.8-navigator-service-worker-unregister.html",
+            "testable": true
+        },
+        {
+            "href": "#navigator-service-worker-onupdatefound",
+            "id": "navigator-service-worker-onupdatefound",
+            "hash": "2bb5aabaca24a68f9e6b4c4443968178eb1ccfe8",
+            "secno": "3.2.9",
+            "testPageHash": "eef0c1c39577abefb3654a6e9917ff2da657871b",
+            "testPagePath": "stub-3.2.9-navigator-service-worker-onupdatefound.html",
+            "testable": true
+        },
+        {
+            "href": "#navigator-service-worker-oncontrollerchange",
+            "id": "navigator-service-worker-oncontrollerchange",
+            "hash": "c89a4ffba10d9285e07c38c28718719d87053994",
+            "secno": "3.2.10",
+            "testPageHash": "35e0ce2b8f4527ebbd75d4dfa3436fd7f8c79792",
+            "testPagePath": "stub-3.2.10-navigator-service-worker-oncontrollerchange.html",
+            "testable": true
+        },
+        {
+            "href": "#navigator-service-worker-onreloadpage",
+            "id": "navigator-service-worker-onreloadpage",
+            "hash": "424441910abf2e1bdc3db658fe46827f7abe60a4",
+            "secno": "3.2.11",
+            "testPageHash": "ae614de17e5f339b65f77cafa6e0f5625491abfb",
+            "testPagePath": "stub-3.2.11-navigator-service-worker-onreloadpage.html",
+            "testable": true
+        },
+        {
+            "href": "#navigator-service-worker-onerror",
+            "id": "navigator-service-worker-onerror",
+            "hash": "710f7fcd2f5340147b9e030bc5932b8242cef828",
+            "secno": "3.2.12",
+            "testPageHash": "cd62779e27151d55f14ac6ab7aa41dcf723e0ac7",
+            "testPagePath": "stub-3.2.12-navigator-service-worker-onerror.html",
+            "testable": true
+        },
+        {
+            "href": "#execution-context",
+            "id": "execution-context",
+            "hash": "ddf24f0adf58237e264c3c43cb7ab07af3013c9d",
+            "secno": "4",
+            "testable": false
+        },
+        {
+            "href": "#service-worker-global-scope",
+            "id": "service-worker-global-scope",
+            "hash": "e6b8bb7f99c125f4226fc5b6c51cf03a7437f2ef",
+            "secno": "4.1",
+            "testPageHash": "2f596b6b07bcfb71c01d75f725eb52c84e9c69dd",
+            "testPagePath": "stub-4.1-service-worker-global-scope.html",
+            "testable": true
+        },
+        {
+            "href": "#service-worker-global-scope-caches",
+            "id": "service-worker-global-scope-caches",
+            "hash": "43d3c9f441b3a7abd0d3a7f55d93faaceeb7d97d",
+            "secno": "4.1.1",
+            "testPageHash": "f19b91c887f6312688b66b1988147a599cd9470f",
+            "testPagePath": "stub-4.1.1-service-worker-global-scope-caches.html",
+            "testable": true
+        },
+        {
+            "href": "#service-worker-global-scope-clients",
+            "id": "service-worker-global-scope-clients",
+            "hash": "cb83230107645229da9776ed0fc9f7bc6fcce747",
+            "secno": "4.1.2",
+            "testPageHash": "45b3aae572f7161748fa98e97b4f2b738c3dcfef",
+            "testPagePath": "stub-4.1.2-service-worker-global-scope-clients.html",
+            "testable": true
+        },
+        {
+            "href": "#service-worker-global-scope-scope",
+            "id": "service-worker-global-scope-scope",
+            "hash": "08c808048b647aa9d4cc0b0a0f70b06ca89af4a3",
+            "secno": "4.1.3",
+            "testPageHash": "bfe7eaf8deb8de7d2ccfbba97640478b1c81d6c7",
+            "testPagePath": "stub-4.1.3-service-worker-global-scope-scope.html",
+            "testable": true
+        },
+        {
+            "href": "#service-worker-global-scope-fetch",
+            "id": "service-worker-global-scope-fetch",
+            "hash": "b66133d8a2c67f9b10c274d5b05383ff76d2cd42",
+            "secno": "4.1.4",
+            "testPageHash": "2b1ffa915afddeb099dfff23f4ecf555b0710ed4",
+            "testPagePath": "stub-4.1.4-service-worker-global-scope-fetch.html",
+            "testable": true
+        },
+        {
+            "href": "#service-worker-global-scope-update",
+            "id": "service-worker-global-scope-update",
+            "hash": "3ddf48cecb4d4a67a329248787dd220ce17f4eff",
+            "secno": "4.1.5",
+            "testPageHash": "15879bf45f460c0ab0c02793655096c1bca418a7",
+            "testPagePath": "stub-4.1.5-service-worker-global-scope-update.html",
+            "testable": true
+        },
+        {
+            "href": "#service-worker-global-scope-unregister",
+            "id": "service-worker-global-scope-unregister",
+            "hash": "fff9ef2daa5689b38a17eeb9a6bd7071098ca778",
+            "secno": "4.1.6",
+            "testPageHash": "c4bf327228628b794db9c6f2eb17519e37cea6b9",
+            "testPagePath": "stub-4.1.6-service-worker-global-scope-unregister.html",
+            "testable": true
+        },
+        {
+            "href": "#service-worker-global-scope-onmessage",
+            "id": "service-worker-global-scope-onmessage",
+            "hash": "bc8f6aed2d515dc7f6b0757afa02f37899082668",
+            "secno": "4.1.7",
+            "testPageHash": "9e6f2732d21871ec06e9541ea881baf962f7cdf4",
+            "testPagePath": "stub-4.1.7-service-worker-global-scope-onmessage.html",
+            "testable": true
+        },
+        {
+            "href": "#client",
+            "id": "client",
+            "hash": "47a1c10cd9e4db9a5c86d9bcf80477f771ea954c",
+            "secno": "4.2",
+            "testPageHash": "21d74c1af0b3176b029c9b62b37fe73436e0f197",
+            "testPagePath": "stub-4.2-client.html",
+            "testable": true
+        },
+        {
+            "href": "#service-worker-clients",
+            "id": "service-worker-clients",
+            "hash": "c2c6f4873f07b53705a46b2bd44ba10f84dd2b56",
+            "secno": "4.3",
+            "testPageHash": "9c0366e6cfd28caaeaf940bad2b3c7ace93037f6",
+            "testPagePath": "stub-4.3-service-worker-clients.html",
+            "testable": true
+        },
+        {
+            "href": "#get-serviced-method",
+            "id": "get-serviced-method",
+            "hash": "299abaa21cf096e423edfa19755987986f742a1f",
+            "secno": "4.3.1",
+            "testPageHash": "efeb1c2dc8144c30e6628cb56b3e532531ee1e88",
+            "testPagePath": "stub-4.3.1-get-serviced-method.html",
+            "testable": true
+        },
+        {
+            "href": "#reloadall-method",
+            "id": "reloadall-method",
+            "hash": "bb4d775d261e69cbeaf65c123e949c24cf542ae7",
+            "secno": "4.3.2",
+            "testPageHash": "d1a4dde873b77201b4de745d2083bf63549b0b8b",
+            "testPagePath": "stub-4.3.2-reloadall-method.html",
+            "testable": true
+        },
+        {
+            "href": "#request-objects",
+            "id": "request-objects",
+            "hash": "65ae6c08f720a2eedb7b140f5635a5ac46ddadfc",
+            "secno": "4.4",
+            "testPageHash": "ec493c70e8a0d8d3eeb0ecaef59610aed97d298e",
+            "testPagePath": "stub-4.4-request-objects.html",
+            "testable": true
+        },
+        {
+            "href": "#response-objects",
+            "id": "response-objects",
+            "hash": "2efbff63c70ab92f93e4acd021409b9df4776882",
+            "secno": "4.5",
+            "testPageHash": "8340b69d62f111f56095c5fe9047d9215fa7aefc",
+            "testPagePath": "stub-4.5-response-objects.html",
+            "testable": true
+        },
+        {
+            "href": "#abstract-response",
+            "id": "abstract-response",
+            "hash": "bddc306a9892c0bca43e8b361c1ee22b87759e23",
+            "secno": "4.5.1",
+            "testable": false
+        },
+        {
+            "href": "#response",
+            "id": "response",
+            "hash": "6471d25755bdab0d4f72413f9367b7bb36c53a6f",
+            "secno": "4.5.2",
+            "testPageHash": "346d63cc7eb8ee412f5f704ba241205c8d437540",
+            "testPagePath": "stub-4.5.2-response.html",
+            "testable": true
+        },
+        {
+            "href": "#header",
+            "id": "header",
+            "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+            "secno": "4.5.3",
+            "testable": false
+        },
+        {
+            "href": "#opaque-response",
+            "id": "opaque-response",
+            "hash": "df5431f4fbd26d81f2d4f567309c6a7a26dbfd4a",
+            "secno": "4.5.4",
+            "testPageHash": "85373f290cf594f0f09eb0a76bc6ef6299be595f",
+            "testPagePath": "stub-4.5.4-opaque-response.html",
+            "testable": true
+        },
+        {
+            "href": "#cors-response",
+            "id": "cors-response",
+            "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+            "secno": "4.5.5",
+            "testable": false
+        },
+        {
+            "href": "#cache-objects",
+            "id": "cache-objects",
+            "hash": "001d0dfb8fbcbcb6443d1be2b722c9a84d6fd95b",
+            "secno": "4.6",
+            "testPageHash": "c1ef341d15a8c76d015eef57842ed10e62c02927",
+            "testPagePath": "stub-4.6-cache-objects.html",
+            "testable": true
+        },
+        {
+            "href": "#cache-lifetimes",
+            "id": "cache-lifetimes",
+            "hash": "7c73698ca9b686a0314ddf368bf8ad4ca6af392f",
+            "secno": "4.6.1",
+            "testPageHash": "f3524320a98f2fbdc5d711de82770957a7f5ec4b",
+            "testPagePath": "stub-4.6.1-cache-lifetimes.html",
+            "testable": true
+        },
+        {
+            "href": "#cache",
+            "id": "cache",
+            "hash": "bf1fe844577ab57a60eb550be24335a3321ca2ee",
+            "secno": "4.6.2",
+            "testPageHash": "c55b7b05c8e2f4b65722e16cdbcd78ffdfe1e4bf",
+            "testPagePath": "stub-4.6.2-cache.html",
+            "testable": true
+        },
+        {
+            "href": "#cache-storage",
+            "id": "cache-storage",
+            "hash": "9cdaac070f56e55d66a89cd4b6e669a04aa73b82",
+            "secno": "4.6.3",
+            "testPageHash": "ee6902f170d94cc1e3a4a00f4c90e7e19c4dff95",
+            "testPagePath": "stub-4.6.3-cache-storage.html",
+            "testable": true
+        },
+        {
+            "href": "#events",
+            "id": "events",
+            "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+            "secno": "4.7",
+            "testable": false
+        },
+        {
+            "href": "#install-phase-event",
+            "id": "install-phase-event",
+            "hash": "8495382b418adbbed436b2002ab0155a3a295ef2",
+            "secno": "4.7.1",
+            "testPageHash": "e48e98d51936bd57d21903615203f2b78d3f4b12",
+            "testPagePath": "stub-4.7.1-install-phase-event.html",
+            "testable": true
+        },
+        {
+            "href": "#wait-until-method",
+            "id": "wait-until-method",
+            "hash": "295fb5d4932396fd13365ed2fe57aa672f1f2a56",
+            "secno": "4.7.1.1",
+            "testPageHash": "c3769e51852b8438a97c39c50fa62351a73c4ee6",
+            "testPagePath": "stub-4.7.1.1-wait-until-method.html",
+            "testable": true
+        },
+        {
+            "href": "#install-event",
+            "id": "install-event",
+            "hash": "3a0f6da1771c22ab21ddc00729433a4d95ac6782",
+            "secno": "4.7.2",
+            "testPageHash": "9a103cc461eaca3da75db583ce08f13ecd2b1a98",
+            "testPagePath": "stub-4.7.2-install-event.html",
+            "testable": true
+        },
+        {
+            "href": "#install-event-section",
+            "id": "install-event-section",
+            "hash": "4631577df2efc1a4350000461629bc1ca93dbd14",
+            "secno": "4.7.2.1",
+            "testPageHash": "32f54e74bef784d2f0ac772b44abeee06573062d",
+            "testPagePath": "stub-4.7.2.1-install-event-section.html",
+            "testable": true
+        },
+        {
+            "href": "#replace-method",
+            "id": "replace-method",
+            "hash": "b9093b05204d09748311023b4c737ede02ff8115",
+            "secno": "4.7.2.2",
+            "testPageHash": "372bed923f8c35c4923634ae27fa121919ac0fec",
+            "testPagePath": "stub-4.7.2.2-replace-method.html",
+            "testable": true
+        },
+        {
+            "href": "#activate-event",
+            "id": "activate-event",
+            "hash": "ac3d03aa0ed961fb1122850aeab92c302c55ecd0",
+            "secno": "4.7.3",
+            "testPageHash": "6241762ab1d6f430fa9b7cc8f02a00e6591c6bc6",
+            "testPagePath": "stub-4.7.3-activate-event.html",
+            "testable": true
+        },
+        {
+            "href": "#fetch-event",
+            "id": "fetch-event",
+            "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+            "secno": "4.7.4",
+            "testable": false
+        },
+        {
+            "href": "#fetch-event-section",
+            "id": "fetch-event-section",
+            "hash": "ae24fda9664a3bd7b7fe2a8712ac469c3ee7128e",
+            "secno": "4.7.4.1",
+            "testPageHash": "393fc7b65e9f5afd18da666b6b206ccd639397cd",
+            "testPagePath": "stub-4.7.4.1-fetch-event-section.html",
+            "testable": true
+        },
+        {
+            "href": "#respond-with-method",
+            "id": "respond-with-method",
+            "hash": "7e4f010e2ec1ea0500b435cf599ba58942164457",
+            "secno": "4.7.4.2",
+            "testPageHash": "31e0acd058b9a5b722ae9f405b50bc94d31596b8",
+            "testPagePath": "stub-4.7.4.2-respond-with-method.html",
+            "testable": true
+        },
+        {
+            "href": "#default-method",
+            "id": "default-method",
+            "hash": "4d6f8f93b2e10ab0e486dbf464ff107ec1a6aa4c",
+            "secno": "4.7.4.3",
+            "testPageHash": "34e015c973887e2b3bf8b6db62f75d5d417a43cc",
+            "testPagePath": "stub-4.7.4.3-default-method.html",
+            "testable": true
+        },
+        {
+            "href": "#is-reload-attribute",
+            "id": "is-reload-attribute",
+            "hash": "6e1afd9e8940e9cd38aa7de1ed57e8c5b1a60e3d",
+            "secno": "4.7.4.4",
+            "testPageHash": "703a6469782d37be3c25e2214f897d1064acca47",
+            "testPagePath": "stub-4.7.4.4-is-reload-attribute.html",
+            "testable": true
+        },
+        {
+            "href": "#security-considerations",
+            "id": "security-considerations",
+            "hash": "5b02b143172647dd7f74f0464dffa7ec7d0e8f94",
+            "secno": "5",
+            "testable": false
+        },
+        {
+            "href": "#origin-relativity",
+            "id": "origin-relativity",
+            "hash": "72bbbd7d3d43a859af6ff9f19353210ddfcc26de",
+            "secno": "5.1",
+            "testPageHash": "1c92607dfac57b0f59654d059a4a67e0f984b84d",
+            "testPagePath": "stub-5.1-origin-relativity.html",
+            "testable": true
+        },
+        {
+            "href": "#cross-origin-resources",
+            "id": "cross-origin-resources",
+            "hash": "6176879ecfb5ae769679ceef4ee1e8889be8df92",
+            "secno": "5.2",
+            "testPageHash": "bcf85ba278c70c086645c416cee729ce753bc528",
+            "testPagePath": "stub-5.2-cross-origin-resources.html",
+            "testable": true
+        },
+        {
+            "href": "#storage-considerations",
+            "id": "storage-considerations",
+            "hash": "e101cee2062749b1a73086492377458251a5e875",
+            "secno": "6",
+            "testable": false
+        },
+        {
+            "href": "#extensibility",
+            "id": "extensibility",
+            "hash": "ef1b382bb89c52e01edad421b02b237765a21ce7",
+            "secno": "7",
+            "testable": false
+        },
+        {
+            "href": "#algorithms",
+            "id": "algorithms",
+            "hash": "d130247eab1d368efea646ff369e65f6c0c19481",
+            "secno": "8",
+            "testable": false
+        },
+        {
+            "href": "#registration-algorithm",
+            "id": "registration-algorithm",
+            "hash": "b688d090671c08ca17ea7cadc561e6d471ee099e",
+            "secno": "8.1",
+            "testable": false
+        },
+        {
+            "href": "#update-algorithm",
+            "id": "update-algorithm",
+            "hash": "679a19fef428affc83103c1eec0dbd3be40c4e2a",
+            "secno": "8.2",
+            "testable": false
+        },
+        {
+            "href": "#soft-update-algorithm",
+            "id": "soft-update-algorithm",
+            "hash": "8eb103f5cd0e595ee5e25f075e8c6239211e482a",
+            "secno": "8.3",
+            "testable": false
+        },
+        {
+            "href": "#installation-algorithm",
+            "id": "installation-algorithm",
+            "hash": "5874d9247d979009b67aedf964ae097837cfb3d9",
+            "secno": "8.4",
+            "testable": false
+        },
+        {
+            "href": "#activation-algorithm",
+            "id": "activation-algorithm",
+            "hash": "648b34baf6e7c2096a842e6d367949117843108e",
+            "secno": "8.5",
+            "testable": false
+        },
+        {
+            "href": "#on-fetch-request-algorithm",
+            "id": "on-fetch-request-algorithm",
+            "hash": "e1da43671071ec307f99cd781fc9b46353f3adfd",
+            "secno": "8.6",
+            "testable": false
+        },
+        {
+            "href": "#on-document-unload-algorithm",
+            "id": "on-document-unload-algorithm",
+            "hash": "8a7196b5dd04ad4fb9b96e16a52f4f7ac1906763",
+            "secno": "8.7",
+            "testable": false
+        },
+        {
+            "href": "#unregistration-algorithm",
+            "id": "unregistration-algorithm",
+            "hash": "0114db166d42211d0d7ab4b8e77de64a9fc97517",
+            "secno": "8.8",
+            "testable": false
+        },
+        {
+            "href": "#update-state-algorithm",
+            "id": "update-state-algorithm",
+            "hash": "2ed8a1e7479f1a8ad038aa44ccdd5e4f6b65cf05",
+            "secno": "8.9",
+            "testable": false
+        },
+        {
+            "href": "#scope-match-algorithm",
+            "id": "scope-match-algorithm",
+            "hash": "a2117fb34a8fa4ca3e832d9276477cfc1318dd1a",
+            "secno": "8.10",
+            "testable": false
+        },
+        {
+            "href": "#get-registration-algorithm",
+            "id": "get-registration-algorithm",
+            "hash": "b20332db952ba8f4b7e5f65b740a18da4a199c2e",
+            "secno": "8.11",
+            "testable": false
+        },
+        {
+            "href": "#get-newest-worker-algorithm",
+            "id": "get-newest-worker-algorithm",
+            "hash": "72dc1cbee8c98501931c411018fd1cad4376142b",
+            "secno": "8.12",
+            "testable": false
+        },
+        {
+            "href": "#acknowledgements",
+            "id": "acknowledgements",
+            "hash": "6347067ca5a574f8cc80c76d95dee568042d059b",
+            "secno": "9",
+            "testable": false
+        }
+    ],
+    "specUrl": "https://slightlyoff.github.io/ServiceWorker/spec/service_worker/"
+}

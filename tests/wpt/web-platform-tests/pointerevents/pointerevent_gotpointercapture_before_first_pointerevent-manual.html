@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Event: gotpiontercapture is fired first and asynchronously.</title>
+        <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <meta name="assert" content="After setting capture, the gotpointercapture dispatched to the capturing element before any other event is fired." />
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <!-- /resources/testharness.js -->
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <script type="text/javascript">
+            var detected_pointertypes = {};
+            var test_pointerEvent = async_test("gotpointercapture event"); // set up test harness
+            // showPointerTypes is defined in pointerevent_support.js
+            // Requirements: the callback function will reference the test_pointerEvent object and
+            // will fail unless the async_test is created with the var name "test_pointerEvent".
+            add_completion_callback(showPointerTypes);
+
+            var target0;
+            var listener;
+            var pointerdown_event;
+            var detected_pointerEvents = new Array();
+            var eventRcvd = false;
+            var isWaiting = false;
+
+
+            function run() {
+                target0 = document.getElementById("target0");
+                target0.style["touchAction"] = "none";
+                listener = document.getElementById("listener");
+
+                // listen to all events
+                for (var i = 0; i < All_Pointer_Events.length; i++) {
+                    on_event(listener, All_Pointer_Events[i], function (event) {
+                        if (event.type == "gotpointercapture") {
+                            check_PointerEvent(event);
+
+                            // TA: 10.2
+                            assert_true(isWaiting, "gotpointercapture must be fired asynchronously");
+                            isWaiting = false;
+
+                            // if any events have been received with same pointerId before gotpointercapture, then fail
+                            var eventsRcvd_str = "";
+                            if (eventRcvd) {
+                                eventsRcvd_str = "Events received before gotpointercapture: ";
+                                for (var i = 0; i < detected_pointerEvents.length; i++) {
+                                    eventsRcvd_str += detected_pointerEvents[i] + ", ";
+                                }
+                            }
+                            test_pointerEvent.step(function () {
+                                assert_false(eventRcvd, "no other events should be received before gotpointercapture." + eventsRcvd_str);
+                                assert_equals(event.pointerId, pointerdown_event.pointerId, "pointerID is same for pointerdown and gotpointercapture");
+                            });
+                        }
+                        else {
+                            if (pointerdown_event.pointerId === event.pointerId) {
+                                assert_false(isWaiting, event.type + " must be fired after gotpointercapture");
+                                detected_pointerEvents.push(event.type);
+                                eventRcvd = true;
+                                test_pointerEvent.done(); // complete test
+                            }
+                        }
+                    });
+                }
+
+                // set pointer capture
+                on_event(target0, "pointerdown", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    pointerdown_event = event;
+                    listener.setPointerCapture(event.pointerId);
+                    isWaiting = true;
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Event: Dispatch gotpointercapture event</h1>
+        <h4>Test Description:
+            After pointer capture is set for a pointer, and prior to dispatching the first event for the pointer, the gotpointercapture
+            event must be dispatched to the element that is receiving the pointer capture. The gotpointercapture event must be dispatched asynchronously.
+        </h4>
+        <br />
+        <div id="target0">
+            Use the mouse, touch or pen to tap/click this box.
+        </div>
+        <div id="listener">Do not hover over or touch this element. </div>
+        <div id="complete-notice">
+            <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

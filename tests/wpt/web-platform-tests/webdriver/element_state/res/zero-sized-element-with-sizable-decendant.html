@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Zero sized element with sizable decendant</title>
+
+<style>
+  #parent { width: 0; height: 0; }
+  #child { width: 100; height: 100; background-color: blue; }
+</style>
+
+<div id="parent">
+  <div id="child">
+    &nbsp;
+  </div>
+</div>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>W3C WebSocket API - Create Secure WebSocket - blocked port</title>
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+    <script type="text/javascript" src="websocket.js?pipe=sub"></script>
+</head>
+<body>
+    <div id="log"></div>
+    <script>
+        test(function () {
+            var wsocket;
+            var blockedPort = 25;
+            assert_throws("SECURITY_ERR", function () { wsocket = CreateWebSocketWithBlockedPort(blockedPort) });
+        }, "W3C WebSocket API - Create Secure WebSocket - Pass a URL with a blocked port - SECURITY_ERR should be thrown")
+    </script>
+</body>
+</html>

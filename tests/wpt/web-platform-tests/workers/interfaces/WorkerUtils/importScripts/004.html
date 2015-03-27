@@ -1,0 +1,34 @@
+<!--
+var x = '';
+var exception;
+try {
+  importScripts('data:text/javascript,x+="first script successful. "',
+                'data:text/javascript,x+="FAIL (second script). "; for(;) break;', // doesn't compile
+                'data:text/javascript,x+="FAIL (third script)"');
+} catch(ex) {
+  if (ex instanceof SyntaxError)
+    exception = true;
+  else
+    exception = String(ex);
+}
+postMessage([x, exception]);
+/*
+-->
+<!doctype html>
+<title>importScripts broken script</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(function() {
+  var worker = new Worker('#');
+  worker.onmessage = this.step_func(function(e) {
+    assert_equals(e.data[0], "first script successful. ");
+    assert_true(e.data[1], 'expected SyntaxError');
+    this.done();
+  });
+});
+</script>
+<!--
+*/
+//-->

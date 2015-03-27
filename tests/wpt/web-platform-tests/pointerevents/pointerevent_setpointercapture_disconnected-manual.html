@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+    <head>
+        <title>setPointerCapture() throws on disconnected node</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="pointerevent_support.js"></script>
+        <script type="text/javascript">
+            var detected_pointertypes = {};
+            add_completion_callback(showPointerTypes);
+            var test_setPointerCapture = async_test("setPointerCapture: DOMException InvalidStateError");
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                var target1 = document.getElementById("target1");
+
+                target1.parentNode.removeChild(target1);
+
+                on_event(target0, "pointerdown", function (event) {
+                    detected_pointertypes[ event.pointerType ] = true;
+                    try {
+                        target1.setPointerCapture(event.pointerId);
+
+                        test_setPointerCapture.step(function() {
+                            assert_unreached("DOMException: InvalidStateError should have been thrown.");
+                        });
+                    } catch (e) {
+                        // TA: 13.4
+                        test_setPointerCapture.step(function() {
+                            assert_equals(e.name, "InvalidStateError", "DOMException should be InvalidStateError");
+                        });
+                    }
+                    test_setPointerCapture.done();
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Event: DOMException InvalidStateError</h1>
+        <h4>Test Description:
+            When the setPointerCapture method is invoked, if the target node does not participate in its ownerDocument's tree, a DOMException with the name InvalidStateError must be thrown.
+        </h4>
+        <br>
+        <div id="target0">
+            Use the mouse, touch or pen to contact this box.
+        </div>
+        <div id="target1"></div>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

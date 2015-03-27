@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Dropping element with uninitialized effectAllowed</title>
+		<style type="text/css">
+div, p {
+	margin: 0.2em;
+	height: 70px;
+	width: 400px;
+	background: orange;
+	color: black;
+}
+p {
+	background: navy;
+	color: white;
+}
+		</style>
+		<script type="text/javascript">
+window.onload = function () {
+	var dragmicro = document.getElementsByTagName('div')[0];
+	dragmicro.ondragstart = function (e) {
+	  e.dataTransfer.setData('text/plain','dummy text');
+	};
+	var droptarget = document.getElementsByTagName('p')[0];
+	droptarget.ondragenter = droptarget.ondragover = function (e) {
+	  e.preventDefault();
+	};
+	droptarget.ondrop = function (e) {
+	  e.preventDefault();
+	  this.innerHTML = 'PASS';
+	};
+};
+		</script>
+	</head>
+	<body>
+
+		<noscript><p>Enable JavaScript and reload</p></noscript>
+		<div draggable="true">Drag this rectangle.</div>
+		<p>Drop onto this rectangle. Fail if this text does not change.</p>
+
+	</body>
+</html>

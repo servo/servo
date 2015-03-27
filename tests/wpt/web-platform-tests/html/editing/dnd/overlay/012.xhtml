@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Feedback image and border-radius</title>
+<style type="text/css">
+body
+	{background-color:silver;
+	margin:0;}
+div
+	{background-color:white;}
+div > div
+	{display:block;
+	width:100px;
+	height:100px;
+	border:solid thin green;
+	border-radius:50px;}
+</style>
+</head>
+<body>
+<div>
+	<div draggable="true" ondragstart="event.dataTransfer.effectAllowed = 'copy'"/>
+</div>
+<p>Try to drag green circle above. Feedback overlay should be a circle.</p>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>Example</title>
+    <script type="application/its+xml">
+     <its:rules  xmlns:its="http://www.w3.org/2005/11/its"  xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+      <its:param name="acParam">name</its:param>
+      <its:allowedCharactersRule allowedCharacters="[a-zA-Z_\-]" selector="//h:code[@id=$acParam]"/>
+     </its:rules>
+    </script> 
+  </head>
+  <body>
+    <p>Login names can only use letters from A to Z (upper or lowercase)
+    and the character underscore (_) and minus (-).
+    For example: <code id="name">Huck_Finn</code>.</p>
+  </body>
+</html>

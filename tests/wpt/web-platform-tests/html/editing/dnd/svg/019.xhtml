@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Dragging selection from XHTML textarea to SVG textArea</title>
+<style type="text/css">
+textarea
+	{height:1.5em;
+	width:7em;}
+</style>
+</head>
+<body onload="var t = document.querySelector('textarea');t.select();t.setSelectionRange(0,7)">
+<p><textarea>Drag me</textarea></p>
+<p>Drag selection above to the blue box. Copy of selection should end up in the blue box once you drop it there.</p>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" width="500px" height="300px" viewBox="0 0 500 300">
+<textArea x="10" y="10" width="480" height="280" font-size="20" editable="simple" pointer-events="boundingBox">Drop selection here</textArea>
+<rect x="10" y="10" width="480" height="280" stroke="black" stroke-width="1" fill="none"/>
+</svg>
+</body>
+</html>

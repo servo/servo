@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>location_hash</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    test(function () {
+      window.history.pushState(1, document.title, '#x=1');
+      var hash = location.hash;
+
+      assert_equals(hash, "#x=1", "hash");
+
+    }, "location hash");
+    </script>
+  </body>
+</html>

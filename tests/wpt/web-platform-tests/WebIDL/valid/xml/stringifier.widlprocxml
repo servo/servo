@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>interface A {
+  stringifier DOMString ();
+};
+
+interface A {
+  stringifier;
+};</webidl>
+  <Interface name="A" id="::A">
+    <webidl>interface A {
+  stringifier DOMString ();
+};</webidl>
+    <Operation stringifier="stringifier">
+      <webidl>  stringifier DOMString ();</webidl>
+      <Type type="DOMString"/>
+      <ArgumentList/>
+    </Operation>
+  </Interface>
+  <Interface name="A" id="::A">
+    <webidl>interface A {
+  stringifier;
+};</webidl>
+    <Stringifier>
+      <webidl>  stringifier;</webidl>
+    </Stringifier>
+  </Interface>
+</Definitions>

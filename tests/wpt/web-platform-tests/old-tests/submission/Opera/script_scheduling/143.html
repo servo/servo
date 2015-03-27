@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html><head>
+	<title>scheduler: SVG nested inline script that document.writes inline script </title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+<div id="log"></div>
+<script>
+  var t = async_test(undefined, {timeout:3000});
+</script>
+<svg>
+<script>
+  t.step(function() {
+    log('inline script #3');
+  });
+    <script>
+        log("inline script #1")
+        document.write("<" + "script>t.step(function() {log('inline script #2')})<" + "/script><" + "/script>");
+    </script>
+  t.step(function() {
+    assert_unreached():
+  });
+</script>
+</svg>
+<script>
+onload = t.step_func(function() {
+  assert_array_equals(eventOrder, ["inline script #1", "inline script #2", "inline script #3"]);
+  t.done();
+});
+</script>

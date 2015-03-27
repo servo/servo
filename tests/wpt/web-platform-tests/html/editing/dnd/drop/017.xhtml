@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Link drag and drop: dropzone 'copy','move' and 'link'</title>
+<style type="text/css">
+div
+	{display:inline-block;
+	vertical-align:top;
+	background-color:olive;
+	color:white;
+	padding:20px;
+	width:100px;
+	height:100px;}
+div:nth-child(2)
+	{background-color:green;}
+div:nth-child(3)
+	{background-color:teal;}
+</style>
+<script type="application/ecmascript">
+var effects = ['copy','move','link'];
+function dropSelection(event,element)
+	{document.querySelectorAll('div')[element].appendChild(document.createTextNode((event.dataTransfer.dropEffect == effects[element])?' PASS ':' FAIL '));}
+</script>
+</head>
+<body>
+<div ondrop="dropSelection(event,0)" dropzone="copy string:text/uri-list"/>
+<div ondrop="dropSelection(event,1)" dropzone="move string:text/uri-list"/>
+<div ondrop="dropSelection(event,2)" dropzone="link string:text/uri-list"/>
+<p><a href="data:text/plain,1">Drag me</a></p>
+<p>You should be able to drag link and drop it onto any of the green boxes.</p>
+</body>
+</html>

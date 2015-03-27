@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>IDBDatabase.transaction() - attempt to open a transaction from closed database connection </title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+    var db,
+      t = async_test(),
+      open_rq = createdb(t);
+
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result;
+        db.createObjectStore('test');
+    };
+
+    open_rq.onsuccess = function(e) {
+        db.close();
+
+        assert_throws('InvalidStateError',
+            function() { db.transaction('test'); });
+
+        t.done();
+    };
+</script>
+
+<div id="log"></div>

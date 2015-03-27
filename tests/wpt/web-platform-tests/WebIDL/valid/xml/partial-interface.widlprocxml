@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>interface Foo {
+  attribute DOMString bar;
+};
+
+partial interface Foo {
+  attribute DOMString quux;
+};</webidl>
+  <Interface name="Foo" id="::Foo">
+    <webidl>interface Foo {
+  attribute DOMString bar;
+};</webidl>
+    <Attribute name="bar" id="::Foo::bar">
+      <webidl>  attribute DOMString bar;</webidl>
+      <Type type="DOMString"/>
+    </Attribute>
+  </Interface>
+  <Interface name="Foo" partial="partial" id="::Foo">
+    <webidl>partial interface Foo {
+  attribute DOMString quux;
+};</webidl>
+    <Attribute name="quux" id="::Foo::quux">
+      <webidl>  attribute DOMString quux;</webidl>
+      <Type type="DOMString"/>
+    </Attribute>
+  </Interface>
+</Definitions>

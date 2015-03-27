@@ -1,0 +1,36 @@
+<!doctype html>
+<title>TextTrackCue.onenter</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+setup(function(){
+    window.c1 = new VTTCue(0, 1, 'text1');
+    window.ev = new Event('enter');
+    window.ran = false;
+    window.cb = function() { ran = true; };
+});
+test(function(){
+    assert_equals(c1.onenter, null, 'initial value');
+    c1.onenter = undefined;
+    assert_equals(c1.onenter, null, 'assigning undefined');
+    c1.onenter = cb;
+    assert_equals(c1.onenter, cb, 'assigning onenter');
+    c1.dispatchEvent(ev);
+    assert_true(ran, 'dispatching event');
+    c1.onenter = null;
+    assert_equals(c1.onenter, null, 'assigning null');
+    ran = false;
+    c1.dispatchEvent(ev);
+    assert_false(ran, 'dispatching event after nulling onenter');
+});
+test(function(){
+    c1.addEventListener('enter', cb, false);
+    c1.dispatchEvent(ev);
+    assert_true(ran);
+    c1.removeEventListener('enter', cb, false);
+    ran = false;
+    c1.dispatchEvent(ev);
+    assert_false(ran);
+}, 'TextTrackCue.addEventListener/removeEventListener');
+</script>

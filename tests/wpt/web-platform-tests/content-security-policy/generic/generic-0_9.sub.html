@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>test wildcard port number matching</title>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='wildcardPortTest.js'></script>
+    <script>
+      var head = document.getElementsByTagName('head')[0];
+      var script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = "http://" + location.hostname + ":{{ports[http][1]}}/content-security-policy/generic/wildcardPortTestSuceeds.js";
+      head.appendChild(script);
+    </script>
+</head>
+<body>
+    <h1>test wildcard port number matching</h1>
+    <div id='log'></div>
+
+    <script async defer src='../support/checkReport.sub.js?reportExists=false'></script>
+</body>
+</html>

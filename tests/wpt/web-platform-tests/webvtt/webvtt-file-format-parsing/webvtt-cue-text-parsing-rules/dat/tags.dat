@@ -1,0 +1,56 @@
+#data
+<
+#errors
+#document-fragment
+
+#data
+<<
+#errors
+#document-fragment
+
+#data
+<	
+#errors
+#document-fragment
+
+#data
+<
+
+#errors
+#document-fragment
+
+#data
+< 
+#errors
+#document-fragment
+
+#data
+<.
+#errors
+#document-fragment
+
+#data
+<c.
+#errors
+#document-fragment
+| <span>
+
+#data
+</
+#errors
+#document-fragment
+
+#data
+<c></>x
+#errors
+#document-fragment
+| <span>
+|   "x"
+
+#data
+<c></
+c>x
+#errors
+#document-fragment
+| <span>
+|   "x"

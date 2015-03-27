@@ -1,0 +1,75 @@
+<!doctype html>
+<title>Range.collapse() and .collapsed tests</title>
+<link rel="author" title="Aryeh Gregor" href=ayg@aryeh.name>
+<meta name=timeout content=long>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../common.js></script>
+<script>
+"use strict";
+
+function testCollapse(rangeEndpoints, toStart) {
+  var range;
+  if (rangeEndpoints == "detached") {
+    range = document.createRange();
+    range.detach(); // should be a no-op and therefore the following should not throw
+    range.collapse(toStart);
+    assert_equals(true, range.collapsed);
+  }
+
+  // Have to account for Ranges involving Documents!
+  var ownerDoc = rangeEndpoints[0].nodeType == Node.DOCUMENT_NODE
+    ? rangeEndpoints[0]
+    : rangeEndpoints[0].ownerDocument;
+  range = ownerDoc.createRange();
+  range.setStart(rangeEndpoints[0], rangeEndpoints[1]);
+  range.setEnd(rangeEndpoints[2], rangeEndpoints[3]);
+
+  var expectedContainer = toStart ? range.startContainer : range.endContainer;
+  var expectedOffset = toStart ? range.startOffset : range.endOffset;
+
+  assert_equals(range.collapsed, range.startContainer == range.endContainer
+    && range.startOffset == range.endOffset,
+    "collapsed must be true if and only if the start and end are equal");
+
+  if (toStart === undefined) {
+    range.collapse();
+  } else {
+    range.collapse(toStart);
+  }
+
+  assert_equals(range.startContainer, expectedContainer,
+    "Wrong startContainer");
+  assert_equals(range.endContainer, expectedContainer,
+    "Wrong endContainer");
+  assert_equals(range.startOffset, expectedOffset,
+    "Wrong startOffset");
+  assert_equals(range.endOffset, expectedOffset,
+    "Wrong endOffset");
+  assert_true(range.collapsed,
+    ".collapsed must be set after .collapsed()");
+}
+
+var tests = [];
+for (var i = 0; i < testRanges.length; i++) {
+  tests.push([
+    "Range " + i + " " + testRanges[i] + ", toStart true",
+    eval(testRanges[i]),
+    true
+  ]);
+  tests.push([
+    "Range " + i + " " + testRanges[i] + ", toStart false",
+    eval(testRanges[i]),
+    false
+  ]);
+  tests.push([
+    "Range " + i + " " + testRanges[i] + ", toStart omitted",
+    eval(testRanges[i]),
+    undefined
+  ]);
+}
+generate_tests(testCollapse, tests);
+
+testDiv.style.display = "none";
+</script>

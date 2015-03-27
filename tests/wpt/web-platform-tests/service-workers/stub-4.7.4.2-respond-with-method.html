@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<title>Service Workers: event.respondWith(r)</title>
+    <head>
+        <link rel="help" href="https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#respond-with-method">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+    </head>
+    <body>
+
+<!--
+
+`event.respondWith(r)` method must run the steps, from step 10 to step 15,
+defined in the [_OnFetchRequest algorithm][1].
+
+The `r` argument must resolve with a [AbstractResponse][2], else a
+[NetworkError][3] is thrown. If the request is a top-level navigation and the
+return value is a [OpaqueResponse][4] (an opaque response body), a
+[NetworkError][3] is thrown. The final URL of all successful (non
+network-error) responses is the [requested][5] URL. Renderer-side security
+checks about tainting for cross-origin content are tied to the transparency (or
+opacity) of the [Response][6] body, not URLs.
+
+
+
+[1]: #on-fetch-request-algorithm
+[2]: #abstract-response-interface
+[3]: http://w3c.github.io/dom/#networkerror
+[4]: #opaque-response-interface
+[5]: #request-objects
+[6]: #response-interface
+
+-->
+
+
+
+    <script>
+        test(function() {
+            // not_implemented();
+        }, "There are no tests for section event.respondWith(r) so far.");
+    </script>
+
+    </body>
+</html>
+

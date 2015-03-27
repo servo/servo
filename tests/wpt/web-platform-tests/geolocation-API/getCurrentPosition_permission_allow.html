@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<meta charset='utf-8'>
+<title>Geolocation Test: getCurrentPosition location access allowed</title>
+<link rel='help' href='http://www.w3.org/TR/geolocation-API/#get-current-position'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='support.js'></script>
+
+<p>Clear all Geolocation permissions before running this test. If prompted for permission, please allow.</p>
+<div id='log'></div>
+
+<script>
+// Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00002
+var t = async_test('User allows access, check that success callback is called or error callback is called with correct code.'),
+    onSuccess, onError, hasMethodReturned = false;
+
+onSuccess = t.step_func(function(pos) {
+  // Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00031
+  test(function() {
+    assert_true(hasMethodReturned);
+  }, 'Check that getCurrentPosition returns synchronously before any callbacks are invoked.');
+
+  done();
+});
+
+onError = t.step_func(function(err) {
+  // Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00031
+  test(function() {
+    assert_true(hasMethodReturned);
+  }, 'Check that getCurrentPosition returns synchronously before any callbacks are invoked.');
+
+  assert_true(!isUsingPreemptivePermission && err.code === err.POSITION_UNAVAILABLE);
+  done();
+});
+
+try {
+  geo.getCurrentPosition(onSuccess, onError);
+  hasMethodReturned = true;
+} catch(e) {
+  t.step(function() {
+    assert_unreached('An exception was thrown unexpectedly: ' + e.message);
+  });
+}
+</script>

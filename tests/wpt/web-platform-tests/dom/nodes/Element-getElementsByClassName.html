@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Element.getElementsByClassName</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  var a = document.createElement("a"), b = document.createElement("b")
+  b.className = "foo"
+  a.appendChild(b)
+  var list = a.getElementsByClassName("foo")
+  assert_array_equals(list, [b])
+  var secondList = a.getElementsByClassName("foo")
+  assert_true(list === secondList || list !== secondList, "Caching is allowed.")
+}, "getElementsByClassName should work on disconnected subtrees.")
+test(function() {
+  var list = document.getElementsByClassName("foo")
+  assert_false(list instanceof NodeList, "NodeList")
+  assert_true(list instanceof HTMLCollection, "HTMLCollection")
+}, "Interface should be correct.")
+</script>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>dataset: should return 'undefined' for non-existent properties</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var div = document.createElement("div");
+test(function() {
+  assert_false("foo" in div.dataset);
+  assert_equals(div.dataset.foo, undefined);
+}, "Should return 'undefined' before setting an attribute")
+test(function() {
+  div.setAttribute("data-foo", "value");
+  assert_true("foo" in div.dataset);
+  assert_equals(div.dataset.foo, "value");
+}, "Should return 'value' if that's the value")
+test(function() {
+  div.setAttribute("data-foo", "");
+  assert_true("foo" in div.dataset);
+  assert_equals(div.dataset.foo, "");
+}, "Should return the empty string if that's the value")
+test(function() {
+  div.removeAttribute("data-foo");
+  assert_false("foo" in div.dataset);
+  assert_equals(div.dataset.foo, undefined);
+}, "Should return 'undefined' after removing an attribute")
+</script>

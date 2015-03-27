@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>HTML 5 Foreign Content SVG in HTML </title>
+        <meta description="Test to verify SVG elements inside SVG namespace are camelCased" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        
+        <script type="text/javascript">
+        
+            function RunTest()
+            {
+                try
+                {
+                    var bResult = "FAIL";
+                    var parentNode = document.getElementById("svg1");
+                            
+                    for(var i=1;i<parentNode.childNodes.length;i=i+2)
+                    {
+                        var idName = parentNode.childNodes[i].id;
+                        var tagName = parentNode.childNodes[i].localName;
+                        if(idName!=tagName)
+                        {
+                            bResult = "FAIL";
+                            break;
+                        }
+                        else
+                        {
+                            bResult = "PASS"
+                        }
+                    }
+                }
+                catch(ex)
+                {
+                    bResult = "PASS";
+                }
+				
+                document.getElementById("testresult").innerHTML = bResult;
+            }
+        </script>
+    </head>
+    
+    <body onload="RunTest()">
+
+        <div class="testdata">
+            <p id="instructions"> Test passes if the word "PASS" appears below  </p>
+            <p> Test Result : </p>
+            <p id="testresult"> RUNNING </div>
+        </div>
+        <svg id="svg1">
+
+            <altglyph id="altGlyph" />
+            <ALTGLYPHDEF id="altGlyphDef" />
+            <AltGlyphItem id="altGlyphItem" />
+            <animatecolor id="animateColor" />
+            <animatemotion id="animateMotion" />
+            <animatetransform id="animateTransform" />
+            <clippath id="clipPath" />
+            <feblend id="feBlend" />
+            <fecolormatrix id="feColorMatrix" />
+
+            <fecomponenttransfer id="feComponentTransfer" />
+            <fecomposite id="feComposite" />
+            <feconvolvematrix id="feConvolveMatrix" />
+            <fediffuselighting id="feDiffuseLighting" />
+            <fedisplacementmap id="feDisplacementMap" />
+            <fedistantlight id="feDistantLight" />
+            <feflood id="feFlood" />
+            <fefunca id="feFuncA" />
+            <fefuncb id="feFuncB" />
+
+            <fefuncg id="feFuncG" />
+            <fefuncr id="feFuncR" />
+            <fegaussianblur id="feGaussianBlur" />
+            <feimage id="feImage" />
+            <femerge id="feMerge" />
+            <femergenode id="feMergeNode" />
+            <femorphology id="feMorphology" />
+            <feoffset id="feOffset" />
+            <fepointlight id="fePointLight" />
+
+            <fespecularlighting id="feSpecularLighting" />
+            <fespotlight id="feSpotLight" />
+            <fetile id="feTile" />
+            <feturbulence id="feTurbulence" />
+            <foreignobject id="foreignObject" />
+            <glyphref id="glyphRef" />
+            <lineargradient id="linearGradient" />
+            <radialgradient id="radialGradient" />
+            <textpath id="textPath" />
+
+        </svg> 
+        
+
+        
+    </body>
+
+</html>
+

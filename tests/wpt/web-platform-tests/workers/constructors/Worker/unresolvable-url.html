@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>unresolvable url</title>
+<link rel=help href="http://www.whatwg.org/html/#dom-worker">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  assert_throws("SyntaxError", function() { new Worker('http://invalid url/'); });
+});
+</script>

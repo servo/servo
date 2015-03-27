@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<title>WebVTT rendering, ::cue(i), text-shadow</title>
+<link rel="match" href="italic_text-shadow-ref.html">
+<style>
+html { overflow:hidden }
+body { margin:0 }
+::cue(i) {
+    font-family: sans-serif;
+    text-shadow: 0px 0px 5px #0f0;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="1280" height="720" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="../../../support/test_italic.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</video>
+</html>

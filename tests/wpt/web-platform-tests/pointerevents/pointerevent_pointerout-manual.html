@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+    <head>
+        <title>pointerout</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+    </head>
+    <body onload="run()">
+        <h2>pointerout</h2>
+        <h4>Test Description: This test checks if pointerout event triggers. Put your mouse over the black rectangle and then move it out of the rectangle boundaries. If you are using touchscreen tap the black rectangle. </h4>
+        <div id="target0" style="background: black"></div>
+        <script>
+            var test_pointerEvent = async_test("pointerout event received");
+            // showPointerTypes is defined in pointerevent_support.js
+            // Requirements: the callback function will reference the test_pointerEvent object and
+            // will fail unless the async_test is created with the var name "test_pointerEvent".
+            add_completion_callback(showPointerTypes);
+
+            var eventTested = false;
+            var detected_pointertypes = {};
+
+            function run() {
+                var target0 = document.getElementById("target0");
+
+                on_event(target0, "pointerout", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    if (eventTested == false) {
+                        eventTested = true;
+                        check_PointerEvent(event);
+                        test_pointerEvent.done();
+                    }
+                });
+            }
+        </script>
+        <h1>Pointer Events pointerout tests</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

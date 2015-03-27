@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html><head>
+    <title>ARIA 1.0 Test Case: Listbox role with multiseclect</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <style type="text/css">
+      [aria-selected="true"] { font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case: Listbox role with multiseclect</h1>
+        
+    <div role="listbox" aria-multiselectable="true">
+      <div role="option">Option 1</div> 
+      <div role="option" aria-selected="false" tabindex="-1">Option 2 (test for selected)</div> 
+      <div role="option" aria-selected="false" id="ID_TARGET" tabindex="0">Option 3 (test for selected)</div> 
+      <div role="option">Option 4</div> 
+    </div>
+    <p><button onclick="toggleSelectedState();">Toggle Option 3 Selected State</button>
+    
+    <h2>Description</h2>
+    <p>A DIV element with role role "listbox" has an aria-multiselect attribute set to "true".
+       Two of the four child "div" elements with the role "option" have the "aria-selected" attribute set 
+       to "true".</p>
+    
+    <h2>Accessibility API Mappings</h2>
+    
+    <h3>MSAA + UIA Express</h3>
+    <p>Expose <code>STATE_SYSTEM_SELECTED</code>; Expose <code>STATE_SYSTEM_SELECTABLE</code></p>
+      
+    <h3>MSAA + IAccessible2</h3>
+    <p>Expose STATE_SYSTEM_SELECTED and STATE_SYSTEM_SELECTABLE for each of the elements with role option</p>
+          
+    <h3>UIA</h3>
+    <p>Expose IsSelected property in SelectionItem Control Pattern. The availability of the SelectionItem Control Pattern indicates the item is selectable.</p>
+      
+    <h3>ATK/AT-SPI</h3>
+    <p>Expose STATE_SELECTED on each of the elements with role option.</p>
+      
+    <h3>AXAPI</h3>
+    <p>AXSelected:Yes on option 2 and 3 and AXSelected:No on option 1 and 4</p>
+    
+    <script type="text/javascript">  
+/*      
+     function setSelection() {
+       var node = document.getElementById('ID_TARGET');  
+       node.setAttribute("aria-selected","true");
+     }
+     
+     window.addEventListener('load', setSelection);
+*/     
+     function toggleSelectedState() {
+       var el = document.getElementById('ID_TARGET');
+       if (el.getAttribute('aria-selected') == 'true')
+         el.setAttribute('aria-selected', 'false');
+       else
+         el.setAttribute('aria-selected', 'true');
+     }
+     
+    </script>
+  
+  
+
+
+</body></html>

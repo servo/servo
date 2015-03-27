@@ -1,0 +1,4 @@
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+    <its:param name="storagesizeParam">123</its:param>
+    <its:storageSizeRule selector="//h:p[@id=$storagesizeParam]" storageSize="25" storageEncoding="ISO-8859-1"/>
+  </its:rules>

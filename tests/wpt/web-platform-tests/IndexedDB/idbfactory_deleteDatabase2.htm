@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>IDBFactory.deleteDatabase() - result of the request is set to undefined</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<link rel=help href="http://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#widl-IDBFactory-deleteDatabase-IDBOpenDBRequest-DOMString-name">
+<meta name=assert title="If the steps above are successful, the implementation must set the result of the request to undefined and fire a success event at the request.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+    var open_rq = createdb(async_test(), undefined, 9);
+
+    open_rq.onupgradeneeded = function(e) {};
+    open_rq.onsuccess = function(e) {
+        var db = e.target.result;
+        db.close();
+
+        var delete_rq = window.indexedDB.deleteDatabase(db.name);
+        delete_rq.onerror = fail(this, "Unexpected delete_rq.error event");
+        delete_rq.onsuccess = this.step_func( function (e) {
+            assert_equals(e.target.result, undefined, "result");
+            this.done();
+        });
+    }
+</script>
+
+<div id="log"></div>

@@ -1,0 +1,34 @@
+<!doctype html>
+<link rel=match href=001-ref.html>
+<title>The font element text decoration color quirk, 001, standards mode</title>
+<style>[id] > * { color:fuchsia }</style>
+<div>Quirk should apply:</div>
+<div><u>foo <font style="color:fuchsia">style</font> bar</u></div>
+<div><u>foo <font color="fuchsia">color</font> bar</u></div>
+<div><u>foo <font color="fuchsia" style="color:fuchsia">color and style</font> bar</u></div>
+<div><u>foo <font color="x" style="color:fuchsia">color=x and style</font> bar</u></div>
+<div><u>foo <font color="transparent" style="color:fuchsia">color=transparent and style</font> bar</u></div>
+<div><u>foo <font color="" style="color:fuchsia">color="" and style</font> bar</u></div>
+<div><u>foo <font style="display:block; color:fuchsia">block</font> bar</u></div>
+<div><s>foo <font color="fuchsia">line-through</font> bar</s></div>
+<div><u style="text-decoration:overline">foo <font color="fuchsia">overline</font> bar</u></div>
+<div>Quirks should not apply:</div>
+<div><u>foo <span style="color:fuchsia">span</span> bar</u></div>
+<div><u id="no-namespace">FAIL (script didn't run)</u></div>
+<script>
+var a = document.getElementById('no-namespace');
+a.textContent = 'foo ';
+var elm = document.createElementNS('', 'font');
+elm.textContent = 'no-namespace font element';
+a.appendChild(elm);
+a.appendChild(document.createTextNode(' bar'));
+</script>
+<div><u id="uppercase">FAIL (script didn't run)</u></div>
+<script>
+var a = document.getElementById('uppercase');
+a.textContent = 'foo ';
+var elm = document.createElementNS('http://www.w3.org/1999/xhtml', 'FONT');
+elm.textContent = 'uppercase FONT element';
+a.appendChild(elm);
+a.appendChild(document.createTextNode(' bar'));
+</script>

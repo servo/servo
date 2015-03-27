@@ -1,0 +1,38 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>ARIA 1.0 Test Case 672</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case 672</h1>
+    <ul role="listbox">
+      <li role="option" aria-selected="false" id="TEST_ID" tabindex="0">Option 1</li> 
+      <li role="option">Option 2</li> 
+    </ul>
+    
+    <h2>Description</h2>
+    <p>For an element with role "option" which is a child of an element with role "listbox", 
+      and the value of the "aria-selected" attribute changes (from "true", or to "true").</p>
+    
+    <script type="text/javascript">  
+      function changeSelectedState() {
+        var test_node = document.getElementById('TEST_ID');  
+        var state = test_node.getAttribute('aria-selected');
+     
+        if (state === 'false') test_node.setAttribute('aria-selected', 'true');
+        else test_node.setAttribute('aria-selected', 'true');
+
+      }
+  
+     function setFocus() {
+       var test_node = document.getElementById('TEST_ID');  
+       test_node.focus();
+       setTimeout(changeSelectedState,1000);
+     }
+     
+     window.addEventListener('load', setFocus);
+    </script>
+  </body>
+  
+</html>

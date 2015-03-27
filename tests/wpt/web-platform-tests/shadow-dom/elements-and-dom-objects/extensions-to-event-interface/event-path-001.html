@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test - event path</title>
+<link rel="author" title="Kazuhito Hokamura" href="mailto:k.hokamura@gmail.com">
+<link rel="help" href="https://dvcs.w3.org/hg/webcomponents/raw-file/tip/spec/shadow/index.html#extensions-to-event">
+<meta name="assert" content="Extensions to Event Interface: event.path cross the shadow boundary">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+var t = async_test('event.path cross the shadow boundary');
+
+t.step(unit(function(ctx) {
+    var doc = newRenderedHTMLDocument(ctx);
+    var host = doc.createElement('div');
+
+    var shadowRoot = host.createShadowRoot();
+    var child = doc.createElement('div');
+
+    doc.body.appendChild(host);
+    shadowRoot.appendChild(child);
+
+    child.addEventListener('click', t.step_func(function(e) {
+        assert_equals(e.path.length, 7, 'path.length');
+        assert_equals(e.path[0], child, 'path[0] should be child');
+        assert_equals(e.path[1], shadowRoot, 'path[1] should be shadowRoot');
+        assert_equals(e.path[2], host, 'path[2] should be host');
+        assert_equals(e.path[3], doc.body, 'path[3] should be body');
+        assert_equals(e.path[4], doc.documentElement, 'path[4] should be html');
+        assert_equals(e.path[5], doc, 'path[5] should be document');
+        assert_equals(e.path[6], ctx.iframes[0].contentWindow, 'path[6] should be window');
+
+        t.done();
+    }));
+
+    var event = doc.createEvent('HTMLEvents');
+    event.initEvent('click', true, false);
+    child.dispatchEvent(event);
+}));
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!doctype html>
+<title>WebVTT cue data parser test tags</title>
+<style>video { display:none }</style>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/html/syntax/parsing/template.js></script>
+<script src=/html/syntax/parsing/common.js></script>
+<script src=../common.js></script>
+<div id=log></div>
+<script>
+runTests([
+{name:'d49e42f7582c6f00b2569f2d14629611c0c6b0e6', input:'%3C', expected:'%23document-fragment'},
+{name:'9dd187edd10c907e6b92148fd82940e401dbe79f', input:'%3C%3C', expected:'%23document-fragment'},
+{name:'2d2c4333983e23a4962083e8120e5d42c839f77b', input:'%3C%09', expected:'%23document-fragment'},
+{name:'94f898df44b470e2d05d74c6816fd908e55c9fdf', input:'%3C%0A', expected:'%23document-fragment'},
+{name:'2fdc1b84ba41ec98833851e80781df1fbe72182f', input:'%3C%20', expected:'%23document-fragment'},
+{name:'487690a6f5da4666f9caaf3a3ecc10992aca1414', input:'%3C.', expected:'%23document-fragment'},
+{name:'0d7df935b172f2a1b357b94596d68f2443f30f8b', input:'%3Cc.', expected:'%23document-fragment%0A%7C%20%3Cspan%3E'},
+{name:'cd1d6dd274e03ae8fc56bc4ef163998d9ff24496', input:'%3C/', expected:'%23document-fragment'},
+{name:'fca1a11d42b735453117f42456360e88082a3fd7', input:'%3Cc%3E%3C/%3Ex', expected:'%23document-fragment%0A%7C%20%3Cspan%3E%0A%7C%20%20%20%22x%22'},
+{name:'fe3b6277edf5c2f84e7a6779eddd0cac30552bca', input:'%3Cc%3E%3C/%0Ac%3Ex', expected:'%23document-fragment%0A%7C%20%3Cspan%3E%0A%7C%20%20%20%22x%22'}
+]);
+</script>

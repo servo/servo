@@ -1,0 +1,100 @@
+body {
+  padding: 2em;
+  margin: 0;
+  font-family: sans-serif;
+  color: black;
+  background: white;
+  background-position: top left;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+:link { color: #00C; background: transparent }
+:visited { color: #609; background: transparent }
+a:active { color: #C00; background: transparent }
+a:link img, a:visited img { border-style: none } /* no border on img links */
+
+h1, h2, h3, h4, h5, h6 { text-align: left }
+/* background should be transparent, but WebTV has a bug */
+h1, h2, h3 { color: #009393; background: white }
+h1 { font: 170% sans-serif }
+h2 { font: 140% sans-serif }
+h3 { font: 120% sans-serif }
+h4 { font: bold 100% sans-serif }
+h5 { font: italic 100% sans-serif }
+h6 { font: small-caps 100% sans-serif; margin-bottom: 0 }
+
+.hide { display: none }
+
+code { font-size: 120% }
+
+ul.toc, ol.toc, ul.authors {
+  list-style: none;
+}
+
+.hide { display: none }
+
+div.head { margin-bottom: 1em }
+div.head h1 { margin-top: 2em; clear: both }
+div.head table { margin-left: 2em; margin-top: 2em }
+div.constraint, div.issue, div.note, div.notice     { margin-left: 2em; }
+div.exampleInner pre { margin-left: 1em; margin-top: 0em; margin-bottom: 0em}
+div.exampleOuter {border: 4px double gray; margin: 0em; padding: 0em}
+div.exampleInner { background-color: #d5dee3;
+     	           border-top-width: 4px;
+       	           border-top-style: double;
+       	           border-top-color: #d3d3d3;
+       	           border-bottom-width: 4px;
+       	           border-bottom-style: double;
+       	           border-bottom-color: #d3d3d3;
+       	           padding: 4px; margin: 0em }
+div.exampleWrapper { margin: 4px }
+div.exampleHeader { font-weight: bold; margin: 4px}
+div.term { font: 100% sans-serif; color:#000000; font-weight: bold; line-height: 60%}   
+div.list { font: 100% sans-serif; color:#000000; font-weight: normal; line-height: 60%} 
+
+.optional {text-decoration: line-through; display: none;}
+
+.copyright,.legalnotice { font-size: small }
+.copyright small { font-size: small }
+
+@media screen {  /* hide from IE3 */
+a[href]:hover { background: #ffa }
+}
+
+ol.enumar      { list-style-type: decimal; }
+ol.enumla      { list-style-type: lower-alpha; }
+ol.enumlr      { list-style-type: lower-roman; }
+ol.enumua      { list-style-type: upper-alpha; }
+ol.enumur      { list-style-type: upper-roman; }
+
+/* BONDI additions */
+
+.toc {
+    list-style-type: none;
+}
+
+pre {
+  background-color:#D5DEE3;
+  overflow: auto;
+  padding: 1em;
+}
+
+.examplecode {
+    background-color: #EEE;
+}
+
+.def-api-feature-set dt, .def-api-feature dt, dt .def-device-cap, dt.const code { font: bold 100% sans-serif; }
+dt.attribute code, dt.method code { font: italic 100% sans-serif; }
+
+.def-device-caps dd { margin-bottom: 2em }
+
+dt.method { margin-top: 2em }
+
+.summary td {
+    text-align: left;
+    background-color: #BBDDDD;
+    color: inherit;
+    font-family: monospace;
+    white-space:pre;
+    padding: .3em 1em .3em 1em;
+}

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>IDBIndex.count() - returns the number of records in the index </title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js></script>
+
+<script>
+    var db, t = async_test();
+
+    var open_rq = createdb(t);
+
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result;
+        var store = db.createObjectStore("store", { autoIncrement: true });
+        store.createIndex("index", "indexedProperty");
+
+        for(var i = 0; i < 10; i++) {
+            store.add({ indexedProperty: "data" + i });
+        }
+    }
+
+    open_rq.onsuccess = function(e) {
+        var rq = db.transaction("store")
+                   .objectStore("store")
+                   .index("index")
+                   .count();
+
+        rq.onsuccess = t.step_func(function(e) {
+            assert_equals(e.target.result, 10);
+            t.done();
+        });
+    }
+</script>
+
+<div id=log></div>

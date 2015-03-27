@@ -1,0 +1,4 @@
+<file>
+ <res name="retryBtn" xml:id="btnAgain">Try Again</res>
+ <res name="retryTip">click this to re-run the process with the current settings.</res>
+</file>

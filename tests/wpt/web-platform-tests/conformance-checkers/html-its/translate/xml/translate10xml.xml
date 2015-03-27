@@ -1,0 +1,7 @@
+<doc>
+  <its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:xlink="http://www.w3.org/1999/xlink" version="2.0" xlink:type="simple" xlink:href="translate10xmlrules.xml"/>
+  <msg lcid="409" num="1">Create a folder</msg>
+  <msg lcid="411" num="1">フォルダーを作成する</msg>
+  <msg lcid="407" num="1">Erstellen Sie einen Ordner</msg>
+  <msg lcid="408" num="1">Créer un dossier</msg>
+</doc>

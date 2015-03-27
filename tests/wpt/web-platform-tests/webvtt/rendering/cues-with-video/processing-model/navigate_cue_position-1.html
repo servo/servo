@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<title>WebVTT rendering, cue position after navigation</title>
+<style>
+video {
+  outline: solid;
+  width: 320px;
+  height: 240px;
+}
+::cue {
+  font-family: Ahem, sans-serif;
+  font-size: 50px;
+  color: green;
+}
+</style>
+<video autoplay controls onplaying="this.onplaying = null;
+                           this.pause();
+                           this.currentTime = 0;
+                           ">
+  <source src="/media/white.webm" type="video/webm">
+  <source src="/media/white.mp4" type="video/mp4">
+  <track src=support/foo.vtt>
+</video>

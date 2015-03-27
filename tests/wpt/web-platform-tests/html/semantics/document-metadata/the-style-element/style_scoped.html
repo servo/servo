@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>HTML Test: The scoped attribute must apply the style information only to its parent element</title>
+    <link rel="author" title="Intel" href="http://www.intel.com/">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#attr-style-scoped">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-style-element">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      #test {
+        width: 50px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="test"></div>
+    <div>
+      <style id="style">
+        #test {
+          width: 100px;
+        }
+      </style>
+    <div>
+    <script>
+      test(function() {
+        var testElement = document.getElementById("test");
+        var style = document.getElementById("style");
+        var width1, width2;
+
+        width1 = window.getComputedStyle(testElement, false)["width"];
+        assert_equals(width1, "100px", "The style 'width' should be applied.");
+
+        style.scoped = true;
+        width2 = window.getComputedStyle(testElement, false)["width"];
+        assert_equals(width2, "50px", "The width should not be applied.");
+      }, "The scoped attribute is present, the style information must be applied only to its parent element");
+    </script>
+  </body>
+</html>

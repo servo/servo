@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SourceBuffer.mode == "sequence" test cases.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          function mediasource_sequencemode_test(testFunction, description, options)
+          {
+              return mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+              {
+                  assert_greater_than(segmentInfo.media.length, 3, "at least 3 media segments for supported type");
+                  test.failOnEvent(mediaElement, "error");
+                  sourceBuffer.mode = "sequence";
+                  assert_equals(sourceBuffer.mode, "sequence", "mode after setting it to \"sequence\"");
+
+                  var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+                  test.expectEvent(sourceBuffer, "updatestart", "initSegment append started.");
+                  test.expectEvent(sourceBuffer, "update", "initSegment append success.");
+                  test.expectEvent(sourceBuffer, "updateend", "initSegment append ended.");
+                  sourceBuffer.appendBuffer(initSegment);
+                  test.waitForExpectedEvents(function()
+                  {
+                      assert_equals(sourceBuffer.timestampOffset, 0, "timestampOffset initially 0");
+                      testFunction(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData);
+                  });
+              }, description, options);
+          }
+
+          function append_segment(test, sourceBuffer, mediaData, info, callback)
+          {
+              var mediaSegment = MediaSourceUtil.extractSegmentData(mediaData, info);
+              test.expectEvent(sourceBuffer, "updatestart", "media segment append started.");
+              test.expectEvent(sourceBuffer, "update", "media segment append success.");
+              test.expectEvent(sourceBuffer, "updateend", "media segment append ended.");
+              sourceBuffer.appendBuffer(mediaSegment);
+              test.waitForExpectedEvents(callback);
+          }
+
+          function threeDecimalPlaces(number)
+          {
+              return Number(number.toFixed(3));
+          }
+
+          // Verifies expected times to 3 decimal places before and after mediaSource.endOfStream(),
+          // and calls |callback| on success.
+          function verify_offset_and_buffered(test, mediaSource, sourceBuffer,
+                                              expectedTimestampOffset, expectedBufferedRangeStartTime,
+                                              expectedBufferedRangeMaxEndTimeBeforeEOS,
+                                              expectedBufferedRangeEndTimeAfterEOS,
+                                              callback) {
+              assert_equals(threeDecimalPlaces(sourceBuffer.timestampOffset),
+                            threeDecimalPlaces(expectedTimestampOffset),
+                            "expectedTimestampOffset");
+
+              // Prior to EOS, the buffered range end time may not have fully reached the next media
+              // segment's timecode (adjusted by any timestampOffset). It should not exceed it though.
+              // Therefore, an exact assertBufferedEquals() will not work here.
+              assert_equals(sourceBuffer.buffered.length, 1, "sourceBuffer.buffered has 1 range before EOS");
+              assert_equals(threeDecimalPlaces(sourceBuffer.buffered.start(0)),
+                            threeDecimalPlaces(expectedBufferedRangeStartTime),
+                            "sourceBuffer.buffered range begins where expected before EOS");
+              assert_less_than_equal(threeDecimalPlaces(sourceBuffer.buffered.end(0)),
+                                     threeDecimalPlaces(expectedBufferedRangeMaxEndTimeBeforeEOS),
+                                     "sourceBuffer.buffered range ends at or before expected upper bound before EOS");
+
+              test.expectEvent(mediaSource, "sourceended", "mediaSource endOfStream");
+              mediaSource.endOfStream();
+              test.waitForExpectedEvents(function()
+              {
+                  assertBufferedEquals(sourceBuffer,
+                                       "{ [" + expectedBufferedRangeStartTime.toFixed(3) + ", " + expectedBufferedRangeEndTimeAfterEOS.toFixed(3) + ") }",
+                                       "sourceBuffer.buffered after EOS");
+                  callback();
+              });
+          }
+
+          mediasource_sequencemode_test(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              assert_equals(segmentInfo.media[0].timecode, 0, "segment starts at time 0");
+              append_segment(test, sourceBuffer, mediaData, segmentInfo.media[0], function()
+              {
+                  verify_offset_and_buffered(test, mediaSource, sourceBuffer,
+                                             0, 0,
+                                             segmentInfo.media[1].timecode + sourceBuffer.timestampOffset,
+                                             segmentInfo.media[0].highest_end_time + sourceBuffer.timestampOffset,
+                                             test.done);
+              });
+          }, "Test sequence AppendMode appendBuffer(first media segment)");
+
+          mediasource_sequencemode_test(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              assert_greater_than(segmentInfo.media[1].timecode, 0, "segment starts after time 0");
+              append_segment(test, sourceBuffer, mediaData, segmentInfo.media[1], function()
+              {
+                  verify_offset_and_buffered(test, mediaSource, sourceBuffer,
+                                             -segmentInfo.media[1].timecode, 0,
+                                             segmentInfo.media[2].timecode + sourceBuffer.timestampOffset,
+                                             segmentInfo.media[1].highest_end_time + sourceBuffer.timestampOffset,
+                                             test.done);
+              });
+          }, "Test sequence AppendMode appendBuffer(second media segment)");
+
+          mediasource_sequencemode_test(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              assert_greater_than(segmentInfo.media[1].timecode, 0, "segment starts after time 0");
+              append_segment(test, sourceBuffer, mediaData, segmentInfo.media[1], function()
+              {
+                  assert_equals(segmentInfo.media[0].timecode, 0, "segment starts at time 0");
+                  append_segment(test, sourceBuffer, mediaData, segmentInfo.media[0], function()
+                  {
+                      // Current timestampOffset should reflect offset required to put media[0]
+                      // immediately after media[1]'s highest frame end timestamp (as was adjusted
+                      // by an earlier timestampOffset).
+                      verify_offset_and_buffered(test, mediaSource, sourceBuffer,
+                                                 segmentInfo.media[1].highest_end_time - segmentInfo.media[1].timecode, 0,
+                                                 segmentInfo.media[1].timecode + sourceBuffer.timestampOffset,
+                                                 segmentInfo.media[0].highest_end_time + sourceBuffer.timestampOffset,
+                                                 test.done);
+                  })
+              });
+          }, "Test sequence AppendMode appendBuffer(second media segment, then first media segment)");
+        </script>
+    </body>
+</html>

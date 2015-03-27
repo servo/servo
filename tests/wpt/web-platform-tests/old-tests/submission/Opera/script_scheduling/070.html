@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html><head>
+	<title> scheduler: document.write into IFRAME a script that adds a SCRIPT through DOM</title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+
+</head>
+<body>
+
+	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+  <iframe></iframe>
+
+  <script type="text/javascript">
+    var doc = document.getElementsByTagName('iframe')[0].contentDocument;
+    doc.open();
+
+    log("calling document.write");
+    doc.write('<script>top.log("inline script #1");'+
+              'var s=document.createElement("script");'+
+              's.src="scripts/include-6.js?'+new Date().getTime()+'";'+
+              'document.getElementsByTagName("head")[0].appendChild(s);'+
+              '<\/script>'+
+              '<div id="foo"></div>'+
+              '<script>top.log("inline script #2");<\/script>'
+    );
+
+    log("calling document.close");
+    doc.close();
+
+    var t = async_test()
+
+
+    function test() {
+      if(!window.include6Loaded) {
+            return setTimeout(t.step_func(test),200);
+      }
+      assert_array_equals(eventOrder, ['calling document.write', 'inline script #1', 'inline script #2', 'calling document.close', 'external script (#foo found? YES)']);
+      t.done();
+}
+
+    onload = t.step_func(test)
+  </script>
+</head>
+
+</body>
+</html>

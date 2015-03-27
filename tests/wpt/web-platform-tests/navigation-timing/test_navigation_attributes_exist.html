@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>window.performance.navigation attributes</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="resources/webperftestharness.js"></script>
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates that all of the window.performance.navigation attributes exist (but does not validate that their values are correct).</p>
+
+        <div id="log"></div>
+
+        <script>
+        test_namespace('navigation');
+
+        test_attribute_exists('navigation', 'type');
+        test_attribute_exists('navigation', 'redirectCount');
+        </script>
+    </body>
+</html>

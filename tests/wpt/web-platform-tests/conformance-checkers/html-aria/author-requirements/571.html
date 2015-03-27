@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html><head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>In a &lt;div&gt; element with role="combobox" and aria-autocomplete="none", change values of the combobox by typing.</title>
+    <style type="text/css">
+      .hasFocus { border: 2px solid red; }
+    </style>
+    <script type="text/javascript">
+      var DEL = 8;
+      var BACK_SPACE = 72;
+      var comboInfo = {};
+      
+      function initComboInfo() {
+          comboInfo.comboBox = document.getElementById ('test');
+          comboInfo.textEntry = document.getElementById ('textEntry');
+          var active = document.getElementById (comboInfo.comboBox.getAttribute ('aria-activedescendant'));
+          comboInfo.options = active.parentElement.children;
+          return active;
+      }
+      
+      function matchOption(/* String */ entryVal) {
+          var theOption = null;
+          
+          // Check only if entryVal is not empty.
+          //
+          if (entryVal != null && entryVal.length != 0) {
+              for (var i = 0; i < comboInfo.options.length; i++) {
+                  var anOption = comboInfo.options[i];
+                  var optionText = anOption.innerHTML.toLowerCase();
+                  if (optionText.indexOf (entryVal) == 0) {
+                      theOption = anOption;
+                      break;
+                  }
+              }
+          }
+          return theOption;
+      }
+      
+      function updateActive (/* Element */ newActive) {
+          var oldActive = document.getElementById (comboInfo.comboBox.getAttribute ('aria-activedescendant'));
+          if (oldActive != newActive) {
+              comboInfo.comboBox.setAttribute ('aria-activedescendant', newActive.getAttribute ('id'));
+              oldActive.removeAttribute ('class');
+              newActive.setAttribute ('class', 'hasFocus');
+          }
+      }
+      
+      function doOnload() {
+          var active = initComboInfo();
+          active.setAttribute ('class', 'hasFocus');
+          comboInfo.textEntry.value = active.innerHTML;
+          comboInfo.textEntry.focus();
+      }
+      
+    function handleTyping (event) {     
+          /* NOTE:  With respect to IE, assumes IE9 as per CR criteria (http://www.w3.org/WAI/ARIA/1.0/CR/implementation-report) */
+          /* NOTE:  Supports deletion only from the end of the text INPUT value */
+          var stringSoFar = event.target.value;
+          
+          if (event.which == DEL || event.which == BACK_SPACE)
+              stringSoFar = stringSoFar.slice(0, stringSoFar.length-1);
+          else
+              stringSoFar = stringSoFar + String.fromCharCode (event.which);
+
+          var matchedOption = matchOption (stringSoFar.toLowerCase());
+          if (matchedOption != null)
+              updateActive (matchedOption);
+      }
+      
+    </script>
+  </head>
+  <body onload="doOnload();">
+    <div id="test" role="combobox" aria-expanded="true" aria-label="Tag" aria-autocomplete="none" aria-activedescendant="o1">
+      <input id="textEntry" role="textbox" aria-owns="owned_listbox" onkeypress="handleTyping(event);" type="text">
+      <ul role="listbox" id="owned_listbox" style="list-style-type: none;">
+        <li role="option" id="o1">Zebra</li>
+        <li role="option" id="o2">Zoom</li>
+        <li role="option" id="o3">Zeta</li>
+        <li role="option" id="o4">Zaphod</li>
+        <li role="option" id="o5">Alpha</li>
+      </ul>
+    </div>
+  
+</body></html>

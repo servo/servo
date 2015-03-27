@@ -1,0 +1,48 @@
+<!doctype html>
+<title>Typed Array constructors</title>
+<link rel=author href=mailto:Ms2ger@gmail.com title=Ms2ger>
+<link rel=help href=https://www.khronos.org/registry/typedarray/specs/latest/#7>
+<link rel=help href=http://dev.w3.org/2006/webapi/WebIDL/#dfn-overload-resolution-algorithm>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<div id=log></div>
+<script>
+var args = [
+  /* numbers */
+  [NaN, 0], [+Infinity, 0], [-Infinity, 0], [+0, 0], [-0, 0], // Step 2
+  [-0.4, 0], [-0.9, 0], [1.1, 1], [2.9, 2], // Step 3
+  [1, 1], [-0xF1000000, 0xF000000], // Step 4
+  /* strings */
+  ["1", 1], ["1e2", 100],
+  /* null, undefined, booleans */
+  [undefined, 0], [null, 0], [false, 0], [true, 1],
+  /* objects */
+  [{}, 0], [{ length: 2, 0: 0, 1: 0 }, 0], [[0, 0], 2]
+];
+var interfaces = [
+  "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array",
+  "Int32Array", "Uint32Array", "Float32Array", "Float64Array"
+];
+
+test(function() {
+  interfaces.concat(["ArrayBuffer", "DataView"]).forEach(function(i) {
+    test(function() {
+      // XXX The spec is wrong here.
+      assert_throws(new TypeError(), function() {
+        new window[i]();
+      });
+    }, "Constructing interface " + i + " with no arguments should throw.");
+  });
+  interfaces.forEach(function(i) {
+    args.forEach(function(arg, j) {
+      var input = arg[0], expected = arg[1];
+      test(function() {
+        var ta = new window[i](input);
+        assert_equals(ta.length, expected);
+      }, "The argument " + format_value(input) + " (" + j + ") should be interpreted as " +
+         expected + " for interface " + i + ".");
+    });
+  });
+});
+</script>

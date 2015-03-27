@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+    <head>
+        <title>touch-action: mouse</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="pointerevent_support.js"></script>
+        <style>
+            #target0 {
+            width: 700px;
+            height: 430px;
+            touch-action: none;
+            }
+        </style>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events touch-action attribute support</h1>
+        <h4 id="desc">Test Description: Try to scroll text down using mouse (use mouse wheel or click on the scrollbar). Wait for description update.</h4>
+        <p>Note: this test is for mouse only</p>
+        <div id="target0">
+            <p>
+                Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                lobortis nisl ut aliquip ex ea commodo consequat.
+            </p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>
+                Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                lobortis nisl ut aliquip ex ea commodo consequat.
+            </p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>
+                Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                lobortis nisl ut aliquip ex ea commodo consequat.
+            </p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>
+                Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                lobortis nisl ut aliquip ex ea commodo consequat.
+            </p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+        </div>
+        <script type='text/javascript'>
+            var detected_pointertypes = {};
+
+            var xScrollIsReceived = false;
+            var yScrollIsReceived = false;
+            var xScr0, yScr0, xScr1, yScr1;
+
+            add_completion_callback(showPointerTypes);
+
+            function run() {
+                var target0 = document.getElementById("target0");
+
+                var test_touchaction = async_test("touch-action attribute test");
+
+                xScr0 = target0.scrollLeft;
+                yScr0 = target0.scrollTop;
+
+                on_event(target0, 'pointerdown', function(event) {
+                    detected_pointertypes[event.pointerType] = true;
+                });
+
+                on_event(target0, 'scroll', function(event) {
+                    xScr1 = target0.scrollLeft;
+                    yScr1 = target0.scrollTop;
+
+                    if(xScr1 != xScr0) {
+                        xScrollIsReceived = true;
+                    }
+
+                    if(yScr1 != yScr0) {
+                        test_touchaction.step(function () {
+                            yScrollIsReceived = true;
+                            assert_true(true, "y-scroll received.");
+                        });
+                        updateDescriptionNextStepMouse();
+                    }
+
+                    if(xScrollIsReceived && yScrollIsReceived) {
+                        test_touchaction.done();
+                        updateDescriptionComplete();
+                    }
+                });
+            }
+
+            function updateDescriptionNextStepMouse() {
+                document.getElementById('desc').innerHTML = "Test Description: Try to scroll text right using mouse (use mouse wheel or click on the scrollbar).";
+            }
+        </script>
+        <h1>touch-action: none</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

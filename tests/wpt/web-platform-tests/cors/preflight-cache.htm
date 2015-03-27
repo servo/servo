@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CORS - preflight cache</title>
+<meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/utils.js></script>
+<script src=support.js?pipe=sub></script>
+
+<h1>Preflight cache</h1>
+
+<div id=log></div>
+<script>
+
+/*
+ * Cache
+ */
+
+function did_preflight(expect, client, settings) {
+    var uuid_token = (settings && settings.token) || token();
+    if(!settings)
+        settings = {}
+
+    set = {
+        method: 'method' in settings ? settings.method : 'GET',
+        extra: 'extra' in settings ? '&' + settings.extra : ''
+    }
+
+    client.open(set.method,
+            CROSSDOMAIN + 'resources/preflight.py?token=' + uuid_token + set.extra,
+            false)
+    client.setRequestHeader('x-print', uuid_token)
+    client.send()
+
+    client.open('GET', 'resources/preflight.py?check&token=' + uuid_token, false)
+    client.send()
+    assert_equals(client.response, expect === true ? '1' : '0', "did preflight")
+    return uuid_token;
+}
+
+/*
+ * Should run preflight
+ */
+
+test(function() {
+    var time = new Date().getTime()
+    var client = new XMLHttpRequest()
+    did_preflight(true, client);
+},
+'Test preflight')
+
+test(function() {
+    var time = new Date().getTime()
+    var client = new XMLHttpRequest()
+
+    var id = did_preflight(true,  client)
+    did_preflight(false, client, {token: id})
+},
+'preflight for x-print should be cached')
+
+test(function() {
+    var time = new Date().getTime()
+    var client = new XMLHttpRequest()
+
+    var id = did_preflight(true, client, {extra:'max_age=0'})
+    did_preflight(true, client, {extra:'max_age=0', token: id})
+},
+'age = 0, should not be cached')
+
+test(function() {
+    var time = new Date().getTime()
+    var client = new XMLHttpRequest()
+
+    var id = did_preflight(true, client, {extra:'max_age=-1'})
+    did_preflight(true, client, {extra:'max_age=-1', token: id})
+},
+'age = -1, should not be cached');
+
+(function() {
+    var test = async_test("preflight first request, second from cache, wait, third should preflight again", { timeout: 6000 }),
+        time = new Date().getTime(),
+        dothing = function (url, msg, set_request, func) {
+            client = new XMLHttpRequest(),
+            client.open('GET', url, true)
+            if (set_request)
+                client.setRequestHeader('x-print', msg)
+            client.onload = test.step_func(function() {
+                assert_equals(client.response, msg, "response " + url)
+                if (func)
+                    test.step(func)
+            })
+            client.onerror = test.step_func(function(e) {
+                assert_unreached("Got unexpected error event on the XHR object")
+            })
+            client.send()
+        }
+
+    var token1 = token();
+    test.step(function() {
+        /* First cycle, gets x-print into the cache, with timeout 1 */
+        var request_url = CROSSDOMAIN + 'resources/preflight.py?max_age=1&token=' + token1;
+        dothing(request_url,
+        'first', true, function() {
+            test = test;
+
+            /* Check if we did a preflight like we expected */
+            dothing('resources/preflight.py?check&1&token=' + token1,
+            '1', false, function() {
+                test = test;
+                dothing(request_url,
+                'second', true, function() {
+                    test = test;
+
+                    /* Check that we didn't do a preflight (hasn't gone 1 second yet) */
+                    dothing('resources/preflight.py?check&2&token=' + token1,
+                    '0', false, function() {
+                        test = test;
+
+                        /* Wait until the preflight cache age is old (and thus cleared) */
+                        setTimeout(test.step_func(function(){
+                            dothing(request_url,
+                            'third', true, function() {
+                                test = test;
+
+                                /* Expect that we did indeed do a preflight */
+                                dothing('resources/preflight.py?check&3&token=' + token1,
+                                '1', false, function() {
+                                    test.done()
+                                })
+                            })
+                        }), 1500)
+                    })
+                })
+            })
+        })
+    })
+})();
+
+</script>

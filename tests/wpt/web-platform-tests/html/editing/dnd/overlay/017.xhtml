@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Adding element to datastore during drag and drop of PNG image</title>
+<style type="text/css">
+span
+	{color:green;
+	background-color:yellow;}
+img
+	{height:100px;
+	width:100px;}
+</style>
+<script type="application/ecmascript">
+function start(event)
+	{event.dataTransfer.effectAllowed = 'copy';
+	event.dataTransfer.addElement(document.querySelector('span'));}
+</script>
+</head>
+<body>
+<p ondragstart="start(event)">
+	<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEElEQVR42mNgaGD4D8YwBgAw9AX9Y9zBwwAAAABJRU5ErkJggg==" alt="PNG green pixel"/>
+</p>
+<p>Try to drag green box above. You should see word <span>PASS</span> in feedback overlay.</p>
+</body>
+</html>

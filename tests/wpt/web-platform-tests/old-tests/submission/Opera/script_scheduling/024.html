@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html><head>
+	<title> scheduler: DOM added script, .src set twice</title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+	<script>log('inline script #1');
+		var script = testlib.addScript('', { }, document.getElementsByTagName('body')[0], false);
+		script.src='scripts/include-1.js';
+		log('end script #1');
+	</script>
+
+	<script type="text/javascript">
+	log( 'inline script #2' );
+	var t = async_test()
+
+	function test() {
+		assert_any(assert_array_equals, eventOrder, [['inline script #1', 'end script #1', 'external script #1', 'inline script #2'],
+                                                             ['inline script #1', 'end script #1', 'inline script #2', 'external script #1']]);
+		t.done();
+        }
+	onload = t.step_func(function(){
+		script.src='scripts/include-2.js'; // needs to be ignored, script already "is executed"
+		setTimeout(t.step_func(test), 100);
+	})
+	</script>
+
+</body></html>

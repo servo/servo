@@ -1,0 +1,30 @@
+<!--
+onconnect = function(e) {
+  var unexpected = 'AbstractView AbstractWorker Location Navigator DOMImplementation Audio HTMLCanvasElement MouseEvent'.split(' ');
+  var log = [];
+  for (var i = 0; i < unexpected.length; ++i) {
+    if (unexpected[i] in self)
+      log.push(unexpected[i]);
+  }
+  e.ports[0].postMessage(log.join(', '));
+}
+/*
+-->
+<!doctype html>
+<title>unavailable interface objects in shared worker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  var worker = new SharedWorker('#');
+  worker.port.onmessage = this.step_func(function(e) {
+    assert_equals(e.data, '', 'these interface objects were not expected');
+    this.done();
+  });
+});
+</script>
+<!--
+*/
+//-->
+

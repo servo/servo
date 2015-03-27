@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: loadend event</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onloadend" data-tested-assertations="/../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#event-xhr-loadend" data-tested-assertations="/../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#infrastructure-for-the-send()-method" data-tested-assertations="/following-sibling::ol/li[10]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#infrastructure-for-the-send()-method" data-tested-assertations="following::a[contains(@href,'#switch-done')]/.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#switch-done" data-tested-assertations="following::ol[1]/li[7]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test();
+      test.step(function() {
+        var client = new XMLHttpRequest();
+        client.onloadend = test.step_func(function(e) {
+         assert_true(e instanceof ProgressEvent);
+         assert_equals(e.type, "loadend");
+         test.done();
+        });
+        client.onreadystatechange = function() {
+          if (client.readyState !== 4) return;
+          setTimeout(test.step_func(function() {
+            assert_unreached("onloadend not called after 100 ms");
+          }), 100);
+        };
+        client.open("GET", "resources/well-formed.xml");
+        client.send(null);
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>window.performance User Timing clearMeasures() method is working properly</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/user-timing/#dom-performance-clearmeasures"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="resources/webperftestharness.js"></script>
+
+    <script type="text/javascript">
+        // test measures
+        var measureName1 = "measure1";
+        var measureName2 = "measure2";
+        var measureName3 = "measureUndefined";
+        var measureTestDelay = 200;
+        var measureEntryNames;
+        var entries;
+
+        setup({explicit_done: true});
+
+        test_namespace();
+
+        function onload_test()
+        {
+            // test for existance of User Timing and Performance Timeline interface
+            if (window.performance.mark == undefined ||
+                window.performance.clearMarks == undefined ||
+                window.performance.measure == undefined ||
+                window.performance.clearMeasures == undefined ||
+                window.performance.getEntriesByName == undefined ||
+                window.performance.getEntriesByType == undefined ||
+                window.performance.getEntries == undefined)
+            {
+                test_true(false,
+                          "The User Timing and Performance Timeline interfaces, which are required for this test, " +
+                          "are defined.");
+
+                done();
+            }
+            else
+            {
+                // create measures using the test delay
+                setTimeout(measure_test_cb, measureTestDelay);
+            }
+        }
+
+        function measure_test_cb()
+        {
+            // create the test measures; only create "measure1" and "measure2", "measureUndefined" is a non-existent
+            // measure; give "measure1" a startMark of "navigationStart" and "measure2" a startMark of
+            // "responseEnd", this way, "measure1" always come first in a PerformanceEntryList returned from a
+            // Performance Timeline accessor
+            window.performance.measure(measureName1, "navigationStart");
+            window.performance.measure(measureName2, "responseEnd");
+
+            // test that two measures have been created
+            entries = window.performance.getEntriesByType("measure");
+            test_equals(entries.length, 2, "Two measures have been created for this test.");
+
+            // clear non-existent measure
+            window.performance.clearMeasures(measureName3);
+
+            // test that "measure1" still exists
+            entries = window.performance.getEntriesByName(measureName1);
+            test_true(entries[0].name == measureName1,
+                      "After a call to window.performance.clearMeasures(\"" + measureName3 + "\"), where \"" + measureName3 +
+                      "\" is a non-existent measure, window.performance.getEntriesByName(\"" + measureName1 + "\") " +
+                      "returns an object containing the \"" + measureName1 + "\" measure.");
+
+            // test that "measure2" still exists
+            entries = window.performance.getEntriesByName(measureName2);
+            test_true(entries[0].name == measureName2,
+                      "After a call to window.performance.clearMeasures(\"" + measureName3 + "\"), where \"" + measureName3 +
+                      "\" is a non-existent measure, window.performance.getEntriesByName(\"" + measureName2 + "\") " +
+                      "returns an object containing the \"" + measureName2 + "\" measure.");
+
+            // clear existent measure
+            window.performance.clearMeasures(measureName1);
+
+            // test that "measure1" was cleared
+            entries = window.performance.getEntriesByName(measureName1);
+            pass = true;
+            for (var i in entries)
+            {
+                pass = false;
+            }
+            test_true(pass,
+                      "After a call to window.performance.clearMeasures(\"" + measureName1 + "\"), " +
+                      "window.performance.getEntriesByName(\"" + measureName1 + "\") returns an empty object.");
+
+            // test that "measure2" still exists
+            entries = window.performance.getEntriesByName(measureName2);
+            test_true(entries[0].name == measureName2,
+                      "After a call to window.performance.clearMeasures(\"" + measureName1 + "\"), " +
+                      "window.performance.getEntriesByName(\"" + measureName2 + "\") returns an object containing the " +
+                      "\"" + measureName2 + "\" measure.");
+
+            // clear all measures
+            window.performance.clearMeasures();
+
+            // test that all measures were cleared
+            entries = window.performance.getEntriesByType("measure");
+            pass = true;
+            for (var i in entries)
+            {
+                pass = false;
+            }
+            test_true(pass,
+                      "After a call to window.performance.clearMeasures(), " +
+                      "window.performance.getEntriesByType(\"measure\") returns an empty object.");
+
+            done();
+        }
+    </script>
+    </head>
+    <body onload="onload_test();">
+        <h1>Description</h1>
+        <p>This test validates that the performance.clearMeasures() method is working properly. This test creates the
+           following measures to test this method:
+            <ul>
+                <li>"measure1"</li>
+                <li>"measure2"</li>
+            </ul>
+           After creating each measure, performance.clearMeasures() is called three times. First, it is provided with a
+           name of "measureUndefined", a non-existent measure, which shouldn't change the state of the Performance
+           Timeline. Next, it is provided with a name of "measure2", after which, this measure should no longer be
+           present in the Performance Timeline. Finally, performance.clearMeasures() is called without any name
+           provided. After this call, no measures should be present in the Performance Timeline. The state of the
+           Performance Timeline is tested with the performance.getEntriesByType() and performance.getEntries() methods.
+        </p>
+
+        <div id="log"></div>
+    </body>
+</html>

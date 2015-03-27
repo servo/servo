@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Removing image element during drag and drop of SVG image</title>
+<style type="text/css">
+div
+	{height:100px;
+	width:100px;
+	padding:20px;
+	background-color:silver;}
+</style>
+<script type="application/ecmascript">
+function addImage(event)
+	{var c = document.createElement('img');
+	c.setAttribute('src',event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''));
+	document.querySelector('div').appendChild(c);}
+</script>
+</head>
+<body>
+<p><img ondragstart="event.dataTransfer.effectAllowed = 'copy';document.querySelector('p').removeChild(document.querySelector('img'))" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20version%3D%221.1%22%20width%3D%22100px%22%20height%3D%22100px%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2250%22%20fill%3D%22green%22/%3E%3C/svg%3E" alt="SVG circle"/></p>
+<p>Drag green circle to the silver box below and drop it. It should be copied to the box once you drop it there.</p>
+<div ondragover="return false" ondrop="addImage(event)"/>
+</body>
+</html>

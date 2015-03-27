@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>HTML 5 Foreign Content SVG in HTML </title>
+        <meta description="Test to verify SVG Elements outside SVG namespace are camelCased" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />   
+        
+        <script type="text/javascript">
+        
+            function RunTest()
+            {
+                try
+                {
+                
+                    var parentNode = document.getElementById("div1");
+                            
+                    for(var i=0;i<parentNode.childNodes.length;i++)
+                    {
+                        var idName = parentNode.childNodes[i].id;
+                        var tagName = parentNode.childNodes[i].localName;
+                        if(idName==tagName)
+                        {
+                            document.getElementById("testresult").innerHTML = "FAIL";
+                            break;
+                        }
+                        else
+                        {
+                            document.getElementById("testresult").innerHTML = "PASS";
+                        }
+                    }
+                }
+                catch(ex)
+                {
+                    document.getElementById("testresult").innerHTML = "FAIL";   
+                }
+            }
+        </script>
+    </head>
+    
+    <body onload="RunTest()">
+
+        <div id="div1">
+            <AlTglYph id="altGlyph" />
+        </div> 
+        <p id="instructions"> Test passes if the word "PASS" appears below  </p>
+        <p> Test Result : </p>
+        <div id="testresult"> RUNNING </div>
+        
+        
+    </body>
+
+</html>
+

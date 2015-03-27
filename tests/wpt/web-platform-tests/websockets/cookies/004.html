@@ -1,0 +1,29 @@
+<!doctype html>
+<title>WebSockets: setting HttpOnly cookies in ws response, checking document.cookie</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+setup({explicit_done:true})
+var cookie_id = ((new Date())-0) + '.' + Math.random();
+
+var t = async_test(function(t) {
+  var iframe = document.createElement('iframe');
+  var url = SCHEME_DOMAIN_PORT+'/set-cookie_http?'+cookie_id;
+  var ws = new WebSocket(url);
+  ws.onopen = t.step_func(function(e) {
+    ws.close();
+    assert_false(new RegExp('ws_test_'+cookie_id+'=test').test(document.cookie));
+    t.done();
+  });
+  ws.onclose = t.step_func(function(e) {assert_unreached()});
+
+
+  add_result_callback(function() {
+    iframe.src = 'support/set-cookie.py?'+encodeURIComponent('ws_test_'+cookie_id+'=; Path=/; HttpOnly; Expires=Sun, 06 Nov 1994 08:49:37 GMT');
+    iframe.onload = done;
+  });
+  document.body.appendChild(iframe);
+}, null, {timeout:9900})
+</script>

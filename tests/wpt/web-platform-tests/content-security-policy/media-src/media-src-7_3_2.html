@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Video track src attribute must match src list - negative test</title>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <h1>Video track src attribute must match src list - negative test</h1>
+    <div id='log'></div>
+
+  <script>
+    var source_test = async_test("Disallowed track element");
+
+      var trackURL = location.protocol +
+        "//www." +
+        location.hostname +
+        ":" +
+        location.port +
+        "/media/foo.vtt";
+
+    function media_loaded(t) {
+     t.step( function () {
+          assert_unreached("Disllowed track source loaded.");
+      });
+      t.done();
+    }
+
+    function media_error_handler(t) {
+      t.done();
+    }
+  </script>
+
+    <video id="videoObject" width="320" height="240" controls
+           onloadeddata="media_loaded(source_test)" crossorigin>
+        <source id="audioSourceObject"
+                type="audio/mpeg"
+                src="/media/white.mp4">
+        <track id="trackObject"
+               kind="subtitles"
+               srclang="en"
+               label="English"
+               onerror="media_error_handler(source_test)">
+    </video>
+    <script>
+        document.getElementById("trackObject").src = trackURL;
+    </script>
+
+  <script async defer src="../support/checkReport.sub.js?reportField=violated-directive&reportValue=media-src%20%27self%27">
+  </script>
+
+</body>
+</html>

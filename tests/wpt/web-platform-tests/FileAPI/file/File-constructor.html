@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>File constructor</title>
+<link rel=help href="http://dev.w3.org/2006/webapi/FileAPI/#dfn-file">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  assert_true("File" in window, "window should have a File property.");
+}, "File interface object exists");
+
+function test_first_argument(arg1, expectedSize, testName) {
+  test(function() {
+    var file = new File(arg1, "dummy");
+    assert_true(file instanceof File);
+    assert_equals(file.name, "dummy");
+    assert_equals(file.size, expectedSize);
+    assert_equals(file.type, "");
+    // assert_false(file.isClosed); XXX: File.isClosed doesn't seem to be implemented
+    assert_not_equals(file.lastModified, "");
+  }, testName);
+}
+
+test_first_argument(["bits"], 4, "DOMString fileBits");
+test_first_argument(["𝓽𝓮𝔁𝓽"], 16, "Unicode DOMString fileBits");
+test_first_argument([new Blob()], 0, "Empty Blob fileBits");
+test_first_argument([new Blob(["bits"])], 4, "Blob fileBits");
+test_first_argument([new ArrayBuffer(8)], 8, "ArrayBuffer fileBits");
+test_first_argument([new Uint8Array([0x50, 0x41, 0x53, 0x53])], 4, "Typed array fileBits");
+test_first_argument(["bits", new Blob(["bits"]), new Blob(), new Uint8Array([0x50, 0x41]),
+                     new Uint16Array([0x5353]), new Uint32Array([0x53534150])], 16, "Various fileBits");
+
+function test_second_argument(arg2, expectedFileName, testName) {
+  test(function() {
+    var file = new File(["bits"], arg2);
+    assert_true(file instanceof File);
+    assert_equals(file.name, expectedFileName);
+  }, testName);
+}
+
+test_second_argument("dummy", "dummy", "Using fileName");
+test_second_argument("dummy/foo", "dummy:foo", "Using special character in fileName");
+
+// testing the third argument
+test(function() {
+  var file = new File(["bits"], "dummy", { type: "text/plain"});
+  assert_true(file instanceof File);
+  assert_equals(file.type, "text/plain");
+}, "Using type on the File constructor");
+test(function() {
+  var file = new File(["bits"], "dummy", { type: "TEXT/PLAIN"});
+  assert_true(file instanceof File);
+  assert_equals(file.type, "text/plain");
+}, "Using uppercase characters in type");
+test(function() {
+  var file = new File(["bits"], "dummy", { type: "𝓽𝓮𝔁𝓽/𝔭𝔩𝔞𝔦𝔫"});
+  assert_true(file instanceof File);
+  assert_equals(file.type, "");
+}, "Using illegal character for type");
+test(function() {
+  var file = new File(["bits"], "dummy", { lastModified: 42 });
+  assert_true(file instanceof File);
+  assert_equals(file.lastModified, 42);
+}, "Using lastModified");
+test(function() {
+  var file = new File(["bits"], "dummy", { name: "foo" });
+  assert_true(file instanceof File);
+  assert_equals(file.name, "dummy");
+}, "Misusing name");
+
+</script>

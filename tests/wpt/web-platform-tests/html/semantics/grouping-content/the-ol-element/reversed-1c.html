@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<ol id="x" reversed>
+  <li>Three</li>
+  <li>Two</li>
+</ol>
+<script>
+  var l = document.getElementById("x");
+  var w = l.offsetWidth;
+  var li = document.createElement("li");
+  li.textContent = "One"
+  l.appendChild(li);
+</script>

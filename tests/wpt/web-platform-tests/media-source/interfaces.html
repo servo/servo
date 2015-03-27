@@ -1,0 +1,145 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Media Source Extensions IDL tests</title>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+<script type=text/plain class=untested>
+interface EventTarget {
+  void addEventListener(DOMString type, EventListener? callback, optional boolean capture /* = false */);
+  void removeEventListener(DOMString type, EventListener? callback, optional boolean capture /* = false */);
+  boolean dispatchEvent(Event event);
+};
+interface URL {};
+interface HTMLVideoElement {};
+interface AudioTrack {};
+interface VideoTrack {};
+interface TextTrack {};
+interface TimeRanges {};
+typedef double DOMHighResTimeStamp;
+</script>
+<script type=text/plain>
+[Constructor]
+interface MediaSource : EventTarget {
+    readonly    attribute SourceBufferList    sourceBuffers;
+    readonly    attribute SourceBufferList    activeSourceBuffers;
+    readonly    attribute ReadyState          readyState;
+                attribute unrestricted double duration;
+    SourceBuffer   addSourceBuffer (DOMString type);
+    void           removeSourceBuffer (SourceBuffer sourceBuffer);
+    void           endOfStream (optional EndOfStreamError error);
+    static boolean isTypeSupported (DOMString type);
+};
+
+interface SourceBuffer : EventTarget {
+                attribute AppendMode          mode;
+    readonly    attribute boolean             updating;
+    readonly    attribute TimeRanges          buffered;
+                attribute double              timestampOffset;
+    readonly    attribute AudioTrackList      audioTracks;
+    readonly    attribute VideoTrackList      videoTracks;
+    readonly    attribute TextTrackList       textTracks;
+                attribute double              appendWindowStart;
+                attribute unrestricted double appendWindowEnd;
+    void appendBuffer (ArrayBuffer data);
+    void appendBuffer (ArrayBufferView data);
+    void appendStream (Stream stream, [EnforceRange] optional unsigned long long maxSize);
+    void abort ();
+    void remove (double start, double end);
+};
+
+interface SourceBufferList : EventTarget {
+    readonly    attribute unsigned long length;
+    getter SourceBuffer (unsigned long index);
+};
+
+interface VideoPlaybackQuality {
+    readonly    attribute DOMHighResTimeStamp creationTime;
+    readonly    attribute unsigned long       totalVideoFrames;
+    readonly    attribute unsigned long       droppedVideoFrames;
+    readonly    attribute unsigned long       corruptedVideoFrames;
+    readonly    attribute double              totalFrameDelay;
+};
+
+partial interface URL {
+    static DOMString createObjectURL (MediaSource mediaSource);
+};
+
+partial interface HTMLVideoElement {
+    VideoPlaybackQuality getVideoPlaybackQuality ();
+};
+
+partial interface AudioTrack {
+                attribute DOMString     kind;
+                attribute DOMString     language;
+    readonly    attribute SourceBuffer? sourceBuffer;
+};
+
+partial interface VideoTrack {
+                attribute DOMString     kind;
+                attribute DOMString     language;
+    readonly    attribute SourceBuffer? sourceBuffer;
+};
+
+partial interface TextTrack {
+                attribute DOMString     kind;
+                attribute DOMString     language;
+    readonly    attribute SourceBuffer? sourceBuffer;
+};
+
+enum EndOfStreamError {
+    "network",
+    "decode"
+};
+enum AppendMode {
+    "segments",
+    "sequence"
+};
+
+enum ReadyState {
+    "closed",
+    "open",
+    "ended"
+};
+
+</script>
+<script>
+"use strict";
+var mediaSource;
+var sourceBuffer;
+var video = document.createElement("video");
+var idlCheck = function() {
+  var idlArray = new IdlArray();
+  [].forEach.call(document.querySelectorAll("script[type=text\\/plain]"), function(node) {
+    if (node.className == "untested") {
+      idlArray.add_untested_idls(node.textContent);
+    } else {
+      idlArray.add_idls(node.textContent);
+    }
+  });
+  idlArray.add_objects({
+    MediaSource: ['mediaSource'],
+    SourceBuffer: ['sourceBuffer'],
+    SourceBufferList: ['mediaSource.sourceBuffers'],
+    VideoPlaybackQuality: ['video.getVideoPlaybackQuality()'],
+  });
+  idlArray.test();
+}
+mediaSource = new MediaSource();
+video.src = URL.createObjectURL(mediaSource);
+mediaSource.addEventListener("sourceopen", function () {
+  var defaultType ='video/webm;codecs="vp8,vorbis"';
+  if (video.canPlayType(defaultType)) {
+    sourceBuffer = mediaSource.addSourceBuffer(defaultType);
+  } else {
+    sourceBuffer = mediaSource.addSourceBuffer('video/mp4');
+  }
+  sourceBuffer.addEventListener("updateend", function (e) {
+    mediaSource.endOfStream();
+    idlCheck();
+  });
+  sourceBuffer.appendBuffer(new ArrayBuffer());
+});
+</script>

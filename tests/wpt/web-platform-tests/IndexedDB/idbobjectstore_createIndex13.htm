@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBDatabase.createIndex() - Operate out versionchange throw InvalidStateError </title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#widl-IDBObjectStore-createIndex-IDBIndex-DOMString-name-DOMString-sequence-DOMString--keyPath-IDBIndexParameters-optionalParameters">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+<div id="log"></div>
+<script>
+    var db,
+        t = async_test();
+
+    var open_rq = createdb(t);
+    open_rq.onupgradeneeded = function (event) {
+        db = event.target.result;
+        db.createObjectStore("store");
+    }
+
+    open_rq.onsuccess = function (event) {
+        var txn = db.transaction("store", "readwrite");
+        ostore = txn.objectStore("store");
+        t.step(function(){
+            assert_throws("InvalidStateError", function(){
+                ostore.createIndex("index", "indexedProperty");
+            });
+        });
+        t.done();
+    }
+</script>
+

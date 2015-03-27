@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head>
+    <title>requestAnimationFrame must be triggered once</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://w3c.github.io/web-performance/specs/RequestAnimationFrame/Overview.html#dom-windowanimationtiming-requestanimationframe"/>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      async_test(function (t) {
+        t.step(function() {
+          assert_false(document.hidden, "document.hidden must be exist and be false to run this test properly");
+        });
+        window.requestAnimationFrame(function () {
+          t.step(function() { assert_true(true); t.done(); });
+        });
+      }, "requestAnimationFrame callback is invoked at least once before the timeout");
+    </script>
+  </body>
+</html>

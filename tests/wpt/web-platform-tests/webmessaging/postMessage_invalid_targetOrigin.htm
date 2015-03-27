@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> postMessage with invalid targetOrigin raises SyntaxError exception </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<div style="display:none">
+    <iframe width="70%" onload="PostMessageTest()" src="./support/ChildWindowPostMessage.htm"></iframe>
+</div>
+
+<script>
+
+
+    var description = "Test Description: " +
+                      "If the value of the targetOrigin argument is neither a single U+002A ASTERISK character (*), " +
+                      "a single U+002F SOLIDUS character (/), nor an absolute URL, then throw a SyntaxError exception " +
+                      "and abort the overall set of steps.";
+
+    var DATA = "InvalidOrigin";
+    var TARGET = document.querySelector("iframe");
+
+    function PostMessageTest()
+    {
+        test(function()
+        {
+            assert_throws("SYNTAX_ERR", function()
+            {
+                TARGET.contentWindow.postMessage(DATA, DATA);
+            });
+        }, description);
+    }
+</script>
+</body>
+</html>

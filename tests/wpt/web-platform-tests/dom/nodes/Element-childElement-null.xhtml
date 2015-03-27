@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Null Test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<h1>Test of firstElementChild and lastChildElement returning null</h1>
+<div id="log"></div>
+<p id="parentEl" style="font-weight:bold;">Test.</p>
+<script><![CDATA[
+test(function() {
+  var parentEl = document.getElementById("parentEl")
+  assert_equals(parentEl.firstElementChild, null)
+  assert_equals(parentEl.lastElementChild, null)
+})
+]]></script>
+</body>
+</html>

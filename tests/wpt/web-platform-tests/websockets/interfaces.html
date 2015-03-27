@@ -1,0 +1,79 @@
+<!doctype html>
+<title>Web Sockets IDL tests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/webidl2/lib/webidl2.js></script>
+<script src=/resources/idlharness.js></script>
+
+<h1>Web Sockets IDL tests</h1>
+<div id=log></div>
+
+<script type=text/plain>
+enum BinaryType { "blob", "arraybuffer" };
+[Constructor(DOMString url, optional (DOMString or DOMString[]) protocols), Exposed=Window,Worker]
+interface WebSocket : EventTarget {
+  readonly attribute DOMString url;
+
+  // ready state
+  const unsigned short CONNECTING = 0;
+  const unsigned short OPEN = 1;
+  const unsigned short CLOSING = 2;
+  const unsigned short CLOSED = 3;
+  readonly attribute unsigned short readyState;
+  readonly attribute unsigned long bufferedAmount;
+
+  // networking
+           attribute EventHandler onopen;
+           attribute EventHandler onerror;
+           attribute EventHandler onclose;
+  readonly attribute DOMString extensions;
+  readonly attribute DOMString protocol;
+  void close([Clamp] optional unsigned short code, optional DOMString reason);
+
+  // messaging
+           attribute EventHandler onmessage;
+           attribute BinaryType binaryType;
+  void send(DOMString data);
+  void send(Blob data);
+  void send(ArrayBuffer data);
+  void send(ArrayBufferView data);
+};
+
+[Constructor(DOMString type, optional CloseEventInit eventInitDict), Exposed=Window,Worker]
+interface CloseEvent : Event {
+  readonly attribute boolean wasClean;
+  readonly attribute unsigned short code;
+  readonly attribute DOMString reason;
+};
+
+dictionary CloseEventInit : EventInit {
+  boolean wasClean;
+  unsigned short code;
+  DOMString reason;
+};
+
+[TreatNonCallableAsNull]
+callback EventHandlerNonNull = any (Event event);
+typedef EventHandlerNonNull? EventHandler;
+</script>
+<script>
+"use strict";
+var idlArray;
+setup(function() {
+    idlArray = new IdlArray();
+    [].forEach.call(document.querySelectorAll("script[type=text\\/plain]"), function(node) {
+        if (node.className == "untested") {
+            idlArray.add_untested_idls(node.textContent);
+        } else {
+            idlArray.add_idls(node.textContent);
+        }
+    });
+}, {explicit_done:true});
+window.onload = function() {
+    idlArray.add_objects({
+        WebSocket: ['new WebSocket("ws://foo")'],
+    });
+    idlArray.test();
+    done();
+};
+</script>

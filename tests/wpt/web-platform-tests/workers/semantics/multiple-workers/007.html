@@ -1,0 +1,39 @@
+<!--
+if (location.hash == '#1') {
+  onconnect = function(e) {
+    var port = e.ports[0];
+    var w2 = new Worker('#2');
+    w2.onmessage = function(e) {
+      port.postMessage('1'+e.data);
+    }
+  }
+} else if (location.hash == '#2') {
+  var w3 = new SharedWorker('#3');
+  w3.port.onmessage = function(e) {
+    postMessage('2'+e.data);
+  }
+} else {
+  onconnect = function(e) {
+    e.ports[0].postMessage('3');
+  }
+}
+
+/*
+-->
+<!doctype html>
+<title>shared worker in dedicated worker in shared worker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  var w1 = new SharedWorker('#1');
+  w1.port.onmessage = this.step_func(function(e) {
+    assert_equals(e.data, '123');
+    this.done();
+  });
+});
+</script>
+<!--
+*/
+//-->

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Element outside viewport</title>
+
+<style>
+  div { position: absolute }
+</style>
+
+<div>hidden</div>
+
+<script>
+  var el = document.getElementsByTagName("div")[0];
+  el.style.top = "-500px";
+  el.style.left = "-500px";
+</script>

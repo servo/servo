@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html><head>
+	<title> scheduler: defer adding iframe containing script</title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+        <script defer src="scripts/include-12.js"></script>
+	<script>
+          var t = async_test();
+
+          onload = t.step_func(function() {assert_array_equals(eventOrder, ["external script before adding object", "script in object"]); t.done();});
+        </script>
+</body>
+</html>

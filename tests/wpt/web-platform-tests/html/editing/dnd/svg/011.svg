@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.2" width="500px" height="500px" viewBox="0 0 500 500">
+<title>Drag and drop of SVG text selection from textpath to textArea</title>
+<defs>
+    <path id="path" d="M 10 40 C 10 20 480 20 480 40"/>
+</defs>
+<text fill="navy">
+	<textPath xlink:href="#path">Some selectable text rendered along curved text path</textPath>
+</text>
+<text x="10" y="60" font-size="20">Select part of text above and drag selection to</text>
+<text x="10" y="90" font-size="20">the box below. Content of selection should be</text>
+<text x="10" y="120" font-size="20">copies once it's dropped in the box.</text>
+<textArea x="10" y="130" width="480" height="360" font-size="20" editable="simple" pointer-events="boundingBox">Drop selection here</textArea>
+<rect x="10" y="130" width="480" height="360" stroke="black" stroke-width="1" fill="none"/>
+</svg>

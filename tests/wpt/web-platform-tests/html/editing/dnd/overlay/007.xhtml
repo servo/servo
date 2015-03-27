@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Adding element to datastore on dragover</title>
+<style type="text/css">
+span, strong
+	{color:green;
+	background-color:yellow;}
+strong
+	{color:red;}
+div
+	{width:100px;
+	height:100px;
+	background-color:silver;
+	margin-top:20px;}
+</style>
+<script type="application/ecmascript">
+function start(event)
+	{event.dataTransfer.effectAllowed = 'copy';
+	event.dataTransfer.addElement(document.querySelector('span'));}
+function resetImage(event)
+	{event.preventDefault()
+	event.dataTransfer.addElement(document.querySelector('strong'));}
+</script>
+</head>
+<body>
+<p><a href="data:text/plain,1" ondragstart="start(event)">Drag me</a></p>
+<p>Try to drag link above to the silver box. You should see word <span>PASS</span> not <strong>FAIL</strong> in feedback overlay all the time.</p>
+<div ondragenter="event.preventDefault()" ondragover="resetImage(event)"/>
+</body>
+</html>

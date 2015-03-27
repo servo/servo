@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: status error handling</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onerror" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-status-attribute" data-tested-assertations="/following::ol/li[3]" />  
+  </head>
+  <body>
+    <p>This shouldn't be tested inside a tunnel.</p>
+    <div id="log"></div>
+    <script>
+      function noError(method, code) {
+        var test = async_test(document.title + " " + method + " " + code)
+
+        test.step(function() {
+          var client = new XMLHttpRequest()
+          client.open(method, "resources/status.py?code=" + code, true)
+
+          client.onreadystatechange = test.step_func(function() {
+            assert_equals(client.response, "", "response data")
+            assert_equals(client.status, code, "response status")
+
+            if (client.readyState == client.DONE)
+              /* Give extra time for a bogus error event to pop up */
+              setTimeout(test.step_func(function() { test.done() } ), 100)
+          })
+          client.onerror = test.step_func(function() {
+            assert_unreached("HTTP error should not throw error event")
+          })
+          client.send()
+        })
+      }
+
+      noError('GET', 200)
+      noError('GET', 400)
+      noError('GET', 401)
+      noError('GET', 404)
+      noError('GET', 410)
+      noError('GET', 500)
+      noError('GET', 699)
+
+      noError('HEAD', 200)
+      noError('HEAD', 404)
+      noError('HEAD', 500)
+      noError('HEAD', 699)
+
+      noError('POST', 200)
+      noError('POST', 404)
+      noError('POST', 500)
+      noError('POST', 699)
+
+      noError('PUT', 200)
+      noError('PUT', 404)
+      noError('PUT', 500)
+      noError('PUT', 699)
+    </script>
+  </body>
+</html>

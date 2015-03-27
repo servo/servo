@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>HTML Test: bdo - text directionality formatting control for its children</title>
+    <link rel="author" title="Intel" href="http://www.intel.com/">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-bdo-element">
+    <link rel="match" href="bidi-001-ref.html">
+    <meta name="assert" content="Check if the bdo element represents explicit text directionality formatting control for its children.">
+  </head>
+  <body>
+    <p>Test passes if there is text 'WERBEH'.</p>
+    <bdo dir="rtl">
+      <span>HEBREW</span>
+    </bdo>
+  </body>
+</html>

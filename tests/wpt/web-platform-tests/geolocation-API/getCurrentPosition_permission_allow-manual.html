@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<meta charset='utf-8'>
+<title>User asked to approve/remember, then asked to revoke, then reload. The permission dialogue should reappear</title>
+<link rel='help' href='http://www.w3.org/TR/geolocation-API/#get-current-position'>
+
+<p>Clear all Geolocation permissions before running this test. If prompted for permission, please allow.</p>
+
+<div id='log'></div>
+
+<script>
+// Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00141
+var nextStep, onError, isUsingPreemptivePermission = false;
+
+nextStep = function() {
+  document.querySelector('p').innerHTML =
+      'Now revoke permissions for this origin (where applicable) and reload the page. Tests passes if there is a permission prompt again and no FAIL.';
+};
+
+onError = function(err) {
+  if (!isUsingPreemptivePermission && err.code === err.POSITION_UNAVAILABLE) {
+    nextStep();
+  } else {
+    document.getElementById('log').innerHTML = 'FAIL: an error callback was invoked unexpectedly: ' + err.message;
+  }
+};
+
+try {
+  window.navigator.geolocation.getCurrentPosition(nextStep, onError);
+} catch (e) {
+  document.getElementById('log').innerHTML = 'FAIL: an exception was thrown unexpectedly: ' + e.message;
+}
+</script>

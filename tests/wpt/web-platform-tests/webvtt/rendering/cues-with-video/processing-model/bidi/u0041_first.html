@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<title>WebVTT rendering, bidi U+0041 first</title>
+<link rel="match" href="u0041_first-ref.html">
+<!--
+0041..005A    ; L # L&  [26] LATIN CAPITAL LETTER A..LATIN CAPITAL LETTER Z
+http://www.unicode.org/Public/UNIDATA/extracted/DerivedBidiClass.txt
+-->
+<style>
+html { overflow:hidden }
+body { margin:0 }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="1280" height="720" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="../support/u0041_first.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</video>
+</html>

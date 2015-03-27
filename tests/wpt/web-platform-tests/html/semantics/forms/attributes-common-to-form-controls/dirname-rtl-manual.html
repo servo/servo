@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Submitting element directionality: the dirname attribute (rtl)</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#submitting-element-directionality:-the-dirname-attribute">
+<form action="dirname-rtl-manual.html" method=get>
+  <p><label>Comment: <input type=text name="comment" dirname="comment.dir" required></label></p>
+  <p><button type=submit>Post Comment</button></p>
+</form>
+<p>Switch to a right-to-left writing direction, enter a text in the input and submit the form.</p>
+<p>Test passes if the word "PASS" appears below</p>
+<script>
+  function getParameterByName(name) {
+    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+    results = regex.exec(location.search);
+    return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+  }
+
+  var commentDir = getParameterByName("comment.dir");
+  if (commentDir) {
+    var p = document.createElement("p");
+    p.textContent = (commentDir == "rtl") ? "PASS" : "FAIL";
+    document.body.appendChild(p);
+  }
+</script>

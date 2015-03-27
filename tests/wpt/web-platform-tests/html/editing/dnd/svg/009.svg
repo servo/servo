@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.2" width="500px" height="500px" viewBox="0 0 500 500">
+<title>Drag and drop of SVG text selection from tref element to editable text element</title>
+<defs>
+	<text id="text">Select me</text>
+ </defs>
+<text x="10" y="30" font-size="20" fill="navy"><tref xlink:href="#text"/></text>
+<text x="10" y="60" font-size="20">Select text above and drag selection to</text>
+<text x="10" y="90" font-size="20">the box below. Content of selection should be</text>
+<text x="10" y="120" font-size="20">copies once it's dropped in the box.</text>
+<text x="10" y="200" font-size="50" editable="simple">                             </text>
+<rect x="10" y="160" width="480" height="50" stroke="black" stroke-width="1" fill="none"/>
+</svg>

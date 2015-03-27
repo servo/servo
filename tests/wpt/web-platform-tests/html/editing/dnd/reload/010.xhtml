@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Reload during text input selection drag and drop from object</title>
+<style type="text/css">
+object
+	{height:100px;
+	width:300px;
+	border:solid medium navy;}
+</style>
+</head>
+<body dropzone="copy string:text/plain" ondrop="document.querySelector('p').firstChild.nodeValue = (event.dataTransfer.getData('text/plain') == 'Drag me')?'PASS':'FAIL'">
+<object type="application/xhtml+xml" data="010-1.xhtml">XHTML document</object>
+<p>Drag selection above out of frame and drop it somewhere on the page. You should see word PASS once you drop it.</p>
+</body>
+</html>

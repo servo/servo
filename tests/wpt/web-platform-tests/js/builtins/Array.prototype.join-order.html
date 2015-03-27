@@ -1,0 +1,86 @@
+<!doctype html>
+<title>Array.prototype.join</title>
+<link rel=author href=mailto:Ms2ger@gmail.com title=Ms2ger>
+<link rel=help href=http://es5.github.com/#x15.4.4.5>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<div id=log></div>
+<script>
+var test_error = { name: "test" };
+
+// Step 1.
+test(function() {
+  assert_throws(new TypeError(), function() {
+    [].join.call(null, {
+      toString: function() { assert_unreached(); }
+    });
+  });
+  assert_throws(new TypeError(), function() {
+    [].join.call(undefined, {
+      toString: function() { assert_unreached(); }
+    });
+  });
+}, "Array.prototype.join must call ToObject before looking at the separator argument.")
+
+var generateTest = function(throwing_getter, getter_name) {
+  var throwing_object = {};
+  var interfaces = [Boolean, Number];
+
+  var objects = interfaces.map(function(p) { return p.prototype; });
+  objects.push(throwing_object);
+  objects.forEach(function(object) {
+    Object.defineProperty(object, "length", {
+      get: throwing_getter,
+      configurable: true
+    });
+  });
+
+  [throwing_object, true, false, 0, 1, Math.PI].forEach(function(that) {
+    test(function() {
+      assert_throws(test_error, function() {
+        [].join.call(that, ",");
+      });
+    }, "Array.prototype.join must forward the exception from the this " +
+       "object's length property with this=" + format_value(that) + " and " +
+       "getter " + getter_name + ".")
+    test(function() {
+      assert_throws(test_error, function() {
+        [].join.call(that, {
+          toString: function() { assert_unreached(); }
+        });
+      });
+    }, "Array.prototype.join must get the this object's length property " +
+       "before looking at the separator argument with this=" +
+       format_value(that) + " and getter " + getter_name + ".")
+  });
+  interfaces.forEach(function(iface) {
+    delete iface.length;
+  });
+}
+
+// Step 2.
+test(function() {
+  generateTest(function() { throw test_error; }, "function");
+}, "Step 2.");
+
+// Step 3.
+test(function() {
+  generateTest(function() {
+    return {
+      valueOf: function() { throw test_error; }
+    };
+  }, "valueOf");
+  generateTest(function() {
+    return {
+      toString: function() { throw test_error; }
+    };
+  }, "toString");
+  generateTest(function() {
+    return {
+      valueOf: function() { throw test_error; },
+      toString: function() { assert_unreached("toString should not be invoked if valueOf exists"); }
+    };
+  }, "valueOf and toString");
+}, "Step 3.");
+</script>

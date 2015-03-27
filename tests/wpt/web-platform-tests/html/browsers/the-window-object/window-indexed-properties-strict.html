@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Indexed properties of the window object (strict mode)</title>
+<link rel="author" title="Ms2ger" href="ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#window">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-window-item">
+<link rel="help" href="https://heycam.github.io/webidl/#getownproperty">
+<link rel="help" href="https://heycam.github.io/webidl/#defineownproperty">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<iframe></iframe>
+<script>
+test(function() {
+  "use strict";
+  assert_false("-1" in window, "-1 not in window");
+  assert_equals(window[-1], undefined);
+  window[-1] = "foo";
+  assert_equals(window[-1], "foo");
+});
+test(function() {
+  "use strict";
+  assert_throws(new TypeError(), function() {
+    window[0] = "foo";
+  });
+  assert_equals(window[0],
+                document.getElementsByTagName("iframe")[0].contentWindow);
+});
+test(function() {
+  "use strict";
+  assert_throws(new TypeError(), function() {
+    window[1] = "foo";
+  });
+  assert_equals(window[1], undefined);
+});
+test(function() {
+  "use strict";
+  var proto = Window.prototype;
+  [-1, 0, 1].forEach(function(idx) {
+    assert_false(idx in proto, idx + " in proto");
+  });
+});
+</script>

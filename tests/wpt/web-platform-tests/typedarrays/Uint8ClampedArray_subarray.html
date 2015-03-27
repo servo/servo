@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Typed Arrays Test: Uint8ClampedArray subarray</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="http://www.khronos.org/registry/typedarray/specs/latest/#7.1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+
+test(function() {
+  var arr = new Uint8ClampedArray([1, 2, 3, 4, 5, 6, 7, 8]);
+
+  test(function() {
+    var subarr = arr.subarray(2);
+    assert_true(subarr instanceof Uint8ClampedArray, "Returns Uint8ClampedArray");
+    assert_equals(subarr.length, 6, "The length of subarray");
+    assert_equals(subarr[0], arr[2], "The value of subarray");
+  }, "Check if a new Uint8ClampedArray is returned for the Uint8ClampedArray, referencing the elements at begin");
+
+  test(function() {
+    var subarr = arr.subarray(2, 6);
+    assert_equals(subarr.length, 4, "The length of subarray");
+    assert_equals(subarr[0], arr[2], "The value of subarray");
+    assert_equals(subarr[3], arr[5], "The value of subarray");
+  }, "Check if a new Uint8ClampedArray is returned for the Uint8ClampedArray, referencing the elements at begin to end");
+
+  test(function() {
+    var subarr = arr.subarray(2, 10);
+    assert_equals(subarr.length, 6, "The length of subarray");
+    assert_equals(subarr[0], arr[2], "The value of subarray");
+    assert_equals(subarr[5], arr[7], "The value of subarray");
+  }, "Check if the subarray range specified by the begin and end values is clamped to the valid index range for the current array");
+
+  test(function() {
+    var subarr = arr.subarray(2, -2);
+    assert_equals(subarr.length, 4, "The length of subarray");
+    subarr = arr.subarray(-2, -1);
+    assert_equals(subarr.length, 1, "The length of subarray");
+  }, "Check if it refers to an index from the end of the array when either begin or end is negative");
+
+  test(function() {
+    var subarr = arr.subarray(4, 2);
+    assert_equals(subarr.length, 0, "The length of subarray");
+    subarr = arr.subarray(-1, -2);
+    assert_equals(subarr.length, 0, "The length of subarray");
+  }, "Check if the length is clamped to zero when the computed length of the new Uint8ClampedArray is negative");
+});
+
+</script>

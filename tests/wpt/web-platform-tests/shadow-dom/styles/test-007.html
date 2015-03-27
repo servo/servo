@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test: A_06_00_08</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#styles">
+<meta name="assert" content="Styles:The @host @-rule matches a shadow host in the nesting tree.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+// The some of the tests below fails.
+// See https://bugs.webkit.org/show_bug.cgi?id=103608
+
+
+
+//Test fails. See https://bugs.webkit.org/show_bug.cgi?id=103608
+test(unit(function (ctx) {
+	var d = newRenderedHTMLDocument(ctx);
+
+    d.head.innerHTML = ':host {display:none;}';
+
+    d.body.innerHTML =
+    	'<ul class="cls">' +
+    		'<li id="li1" class="shadow">1</li>' +
+    		'<li id="li2" class="shadow2">2</li>' +
+    		'<li id="li3" class="shadow">3</li>' +
+    		'<li id="li4">4</li>' +
+    		'<li id="li5" class="shadow">5</li>' +
+    		'<li id="li6" class="shadow2">6</li>' +
+    	'</ul>';
+
+    var host = d.querySelector('.cls');
+	//Shadow root to play with
+	var s = host.createShadowRoot();
+
+	var div = d.createElement('div');
+	div.innerHTML ='<ul><content select=".shadow"></content></ul>';
+	s.appendChild(div);
+
+	//:host rule shouldn't take any effect
+	assert_true(d.querySelector('#li1').offsetTop > 0,
+		'Point 1: element should be rendered');
+	assert_true(d.querySelector('#li3').offsetTop > 0,
+		'Point 2: element should be rendered');
+	assert_true(d.querySelector('#li5').offsetTop > 0,
+		'Point 3: element should be rendered');
+
+
+}), 'A_06_00_08_T01');
+
+//TODO (sgrekhov) Check the expected result at https://www.w3.org/Bugs/Public/show_bug.cgi?id=20150
+test(unit(function (ctx) {
+	var d = newRenderedHTMLDocument(ctx);
+
+    d.body.innerHTML =
+    	'<ul class="cls">' +
+    		'<li id="li1" class="shadow">1</li>' +
+    		'<li id="li2" class="shadow2">2</li>' +
+    		'<li id="li3" class="shadow">3</li>' +
+    		'<li id="li4">4</li>' +
+    		'<li id="li5" class="shadow">5</li>' +
+    		'<li id="li6" class="shadow2">6</li>' +
+    	'</ul>';
+
+    var host = d.querySelector('.cls');
+	//Shadow root to play with
+	var s = host.createShadowRoot();
+
+	var div = d.createElement('div');
+	div.innerHTML ='<ul><content select=".shadow"></content></ul>';
+	s.appendChild(div);
+
+	var style = d.createElement('style');
+    style.innerHTML = ':host ul {display:none;}';
+	s.appendChild(style);
+
+	assert_equals(d.querySelector('#li1').offsetTop, 0,
+		'Point 1: element should be rendered');
+	assert_equals(d.querySelector('#li3').offsetTop, 0,
+		'Point 2: element should be rendered');
+	assert_equals(d.querySelector('#li5').offsetTop, 0,
+		'Point 3: element should be rendered');
+
+
+}), 'A_06_00_08_T02');
+
+
+//Test fails. See https://bugs.webkit.org/show_bug.cgi?id=103608
+test(unit(function (ctx) {
+	var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    host.className = 'gone';
+    d.body.appendChild(host);
+
+	//Older tree
+	var s1 = host.createShadowRoot();
+	var div1 = d.createElement('div');
+	div1.innerHTML = '<span id="shd1">This is an old shadow tree</span>';
+	s1.appendChild(div1);
+
+	//Younger tree
+	var s2 = host.createShadowRoot();
+	var div1 = d.createElement('div');
+	div1.innerHTML = '<span id="shd2">This is a young shadow tree</span>' +
+		'<shadow><span id="shd3">This is the shadow tree fallback content</span></shadow>';
+	s2.appendChild(div1);
+
+	var style = d.createElement('style');
+    style.innerHTML = ':host {display:none;}';
+	s2.appendChild(style);
+
+	assert_equals(s1.querySelector('#shd1').offsetTop, 0,
+		'Point 1: element should not be rendered');
+
+
+}), 'A_06_00_08_T03');
+</script>
+</body>
+</html>

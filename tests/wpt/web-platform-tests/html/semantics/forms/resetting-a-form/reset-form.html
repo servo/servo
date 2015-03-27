@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: Resetting a form</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#concept-form-reset">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#category-reset">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<form name="fm1" style="display:none">
+  <input value="abc" id="ipt1" />
+  <input id="ipt2" />
+  <input type="radio" id="rd1" checked="checked" />
+  <input type="radio" id="rd2"/>
+  <input type="checkbox" id="cb1" checked="checked" />
+  <input type="checkbox" id="cb2" />
+  <textarea id="ta">abc</textarea>
+  <!--<keygen id="kg"></keygen>-->
+  <output id="opt">5</output>
+  <select id="slt1">
+    <option value="1">ITEM1</option>
+    <option value="2">ITEM2</option>
+  </select>
+  <select id="slt2">
+    <option value="1">ITEM1</option>
+    <option value="2" selected>ITEM2</option>
+  </select>
+  <select id="slt3" multiple>
+    <option value="1">ITEM1</option>
+    <option value="2" selected>ITEM2</option>
+    <option value="3" selected>ITEM3</option>
+  </select>
+  <button  id="rst1" type="reset">Reset1</button>
+  <input id="rst2" type="reset" value="Reset2" />
+</form>
+<script>
+
+runTest(function() {
+  document.forms.fm1.reset();
+}, "by calling the reset() method");
+
+runTest(function() {
+  document.getElementById("rst1").click();
+}, "by clicking the button in reset status");
+
+runTest(function() {
+  document.getElementById("rst2").click();
+}, "by clicking the input in reset status");
+
+function setPreconditions (arg) {
+  document.getElementById("ipt1").value = "123";
+  document.getElementById("ipt2").value = "123";
+  document.getElementById("rd1").checked = false;
+  document.getElementById("rd2").checked = true;
+  document.getElementById("cb1").checked = false;
+  document.getElementById("cb2").checked = true;
+  document.getElementById("ta").value = "123";
+  document.getElementById("opt").textContent = "abc";
+  document.getElementById("slt1").value = "2";
+  document.getElementById("slt2").value = "1";
+  document.getElementById("slt3").options[0].selected = true;
+  document.getElementById("slt3").options[1].selected = false;
+  document.getElementById("slt3").options[2].selected = false;
+
+  assert_equals(document.getElementById("ipt1").value, "123", "Precondition 1");
+  assert_equals(document.getElementById("ipt2").value, "123", "Precondition 2");
+  assert_false(document.getElementById("rd1").checked, "Precondition 3");
+  assert_true(document.getElementById("rd2").checked, "Precondition 4");
+  assert_false(document.getElementById("cb1").checked, "Precondition 5");
+  assert_true(document.getElementById("cb2").checked, "Precondition 6");
+  assert_equals(document.getElementById("ta").value, "123", "Precondition 17");
+  assert_equals(document.getElementById("opt").textContent, "abc", "Precondition 8");
+  assert_true(document.getElementById("slt1").options[1].selected, "Precondition 9");
+  assert_true(document.getElementById("slt2").options[0].selected, "Precondition 10");
+  assert_true(document.getElementById("slt3").options[0].selected, "Precondition 11");
+  assert_false(document.getElementById("slt3").options[1].selected, "Precondition 12");
+  assert_false(document.getElementById("slt3").options[2].selected, "Precondition 13");
+}
+
+function runTest(reset, description) {
+  test(function() {
+    setPreconditions("Setting preconditions for resetting " + description);
+    reset();
+    assert_equals(document.getElementById("ipt1").value, "abc", "The value of the input element in text status should be 'abc'.");
+    assert_equals(document.getElementById("ipt2").value, "", "The value of the input element in text status should be empty string.");
+    assert_true(document.getElementById("rd1").checked, "The checked attribute of the input element in radio should be true.");
+    assert_false(document.getElementById("rd2").checked, "The checked attribute of the input element in radio should be false.");
+    assert_true(document.getElementById("cb1").checked, "The checked attribute of the input element in checkbox should be true.");
+    assert_false(document.getElementById("cb2").checked, "The checked attribute of the input element in checkbox should be false.");
+    assert_equals(document.getElementById("ta").value, document.getElementById("ta").textContent, "The value attribute of the textarea element should be reset.");
+    assert_equals(document.getElementById("ta").value, "abc", "The value attribute of the textarea element should be 'abc'.");
+    assert_equals(document.getElementById("opt").textContent, document.getElementById("opt").defaultValue, "The textContent of the output element should be reset.");
+    assert_equals(document.getElementById("opt").textContent, "abc", "The textContent of the output element should be 'abc'.");
+    assert_true(document.getElementById("slt1").options[0].selected, "The first option in the select element should be selected.");
+    assert_false(document.getElementById("slt1").options[1].selected, "The second option in the select element should not be selected.");
+    assert_false(document.getElementById("slt2").options[0].selected, "The first option in the select element should not be selected.");
+    assert_true(document.getElementById("slt2").options[1].selected, "The second option in the select element should be selected.");
+    assert_false(document.getElementById("slt3").options[0].selected, "The first option in the select element with multiple attribute should not be selected.");
+    assert_true(document.getElementById("slt3").options[1].selected, "The second option in the select element with multiple attribute should be selected.");
+    assert_true(document.getElementById("slt3").options[2].selected, "The third option in the select element with multiple attribute should be selected.");
+    //TODO: The keygen reset algorithm
+  }, "Resetting the form " + description);
+}
+
+</script>

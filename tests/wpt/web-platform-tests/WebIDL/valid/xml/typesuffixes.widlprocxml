@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>interface Suffixes {
+  void test(sequence&lt;DOMString[]?>? foo);
+};</webidl>
+  <Interface name="Suffixes" id="::Suffixes">
+    <webidl>interface Suffixes {
+  void test(sequence&lt;DOMString[]?>? foo);
+};</webidl>
+    <Operation name="test" id="::Suffixes::test">
+      <webidl>  void test(sequence&lt;DOMString[]?>? foo);</webidl>
+      <Type type="void"/>
+      <ArgumentList>
+        <Argument name="foo">
+          <Type type="sequence" nullable="nullable">
+            <Type type="array" nullable="nullable">
+              <Type type="DOMString"/>
+            </Type>
+          </Type>
+        </Argument>
+      </ArgumentList>
+    </Operation>
+  </Interface>
+</Definitions>

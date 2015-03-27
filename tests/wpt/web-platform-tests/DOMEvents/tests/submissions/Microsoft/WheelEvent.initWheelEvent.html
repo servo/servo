@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title id='desc'> WheelEvent.initWheelEvent() and Event.trusted </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "foo";
+            var TARGET;
+
+            window.onload = function()
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+
+                    var evt = document.createEvent("WheelEvent");
+                    evt.initWheelEvent(EVENT,  /* type */
+                                       true,   /* bubbles */
+                                       true,   /* cancelable */
+                                       window, /* view */
+                                       0,      /* detail */
+                                       1,      /* screenX */
+                                       2,      /* screenY */
+                                       3,      /* clientX */
+                                       4,      /* clientY */
+                                       5,      /* button */
+                                       null,   /* relatedTarget */
+                                       "",     /* modifiers */
+                                       6,      /* deltaX*/
+                                       7,      /* deltaY */
+                                       8,      /* deltaZ*/
+                                       9       /* deltaMode */ );
+                    TARGET.dispatchEvent(evt);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+
+            }
+
+            function TestEvent(evt)
+            {
+                if ((EVENT == evt.type) && (false == evt.trusted))
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: initWheelEvent initializes attributes of a WheelEvent object.
+        </h4>
+
+        <input id="target" type="hidden" />
+        <p>Test passes if the word "PASS" appears below.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>isContentHandlerRegistered for new content type</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script type="application/ecmascript">
+test(function() {
+  assert_equals(navigator.isContentHandlerRegistered('application/x-notRegisteredInOtherTCs-001', location.href.replace(/\/[^\/]*$/, "") + '/%s'), 'new');
+});
+</script>
+</head>
+<body>
+<div id="log"></div>
+</body>
+</html>

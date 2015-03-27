@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title id='desc'> TextEvent: inputMode with DOM_INPUT_METHOD_SCRIPT </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "textInput";
+            var TARGET;
+
+            function TestEvent(evt)
+            {
+                TARGET.removeEventListener(EVENT, TestEvent, true);
+
+                if ((0x09 == evt.inputMode) && ("Hello World" == evt.data))
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+
+            window.onload = function()
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+                    TARGET.firstChild.data = "Hello World";
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: TextEvent.inputMode is DOM_INPUT_METHOD_SCRIPT (0x09)
+            when the text string was inserted via a script operation on the DOM.
+        </h4>
+
+        <span id="parent">
+            <div id="target" contenteditable="true" style="border:solid 1px green; width:200px; height:50px">
+            </div>
+        </span>
+        <p>Test passes if the word "PASS" appears below.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

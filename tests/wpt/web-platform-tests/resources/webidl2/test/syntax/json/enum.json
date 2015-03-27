@@ -1,0 +1,105 @@
+[
+    {
+        "type": "enum",
+        "name": "MealType",
+        "values": [
+            "rice",
+            "noodles",
+            "other"
+        ],
+        "extAttrs": []
+    },
+    {
+        "type": "interface",
+        "name": "Meal",
+        "partial": false,
+        "members": [
+            {
+                "type": "attribute",
+                "static": false,
+                "stringifier": false,
+                "inherit": false,
+                "readonly": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "MealType"
+                },
+                "name": "type",
+                "extAttrs": []
+            },
+            {
+                "type": "attribute",
+                "static": false,
+                "stringifier": false,
+                "inherit": false,
+                "readonly": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "float"
+                },
+                "name": "size",
+                "extAttrs": []
+            },
+            {
+                "type": "operation",
+                "getter": false,
+                "setter": false,
+                "creator": false,
+                "deleter": false,
+                "legacycaller": false,
+                "static": false,
+                "stringifier": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "void"
+                },
+                "name": "initialize",
+                "arguments": [
+                    {
+                        "optional": false,
+                        "variadic": false,
+                        "extAttrs": [],
+                        "idlType": {
+                            "sequence": false,
+                            "generic": null,
+                            "nullable": false,
+                            "array": false,
+                            "union": false,
+                            "idlType": "MealType"
+                        },
+                        "name": "type"
+                    },
+                    {
+                        "optional": false,
+                        "variadic": false,
+                        "extAttrs": [],
+                        "idlType": {
+                            "sequence": false,
+                            "generic": null,
+                            "nullable": false,
+                            "array": false,
+                            "union": false,
+                            "idlType": "float"
+                        },
+                        "name": "size"
+                    }
+                ],
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    }
+]

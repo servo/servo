@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Basic CORS</title>
+<meta name=help href=http://dvcs.w3.org/hg/cors/raw-file/tip/Overview.html#simple-cross-origin-request-0>
+<meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+<div id=log></div>
+
+<script>
+
+var counter = 0;
+
+function cors(desc, scheme, subdomain, port) {
+    if (!scheme) {
+        var url = "";
+    } else {
+        if (!port) {
+            port = location.port;
+        }
+        var url = scheme + "://" + (subdomain ? subdomain + "." : "") + location.hostname + ":" + port + dirname(location.pathname)
+    }
+    async_test(desc).step(function() {
+        var client = new XMLHttpRequest();
+        this.count = counter++;
+
+        client.open("GET", url + "resources/cors-makeheader.py?get_value=hest_er_best&origin=none&" + this.count);
+
+        client.onreadystatechange = this.step_func(function(e) {
+            // First request, test that it fails with no origin
+            if (client.readyState < 4) return;
+            if (!url)
+                assert_true(client.response.indexOf("hest_er_best") != -1, "Got response");
+            else
+                assert_false(!!client.response, "Got CORS-disallowed response");
+
+            client = new XMLHttpRequest();
+            client.open("GET", url + "resources/cors-makeheader.py?get_value=hest_er_best&" + this.count);
+            client.onreadystatechange = this.step_func(function(e) {
+                // Second request, test that it passes with the allowed-origin
+                if (client.readyState < 4) return;
+                assert_true(client.response.indexOf("hest_er_best") != -1, "Got CORS-allowed response");
+                this.done();
+            });
+            client.send();
+        });
+        client.send();
+    });
+}
+
+cors("Same domain basic usage");
+cors("Cross domain basic usage", "http", "www1");
+cors("Same domain different port", "http", undefined, PORT);
+
+cors("Cross domain different port", "http", "www1", PORT);
+
+cors("Cross domain different protocol", "https", "www1", PORTS);
+
+cors("Same domain different protocol different port", "https", undefined, PORTS);
+
+</script>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>User Timing IDL tests</title>
+<link rel="author" title="W3C" href="http://www.w3.org/" />
+<link rel="help" href="http://www.w3.org/TR/user-timing/#extensions-performance-interface"/>
+<link rel="help" href="http://www.w3.org/TR/user-timing/#performancemark"/>
+<link rel="help" href="http://www.w3.org/TR/user-timing/#performancemeasure"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+</head>
+<body>
+<h1>User Timing IDL tests</h1>
+<div id="log"></div>
+
+<pre id='untested_idl' style='display:none'>
+interface Performance {
+};
+
+interface PerformanceEntry {
+};
+</pre>
+
+<pre id='idl'>
+partial interface Performance {
+    void mark(DOMString markName);
+    void clearMarks(optional  DOMString markName);
+
+    void measure(DOMString measureName, optional DOMString startMark, optional DOMString endMark);
+    void clearMeasures(optional DOMString measureName);
+};
+
+interface PerformanceMark : PerformanceEntry {
+};
+
+interface PerformanceMeasure : PerformanceEntry {
+};
+
+</pre>
+
+<script>
+
+(function() {
+  var idl_array = new IdlArray();
+
+  idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
+  idl_array.add_idls(document.getElementById("idl").textContent);
+
+  idl_array.add_objects({Performance: ["window.performance"]});
+
+  idl_array.test();
+})();
+
+</script>
+</body>
+</html>

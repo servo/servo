@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<title>WebVTT rendering, cue with ID, ::cue(#foo) selector</title>
+<link rel="match" href="id_color-ref.html">
+<style>
+html { overflow:hidden }
+body { margin:0 }
+::cue(#foo) {
+    font-family: Ahem, sans-serif;
+    color: #00ff00;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="1280" height="720" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="../../support/cue_with_id.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</video>
+</html>

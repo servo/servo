@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html><head>
+	<title> scheduler: javascript: URL in HREF, onclick handler</title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+        <p><a href="javascript:log('JS URL')" onclick="log('click event');return true;"></a></p>
+	<script>log('inline script #1');
+		if(document.links[0].click){
+			document.links[0].click();
+		}else{
+			var evt = document.createEvent("MouseEvents");
+			evt.initMouseEvent("click", true, true, window,
+			0, 0, 0, 0, 0, false, false, false, false, 0, null);
+			document.links[0].dispatchEvent(evt);
+		}
+		log('end script #1');
+	</script>
+
+	<script type="text/javascript">
+	log( 'inline script #2' );
+	var t = async_test()
+
+        var w = window;
+	onload = function() {setTimeout(
+          t.step_func(function() {
+            w.assert_any(w.assert_array_equals, w.eventOrder,
+                      [['inline script #1', 'click event', 'end script #1', 'JS URL', 'inline script #2'],
+                       ['inline script #1', 'click event', 'end script #1', 'inline script #2',  'JS URL']]);
+            t.done();
+          }), 200);
+        }
+	</script>
+
+</body></html>

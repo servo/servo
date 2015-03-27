@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<!--
+Test from https://bugzilla.mozilla.org/show_bug.cgi?id=819051
+-->
+<head>
+  <title>XMLHttpRequest: setRequestHeader() and open()</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-open()-method" data-tested-assertations="following::OL[1]/LI[14]/ul[1]/li[4]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-setrequestheader()-method" data-tested-assertations="following::OL[1]/LI[6] following::ol[1]/li[7]" />
+</head>
+<body>
+    <p id="log"></p>
+<script type="text/javascript">
+var test = async_test();
+
+var url = "resources/inspect-headers.py";
+
+var xhr = new XMLHttpRequest();
+xhr.open("GET", url + "?filter_name=x-appended-to-this");
+xhr.setRequestHeader("X-appended-to-this", "False");
+xhr.open("GET", url + "?filter_name=x-appended-to-this");
+xhr.setRequestHeader("X-appended-to-this", "True");
+
+xhr.onreadystatechange = function() {
+    if (this.readyState == 4) {
+        test.step(function (){
+            assert_equals(xhr.responseText, "x-appended-to-this: True\n", "Set headers record should have been cleared by open.");
+            test_standard_header();
+        });
+    }
+}
+
+xhr.send();
+
+function test_standard_header () {
+    var header_tested = "Accept";
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", url + "?filter_name=accept");
+    xhr.setRequestHeader("Accept", "foo/bar");
+    xhr.open("GET", url + "?filter_name=accept");
+    xhr.setRequestHeader("Accept", "bar/foo");
+
+    xhr.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            test.step(function (){
+                assert_equals(xhr.responseText, "accept: bar/foo\n", "Set headers record should have been cleared by open.");
+                test.done();
+            });
+        }
+    }
+
+    xhr.send();
+}
+
+
+</script>
+</pre>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html><head>
+	<title> scheduler: multiple slow loading external scripts added with DOM (appendChild)</title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+	<div></div>
+	<script>
+          
+          log('inline script #1');
+    function scriptLoadListener(){
+      log( 'load on '+this.src.match( /include-\d\.js/ ) );
+    }
+		var script=testlib.addScript('', { src:'scripts/include-1.js?pipe=trickle(d1)&' + Math.random(), onload:scriptLoadListener }, document.getElementsByTagName('head')[0], false );
+		var script=testlib.addScript('', { src:'scripts/include-2.js?pipe=trickle(d3)&' + Math.random(), onload:scriptLoadListener }, document.getElementsByTagName('head')[0], false );
+		var script=testlib.addScript('', { src:'scripts/include-7.js?pipe=trickle(d2)&' + Math.random() , onload:scriptLoadListener }, document.getElementsByTagName('head')[0], false );
+		log('end script #1');
+	</script>
+	<script type="text/javascript">
+	log('inline script #2');
+	var t = async_test(undefined, {timeout:10000})
+
+	function test() {
+		assert_array_equals(eventOrder, ['inline script #1', 'end script #1', 'inline script #2', 'external script #1', 'load on include-1.js', 'external script #7', 'load on include-7.js', 'external script #2', 'load on include-2.js']);
+		t.done();
+        }
+	onload = function() {setTimeout(t.step_func(test), 12)};
+	</script>
+
+</body></html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+<title>MediaStream constructor algorithm</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#idl-def-MediaStream">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStream-id">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#mediastream">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#event-mediastream-ended">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStreamTrack-stop-void">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStreamTrack-clone-MediaStreamTrack">
+<link rel='stylesheet' href='/resources/testharness.css' media='all'/>
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your video and audio stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that the MediaStream constructor
+follows the algorithm set in the spec.</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"},{"ancestors":["window"], "name":"MediaStream"}]'></script>
+<script>
+var t = async_test("Tests that a MediaStream constructor follows the algorithm set in the spec", {timeout: 10000});
+t.step(function() {
+  navigator.getUserMedia({video: true, audio:true}, t.step_func(function (stream) {
+    var stream1 = new MediaStream();
+    assert_not_equals(stream.id, stream1.id, "Two different MediaStreams have different ids");
+    var stream2 = new MediaStream(stream);
+    assert_not_equals(stream.id, stream2.id, "A MediaStream constructed from another have different ids");
+    var audioTrack1 = stream.getAudioTracks()[0];
+    var videoTrack = stream.getVideoTracks()[0];
+    assert_equals(audioTrack1, stream2.getAudioTracks()[0], "A MediaStream constructed from another share the same audio track");
+    assert_equals(videoTrack, stream2.getVideoTracks()[0], "A MediaStream constructed from another share the same video track");
+    var stream4 = new MediaStream([audioTrack1]);
+    assert_equals(stream4.getTrackById(audioTrack1.id), audioTrack1, "a non-ended track gets added via the MediaStream constructor");
+
+    var audioTrack2 = audioTrack1.clone();
+    audioTrack2.addEventListener("ended", t.step_func(function () {
+      var stream3 = new MediaStream([audioTrack2, videoTrack]);
+      assert_equals(stream3.getTrackById(audioTrack2.id), null, "an ended track doesn't get added via the MediaStream constructor");
+      assert_equals(stream3.getTrackById(videoTrack.id), videoTrack, "a non-ended track gets added via the MediaStream constructor even if the previous track was ended");
+      var stream5 = new MediaStream([audioTrack2]);
+     assert_true(stream5.ended, "a MediaStream created using the MediaStream() constructor whose arguments are lists of MediaStreamTrack objects that are all ended, the MediaStream object MUST be created with its ended attribute set to true");
+      t.done();
+    }), false);
+    audioTrack2.stop();
+  }), function(error) {});
+});
+</script>
+</body>
+</html>

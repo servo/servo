@@ -1,0 +1,31 @@
+<!doctype html>
+<title>WebSockets: instanceof on events</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+async_test(function(t) {
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo_raw');
+  ws.onopen = t.step_func(function(e) {
+    assert_true(e instanceof Event);
+    // first a text frame, then a frame with reserved opcode 3
+    // which should fail the connection
+    ws.send('\\x81\\x04test\\x83\\x03LOL');
+  });
+  ws.onmessage = t.step_func(function(e) {
+    assert_true(e instanceof Event);
+    assert_true(e instanceof MessageEvent);
+    assert_equals(ws.readyState, ws.OPEN);
+  })
+  ws.onerror = t.step_func(function(e) {
+    assert_true(e instanceof Event);
+    assert_equals(ws.readyState, ws.CLOSED);
+  })
+  ws.onclose = t.step_func(function(e) {
+    assert_true(e instanceof Event);
+    assert_true(e instanceof CloseEvent);
+    t.done();
+  })
+});
+</script>

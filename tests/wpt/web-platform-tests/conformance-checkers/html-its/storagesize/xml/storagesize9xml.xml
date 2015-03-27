@@ -1,0 +1,5 @@
+<messages xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+  <its:span storageSize="8" storageEncoding="UTF-16" lineBreakType="lf">CONTINUE</its:span>
+  <its:span storageSize="8" storageEncoding="UTF-16" lineBreakType="lf">STOP</its:span>
+  <its:span storageSize="12" storageEncoding="UTF-16" lineBreakType="lf">CANCEL</its:span>
+</messages>

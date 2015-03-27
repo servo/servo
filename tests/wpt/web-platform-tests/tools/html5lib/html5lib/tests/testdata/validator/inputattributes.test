@@ -1,0 +1,2795 @@
+{"tests": [
+
+{"description": "'size' attribute deprecated on <input type='text'>",
+"input": "<input type=text size>",
+"fail-unless": "deprecated-attribute"},
+
+{"description": "'size' attribute deprecated on <input type='password'>",
+"input": "<input type=password size>",
+"fail-unless": "deprecated-attribute"},
+
+{"description": "allowed 'accesskey' attribute on <input type='checkbox'>",
+"input": "<input type=checkbox accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='checkbox'>",
+"input": "<input type=checkbox disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'checked' attribute on <input type='checkbox'>",
+"input": "<input type=checkbox checked>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'readonly' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox readonly>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='checkbox'>",
+"input": "<input type=checkbox autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='checkbox'>",
+"input": "<input type=checkbox form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='checkbox'>",
+"input": "<input type=checkbox name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='checkbox'>",
+"input": "<input type=checkbox required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'list' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox list>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='checkbox'>",
+"input": "<input type=checkbox value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'autocomplete' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox autocomplete>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='checkbox'>",
+"input": "<input type=checkbox action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='checkbox'>",
+"input": "<input type=checkbox tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='text'>",
+"input": "<input type=text accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='text'>",
+"input": "<input type=text accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='text'>",
+"input": "<input type=text replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='text'>",
+"input": "<input type=text disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='text'>",
+"input": "<input type=text alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'size' attribute on <input type='text'>",
+"input": "<input type=text size>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='text'>",
+"input": "<input type=text checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='text'>",
+"input": "<input type=text min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'pattern' attribute on <input type='text'>",
+"input": "<input type=text pattern>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'readonly' attribute on <input type='text'>",
+"input": "<input type=text readonly>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='text'>",
+"input": "<input type=text template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='text'>",
+"input": "<input type=text autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='text'>",
+"input": "<input type=text target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='text'>",
+"input": "<input type=text method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='text'>",
+"input": "<input type=text form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='text'>",
+"input": "<input type=text max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='text'>",
+"input": "<input type=text step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='text'>",
+"input": "<input type=text enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='text'>",
+"input": "<input type=text src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='text'>",
+"input": "<input type=text name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='text'>",
+"input": "<input type=text required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'list' attribute on <input type='text'>",
+"input": "<input type=text list>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='text'>",
+"input": "<input type=text value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autocomplete' attribute on <input type='text'>",
+"input": "<input type=text autocomplete>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'inputmode' attribute on <input type='text'>",
+"input": "<input type=text inputmode>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'maxlength' attribute on <input type='text'>",
+"input": "<input type=text maxlength>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='text'>",
+"input": "<input type=text action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='text'>",
+"input": "<input type=text tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='image'>",
+"input": "<input type=image accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='image'>",
+"input": "<input type=image accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'replace' attribute on <input type='image'>",
+"input": "<input type=image replace>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='image'>",
+"input": "<input type=image disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'alt' attribute on <input type='image'>",
+"input": "<input type=image alt>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='image'>",
+"input": "<input type=image size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='image'>",
+"input": "<input type=image checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='image'>",
+"input": "<input type=image min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='image'>",
+"input": "<input type=image pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'readonly' attribute not allowed on <input type='image'>",
+"input": "<input type=image readonly>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='image'>",
+"input": "<input type=image template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='image'>",
+"input": "<input type=image autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'target' attribute on <input type='image'>",
+"input": "<input type=image target>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'method' attribute on <input type='image'>",
+"input": "<input type=image method>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='image'>",
+"input": "<input type=image form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='image'>",
+"input": "<input type=image max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='image'>",
+"input": "<input type=image step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'enctype' attribute on <input type='image'>",
+"input": "<input type=image enctype>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'src' attribute on <input type='image'>",
+"input": "<input type=image src>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='image'>",
+"input": "<input type=image name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'required' attribute not allowed on <input type='image'>",
+"input": "<input type=image required>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'list' attribute not allowed on <input type='image'>",
+"input": "<input type=image list>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'value' attribute not allowed on <input type='image'>",
+"input": "<input type=image value>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'autocomplete' attribute not allowed on <input type='image'>",
+"input": "<input type=image autocomplete>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='image'>",
+"input": "<input type=image inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='image'>",
+"input": "<input type=image maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'action' attribute on <input type='image'>",
+"input": "<input type=image action>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='image'>",
+"input": "<input type=image tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='number'>",
+"input": "<input type=number accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='number'>",
+"input": "<input type=number accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='number'>",
+"input": "<input type=number replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='number'>",
+"input": "<input type=number disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='number'>",
+"input": "<input type=number alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='number'>",
+"input": "<input type=number size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='number'>",
+"input": "<input type=number checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'min' attribute on <input type='number'>",
+"input": "<input type=number min>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='number'>",
+"input": "<input type=number pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'readonly' attribute on <input type='number'>",
+"input": "<input type=number readonly>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='number'>",
+"input": "<input type=number template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='number'>",
+"input": "<input type=number autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='number'>",
+"input": "<input type=number target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='number'>",
+"input": "<input type=number method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='number'>",
+"input": "<input type=number form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'max' attribute on <input type='number'>",
+"input": "<input type=number max>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'step' attribute on <input type='number'>",
+"input": "<input type=number step>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='number'>",
+"input": "<input type=number enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='number'>",
+"input": "<input type=number src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='number'>",
+"input": "<input type=number name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='number'>",
+"input": "<input type=number required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'list' attribute on <input type='number'>",
+"input": "<input type=number list>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='number'>",
+"input": "<input type=number value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autocomplete' attribute on <input type='number'>",
+"input": "<input type=number autocomplete>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='number'>",
+"input": "<input type=number inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='number'>",
+"input": "<input type=number maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='number'>",
+"input": "<input type=number action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='number'>",
+"input": "<input type=number tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='month'>",
+"input": "<input type=month accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='month'>",
+"input": "<input type=month accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='month'>",
+"input": "<input type=month replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='month'>",
+"input": "<input type=month disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='month'>",
+"input": "<input type=month alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='month'>",
+"input": "<input type=month size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='month'>",
+"input": "<input type=month checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'min' attribute on <input type='month'>",
+"input": "<input type=month min>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='month'>",
+"input": "<input type=month pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'readonly' attribute on <input type='month'>",
+"input": "<input type=month readonly>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='month'>",
+"input": "<input type=month template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='month'>",
+"input": "<input type=month autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='month'>",
+"input": "<input type=month target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='month'>",
+"input": "<input type=month method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='month'>",
+"input": "<input type=month form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'max' attribute on <input type='month'>",
+"input": "<input type=month max>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'step' attribute on <input type='month'>",
+"input": "<input type=month step>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='month'>",
+"input": "<input type=month enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='month'>",
+"input": "<input type=month src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='month'>",
+"input": "<input type=month name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='month'>",
+"input": "<input type=month required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'list' attribute on <input type='month'>",
+"input": "<input type=month list>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='month'>",
+"input": "<input type=month value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autocomplete' attribute on <input type='month'>",
+"input": "<input type=month autocomplete>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='month'>",
+"input": "<input type=month inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='month'>",
+"input": "<input type=month maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='month'>",
+"input": "<input type=month action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='month'>",
+"input": "<input type=month tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='radio'>",
+"input": "<input type=radio accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='radio'>",
+"input": "<input type=radio disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'checked' attribute on <input type='radio'>",
+"input": "<input type=radio checked>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'readonly' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio readonly>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='radio'>",
+"input": "<input type=radio autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='radio'>",
+"input": "<input type=radio form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='radio'>",
+"input": "<input type=radio name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='radio'>",
+"input": "<input type=radio required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'list' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio list>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='radio'>",
+"input": "<input type=radio value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'autocomplete' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio autocomplete>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='radio'>",
+"input": "<input type=radio action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='radio'>",
+"input": "<input type=radio tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='file'>",
+"input": "<input type=file accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accept' attribute on <input type='file'>",
+"input": "<input type=file accept>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='file'>",
+"input": "<input type=file replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='file'>",
+"input": "<input type=file disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='file'>",
+"input": "<input type=file alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='file'>",
+"input": "<input type=file size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='file'>",
+"input": "<input type=file checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'min' attribute on <input type='file'>",
+"input": "<input type=file min>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='file'>",
+"input": "<input type=file pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'readonly' attribute not allowed on <input type='file'>",
+"input": "<input type=file readonly>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='file'>",
+"input": "<input type=file template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='file'>",
+"input": "<input type=file autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='file'>",
+"input": "<input type=file target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='file'>",
+"input": "<input type=file method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='file'>",
+"input": "<input type=file form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'max' attribute on <input type='file'>",
+"input": "<input type=file max>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='file'>",
+"input": "<input type=file step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='file'>",
+"input": "<input type=file enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='file'>",
+"input": "<input type=file src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='file'>",
+"input": "<input type=file name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='file'>",
+"input": "<input type=file required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'list' attribute not allowed on <input type='file'>",
+"input": "<input type=file list>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'value' attribute not allowed on <input type='file'>",
+"input": "<input type=file value>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'autocomplete' attribute not allowed on <input type='file'>",
+"input": "<input type=file autocomplete>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='file'>",
+"input": "<input type=file inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='file'>",
+"input": "<input type=file maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='file'>",
+"input": "<input type=file action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='file'>",
+"input": "<input type=file tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='password'>",
+"input": "<input type=password accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='password'>",
+"input": "<input type=password accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='password'>",
+"input": "<input type=password replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='password'>",
+"input": "<input type=password disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='password'>",
+"input": "<input type=password alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'size' attribute on <input type='password'>",
+"input": "<input type=password size>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='password'>",
+"input": "<input type=password checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='password'>",
+"input": "<input type=password min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'pattern' attribute on <input type='password'>",
+"input": "<input type=password pattern>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'readonly' attribute on <input type='password'>",
+"input": "<input type=password readonly>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='password'>",
+"input": "<input type=password template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='password'>",
+"input": "<input type=password autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='password'>",
+"input": "<input type=password target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='password'>",
+"input": "<input type=password method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='password'>",
+"input": "<input type=password form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='password'>",
+"input": "<input type=password max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='password'>",
+"input": "<input type=password step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='password'>",
+"input": "<input type=password enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='password'>",
+"input": "<input type=password src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='password'>",
+"input": "<input type=password name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='password'>",
+"input": "<input type=password required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'list' attribute not allowed on <input type='password'>",
+"input": "<input type=password list>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='password'>",
+"input": "<input type=password value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autocomplete' attribute on <input type='password'>",
+"input": "<input type=password autocomplete>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'inputmode' attribute on <input type='password'>",
+"input": "<input type=password inputmode>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'maxlength' attribute on <input type='password'>",
+"input": "<input type=password maxlength>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='password'>",
+"input": "<input type=password action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='password'>",
+"input": "<input type=password tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='move-up'>",
+"input": "<input type=move-up accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='move-up'>",
+"input": "<input type=move-up disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'readonly' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up readonly>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='move-up'>",
+"input": "<input type=move-up autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='move-up'>",
+"input": "<input type=move-up form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='move-up'>",
+"input": "<input type=move-up name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'required' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up required>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'list' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up list>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='move-up'>",
+"input": "<input type=move-up value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'autocomplete' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up autocomplete>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='move-up'>",
+"input": "<input type=move-up action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='move-up'>",
+"input": "<input type=move-up tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='submit'>",
+"input": "<input type=submit accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'replace' attribute on <input type='submit'>",
+"input": "<input type=submit replace>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='submit'>",
+"input": "<input type=submit disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'readonly' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit readonly>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='submit'>",
+"input": "<input type=submit autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'target' attribute on <input type='submit'>",
+"input": "<input type=submit target>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'method' attribute on <input type='submit'>",
+"input": "<input type=submit method>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='submit'>",
+"input": "<input type=submit form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'enctype' attribute on <input type='submit'>",
+"input": "<input type=submit enctype>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='submit'>",
+"input": "<input type=submit name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'required' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit required>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'list' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit list>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='submit'>",
+"input": "<input type=submit value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'autocomplete' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit autocomplete>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='submit'>",
+"input": "<input type=submit maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'action' attribute on <input type='submit'>",
+"input": "<input type=submit action>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='submit'>",
+"input": "<input type=submit tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='add'>",
+"input": "<input type=add accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='add'>",
+"input": "<input type=add accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='add'>",
+"input": "<input type=add replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='add'>",
+"input": "<input type=add disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='add'>",
+"input": "<input type=add alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='add'>",
+"input": "<input type=add size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='add'>",
+"input": "<input type=add checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='add'>",
+"input": "<input type=add min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='add'>",
+"input": "<input type=add pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'readonly' attribute not allowed on <input type='add'>",
+"input": "<input type=add readonly>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'template' attribute on <input type='add'>",
+"input": "<input type=add template>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='add'>",
+"input": "<input type=add autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='add'>",
+"input": "<input type=add target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='add'>",
+"input": "<input type=add method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='add'>",
+"input": "<input type=add form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='add'>",
+"input": "<input type=add max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='add'>",
+"input": "<input type=add step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='add'>",
+"input": "<input type=add enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='add'>",
+"input": "<input type=add src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='add'>",
+"input": "<input type=add name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'required' attribute not allowed on <input type='add'>",
+"input": "<input type=add required>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'list' attribute not allowed on <input type='add'>",
+"input": "<input type=add list>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='add'>",
+"input": "<input type=add value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'autocomplete' attribute not allowed on <input type='add'>",
+"input": "<input type=add autocomplete>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='add'>",
+"input": "<input type=add inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='add'>",
+"input": "<input type=add maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='add'>",
+"input": "<input type=add action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='add'>",
+"input": "<input type=add tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accesskey' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden accesskey>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='hidden'>",
+"input": "<input type=hidden disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'readonly' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden readonly>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'autofocus' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden autofocus>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='hidden'>",
+"input": "<input type=hidden form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='hidden'>",
+"input": "<input type=hidden name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'required' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden required>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'list' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden list>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='hidden'>",
+"input": "<input type=hidden value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'autocomplete' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden autocomplete>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'tabindex' attribute not allowed on <input type='hidden'>",
+"input": "<input type=hidden tabindex>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='email'>",
+"input": "<input type=email accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='email'>",
+"input": "<input type=email accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='email'>",
+"input": "<input type=email replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='email'>",
+"input": "<input type=email disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='email'>",
+"input": "<input type=email alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='email'>",
+"input": "<input type=email size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='email'>",
+"input": "<input type=email checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='email'>",
+"input": "<input type=email min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'pattern' attribute on <input type='email'>",
+"input": "<input type=email pattern>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'readonly' attribute on <input type='email'>",
+"input": "<input type=email readonly>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='email'>",
+"input": "<input type=email template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='email'>",
+"input": "<input type=email autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='email'>",
+"input": "<input type=email target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='email'>",
+"input": "<input type=email method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='email'>",
+"input": "<input type=email form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='email'>",
+"input": "<input type=email max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='email'>",
+"input": "<input type=email step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='email'>",
+"input": "<input type=email enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='email'>",
+"input": "<input type=email src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='email'>",
+"input": "<input type=email name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='email'>",
+"input": "<input type=email required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'list' attribute on <input type='email'>",
+"input": "<input type=email list>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='email'>",
+"input": "<input type=email value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autocomplete' attribute on <input type='email'>",
+"input": "<input type=email autocomplete>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'inputmode' attribute on <input type='email'>",
+"input": "<input type=email inputmode>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'maxlength' attribute on <input type='email'>",
+"input": "<input type=email maxlength>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='email'>",
+"input": "<input type=email action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='email'>",
+"input": "<input type=email tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='week'>",
+"input": "<input type=week accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='week'>",
+"input": "<input type=week accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='week'>",
+"input": "<input type=week replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='week'>",
+"input": "<input type=week disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='week'>",
+"input": "<input type=week alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='week'>",
+"input": "<input type=week size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='week'>",
+"input": "<input type=week checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'min' attribute on <input type='week'>",
+"input": "<input type=week min>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='week'>",
+"input": "<input type=week pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'readonly' attribute on <input type='week'>",
+"input": "<input type=week readonly>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='week'>",
+"input": "<input type=week template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='week'>",
+"input": "<input type=week autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='week'>",
+"input": "<input type=week target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='week'>",
+"input": "<input type=week method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='week'>",
+"input": "<input type=week form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'max' attribute on <input type='week'>",
+"input": "<input type=week max>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'step' attribute on <input type='week'>",
+"input": "<input type=week step>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='week'>",
+"input": "<input type=week enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='week'>",
+"input": "<input type=week src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='week'>",
+"input": "<input type=week name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='week'>",
+"input": "<input type=week required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'list' attribute on <input type='week'>",
+"input": "<input type=week list>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='week'>",
+"input": "<input type=week value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autocomplete' attribute on <input type='week'>",
+"input": "<input type=week autocomplete>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='week'>",
+"input": "<input type=week inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='week'>",
+"input": "<input type=week maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='week'>",
+"input": "<input type=week action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='week'>",
+"input": "<input type=week tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='date'>",
+"input": "<input type=date accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='date'>",
+"input": "<input type=date accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='date'>",
+"input": "<input type=date replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='date'>",
+"input": "<input type=date disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='date'>",
+"input": "<input type=date alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='date'>",
+"input": "<input type=date size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='date'>",
+"input": "<input type=date checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'min' attribute on <input type='date'>",
+"input": "<input type=date min>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='date'>",
+"input": "<input type=date pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'readonly' attribute on <input type='date'>",
+"input": "<input type=date readonly>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='date'>",
+"input": "<input type=date template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='date'>",
+"input": "<input type=date autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='date'>",
+"input": "<input type=date target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='date'>",
+"input": "<input type=date method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='date'>",
+"input": "<input type=date form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'max' attribute on <input type='date'>",
+"input": "<input type=date max>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'step' attribute on <input type='date'>",
+"input": "<input type=date step>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='date'>",
+"input": "<input type=date enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='date'>",
+"input": "<input type=date src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='date'>",
+"input": "<input type=date name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='date'>",
+"input": "<input type=date required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'list' attribute on <input type='date'>",
+"input": "<input type=date list>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='date'>",
+"input": "<input type=date value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autocomplete' attribute on <input type='date'>",
+"input": "<input type=date autocomplete>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='date'>",
+"input": "<input type=date inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='date'>",
+"input": "<input type=date maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='date'>",
+"input": "<input type=date action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='date'>",
+"input": "<input type=date tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='datetime'>",
+"input": "<input type=datetime accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='datetime'>",
+"input": "<input type=datetime accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='datetime'>",
+"input": "<input type=datetime replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='datetime'>",
+"input": "<input type=datetime disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='datetime'>",
+"input": "<input type=datetime alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='datetime'>",
+"input": "<input type=datetime size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='datetime'>",
+"input": "<input type=datetime checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'min' attribute on <input type='datetime'>",
+"input": "<input type=datetime min>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='datetime'>",
+"input": "<input type=datetime pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'readonly' attribute on <input type='datetime'>",
+"input": "<input type=datetime readonly>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='datetime'>",
+"input": "<input type=datetime template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='datetime'>",
+"input": "<input type=datetime autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='datetime'>",
+"input": "<input type=datetime target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='datetime'>",
+"input": "<input type=datetime method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='datetime'>",
+"input": "<input type=datetime form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'max' attribute on <input type='datetime'>",
+"input": "<input type=datetime max>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'step' attribute on <input type='datetime'>",
+"input": "<input type=datetime step>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='datetime'>",
+"input": "<input type=datetime enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='datetime'>",
+"input": "<input type=datetime src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='datetime'>",
+"input": "<input type=datetime name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='datetime'>",
+"input": "<input type=datetime required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'list' attribute on <input type='datetime'>",
+"input": "<input type=datetime list>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='datetime'>",
+"input": "<input type=datetime value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autocomplete' attribute on <input type='datetime'>",
+"input": "<input type=datetime autocomplete>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='datetime'>",
+"input": "<input type=datetime inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='datetime'>",
+"input": "<input type=datetime maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='datetime'>",
+"input": "<input type=datetime action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='datetime'>",
+"input": "<input type=datetime tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='move-down'>",
+"input": "<input type=move-down accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='move-down'>",
+"input": "<input type=move-down disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'readonly' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down readonly>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='move-down'>",
+"input": "<input type=move-down autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='move-down'>",
+"input": "<input type=move-down form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='move-down'>",
+"input": "<input type=move-down name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'required' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down required>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'list' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down list>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='move-down'>",
+"input": "<input type=move-down value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'autocomplete' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down autocomplete>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='move-down'>",
+"input": "<input type=move-down action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='move-down'>",
+"input": "<input type=move-down tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='datetime-local'>",
+"input": "<input type=datetime-local accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='datetime-local'>",
+"input": "<input type=datetime-local replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='datetime-local'>",
+"input": "<input type=datetime-local alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='datetime-local'>",
+"input": "<input type=datetime-local size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='datetime-local'>",
+"input": "<input type=datetime-local checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'min' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local min>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='datetime-local'>",
+"input": "<input type=datetime-local pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'readonly' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local readonly>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='datetime-local'>",
+"input": "<input type=datetime-local template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='datetime-local'>",
+"input": "<input type=datetime-local target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='datetime-local'>",
+"input": "<input type=datetime-local method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'max' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local max>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'step' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local step>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='datetime-local'>",
+"input": "<input type=datetime-local enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='datetime-local'>",
+"input": "<input type=datetime-local src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'list' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local list>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autocomplete' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local autocomplete>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='datetime-local'>",
+"input": "<input type=datetime-local inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='datetime-local'>",
+"input": "<input type=datetime-local maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='datetime-local'>",
+"input": "<input type=datetime-local action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='reset'>",
+"input": "<input type=reset accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='reset'>",
+"input": "<input type=reset disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'readonly' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset readonly>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='reset'>",
+"input": "<input type=reset autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='reset'>",
+"input": "<input type=reset form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='reset'>",
+"input": "<input type=reset name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'required' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset required>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'list' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset list>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='reset'>",
+"input": "<input type=reset value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'autocomplete' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset autocomplete>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='reset'>",
+"input": "<input type=reset action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='reset'>",
+"input": "<input type=reset tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='url'>",
+"input": "<input type=url accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='url'>",
+"input": "<input type=url accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='url'>",
+"input": "<input type=url replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='url'>",
+"input": "<input type=url disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='url'>",
+"input": "<input type=url alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='url'>",
+"input": "<input type=url size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='url'>",
+"input": "<input type=url checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='url'>",
+"input": "<input type=url min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'pattern' attribute on <input type='url'>",
+"input": "<input type=url pattern>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'readonly' attribute on <input type='url'>",
+"input": "<input type=url readonly>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='url'>",
+"input": "<input type=url template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='url'>",
+"input": "<input type=url autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='url'>",
+"input": "<input type=url target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='url'>",
+"input": "<input type=url method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='url'>",
+"input": "<input type=url form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='url'>",
+"input": "<input type=url max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='url'>",
+"input": "<input type=url step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='url'>",
+"input": "<input type=url enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='url'>",
+"input": "<input type=url src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='url'>",
+"input": "<input type=url name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='url'>",
+"input": "<input type=url required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'list' attribute on <input type='url'>",
+"input": "<input type=url list>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='url'>",
+"input": "<input type=url value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autocomplete' attribute on <input type='url'>",
+"input": "<input type=url autocomplete>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'inputmode' attribute on <input type='url'>",
+"input": "<input type=url inputmode>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'maxlength' attribute on <input type='url'>",
+"input": "<input type=url maxlength>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='url'>",
+"input": "<input type=url action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='url'>",
+"input": "<input type=url tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='button'>",
+"input": "<input type=button accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='button'>",
+"input": "<input type=button accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='button'>",
+"input": "<input type=button replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='button'>",
+"input": "<input type=button disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='button'>",
+"input": "<input type=button alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='button'>",
+"input": "<input type=button size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='button'>",
+"input": "<input type=button checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='button'>",
+"input": "<input type=button min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='button'>",
+"input": "<input type=button pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'readonly' attribute not allowed on <input type='button'>",
+"input": "<input type=button readonly>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='button'>",
+"input": "<input type=button template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='button'>",
+"input": "<input type=button autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='button'>",
+"input": "<input type=button target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='button'>",
+"input": "<input type=button method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='button'>",
+"input": "<input type=button form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='button'>",
+"input": "<input type=button max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='button'>",
+"input": "<input type=button step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='button'>",
+"input": "<input type=button enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='button'>",
+"input": "<input type=button src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='button'>",
+"input": "<input type=button name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'required' attribute not allowed on <input type='button'>",
+"input": "<input type=button required>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'list' attribute not allowed on <input type='button'>",
+"input": "<input type=button list>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='button'>",
+"input": "<input type=button value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'autocomplete' attribute not allowed on <input type='button'>",
+"input": "<input type=button autocomplete>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='button'>",
+"input": "<input type=button inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='button'>",
+"input": "<input type=button maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='button'>",
+"input": "<input type=button action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='button'>",
+"input": "<input type=button tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='remove'>",
+"input": "<input type=remove accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='remove'>",
+"input": "<input type=remove disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'min' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove min>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'readonly' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove readonly>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='remove'>",
+"input": "<input type=remove autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='remove'>",
+"input": "<input type=remove form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'max' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove max>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'step' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove step>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='remove'>",
+"input": "<input type=remove name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'required' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove required>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'list' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove list>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='remove'>",
+"input": "<input type=remove value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'autocomplete' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove autocomplete>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='remove'>",
+"input": "<input type=remove action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='remove'>",
+"input": "<input type=remove tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='range'>",
+"input": "<input type=range accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='range'>",
+"input": "<input type=range accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='range'>",
+"input": "<input type=range replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='range'>",
+"input": "<input type=range disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='range'>",
+"input": "<input type=range alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='range'>",
+"input": "<input type=range size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='range'>",
+"input": "<input type=range checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'min' attribute on <input type='range'>",
+"input": "<input type=range min>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='range'>",
+"input": "<input type=range pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'readonly' attribute on <input type='range'>",
+"input": "<input type=range readonly>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='range'>",
+"input": "<input type=range template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='range'>",
+"input": "<input type=range autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='range'>",
+"input": "<input type=range target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='range'>",
+"input": "<input type=range method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='range'>",
+"input": "<input type=range form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'max' attribute on <input type='range'>",
+"input": "<input type=range max>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'step' attribute on <input type='range'>",
+"input": "<input type=range step>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='range'>",
+"input": "<input type=range enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='range'>",
+"input": "<input type=range src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='range'>",
+"input": "<input type=range name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='range'>",
+"input": "<input type=range required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'list' attribute on <input type='range'>",
+"input": "<input type=range list>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='range'>",
+"input": "<input type=range value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autocomplete' attribute on <input type='range'>",
+"input": "<input type=range autocomplete>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='range'>",
+"input": "<input type=range inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='range'>",
+"input": "<input type=range maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='range'>",
+"input": "<input type=range action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='range'>",
+"input": "<input type=range tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'accesskey' attribute on <input type='time'>",
+"input": "<input type=time accesskey>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'accept' attribute not allowed on <input type='time'>",
+"input": "<input type=time accept>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'replace' attribute not allowed on <input type='time'>",
+"input": "<input type=time replace>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'disabled' attribute on <input type='time'>",
+"input": "<input type=time disabled>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'alt' attribute not allowed on <input type='time'>",
+"input": "<input type=time alt>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'size' attribute not allowed on <input type='time'>",
+"input": "<input type=time size>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'checked' attribute not allowed on <input type='time'>",
+"input": "<input type=time checked>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'min' attribute on <input type='time'>",
+"input": "<input type=time min>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'pattern' attribute not allowed on <input type='time'>",
+"input": "<input type=time pattern>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'readonly' attribute on <input type='time'>",
+"input": "<input type=time readonly>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'template' attribute not allowed on <input type='time'>",
+"input": "<input type=time template>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autofocus' attribute on <input type='time'>",
+"input": "<input type=time autofocus>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'target' attribute not allowed on <input type='time'>",
+"input": "<input type=time target>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'method' attribute not allowed on <input type='time'>",
+"input": "<input type=time method>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'form' attribute on <input type='time'>",
+"input": "<input type=time form>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'max' attribute on <input type='time'>",
+"input": "<input type=time max>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'step' attribute on <input type='time'>",
+"input": "<input type=time step>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'enctype' attribute not allowed on <input type='time'>",
+"input": "<input type=time enctype>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'src' attribute not allowed on <input type='time'>",
+"input": "<input type=time src>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'name' attribute on <input type='time'>",
+"input": "<input type=time name>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'required' attribute on <input type='time'>",
+"input": "<input type=time required>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'list' attribute on <input type='time'>",
+"input": "<input type=time list>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'value' attribute on <input type='time'>",
+"input": "<input type=time value>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'autocomplete' attribute on <input type='time'>",
+"input": "<input type=time autocomplete>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'inputmode' attribute not allowed on <input type='time'>",
+"input": "<input type=time inputmode>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'maxlength' attribute not allowed on <input type='time'>",
+"input": "<input type=time maxlength>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "'action' attribute not allowed on <input type='time'>",
+"input": "<input type=time action>",
+"fail-unless": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "allowed 'tabindex' attribute on <input type='time'>",
+"input": "<input type=time tabindex>",
+"fail-if": "attribute-not-allowed-on-this-input-type"},
+
+{"description": "unknown 'foo' attribute on <input type='checkbox'>",
+"input": "<input type=checkbox foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='text'>",
+"input": "<input type=text foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='image'>",
+"input": "<input type=image foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='number'>",
+"input": "<input type=number foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='month'>",
+"input": "<input type=month foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='radio'>",
+"input": "<input type=radio foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='file'>",
+"input": "<input type=file foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='password'>",
+"input": "<input type=password foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='move-up'>",
+"input": "<input type=move-up foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='submit'>",
+"input": "<input type=submit foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='add'>",
+"input": "<input type=add foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='hidden'>",
+"input": "<input type=hidden foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='email'>",
+"input": "<input type=email foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='week'>",
+"input": "<input type=week foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='date'>",
+"input": "<input type=date foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='datetime'>",
+"input": "<input type=datetime foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='move-down'>",
+"input": "<input type=move-down foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='datetime-local'>",
+"input": "<input type=datetime-local foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='reset'>",
+"input": "<input type=reset foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='url'>",
+"input": "<input type=url foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='button'>",
+"input": "<input type=button foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='remove'>",
+"input": "<input type=remove foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='range'>",
+"input": "<input type=range foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <input type='time'>",
+"input": "<input type=time foo>",
+"fail-unless": "unknown-attribute"}
+
+]}

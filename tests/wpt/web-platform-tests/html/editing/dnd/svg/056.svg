@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="500px" height="500px" viewBox="0 0 500 500">
+<title>dataTransfer.setData/getData during SVG link drag and drop</title>
+<a xlink:href="data:text/plain,PASS">
+	<polygon points="0,0 100,0 0,100" fill="green"/>
+</a>
+<textArea x="10" y="100" width="480" height="200" font-size="15">Drag green triangle above and drop it in the gray box below. Gray box should turn green.</textArea>
+<rect x="10" y="300" width="480" height="190" fill="gray"/>
+<script type="application/ecmascript">
+<![CDATA[
+var dataTypes = ['text/uri-list', 'text/plain', 'application/xml', 'application/xhtml+xml', 'application/mathml+xml', 'image/svg+xml', 'text/html', 'text/x-example'],
+data = ['data:text/plain,PASS', 'PASS', '<result>PASS</result>', '<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Data store item</title></head><body><p>PASS</p></body></html>', '<math xmlns="http://www.w3.org/1998/Math/MathML"><mn>1</mn></math>', '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="100px" height="50px" viewBox="0 0 100 50"><text x="0" y="40" font-size="40" fill="green">PASS</text></svg>', '<!DOCTYPE html><html><head><title>Data store item</title></head><body><p>PASS</p></body></html>', 'PASS'],
+a = document.querySelector('a'), rect = document.querySelector('rect'), text = document.querySelector('textArea'), result = true;
+a.addEventListener('dragstart',
+	function (event)
+		{event.dataTransfer.effectAllowed = 'copy';
+		for(var i = 0; i != dataTypes.length; i++)
+			{event.dataTransfer.setData(dataTypes[i], data[i]);}
+		if(event.dataTransfer.items.length < dataTypes.length)
+			{say('items.length (dragstart) :  FAIL');}
+		},false);
+a.addEventListener('drag',
+	function (event)
+		{for(var i = 0; i != dataTypes.length; i++)
+			{event.dataTransfer.setData(dataTypes[i], 'FAIL');
+			if(event.dataTransfer.getData(dataTypes[i]))
+				{say('getData(' + dataTypes[i] + ') : FAIL (data store should not be readable during drag)')}
+			}
+		if(event.dataTransfer.items.length < dataTypes.length)
+			{say('items.length (dragover) : FAIL')}
+		},false);
+rect.addEventListener('dragenter',
+	function (event)
+		{event.preventDefault();
+		for(var i = 0; i != dataTypes.length; i++)
+			{event.dataTransfer.setData(dataTypes[i], 'FAIL');
+			if(event.dataTransfer.getData(dataTypes[i]))
+				{say('getData(' + dataTypes[i] + ') : FAIL (data store should not be readable during dragenter)')}
+			}
+		if(event.dataTransfer.items.length < dataTypes.length)
+			{say('items.length (dragenter) : FAIL')}
+		},false);
+rect.addEventListener('dragover',
+	function (event)
+		{event.preventDefault();
+		for(var i = 0; i != dataTypes.length; i++)
+			{event.dataTransfer.setData(dataTypes[i], 'FAIL');
+			if(event.dataTransfer.getData(dataTypes[i]))
+				{say('getData(' + dataTypes[i] + ') : FAIL (data store should not be readable during dragover)')}
+			}
+		if(event.dataTransfer.items.length < dataTypes.length)
+			{say('items.length (dragover) : FAIL');}
+		},false);
+rect.addEventListener('drop',
+	function (event)
+		{if(event.dataTransfer.items.length < dataTypes.length)
+			{say('items.length (drop) : FAIL');}
+		for(var i = 0; i != dataTypes.length; i++)
+			{if(event.dataTransfer.getData(dataTypes[i]) != data[i])
+				{say('getData(' + dataTypes[i] + ') : FAIL');}
+			}
+		rect.setAttribute('fill',result?'green':'red');
+		},false);
+function say(it)
+	{text.appendChild(document.createTextNode(it + '.'));
+	result = false;}
+]]>
+</script>
+</svg>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBObjectStore.delete() - If the object store has been deleted, the implementation must throw a DOMException of type InvalidStateError</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#widl-IDBObjectStore-delete-IDBRequest-any-key">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+<div id="log"></div>
+<script>
+    var db,
+        ostore,
+        t = async_test(),
+        records = [{ pKey: "primaryKey_0"},
+                   { pKey: "primaryKey_1"}];
+
+    var open_rq = createdb(t);
+    open_rq.onupgradeneeded = function (event) {
+        db = event.target.result;
+        ostore = db.createObjectStore("store", {keyPath:"pKey"});
+        db.deleteObjectStore("store");
+    }
+
+    open_rq.onsuccess = function (event) {
+        t.step(function(){
+            assert_throws("InvalidStateError", function(){
+                ostore.delete("primaryKey_0");
+            });
+        });
+        t.done();
+    }
+</script>
+

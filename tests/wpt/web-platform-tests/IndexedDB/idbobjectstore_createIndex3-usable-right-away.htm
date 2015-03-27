@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBObjectStore.createIndex() - the index is usable right after being made</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+    var db, aborted,
+      t = async_test(document.title, {timeout:19000})
+
+    var open_rq = createdb(t);
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result;
+        var txn = e.target.transaction,
+          objStore = db.createObjectStore("store", { keyPath: 'key' });
+
+        for (var i = 0; i < 100; i++)
+            objStore.add({ key: "key_" + i, indexedProperty: "indexed_" + i });
+
+        var idx = objStore.createIndex("index", "indexedProperty")
+
+        idx.get('indexed_99').onsuccess = t.step_func(function(e) {
+            assert_equals(e.target.result.key, 'key_99', 'key');
+        });
+        idx.get('indexed_9').onsuccess = t.step_func(function(e) {
+            assert_equals(e.target.result.key, 'key_9', 'key');
+        });
+    }
+
+    open_rq.onsuccess = function() {
+        t.done();
+    }
+</script>
+
+<div id="log"></div>

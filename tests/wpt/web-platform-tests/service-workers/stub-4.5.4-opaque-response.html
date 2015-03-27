@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<title>Service Workers: OpaqueResponse</title>
+    <head>
+        <link rel="help" href="https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#opaque-response">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+    </head>
+    <body>
+
+<!--
+
+`OpaqueResponse` objects are immutable but constructable. The `fetch()` API
+returns this type for cross-origin responses.
+
+Their role is to encapsulate the security properties of the web platform. As
+such, their `body` attribute will always be `undefined` and the list of
+readable `headers` is heavily filtered.
+
+`OpaqueResponse` objects may be forwarded on to rendering documents in exactly
+the same way as mutable `Response` objects.
+
+-->
+
+
+
+    <script>
+        test(function() {
+            // not_implemented();
+        }, "There are no tests for section OpaqueResponse so far.");
+    </script>
+
+    </body>
+</html>
+

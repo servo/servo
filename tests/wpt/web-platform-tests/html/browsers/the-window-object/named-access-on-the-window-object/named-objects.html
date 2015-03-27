@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: Named access on the Window object</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/multipage/browsers.html#named-access-on-the-window-object">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div style="display:none">
+  <p name="a" id="p1"></p>
+  <a name="a" id="a1" href="#"></a>
+  <applet name="a" id="app1"></applet>
+  <area name="a" id="area1"></area>
+  <embed name="a" id="embed1"></embed>
+  <form name="a" id="form1"></form>
+  <img name="a" id="img1">
+  <object name="a" id="obj1"></object>
+  <span name="a" id="span1"></span>
+
+  <b id="b" name="c"></b>
+  <a name="c"></a>
+  <iframe name="c" id="fm1"></iframe>
+  <iframe name="c" id="fm2" src="test.html" onload="on_load()"></iframe>
+  <input id="b"></input>
+  <span id="d"></span>
+  <a name=""></a>
+  <b id=""></b>
+</div>
+<script>
+
+test(function() {
+  assert_equals(window['c'], document.getElementById("fm1").contentWindow, "The first iframe's window should be returned.");
+}, "Check if the first nested browsing context is returned by window['c']");
+
+test(function() {
+  assert_equals(window['a'].length, 7, "The length should be 7.");
+  assert_true(window['a'] instanceof HTMLCollection);
+  assert_array_equals(window['a'],
+                      [ document.getElementById('a1'), document.getElementById('app1'),
+                        document.getElementById('area1'), document.getElementById('embed1'),
+                        document.getElementById('form1'), document.getElementById('img1'),
+                        document.getElementById('obj1') ],
+                      "The elements are not in tree order.");
+
+  document.getElementById('a1').setAttribute("name", "");
+  document.getElementById('area1').setAttribute("name", "");
+  assert_array_equals(window['a'],
+                      [ document.getElementById('app1'), document.getElementById('embed1'),
+                        document.getElementById('form1'), document.getElementById('img1'),
+                        document.getElementById('obj1') ],
+                      "Window['a'] should not contain the elements with empty name attribute.");
+}, "Check if window['a'] contains all a, applet, area, embed, form, img, and object elements, and their order");
+
+var t = async_test("Check if window['fs'] return the frameset element with name='fs'");
+function on_load () {
+  t.step(function () {
+    assert_equals(document.getElementById('fm2').contentWindow['fs'],
+                  document.getElementById('fm2').contentDocument.getElementById('fs1'),
+                  "The frameset element should be returned.");
+  });
+  t.done();
+}
+
+test(function() {
+  assert_true(window['b'] instanceof HTMLCollection);
+  assert_array_equals(window['b'], [document.getElementsByTagName('b')[0], document.getElementsByTagName('input')[0]]);
+
+  document.getElementsByTagName('b')[0].setAttribute("id", "");
+  assert_equals(window['b'], document.getElementsByTagName('input')[0],
+                "The window['b'] should not contain the elements with empty id attribute.");
+}, "Check if window['b'] returns the elements with the id='b'");
+
+test(function() {
+  assert_equals(window['d'], document.getElementById('d'));
+}, "Check if window['d'] returns the element with id='d'");
+
+test(function() {
+  assert_equals(window[''], undefined, "The window[''] should be undefined");
+}, "Check widow[''] when there are some elements with empty id or name attribute");
+</script>

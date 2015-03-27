@@ -1,0 +1,18 @@
+<html xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+<title>AREA - NOREF</title>
+</head>
+<body>
+<p>Test for <b>nohref</b> attribute on <b>area</b> </p>
+<p>Hover over the Blue Square below. The square is not clickable but the area around it should be.</p>
+<p>The test passes if clicking on the square doesn't do anything. Clicking on the area around the square should take you to another page.</p>
+<img src="../../../../images/blue-area.png" height="180" width="228" usemap="#square" border="0"/>
+<map name="square">
+<area alt="Blue Square" coords="43,29,176,135" nohref=""/>
+<area shape="rect" alt="White Space" coords="0,0,227,179" href="test-area.xhtml"/>
+</map>
+<p>
+<i>Note - This test checks for User Agent requirement as per HTML5 spec NOT the author requirement</i>
+</p>
+</body>
+</html>

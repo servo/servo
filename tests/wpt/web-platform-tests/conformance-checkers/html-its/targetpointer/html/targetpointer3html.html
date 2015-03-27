@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+ <head>
+<script type="application/its+xml">  
+   <its:rules version="2.0" xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml">
+   <its:param name="targetFolder">targetfolder</its:param>
+  <its:targetPointerRule selector="//h:div[@id='one']/h:p[@class='srcfolder']" targetPointer="../h:p[@class=$targetFolder]"/>
+  <its:targetPointerRule selector="//h:div[@id='two']/h:p[@class='srcfile']" targetPointer="../h:p[@class='targetfile']"/>
+ </its:rules>
+</script>
+  <meta charset="utf-8"/> 
+  <title>Target Pointer</title>  
+ </head>
+ <body>
+ <div id="one">
+  <p class="srcfolder">Remember last folder</p>
+  <p class="targetfolder">lastFolder</p>
+ </div>
+ <div id="two">
+  <p class="srcfile">Custom file filter:</p>
+  <p class="targetfile">testFile.txt</p>
+ </div>
+ </body>
+</html>

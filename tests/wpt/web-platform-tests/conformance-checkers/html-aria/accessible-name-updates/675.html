@@ -1,0 +1,36 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>ARIA 1.0 Test Case 675</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case 675</h1>
+    
+    <div id="TEST_ID">
+    </div>
+    
+    <h2>Description</h2>
+    <p>An element without an aria-live attribute is defined in markup.   
+      After the onload event completes an aria-live attribute with the 
+      value 'assertive' is added to the element and a child DOM text 
+      node is added to the element.</p>
+    
+    <script type="text/javascript">  
+  
+     function addLiveRegion() {
+       var node = document.getElementById('TEST_ID');  
+       node.setAttribute('aria-live', 'assertive');
+       var text_node = document.createTextNode('TEST TEXT');
+       node.appendChild(text_node);
+     }
+     
+     function onload() {
+       setTimeout(addLiveRegion,1000);
+     }
+     
+     window.addEventListener('load', onload);
+    </script>
+  </body>
+  
+</html>

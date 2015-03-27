@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Check that getters don't linger after deletion wrt cloning</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+   var obj = {};
+   obj.__defineGetter__( "a", function(){ return 2; } );
+   obj.__defineSetter__( "a", function(v){ return; } );
+   delete obj.a;
+   obj.a = 2;
+
+   postMessage(obj, '*');
+   onmessage = this.step_func(function(e) {
+     assert_equals(e.data.a, 2);
+     this.done();
+  });
+});
+</script>

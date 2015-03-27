@@ -1,0 +1,26 @@
+<!doctype html>
+<title>WebSockets: close() in close event handler</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+async_test(function(t) {
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/');
+  var i = 0;
+  ws.onclose = t.step_func(function(e) {
+    i++;
+    if (i == 1) {
+      assert_equals(ws.readyState, ws.CLOSED);
+      ws.close();
+      assert_equals(ws.readyState, ws.CLOSED);
+    }
+    setTimeout(t.step_func(function() {
+      assert_equals(i, 1);
+      t.done();
+    }), 50);
+  });
+  ws.close();
+  assert_equals(ws.readyState, ws.CLOSING);
+}, undefined, {timeout:9900});
+</script>

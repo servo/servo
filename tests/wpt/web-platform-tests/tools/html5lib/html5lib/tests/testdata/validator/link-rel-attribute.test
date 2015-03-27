@@ -1,0 +1,271 @@
+{"tests": [
+
+{"description": "invalid link rel value 'foo'",
+"input": "<link rel=foo>",
+"fail-unless": "invalid-rel"},
+
+{"description": "valid link rel value 'alternate stylesheet'",
+"input": "<link rel='alternate stylesheet'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with leading space",
+"input": "<link rel=' stylesheet'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with trailing space",
+"input": "<link rel='stylesheet '>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with leading and trailing space",
+"input": "<link rel=' stylesheet '>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with leading tab",
+"input": "<link rel='\tstylesheet'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with trailing tab",
+"input": "<link rel='stylesheet\t'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with leading and trailing tab",
+"input": "<link rel='\tstylesheet\t'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with leading LF",
+"input": "<link rel='\nstylesheet'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with trailing LF",
+"input": "<link rel='stylesheet\n'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with leading and trailing LF",
+"input": "<link rel='\nstylesheet\n'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with leading LT",
+"input": "<link rel='\u000Bstylesheet'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with trailing LT",
+"input": "<link rel='stylesheet\u000B'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with leading and trailing LT",
+"input": "<link rel='\u000Bstylesheet\u000B'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with leading FF",
+"input": "<link rel='\u000Cstylesheet'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with trailing FF",
+"input": "<link rel='stylesheet\u000C'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with leading and trailing FF",
+"input": "<link rel='\u000Cstylesheet\u000C'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with leading CR",
+"input": "<link rel='\rstylesheet'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with trailing CR",
+"input": "<link rel='stylesheet\r'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid single link rel value with leading and trailing CR",
+"input": "<link rel='\rstylesheet\r'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid double link rel value separated by space",
+"input": "<link rel='stylesheet alternate'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid double link rel value separated by tab",
+"input": "<link rel='stylesheet\talternate'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid double link rel value separated by LF",
+"input": "<link rel='stylesheet\nalternate'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid double link rel value separated by LT",
+"input": "<link rel='stylesheet\u000Balternate'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid double link rel value separated by FF",
+"input": "<link rel='stylesheet\u000Calternate'>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid double link rel value separated by CR",
+"input": "<link rel='stylesheet\ralternate'>",
+"fail-if": "invalid-rel"},
+
+{"description": "invalid duplicated link rel value separated by space",
+"input": "<link rel='stylesheet stylesheet'>",
+"fail-unless": "duplicate-value-in-token-list"},
+
+{"description": "invalid duplicated link rel value separated by tab",
+"input": "<link rel='stylesheet\tstylesheet'>",
+"fail-unless": "duplicate-value-in-token-list"},
+
+{"description": "invalid duplicated link rel value separated by LF",
+"input": "<link rel='stylesheet\nstylesheet'>",
+"fail-unless": "duplicate-value-in-token-list"},
+
+{"description": "invalid duplicated link rel value separated by LT",
+"input": "<link rel='stylesheet\u000Bstylesheet'>",
+"fail-unless": "duplicate-value-in-token-list"},
+
+{"description": "invalid duplicated link rel value separated by FF",
+"input": "<link rel='stylesheet\u000Cstylesheet'>",
+"fail-unless": "duplicate-value-in-token-list"},
+
+{"description": "invalid duplicated link rel value separated by CR",
+"input": "<link rel='stylesheet\rstylesheet'>",
+"fail-unless": "duplicate-value-in-token-list"},
+
+{"description": "invalid duplicated link rel value separated by space",
+"input": "<link rel='stylesheet stylesheet'>",
+"fail-unless": "duplicate-value-in-token-list"},
+
+{"description": "invalid duplicated link rel value separated by tab",
+"input": "<link rel='stylesheet\tstylesheet'>",
+"fail-unless": "duplicate-value-in-token-list"},
+
+{"description": "invalid duplicated link rel value separated by LF",
+"input": "<link rel='stylesheet\nstylesheet'>",
+"fail-unless": "duplicate-value-in-token-list"},
+
+{"description": "invalid duplicated link rel value separated by LT",
+"input": "<link rel='stylesheet\u000Bstylesheet'>",
+"fail-unless": "duplicate-value-in-token-list"},
+
+{"description": "invalid duplicated link rel value separated by FF",
+"input": "<link rel='stylesheet\u000Cstylesheet'>",
+"fail-unless": "duplicate-value-in-token-list"},
+
+{"description": "invalid duplicated link rel value separated by CR",
+"input": "<link rel='stylesheet\rstylesheet'>",
+"fail-unless": "duplicate-value-in-token-list"},
+
+{"description": "valid link rel value 'feed'",
+"input": "<link rel=feed>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'help'",
+"input": "<link rel=help>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'tag'",
+"input": "<link rel=tag>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'sidebar'",
+"input": "<link rel=sidebar>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'archive'",
+"input": "<link rel=archive>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'contents'",
+"input": "<link rel=contents>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'previous'",
+"input": "<link rel=previous>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'index'",
+"input": "<link rel=index>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'end'",
+"input": "<link rel=end>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'copyright'",
+"input": "<link rel=copyright>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'author'",
+"input": "<link rel=author>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'top'",
+"input": "<link rel=top>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'alternate'",
+"input": "<link rel=alternate>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'next'",
+"input": "<link rel=next>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'start'",
+"input": "<link rel=start>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'stylesheet'",
+"input": "<link rel=stylesheet>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'archives'",
+"input": "<link rel=archives>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'toc'",
+"input": "<link rel=toc>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'prev'",
+"input": "<link rel=prev>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'begin'",
+"input": "<link rel=begin>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'icon'",
+"input": "<link rel=icon>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'search'",
+"input": "<link rel=search>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'last'",
+"input": "<link rel=last>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'license'",
+"input": "<link rel=license>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'pingback'",
+"input": "<link rel=pingback>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'up'",
+"input": "<link rel=up>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'contact'",
+"input": "<link rel=contact>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'prefetch'",
+"input": "<link rel=prefetch>",
+"fail-if": "invalid-rel"},
+
+{"description": "valid link rel value 'first'",
+"input": "<link rel=first>",
+"fail-if": "invalid-rel"}
+
+]}

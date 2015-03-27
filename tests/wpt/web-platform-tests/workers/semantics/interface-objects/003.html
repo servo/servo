@@ -1,0 +1,30 @@
+<!--
+onconnect = function(e) {
+  var expected = 'ApplicationCache WorkerGlobalScope EventTarget ErrorEvent Event Worker DOMException SharedWorker MessagePort MessageEvent WorkerNavigator MessageChannel WorkerLocation Database ImageData File Blob FileList XMLHttpRequest ProgressEvent FormData ArrayBuffer Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array Float32Array Float64Array DataView CanvasProxy ImageBitmap CanvasRenderingContext2d DrawingStyle CanvasGradient CanvasPattern Path TextMetrics'.split(' ');
+  var log = [];
+  for (var i = 0; i < expected.length; ++i) {
+    if (!(expected[i] in self))
+      log.push(expected[i]);
+  }
+  e.ports[0].postMessage(log.join(', '));
+}
+/*
+-->
+<!doctype html>
+<title>available interface objects in shared worker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  var worker = new SharedWorker('#');
+  worker.port.onmessage = this.step_func(function(e) {
+    assert_equals(e.data, '', 'these interface objects were missing');
+    this.done();
+  });
+});
+</script>
+<!--
+*/
+//-->
+

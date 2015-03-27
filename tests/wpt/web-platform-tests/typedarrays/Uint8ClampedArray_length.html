@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Typed Arrays Test: Uint8ClampedArray length</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="http://www.khronos.org/registry/typedarray/specs/latest/#7.1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+
+test(function() {
+  var arr = new Uint8ClampedArray(8);
+
+  test(function() {
+    assert_equals(arr.length, 8, "The Uint8ClampedArray.length");
+  }, "Check if the Uint8ClampedArray.length should be the value given by constructor");
+
+  test(function() {
+    var len = arr.length;
+    arr.length = len + 1;
+    assert_equals(arr.length, len, "The Uint8ClampedArray.length");
+  }, "Check if the Uint8ClampedArray.length is readonly");
+});
+
+</script>

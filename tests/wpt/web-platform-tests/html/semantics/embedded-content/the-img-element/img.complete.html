@@ -1,0 +1,82 @@
+<!DOCTYPE HTML>
+<title>DOM img complete Test</title>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="author" title="Anselm Hannemann" href="http://anselm-hannemann.com/" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-img-complete" />
+<meta name="assert" content="Tests the complete status of the img-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<img id="imgTestTag">
+<img src="" id="imgTestTag2">
+<img id="imgTestTag3" style="width: 80px; height:auto;">
+<img id="imgTestTag4">
+
+<script>
+  var imageInstance = document.createElement('img');
+  imageInstance.style.display = 'none';
+
+  document.body.appendChild(imageInstance);
+</script>
+
+<div id="log"></div>
+<script>
+  test(function() {
+    assert_true(document.getElementById("imgTestTag").complete);
+  }, "img src omitted");
+
+  test(function() {
+    assert_true(document.getElementById("imgTestTag2").complete);
+  }, "img src empty");
+
+  // test if set to true after img is completely available
+  var t = async_test("async src complete test");
+
+  t.step(function(){
+    document.getElementById("imgTestTag3").src = '3.jpg?nocache=' + Math.random();
+
+    //test if img.complete is set to false if src is changed
+    assert_false(document.getElementById("imgTestTag3").complete, "src changed, should be set to false")
+  });
+
+  document.getElementById("imgTestTag3").onload = t.step_func(function(){
+    assert_true(document.getElementById("imgTestTag3").complete);
+    t.done();
+  });
+
+  // https://html.spec.whatwg.org/multipage/multipage/embedded-content-1.html#update-the-image-data
+  // says to "await a stable state" before fetching so we use a separate <script>
+  imageInstance.src = 'image-1.jpg?pipe=trickle(d1)&nocache=' + Math.random(); // make sure the image isn't in cache
+</script>
+<script>
+  // test: The final task that is queued by the networking task source once the resource has been fetched has been queued, but has not yet been run, and the img element is not in the broken state
+  async_test(function(t) {
+    assert_false(imageInstance.complete, "imageInstance.complete should be false");
+    var startTime = Date.now();
+    while (true) {
+      if (Date.now() - startTime > 2000)
+        assert_unreached('.complete didn\'t change to true');
+      if (imageInstance.complete === true) break;
+    }
+    t.done();
+  },
+  'IDL attribute complete returns true when image resource has been fetched but not run yet & image is not in broken state');
+
+  // test if broken img does not pass
+  var t2 = async_test("async src broken test");
+  var img4 = document.getElementById("imgTestTag4");
+
+  t2.step(
+    function(){
+    img4.src = 'brokenimg.jpg';
+
+    //test if img.complete is set to false if src is changed
+    assert_false(img4.complete, "src changed to broken img, should be set to false");
+  });
+
+  img4.onload = img4.onerror = t2.step_func(function(event){
+    assert_equals(event.type, "error");
+    assert_true(img4.complete);
+    t2.done();
+  });
+</script>

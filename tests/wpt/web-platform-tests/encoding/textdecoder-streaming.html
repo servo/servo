@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Encoding API: Streaming decode</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/encodings.js"></script>
+<script>
+
+var string = '\\x00123ABCabc\\x80\\xFF\\u0100\\u1000\\uFFFD\\uD800\\uDC00\\uDBFF\\uDFFF';
+
+utf_encodings.forEach(function (encoding) {
+    for (var len = 1; len <= 5; ++len) {
+        test(function() {
+            var encoded = new TextEncoder(encoding).encode(string);
+
+            var out = '';
+            var decoder = new TextDecoder(encoding);
+            for (var i = 0; i < encoded.length; i += len) {
+                var sub = [];
+                for (var j = i; j < encoded.length && j < i + len; ++j)
+                    sub.push(encoded[j]);
+                out += decoder.decode(new Uint8Array(sub), {stream: true});
+            }
+            out += decoder.decode();
+            assert_equals(out, string);
+        }, 'Streaming decode: ' + encoding + ', ' + len + ' byte window');
+    }
+});
+
+</script>

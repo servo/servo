@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>li element</title>
+    <link rel="author" title="dzenana" href="mailto:dzenana.trenutak@gmail.com">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-li-element">
+    <link rel="match" href="grouping-li-reftest-002-ref.html" />
+    <meta name="assert" content="li elements with ol parents have ordinal values." />
+    <style type="text/css">
+        span p {display:list-item; margin-left: 0; margin-top: 0; margin-bottom: 0; padding-left: 0; padding-top: 0; padding-bottom: 0;}
+        span li {margin-left: 0; margin-top: 0; margin-bottom: 0; padding-left: 0; padding-top: 0; padding-bottom: 0; font-family: monospace;}
+        span ol {margin-left: 0; margin-top: 0; margin-bottom: 0; padding-left: 5em; padding-top: 0; padding-bottom: 0; font-family: monospace;
+                list-style-position: inside; list-style-type: decimal; }
+    </style>
+</head>
+<body>
+    <h1>Description</h1>
+    <p>This test continues to validate the li element.</p>
+
+    <p>The spec states:</p>
+    <blockquote>"If the parent element is an ol element, then the li element has an ordinal value. The value attribute is processed relative to the element's parent ol element (q.v.), if there is one. If there is not, the attribute has no effect."</blockquote>
+    <p>This reftest verifies that the value attribute has an effect when applied to a list item with an ol parent.</p>
+    <p>A reftest is necessary because the values of li elements as calculated by the user agent are NOT available programatically.  Only explicitly-set values are then available programatically.</p>
+    <p>This reftest passes if you see the numbers 1. 2. 3. below the words "Ordered List"</p>
+
+    <span>
+        <p>Ordered List</p>
+        <ol>
+            <li></li>
+            <li></li>
+            <li></li>
+        </ol>
+    </span>
+</body>
+</html>

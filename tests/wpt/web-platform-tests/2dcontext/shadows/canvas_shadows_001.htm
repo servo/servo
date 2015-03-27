@@ -1,0 +1,36 @@
+<!doctype HTML>
+<html>
+    <head>
+        <title>HTML5 Canvas Test: Shadows for linear gradients</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com" />
+        <link rel="help" href="http://www.w3.org/TR/2dcontext/#shadows" />
+        <meta name="assert" content="Shadows must be drawn for linear gradients." />
+        <script type="text/javascript">
+            function runTest()
+            {
+                var canvas = document.getElementById("canvas1");
+                var ctx = canvas.getContext("2d");
+
+                // Draw a red rectangle.
+                ctx.fillStyle = "rgba(255, 0, 0, 1.0)";
+                ctx.fillRect(150, 0, 100, 50);
+
+                // Set shadow styles to draw a black shadow to overlap the red rectangle.
+                ctx.shadowOffsetX = 150;
+                ctx.shadowColor = "rgba(0, 0, 0, 1.0)";
+
+                // Draw a left to right, green-to-blue linear gradient.
+                var lingrad = ctx.createLinearGradient(0, 50, 100, 50);
+                lingrad.addColorStop(0, "rgba(0, 255, 0, 1.0)");
+                lingrad.addColorStop(1, "rgba(0, 0, 255, 1.0)");
+                ctx.fillStyle = lingrad;
+                ctx.fillRect(0, 0, 100, 50);
+            }
+        </script>
+    </head>
+    <body onload="runTest()">
+        <p>Description: Shadows must be drawn for linear gradients.</p>
+        <p>Test passes if there is one gradient filled rectangle and one black rectangle, and no red seen on the page.</p>
+        <canvas id="canvas1" width="300" height="150">Browser does not support HTML5 Canvas.</canvas>
+    </body>
+</html>

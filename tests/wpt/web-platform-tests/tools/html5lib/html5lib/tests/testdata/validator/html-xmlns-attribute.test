@@ -1,0 +1,23 @@
+{"tests": [
+
+{"description": "valid html xmlns attribute",
+"input": "<html xmlns=http://www.w3.org/1999/xhtml>",
+"fail-if": "invalid-root-namespace"},
+
+{"description": "invalid html xmlns attribute due to leading space",
+"input": "<html xmlns=' http://www.w3.org/1999/xhtml'>",
+"fail-unless": "invalid-root-namespace"},
+
+{"description": "invalid html xmlns attribute due to trailing space",
+"input": "<html xmlns='http://www.w3.org/1999/xhtml '>",
+"fail-unless": "invalid-root-namespace"},
+
+{"description": "invalid html xmlns attribute due to uppercase",
+"input": "<html xmlns=HTTP://WWW.W3.ORG/1999/XHTML>",
+"fail-unless": "invalid-root-namespace"},
+
+{"description": "invalid xmlns attribute on non-html element",
+"input": "<body xmlns=http://www.w3.org/1999/xhtml>",
+"fail-unless": "unknown-attribute"}
+
+]}

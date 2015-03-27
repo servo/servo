@@ -1,0 +1,22 @@
+[
+    {
+        "id": "client-identification",
+        "original_id": "client-identification"
+    },
+    {
+        "id": "custom-handlers",
+        "original_id": "custom-handlers"
+    },
+    {
+        "id": "security-and-privacy",
+        "original_id": "security-and-privacy"
+    },
+    {
+        "id": "sample-handler-impl",
+        "original_id": "sample-handler-impl"
+    },
+    {
+        "id": "manually-releasing-the-storage-mutex",
+        "original_id": "manually-releasing-the-storage-mutex"
+    }
+]

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, a cue's align, position, line and size properties is possible to override using the DOM APIs</title>
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.video {
+    display: inline-block;
+    width: 1280px;
+    height: 720px;
+    position: relative
+}
+.cue {
+    position: absolute;
+    top: 0;
+    right: 204.8px;
+    width: 256px;
+    text-align: left
+}
+.cue > span {
+    font-family: Ahem, sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: green;
+    font-size: 36px;
+}
+</style>
+<div class="video"><span class="cue"><span>There is nothing to see here people, move on</span></span></div>

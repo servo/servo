@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Range.comparePoint</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+  var r = document.createRange();
+  r.detach()
+  assert_equals(r.comparePoint(document.body, 0), 1)
+})
+test(function() {
+  var r = document.createRange();
+  assert_throws(new TypeError(), function() { r.comparePoint(null, 0) })
+})
+test(function() {
+  var doc = document.implementation.createHTMLDocument("tralala")
+  var r = document.createRange();
+  assert_throws("WRONG_DOCUMENT_ERR", function() { r.comparePoint(doc.body, 0) })
+})
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<title>WebVTT rendering, ::cue(u), font properties</title>
+<link rel="match" href="underline_font_properties-ref.html">
+<style>
+html { overflow:hidden }
+body { margin:0 }
+::cue(u) {
+    font-style: italic;
+    font-variant: small-caps;
+    font-weight: normal;
+    font-size: 36px;
+    line-height: 72px;
+    font-family: sans-serif;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="1280" height="720" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="../../../support/test_underline.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</video>
+</html>

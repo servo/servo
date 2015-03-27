@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Blob.close</title>
+<link rel=help href="http://dev.w3.org/2006/webapi/FileAPI/#dfn-close">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/Blob.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  var blob = new Blob(["TEST"]);
+  var sliced = blob.slice();
+  blob.close();
+  test_blob(function() {
+    return blob;
+  }, {
+    expected: "",
+    type: "",
+    desc: "Blob should be empty."
+  });
+  test_blob(function() {
+    return sliced;
+  }, {
+    expected: "PASS",
+    type: "",
+    desc: "Slice should still have the data."
+  });
+});
+</script>

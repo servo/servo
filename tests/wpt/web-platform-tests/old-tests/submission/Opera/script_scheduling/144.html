@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html><head>
+	<title>scheduler: SVG inline script changing the type attribute </title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+<div id="log"></div>
+<script>
+  var t = async_test(undefined, {timeout:3000});
+</script>
+<svg>
+<script type="text/plain">
+t.step(function() {assert_unreached()});
+</script>
+</svg>
+<script>
+t.step(function() {
+  var s = document.querySelector("svg > script");
+  s.textContent = "t.step(function() {log('inline script #1')})";
+  s.type = "";
+  s.parentNode.appendChild(s);
+});
+onload = t.step_func(function() {
+  assert_array_equals(eventOrder, ["inline script #1"]);
+  t.done();
+});
+</script>

@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+    <title>XMLHttpRequest: abort() after a timeout should not fire "abort" event</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-abort()-method" data-tested-assertations="following::ol[1]/li[4] following::ol[1]/li[5]"/>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-timeout-attribute" data-tested-assertations="following::ol[1]/li[2]"/>
+</head>
+<body>
+<div id="log"></div>
+<script>
+    var test = async_test();
+
+    test.step(function() {
+        // timeout is 100ms
+        // the download would otherwise take 1000ms
+        // we check after 300ms to make sure abort does not fire an "abort" event
+
+        var timeoutFired = false;
+
+        var client = new XMLHttpRequest();
+
+        assert_true('timeout' in client, 'xhr.timeout is not supported in this user agent');
+
+        client.timeout = 100;
+
+        setTimeout(test.step_func(function() {
+            assert_true(timeoutFired);
+
+            // abort should not cause the "abort" event to fire
+            client.abort();
+
+            setTimeout(function(){ // use a timeout to catch any implementation that might queue an abort event for later - just in case
+              test.step(function(){test.done();});
+            }, 200);
+
+            assert_equals(client.readyState, 0);
+
+            test.done();
+        }), 300);
+
+        client.ontimeout = function () {
+            timeoutFired = true;
+        };
+
+        client.onabort = test.step_func(function () {
+            // this should not fire!
+
+            assert_unreached("abort() should not cause the abort event to fire");
+        });
+
+        client.open("GET", "/common/blank.html?pipe=trickle(d1)", true);
+        client.send(null);
+    });
+</script>
+</body>
+</html>

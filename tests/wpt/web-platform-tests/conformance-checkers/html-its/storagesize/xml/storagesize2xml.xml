@@ -1,0 +1,8 @@
+<fields>
+  <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+    <its:storageSizeRule selector="//field" storageSizePointer="@max" storageEncodingPointer="@encoding"/>
+  </its:rules>
+  <field type="country" id="123" max="25" encoding="ISO-8859-1">Papouasie-Nouvelle-Guinée</field>
+  <field type="country" id="139" max="25" encoding="ISO-8859-1">République Dominicaine</field>
+</fields>
+

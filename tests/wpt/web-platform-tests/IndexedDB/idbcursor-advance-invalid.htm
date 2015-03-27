@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<title>IDBCursor.advance() - invalid</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<link rel=help href="http://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#widl-IDBCursor-advance-void-unsigned-long-count">
+<link rel=assert title="If the value for count is 0 (zero) or a negative number, this method must throw a JavaScript TypeError exception.">
+<link rel=assert title="TypeError The value passed into the count parameter was zero or a negative number.">
+<link rel=assert title="InvalidStateError The cursor is currently being iterated, or has iterated past its end.">
+<link rel=assert title="Calling this method more than once before new cursor data has been loaded is not allowed and results in a DOMException of type InvalidStateError being thrown. For example, calling advance() twice from the same onsuccess handler results in a DOMException of type InvalidStateError being thrown on the second call.">
+<link rel=assert title="Before this method returns, unless an exception was thrown, it sets the got value flag on the cursor to false.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+
+    var db, open;
+
+    setup(function() {
+        open = indexedDB.open('testdb-' + new Date().getTime());
+        open.onupgradeneeded = function(e) {
+            db = e.target.result;
+            var objStore = db.createObjectStore("test");
+            objStore.createIndex("index", "");
+
+            objStore.add("data",  1);
+            objStore.add("data2", 2);
+        };
+    },
+    { explicit_done: true });
+
+
+    open.onsuccess = function() {
+
+        async_test(document.title + " - attempt to call advance twice").step(function(e) {
+            var count = 0;
+            var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+
+            rq.onsuccess = this.step_func(function(e) {
+                if (!e.target.result) {
+                    assert_equals(count, 2, 'count');
+                    this.done();
+                    return;
+                }
+                var cursor = e.target.result;
+
+                cursor.advance(1);
+
+                // Second try
+                assert_throws('InvalidStateError',
+                    function() { cursor.advance(1); }, 'second advance');
+
+                assert_throws('InvalidStateError',
+                    function() { cursor.advance(3); }, 'third advance');
+
+                count++;
+            });
+            rq.onerror = fail(this, "unexpected error")
+        });
+
+
+        async_test(document.title + " - pass something other than number").step(function(e) {
+            var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+
+            rq.onsuccess = this.step_func(function(e) {
+                var cursor = e.target.result;
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance(document); });
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance({}); });
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance([]); });
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance(""); });
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance("1 2"); });
+
+                this.done();
+            });
+            rq.onerror = fail(this, "unexpected error")
+        });
+
+
+        async_test(document.title + " - pass null/undefined").step(function(e) {
+            var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+
+            rq.onsuccess = this.step_func(function(e) {
+                var cursor = e.target.result;
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance(null); });
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance(undefined); });
+
+                var myvar = null;
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance(myvar); });
+
+                this.done();
+            });
+            rq.onerror = fail(this, "unexpected error")
+        });
+
+
+        async_test(document.title + " - missing argument").step(function(e) {
+            var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+
+            rq.onsuccess = this.step_func(function(e) {
+                var cursor = e.target.result;
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance(); });
+
+                this.done();
+            });
+            rq.onerror = fail(this, "unexpected error")
+        });
+
+
+        async_test(document.title + " - pass negative numbers").step(function(e) {
+            var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+
+            rq.onsuccess = this.step_func(function(e) {
+                var cursor = e.target.result;
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance(-1); });
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance(NaN); });
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance(0); });
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance(-0); });
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance(Infinity); });
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance(-Infinity); });
+
+                var myvar = -999999;
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance(myvar); });
+
+                this.done();
+            });
+            rq.onerror = fail(this, "unexpected error")
+        });
+
+
+        async_test(document.title + " - got value not set on exception").step(function(e) {
+            var count = 0;
+            var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+
+            rq.onsuccess = this.step_func(function(e) {
+                var cursor = e.target.result;
+                if (!cursor)
+                {
+                    assert_equals(count, 2, "count runs");
+                    this.done();
+                    return;
+                }
+
+                assert_throws({ name: "TypeError" },
+                    function() { cursor.advance(0); });
+
+                cursor.advance(1);
+                count++;
+            });
+            rq.onerror = fail(this, "unexpected error")
+        });
+
+
+        // Stop blocking the testing system from hereon
+        done();
+    }
+
+</script>
+
+<div id=log></div>

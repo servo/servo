@@ -1,0 +1,121 @@
+<!doctype html>
+
+<!--
+Tests that GainNode is properly scaling the gain.
+We'll render 11 notes, starting at a gain of 1.0, decreasing in gain by 0.1.
+The 11th note will be of gain 0.0, so it should be silent (at the end in the rendered output).
+
+Based on a test from the WebKit test suite
+(https://github.com/WebKit/webkit/blob/master/LayoutTests/webaudio/gain.html)
+-->
+
+<html class="a">
+ <head>
+  <title>GainNode interface</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/webaudio/js/lodash.js"></script>
+  <script src="/webaudio/js/vendor-prefixes.js"></script>
+  <script src="/webaudio/js/helpers.js"></script>
+  <script src="/webaudio/js/buffer-loader.js"></script>
+ </head>
+ <body class="a">
+  <div id="log"></div>
+  <script>
+var gainNodeTest = async_test("GainNode");
+
+var sampleRate = 44100.0;
+var bufferDurationSeconds = 0.125;
+var numberOfNotes = 11;
+var noteSpacing = bufferDurationSeconds + 0.020; // leave 20ms of silence between each "note"
+var lengthInSeconds = numberOfNotes * noteSpacing;
+
+var context = 0;
+var expectedBuffer = 0;
+var actualBuffer = 0;
+var sinWaveBuffer = 0;
+
+function createSinWaveBuffer(lengthInSeconds, frequency) {
+  var audioBuffer = context.createBuffer(2, lengthInSeconds * sampleRate, sampleRate);
+
+  var n = audioBuffer.length;
+  var channelL = audioBuffer.getChannelData(0);
+  var channelR = audioBuffer.getChannelData(1);
+
+  for (var i = 0; i < n; ++i) {
+    channelL[i] = Math.sin(frequency * 2.0*Math.PI * i / sampleRate);
+    channelR[i] = channelL[i];
+  }
+
+  return audioBuffer;
+}
+
+function playNote(time, gain) {
+  var source = context.createBufferSource();
+  source.buffer = sinWaveBuffer;
+
+  var gainNode = context.createGain();
+  gainNode.gain.value = gain;
+
+  source.connect(gainNode);
+  gainNode.connect(context.destination);
+
+  source.start(time);
+}
+
+function loadExpectedBuffer(event) {
+  actualBuffer = event.renderedBuffer;
+
+  bufferLoader = new BufferLoader(
+    context,
+    ['/webaudio/the-audio-api/the-gainnode-interface/gain-expected.wav'],
+    bufferLoadCompleted
+  );
+  bufferLoader.load();
+};
+
+function bufferLoadCompleted(buffer) {
+  compareExpectedWithActualBuffer(buffer);
+};
+
+setup( function() {
+  // Create offline audio context.
+  context = new OfflineAudioContext(2, sampleRate * lengthInSeconds, sampleRate);
+
+  // Create a buffer for a short "note".
+  sinWaveBuffer = createSinWaveBuffer(bufferDurationSeconds, 880.0);
+
+  // Render 11 notes, starting at a gain of 1.0, decreasing in gain by 0.1.
+  // The last note will be of gain 0.0, so shouldn't be perceptible in the rendered output.
+  for (var i = 0; i < numberOfNotes; ++i) {
+    var time = i * noteSpacing;
+    var gain = 1.0 - i / (numberOfNotes - 1);
+    playNote(time, gain);
+  }
+
+  context.oncomplete = loadExpectedBuffer;
+  context.startRendering();
+}, {timeout: 10000});
+
+function compareExpectedWithActualBuffer(expected) {
+  var expectedBuffer = expected[0];
+
+  gainNodeTest.step(function() {
+    assert_array_approx_equals(expectedBuffer.getChannelData(0),
+                               actualBuffer.getChannelData(0),
+                               1e-4,
+                               "comparing expected and rendered buffers (channel 0)");
+  });
+
+  gainNodeTest.step(function() {
+    assert_array_approx_equals(expectedBuffer.getChannelData(1),
+                               actualBuffer.getChannelData(1),
+                               1e-4,
+                               "comparing expected and rendered buffers (channel 1)");
+  });
+
+  gainNodeTest.done();
+};
+  </script>
+ </body>
+</html>

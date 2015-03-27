@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<title>Service Workers: event.default()</title>
+    <head>
+        <link rel="help" href="https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#default-method">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+    </head>
+    <body>
+
+<!--
+
+`event.default()` method must run these steps:
+
+1.  Let `promise` be a newly-created [promise][1].
+2.  Return `promise.`
+3.  Run the following steps asynchronously:
+    1.  Let `request` be `event`'s `request`.
+    2.  Set `request`'s [skip service worker flag][2].
+    3.  Let `response` be the result of running [fetch algorithm][3] with
+        `request` as its argument.
+    4.  If `response` is a [network error][4], then:
+        1.  Reject `promise` with a new [DOMException][5] whose name is
+            "[NetworkError][6]".
+    5.  Else,
+        1.  Resolve `promise` with a new [Response][7] object associated
+            with `response`.
+
+
+
+[1]: http://goo.gl/3TobQS
+[2]: http://goo.gl/gP7IWW
+[3]: http://goo.gl/fGMifs
+[4]: http://goo.gl/jprjjc
+[5]: http://goo.gl/A0U8qC
+[6]: http://goo.gl/lud5HB
+[7]: http://goo.gl/Deazjv
+
+-->
+
+
+
+    <script>
+        test(function() {
+            // not_implemented();
+        }, "There are no tests for section event.default() so far.");
+    </script>
+
+    </body>
+</html>
+

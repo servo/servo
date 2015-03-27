@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - drag ending over draggable element</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background: orange url(../../resources/100x100-navy.png) repeat-y scroll right top;
+  }
+</style>
+
+<script type="text/javascript">
+
+window.onload = function() {
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragstart = function(e) {
+		e.dataTransfer.effectAllowed = 'link';
+    e.dataTransfer.setData('Text', 'dummy text');
+  };
+};
+
+</script>
+
+<div draggable='true'></div>
+
+<p>Use your mouse to drag the orange box over the blue box, and release. While dragging over the blue box, the mouse cursor should appear as a &quot;no-drop&quot; cursor.<br>
+Release the drag. The cursor should revert to the default mouse cursor.</p>
+<p>This test only applies to platforms with a mouse cursor that can change to indicate drop status.</p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

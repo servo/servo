@@ -1,0 +1,19 @@
+CACHE MANIFEST
+
+# Version 1
+
+CACHE:
+../css/clock.css
+../js/clock.js
+
+CACHE:
+../css/result.css
+../css/offline.css
+/resources/testharness.js
+/resources/testharnessreport.js
+
+NETWORK:
+../html/clock.html
+
+FALLBACK:
+../css/online.css ../css/offline.css

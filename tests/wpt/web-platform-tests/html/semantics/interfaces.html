@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Test of interfaces</title>
+<link rel="author" title="Ms2ger" href="mailto:Ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/">
+<link rel="help" href="https://heycam.github.io/webidl/#host-objects">
+<link rel="help" href="http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-262.pdf#page=96">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=interfaces.js></script>
+<div id="log"></div>
+<script>
+test(function() {
+  elements.forEach(function(a) {
+    test(function() {
+      var e = document.createElement(a[0]), i = "HTML" + a[1] + "Element";
+      assert_class_string(e, i,
+                          "Element " + a[0] + " should have " + i +
+                          " as its primary interface.");
+      assert_true(e instanceof window[i],
+                  "Element " + a[0] + " should implement " + i + ".");
+      assert_true(e instanceof HTMLElement,
+                  "Element " + a[0] + " should implement HTMLElement.");
+      assert_true(e instanceof Element,
+                  "Element " + a[0] + " should implement Element.");
+      assert_true(e instanceof Node,
+                  "Element " + a[0] + " should implement Node.");
+    }, "Interfaces for " + a[0])
+  })
+})
+</script>

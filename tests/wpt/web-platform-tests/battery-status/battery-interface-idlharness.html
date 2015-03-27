@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Battery test: IDL</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script type="text/plain" class="untested">
+interface Navigator { };
+
+interface EventTarget {
+  void addEventListener(DOMString type, EventListener? callback, optional boolean capture);
+  void removeEventListener(DOMString type, EventListener? callback, optional boolean capture);
+  boolean dispatchEvent(Event event);
+};
+
+[Callback]
+interface EventListener {
+  void handleEvent(Event event);
+};
+</script>
+<script type="text/plain">
+partial interface Navigator {
+    Promise<BatteryManager> getBattery ();
+};
+
+interface BatteryManager : EventTarget {
+    readonly attribute boolean             charging;
+    readonly attribute unrestricted double chargingTime;
+    readonly attribute unrestricted double dischargingTime;
+    readonly attribute double              level;
+             attribute EventHandler        onchargingchange;
+             attribute EventHandler        onchargingtimechange;
+             attribute EventHandler        ondischargingtimechange;
+             attribute EventHandler        onlevelchange;
+};
+</script>
+<script>
+"use strict";
+var idl_array = new IdlArray();
+var idls;
+[].forEach.call(document.querySelectorAll('script[type=text\\/plain]'), function(node) {
+  // replace 'EventHandler' and 'unrestricted double' unrecognized by idlharness.js
+  idls = node.textContent.replace(/EventHandler/g, 'Function?').replace(/unrestricted double/g, 'double');
+  idl_array[(node.className === 'untested') ? 'add_untested_idls' : 'add_idls'](idls);
+});
+idl_array.add_objects({Navigator: ['navigator'], BatteryManager: ['navigator.getBattery()']});
+idl_array.test();
+</script>
+
+<h2>Description</h2>
+<p>
+  This test validates the BatteryManager interface IDL.
+</p>
+<p>
+  This test uses <a href="/resources/idlharness.js">idlharness.js</a>, and
+  is complementary to the <a href="battery-interface.html">battery-interface.html</a>
+  test.
+</p>
+
+<div id="log"></div>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html><head>
+	<title>scheduler: altering the type attribute and changing script data inline script </title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+<div id="log"></div>
+<script>
+  var t = async_test();
+</script>
+<script id="test" type="text/plain">t.step(function() {log("inline script #1")});</script>
+<script>
+t.step(function() {
+  log("inline script #2");
+  var script = document.getElementById("test");
+  script.removeAttribute("type");
+  script.appendChild(document.createTextNode(""));
+  log("end inline script #2");
+});
+onload = t.step_func(function() {
+  assert_array_equals(eventOrder, ["inline script #2", "inline script #1", "end inline script #2"]);
+  t.done();
+})
+</script>

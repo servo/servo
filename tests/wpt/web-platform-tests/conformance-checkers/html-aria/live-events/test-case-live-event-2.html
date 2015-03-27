@@ -1,0 +1,80 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>ARIA 1.0 Live Region Event Test Case: Delete text content</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <style type="text/css">
+      div#TEST_ID {
+        margin: 0.5em; 
+        padding: 0.25em; 
+        border: medium gray solid; 
+        width: 10em;
+      } 
+    </style>  
+  </head>
+  <body>
+    <h1>ARIA 1.0 Live Region Event Test Case: Delete text content</h1>
+    
+    <div id="TEST_ID" aria-live="polite" >
+      TEST TEXT
+    </div>
+    
+    <button onclick="tryAgain()">Try Again</button>
+    
+    <h2>Description</h2>
+    <p>An element with an aria-live attribute with the value "polite" has a text content deleted
+    1.5 seconds after the document is loaded.</p>
+    
+    <h2>Expected Results</h2>
+    
+    <dl>
+      <dt>ATK/AT-SPI</dt>
+      <dd>ATK/AT-SPIevent: text_changed::delete event</dd>
+      
+      <dt>AXAPI</dt>
+      <dd></dd>
+      <dd>AXLiveRegionChanged notification</dd>
+      
+      <dt>MSAA + IAccessible2</dt>
+      <dd>IAccessible2: IA2_EVENT_TEXT_REMOVED event</dd>
+      
+      <dt>MSAA + UIA Express</dt>
+      <dd>TextPattern..::.TextChangedEvent event</dd>
+      
+    </dl>
+    
+    
+    <script type="text/javascript">  
+
+      function tryAgain() {
+        addText()
+        
+        onLoad();
+        
+      }  
+
+      function clearText() {
+        var node = document.getElementById('TEST_ID');  
+        
+        while (node.firstChild) node.removeChild(node.firstChild);
+      }  
+
+      function addText () {
+        var node = document.getElementById('TEST_ID');  
+        
+        var text_node = document.createTextNode('TEST TEXT');
+        
+        node.appendChild(text_node);
+      }  
+
+      function onLoad() {
+      
+        setTimeout(clearText,1500);
+       
+      }
+
+      window.addEventListener('load', onLoad);
+    </script>
+  </body>
+  
+</html>

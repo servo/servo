@@ -1,0 +1,35 @@
+<!--
+var xhr = new XMLHttpRequest();
+var log = '';
+xhr.onreadystatechange = function(e) {
+  if (this.readyState == 4) {
+    if (this.responseXML != null)
+      log += 'responseXML was not null. ';
+    if (this.responseText != '<x>foo</x>')
+      log += 'responseText was ' + this.responseText + ', expected <x>foo</x>. ';
+    postMessage(log);
+  }
+}
+xhr.open('GET', '001-1.xml', true);
+xhr.send();
+/*
+-->
+<!doctype html>
+<title>async XMLHttpRequest in dedicated worker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+var t = async_test();
+function runtest() {
+  var worker = new Worker('#');
+  worker.onmessage = this.step_func(function(e) {
+    assert_equals(e.data, '');
+    this.done();
+  });
+}
+</script>
+<iframe src=001-1.xml onload="t.step(runtest);"></iframe>
+<!--
+*/
+//-->

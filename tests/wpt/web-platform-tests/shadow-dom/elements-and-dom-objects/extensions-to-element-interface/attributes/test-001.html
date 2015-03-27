@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test: A_10_02_01_01</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#shadow-aware-attributes">
+<meta name="assert" content="Extensions to Element Interface: pseudo of type DOMString attribute. Test getter when there is a custom pseudo-element associated with this element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(function () {
+
+	var d = newHTMLDocument();
+
+    var widget = d.createElement('div');
+    d.body.appendChild(widget);
+
+    var s = widget.createShadowRoot();
+
+    var thumb = d.createElement('span');
+    thumb.innerHTML = 'This is a pseudo-element';
+    thumb.pseudo = 'x-thumb';
+    s.appendChild(thumb);
+
+    var style = d.createElement('style');
+    style.innerHTML = '' +
+    	'div::x-thumb {' +
+    	'font-size: 30px;' +
+    	'}';
+    d.body.appendChild(style);
+
+    assert_true(thumb.pseudo != null, 'attribute \'pseudo\' must not be null');
+
+    assert_equals(thumb.pseudo, 'x-thumb', 'attribute \'pseudo\' must return ' +
+    		'the current custom pseudo-element value')
+
+}, 'A_10_02_01_01_T01');
+</script>
+</body>
+</html>

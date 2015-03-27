@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test: A_10_01_02_09</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#shadow-root-methods">
+<meta name="assert" content="ShadowRoot Object: Invoking the cloneNode() method on a ShadowRoot instance must always throw a DATA_CLONE_ERR exception.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(unit(function (ctx) {
+	var d = newRenderedHTMLDocument(ctx);
+
+	var host = d.createElement('div');
+	d.body.appendChild(host);
+	var s = host.createShadowRoot();
+
+	try {
+		s.cloneNode();
+		assert_true(false, 'Invoking the cloneNode() method on a ShadowRoot instance must always ' +
+    	'throw a DATA_CLONE_ERR exception.');
+	} catch (e) {
+		assert_equals(e.code, 25, 'Wrong exceprion type');
+	}
+}), 'A_10_01_02_09_T01');
+</script>
+</body>
+</html>

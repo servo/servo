@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+    <head>
+        <title>touch-action: basic verification</title>
+        <meta name="assert" content="TA15.20 - The touch-action CSS property determines whether touch input MAY trigger default behavior supplied by the user agent.
+        auto: The user agent MAY determine any permitted touch behaviors, such as panning and zooming manipulations of the viewport, for touches that begin on the element. 
+        none: Touches that begin on the element MUST NOT trigger default touch behaviors.
+        pan-x: The user agent MAY consider touches that begin on the element only for the purposes of horizontally scrolling the element's nearest ancestor with horizontally scrollable content.
+        pan-y: The user agent MAY consider touches that begin on the element only for the purposes of vertically scrolling the element's nearest ancestor with vertically scrollable content.
+        manipulation: The user agent MAY consider touches that begin on the element only for the purposes of scrolling and continuous zooming. Any additional behaviors supported by auto are out of scope for this specification.">
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="pointerevent_support.js"></script>
+        <style>
+            #target0 {
+            width: 700px;
+            height: 20px;
+            touch-action: auto;
+            }
+            #target1 {
+            width: 700px;
+            height: 20px;
+            touch-action: none;
+            background: black;
+            margin-top: 5px;
+            touch-action: pan-x;
+            }
+            #target2 {
+            width: 700px;
+            height: 20px;
+            touch-action: none;
+            background: black;
+            margin-top: 5px;
+            touch-action: pan-y;
+            }
+            #target3 {
+            width: 700px;
+            height: 20px;
+            touch-action: none;
+            background: black;
+            margin-top: 5px;
+            touch-action: none;
+            }
+            #target4 {
+            width: 700px;
+            height: 20px;
+            touch-action: none;
+            background: black;
+            margin-top: 5px;
+            touch-action: manipulation;
+            }
+        </style>
+    </head>
+    <body onload="run()">
+        <h2>Pointer Events touch-action attribute support</h2>
+        <h4 id="desc">Test Description: Test will automatically check behaviour of following values: 'auto', 'pan-x', 'pan-y', ' none', 'manipulation'</h4>
+        <div id="target0"></div>
+        <div id="target1"></div>
+        <div id="target2"></div>
+        <div id="target3"></div>
+        <div id="target4"></div>
+        <script type='text/javascript'>
+            var detected_pointertypes = {};
+
+            setup({ explicit_done: true });
+
+            function run() {
+                var target0 = document.getElementById('target0');
+                var target1 = document.getElementById('target1');
+                var target2 = document.getElementById('target2');
+                var target3 = document.getElementById('target3');
+                var target4 = document.getElementById('target4');
+
+                //TA 15.20
+                test(function() {
+                        assert_true(getComputedStyle(target0).touchAction == 'auto', "'auto' is set properly");
+                    }, "'auto' is set properly");
+                test(function() {
+                        assert_true(getComputedStyle(target1).touchAction == 'pan-x', "'pan-x' is corrected properly");
+                    }, "'pan-x' is corrected properly");
+                test(function() {
+                    assert_true(getComputedStyle(target2).touchAction == 'pan-y', "'pan-y' is set properly");
+                    }, "'pan-y' is set properly");
+                test(function() {
+                    assert_true(getComputedStyle(target3).touchAction == 'none', "'none' is set properly");
+                    }, "'none' is set properly");
+                test(function() {
+                    assert_true(getComputedStyle(target4).touchAction == 'manipulation', "'manipulation' is set properly");
+                    }, "'manipulation' is set properly");
+                done();
+            }
+        </script>
+        <h1>touch-action: basic verification</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

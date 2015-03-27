@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>exception InvalidName {
+  DOMString reason;
+};
+
+exception NoSuchPet { };
+
+interface Person {
+
+  attribute unsigned short age;
+
+};</webidl>
+  <Exception name="InvalidName" id="::InvalidName">
+    <webidl>exception InvalidName {
+  DOMString reason;
+};</webidl>
+    <ExceptionField name="reason" id="::InvalidName::reason">
+      <webidl>  DOMString reason;</webidl>
+      <Type type="DOMString"/>
+    </ExceptionField>
+  </Exception>
+  <Exception name="NoSuchPet" id="::NoSuchPet">
+    <webidl>exception NoSuchPet { };</webidl>
+  </Exception>
+  <Interface name="Person" id="::Person">
+    <webidl>interface Person {
+
+  attribute unsigned short age;
+
+};</webidl>
+    <Attribute name="age" id="::Person::age">
+      <webidl>  attribute unsigned short age;</webidl>
+      <Type type="unsigned short"/>
+    </Attribute>
+  </Interface>
+</Definitions>

@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Offline Application Cache - API_status_UNCACHED</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+
+    <script>
+      var cache = window.applicationCache;
+
+      test(function(){
+        assert_equals(cache.status, cache.UNCACHED, "uncached status test");
+      });
+    </script>
+  </body>
+</html>

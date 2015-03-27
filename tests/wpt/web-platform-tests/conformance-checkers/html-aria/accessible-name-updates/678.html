@@ -1,0 +1,36 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>ARIA 1.0 Test Case 678</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case 678</h1>
+    
+    <div aria-live="assertive" >
+      <span id="TEST_ID" style="display: none">Text in markup</span>
+    </div>
+    
+    <h2>Description</h2>
+    <p>An element with an aria-live attribute is defined in markup with the 
+      value="assertive" which has a child DOM element node with text content 
+      that is hidden using CSS display="none". After the onload event completes 
+      a child DOM element node with text content has the CSS dsiplay property 
+      changed to display="block".</p>
+    
+    <script type="text/javascript">  
+  
+      function showElement() {
+        var node = document.getElementById('TEST_ID');  
+        node.style.display = 'block';
+      }
+     
+      function onload() {
+        setTimeout(showElement,1000);
+      }
+     
+      window.addEventListener('load', onload);
+    </script>
+  </body>
+  
+</html>

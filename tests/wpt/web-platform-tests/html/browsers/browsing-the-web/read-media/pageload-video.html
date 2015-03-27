@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Media documents: video</title>
+  <link rel="author" title="Michael Ventnor" href="mailto:mventnor@mozilla.com">
+  <link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#read-media">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+<script>
+  var t = async_test("The document for a standalone media file should have one child in the body.");
+
+  function frameLoaded() {
+    var testframe = document.getElementById('testframe');
+    var testframeChildren = testframe.contentDocument.body.childNodes;
+    assert_equals(testframeChildren.length, 1, "Body of image document has 1 child");
+    assert_equals(testframeChildren[0].nodeName, "VIDEO", "Only child of body must be an <video> element");
+    assert_equals(testframeChildren[0].namespaceURI, "http://www.w3.org/1999/xhtml",
+                  "Only child of body must be an HTML element");
+    t.done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+  <iframe id="testframe" onload="t.step(frameLoaded)"
+   src="data:video/webm,"></iframe>
+</body>
+</html>

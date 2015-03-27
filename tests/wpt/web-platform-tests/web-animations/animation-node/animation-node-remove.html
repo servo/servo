@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>AnimationNode remove() method tests</title>
+<meta name="assert" content="Removes this animation node from its parent animation group or player">
+<link rel="help" href="http://w3c.github.io/web-animations/#dom-animationnode-remove">
+<link rel="help" href="http://w3c.github.io/web-animations/#remove-an-animation-node">
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+test(function() {
+    var nodes = [newAnimation(createDiv(this)), new AnimationGroup([]), new AnimationSequence([])];
+    nodes.forEach(function(node) {
+        node.remove();
+
+        assert_equals(node.parent, null, type(node) + ' node parent attribute should be null');
+    });
+}, 'AnimationNode.remove() does nothing for standalone node');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node) {
+            var parent = new parentCtor([node]);
+            node.remove();
+
+            assert_array_equals(parent.children, [], type(node) +
+                ' node should be removed from the parent ' + parentCtor.name);
+            assert_equals(node.parent, null, type(node) +
+                ' node parent attribute should be updated');
+        });
+    });
+}, 'AnimationNode.remove() removes node from the parent animation group. ' +
+    'Removed node is the only node in the tree');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node1) {
+            var node2 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2]);
+
+            node1.remove();
+
+            assert_array_equals(parent.children, [node2], type(node1) +
+                ' node should be removed from the parent ' + parentCtor.name);
+            assert_equals(parent.firstChild, node2, 'Parent ' + parentCtor.name +
+                ' firstChild attribute should be updated');
+            assert_equals(node1.parent, null, 'Removed ' + type(node1) +
+                ' node parent attribute should be updated');
+            assert_equals(node1.nextSibling, null, 'Removed ' + type(node1) +
+                ' node nextSibling attribute should be updated');
+            assert_equals(node2.previousSibling, null,
+                'Remaining node previousSibling attribute should be updated');
+        });
+    });
+}, 'AnimationNode.remove() removes node from the parent animation group. ' +
+    'Remove the first node in the group');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2]);
+
+            node2.remove();
+
+            assert_array_equals(parent.children, [node1], type(node2) +
+                ' node should be removed from the parent ' + parentCtor.name);
+            assert_equals(parent.lastChild, node1, 'Parent ' + parentCtor.name +
+                ' lastChild attribute should be updated');
+            assert_equals(node2.parent, null, 'Removed ' + type(node2) +
+                ' node parent attribute should be updated');
+            assert_equals(node1.nextSibling, null,
+                'Remaining node nextSibling attribute should be updated');
+            assert_equals(node2.previousSibling, null, 'Removed ' + type(node2) +
+                ' node previousSibling attribute should be updated');
+        });
+    });
+}, 'AnimationNode.remove() removes node from the parent animation group. ' +
+    'Remove the last node in the group');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2, node3]);
+
+            node2.remove();
+
+            assert_array_equals(parent.children, [node1, node3], type(node2) +
+                ' node should be removed from the parent ' + parentCtor.name);
+            assert_equals(node2.parent, null, 'Removed ' + type(node2) +
+                ' node parent attribute should be updated');
+            assert_equals(node2.nextSibling, null, 'Removed ' + type(node2) +
+                ' node nextSibling attribute should be updated');
+            assert_equals(node2.previousSibling, null, 'Removed ' + type(node2) +
+                ' node previousSibling attribute should be updated');
+            assert_equals(node1.nextSibling, node3,
+                'Remaining node nextSibling attribute should be updated');
+            assert_equals(node3.previousSibling, node1,
+                'Remaining node previousSibling attribute should be updated');
+        });
+    });
+}, 'AnimationNode.remove() removes node from the parent animation group. ' +
+    'Remove node from the middle of the group');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        parents.forEach(function(nodeCtor) {
+            var node1 = newAnimation(createDiv(test));
+            var node2 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var node4 = new nodeCtor([node1, node2]);
+            var node5 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node3, node4, node5]);
+
+            node4.remove();
+
+            assert_array_equals(node4.children, [node1, node2], 'Removed ' +
+                type(node4) + ' node children should not be changed');
+            assert_array_equals(parent.children, [node3, node5], type(node4) +
+                ' node should be removed from the parent ' + parentCtor.name);
+            assert_equals(node4.parent, null, 'Removed ' + type(node2) +
+                ' node parent attribute should be updated');
+            assert_equals(node4.nextSibling, null, 'Removed ' + type(node2) +
+                ' node nextSibling attribute should be updated');
+            assert_equals(node4.previousSibling, null, 'Removed ' + type(node2) +
+                ' node previousSibling attribute should be updated');
+            assert_equals(node3.nextSibling, node5,
+                'Remaining node nextSibling attribute should be updated');
+            assert_equals(node5.previousSibling, node3,
+                'Remaining node previousSibling attribute should be updated');
+        });
+    });
+}, 'Test removing a node that has children');
+
+test(function() {
+    var nodes = [newAnimation(createDiv(this)), new AnimationGroup([]), new AnimationSequence([])];
+    nodes.forEach(function(node) {
+        var player = document.timeline.play(node);
+        node.remove();
+
+        assert_equals(player.source, null, type(node) +
+            ' node should be disassociated from the player');
+    });
+}, 'AnimationNode.remove() disassociates the node from player, ' +
+    'if node is directly associated with a player');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2, node3]);
+            var player = document.timeline.play(parent);
+
+            node2.remove();
+
+            assert_equals(player.source, parent, type(node2) +
+                ' parent node should remain associated with the player');
+        });
+    });
+}, 'AnimationNode.remove() keeps parent direct association with the player');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        parents.forEach(function(nodeCtor) {
+            var node1 = newAnimation(createDiv(test));
+            var node2 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var node4 = newAnimation(createDiv(test));
+            var node5 = new parentCtor([node4]);
+            var group1 = new AnimationGroup([node3, node5]);
+            var node6 = newAnimation(createDiv(test));
+            var node7 = new parentCtor([node6]);
+            var node8 = newAnimation(createDiv(test));
+            var sequence1 = new AnimationSequence([node7,node8]);
+            var node9 = new nodeCtor([node1, group1, node2, sequence1]);
+            var node10 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node9, node10]);
+
+            node9.remove();
+
+            assert_equals(node9.parent, null, 'Removed ' + type(node9) +
+                ' node parent attribute should be updated');
+            assert_array_equals(node9.children, [node1, group1, node2, sequence1],
+                'Removed ' + type(node9) + ' node children should not be changed');
+            for (var i = 0; i < node9.children.length; i++) {
+                assert_equals(node9.children[i].parent, node9, 'Removed ' + type(node9) +
+                    ' node children parent attribute should not be changed for child ' + i);
+            }
+            assert_array_equals(group1.children, [node3, node5],
+                'Removed ' + type(node9) + ' node grand children should not be changed');
+            for (var i = 0; i < group1.children.length; i++) {
+                assert_equals(group1.children[i].parent, group1, 'Removed ' + type(node9) +
+                    ' node grand children parent attribute should not be changed for child ' + i);
+            }
+            assert_array_equals(sequence1.children, [node7,node8],
+                'Removed ' + type(node9) + ' node grand children should not be changed');
+            for (var i = 0; i < sequence1.children.length; i++) {
+                assert_equals(sequence1.children[i].parent, sequence1, 'Removed ' + type(node9) +
+                    ' node grand children parent attribute should not be changed for child ' + i);
+            }
+            assert_array_equals(node5.children, [node4],
+                'Removed ' + type(node9) + ' node grand children should not be changed');
+            assert_equals(node4.parent, node5, 'Removed ' + type(node9) +
+                ' node grand children parent attribute should not be changed');
+            assert_array_equals(node7.children, [node6],
+                'Removed ' + type(node9) + ' node grand children should not be changed');
+            assert_equals(node6.parent, node7, 'Removed ' + type(node9) +
+                ' node grand children parent attribute should not be changed');
+        });
+    });
+}, 'AnimationNode.remove() on the root of a non-trivial tree does not change child structure');
+</script>
+</body>

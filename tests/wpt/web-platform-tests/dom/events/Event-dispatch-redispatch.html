@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset=urf-8>
+<title>EventTarget#dispatchEvent(): redispatching a native event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  var event;
+  document.addEventListener("DOMContentLoaded", this.step_func(function(e) {
+    assert_true(e.isTrusted, "Should be trusted when first handled");
+    event = e;
+  }), true);
+
+  window.onload = this.step_func_done(function() {
+    var received = 0;
+    var target = document.createElement("span");
+    target.addEventListener("DOMContentLoaded", this.step_func(function(e) {
+      assert_false(e.isTrusted, "Should not be trusted during redispatching");
+      ++received;
+    }), true);
+    assert_true(event.isTrusted, "Should be trusted before redispatching");
+    target.dispatchEvent(event);
+    assert_false(event.isTrusted, "Should not be trusted after redispatching");
+    assert_equals(received, 1);
+  });
+});
+</script>

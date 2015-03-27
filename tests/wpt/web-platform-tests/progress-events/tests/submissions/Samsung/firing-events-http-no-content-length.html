@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+  <head>
+    <title>ProgressEvent: firing events for HTTP with no Content-Length</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="http://dvcs.w3.org/hg/progress/raw-file/tip/Overview.html#firing-events-using-the-progressevent-interface-for-http" data-tested-assertations="/following-sibling::ol/li[1] /following-sibling::ol/li[2]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test();
+
+      test.step(function() {
+        var xhr = new XMLHttpRequest();
+
+        xhr.onprogress = function(pe) {
+          test.step(function() {
+            if(pe.type == "progress") {
+              assert_true(pe.loaded >= 0, "loaded is initialize to the number of HTTP entity body bytes transferred.");
+              assert_false(pe.lengthComputable, "lengthComputable is false.");
+              assert_equals(pe.total, 0, "total is zero.");
+            }
+          }, "Check lengthComputed, loaded, total when Content-Length is NOT given.");
+        }
+
+        // "loadstart", "error", "abort", "load" tests are out of scope.
+        // They SHOULD be tested in each spec that implement ProgressEvent.
+
+        xhr.onloadend = function(pe) {
+          test.done();
+        }
+        xhr.open("GET", "resources/no-content-length.py", true);
+        xhr.send(null);
+      })
+    </script>
+  </body>
+</html>

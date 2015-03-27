@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+	<head>
+		<title>* should not prevent dropping on external applications</title>
+		<style type="text/css">
+div { height: 100px; width: 100px; background: orange; }
+		</style>
+		<script type="text/javascript">
+window.onload = function () {
+	document.getElementsByTagName("div")[0].ondragstart = function (e) {
+		e.dataTransfer.effectAllowed = "copy";
+		e.dataTransfer.setData("text","PASS");
+		e.dataTransfer.allowTargetOrigin("*");
+	};
+};
+		</script>
+	</head>
+	<body>
+		<p>This test is only relevant on platforms where it is possible to switch applications in mid-drag (eg. alt+tab, dragging over taskbar buttons, dragging between restored windows).</p>
+		<p>This testcase requires an external application that accepts dropping of text from other applications - eg. Wordpad (write.exe) on Windows. Ensure that the external application is open.</p>
+		<p>Drag the orange block to the other application and release it. Pass if the word &quot;PASS&quot; appears in the other application.</p>
+		<noscript><p>Enable JavaScript and reload</p></noscript>
+		<div draggable="true"></div>
+	</body>
+</html>

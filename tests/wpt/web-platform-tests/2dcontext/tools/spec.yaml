@@ -1,0 +1,717 @@
+# Extracts from http://www.whatwg.org/specs/web-apps/current-work/
+#
+# (c) Copyright 2004-2011 Apple Computer, Inc., Mozilla Foundation, and Opera Software ASA.
+# You are granted a license to use, reproduce and create derivative works of this document.
+
+assertions:
+  - id: canvas.type
+    text: "interface HTMLCanvasElement<^> : HTMLElement {"
+  - id: size.width
+    text: "interface HTMLCanvasElement<...>attribute unsigned long width;<^>"
+  - id: size.height
+    text: "interface HTMLCanvasElement<...>attribute unsigned long height;<^>"
+  - id: canvas.getContext
+    text: "interface HTMLCanvasElement<...>object\\? getContext(in DOMString contextId, in any... args);<^>"
+  - id: fallback
+    text: "The contents of the canvas element, if any, are the element's fallback content<^>."
+  - id: size.nonnegativeinteger
+    text: "The rules for parsing non-negative integers *must* be used to obtain their numeric values<^>."
+  - id: size.missing
+    text: "If an attribute is missing<^>, <...> then the default value *must* be used instead."
+  - id: size.error
+    text: "if parsing its value returns an error<^>, then the default value *must* be used instead."
+  - id: size.default
+    text: "The width attribute defaults to 300, and the height attribute defaults to 150<^>."
+  - id: size.css
+    text: "the element can be sized arbitrarily by a style sheet. During rendering, the image is scaled to fit this layout size<^>."
+  - id: initial.reset
+    text: "When the canvas element is created, and subsequently whenever the width and height attributes are set (whether to a new value or to the previous value), the bitmap and any associated contexts *must* be cleared back to their initial state <...><^>."
+  - id: initial.colour
+    text: "When the canvas is initialized, its bitmap *must* be cleared to transparent black<^>."
+  - id: size.reflect
+    text: "The width and height IDL attributes *must* reflect the respective content attributes of the same name<^>,"
+
+  - id: context.unrecognised
+    text: "If contextId is not the name of a context supported by the user agent, return null and abort these steps<^>."
+  - id: context.unique
+    text: "If the getContext() method has already been invoked on this element for the same contextId, return the same object as was returned that time, and abort these steps<^>."
+  - id: context.2d
+    text: "When the getContext() method of a canvas element is to return a new object for the contextId 2d, the user agent *must* return a new CanvasRenderingContext2D object<^>."
+  - id: context.2d.extraargs
+    text: "When the getContext() method of a canvas element is to return a new object for the contextId 2d, the user agent *must* return a new CanvasRenderingContext2D object. Any additional arguments are ignored<^>."
+
+  - id: toDataURL.noarguments
+    text: "When a user agent is to create a serialization of the image as a file, <...> if there are no arguments, in the PNG format<^>."
+  - id: toDataURL.zerosize
+    text: "If the canvas has no pixels (i.e. either its horizontal dimension or its vertical dimension is zero) then return the string \"data:,\"<^> and abort these steps."
+  - id: toDataURL.witharguments
+    text: "If arguments is not empty, the first value must be interpreted as a MIME type giving the format to use<^>."
+  - id: toDataURL.noalpha
+    text: "For image types that do not support an alpha channel, the serialized image *must* be the canvas image composited onto a solid black background using the source-over operator<^>."
+  - id: toDataURL.png
+    text: "User agents *must* support PNG (\"image/png\")<^>."
+  - id: toDataURL.unrecognised
+    text: "If the user agent does not support the requested type, it *must* create the file using the PNG format<^>."
+  - id: toDataURL.lowercase
+    text: "User agents *must* convert the provided type to ASCII lowercase before establishing if they support that type<^>."
+  - id: toDataURL.jpeg
+    previously: [ 0, "image/png", false ]
+    text: "image/jpeg<^>"
+  - id: toDataURL.jpeg.quality
+    text: "The second argument, if it is a number in the range 0.0 to 1.0 inclusive, *must* be treated as the desired quality level<^>."
+  - id: toDataURL.jpeg.nan
+    text: "If it is not a number<^> <...>, the user agent *must* use its default value, as if the argument had been omitted."
+  - id: toDataURL.jpeg.range
+    text: "If it is <...> outside that range<^>, the user agent *must* use its default value, as if the argument had been omitted."
+  - id: toDataURL.arguments
+    text: "Other arguments *must* be ignored and must not cause the user agent to raise an exception<^>."
+
+  - id: 2d.coordinatespace
+    text: "flat Cartesian surface whose origin (0,0) is at the top left corner, with the coordinate space having x values increasing when going right, and y values increasing when going down<^>."
+  - id: context.2d.type
+    text: "interface CanvasRenderingContext2D<^> {"
+  - id: 2d.canvasGradient.type
+    text: "interface CanvasGradient<^> {"
+  - id: 2d.imageData.type
+    text: "interface ImageData<^> {"
+  - id: 2d.canvas.attribute
+    text: "readonly<^> attribute HTMLCanvasElement canvas;"
+  - id: 2d.canvas
+    text: "The canvas attribute *must* return the canvas element that the context paints on<^>."
+  - id: 2d.nonfinite
+    text: "Except where otherwise specified, for the 2D context interface, any method call with a numeric argument whose value is infinite or a NaN value *must* be ignored<^>."
+
+  - id: 2d.currentColor.onset
+    text: "Whenever the CSS value currentColor is used as a color in this API, the \"computed value of the 'color' property\" for the purposes of determining the computed value of the currentColor keyword is the computed value of the 'color' property on the element in question at the time that the color is specified<^>"
+  - id: 2d.currentColor.outofdoc
+    text: "If the computed value of the 'color' property is undefined for a particular case (e.g. because the element is not in a Document), then the \"computed value of the 'color' property\" for the purposes of determining the computed value of the currentColor keyword is fully opaque black<^>."
+  - id: 2d.currentColor.gradient
+    text: "In the case of addColorStop() on CanvasGradient, the \"computed value of the 'color' property\" for the purposes of determining the computed value of the currentColor keyword is always fully opaque black<^> (there is no associated element)."
+
+  - id: 2d.state.transformation
+    text: "The current transformation matrix<^>."
+  - id: 2d.state.clip
+    text: "The current clipping region<^>."
+  - meta: |
+      for s in [
+        'strokeStyle', 'fillStyle', 'globalAlpha',
+        'lineWidth', 'lineCap', 'lineJoin', 'miterLimit',
+        'shadowOffsetX', 'shadowOffsetY', 'shadowBlur', 'shadowColor',
+        'globalCompositeOperation',
+        'font', 'textAlign', 'textBaseline'
+      ]:
+        assertions.append( {
+          'id': '2d.state.%s' % s,
+          'text': 'The current values of the following attributes:<...>%s<^>' % s
+        } )
+  - id: 2d.state.path
+    text: "The current path<^> <...> are not part of the drawing state."
+  - id: 2d.state.bitmap
+    text: "The <...> current bitmap<^> are not part of the drawing state."
+
+  - id: 2d.state.save
+    text: "The save() method *must* push a copy of the current drawing state onto the drawing state stack<^>."
+  - id: 2d.state.restore
+    text: "The restore() method *must* pop the top entry in the drawing state stack, and reset the drawing state it describes<^>."
+  - id: 2d.state.restore.underflow
+    text: "If there is no saved state, the method *must* do nothing<^>."
+
+  - id: 2d.transformation.initial
+    text: "When the context is created, the transformation matrix *must* initially be the identity transform<^>."
+  - id: 2d.transformation.order
+    text: "The transformations *must* be performed in reverse order<^>."
+  - id: 2d.transformation.scale
+    text: "The scale(x, y) method *must* add the scaling transformation described by the arguments to the transformation matrix<^>."
+  - id: 2d.transformation.scale.multiple
+    text: "The factors are multiples<^>."
+  - id: 2d.transformation.rotate
+    text: "The rotate(angle) method *must* add the rotation transformation described by the argument to the transformation matrix<^>."
+  - id: 2d.transformation.rotate.direction
+    text: "The angle argument represents a clockwise rotation angle<^>"
+  - id: 2d.transformation.rotate.radians
+    text: "The angle argument <...> expressed in radians<^>."
+  - id: 2d.transformation.translate
+    text: "The translate(x, y) method *must* add the translation transformation described by the arguments to the transformation matrix<^>."
+  - id: 2d.transformation.transform
+    text: "The transform(a, b, c, d, e, f) method *must* replace the current transformation matrix with the result of multiplying the current transformation matrix with the matrix described by<^>:"
+  - id: 2d.transformation.transform.multiply
+    text: "The transform(a, b, c, d, e, f) method *must* replace the current transformation matrix with the result of multiplying<^> the current transformation matrix with the matrix described by:"
+  - id: 2d.transformation.setTransform
+    text: "The setTransform(a, b, c, d, e, f) method *must* <...> invoke the transform(a, b, c, d, e, f) method with the same arguments<^>"
+  - id: 2d.transformation.setTransform.identity
+    text: "The setTransform(a, b, c, d, e, f) method *must* reset the current transform to the identity matrix<^>, "
+
+
+  - id: 2d.composite.operation
+    text: "All drawing operations are affected by the global compositing attributes, globalAlpha and globalCompositeOperation<^>."
+
+  - id: 2d.composite.globalAlpha.shape
+    text: "The globalAlpha attribute gives an alpha value that is applied to shapes<^> and images before they are composited onto the canvas."
+  - id: 2d.composite.globalAlpha.image
+    text: "The globalAlpha attribute gives an alpha value that is applied to shapes and images<^> before they are composited onto the canvas."
+  - id: 2d.composite.globalAlpha.range
+    text: "The value must be in the range from 0.0 (fully transparent) to 1.0 (no additional transparency). If an attempt is made to set the attribute to a value outside this range, including Infinity and Not-a-Number (NaN) values, the attribute *must* retain its previous value<^>."
+  - id: 2d.composite.globalAlpha.default
+    text: "When the context is created, the globalAlpha attribute *must* initially have the value 1.0<^>."
+
+  - id: 2d.composite.operation.shape
+    text: "The globalCompositeOperation attribute sets how shapes<^> and images are drawn onto the existing bitmap,"
+  - id: 2d.composite.operation.image
+    text: "The globalCompositeOperation attribute sets how shapes and images<^> are drawn onto the existing bitmap,"
+
+  - id: 2d.composite.source-atop
+    text: "source-atop<^><eol>"
+  - id: 2d.composite.source-in
+    text: "source-in<^><eol>"
+  - id: 2d.composite.source-out
+    text: "source-out<^><eol>"
+  - id: 2d.composite.source-over
+    text: "source-over (default)<^><eol>"
+  - id: 2d.composite.destination-atop
+    text: "destination-atop<^><eol>"
+  - id: 2d.composite.destination-in
+    text: "destination-in<^><eol>"
+  - id: 2d.composite.destination-out
+    text: "destination-out<^><eol>"
+  - id: 2d.composite.destination-over
+    text: "destination-over<^><eol>"
+  - id: 2d.composite.lighter
+    text: "lighter<^><eol>"
+  - id: 2d.composite.copy
+    text: "copy<^><eol>"
+  - id: 2d.composite.xor
+    text: "xor<^><eol>"
+
+  - id: 2d.composite.operation.casesensitive
+    text: "These values are all case-sensitive<^> <...> they *must* be used exactly as shown."
+  - id: 2d.composite.operation.exact
+    text: "User agents *must* not recognize values that are not a case-sensitive match for one of the values given above<^>."
+  - id: 2d.composite.operation.porterduff
+    text: "The operators in the above list *must* be treated as described by the Porter-Duff operator given at the start of their description (e.g. A over B)<^>."
+  - id: 2d.composite.operation.unrecognised
+    text: "On setting, if the user agent does not recognize the specified value, it *must* be ignored, leaving the value of globalCompositeOperation unaffected<^>."
+  - id: 2d.composite.operation.default
+    text: "When the context is created, the globalCompositeOperation attribute *must* initially have the value source-over<^>."
+
+
+  - id: 2d.colours.parse
+    text: "On setting, strings *must* be parsed as CSS <color> values and the color assigned<^>,"
+  - id: 2d.gradient.assign
+    text: "On setting, <...> CanvasGradient<^> and CanvasPattern objects *must* be assigned themselves."
+  - id: 2d.pattern.assign
+    text: "On setting, <...> CanvasGradient and CanvasPattern<^> objects *must* be assigned themselves."
+  - id: 2d.colours.invalidstring
+    text: "If the value is a string but cannot be parsed as a CSS <color> value<^>, <...> then it *must* be ignored, and the attribute must retain its previous value."
+  - id: 2d.colours.invalidtype
+    text: "If the value is <...> neither a string, a CanvasGradient, nor a CanvasPattern<^>, then it *must* be ignored, and the attribute must retain its previous value."
+  - id: 2d.colours.getcolour
+    text: "On getting, if the value is a color, then the serialization of the color *must* be returned<^>."
+  - id: 2d.gradient.object
+    text: "if it is not a color but a CanvasGradient<^> or CanvasPattern, then the respective object *must* be returned."
+  - id: 2d.pattern.object
+    text: "if it is not a color but a CanvasGradient or CanvasPattern<^>, then the respective object *must* be returned."
+  - id: 2d.serializecolour.solid
+    text: "if it has alpha equal to 1.0, then the string is a lowercase six-digit hex value<^>"
+  - id: 2d.serializecolour.transparent
+    text: "Otherwise, the color value has alpha less than 1.0, and the string is the color value in the CSS rgba() functional-notation format<^>:"
+  - id: 2d.colours.default
+    text: "When the context is created, the strokeStyle and fillStyle attributes *must* initially have the string value #000000<^>."
+
+  - id: 2d.gradient.interpolate.linear
+    text: "Between each such stop, the colors and the alpha component *must* be linearly interpolated<^> over the RGBA space without premultiplying the alpha value to find the color to use at that offset."
+  - id: 2d.gradient.interpolate.alpha
+    text: "Between each such stop, the colors and the alpha component *must* be linearly interpolated over the RGBA space without premultiplying the alpha value<^> to find the color to use at that offset."
+  - id: 2d.gradient.outside.first
+    text: "Before the first stop, the color *must* be the color of the first stop<^>."
+  - id: 2d.gradient.outside.last
+    text: "After the last stop, the color *must* be the color of the last stop<^>."
+  - id: 2d.gradient.empty
+    text: "When there are no stops, the gradient is transparent black<^>."
+
+
+  - id: 2d.gradient.invalidoffset
+    text: "If the offset is less than 0, greater than 1, infinite, or NaN, then an INDEX_SIZE_ERR exception *must* be raised<^>."
+  - id: 2d.gradient.invalidcolour
+    text: "If the color cannot be parsed as a CSS <color> value, then a SYNTAX_ERR exception *must* be raised<^>."
+  - id: 2d.gradient.update
+    text: "Otherwise, the gradient *must* have a new stop placed, at offset offset relative to the whole gradient, and with the color obtained by parsing color as a CSS <color> value<^>."
+  - id: 2d.gradient.interpolate.overlap
+    text: "If multiple stops are added at the same offset on a gradient, they *must* be placed in the order added, with the first one closest to the start of the gradient, <...><^>."
+
+  - id: 2d.gradient.linear.nonfinite
+    text: "If any of the arguments to createLinearGradient() are infinite or NaN, the method *must* raise a NOT_SUPPORTED_ERR exception<^>."
+  - id: 2d.gradient.linear.return
+    text: "Otherwise, the method *must* return a linear CanvasGradient initialized with the specified line<^>."
+  - id: 2d.gradient.linear.rendering
+    text: "Linear gradients *must* be rendered such that all points on a line perpendicular to the line that crosses the start and end points have the color at the point where those two lines cross (with the colors coming from the interpolation and extrapolation described above)<^>."
+  - id: 2d.gradient.linear.transform
+    text: "The points in the linear gradient *must* be transformed as described by the current transformation matrix when rendering<^>."
+  - id: 2d.gradient.linear.zerosize
+    text: "If x0 = x1 and y0 = y1, then the linear gradient *must* paint nothing<^>."
+
+  - id: 2d.gradient.radial.nonfinite
+    text: "If any of the arguments are infinite or NaN, a NOT_SUPPORTED_ERR exception *must* be raised<^>."
+  - id: 2d.gradient.radial.negative
+    text: "If either of r0 or r1 are negative, an INDEX_SIZE_ERR exception *must* be raised<^>."
+  - id: 2d.gradient.radial.return
+    text: "Otherwise, the method *must* return a radial CanvasGradient initialized with the two specified circles<^>."
+  - id: 2d.gradient.radial.rendering
+    text: "Radial gradients *must* be rendered by following these steps<^>:"
+  - id: 2d.gradient.radial.equal
+    text: "If x0 = x1 and y0 = y1 and r0 = r1, then the radial gradient *must* paint nothing<^>."
+  - id: 2d.gradient.extent
+    text: "Gradients *must* be painted only where the relevant stroking or filling effects requires that they be drawn<^>."
+  - id: 2d.gradient.radial.transform
+    text: "The points in the radial gradient *must* be transformed as described by the current transformation matrix when rendering<^>."
+
+
+  - id: 2d.pattern.modify
+    text: "Modifying this image after calling the createPattern() method *must* not affect the pattern<^>."
+  - id: 2d.pattern.missing
+    text: "If the empty string is specified, repeat *must* be assumed<^>."
+  - id: 2d.pattern.unrecognised
+    text: "If an unrecognized value is given, then the user agent *must* raise a SYNTAX_ERR exception<^>."
+  - id: 2d.pattern.exact
+    text: "User agents *must* recognize the four values described above exactly (e.g. they must not do case folding)<^>."
+  - id: 2d.pattern.return
+    text: "the method *must* return a CanvasPattern object suitably initialized<^>."
+  - id: 2d.pattern.IDL
+    text: "CanvasPattern createPattern(in HTMLImageElement image, in DOMString repetition);<...>CanvasPattern createPattern(in HTMLCanvasElement image, in DOMString repetition);<...>CanvasPattern createPattern(in HTMLVideoElement image, in DOMString repetition);<^>"
+  - id: 2d.pattern.incomplete.image
+    text: "If the image argument is an HTMLImageElement object that is not fully decodable<^><...> then the implementation *must* return null."
+  - id: 2d.pattern.incomplete.video
+    previously: [ 6, "createPattern" ]
+    text: "If the image argument is <...> an HTMLVideoElement object whose readyState attribute is either HAVE_NOTHING or HAVE_METADATA<^>, then the implementation *must* return null."
+  - id: 2d.pattern.zerocanvas
+    previously: [ 10, "createPattern" ]
+    text: "If the image argument is an HTMLCanvasElement object with either a horizontal dimension or a vertical dimension equal to zero, then the implementation *must* raise an INVALID_STATE_ERR exception<^>."
+  - id: 2d.pattern.painting
+    text: "Patterns *must* be painted so that the top left of the first image is anchored at the origin of the coordinate space, and images are then repeated horizontally to the left and right (if the repeat-x string was specified) or vertically up and down (if the repeat-y string was specified) or in all four directions all over the canvas (if the repeat string was specified)<^>."
+  - id: 2d.pattern.unscaled
+    text: "The images are not scaled by this process; one CSS pixel of the image *must* be painted on one coordinate space unit<^>."
+  - id: 2d.pattern.extent
+    text: "patterns *must* actually be painted only where the stroking or filling effect requires that they be drawn<^>, and are affected by the current transformation matrix."
+  - id: 2d.pattern.animated.image
+    text: "When the createPattern() method is passed an animated image as its image argument, the user agent must use the poster frame of the animation, or, if there is no poster frame, the first frame of the animation<^>."
+  - id: 2d.pattern.animated.video
+    previously: [ 4, "createPattern" ]
+    text: "When the image argument is an HTMLVideoElement, then the frame at the current playback position *must* be used as the source image<^>,"
+  - id: 2d.pattern.video.size
+    previously: [ 4, "createPattern" ]
+    text: "When the image argument is an HTMLVideoElement, <...> the source image's dimensions *must* be the intrinsic width and intrinsic height of the media resource (i.e. after any aspect-ratio correction has been applied)<^>."
+
+
+  - id: 2d.lineWidth
+    text: "The lineWidth attribute gives the width of lines, in coordinate space units<^>."
+  - id: 2d.lineWidth.get
+    text: "The lineWidth attribute <...>. On getting, it *must* return the current value<^>."
+  - id: 2d.lineWidth.invalid
+    text: "The lineWidth attribute <...>. On setting, zero, negative, infinite, and NaN values *must* be ignored, leaving the value unchanged<^>;"
+  - id: 2d.lineWidth.set
+    text: "The lineWidth attribute <...>. On setting, <...> other values *must* change the current value to the new value<^>."
+  - id: 2d.lineWidth.default
+    text: "the lineWidth attribute *must* initially have the value 1.0<^>."
+  - id: 2d.lineCap.end
+    text: "The lineCap attribute defines the type of endings that UAs will place on the end of lines<^>."
+  - id: 2d.lineCap.butt
+    text: "The butt value means that the end of each line has a flat edge perpendicular to the direction of the line (and that no additional line cap is added)<^>."
+  - id: 2d.lineCap.round
+    text: "The round value means that a semi-circle with the diameter equal to the width of the line *must* then be added on to the end of the line<^>."
+  - id: 2d.lineCap.square
+    text: "The square value means that a rectangle with the length of the line width and the width of half the line width, placed flat against the edge perpendicular to the direction of the line, *must* be added at the end of each line<^>."
+  - id: 2d.lineCap.get
+    previously: [ 2, "The lineCap attribute" ]
+    text: "On getting, it *must* return the current value<^>."
+  - id: 2d.lineCap.set
+    text: "On setting, if the new value is one of the literal strings butt, round, and square, then the current value *must* be changed to the new value<^>;"
+  - id: 2d.lineCap.invalid
+    text: "On setting, if the new value is one of the literal strings butt, round, and square, then <...>; other values *must* ignored, leaving the value unchanged<^>."
+  - id: 2d.lineCap.default
+    text: "When the context is created, the lineCap attribute *must* initially have the value butt<^>."
+  - id: 2d.lineJoin.get
+    previously: [ 2, "lineJoin" ]
+    text: "On getting, it *must* return the current value<^>."
+  - id: 2d.lineJoin.set
+    text: "On setting, if the new value is one of the literal strings bevel, round, and miter, then the current value *must* be changed to the new value<^>;"
+  - id: 2d.lineJoin.invalid
+    text: "On setting, if the new value is one of the literal strings bevel, round, and miter, then <...>; other values *must* be ignored, leaving the value unchanged<^>."
+  - id: 2d.lineJoin.default
+    text: "When the context is created, the lineJoin attribute *must* initially have the value miter<^>."
+  - id: 2d.lineJoin.joins
+    text: "A join exists at any point in a subpath shared by two consecutive lines<^>."
+  - id: 2d.lineJoin.joinclosed
+    text: "When a subpath is closed, then a join also exists at its first point (equivalent to its last point) connecting the first and last lines in the subpath<^>."
+  - id: 2d.lineJoin.common
+    text: "A filled triangle connecting these two opposite corners with a straight line, with the third point of the triangle being the join point, *must* be rendered at all joins<^>."
+  - id: 2d.lineJoin.round
+    text: "The round value means that a filled arc connecting the two aforementioned corners of the join, abutting (and not overlapping) the aforementioned triangle, with the diameter equal to the line width and the origin at the point of the join, *must* be rendered at joins<^>."
+  - id: 2d.lineJoin.bevel
+    text: "The bevel value means that this is all that is rendered at joins<^>."
+  - id: 2d.lineJoin.miter
+    text: "The miter value means that a second filled triangle *must* (if it can given the miter length) be rendered at the join, with one line being the line between the two aforementioned corners, abutting the first triangle, and the other two being continuations of the outside edges of the two joining lines, as long as required to intersect without going over the miter length<^>."
+  - id: 2d.lineJoin.miterLimit
+    text: "If the miter length would cause the miter limit ratio to be exceeded, this second triangle *must* not be rendered<^>."
+  - id: 2d.miterLimit.get
+    text: "The miter limit <...>. On getting, it *must* return the current value<^>."
+  - id: 2d.miterLimit.invalid
+    text: "The miter limit <...>. On setting, zero, negative, infinite, and NaN values *must* be ignored, leaving the value unchanged<^>;"
+  - id: 2d.miterLimit.set
+    text: "The miter limit <...>. On setting, <...>; other values *must* change the current value to the new value<^>."
+  - id: 2d.miterLimit.default
+    text: "When the context is created, the miterLimit attribute *must* initially have the value 10.0<^>."
+
+
+  - id: 2d.shadow.color.initial
+    text: "When the context is created, the shadowColor attribute initially *must* be fully-transparent black<^>."
+  - id: 2d.shadow.color.get
+    text: "On getting, the serialization of the color *must* be returned<^>."
+  - id: 2d.shadow.color.set
+    text: "On setting, the new value *must* be parsed as a CSS <color> value and the color assigned<^>."
+  - id: 2d.shadow.color.invalid
+    text: "If the value cannot be parsed as a CSS <color> value then it *must* be ignored, and the attribute must retain its previous value<^>."
+  - id: 2d.shadow.offset.initial
+    text: "When the context is created, the shadow offset attributes *must* initially have the value 0<^>."
+  - id: 2d.shadow.offset.get
+    text: "On getting, they *must* return their current value<^>."
+  - id: 2d.shadow.offset.set
+    text: "On setting, the attribute being set *must* be set to the new value<^>,"
+  - id: 2d.shadow.offset.invalid
+    text: "On setting, <...> if the value is infinite or NaN, in which case the new value *must* be ignored<^>."
+  - id: 2d.shadow.blur.initial
+    text: "When the context is created, the shadowBlur attribute *must* initially have the value 0<^>."
+  - id: 2d.shadow.blur.get
+    text: "On getting, the attribute *must* return its current value<^>."
+  - id: 2d.shadow.blur.set
+    text: "On setting the attribute *must* be set to the new value<^>,"
+  - id: 2d.shadow.blur.invalid
+    text: "On setting <...> if the value is negative, infinite or NaN, in which case the new value *must* be ignored<^>."
+  - id: 2d.shadow.enable
+    text: "Shadows are only drawn if the opacity component of the alpha component of the color of shadowColor is non-zero and either the shadowBlur is non-zero, or the shadowOffsetX is non-zero, or the shadowOffsetY is non-zero<^>."
+  - id: 2d.shadow.render
+    text: "When shadows are drawn, they *must* be rendered as follows<^>:"
+
+  - id: 2d.rect.transform
+    text: "The current transformation matrix *must* be applied to the following four coordinates<^>,"
+  - id: 2d.rect.closed
+    text: "the following four coordinates, which form the path that *must* then be closed to get the specified rectangle<^>:"
+  - id: 2d.clearRect
+    text: "The clearRect(x, y, w, h) method *must* clear the pixels in the specified rectangle that also intersect the current clipping region to a fully transparent black, erasing any previous image<^>."
+  - id: 2d.fillRect
+    text: "The fillRect(x, y, w, h) method *must* paint the specified rectangular area using the fillStyle<^>."
+  - id: 2d.strokeRect
+    text: "The strokeRect(x, y, w, h) method *must* stroke the specified rectangle's path using the strokeStyle, lineWidth, lineJoin, and (if appropriate) miterLimit attributes<^>."
+
+
+  - id: 2d.path.initial
+    text: "Initially, the context's path *must* have zero subpaths<^>."
+  - id: 2d.path.transformation
+    text: "The points and lines added to the path by these methods *must* be transformed according to the current transformation matrix as they are added<^>."
+  - id: 2d.path.beginPath
+    text: "The beginPath() method *must* empty the list of subpaths so that the context once again has zero subpaths<^>."
+  - id: 2d.path.moveTo
+    text: "The moveTo(x, y) method *must* create a new subpath with the specified point as its first (and only) point<^>."
+  - id: 2d.path.ensure
+    text: "When the user agent is to ensure there is a subpath for a coordinate (x, y), the user agent must check to see if the context has any subpaths, and if it does not, then the user agent *must* create a new subpath with the point (x, y) as its first (and only) point, as if the moveTo() method had been called<^>."
+  - id: 2d.path.closePath.empty
+    text: "The closePath() method *must* do nothing if the context has no subpaths<^>."
+  - id: 2d.path.closePath.nonempty
+    text: "The closePath() method <...> *must* mark the last subpath as closed, create a new subpath whose first point is the same as the previous subpath's first point, and finally add this new subpath to the path<^>."
+  - id: 2d.path.lineTo.empty
+    text: "The lineTo(x, y) method *must* ensure there is a subpath for (x, y) if the context has no subpaths<^>."
+  - id: 2d.path.lineTo.nonempty
+    text: "The lineTo(x, y) method <...> *must* connect the last point in the subpath to the given point (x, y) using a straight line, and must then add the given point (x, y) to the subpath<^>."
+  - id: 2d.path.quadratic.empty
+    text: "The quadraticCurveTo(cpx, cpy, x, y) method *must* ensure there is a subpath for (cpx, cpy)<^>,"
+  - id: 2d.path.quadratic.nonempty
+    text: "The quadraticCurveTo(cpx, cpy, x, y) method <...> *must* connect the last point in the subpath to the given point (x, y) using a quadratic B<...>zier curve with control point (cpx, cpy), and must then add the given point (x, y) to the subpath<^>."
+  - id: 2d.path.bezier.empty
+    text: "The bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) method *must* ensure there is a subpath for (cp1x, cp1y)<^>,"
+  - id: 2d.path.bezier.nonempty
+    text: "The bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) method <...> *must* connect the last point in the subpath to the given point (x, y) using a cubic B<...>zier curve with control points (cp1x, cp1y) and (cp2x, cp2y). Then, it must add the point (x, y) to the subpath<^>."
+  - id: 2d.path.arcTo.empty
+    text: "The arcTo(x1, y1, x2, y2, radius) method *must* first ensure there is a subpath for (x1, y1)<^>."
+  - id: 2d.path.arcTo.negative
+    previously: [ 2, "arcTo(" ]
+    text: "Negative values for radius *must* cause the implementation to raise an INDEX_SIZE_ERR exception<^>."
+  - id: 2d.path.arcTo.coincide.01
+    text: "If the point (x0, y0) is equal to the point (x1, y1)<^>, or if the point (x1, y1) is equal to the point (x2, y2), or if the radius radius is zero, then the method *must* add the point (x1, y1) to the subpath, and connect that point to the previous point (x0, y0) by a straight line."
+  - id: 2d.path.arcTo.coincide.12
+    text: "If the point (x0, y0) is equal to the point (x1, y1), or if the point (x1, y1) is equal to the point (x2, y2)<^>, or if the radius radius is zero, then the method *must* add the point (x1, y1) to the subpath, and connect that point to the previous point (x0, y0) by a straight line."
+  - id: 2d.path.arcTo.zeroradius
+    text: "If the point (x0, y0) is equal to the point (x1, y1), or if the point (x1, y1) is equal to the point (x2, y2), or if the radius radius is zero<^>, then the method *must* add the point (x1, y1) to the subpath, and connect that point to the previous point (x0, y0) by a straight line."
+  - id: 2d.path.arcTo.collinear
+    text: "if the points (x0, y0), (x1, y1), and (x2, y2) all lie on a single straight line, then the method *must* add the point (x1, y1) to the subpath, and connect that point to the previous point (x0, y0) by a straight line<^>."
+  - id: 2d.path.arcTo.shape
+    text: "The method *must* connect the point (x0, y0) to the start tangent point by a straight line, adding the start tangent point to the subpath, and then must connect the start tangent point to the end tangent point by The Arc, adding the end tangent point to the subpath<^>."
+
+  - id: 2d.path.arc.nonempty
+    text: "If the context has any subpaths, then the method *must* add a straight line from the last point in the subpath to the start point of the arc<^>."
+  - id: 2d.path.arc.draw
+    text: "it *must* draw the arc between the start point of the arc and the end point of the arc, and add the start and end points of the arc to the subpath<^>."
+  - id: 2d.path.arc.zero
+    text: "If the two points are the same, or if the radius is zero<^>, then the arc is defined as being of zero length in both directions."
+  - id: 2d.path.arc.negative
+    previously: [ 2, "anticlockwise" ]
+    text: "Negative values for radius *must* cause the implementation to raise an INDEX_SIZE_ERR exception<^>."
+
+  - id: 2d.path.rect.subpath
+    text: "The rect(x, y, w, h) method *must* create a new subpath containing just the four points (x, y), (x+w, y), (x+w, y+h), (x, y+h), with those four points connected by straight lines<^>"
+  - id: 2d.path.rect.closed
+    text: "The rect(x, y, w, h) method <...> *must* then mark the subpath as closed<^>."
+  - id: 2d.path.rect.newsubpath
+    text: "The rect(x, y, w, h) method <...> *must* then create a new subpath with the point (x, y) as the only point in the subpath<^>."
+
+  - id: 2d.path.fill.basic
+    text: "The fill() method *must* fill all the subpaths of the current path, using fillStyle, and using the non-zero winding number rule<^>."
+  - id: 2d.path.fill.closed
+    text: "Open subpaths *must* be implicitly closed when being filled (without affecting the actual subpaths)<^>."
+  - id: 2d.path.stroke.basic
+    text: "The stroke() method *must* calculate the strokes of all the subpaths of the current path, using the lineWidth, lineCap, lineJoin, and (if appropriate) miterLimit attributes, and then fill the combined stroke area using the strokeStyle attribute<^>."
+  - id: 2d.path.unaffected
+    text: "Paths, when filled or stroked, *must* be painted without affecting the current path<^>"
+  - id: 2d.path.subjected
+    text: "Paths, when filled or stroked, <...> *must* be subject to shadow effects, global alpha, the clipping region, and global composition operators<^>."
+
+  - id: 2d.path.stroke.prune
+    text: "Zero-length line segments *must* be pruned before stroking a path<^>."
+  - id: 2d.path.stroke.empty
+    text: "Empty subpaths *must* be ignored<^>."
+
+  - id: 2d.path.clip.basic
+    text: "The clip() method *must* create a new clipping region by calculating the intersection of the current clipping region and the area described by the current path, using the non-zero winding number rule<^>."
+  - id: 2d.path.clip.closed
+    text: "Open subpaths *must* be implicitly closed when computing the clipping region, without affecting the actual subpaths<^>."
+  - id: 2d.path.clip.initial
+    text: "When the context is initialized, the clipping region *must* be set to the rectangle with the top left corner at (0,0) and the width and height of the coordinate space<^>."
+  - id: 2d.path.isPointInPath
+    text: "The isPointInPath(x, y) method *must* return true if the point given by the x and y coordinates passed to the method, when treated as coordinates in the canvas coordinate space unaffected by the current transformation, is inside the current path as determined by the non-zero winding number rule; and must return false otherwise<^>."
+  - id: 2d.path.isPointInPath.edge
+    text: "The isPointInPath(x, y) method *must* return true if <...>. Points on the path itself are considered to be inside the path<^>."
+  - id: 2d.path.isPointInPath.nonfinite
+    text: "If either of the arguments is infinite or NaN, then the method *must* return false<^>."
+
+  # TODO: Focus management
+
+  - id: 2d.text.font.parse
+    text: "The font IDL attribute, on setting, *must* be parsed the same way as the 'font' property of CSS (but without supporting property-independent style sheet syntax like 'inherit')<^>,"
+  - id: 2d.text.font.lineheight
+    text: "The font IDL attribute, on setting, *must* be parsed <...> with the 'line-height' component forced to 'normal'<^>,"
+  - id: 2d.text.font.fontsize
+    text: "The font IDL attribute, on setting, *must* be parsed <...> with the 'font-size' component converted to CSS pixels<^>,"
+  - id: 2d.text.font.systemfonts
+    text: "The font IDL attribute, on setting, *must* be parsed <...> with system fonts being computed to explicit values<^>."
+  - id: 2d.text.font.invalid
+    text: "If the new value is syntactically incorrect (including using property-independent style sheet syntax like 'inherit' or 'initial'), then it *must* be ignored, without assigning a new font value<^>."
+
+  - id: 2d.text.font.fontface
+    text: "Font names must be interpreted in the context of the canvas element's stylesheets; any fonts embedded using @font-face *must* therefore be available once they are loaded<^>."
+  - id: 2d.text.font.notfullyloaded
+    text: "If a font is referenced before it is fully loaded, then it *must* be treated as if it was an unknown font, falling back to another as described by the relevant CSS specifications<^>."
+  - id: 2d.text.font.get
+    text: "On getting, the font attribute *must* return the serialized form of the current font of the context (with no 'line-height' component)<^>."
+  - id: 2d.text.font.default
+    text: "When the context is created, the font of the context *must* be set to 10px sans-serif<^>."
+  - id: 2d.text.font.size
+    text: "When the 'font-size' component is set to lengths using percentages, 'em' or 'ex' units, or the 'larger' or 'smaller' keywords, these *must* be interpreted relative to the computed value of the 'font-size' property of the corresponding canvas element at the time that the attribute is set<^>."
+  - id: 2d.text.font.weight
+    text: "When the 'font-weight' component is set to the relative values 'bolder' and 'lighter', these *must* be interpreted relative to the computed value of the 'font-weight' property of the corresponding canvas element at the time that the attribute is set<^>."
+  - id: 2d.text.font.undefined
+    text: "If the computed values are undefined for a particular case (e.g. because the canvas element is not in a Document), then the relative keywords *must* be interpreted relative to the normal-weight 10px sans-serif default<^>."
+  - id: 2d.text.align.get
+    text: "The textAlign IDL attribute, on getting, *must* return the current value<^>."
+  - id: 2d.text.align.set
+    text: "On setting, if the value is one of start, end, left, right, or center, then the value *must* be changed to the new value<^>."
+  - id: 2d.text.align.invalid
+    text: "The textAlign IDL attribute, <...> Otherwise, the new value *must* be ignored<^>."
+  - id: 2d.text.align.default
+    text: "When the context is created, the textAlign attribute *must* initially have the value start<^>."
+  - id: 2d.text.baseline.get
+    text: "The textBaseline IDL attribute, on getting, *must* return the current value<^>."
+  - id: 2d.text.baseline.set
+    text: "On setting, if the value is one of top, hanging, middle, alphabetic, ideographic, or bottom, then the value *must* be changed to the new value<^>."
+  - id: 2d.text.baseline.invalid
+    text: "The textBaseline IDL attribute, <...> Otherwise, the new value *must* be ignored<^>."
+  - id: 2d.text.baseline.default
+    text: "When the context is created, the textBaseline attribute *must* initially have the value alphabetic<^>."
+
+  - id: 2d.text.draw
+    text: "The fillText() and strokeText() methods <...> when the methods are called, the user agent *must* run the following steps<^>:"
+  - id: 2d.text.draw.spaces
+    text: "Replace all the space characters in text with U+0020 SPACE characters<^>."
+  - id: 2d.text.draw.direction
+    text: "the 'direction' property of the inline box set to the directionality of the canvas element<^>,"
+  - id: 2d.text.draw.maxwidth
+    text: "If the maxWidth argument was specified and the hypothetical width of the inline box in the hypothetical line box is greater than maxWidth CSS pixels, then change font to have a more condensed font (if one is available or if a reasonably readable one can be synthesized by applying a horizontal scale factor to the font) or a smaller font, and return to the previous step<^>."
+  - id: 2d.text.align.left
+    text: "Let the anchor point's horizontal position be the left edge of the inline box<^>."
+  - id: 2d.text.align.right
+    text: "Let the anchor point's horizontal position be the right edge of the inline box<^>."
+  - id: 2d.text.align.center
+    text: "Let the anchor point's horizontal position be half way between the left and right edges of the inline box<^>."
+
+  - id: 2d.text.baseline.top
+    text: "Let the anchor point's vertical position be the top of the em box of the first available font of the inline box<^>."
+  - id: 2d.text.baseline.hanging
+    text: "Let the anchor point's vertical position be the hanging baseline of the first available font of the inline box<^>."
+  - id: 2d.text.baseline.middle
+    text: "Let the anchor point's vertical position be half way between the bottom and the top of the em box of the first available font of the inline box<^>."
+  - id: 2d.text.baseline.alphabetic
+    text: "Let the anchor point's vertical position be the alphabetic baseline of the first available font of the inline box<^>."
+  - id: 2d.text.baseline.ideographic
+    text: "Let the anchor point's vertical position be the ideographic baseline of the first available font of the inline box<^>."
+  - id: 2d.text.baseline.bottom
+    text: "Let the anchor point's vertical position be the bottom of the em box of the first available font of the inline box<^>."
+
+  - id: 2d.text.draw.fill
+    text: "For fillText() fillStyle must be applied to the glyphs and strokeStyle *must* be ignored<^>."
+  - id: 2d.text.draw.stroke
+    text: "For strokeText() the reverse holds and strokeStyle must be applied to the glyph outlines and fillStyle *must* be ignored<^>."
+  - id: 2d.text.measure.spaces
+    text: "When the method is invoked, the user agent *must* replace all the space characters in text with U+0020 SPACE characters<^>,"
+  - id: 2d.text.measure
+    text: "When the method is invoked, the user agent <...> *must* form a hypothetical infinitely wide CSS line box containing a single inline box containing the text text, with all the properties at their initial values except the 'white-space' property of the inline element set to 'pre' and the 'font' property of the inline element set to the current font of the context as given by the font attribute, and must then return a new TextMetrics object with its width attribute set to the width of that inline box, in CSS pixels<^>."
+
+  - id: 2d.drawImage.defaultdest
+    text: "If not specified, the dw and dh arguments *must* default to the values of sw and sh, interpreted such that one CSS pixel in the image is treated as one unit in the canvas coordinate space<^>."
+  - id: 2d.drawImage.defaultsource
+    text: "If the sx, sy, sw, and sh arguments are omitted, they *must* default to 0, 0, the image's intrinsic width in image pixels, and the image's intrinsic height in image pixels, respectively<^>."
+  - id: 2d.drawImage.IDL
+    text: "void drawImage(in HTMLVideoElement image, in double sx, in double sy, in double sw, in double sh, in double dx, in double dy, in double dw, in double dh);<^>"
+  - id: 2d.drawImage.incomplete.image
+    text: "If the image argument is an HTMLImageElement object that is not fully decodable<^><...> then the implementation *must* return without drawing anything."
+  - id: 2d.drawImage.incomplete.video
+    previously: [ 6, "dw and dh" ]
+    text: "If the image argument is <...> an HTMLVideoElement object whose readyState attribute is either HAVE_NOTHING or HAVE_METADATA<^>, then the implementation *must* return without drawing anything."
+  - id: 2d.drawImage.zerocanvas
+    previously: [ 10, "dw and dh" ]
+    text: "If the image argument is an HTMLCanvasElement object with either a horizontal dimension or a vertical dimension equal to zero, then the implementation *must* raise an INVALID_STATE_ERR exception<^>."
+  - id: 2d.drawImage.zerosource
+    text: "If one of the sw or sh arguments is zero<^>, the implementation *must* raise an INDEX_SIZE_ERR exception."
+  - id: 2d.drawImage.paint
+    text: "When drawImage() is invoked, the region of the image specified by the source rectangle *must* be painted on the region of the canvas specified by the destination rectangle<^>, after applying the current transformation matrix to the points of the destination rectangle."
+  - id: 2d.drawImage.original
+    text: "The original image data of the source image *must* be used, not the image as it is rendered (e.g. width and height attributes on the source element have no effect)<^>."
+  - id: 2d.drawImage.direction
+    text: "The image data *must* be processed in the original direction, even if the dimensions given are negative<^>."
+  - id: 2d.drawImage.self
+    text: "When a canvas is drawn onto itself, the drawing model requires the source to be copied before the image is drawn back onto the canvas, so it is possible to copy parts of a canvas onto overlapping parts of itself<^>."
+  - id: 2d.drawImage.animated.image
+    text: "When the drawImage() method is passed an animated image as its image argument, the user agent *must* use the poster frame of the animation, or, if there is no poster frame, the first frame of the animation<^>."
+  - id: 2d.drawImage.animated.video
+    previously: [ 4, "drawImage" ]
+    text: "When the image argument is an HTMLVideoElement, then the frame at the current playback position *must* be used as the source image<^>,"
+  - id: 2d.drawImage.video.size
+    previously: [ 4, "drawImage" ]
+    text: "When the image argument is an HTMLVideoElement, <...> the source image's dimensions *must* be the intrinsic width and intrinsic height of the media resource (i.e. after any aspect-ratio correction has been applied)<^>."
+  - id: 2d.drawImage.unaffect
+    text: "Images are painted without affecting the current path<^>"
+  - id: 2d.drawImage.subject
+    text: "Images are painted without affecting the current path, and are subject to shadow effects, global alpha, the clipping region, and global composition operators<^>."
+
+
+  - id: 2d.imageData.create2.object
+    text: "When the method is invoked with two arguments sw and sh, it *must* return an ImageData object<^>"
+  - id: 2d.imageData.create2.size
+    text: "When the method is invoked with two arguments sw and sh, it *must* return an ImageData object representing a rectangle with a width in CSS pixels equal to the absolute magnitude of sw and a height in CSS pixels equal to the absolute magnitude of sh<^>."
+  - id: 2d.imageData.create1.object
+    text: "When invoked with a single imagedata argument, it *must* return an ImageData object<^>"
+  - id: 2d.imageData.create1.size
+    text: "When invoked with a single imagedata argument, it *must* return an ImageData object representing a rectangle with the same dimensions as the ImageData object passed as the argument<^>."
+  - id: 2d.imageData.create.initial
+    text: "The ImageData object returned must be filled with transparent black<^>."
+
+  - id: 2d.imageData.get.object
+    text: "The getImageData(sx, sy, sw, sh) method *must* return an ImageData object<^>"
+  - id: 2d.imageData.get.basic
+    text: "The getImageData(sx, sy, sw, sh) method *must* return an ImageData object representing the underlying pixel data for the area of the canvas denoted by the rectangle whose corners are the four points (sx, sy), (sx+sw, sy), (sx+sw, sy+sh), (sx, sy+sh), in canvas coordinate space units<^>."
+  - id: 2d.imageData.get.outside
+    text: "Pixels outside the canvas *must* be returned as transparent black<^>."
+  - id: 2d.imageData.get.premul
+    text: "Pixels *must* be returned as non-premultiplied alpha values<^>."
+
+  - id: 2d.imageData.getcreate.nonfinite
+    text: "If any of the arguments to createImageData() or getImageData() are infinite or NaN<^>, the method *must* instead raise a NOT_SUPPORTED_ERR exception."
+  - id: 2d.imageData.create.null
+    text: "ImageData createImageData(in ImageData imagedata);<^>"
+  - id: 2d.imageData.getcreate.zero
+    text: "If either the sw or sh arguments are zero, the method *must* instead raise an INDEX_SIZE_ERR exception<^>."
+
+  - id: 2d.imageData.initial
+    text: "ImageData objects *must* be initialized so that their width attribute is set to w, the number of physical device pixels per row in the image data, their height attribute is set to h, the number of rows in the image data, and their data attribute is initialized to a CanvasPixelArray object holding the image data<^>."
+  - id: 2d.imageData.one
+    text: "At least one pixel's worth of image data *must* be returned<^>."
+  - id: 2d.pixelarray.order
+    text: "The data *must* be represented in left-to-right order, row by row top to bottom, starting with the top left, with each pixel's red, green, blue, and alpha components being given in that order for each pixel<^>."
+  - id: 2d.pixelarray.range
+    text: "Each component of each device pixel represented in this array *must* be in the range 0..255, representing the 8 bit value for that component<^>."
+  - id: 2d.pixelarray.indexes
+    text: "The components *must* be assigned consecutive indices starting with 0 for the top left pixel's red component<^>."
+  - id: 2d.pixelarray.length
+    text: "The length attribute of a CanvasPixelArray object *must* return this number<^>."
+  - id: 2d.pixelarray.retrieve
+    text: "To determine the value of an indexed property index, the user agent *must* return the value of the indexth component in the array<^>."
+  - id: 2d.pixelarray.modify
+    text: "To set the value of an existing indexed property index to value value, the value of the indexth component in the array *must* be set to value<^>."
+
+  - id: 2d.imageData.put.nonfinite
+    text: "If any of the arguments to the method are infinite or NaN, the method *must* raise a NOT_SUPPORTED_ERR exception<^>."
+  - id: 2d.imageData.put.wrongtype
+    text: "void putImageData(in ImageData imagedata, in double dx, in double dy);<...>void putImageData(in ImageData imagedata, in double dx, in double dy, in double dirtyX, in double dirtyY, in double dirtyWidth, in double dirtyHeight);<^>"
+  - id: 2d.imageData.put.3arg
+    text: "When the last four arguments are omitted, they *must* be assumed to have the values 0, 0, the width member of the imagedata structure, and the height member of the imagedata structure, respectively<^>."
+  - id: 2d.imageData.put.normal
+    text: "When invoked with arguments that do not, per the last few paragraphs, cause an exception to be raised, the putImageData() method *must* act as follows<^>:"
+
+  - id: 2d.imageData.unchanged
+    text: "the following *must* result in no visible changes to the rendering<^>:"
+  - id: 2d.imageData.createround
+    text: "...*must* return ImageData objects with the same dimensions, for any value of w and h<^>."
+  - id: 2d.imageData.unaffected
+    text: "The current path, transformation matrix, shadow attributes, global alpha, the clipping region, and global composition operator *must* not affect the getImageData() and putImageData() methods<^>."
+
+  - id: 2d.drawingmodel
+    text: "When a shape or image is painted, user agents *must* follow these steps, in the order given (or act as if they do)<^>:"
+
+  - id: 2d.colorspace.correction
+    text: "The canvas APIs *must* perform color correction at only two points: when rendering images with their own gamma correction and color space information onto the canvas, to convert the image to the color space used by the canvas (e.g. using the 2D Context's drawImage() method with an HTMLImageElement object)<^>,"
+  - id: 2d.colorspace.toDataURL.info
+    text: "The toDataURL() method *must* not include color space information in the resource returned<^>."
+  - id: 2d.colorspace.toDataURL.equal
+    text: "Where the output format allows it, the color of pixels in resources created by toDataURL() *must* match those returned by the getImageData() method<^>."
+  - id: 2d.colorspace.match
+    text: "In user agents that support CSS, the color space used by a canvas element *must* match the color space used for processing any colors for that element in CSS<^>."
+  - id: 2d.colorspace.img.equal
+    text: "The gamma correction and color space information of images *must* be handled in such a way that an image rendered directly using an img element would use the same colors as one painted on a canvas element that is then itself rendered<^>."
+  - id: 2d.colorspace.img.noinfo
+    text: "Furthermore, the rendering of images that have no color correction information (such as those returned by the toDataURL() method) *must* be rendered with no color correction<^>."
+
+  - id: security.start
+    text: "All canvas elements *must* start with their origin-clean set to true<^>."
+  - id: security.drawImage.image
+    keyword: must
+    text: "The element's 2D context's drawImage() method is called with an HTMLImageElement or an HTMLVideoElement whose origin is not the same as that of the Document object that owns the canvas element<^>."
+  - id: security.drawImage.canvas
+    keyword: must
+    text: "The element's 2D context's drawImage() method is called with an HTMLCanvasElement whose origin-clean flag is false<^>."
+  - id: security.fillStyle.image
+    keyword: must
+    text: "The element's 2D context's fillStyle attribute is set to a CanvasPattern object that was created from an HTMLImageElement<^> or an HTMLVideoElement whose origin was not the same as that of the Document object that owns the canvas element when the pattern was created."
+  - id: security.fillStyle.video
+    keyword: must
+    text: "The element's 2D context's fillStyle attribute is set to a CanvasPattern object that was created from an HTMLImageElement or an HTMLVideoElement<^> whose origin was not the same as that of the Document object that owns the canvas element when the pattern was created."
+  - id: security.fillStyle.canvas
+    keyword: must
+    text: "The element's 2D context's fillStyle attribute is set to a CanvasPattern object that was created from an HTMLCanvasElement whose origin-clean flag was false when the pattern was created<^>."
+  - id: security.strokeStyle.image
+    keyword: must
+    text: "The element's 2D context's strokeStyle attribute is set to a CanvasPattern object that was created from an HTMLImageElement<^> or an HTMLVideoElement whose origin was not the same as that of the Document object that owns the canvas element when the pattern was created."
+  - id: security.strokeStyle.video
+    keyword: must
+    text: "The element's 2D context's strokeStyle attribute is set to a CanvasPattern object that was created from an HTMLImageElement or an HTMLVideoElement<^> whose origin was not the same as that of the Document object that owns the canvas element when the pattern was created."
+  - id: security.strokeStyle.canvas
+    keyword: must
+    text: "The element's 2D context's strokeStyle attribute is set to a CanvasPattern object that was created from an HTMLCanvasElement whose origin-clean flag was false when the pattern was created<^>."
+  - id: security.toDataURL
+    text: "Whenever the toDataURL() method of a canvas element whose origin-clean flag is set to false is called, the method *must* raise a SECURITY_ERR exception<^>."
+  - id: security.getImageData
+    text: "Whenever the getImageData() method of the 2D context of a canvas element whose origin-clean flag is set to false is called with otherwise correct arguments, the method *must* raise a SECURITY_ERR exception<^>."

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="500px" height="500px" viewBox="0 0 500 500">
+<title>Drag and drop of SVG links</title>
+<a xlink:href="data:text/plain,olive">
+	<circle cx="50" cy="50" r="50" fill="olive"/>
+</a>
+<a xlink:href="data:text/plain,green">
+	<circle cx="200" cy="50" r="50" fill="green"/>
+</a>
+<a xlink:href="data:text/plain,teal">
+	<circle cx="350" cy="50" r="50" fill="teal"/>
+</a>
+<textArea x="10" y="120" width="480" height="200" font-size="30">Drag one of green circles above and drop it in the gray box below. Gray box should turn green.</textArea>
+<rect x="10" y="300" width="480" height="190" fill="gray"/>
+<script type="application/ecmascript">
+var a = document.querySelectorAll('a'), rect = document.querySelector('rect');
+for(var i = 0; i != a.length; i++)
+	{a[i].addEventListener('dragstart',
+	function (event)
+		{event.dataTransfer.effectAllowed = 'copy';}
+	,false);}
+rect.addEventListener('dragenter',
+function (event)
+	{event.preventDefault()}
+,false);
+rect.addEventListener('dragover',
+function (event)
+	{event.preventDefault()}
+,false);
+rect.addEventListener('drop',
+function (event)
+	{rect.setAttribute('fill',event.dataTransfer.getData('text/uri-list').substr(16).replace(/\r\n$/,''));}
+,false);
+</script>
+</svg>

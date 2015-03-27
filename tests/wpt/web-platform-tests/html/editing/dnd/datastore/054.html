@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Adding a file to dnd data store with drag out of window</title>
+		<style type="text/css">
+span { display: inline-block; height: 100px; width: 100px; background: orange; }
+span + span { background: blue; }
+		</style>
+		<script type="text/javascript">
+window.onload = function () {
+	var drag = document.getElementsByTagName('span')[0];
+	drag.ondragstart = function (e) {
+		e.dataTransfer.setData('text','PASS');
+		e.dataTransfer.effectAllowed = 'copy';
+		var filein = document.getElementsByTagName('input')[0];
+		if( !filein.files ) {
+			document.getElementsByTagName('p')[0].innerHTML = 'FAIL - file API is not supported.';
+			return;
+		}
+		if( !filein.files[0] ) {
+			document.getElementsByTagName('p')[0].innerHTML = 'FAIL - no file was found in the file input.';
+			return;
+		}
+		var thefile = filein.files[0];
+		try {
+			e.dataTransfer.items.add(thefile);
+		} catch(err) {
+			document.getElementsByTagName('p')[0].innerHTML = 'FAIL - error when adding file';
+			e.preventDefault();
+			return;
+		}
+		if( e.dataTransfer.files.length != 1 ) {
+			document.getElementsByTagName('p')[0].innerHTML = 'FAIL - file was not attached to data store';
+			e.preventDefault();
+			return;
+		}
+	};
+	var drop = document.getElementsByTagName('span')[1];
+	drop.ondragenter = drop.ondragover = function (e) {
+		e.preventDefault();
+	};
+	drop.ondrop = function (e) {
+		e.preventDefault();
+		if( document.getElementsByTagName('p')[0].innerHTML ) { return; }
+		if( e.dataTransfer.files.length != 1 ) {
+			document.getElementsByTagName('p')[0].innerHTML = 'FAIL - file was not attached to data store during drop';
+			e.preventDefault();
+			return;
+		}
+		if( !window.FileReader ) {
+			document.getElementsByTagName('p')[0].innerHTML = 'No FileReader constructor';
+			e.preventDefault();
+			return;
+		}
+		var reader = new FileReader();
+		reader.onload = function () {
+			if( !reader.result ) {
+				document.getElementsByTagName('p')[0].innerHTML = 'No file data after load';
+			} else if( !document.getElementsByTagName('p')[0].innerHTML ) {
+				document.getElementsByTagName('p')[0].innerHTML = 'PASS';
+			}
+		};
+		reader.readAsBinaryString(e.dataTransfer.files[0]);
+		setTimeout(function () {
+			if( !reader.result ) {
+				document.getElementsByTagName('p')[0].innerHTML = 'No file data after timeout';
+			}
+		},1000);
+	};
+};
+		</script>
+	</head>
+	<body>
+		<ol>
+			<li>Select a non-empty file on your computer using the following input: <input type="file"></li>
+			<li>Drag the orange square outside the browser window (not over the taskbar), then back onto the blue square and release it:<br><span draggable="true"></span> <span></span><br>
+			If a prompt appears, accept it.</li>
+			<li>Fail if new text does not appear below.</li>
+		</ol>
+		<p></p>
+		<noscript><p>Enable JavaScript and reload</p></noscript>
+	</body>
+</html>

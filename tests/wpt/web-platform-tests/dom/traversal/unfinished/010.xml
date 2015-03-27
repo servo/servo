@@ -1,0 +1,64 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>DOM Traversal: NodeIterator: Filters</title>
+  <script type="text/javascript"> <![CDATA[
+    function doTest() {
+      var iterator = document.createNodeIterator(document, NodeFilter.SHOW_ALL, testFilter, false);
+      // skips text nodes and body element
+      var expected = new Array(9, // document
+                               1, // html
+                               1, // head
+                               1, // title
+                               1, 4, // script and CDATA block
+                               // body (skipped)
+                               1, // pre
+                               // </body>
+                               8, // <!-- -->
+                               // PI skipped
+                               4); // CDATA
+      var found = new Array();
+
+      // walk document
+      var node;
+      while (node = iterator.nextNode())
+        found.push(node.nodeType);
+
+      // check results
+      var errors = 0;
+      var s = '';
+      var length = (found.length > expected.length) ? found.length : expected.length;
+      s += 'EXPECTED  FOUND\n';
+      for (var i = 0; i < length; i += 1) {
+        s += '  ' + (expected[i] ? expected[i] : '-') +
+      '         ' + (found[i] ? found[i] : '-');
+        if (found[i] != expected[i]) {
+          s += '      MISMATCH';
+          errors += 1;
+        }
+        s += '\n';
+      }
+      var p = document.getElementsByTagNameNS('http://www.w3.org/1999/xhtml', 'pre')[0];
+      if (errors)
+        p.firstChild.data = 'FAIL: ' + errors + ' errors found:\n\n' + s;
+      else
+        p.firstChild.data = 'PASS';
+    }
+
+    function testFilter(n) {
+      if (n.nodeType == 3) {
+        return NodeFilter.FILTER_SKIP;
+      } else if (n.nodeName == 'body') {
+        return NodeFilter.FILTER_REJECT; // same as _SKIP
+      }
+      return 1; // FILTER_ACCEPT
+    }
+
+  ]]></script>
+ </head>
+ <body onload="doTest()">
+  <pre id="result">FAIL: Script failed to run.</pre>
+ </body>
+ <!-- some more nodes to test this: -->
+ <?body test?>
+ <![CDATA[]]>
+</html>

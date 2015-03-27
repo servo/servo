@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>input@checked is immediately reflected to 'checked' IDL attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<input style="display: none" type="checkbox" checked="">
+<script>
+test(function(){
+assert_true(document.querySelector('input').checked, 'Examining "checked" IDL attribute value:')
+});
+</script>
+</input>
+</body>
+</html>

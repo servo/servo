@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Languages</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-lang-and-xml:lang-attributes">
+<link tel="help" href="http://www.w3.org/TR/CSS2/selector.html#lang">
+<meta name="flags" content="css21">
+<style>
+#test > * { background: limegreen; }
+</style>
+<body>
+<p>All lines below should have a green background.</p>
+<div id="test">
+<div><p>{}{lang}{en}</p></div>
+<div><p>{}{xml:lang}{en}</p></div>
+<div><div><p>Parent: {}{lang}{en}</p></div></div>
+<div><div><p>Parent: {}{xml:lang}{en}</p></div></div>
+<div><p>{xml}{lang}{en}</p></div>
+<div><p>{xml}{lang}{en} - {lang}{de}</p></div>
+<div><p>{xml}{lang}{de} - {lang}{en}</p></div>
+</div>

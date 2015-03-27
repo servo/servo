@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Using dataTransfer in new thread</title>
+		<style type="text/css">
+blockquote { height: 100px; width: 100px; background: orange; margin: 0; padding: 0; float: left; }
+blockquote + blockquote { background: blue; }
+blockquote + blockquote + blockquote { background: fuchsia; }
+blockquote + div { clear: left; }
+		</style>
+		<script type="text/javascript" src="/resources/testharness.js"></script>
+		<script type="text/javascript">
+setup(function () {},{explicit_done:true,explicit_timeout:true});
+window.onload = function () {
+
+	var orange  = document.getElementsByTagName('blockquote')[0],
+	    blue    = document.getElementsByTagName('blockquote')[1],
+	    fuchsia = document.getElementsByTagName('blockquote')[2],
+	    evtdone = {};
+
+	orange.ondragstart = function (e) {
+		e.dataTransfer.effectAllowed = 'copy';
+		e.dataTransfer.setData('text','dragstart real data');
+		var dataTransfer = e.dataTransfer;
+		setTimeout(function () {
+			test(function () {
+				assert_equals( dataTransfer.getData('text'), '', 'step 1' );
+				dataTransfer.setData('text','new thread after dragstart');
+				assert_equals( dataTransfer.getData('text'), '', 'step 2' );
+			},'dragstart data store should be protected after new thread starts');
+		},0);
+	};
+
+	fuchsia.ondragenter = fuchsia.ondragover = function (e) {
+		e.preventDefault();
+	};
+
+	fuchsia.ondrop = function (e) {
+		e.preventDefault();
+		var dataTransfer = e.dataTransfer;
+		setTimeout(function () {
+			test(function () {
+				assert_equals( dataTransfer.getData('text'), '', 'step 1' );
+				dataTransfer.setData('text','new thread after dragstart');
+				assert_equals( dataTransfer.getData('text'), '', 'step 2' );
+			},'drop data store should be protected after new thread starts');
+			done();
+		},0);
+	};
+
+};
+		</script>
+	</head>
+	<body>
+		<p>Drag the orange square over the blue square then the fuchsia square, then release it.</p>
+		<blockquote draggable="true"></blockquote>
+		<blockquote></blockquote>
+		<blockquote></blockquote>
+		<div id="log"></div>
+		<noscript><p>Enable JavaScript and reload</p></noscript>
+	</body>
+</html>

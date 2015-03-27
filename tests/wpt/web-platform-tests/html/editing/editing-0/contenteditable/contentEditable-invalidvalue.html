@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>contentEditable setter: invalid value</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#contenteditable">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  var el = document.createElement("div");
+  test(function(){
+    assert_throws("SyntaxError", function() {
+      el.contentEditable = "foobar";
+    });
+  }, "setting contentEditable to an invalid value throws a SyntaxError Exception");
+</script>

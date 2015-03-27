@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>A &lt;div&gt; with role "button" ﻿followed by a modification to the value of "checkbox".</title>
+    <script type="text/javascript">
+      function changeRole (/* Element */ element, /* String */ newRole) {
+          element.setAttribute ('role', newRole);
+          element.innerHTML = "This &lt;div&gt; has role '" + newRole + "'";
+      }
+    </script>
+  </head>
+  <body>
+    <div role="button" id="test" tabindex="0" onclick="changeRole (this, 'checkbox');" onkeydown="changeRole (this, 'checkbox');">This &lt;div&gt; has role 'button'</div>
+    <p>
+      <button onclick="changeRole (document.getElementById ('test'), 'checkbox')" type="button">Change Role</button>
+      <button onclick="window.location.reload()" type="button">Reload Page</button>
+    </p>
+  </body>
+</html>

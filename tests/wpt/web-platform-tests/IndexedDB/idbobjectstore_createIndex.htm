@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBObjectStore.createIndex() - returns an IDBIndex and the properties are set correctly</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+    var db,
+      t = async_test();
+
+    var open_rq = createdb(t);
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result;
+        var objStore = db.createObjectStore("store");
+        var index = objStore.createIndex("index", "indexedProperty", { unique: true });
+
+        assert_true(index instanceof IDBIndex, "IDBIndex");
+        assert_equals(index.name, "index", "name");
+        assert_equals(index.objectStore, objStore, "objectStore");
+        assert_equals(index.keyPath, "indexedProperty", "keyPath");
+        assert_true(index.unique, "unique");
+        assert_false(index.multiEntry, "multiEntry");
+
+        t.done();
+    };
+</script>
+
+<div id="log"></div>

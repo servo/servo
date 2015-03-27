@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Dropping selection from text input into readonly textarea</title>
+<style type="text/css">
+textarea
+	{padding:1em;
+	width:300px;
+	height:100px;}
+</style>
+</head>
+<body onload="document.querySelector('input').select()">
+<p><input value="Drag me"/></p>
+<p>Try to drag selected text into the input below. You should not be able to drop it here.</p>
+<p><textarea readonly="readonly" placeholder="Try to drop selected text here"/></p>
+</body>
+</html>

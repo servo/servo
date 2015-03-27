@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>range input Tests</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<input type="range" id="r00" min="0" max="100" step="20" value="40" style="display:none">
+<input type="range" id="r01" min="0" max="1" step=".1" value=".2" style="display:none">
+<input type="range" id="r02" style="display:none">
+<input type="range" id="r03" style="display:none">
+<input type="range" id="r04" style="display:none">
+
+<script>
+test(function rangeElementTest0() {
+  document.getElementById('r00').value = "";
+  assert_equals(document.getElementById('r00').type, "range");
+  assert_equals(document.getElementById('r00').value, "60");
+}, "range input value set to ''");
+
+test(function rangeElementTest1() {
+  document.getElementById('r01').value = .6;
+  assert_equals(document.getElementById('r01').type, "range");
+  assert_equals(document.getElementById('r01').value, "0.6");
+}, "range input value set to an integer");
+
+test(function rangeElementTest2() {
+  assert_equals(document.getElementById('r02').type, "range");
+  assert_equals(document.getElementById('r02').value, "50");
+}, "range input value equals 50");
+
+test(function rangeElementTest3() {
+  document.getElementById('r03').value = 200;
+  assert_equals(document.getElementById('r03').type, "range");
+  assert_equals(document.getElementById('r03').value, "100");
+}, "range input value equals 100");
+
+test(function rangeElementTest4() {
+  document.getElementById('r04').value = 2.1;
+  assert_equals(document.getElementById('r04').type, "range");
+  assert_equals(document.getElementById('r04').value, "2");
+}, "range input value equals 2");
+</script>

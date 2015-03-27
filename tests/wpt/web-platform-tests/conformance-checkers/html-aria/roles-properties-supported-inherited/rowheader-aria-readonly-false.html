@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>&lt;div&gt; with role rowheader; inherited supported state or property "aria-readonly" value
+         of "false"
+      </title>
+   </head>
+   <body>
+      <div role="grid">
+        <div role="row">
+          <span id="test" role="rowheader" aria-readonly="false">Placeholder content</span>
+          <span role="gridcell" id="obj1">obj1</span>
+          <span role="gridcell" id="obj2">obj2</span>
+        </div>
+        <div role="row">
+          <span role="rowheader">header cell 2</span>
+          <span role="gridcell">obj1</span>
+          <span role="gridcell">obj2</span>
+        </div>
+      </div>
+   </body>
+</html>

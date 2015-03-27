@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>XMLHttpRequest: open() - bogus URLs</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-open()-method" data-tested-assertations="following::ol/li[7] following::ol/li[8]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      function url(url) {
+        test(function() {
+          var client = new XMLHttpRequest()
+          assert_throws("SyntaxError", function() { client.open("GET", url) })
+        }, document.title + " (" + url + ")")
+      }
+      url("http:")
+      url("http://a a/")
+    </script>
+  </body>
+</html>

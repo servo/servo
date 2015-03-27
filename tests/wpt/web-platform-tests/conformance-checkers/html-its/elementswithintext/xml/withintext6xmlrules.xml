@@ -1,0 +1,5 @@
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+<its:param name="withinTextParam">footnote</its:param>
+<its:withinTextRule withinText="yes" selector="//b|//u|//i"/>
+<its:withinTextRule withinText="nested" selector="//fn[@id=$withinTextParam]"/>
+</its:rules>

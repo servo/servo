@@ -1,0 +1,134 @@
+<!--
+Copyright 2013, Google Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+    * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+    * Neither the name of Google Inc. nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<html>
+<head>
+<title>ArrayBuffer benchmark</title>
+<script src="util.js"></script>
+<script>
+var PRINT_SIZE = true;
+
+// Initial size of arrays.
+var START_SIZE = 10 * 1024;
+// Stops benchmark when the size of an array exceeds this threshold.
+var STOP_THRESHOLD = 100000 * 1024;
+// If the size of each array is small, write/read the array multiple times
+// until the sum of sizes reaches this threshold.
+var MIN_TOTAL = 100000 * 1024;
+var MULTIPLIERS = [5, 2];
+
+// Repeat benchmark for several times to measure performance of optimized
+// (such as JIT) run.
+var REPEAT_FOR_WARMUP = 3;
+
+function writeBenchmark(size, minTotal) {
+  var totalSize = 0;
+  while (totalSize < minTotal) {
+    var arrayBuffer = new ArrayBuffer(size);
+
+    // Write 'a's.
+    fillArrayBuffer(arrayBuffer, 0x61);
+
+    totalSize += size;
+  }
+  return totalSize;
+}
+
+function readBenchmark(size, minTotal) {
+  var totalSize = 0;
+  while (totalSize < minTotal) {
+    var arrayBuffer = new ArrayBuffer(size);
+
+    if (!verifyArrayBuffer(arrayBuffer, 0x00)) {
+      queueLog('Verification failed');
+      return -1;
+    }
+
+    totalSize += size;
+  }
+  return totalSize;
+}
+
+function runBenchmark(benchmarkFunction,
+                      size,
+                      stopThreshold,
+                      minTotal,
+                      multipliers,
+                      multiplierIndex) {
+  while (size <= stopThreshold) {
+    var maxSpeed = 0;
+
+    for (var i = 0; i < REPEAT_FOR_WARMUP; ++i) {
+      var startTimeInMs = getTimeStamp();
+
+      var totalSize = benchmarkFunction(size, minTotal);
+
+      maxSpeed = Math.max(maxSpeed,
+                          calculateSpeedInKB(totalSize, startTimeInMs));
+    }
+    queueLog(formatResultInKiB(size, maxSpeed, PRINT_SIZE));
+
+    size *= multipliers[multiplierIndex];
+    multiplierIndex = (multiplierIndex + 1) % multipliers.length;
+  }
+}
+
+function runBenchmarks() {
+  queueLog('Message size in KiB, Speed in kB/s');
+
+  queueLog('Write benchmark');
+  runBenchmark(
+      writeBenchmark, START_SIZE, STOP_THRESHOLD, MIN_TOTAL, MULTIPLIERS, 0);
+  queueLog('Finished');
+
+  queueLog('Read benchmark');
+  runBenchmark(
+      readBenchmark, START_SIZE, STOP_THRESHOLD, MIN_TOTAL, MULTIPLIERS, 0);
+  addToLog('Finished');
+}
+
+function init() {
+  logBox = document.getElementById('log');
+
+  queueLog(window.navigator.userAgent.toLowerCase());
+
+  addToLog('Started...');
+
+  setTimeout(runBenchmarks, 0);
+}
+
+</script>
+</head>
+<body onload="init()">
+<textarea
+    id="log" rows="50" style="width: 100%" readonly></textarea>
+</body>
+</html>

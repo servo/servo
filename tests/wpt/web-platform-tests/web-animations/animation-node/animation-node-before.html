@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>AnimationNode before() method tests</title>
+<meta name="assert" content="Inserts nodes before this animation node.">
+<link rel="help" href="http://w3c.github.io/web-animations/#dom-animationnode-before">
+<link rel="help" href="http://w3c.github.io/web-animations/#insert-children">
+<link rel="help" href="http://w3c.github.io/web-animations/#remove-an-animation-node">
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+// Test step 1. If there is no parent animation group, terminate these steps.
+test(function() {
+    var nodes = [newAnimation(createDiv(this)), new AnimationGroup([]), new AnimationSequence([])];
+    nodes.forEach(function(node) {
+        try {
+            node.before(null);
+        } catch(e) {
+            assert_unreached(type(node) + '.before(null) throws unexpected exception: ' + e);
+        }
+    });
+}, 'AnimationNode.before() does nothing if the node has no parent animation group. ' +
+    'HierarchyRequestError is not thrown in call node.before(null)');
+
+test(function() {
+    var nodes = [newAnimation(createDiv(this)), new AnimationGroup([]), new AnimationSequence([])];
+    nodes.forEach(function(node) {
+        try {
+            node.before(node);
+        } catch(e) {
+            assert_unreached(type(node) + '.before() throws unexpected exception: ' + e);
+        }
+    });
+}, 'AnimationNode.before() does nothing if the node has no parent animation group. ' +
+    'No HierarchyRequestError is thrown if the node is inserted before itself');
+
+test(function() {
+    var nodes = [newAnimation(createDiv(this)), new AnimationGroup([]), new AnimationSequence([])];
+    var node2 = newAnimation(createDiv(this));
+    nodes.forEach(function(node1) {
+        node1.before(node2);
+
+        assert_equals(node1.nextSibling, null, type(node1) + '.before() should do nothing ' +
+            'if the node has no parent animation group');
+        assert_equals(node2.previousSibling, null, type(node1) + '.before() should do nothing ' +
+            'if the node has no parent animation group');
+    });
+}, 'AnimationNode.before() does nothing if there is no parent animation group');
+
+// Test step 2. If any of the animation nodes in nodes is an inclusive ancestor of this animation node throw a HierarchyRequestError exception and terminate these steps.
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node) {
+            var parent = new parentCtor([node]);
+
+            assert_throws('HierarchyRequestError', function() {
+                node.before(node);
+            }, type(node) + '.before() should throw HierarchyRequestError ' +
+                'if inserting node before itself');
+            assert_equals(node.parent, parent, type(node) + '.before() should not change ' +
+                'parent attribute before throwing HierarchyRequestError');
+            assert_array_equals(parent.children, [node], type(node) + '.before() ' +
+                'should not change parent children before throwing HierarchyRequestError');
+
+        });
+    });
+}, 'HierarchyRequestError is thrown if node is inserted before itself');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node) {
+            var parent = new parentCtor([node]);
+
+            assert_throws('HierarchyRequestError', function() {
+                node.before(parent);
+            }, type(node) + '.before() should throw HierarchyRequestError ' +
+                'if inserting node\'s parent');
+            assert_equals(node.parent, parent, type(node) + '.before() should not change ' +
+                'parent attribute before throwing HierarchyRequestError');
+            assert_array_equals(parent.children, [node], type(node) + '.before() ' +
+                'should not change parent children before throwing HierarchyRequestError');
+        });
+    });
+}, 'HierarchyRequestError is thrown if direct parent is inserted before the node');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node) {
+            var parent1 = new parentCtor([node]);
+            var parent2 = new parentCtor([parent1]);
+            var parent3 = new parentCtor([parent2]);
+            var parent4 = new parentCtor([parent3]);
+
+            assert_throws('HierarchyRequestError', function() {
+                node.before(parent4);
+            }, type(node) + '.before() should throw HierarchyRequestError ' +
+                'if inserting node\'s ancestor');
+            assert_equals(node.parent, parent1, type(node) + '.before() should not change ' +
+                'parent attribute before throwing HierarchyRequestError');
+            assert_array_equals(parent1.children, [node], type(node) + '.before() ' +
+                'should not change parent children before throwing HierarchyRequestError');
+            assert_equals(parent3.parent, parent4, type(node) + '.before() should not change ' +
+                'parent attribute of inserted node before throwing HierarchyRequestError');
+            assert_array_equals(parent4.children, [parent3], type(node) + '.before() ' +
+                'should not change inserted node parent children before throwing HierarchyRequestError');
+        });
+    });
+}, 'HierarchyRequestError is thrown if an inclusive ancestor is inserted before the node');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node1) {
+            var node2 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var parent1 = new parentCtor([node1, node2]);
+            var parent2 = new parentCtor([parent1]);
+            var parent3 = new parentCtor([parent2]);
+            var parent4 = new parentCtor([parent3]);
+            var parent5 = new ParentCtor([node3]);
+
+            assert_throws('HierarchyRequestError', function() {
+                node1.before(node3, parent3);
+            }, type(node1) + '.before() should throw HierarchyRequestError ' +
+                'if inserting node\'s parent');
+            assert_equals(node1.parent, parent1, type(node1) + '.before() should not change ' +
+                'parent attribute before throwing HierarchyRequestError');
+            assert_array_equals(parent1.children, [node1, node2], type(node1) + '.before() ' +
+                'should not change parent children before throwing HierarchyRequestError');
+            assert_equals(parent3.parent, parent4, type(node1) + '.before() should not change ' +
+                'parent attribute of inserted node before throwing HierarchyRequestError');
+            assert_array_equals(parent4.children, [parent3], type(node1) + '.before() ' +
+                'should not change inserted node parent children before throwing HierarchyRequestError');
+            assert_equals(node3.parent, parent5, type(node1) + '.before() should not change ' +
+                'parent attribute of inserted node before throwing HierarchyRequestError');
+            assert_array_equals(parent5.children, [node3], type(node1) + '.before() ' +
+                'should not change inserted node parent children before throwing HierarchyRequestError');
+        });
+    });
+}, 'HierarchyRequestError is thrown if an inclusive ancestor is inserted before the node. ' +
+    'Test several arguments in before() call');
+
+// Test step 3. Insert nodes before this animation node.
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node1) {
+            var node2 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1]);
+
+            node1.before(node2);
+
+            assert_equals(node1.previousSibling, node2, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node2.parent, parent, 'Node should be inserted into the tree');
+            assert_equals(node2.nextSibling, node1, 'Node should be inserted into the tree ' +
+                'before this node');
+            assert_equals(parent.children, [node2, node1], parentCtor.name +
+                '.children should be updated');
+        });
+    });
+}, 'AnimationNode.before() inserts nodes before this node');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node1) {
+            var node2 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2]);
+
+            node1.before(node2);
+
+            assert_equals(node2.previousSibling, null, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node2.nextSibling, node1, 'Node should be inserted into the tree ' +
+                'before this node');
+            assert_equals(node1.previousSibling, node2, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node1.nextSibling, null, 'Node should be inserted into the tree ' +
+                'before this node');
+            assert_equals(parent.children, [node2, node1], parentCtor.name +
+                '.children should be updated');
+        });
+    });
+}, 'AnimationNode.before() inserts nodes before this node. Inserted node is on the same ' +
+    'level in the tree');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2]);
+
+            node2.before(node1);
+
+            assert_equals(node1.nextSibling, node2, type(node2) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node2.previousSibling, node1, 'Node should be inserted into the tree ' +
+                'before this node');
+            assert_equals(parent.children, [node1, node2], parentCtor.name +
+                '.children should not be changed');
+        });
+    });
+}, 'Test AnimationNode.before() inserts node before this node even if inserted ' +
+    'node is already before this one');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node4) {
+            var node1 = newAnimation(createDiv(test));
+            var node2 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var parent1 = new parentCtor([node1, node2]);
+            var parent2 = new parentCtor([node3, parent1, node4]);
+
+            node4.before(node1);
+
+            assert_equals(node1.nextSibling, parent1, type(node4) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node1.parent, parent2, 'Parent group of the inserted node should be changed');
+            assert_equals(node1.previousSibling, parent1, 'Node should be inserted into the tree ' +
+                'before this node');
+
+            assert_equals(parent1.nextSibling, node1, type(node4) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node4.previousSibling, node1, type(node4) + '.before() should insert ' +
+                'nodes before this node');
+
+            assert_equals(node2.previousSibling, null, 'Inserted node should be removed from its ' +
+                'previous position in the tree');
+            assert_array_equals(parent1.children, [node2], 'Inserted node should be removed from its ' +
+                'previous position in the tree');
+            assert_array_equals(parent2.children, [node3, parent1, node1, node4], parentCtor.name +
+                '.children should be updated');
+        });
+    });
+}, 'Test AnimationNode.before() inserts node before this node. The previous position ' +
+    'of the inserted node is deeper in the tree than current node');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var node4 = newAnimation(createDiv(test));
+            var parent1 = new parentCtor([node1, node2]);
+            var parent2 = new parentCtor([node3, parent1, node4]);
+
+            node2.before(node4);
+
+            assert_equals(node4.nextSibling, node2, type(node2) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node4.parent, parent1, 'Parent group of the inserted node should be changed');
+            assert_equals(node4.previousSibling, node1, type(node2) + '.before() should insert ' +
+                'nodes before this node');
+
+            assert_equals(node1.nextSibling, node4, type(node2) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node2.previousSibling, node4, 'Node should be inserted into the tree ' +
+                'before this node');
+
+            assert_equals(parent1.nextSibling, null, 'Inserted node should be removed from its ' +
+                'previous position in the tree');
+            assert_array_equals(parent1.children, [node1, node4, node2], parentCtor.name +
+                '.children should be updated');
+            assert_array_equals(parent2.children, [node3, parent1], 'Inserted node should be ' +
+                'removed from its previous position in the tree');
+        });
+    });
+}, 'Test AnimationNode.before() inserts node before this node. The previous position ' +
+    'of the inserted node is shallower in the tree than current node, but not ancestor');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var node4 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2]);
+
+            node2.before(node3, node4);
+
+            assert_equals(node1.nextSibling, node3, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node3.previousSibling, node1, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node3.nextSibling, node4, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node3.parent, parent, 'Parent group of the inserted node should be changed');
+            assert_equals(node4.previousSibling, node3, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node4.nextSibling, node2, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node4.parent, parent, 'Parent group of the inserted node should be changed');
+            assert_equals(node2.previousSibling, node4, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_array_equals(parent.children, [node1, node3, node4, node2], parentCtor.name +
+                '.children should be updated');
+        });
+    });
+}, 'Test AnimationNode.before() inserts several nodes before this node');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var node4 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2]);
+
+            node2.before(node3, node4, node3, node4);
+
+            assert_equals(node1.nextSibling, node3, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node3.previousSibling, node1, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node3.nextSibling, node4, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node3.parent, parent, 'Parent group of the inserted node should be changed');
+            assert_equals(node4.previousSibling, node3, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node4.nextSibling, node2, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node4.parent, parent, 'Parent group of the inserted node should be changed');
+            assert_equals(node2.previousSibling, node4, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_array_equals(parent.children, [node1, node3, node4, node2], parentCtor.name +
+                '.children should be updated');
+        });
+    });
+}, 'Test AnimationNode.before() inserts several nodes before this node, duplicate nodes are ignored');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var node3 = newAnimation(createDiv(test));
+            var node4 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1, node2]);
+
+            node2.before(node3, node4, node3);
+
+            assert_equals(node1.nextSibling, node4, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node4.previousSibling, node1, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node4.nextSibling, node3, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node4.parent, parent, 'Parent group of the inserted node should be changed');
+            assert_equals(node3.previousSibling, node4, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node3.nextSibling, node2, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_equals(node3.parent, parent, 'Parent group of the inserted node should be changed');
+            assert_equals(node2.previousSibling, node3, type(node1) + '.before() should insert ' +
+                'nodes before this node');
+            assert_array_equals(parent.children, [node1, node4, node3, node2], parentCtor.name +
+                '.children should be updated');
+        });
+    });
+}, 'Test AnimationNode.before() inserts several nodes before this node, check insertion order');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node2) {
+            var node1 = newAnimation(createDiv(test));
+            var parent = new parentCtor([node1]);
+            var player = document.timeline.play(node2);
+
+            assert_equals(player.source, node2, 'The node should be associated with its player');
+            node1.before(node2);
+            assert_equals(player.source, null, 'The node should be disassociated from its player');
+        });
+    });
+}, 'Test AnimationNode.before() disassociates the inserted node from the player, ' +
+    'if node is directly associated with a player');
+</script>
+</body>

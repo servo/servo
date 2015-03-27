@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>MediaSource.removeSourceBuffer() test cases.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+              assert_true(sourceBuffer != null, "New SourceBuffer returned");
+
+              mediaSource.removeSourceBuffer(sourceBuffer);
+
+              var sourceBuffer2 = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+              assert_true(sourceBuffer2 != null, "New SourceBuffer returned");
+              assert_true(sourceBuffer != sourceBuffer2, "SourceBuffers are different instances.");
+              assert_equals(mediaSource.sourceBuffers.length, 1, "sourceBuffers.length == 1");
+
+              test.done();
+          }, "Test addSourceBuffer(), removeSourceBuffer(), addSourceBuffer() sequence.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              assert_throws(new TypeError(),
+                          function() { mediaSource.removeSourceBuffer(null); },
+                          "removeSourceBuffer() threw an exception when passed null.");
+              test.done();
+          }, "Test removeSourceBuffer() with null");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+              assert_true(sourceBuffer != null, "New SourceBuffer returned");
+
+              mediaSource.removeSourceBuffer(sourceBuffer);
+
+              assert_throws("NotFoundError",
+                  function() { mediaSource.removeSourceBuffer(sourceBuffer); },
+                  "removeSourceBuffer() threw an exception when a SourceBuffer that was already removed.");
+
+              test.done();
+          }, "Test calling removeSourceBuffer() twice with the same object.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+              assert_true(sourceBuffer != null, "New SourceBuffer returned");
+
+              mediaSource.endOfStream();
+              assert_true(mediaSource.readyState == "ended", "MediaSource in ended state");
+              mediaSource.removeSourceBuffer(sourceBuffer);
+
+              assert_true(mediaSource.sourceBuffers.length == 0, "MediaSource.sourceBuffers is empty");
+              assert_true(mediaSource.activeSourceBuffers.length == 0, "MediaSource.activesourceBuffers is empty");
+
+              test.done();
+          }, "Test calling removeSourceBuffer() in ended state.");
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+
+              test.expectEvent(sourceBuffer, "updateend", "initSegment append ended.");
+              test.expectEvent(mediaElement, "loadedmetadata", "loadedmetadata done.");
+              sourceBuffer.appendBuffer(initSegment);
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_true(mediaSource.sourceBuffers.length == 1, "MediaSource.sourceBuffers is not empty");
+                  assert_true(mediaSource.activeSourceBuffers.length == 1, "MediaSource.activesourceBuffers is not empty");
+                  assert_equals(mediaElement.readyState, mediaElement.HAVE_METADATA);
+                  assert_equals(mediaSource.duration, segmentInfo.duration);
+                  test.expectEvent(mediaSource.activeSourceBuffers, "removesourcebuffer", "SourceBuffer removed from activeSourceBuffers.");
+                  test.expectEvent(mediaSource.sourceBuffers, "removesourcebuffer", "SourceBuffer removed.");
+                  mediaSource.removeSourceBuffer(sourceBuffer);
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_true(mediaSource.sourceBuffers.length == 0, "MediaSource.sourceBuffers is empty");
+                  assert_true(mediaSource.activeSourceBuffers.length == 0, "MediaSource.activesourceBuffers is empty");
+                  test.done();
+              });
+          }, "Test removesourcebuffer event on activeSourceBuffers.");
+        </script>
+    </body>
+</html>

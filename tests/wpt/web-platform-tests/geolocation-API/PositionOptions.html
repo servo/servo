@@ -1,0 +1,113 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Geolocation Test: PositionOptions tests</title>
+<link rel="help" href="http://www.w3.org/TR/geolocation-API/#position_options_interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='support.js'></script>
+
+<p>Clear all Geolocation permissions before running this test. If prompted for permission, please allow.</p>
+<div id="log"></div>
+
+<script>
+// Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00123
+test(function() {
+  try {
+    geo.getCurrentPosition(dummyFunction, null, {enableHighAccuracy: "boom"});
+    geo.getCurrentPosition(dummyFunction, null, {enableHighAccuracy: 321});
+    geo.getCurrentPosition(dummyFunction, null, {enableHighAccuracy: -Infinity});
+    geo.getCurrentPosition(dummyFunction, null, {enableHighAccuracy: {foo: 5}});
+  } catch(e) {
+    assert_unreached('An exception was thrown unexpectedly: ' + e.message);
+  }
+}, 'Call getCurrentPosition with wrong type for enableHighAccuracy. No exception expected.');
+
+// Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00124
+test(function() {
+  try {
+    geo.watchPosition(dummyFunction, null, {enableHighAccuracy: "boom"});
+    geo.watchPosition(dummyFunction, null, {enableHighAccuracy: 321});
+    geo.watchPosition(dummyFunction, null, {enableHighAccuracy: -Infinity});
+    geo.watchPosition(dummyFunction, null, {enableHighAccuracy: {foo: 5}});
+  } catch(e) {
+    assert_unreached('An exception was thrown unexpectedly: ' + e.message);
+  }
+}, 'Call watchPosition with wrong type for enableHighAccuracy. No exception expected.');
+
+// Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00086, 00088, 00091 and 00092
+test(function() {
+  var t86 = async_test('Set timeout and maximumAge to 0, check that timeout error raised (getCurrentPosition)'),
+      t88 = async_test('Set timeout and maximumAge to 0, check that timeout error raised (watchPosition)'),
+      t91 = async_test('Check that a negative timeout value is equivalent to a 0 timeout value (getCurrentLocation)'),
+      t92 = async_test('Check that a negative timeout value is equivalent to a 0 timeout value (watchPosition)');
+
+  try {
+    geo.getCurrentPosition(
+        t86.step_func(function(pos) {
+          assert_unreached('A success callback was invoked unexpectedly');
+        }),
+        t86.step_func(function(err) {
+          assert_equals(err.code, err.TIMEOUT);
+          t86.done();
+        }),
+        {timeout: 0, maximumAge: 0}
+    );
+  } catch(e) {
+    t86.step(function() {
+      assert_unreached('An exception was thrown unexpectedly: ' + e.message);
+    });
+  }
+
+  try {
+    geo.watchPosition(
+        t88.step_func(function(pos) {
+          assert_unreached('A success callback was invoked unexpectedly');
+        }),
+        t88.step_func(function(err) {
+          assert_equals(err.code, err.TIMEOUT);
+          t88.done();
+        }),
+        {timeout: 0, maximumAge: 0}
+    );
+  } catch(e) {
+    t88.step(function() {
+      assert_unreached('An exception was thrown unexpectedly: ' + e.message);
+    });
+  }
+
+  try {
+    geo.getCurrentPosition(
+        t91.step_func(function(pos) {
+          assert_unreached('A success callback was invoked unexpectedly');
+        }),
+        t91.step_func(function(err) {
+          assert_equals(err.code, err.TIMEOUT);
+          t91.done();
+        }),
+        {timeout:-1, maximumAge: 0}
+    );
+  } catch(e) {
+    t91.step(function() {
+      assert_unreached('An exception was thrown unexpectedly: ' + e.message);
+    });
+  }
+
+  try {
+    geo.watchPosition(
+        t92.step_func(function(pos) {
+          assert_unreached('A success callback was invoked unexpectedly');
+          done();
+        }),
+        t92.step_func(function(err) {
+          assert_equals(err.code, err.TIMEOUT);
+          done();
+        }),
+        {timeout: -1, maximumAge: 0}
+    );
+  } catch(e) {
+    t92.step(function() {
+      assert_unreached('An exception was thrown unexpectedly: ' + e.message);
+    });
+  }
+}, 'PositionOptions tests');
+</script>

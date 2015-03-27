@@ -1,0 +1,30 @@
+<!doctype html>
+<title>stable state in beforeunload</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<button>click this button and cancel navigation</button>
+<a href="data:text/plain,FAIL: did not cancel navigation"></a>
+<script>
+async_test(function(t) {
+  window.onbeforeunload = t.step_func(function(event) {
+    var message = "foo bar";
+    event.returnValue = message;
+    return message;
+  });
+  var button = document.querySelector('button');
+  var link = document.querySelector('a');
+  button.onclick = t.step_func(function() {
+    v = document.createElement('video');
+    v.src = 'data:,';
+    assert_equals(v.networkState, v.NETWORK_NO_SOURCE, 'networkState before dialog');
+    assert_equals(v.currentSrc, '', 'currentSrc before dialog');
+    link.click();
+    assert_equals(v.networkState, v.NETWORK_NO_SOURCE, 'networkState after dialog');
+    assert_equals(v.currentSrc, '', 'currentSrc after dialog');
+    t.done();
+    window.onbeforeonload = null;
+    button.remove();
+  });
+});
+</script>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBObjectStore.delete() - key doesn't match any records </title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+    var db,
+      t = async_test();
+
+    var open_rq = createdb(t);
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result;
+
+        var delete_rq = db.createObjectStore("test")
+                          .delete(1);
+
+        delete_rq.onsuccess = t.step_func(function(e) {
+            assert_equals(e.target.result, undefined);
+            t.done();
+        });
+    };
+</script>
+
+<div id="log"></div>

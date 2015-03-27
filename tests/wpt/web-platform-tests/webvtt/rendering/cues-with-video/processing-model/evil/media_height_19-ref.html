@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, when media height is 19 or less, font size should be smaller than when it is 20 and above</title>
+<style>
+.video {
+    display: inline-block;
+    width: 1280px;
+    height: 19px;
+    outline: solid;
+    position: relative
+}
+.cue {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center
+}
+.cue > span {
+    font-family: Ahem, sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: green;
+    font-size: 0.95px
+}
+</style>
+<div class=video><span class=cue><span>This is a test subtitle</span></span></div>

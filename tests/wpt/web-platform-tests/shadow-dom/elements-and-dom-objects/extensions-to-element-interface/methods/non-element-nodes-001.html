@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test: Non-element node cannot be a shadow host</title>
+<link rel="author" title="Aleksei Yu. Semenov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Mikhail Fursov" href="mailto:mfursov@unipro.ru">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#partial-element-methods">
+<meta name="assert" content="Nodes, that are not elements, are not allowed to become shadow hosts.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+var XHTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
+
+function createTextNode() {
+    var doc = document.implementation.createHTMLDocument('Test Document');
+    var node = doc.createTextNode('Text Node');
+    doc.body.appendChild(node);
+    return node;
+}
+
+function createCommentNode() {
+    var doc = document.implementation.createHTMLDocument('Test Document');
+    var node = doc.createComment('Comment Node');
+    doc.body.appendChild(node);
+    return node;
+}
+
+function createCDATASectionNode() {
+    var doc = document.implementation.createDocument(XHTML_NAMESPACE, 'html');
+    var node = doc.createCDATASection('CDATA Section Node');
+    doc.documentElement.appendChild(node);
+    return node;
+}
+
+function createAttributeNode() {
+    var doc = document.implementation.createDocument(XHTML_NAMESPACE, 'html');
+    var node = doc.createAttribute('attribute-node');
+    doc.documentElement.setAttributeNode(node);
+    return node;
+}
+
+function createDocumentFragmentNode() {
+    var doc = document.implementation.createDocument(XHTML_NAMESPACE, 'html');
+    var node = doc.createDocumentFragment();
+    doc.documentElement.appendChild(node);
+    return node;
+}
+
+function createEntityReferenceNode() {
+    var doc = document.implementation.createDocument(XHTML_NAMESPACE, 'html');
+    var node = doc.createEntityReference('entity-reference-node');
+    doc.documentElement.appendChild(node);
+    return node;
+}
+
+function createProcessingInstructionNode() {
+    var doc = document.implementation.createDocument(XHTML_NAMESPACE, 'html');
+    var node = doc.createProcessingInstruction('processing-instruction-node');
+    doc.documentElement.appendChild(node);
+    return node;
+}
+
+function createDocumentNode() {
+    return document.implementation.createDocument(XHTML_NAMESPACE, 'html');
+}
+
+var factories = [
+    ['a text node', createTextNode],
+    ['a comment node', createCommentNode],
+    ['a CDATA section node', createCDATASectionNode],
+    ['an attribute node', createAttributeNode],
+    ['a document fragment node', createDocumentFragmentNode],
+    ['an entity reference node', createEntityReferenceNode],
+    ['a processing instruction node', createProcessingInstructionNode],
+    ['a document node', createDocumentNode]
+];
+
+// Non-element nodes should not have createShadowRoot() method.
+var noCreateShadowRootTestParameters = factories.map(
+    function (nameAndFactory) {
+        var name = nameAndFactory[0];
+        var factory = nameAndFactory[1];
+        return [
+            'Checks whether ' + name + ' does not have createShadowRoot() ' +
+                'method.',
+            factory
+        ];
+    });
+
+function testNoCreateShadowRoot(factory) {
+    var node = factory();
+    assert_equals(node.createShadowRoot, undefined);
+}
+
+generate_tests(testNoCreateShadowRoot, noCreateShadowRootTestParameters);
+
+// When createShadowRoot() is called on non-element nodes, it should throw
+// InvalidNodeTypeError (step 1 of section 10.2.2).
+function testThrowInvalidNodeTypeError(factory) {
+    var node = factory();
+    node.createShadowRoot = Element.prototype.createShadowRoot;
+    assert_throws('InvalidNodeTypeError',
+                  function () { node.createShadowRoot(); });
+}
+
+var throwInvalidNodeTypeErrorTestParameters = factories.map(
+    function (nameAndFactory) {
+        var name = nameAndFactory[0];
+        var factory = nameAndFactory[1];
+        return [
+            'When createShadowRoot() is called on ' + name + ', ' +
+                'InvalidNodeTypeError should be thrown.',
+            factory
+        ];
+    });
+
+generate_tests(testThrowInvalidNodeTypeError,
+               throwInvalidNodeTypeErrorTestParameters);
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test</title>
+    <script id="pr1" type="application/its+xml">
+      <its:provenanceRecords xml:id="pr1" xmlns:its="http://www.w3.org/2005/11/its">
+        <its:provenanceRecord
+             toolRef="http://www.provdata.com/tool/#onlinemtex"
+             revPerson="James Joyce"
+             revToolRef="http://www.provdata.com/RevTool/#mycat-v1"
+             revOrg="acme-CAT-v2.3"
+             provRef="http://www.examplelsp.com/excontent987/production/prov/e6354"/>
+		<its:provenanceRecord
+			 revPerson="John Smith" 
+			 revOrg="Linguaserve I.S. S.A." />
+      </its:provenanceRecords>
+	</script>
+	<script id="pr2" type="application/its+xml">
+      <its:provenanceRecords xml:id="pr2" xmlns:its="http://www.w3.org/2005/11/its">
+        <its:provenanceRecord
+             personRef="http://www.provdata.com/person/#John_Doe"
+             orgRef="http://www.provdata.com/org/#legaltrans-ex"
+             revPersonRef="http://www.provdata.com/RevPerson/#Tommy_Atkins"
+             revOrgRef="http://www.provdata.com/RevOrg/#vistatec"
+             provRef="http://www.vistatec.com/job-12-7-15-X31/reviewed/prov/re8573469"/>
+      </its:provenanceRecords>
+    </script>
+    <link href=provenance5htmlrules.xml rel=its-rules>
+  </head>
+  <body>
+    <p class="prov-records-ref1"><a href="#pr1"></a>This paragraph was translated from the machine and subsequently revised.</p>
+    <p class="prov-records-ref2"><a href="#pr2"></a>This text was translated directly by a person.</p>
+  </body>
+</html>

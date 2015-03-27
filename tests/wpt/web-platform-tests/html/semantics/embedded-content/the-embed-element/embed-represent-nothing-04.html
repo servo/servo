@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: The embed element represents nothing when it has an object ancestor</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-embed-element">
+<link rel="match" href="embed-represent-nothing-ref.html">
+<meta name="assert" content="Check if the embed element represents nothing when it has a object ancestor that is not showing its fallback content">
+<style>
+  embed {
+    background-color: red;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<body>
+  <p>Test passes if there is <strong>no red</strong>.</p>
+  <object type="application/x-shockwave-flash">
+    <embed src="/images/red-16x16.png">
+  </object>
+</body>

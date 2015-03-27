@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: Choose browsing context - the given name is '_self'</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe src="self1.html" style="display:none"></iframe>
+<script>
+
+var t = async_test("The current browsing context must be chosen if the given name is '_self'");
+
+window.addEventListener("message", function (e) {
+  t.step(function () {
+    assert_equals(e.data.name, "selfWin1", "The browsing context name should be 'selfWin1'.");
+  });
+  t.done();
+}, false);
+
+</script>

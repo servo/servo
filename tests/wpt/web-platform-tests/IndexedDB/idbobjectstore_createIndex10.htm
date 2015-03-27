@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBDatabase.createIndex() - If an index with the name name already exists in this object store, the implementation must throw a DOMException of type ConstraintError </title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#widl-IDBObjectStore-createIndex-IDBIndex-DOMString-name-DOMString-sequence-DOMString--keyPath-IDBIndexParameters-optionalParameters">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test(),
+    open_rq = createdb(t);
+
+open_rq.onupgradeneeded = function (e) {
+    var db = e.target.result;
+    var ostore = db.createObjectStore("store");
+    ostore.createIndex("a", "a");
+    assert_throws("ConstraintError", function(){
+        ostore.createIndex("a", "a");
+    });
+    t.done();
+}
+</script>
+

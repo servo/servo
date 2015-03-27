@@ -1,0 +1,34 @@
+<!--
+if (location.hash == '#1') {
+  var w2 = new Worker('#2');
+  w2.onmessage = function(e) {
+    postMessage('1'+e.data);
+  }
+} else if (location.hash == '#2') {
+  var w3 = new Worker('#3');
+  w3.onmessage = function(e) {
+    postMessage('2'+e.data);
+  }
+} else {
+  postMessage('3');
+}
+
+/*
+-->
+<!doctype html>
+<title>creating 3 nested dedicated workers</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  var w1 = new Worker('#1');
+  w1.onmessage = this.step_func(function(e) {
+    assert_equals(e.data, '123');
+    this.done();
+  });
+});
+</script>
+<!--
+*/
+//-->

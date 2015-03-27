@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;iframe&gt;</title>
+</head>
+<body>
+  <!-- is structured inline -->
+  <p><iframe
+      name="frame1"
+      src="uri"
+      width="2"
+      height="90"
+      frameborder="0"
+      scrolling="yes"
+      class="class"
+      lang="en"></iframe></p>
+
+  <!-- is strictly inline -->
+  <p><dfn><iframe
+      name="frame1"
+      src="uri"
+      width="2"
+      height="90"
+      frameborder="1"
+      scrolling="no"
+      class="class"
+      lang="en"></iframe></dfn></p>
+
+  <!-- is block -->
+  <iframe
+      name="frame1"
+      src="uri"
+      width="2"
+      height="90"
+      frameborder="0"
+      scrolling="auto"
+      class="class"
+      lang="en"></iframe>
+
+  <!-- can contain inline while in inline context -->
+  <p>paragraph
+    <iframe>
+        <em>some</em> <ul><li>inline</li></ul> content
+    </iframe>
+  </p>
+  <!-- can contain strictly inline while in strictly inline context -->
+  <p><dfn>strictly inline
+    <iframe>
+        <em>text</em>
+    </iframe>
+  </dfn></p>
+
+  <!-- can contain blocks while in block context -->
+  <iframe>
+    <p>text</p>
+  </iframe>
+
+  <!-- can contain interactive if ancestor does not forbid it -->
+  <p>paragraph
+    <iframe>
+      <a>link</a>
+    </iframe>
+  </p>
+  <p><dfn>strictly inline
+    <iframe>
+      <a>link</a>
+    </iframe>
+  </dfn></p>
+  <iframe>
+    <p><a>link</a></p>
+  </iframe>
+</body>
+</html>

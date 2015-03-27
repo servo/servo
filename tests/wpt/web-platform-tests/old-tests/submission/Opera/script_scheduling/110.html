@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><head>
+	<title> scheduler: removing defer script at runtime</title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+        <div id="test"></div>
+	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+        <script id="defer-script" defer src="scripts/include-2.js"></script> 
+        <script src="scripts/include-1.js"></script>
+
+	<script>
+          var t = async_test();
+
+          t.step(function() {
+            var s = document.getElementById("defer-script");
+            s.parentNode.removeChild(s);
+          });
+
+          addEventListener("load", t.step_func(function () {
+            assert_array_equals(eventOrder, ["external script #1", "external script #2"]);
+            t.done();
+          }), false);
+          
+        </script>
+</body></html>

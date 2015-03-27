@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+    <!--
+Test cases for Pointer Events v1 spec
+This document references Test Assertions (abbrev TA below) written by Cathy Chan
+http://www.w3.org/wiki/PointerEvents/TestAssertions
+-->
+    <head>
+        <title>Pointer Events pointerdown tests</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <script>
+            var detected_pointertypes = {};
+            var test_pointerEvent = async_test("pointerdown event received");
+            // showPointerTypes is defined in pointerevent_support.js
+            // Requirements: the callback function will reference the test_pointerEvent object and
+            // will fail unless the async_test is created with the var name "test_pointerEvent".
+            add_completion_callback(showPointerTypes);
+
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                var pointerover_event;
+
+                on_event(target0, "pointerover", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    pointerover_event = event;
+                    check_PointerEvent(event);
+                });
+
+                on_event(target0, "pointerdown", function (event) {
+                    check_PointerEvent(event);
+
+                    test_pointerEvent.step(function () {
+                        assert_equals(event.pointerType, pointerover_event.pointerType, "pointerType is same for pointerover and pointerdown");
+                        assert_equals(event.isPrimary, pointerover_event.isPrimary, "isPrimary is same for pointerover and pointerdown");
+                    });
+
+                    test_pointerEvent.done();
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events pointerdown tests</h1>
+        <div id="target0">
+            Start with your pointing device outside of this box, then click here.
+        </div>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

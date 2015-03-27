@@ -1,0 +1,71 @@
+<!DOCTYPE html> 
+<html>
+   <head>
+    <title>ARIA 1.0 Test Case 767</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case 767</h1>
+    
+    <div role="list">
+      <div role="listitem">Item 1</div>
+      <div role="listitem">Item 2</div>
+      <div role="listitem">Item 3</div>
+      <div role="listitem">Item 4</div>
+    </div>
+    
+    <h2>Description</h2>
+      <p>A div element with the role='list' with four child div elements with with the role='listitem'.</p>
+
+      <h2>Expected Results</h2>
+      
+      <h3>MSAA + UIA Express</h3>
+      <ul>
+        <li>role="list": ROLE_SYSTEM_LIST + STATE_SYSTEM_READONLY</li>
+        <li>role="listitem": ROLE_SYSTEM_LISTITEM + STATE_SYSTEM_READONLY</li>
+        <li>LegacyIAccessible.Description will be in the form X of Y, 
+          where X is the position in list and Y = 4</li>
+      </ul>
+      
+      <h3>MSAA + IAccessible2</h3>
+      <ul>
+        <li>role="list": ROLE_SYSTEM_LIST + STATE_SYSTEM_READONLY</li>
+        <li>role="listitem": ROLE_SYSTEM_LISTITEM + STATE_SYSTEM_READONLY</li>
+        <li>The structure should be reflected in the accessibility tree as directed by aria-posinset.</li>
+        <li>function groupPosition() should be available and have the following results:
+          <ul>
+            <li>object attributes setsize:4, posinset:1-based position in the list></li> 
+            <li>groupLevel: 0 or 1</li>
+            <li>similarItemsInGroup: 4</li>
+            <li>positionInGroup: position in list</li>
+          </ul>
+        </li>
+      </ul>
+      
+      <h3>UIA</h3>
+      <ul>
+        <li>role="list": List</li>
+        <li>role="listitem": Listitem</li>
+        <li>LegacyIAccessible.Description will be in the form X of Y, 
+            where X is the position in list and Y = 4</li>
+      </ul>
+    
+      <h3>ATK/AT-SPI</h3>
+      <ul>
+        <li>role="list": ROLE_LIST and STATE_EDITABLE is not exposed</li>
+        <li>role="listitem": ROLE_LISTITEM and STATE_EDITABLE is not exposed</li>
+        <li>object attributes setsize:4, posinset:1-based position in the list></li>
+      </ul>
+      
+      <h3>AXAPI</h3>
+      <ul>
+        <li>role="list": AXList and AXContentList = 'content list'</li>
+        <li>role="listitem": AXGroup = nil</li>
+        <li>AXARIASetSize: 4</li>
+        <li>AXARIAPosInSet: 1 based position in list</li>
+        <li>AXDisclosureLevel: 0 or 1 </li>
+      </ul>
+  </body>
+</html>
+
+

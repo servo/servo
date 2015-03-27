@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+<title>Manual Gamepad timestamp tests</title>
+<link rel="help" href="https://dvcs.w3.org/hg/gamepad/raw-file/default/gamepad.html#widl-Gamepad-timestamp">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({explicit_timeout: true});
+
+function set_instructions(text) {
+  document.getElementById("instructions").textContent = text;
+}
+
+var index = -1;
+var lastTimestamp = performance.now();
+var id = -1;
+addEventListener("gamepadconnected", function (e) {
+  assert_equals(index, -1, "Too many connected events?");
+  index = e.gamepad.index;
+  assert_greater_than(e.gamepad.timestamp, lastTimestamp, "timestamp should be increasing");
+  lastTimestamp = e.gamepad.timestamp;
+  set_instructions("Found a gamepad. Now release the button you pressed and press it again.");
+  // There may not be a button pressed here, so handle it cleanly either way.
+  if (e.gamepad.buttons.some(function (b) { return b.pressed; })) {
+    id = setInterval(waitForButtonRelease, 15);
+  } else {
+    id = setInterval(waitForButtonPress, 15);
+  }
+});
+
+function waitForButtonRelease() {
+  var gamepad = navigator.getGamepads()[index];
+  assert_true(!!gamepad);
+  if (gamepad.buttons.every(function (b) { return !b.pressed; })) {
+    assert_greater_than(gamepad.timestamp, lastTimestamp, "timestamp should be increasing");
+    lastTimestamp = gamepad.timestamp;
+    clearInterval(id);
+    id = setInterval(waitForButtonPress, 15);
+  }
+}
+
+function waitForButtonPress() {
+  var gamepad = navigator.getGamepads()[index];
+  assert_true(!!gamepad);
+  if (gamepad.buttons.some(function (b) { return b.pressed; })) {
+    assert_greater_than(gamepad.timestamp, lastTimestamp, "timestamp should be increasing");
+    clearInterval(id);
+    done();
+  }
+}
+
+</script>
+</head>
+<body>
+<p id="instructions">This test requires a gamepad. Connect one and press any button to start the test.</p>
+</body>
+</html>

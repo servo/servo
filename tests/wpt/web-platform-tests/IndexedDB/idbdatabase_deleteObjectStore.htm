@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>IDBDatabase.deleteObjectStore() - object store's name is removed from database's list </title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+
+var t = async_test(),
+    open_rq = createdb(t)
+
+open_rq.onupgradeneeded = function(e) {
+    var db = e.target.result
+
+    db.createObjectStore("deleted");
+    db.deleteObjectStore("deleted");
+    assert_false(db.objectStoreNames.contains("deleted"))
+
+    t.done()
+}
+
+</script>
+
+<div id="log"></div>

@@ -1,0 +1,34 @@
+<!--
+var expected = [
+  'postMessage', 'onmessage', /* DedicatedWorkerGlobalScope */
+  'self', 'location', 'close', 'onerror', 'onoffline', 'ononline', /* WorkerGlobalScope */
+  'addEventListener', 'removeEventListener', 'dispatchEvent', /* EventListener */
+  'importScripts', 'navigator', /* WorkerUtils */
+  'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', /* WindowTimers */
+  'btoa', 'atob' /* WindowBase64 */
+];
+for (var i = 0; i < expected.length; ++i) {
+  if (!(expected[i] in self)) {
+    postMessage(expected[i] + ' did not exist');
+  }
+}
+postMessage('done');
+/*
+-->
+<!doctype html>
+<title>members of DedicatedWorkerGlobalScope</title>
+<link rel=help href="http://www.whatwg.org/html/#dom-worker">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../workers.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test();
+t.step(function() {
+  var worker = new Worker('#');
+  listenForMessages(t, worker);
+});
+</script>
+<!--
+*/
+//-->

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Link drag and drop: events after drag and drop is cancelled</title>
+<style type="text/css">
+div
+	{width:0;
+	height:0;
+	border:solid 50px silver;
+	border-radius:50px;}
+</style>
+<script type="application/ecmascript">
+var result = true;
+function dropIt(event)
+	{result = false;
+	setColor('maroon');
+	say('drop event : FAIL (no drop should occur once drag and drop is cancelled)')}
+function endDrag(event)
+	{if(result)
+		{setColor('teal')}
+	}
+function say(it)
+	{document.querySelector('pre').appendChild(document.createTextNode(it + '\n'));}
+function setColor(c)
+	{document.querySelector('div').setAttribute('style','border-color:' + c)}
+</script>
+</head>
+<body dropzone="copy string:text/uri-list" ondrop="dropIt(event)">
+<p><a href="data:text/plain,1" ondragstart="setColor('teal silver silver silver')" ondragend="endDrag(event)">Drag me</a></p>
+<p>Drag link and press Esc before you drop it. Circle below should turn green once drag and drop is cancelled.</p>
+<div/>
+<pre/>
+</body>
+</html>

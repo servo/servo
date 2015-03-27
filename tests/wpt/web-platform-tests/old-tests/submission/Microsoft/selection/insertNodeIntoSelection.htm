@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id="desc">HTML5 Selection: Insert a new element and text node into an element that is currently selected</title>
+        <script type="text/javascript">
+            function RunTest()
+            {
+                try
+                {
+                    var selection = window.getSelection();
+                    var expectedText = "some textnew text";
+                    var div1 = document.getElementById("div1");
+                    var range = document.createRange();
+                    range.selectNode(div1);
+                    selection.addRange(range);
+                    
+                    var ele = document.createElement("div");
+                    var tNode = document.createTextNode("new text");
+                    ele.appendChild(tNode);
+                    div1.appendChild(ele);
+                    
+                    if (expectedText == selection.toString())
+                    {
+                        document.getElementById("testresult").firstChild.data = "PASS";
+                    }
+                }
+                catch (ex)
+                {
+                    document.getElementById("testresult").firstChild.data = "FAIL";
+                }
+            }
+        </script>
+    </head>
+    <body onload="RunTest();">
+        <p>This test inserts a new element with a text node child into the current selection.</p>
+        <div id="div1">some text</div>
+        <p>Test passes if the word "PASS" appears below.</p>
+        <div>Test result: </div>
+        <div id="testresult">FAIL</div>
+    </body>
+</html>

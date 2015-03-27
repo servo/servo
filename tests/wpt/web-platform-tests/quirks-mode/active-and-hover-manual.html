@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+ <head>
+  <title>The :active and :hover quirk</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style> iframe { width:100%; height:200px; } </style>
+ </head>
+ <body>
+  <p>Click on the boxes below (using a pointing device). <button onclick="timeout()">Abort and show results</button></p>
+  <div id=log></div>
+  <p>quirks:
+  <iframe id=quirks></iframe>
+  <p>almost:
+  <iframe id=almost></iframe>
+  <p>standards:
+  <iframe id=standards></iframe>
+  <script type="text/plain" id=html_tmpl>
+<html id=html class=x lang=en>
+<style>
+.t:not(area), img { display:inline-block; vertical-align:middle; width:50px; height:50px; background-color:#eee; margin:0 0.5em }
+.done.done { background-color:lime }
+link::before { content:'' }
+table, tbody, tr, td { display:inline }
+</style>
+<style>{style}</style>
+<body id=body class=x>
+a<a href=# id=a class=t></a>
+b<a id=b class=t></a>
+c<map id=map1 name=map1 class=x><area href=# coords=0,0,50,50 id=c class=t></map><img id=img1 class=x usemap=#map1 src=/images/transparent.png>
+d<map id=map2 name=map2 class=x><area coords=0,0,50,50 id=d class=t></map><img id=img2 class=x usemap=#map2 src=/images/transparent.png>
+e<link href=# id=e class=t>
+f<link rel=stylesheet href=# id=f class=t>
+g<link id=g class=t>
+h<button id=h class=t></button>
+i<input type=submit id=i class=t value>
+j<input type=image id=j class=t alt>
+k<input type=reset id=k class=t value>
+l<input type=button id=l class=t value>
+m<menuitem id=m class=t></menuitem>
+n<img tabindex=0 id=n class=t src=/images/transparent.png>
+o<a href=# id=a_ancestor class=x><table id=table class=x><tbody id=tbody class=x><tr id=tr class=x><td id=td class=x><a href=# id=o class=t></a></table></a>
+</script>
+  <script>
+    setup({explicit_done:true, explicit_timeout:true});
+    onload = function() {
+
+      var links_only = [
+      {input:':active', prop:'background-attachment', value:'fixed'},
+      {input:':hover', prop:'background-position', value:'1px 2px'},
+      {input:':hover:active', prop:'background-repeat', value:'repeat-x'},
+      {input:':active:active', prop:'border-collapse', value:'collapse'},
+      {input:':hover:hover', prop:'border-spacing', value:'1px 2px'},
+      {input:'*:active', prop:'border-top-style', value:'dotted'},
+      {input:'*:hover', prop:'border-right-style', value:'dotted'},
+      ];
+
+      var any_elm = [
+      // type selector
+      {input:'a:active, map:active, area:active, link:active, button:active, input:active, menuitem:active, img:active, table:active, tbody:active, tr:active, td:active, body:active, html:active', prop:'top', value:'1px'},
+      {input:'a:hover, map:hover, area:hover, link:hover, button:hover, input:hover, menuitem:hover, img:hover, table:hover, tbody:hover, tr:hover, td:hover, body:hover, html:hover', prop:'right', value:'1px'},
+      // attribute selector
+      {input:'[id]:active', prop:'bottom', value:'1px'},
+      {input:'[id]:hover', prop:'left', value:'1px'},
+      // id selector
+      {input:'#a:active, #b:active, #map1:active, #c:active, #img1:active, #map2:active, #d:active, #img2:active, #e:active, #f:active, #g:active, #h:active, #i:active, #j:active, #k:active, #l:active, #m:active, #n:active, #o:active, #a_ancestor:active, #table:active, #tbody:active, #tr:active, #td:active, #body:active, #html:active', prop:'caption-side', value:'bottom'},
+      {input:'#a:hover, #b:hover, #map1:hover, #c:hover, #img1:hover, #map2:hover, #d:hover, #img2:hover, #e:hover, #f:hover, #g:hover, #h:hover, #i:hover, #j:hover, #k:hover, #l:hover, #m:hover, #n:hover, #o:hover, #a_ancestor:hover, #table:hover, #tbody:hover, #tr:hover, #td:hover, #body:hover, #html:hover', prop:'clear', value:'left'},
+      {input:':active#a, :active#b, :active#map1, :active#c, :active#img1, :active#map2, :active#d, :active#img2, :active#e, :active#f, :active#g, :active#h, :active#i, :active#j, :active#k, :active#l, :active#m, :active#n, :active#o, :active#a_ancestor, :active#table, :active#tbody, :active#tr, :active#td, :active#body, :active#html', prop:'list-style-type', value:'circle'},
+      {input:':hover#a, :hover#b, :hover#map1, :hover#c, :hover#img1, :hover#map2, :hover#d, :hover#img2, :hover#e, :hover#f, :hover#g, :hover#h, :hover#i, :hover#j, :hover#k, :hover#l, :hover#m, :hover#n, :hover#o, :hover#a_ancestor, :hover#table, :hover#tbody, :hover#tr, :hover#td, :hover#body, :hover#html', prop:'max-height', value:'10000px'},
+      // class selector
+      {input:'.t:active, .x:active', prop:'cursor', value:'move'},
+      {input:'.t:hover, .x:hover', prop:'empty-cells', value:'hide'},
+      {input:':active.t, :active.x', prop:'max-width', value:'10000px'},
+      {input:':hover.t, :hover.x', prop:'min-height', value:'1px'},
+      // pseudo-class selector
+      {input:':lang(en):active', prop:'font-style', value:'italic'},
+      {input:':lang(en):hover', prop:'font-variant', value:'small-caps'},
+      {input:':active:lang(en)', prop:'min-width', value:'1px'},
+      {input:':hover:lang(en)', prop:'overflow', value:'hidden'},
+      // pseudo-element selector
+      {input:':active::before', prop:'top', value:'1px', pseudoElt:'::before'},
+      {input:':hover::before', prop:'right', value:'1px', pseudoElt:'::before'},
+      {input:':active::after', prop:'bottom', value:'1px', pseudoElt:'::after'},
+      {input:':hover::after', prop:'left', value:'1px', pseudoElt:'::after'},
+      // as argument
+      //{input:':matches(:active)', prop:'font-weight', value:'bold'},
+      //{input:':matches(:hover)', prop:'list-style-position', value:'inside'},
+      ];
+
+      var stylesheet = '';
+      function serialize(t) {
+        return t.input + '{' + t.prop + ':' + t.value + '}';
+      }
+
+      links_only.concat(any_elm).forEach(function(t) {
+        stylesheet += serialize(t);
+      });
+      var html = document.getElementById('html_tmpl').textContent.replace('{style}', stylesheet);
+      var a_doctype = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">';
+      var s_doctype = '<!DOCTYPE HTML>';
+      var q = document.getElementById('quirks').contentWindow;
+      var a = document.getElementById('almost').contentWindow;
+      var s = document.getElementById('standards').contentWindow;
+      q.document.open();
+      q.document.write(html);
+      q.document.close();
+      a.document.open();
+      a.document.write(a_doctype + html);
+      a.document.close();
+      s.document.open();
+      s.document.write(s_doctype + html);
+      s.document.close();
+      q.mode = 'quirks';
+      a.mode = 'almost';
+      s.mode = 'standards';
+      [q, a, s].forEach(function(win) {
+          win.onmousedown = win.onmouseup = run_tests;
+          win.onclick = function(e) {
+            e.preventDefault();
+          };
+      });
+      var test_count = 0;
+      var total_test_count = q.document.querySelectorAll('.t').length * 3;
+
+      function check_matches(id, win, elm, t, expectMatch) {
+        var prefix = id + ', ' + win.mode + ': ';
+
+        // .getComputedStyle can be checked both for pseudo-elements and normal elements
+        test(function() {
+          assert_equals(win.getComputedStyle(elm, t.pseudoElt).getPropertyValue(t.prop) === t.value, expectMatch);
+        }, prefix + 'getComputedStyle(' + elm.id + ') with selector ' + t.input);
+
+        // .matches doesn't work with pseudo-elements
+        if (!t.pseudoElt) {
+          test(function() {
+            assert_equals(elm.matches(t.input), expectMatch);
+          }, prefix + elm.id + '.matches("' + t.input + '")');
+        }
+      }
+
+      function run_tests(e) {
+        var elm = e.target;
+        if (elm.classList.contains('t') && !elm.classList.contains('done')) {
+          if (!elm.matches('.t:active')) {
+            return;
+          }
+          if (elm.tagName != 'AREA') {
+            elm.classList.add('done');
+          } else {
+            // For <area> we want to style the <img> instead.
+            if (elm.parentNode.nextElementSibling.tagName != 'IMG') {
+              throw new Error("<area>'s parent's next element sibling wasn't an <img>");
+            }
+            elm.parentNode.nextElementSibling.classList.add('done');
+          }
+          var id = elm.id;
+          var win = elm.ownerDocument.defaultView;
+          do {
+            if (win.mode === 'quirks') {
+              links_only.forEach(function(t) {
+                var elmIsLink = elm.matches('a[href], area[href], link[href]');
+                check_matches(id, win, elm, t, elmIsLink);
+              });
+            } else {
+              links_only.forEach(function(t) {
+                check_matches(id, win, elm, t, true);
+              });
+            }
+            any_elm.forEach(function(t) {
+              check_matches(id, win, elm, t, true);
+            });
+          } while (elm = elm.parentElement);
+          test_count++;
+          if (test_count === total_test_count) {
+            done();
+          }
+        }
+      }
+    }
+  </script>
+ </body>
+</html>

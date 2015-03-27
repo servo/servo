@@ -1,0 +1,26 @@
+
+TODO:
+
+    Google          (not sure how much of that is what's already in)
+    Infraware       (these come bundled with resources and require lots of rewriting)
+    Intel           (need to check how much overlap there is with existing stuff)
+    Microsoft       (lots of things, need to check overlap)
+    Ms2ger          (Ms2ger is doing those)
+    Opera           (split into multiple PRs)
+    TestTWF_Paris
+    W3C
+
+DONE:
+
+    Apple
+    AryehGregor
+    Baidu
+    Comcast
+    DavidCarlisle
+    html5bidi
+    MathiasBynens
+    PhilipTaylor
+    MOSQUITO
+    Mozilla
+    WebKit
+    

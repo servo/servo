@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Dragging selection from SVG text element to contenteditable element</title>
+<style type="text/css">
+div[contenteditable]
+	{width:300px;
+	height:100px;
+	margin-top:20px;
+	padding:10px;
+	color:white;
+	background-color:navy;}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="200px" height="50px" viewBox="0 0 200 50">
+<text x="10" y="45" font-size="30" fill="navy">Select me</text>
+</svg>
+<p>Select the text above and drag selection to the blue box. Copy of selection should end up in the blue box once you drop it there.</p>
+<div contenteditable="true"/>
+</body>
+</html>

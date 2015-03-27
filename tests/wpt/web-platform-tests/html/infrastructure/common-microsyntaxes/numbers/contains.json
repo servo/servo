@@ -1,0 +1,26 @@
+[
+    {
+        "id": "signed-integers",
+        "original_id": "signed-integers"
+    },
+    {
+        "id": "non-negative-integers",
+        "original_id": "non-negative-integers"
+    },
+    {
+        "id": "floating-point-numbers",
+        "original_id": "floating-point-numbers"
+    },
+    {
+        "id": "percentages-and-dimensions",
+        "original_id": "percentages-and-dimensions"
+    },
+    {
+        "id": "lists-of-integers",
+        "original_id": "lists-of-integers"
+    },
+    {
+        "id": "lists-of-dimensions",
+        "original_id": "lists-of-dimensions"
+    }
+]

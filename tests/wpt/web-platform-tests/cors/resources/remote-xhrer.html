@@ -1,0 +1,28 @@
+<!doctype html>
+<title>Child helper</title>
+
+<script>
+window.addEventListener("message", function(e) {
+//    e.source.postMessage(e.data, e.origin);
+
+    var client = new XMLHttpRequest();
+    var localurl = e.data.url
+                    .replace("<host>", location.host)
+                    .replace("<protocol>", location.protocol);
+
+    client.open('GET', localurl, true);
+    client.onload = function() {
+        e.data.state = "load";
+        e.data.response = client.response;
+        e.source.postMessage(e.data, e.origin);
+    }
+    client.onerror = function() {
+        e.data.state = "error";
+        e.data.response = client.response;
+        e.source.postMessage(e.data, e.origin);
+    }
+    client.send();
+});
+</script>
+
+The remote window

@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointerleave + descendant</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body onload="run()">
+        <h1>pointerleave</h1>
+        <h4>
+            Test Description: This test checks if pointerleave event works properly.
+            <p>Put your mouse over the black rectangle and then move it out through purple rectangle boundaries.</p>
+        </h4>
+        <p>
+        <div id="target0" style="background:black; height: 47px;">
+            <div style="background:purple; height: 35px; width: 90%; position: absolute"></div>
+        </div>
+        <script>
+            var eventTested = false;
+            var detected_pointertypes = {};
+
+            add_completion_callback(showPointerTypes);
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                var test_pointerleave = async_test("pointerleave event received");
+
+                on_event(target0, "pointerover", function(event) {
+                    detected_pointertypes[ event.pointerType ] = true;
+                });
+
+                // When a pointing device is moved off of the hit test boundaries of an element and all of its descendants, the pointerleave event must be dispatched.
+                // TA: 9.1
+                on_event(target0, "pointerleave", function (event) {
+                    if (eventTested == false) {
+                        test_pointerleave.done();
+                        eventTested = true;
+                    }
+                });
+            }
+        </script>
+        <h1>Pointer Events pointerleave tests</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

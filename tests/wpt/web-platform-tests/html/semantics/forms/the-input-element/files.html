@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>HTMLInputElement#files</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+var types = [
+  "hidden",
+  "text",
+  "search",
+  "tel",
+  "url",
+  "email",
+  "password",
+  "datetime",
+  "date",
+  "month",
+  "week",
+  "time",
+  "datetime-local",
+  "number",
+  "range",
+  "color",
+  "checkbox",
+  "radio",
+  "submit",
+  "image",
+  "reset",
+  "button",
+];
+
+types.forEach(function(type) {
+  test(function() {
+    var input = document.createElement("input");
+    input.type = type;
+    assert_equals(input.files, null, "files should be null");
+  }, "files for input type=" + type);
+});
+
+test(function() {
+  var input = document.createElement("input");
+  input.type = "file";
+  assert_not_equals(input.files, null);
+  assert_true(input.files instanceof FileList, "files should be a FileList");
+  var files = input.files;
+  assert_equals(input.files, files, "files should return the same object");
+}, "files for input type=file");
+</script>

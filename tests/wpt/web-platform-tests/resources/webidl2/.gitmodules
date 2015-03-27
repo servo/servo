@@ -1,0 +1,3 @@
+[submodule "test/widlproc"]
+	path = test/widlproc
+	url = https://github.com/dontcallmedom/widlproc.git

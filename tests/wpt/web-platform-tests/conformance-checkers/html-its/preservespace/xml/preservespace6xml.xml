@@ -1,0 +1,9 @@
+<book xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0"> 
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:xlink="http://www.w3.org/1999/xlink" version="2.0" xlink:type="simple" xlink:href="preservespace6xmlrules.xml"/>
+ <verse id="firstverse"> 
+ 'Twas brillig, and the slithy toves
+  Did gyre and gimble in the wabe;
+ All mimsy were the borogoves,
+  And the mome raths outgrabe.
+ </verse> 
+</book> 

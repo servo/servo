@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Document.currentScript</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/#dom-document-currentscript">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#execute-the-script-block">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var expected = [
+  "parse-inline",
+  "parse-ext",
+  "dom-inline",
+  "dom-ext",
+];
+var tests = {};
+expected.forEach(function(id) {
+  tests[id] = async_test("Script " + id);
+});
+function verifyScript(id) {
+  tests[id].step(function() {
+    assert_equals(document.currentScript, document.getElementById(id));
+    this.done();
+  });
+}
+</script>
+
+<!-- Test parser inserted scripts -->
+<script id="parse-inline">
+verifyScript("parse-inline");
+</script>
+<script id="parse-ext" src="data:text/plain,verifyScript('parse-ext');"></script>
+
+<!-- Test DOM inserted scripts -->
+<script>
+var s = document.createElement("script");
+s.textContent = "verifyScript('dom-inline');";
+s.id = "dom-inline";
+document.body.appendChild(s);
+
+s = document.createElement("script");
+s.src = "data:text/plain,verifyScript('dom-ext');";
+s.id = "dom-ext";
+document.body.appendChild(s);
+</script>

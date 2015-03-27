@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<title>WebVTT rendering, ::cue(b), background shorthand</title>
+<link rel="match" href="bold_background_shorthand-ref.html">
+<style>
+html { overflow:hidden }
+body { margin:0 }
+::cue(b) {
+    font-family: sans-serif;
+    background: #0f0 url('../../../media/background.gif') repeat-x top left;
+    color: #000;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="1280" height="720" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="../../../support/test_bold.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</video>
+</html>

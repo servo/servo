@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - microdata for selection partially intersecting multiple items but not siblings</title>
+<style>
+  body > div {
+    height: 100px;
+    width: 400px;
+    background-color: fuchsia;
+    position: absolute;
+    top: 8px;
+    left: 8px;
+  }
+  body > div + div {
+    background-color: navy;
+    top: 116px;
+  }
+  body > div + div + div {
+    background-color: orange;
+    top: 224px;
+  }
+  p:first-of-type {
+    margin-top: 350px;
+  }
+</style>
+
+<script>
+
+function makeEl(eltype,props,contents) {
+	var elem = document.createElement(eltype);
+	for( var i in props ) {
+		if( props.hasOwnProperty(i) ) {
+			elem.setAttribute(i,props[i]);
+		}
+	}
+	if( contents ) {
+		elem.innerHTML = contents;
+	}
+	return elem;
+}
+
+var orange, fails = [], doneonce = false;
+window.onload = function() {
+  orange = document.getElementsByTagName('div')[2];
+  orange.ondragstart = function(e) {
+		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('Text', 'dummy text');
+  	var err;
+		if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
+			fails[fails.length] = e.type + ' ' + err;
+	  }
+  };
+  orange.previousSibling.ondragenter = orange.previousSibling.ondragleave = orange.previousSibling.ondragover =
+  orange.ondrag = orange.ondragend = function(e) {
+    if( e.type == 'dragover' || e.type == 'dragenter' ) {
+    	e.preventDefault();
+	    e.dataTransfer.dropEffect = 'copy';
+    }
+    if( e.dataTransfer.getData('application/microdata+json') ) {
+			fails[fails.length] = e.type + ' unexpectedly had microdata (security restriction)';
+    }
+  };
+	orange.previousSibling.ondrop = function(e) {
+  	var err;
+		if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
+			fails[fails.length] = e.type + ' ' + err;
+	  }
+	  if( e.type != 'drop' ) { return; }
+  	if( doneonce ) { return; }
+  	doneonce = true;
+    setTimeout(function () {
+    	document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
+    	fails = [];
+    }, 200 );
+  };
+
+};
+function checkprops(md) {
+	// http://dev.w3.org/html5/spec/dnd.html#list-of-dragged-nodes
+	//"If it is a selection that is being dragged, then the list of dragged nodes contains, in tree order, every node that is partially or completely included in the selection (including all their ancestors)."
+	//this test checks that all ancestors of the selection's end points are included, and all elements enclosed by the selection are included, but no non-selected siblings of ancestors are included
+	var i;
+	if( !md ) { return 'no microdata'; }
+	md = JSON.parse(md);
+	if( !md.items ) { return 'no items'; }
+	if( md.items.length != 5 ) { return md.items.length+' items instead of 5'; }
+	if( md.items[0].id != 'http://example.com/item1' ) { return 'items[0].id incorrect'; }
+	if( md.items[1].id != 'http://example.com/item4' ) { return 'items[1].id incorrect'; }
+	if( md.items[2].id != 'http://example.com/item5' ) { return 'items[2].id incorrect'; }
+	if( md.items[3].id != 'http://example.com/item6' ) { return 'items[3].id incorrect'; }
+	if( md.items[4].id != 'http://example.com/item7' ) { return 'items[4].id incorrect'; }
+	return '';
+}
+
+</script>
+
+<div></div><div></div><div itemscope itemid="http://example.com/item1"><span itemscope itemid="http://example.com/item2">ab<span itemscope itemid="http://example.com/item3">cd</span>ef</span><span itemscope itemid="http://example.com/item4">gh<span itemscope itemid="http://example.com/item5">ij</span>kl</span><span itemscope itemid="http://example.com/item6">mn<span itemscope itemid="http://example.com/item7">op</span>qr</span><span itemscope itemid="http://example.com/item8">st<span itemscope itemid="http://example.com/item9">uv</span>wx</span></div>
+
+<p>Use your pointing device to select the text substring "hijklmnopq" above, drag the selection upwards to the pink box,
+then back to the blue box, and release it.</p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

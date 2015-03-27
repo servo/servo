@@ -1,0 +1,68 @@
+[
+    {
+        "id": "rel-alternate",
+        "original_id": "rel-alternate"
+    },
+    {
+        "id": "link-type-author",
+        "original_id": "link-type-author"
+    },
+    {
+        "id": "link-type-bookmark",
+        "original_id": "link-type-bookmark"
+    },
+    {
+        "id": "link-type-help",
+        "original_id": "link-type-help"
+    },
+    {
+        "id": "rel-icon",
+        "original_id": "rel-icon"
+    },
+    {
+        "id": "link-type-license",
+        "original_id": "link-type-license"
+    },
+    {
+        "id": "link-type-nofollow",
+        "original_id": "link-type-nofollow"
+    },
+    {
+        "id": "link-type-noreferrer",
+        "original_id": "link-type-noreferrer"
+    },
+    {
+        "id": "link-type-prefetch",
+        "original_id": "link-type-prefetch"
+    },
+    {
+        "id": "link-type-search",
+        "original_id": "link-type-search"
+    },
+    {
+        "id": "link-type-stylesheet",
+        "original_id": "link-type-stylesheet"
+    },
+    {
+        "id": "link-type-tag",
+        "original_id": "link-type-tag"
+    },
+    {
+        "id": "sequential-link-types",
+        "original_id": "sequential-link-types",
+        "children": [
+            {
+                "id": "link-type-next",
+                "original_id": "link-type-next"
+            },
+            {
+                "id": "link-type-prev",
+                "original_id": "link-type-prev"
+            }
+        ]
+    },
+    {
+        "id": "other-link-types",
+        "original_id": "other-link-types"
+    }
+]

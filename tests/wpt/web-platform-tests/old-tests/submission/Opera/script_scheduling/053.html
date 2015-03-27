@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html><head>
+	<title> scheduler: adding external script that removes itself from document when loading</title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+	<script>log('inline script #1');
+		var script=testlib.addScript('', { src:'scripts/include-1.js', onload:function() {this.parentNode.removeChild(this);log('removed ' + this.localName);} }, document.getElementsByTagName('body')[0], true );
+		log('end script #1');
+	</script>
+	<script src="scripts/include-2.js"></script>
+	<script type="text/javascript">
+	log( 'inline script #2' );
+	var t = async_test()
+
+	function test() {
+		assert_any(assert_array_equals, eventOrder, [['inline script #1', 'end script #1', 'external script #1', 'removed script', 'external script #2', 'inline script #2'],
+                                                             ['inline script #1', 'end script #1', 'external script #2', 'external script #1', 'removed script', 'inline script #2'],
+                                                             ['inline script #1', 'end script #1', 'external script #2', 'inline script #2', 'external script #1', 'removed script']]
+                                                            );
+		t.done();
+        }
+	onload = t.step_func(test)
+	</script>
+
+</body></html>

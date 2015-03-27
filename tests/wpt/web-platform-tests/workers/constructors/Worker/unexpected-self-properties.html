@@ -1,0 +1,26 @@
+<!--
+var unexpected = ['open', 'print', 'stop', 'getComputedStyle', 'getSelection', 'releaseEvents', 'captureEvents', 'alert', 'confirm', 'prompt', 'addEventStream', 'removeEventStream', 'back', 'forward', 'attachEvent', 'detachEvent', 'navigate', 'DOMParser', 'XMLSerializer', 'XPathEvaluator', 'XSLTProcessor', 'opera', 'Image', 'Option', 'frames', 'Audio', 'SVGUnitTypes', 'SVGZoomAndPan', 'java', 'netscape', 'sun', 'Packages', 'ByteArray', 'closed', 'defaultStatus', 'document', 'event', 'frameElement', 'history', 'innerHeight', 'innerWidth', 'name', 'opener', 'outerHeight', 'outerWidth', 'pageXOffset', 'pageYOffset', 'parent', 'screen', 'screenLeft', 'screenTop', 'screenX', 'screenY', 'status', 'top', 'window', 'length']; // iterated window in opera and removed expected ones
+for (var i = 0; i < unexpected.length; ++i) {
+  if (unexpected[i] in self) {
+    postMessage(unexpected[i] + ' existed');
+  }
+}
+postMessage('done');
+/*
+-->
+<!doctype html>
+<title>unexpected members/interface objects/constructors</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../workers.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test();
+t.step(function() {
+  var worker = new Worker('#');
+  listenForMessages(t, worker);
+});
+</script>
+<!--
+*/
+//-->

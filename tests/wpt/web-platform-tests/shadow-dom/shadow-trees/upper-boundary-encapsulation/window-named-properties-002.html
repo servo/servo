@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test: Window object named properties: "name" attribute</title>
+<link rel="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#upper-boundary-encapsulation">
+<meta name="assert" content="Upper-boundary encapsulation: The nodes and named elements are not accessible from Window object named properties.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+function testNameAttribute(elementName) {
+    var doc = document.implementation.createHTMLDocument('Title');
+    var shadowRoot = doc.body.createShadowRoot();
+    var element = doc.createElement(elementName);
+    element.name = 'test-name';
+    shadowRoot.appendChild(element);
+    assert_false('test-name' in window);
+}
+
+var namedElements = [
+    'a', 'applet', 'area', 'embed', 'form', 'frameset', 'img', 'object'
+];
+
+var nameAttributeTestParameter = namedElements.map(function (elementName) {
+    return [
+        '"' + elementName + '" element with name attribute in a shadow tree ' +
+        'should not be accessible from window object\'s named property.',
+        elementName
+    ];
+});
+
+generate_tests(testNameAttribute, nameAttributeTestParameter);
+</script>
+</body>
+</html>

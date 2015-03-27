@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html><head>
+	<title>scheduler: appending external script element to script </title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+<div id="log"></div>
+<script>
+  var t = async_test();
+</script>
+<script id="test"></script>
+<script>
+t.step(function() {
+  log("inline script #1");
+  var script = document.getElementById("test");
+
+  var frag = document.createDocumentFragment();
+  var inner_script = document.createElement("script");
+
+  inner_script.src = "scripts/include-1.js?pipe=trickle(d1)";
+  frag.appendChild(document.createTextNode("t.step(function() {log('inline script #2');\n"));
+  frag.appendChild(inner_script);
+  frag.appendChild(document.createTextNode("log('end inline script #2');})"));
+
+  script.appendChild(frag);
+  log("end inline script #1");
+});
+
+onload = t.step_func(function() {
+  assert_array_equals(eventOrder, ["inline script #1", "inline script #2", "end inline script #2", "end inline script #1", "external script #1"]);
+  t.done();
+});
+</script>

@@ -1,0 +1,34 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>ARIA 1.0 Test Case 697</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case 697</h1>
+    
+    <div id="TEST_ID_1" aria-live="polite">
+      TEST TEXT
+    </div>
+    
+    <h2>Description</h2>
+    <p>An element with an aria-live attribute is defined in markup with the value="polite" 
+      has a child DOM text node with content. After the onload event completes the child 
+      DOM text node is deleted.</p>
+    
+    <script type="text/javascript">  
+
+      function deleteChildNodes() {
+        var node  = document.getElementById('TEST_ID_1');  
+        while (node.firstChild) node.removeChild(node.firstChild);
+      }
+
+      function onload() {
+        setTimeout(deleteChildNodes,1000);
+      }
+     
+      window.addEventListener('load', onload);
+    </script>
+  </body>
+  
+</html>

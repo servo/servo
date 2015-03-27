@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<meta charset='utf-8'>
+<title>Geolocation Test: clearWatch TypeError tests</title>
+<link rel='help' href='http://www.w3.org/TR/geolocation-API/#clear-watch'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='support.js'></script>
+
+<div id='log'></div>
+
+<script>
+// Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00080
+test(function() {
+  try {
+    geo.clearWatch(-1);
+    geo.clearWatch(0);
+    geo.clearWatch(1);
+  } catch(e) {
+    assert_unreached('An exception was thrown unexpectedly: ' + e.message);
+  }
+  done();
+}, 'Test that calling clearWatch with invalid watch IDs does not cause an exception');
+</script>

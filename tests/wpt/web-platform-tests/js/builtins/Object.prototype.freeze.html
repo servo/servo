@@ -1,0 +1,52 @@
+<!doctype html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<title>Object.freeze</title>
+<link rel="author" title="Masaya Iseki" href="mailto:iseki.m.aa@gmail.com">
+<link rel="help" href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.freeze">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(function() {
+  [{}, []].forEach(function(that) {
+    assert_false(Object.isFrozen(that));
+    that.prop = 'exist';
+
+    Object.freeze(that);
+    assert_false(Object.isExtensible(that));
+    assert_true(Object.isSealed(that));
+    assert_true(Object.isFrozen(that));
+
+    that.extension = 'This property should not be added';
+    assert_equals(undefined, that.extension, 'Confirm to prevent adding property.');
+
+    that.prop = 'changed';
+    assert_equals('exist', that.prop,
+          'Confirm to prevent changing a property value.');
+
+    delete that.prop;
+    assert_equals('exist', that.prop, 'Confirm to prevent deleting a property.');
+  });
+});
+
+
+test(function() {
+  ['foo', 42, null, undefined].forEach(function(that) {
+    assert_throws(new TypeError(),
+        function() { Object.freeze(that) });
+  });
+});
+</script>
+
+</body>
+</html>

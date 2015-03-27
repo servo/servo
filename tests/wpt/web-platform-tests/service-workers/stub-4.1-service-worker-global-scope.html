@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<title>Service Workers: ServiceWorkerGlobalScope</title>
+    <head>
+        <link rel="help" href="https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-global-scope">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+        <script src=/resources/WebIDLParser.js></script>
+        <script src=/resources/idlharness.js></script>
+
+    </head>
+    <body>
+
+<script type=text/plain id="idl_0">
+[Global]
+interface ServiceWorkerGlobalScope : WorkerGlobalScope {
+  readonly attribute CacheStorage caches;
+  // A container for a list of window objects, identifiable by ID, that
+  // correspond to windows (or workers) that are "controlled" by this SW
+  readonly attribute ServiceWorkerClients clients;
+  [Unforgeable] readonly attribute DOMString scope;
+
+  Promise<any> fetch((Request or ScalarValueString) request);
+
+  void update();
+  void unregister();
+
+  attribute EventHandler oninstall;
+  attribute EventHandler onactivate;
+  attribute EventHandler onfetch;
+  attribute EventHandler onbeforeevicted;
+  attribute EventHandler onevicted;
+
+  // The event.source of these MessageEvents are instances of Client
+  attribute EventHandler onmessage;
+
+  // close() method inherited from WorkerGlobalScope is not exposed.
+};
+</pre>
+
+<!--
+The `ServiceWorkerGlobalScope` interface represents the global execution
+context of a Service Worker. `ServiceWorkerGlobalScope` object provides
+generic, event-driven, time-limited script execution contexts that run at an
+origin. Once successfully [registered][1], a Service Worker is started, kept
+alive and killed by their relationship to events, not documents. Any type of
+synchronous requests MUST NOT be initiated inside of a Service Worker.
+
+[1]: #navigator-service-worker-register
+-->
+
+
+    <script type=text/plain id="untested_idls">
+        interface CacheStorage {};
+        interface ServiceWorkerClients {};
+        interface Request {};
+        interface ScalarValueString {};
+        interface EventHandler {};
+        interface WorkerGlobalScope {};
+    </pre>
+
+    <script>
+        var idl_array = new IdlArray();
+        idl_array.add_untested_idls(document.getElementById("untested_idls").textContent);
+        idl_array.add_idls(document.getElementById("idl_0").textContent);
+        idl_array.add_objects({
+            ServiceWorkerGlobalScope: ["throw new Error ('No object defined for the ServiceWorkerGlobalScope interface')"]
+        });
+        idl_array.test();
+    </script>
+
+    </body>
+</html>
+

@@ -1,0 +1,16 @@
+<!DOCTYPe html>
+<meta charset='utf-8'>
+<title>drag and drop – feedback overlay for heavily styled elements – 001</title>
+<style>
+a {
+  display: block;
+  height: 200px;
+  width: 200px;
+  background-color: blue;
+  box-shadow: 10px 10px 10px gray;
+}
+</style>
+
+<p>Drag the blue box below downwards. The drag placeholder should resemble the blue box. It may optionally also include the box's shadow.</p>
+
+<a href='#' draggable="true" ondragstart="event.dataTransfer.effectAllowed ='copy'"></a>

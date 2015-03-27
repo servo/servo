@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id="desc">HTML5 Selection: Remove the element containing the selection</title>
+        <script type="text/javascript">
+            function RunTest()
+            {
+                try
+                {
+                    var selection = window.getSelection();
+                    var div1 = document.getElementById("div1");
+                    var span1 = document.getElementById("span1");
+                    var range = document.createRange();
+                    range.selectNode(span1);
+                    selection.addRange(range);
+                    
+                    document.body.removeChild(div1);
+                    
+                    if ("" == selection.toString())
+                    {
+                        document.getElementById("testresult").firstChild.data = "PASS";
+                    }
+                }
+                catch (ex)
+                {
+                    document.getElementById("testresult").firstChild.data = "FAIL";
+                }
+            }
+        </script>
+    </head>
+    <body onload="RunTest();">
+        <div id="div1">some text
+            <span id="span1">aaaaaaaa</span>
+        </div>
+        <div id="div2">Remove the element containing the selection</div>
+        <p>Test passes if the word "PASS" appears below.</p>
+        <div>Test result: </div>
+        <div id="testresult">FAIL</div>
+    </body>
+</html>
