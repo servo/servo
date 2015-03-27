@@ -5,6 +5,7 @@ import sys
 import os
 import os.path as path
 import subprocess
+from distutils.spawn import find_executable
 from time import time
 
 from mach.registrar import Registrar
@@ -15,8 +16,9 @@ from mach.decorators import (
 )
 
 from servo.command_base import CommandBase
+from wptrunner import wptcommandline
+from update import updatecommandline
 import tidy
-import multiprocessing
 
 
 @CommandProvider
@@ -215,32 +217,65 @@ class MachCommands(CommandBase):
 
     @Command('test-wpt',
              description='Run the web platform tests',
-             category='testing')
-    @CommandArgument(
-        '--processes', default=None,
-        help="Number of servo processes to spawn")
-    @CommandArgument(
-        "params", default=None, nargs='...',
-        help="command-line arguments to be passed through to wpt/run.sh")
-    def test_wpt(self, processes=None, params=None):
+             category='testing',
+             parser=wptcommandline.create_parser())
+    @CommandArgument('--release', default=False, action="store_true",
+                     help="Run with a release build of servo")
+    def test_wpt(self, **kwargs):
         self.ensure_bootstrapped()
-
-        if params is None:
-            params = []
-        else:
-            # Allow the first argument to be a relative path from Servo's root
-            # directory, converting it to `--include some/wpt/test.html`
-            maybe_path = path.normpath(params[0])
-            wpt_path = path.join('tests', 'wpt', 'web-platform-tests')
-
-            if path.exists(maybe_path) and wpt_path in maybe_path:
-                params = ["--include",
-                          path.relpath(maybe_path, wpt_path)]
-
-        processes = str(multiprocessing.cpu_count()) if processes is None else processes
-        params = params + ["--processes", processes]
+        self.ensure_wpt_virtualenv()
         hosts_file_path = path.join('tests', 'wpt', 'hosts')
 
-        return subprocess.call(
-            ["bash", path.join("tests", "wpt", "run.sh")] + params,
-            env=self.build_env(hosts_file_path=hosts_file_path))
+        os.environ["hosts_file_path"] = hosts_file_path
+
+        run_file = path.abspath(path.join("tests", "wpt", "run_wpt.py"))
+        run_globals = {"__file__": run_file}
+        execfile(run_file, run_globals)
+        return run_globals["run_tests"](**kwargs)
+
+    @Command('update-wpt',
+             description='Update the web platform tests',
+             category='testing',
+             parser=updatecommandline.create_parser())
+    def update_wpt(self, **kwargs):
+        self.ensure_bootstrapped()
+        self.ensure_wpt_virtualenv()
+        run_file = path.abspath(path.join("tests", "wpt", "update.py"))
+        run_globals = {"__file__": run_file}
+        execfile(run_file, run_globals)
+        return run_globals["update_tests"](**kwargs)
+
+
+    def ensure_wpt_virtualenv(self):
+        virtualenv_path = path.join("tests", "wpt", "_virtualenv")
+        python = self.get_exec("python2", "python")
+
+        if not os.path.exists(virtualenv_path):
+            virtualenv = self.get_exec("virtualenv2", "virtualenv")
+            subprocess.check_call([virtualenv, "-p", python, virtualenv_path])
+
+        activate_path = path.join(virtualenv_path, "bin", "activate_this.py")
+
+        execfile(activate_path, dict(__file__=activate_path))
+
+        try:
+            import wptrunner
+        except ImportError:
+            subprocess.check_call(["pip", "install", "-r",
+                                   path.join("tests", "wpt", "harness", "requirements.txt")])
+            subprocess.check_call(["pip", "install", "-r",
+                                   path.join("tests", "wpt", "harness", "requirements_servo.txt")])
+
+        # This is an unfortunate hack. Because mozlog gets imported by wptcommandline
+        # before the virtualenv is initalised it doesn't see the blessings module so we don't
+        # get coloured output. Setting the blessings global explicitly fixes that.
+        from mozlog.structured.formatters import machformatter
+        import blessings
+        machformatter.blessings = blessings
+
+    def get_exec(self, name, default=None):
+        path = find_executable(name)
+        if not path:
+            return default
+
+        return path
