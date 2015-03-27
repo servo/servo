@@ -14,6 +14,8 @@ use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::window::{self, WindowHelpers};
 use script_task::ScriptChan;
 
+use msg::constellation_msg::WorkerId;
+
 use net::resource_task::ResourceTask;
 
 use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
@@ -86,6 +88,14 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(ref window) => window.resource_task().clone(),
             GlobalRef::Worker(ref worker) => worker.resource_task().clone(),
+        }
+    }
+
+    /// Get next worker id.
+    pub fn get_next_worker_id(&self) -> WorkerId {
+        match *self {
+            GlobalRef::Window(ref window) => window.get_next_worker_id(),
+            GlobalRef::Worker(ref worker) => worker.get_next_worker_id()
         }
     }
 

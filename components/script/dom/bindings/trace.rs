@@ -47,7 +47,7 @@ use js::jsval::JSVal;
 use js::rust::{Cx, rt};
 use layout_interface::{LayoutRPC, LayoutChan};
 use libc;
-use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
+use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData, WorkerId};
 use net::image_cache_task::ImageCacheTask;
 use net::storage_task::StorageType;
 use script_traits::ScriptControlChan;
@@ -242,6 +242,7 @@ no_jsmanaged_fields!(PropertyDeclarationBlock);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
 no_jsmanaged_fields!(SubpageId, WindowSizeData, PipelineId);
+no_jsmanaged_fields!(WorkerId);
 no_jsmanaged_fields!(QuirksMode);
 no_jsmanaged_fields!(Cx);
 no_jsmanaged_fields!(rt);
