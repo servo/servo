@@ -44,7 +44,7 @@ impl Epoch {
 }
 
 #[derive(Clone, PartialEq, Eq, Copy)]
-pub struct LayerId(pub uint, pub uint);
+pub struct LayerId(pub usize, pub u32);
 
 impl Debug for LayerId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
