@@ -34,7 +34,7 @@ pub enum ReadyState {
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[derive(PartialEq, Eq, Debug, Copy)]
-pub struct Epoch(pub uint);
+pub struct Epoch(pub u32);
 
 impl Epoch {
     pub fn next(&mut self) {
