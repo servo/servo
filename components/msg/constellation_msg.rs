@@ -318,7 +318,7 @@ pub struct WorkerId(pub u32);
 pub struct PipelineId(pub u32);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
-pub struct SubpageId(pub uint);
+pub struct SubpageId(pub u32);
 
 // The type of pipeline exit. During complete shutdowns, pipelines do not have to
 // release resources automatically released on process termination.
