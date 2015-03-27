@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+ <head>
+  <title>window.onerror: runtime scripterrors</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <!--
+
+    https://html.spec.whatwg.org/multipage/#runtime-script-errors
+    says what to do for uncaught runtime script errors, and just below
+    describes what to do when onerror is a Function.
+
+    -->
+ </head>
+ <body>
+
+  <div id="log"></div>
+  <script>
+    setup({allow_uncaught_exception:true});
+    var error_count = 0;
+    window.onerror = function(msg, url, lineno) {
+      ++error_count;
+    };
+  </script>
+  <script>
+  try {
+    // This error is caught, so it should NOT trigger onerror.
+    throw "foo";
+  } catch (ex) {
+  }
+  // This error is NOT caught, so it should trigger onerror.
+  throw "bar";
+  </script>
+  <script>
+  test(function() {assert_equals(error_count, 1)},
+       "correct number of calls to window.onerror");
+  </script>
+ </body>
+</html>

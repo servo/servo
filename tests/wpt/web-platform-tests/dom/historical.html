@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<title>Historical DOM features must be removed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+function isInterfaceNuked(name) {
+  test(function() {
+    assert_equals(window[name], undefined)
+  }, "Historical DOM features must be removed: " + name)
+}
+var nukedInterfaces = [
+  "CDATASection",
+  "DOMConfiguration",
+  "DOMError",
+  "DOMErrorHandler",
+  "DOMImplementationList",
+  "DOMImplementationSource",
+  "DOMLocator",
+  "DOMObject",
+  "DOMUserData",
+  "Entity",
+  "EntityReference",
+  "EventException", // DOM Events
+  "NameList",
+  "Notation",
+  "TypeInfo",
+  "UserDataHandler",
+  "RangeException" // DOM Range
+]
+nukedInterfaces.forEach(isInterfaceNuked)
+
+function isNukedFromDocument(name) {
+  test(function() {
+    var doc = document.implementation.createDocument(null,null,null)
+    assert_equals(document[name], undefined)
+    assert_equals(doc[name], undefined)
+  }, "Historical DOM features must be removed: " + name)
+}
+var documentNuked = [
+  "createCDATASection",
+  "createEntityReference",
+  "xmlEncoding",
+  "xmlStandalone",
+  "xmlVersion",
+  "strictErrorChecking",
+  "domConfig",
+  "normalizeDocument",
+  "renameNode",
+  "charset",
+  "defaultCharset",
+  "height",
+  "width"
+]
+documentNuked.forEach(isNukedFromDocument)
+
+test(function() {
+  assert_equals(document.implementation["getFeature"], undefined)
+}, "DOMImplementation.getFeature() must be nuked.")
+
+function isNukedFromElement(name) {
+  test(function() {
+    var ele = document.createElementNS("test", "test")
+    assert_equals(document.body[name], undefined)
+    assert_equals(ele[name], undefined)
+  }, "Historical DOM features must be removed: " + name)
+}
+var elementNuked = [
+  "schemaTypeInfo",
+  "setIdAttribute",
+  "setIdAttributeNS",
+  "setIdAttributeNode"
+]
+elementNuked.forEach(isNukedFromElement)
+
+function isNukedFromDoctype(name) {
+  test(function() {
+    var doctype = document.implementation.createDocumentType("test", "", "")
+    assert_equals(doctype[name], undefined)
+  }, "DocumentType member must be nuked: " + name)
+}
+var doctypeNuked = [
+  "entities",
+  "notations",
+  "internalSubset"
+]
+doctypeNuked.forEach(isNukedFromDoctype)
+
+function isNukedFromText(name) {
+  test(function() {
+    var text = document.createTextNode("test")
+    assert_equals(text[name], undefined)
+  }, "Text member must be nuked: " + name)
+}
+var textNuked = [
+  "isElementContentWhitespace",
+  "replaceWholeText"
+]
+textNuked.forEach(isNukedFromText)
+
+function isNukedFromNode(name) {
+  test(function() {
+    var doc = document.implementation.createDocument(null,null,null)
+    var doctype = document.implementation.createDocumentType("test", "", "")
+    var text = document.createTextNode("test")
+    assert_equals(doc[name], undefined)
+    assert_equals(doctype[name], undefined)
+    assert_equals(text[name], undefined)
+  }, "Node member must be nuked: " + name)
+}
+var nodeNuked = [
+  "hasAttributes",
+  "attributes",
+  "namespaceURI",
+  "prefix",
+  "localName",
+  "isSupported",
+  "getFeature",
+  "getUserData",
+  "setUserData"
+]
+nodeNuked.forEach(isNukedFromNode)
+
+function isNukedFromWindow(name) {
+  test(function() {
+    assert_equals(window[name], undefined)
+  }, "Window member must be nuked: " + name)
+}
+var windowNuked = [
+  "attachEvent"
+]
+windowNuked.forEach(isNukedFromWindow)
+</script>

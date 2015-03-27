@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Influence of redirect during drag and drop on datastore</title>
+<style type="text/css">
+div
+	{height:100px;
+	width:100px;
+	padding:20px;
+	background-color:navy;}
+p + div
+	{background-color:gray;}
+</style>
+<script type="application/ecmascript">
+<![CDATA[
+var dataTypes = ['text/plain', 'text/uri-list', 'application/xml', 'application/xhtml+xml', 'application/mathml+xml', 'image/svg+xml', 'text/html', 'text/x-example'],
+data = ['PASS', 'data:text/plain,1', '<result>PASS</result>', '<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Data store item</title></head><body><p>PASS</p></body></html>', '<math xmlns="http://www.w3.org/1998/Math/MathML"><mn>1</mn></math>', '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="100px" height="50px" viewBox="0 0 100 50"><text x="0" y="40" font-size="40" fill="green">PASS</text></svg>', '<!DOCTYPE html><html><head><title>Data store item</title></head><body><p>PASS</p></body></html>', 'PASS'];
+function start(event)
+	{event.dataTransfer.effectAllowed = 'copy';
+	for(var i = 0; i != dataTypes.length; i++)
+		{event.dataTransfer.setData(dataTypes[i], data[i]);}
+	window.location = '009-1.xhtml'}
+]]>
+</script>
+</head>
+<body>
+<div draggable="true" ondragstart="start(event)"/>
+<p>Try to drag box above. You should be redirected to the new page and be able to drop it there.</p>
+</body>
+</html>

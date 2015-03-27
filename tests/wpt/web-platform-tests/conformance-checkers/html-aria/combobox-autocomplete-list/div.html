@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>Div with role="combobox" and aria-autocomplete="list"</title>
+   </head>
+   <body>
+   	<div role="combobox" aria-expanded="true" aria-label="Tag"
+   		aria-autocomplete="list" aria-activedescendant="selected_option">
+   	   <input type="text" role="textbox" aria-owns="owned_listbox" />
+   	   <ul role="listbox" id="owned_listbox">
+   	   	   <li role="option">Zebra</li>
+   		   <li role="option" id="selected_option" aria-selected="true">Zoom</li>
+   	   </ul>
+   	</div>
+   </body>
+</html>

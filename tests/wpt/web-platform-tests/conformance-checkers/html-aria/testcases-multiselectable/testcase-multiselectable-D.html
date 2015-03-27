@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html><head>
+    <title>ARIA 1.0 Test Case: Listbox role with multiseclect</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <style type="text/css">
+      div[aria-selected="true"] {color:white;background-color:black;}
+    </style>
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case: Listbox role with multiseclect</h1>
+        
+    <div role="listbox" aria-label="charlotte" aria-multiselectable="true">
+      <div role="option" aria-selected="false" id="ID1" tabindex="-1" onclick="handle1(event)">Option 1 (test for click elected)</div> 
+      <div role="option" aria-selected="false" id="ID2" tabindex="-1">Option 2</div>
+      <div role="option" aria-selected="false" id="ID3" onmousedown="handle2(event)">Option 3 (test for shift click selected)</div> 
+    </div>
+    
+    <script type="text/javascript">  
+     function handle1(e) {
+        var node=document.getElementById('ID1');
+        node.focus();
+        e.stopPropagation();
+        return false;
+     }
+     function handle2(e) {
+        shiftpressed=0;
+        shiftpressed=e.shiftKey;
+        if (shiftpressed){
+           var node=document.getElementById('ID1');
+           node.setAttribute("aria-selected", "true");
+           node=document.getElementById('ID2');
+           node.setAttribute("aria-selected", "true");
+           node=document.getElementById('ID3');
+           node.setAttribute("aria-selected", "true");
+        }
+        e.stopPropagation();
+        return false;
+     }
+    </script>
+
+</body></html>

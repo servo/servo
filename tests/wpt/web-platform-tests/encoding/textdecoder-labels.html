@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Encoding API: Encoding labels</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/encodings.js"></script>
+<script>
+
+encodings_table.forEach(function(section) {
+    section.encodings.filter(function(encoding) {
+        return encoding.name !== 'replacement';
+    }).forEach(function(encoding) {
+        var name = encoding.name;
+        encoding.labels.forEach(function(label) {
+            test(function(){
+              assert_equals(new TextDecoder(label).encoding, encoding.name,
+                            'label for encoding should match');
+              assert_equals(new TextDecoder(label.toUpperCase()).encoding,
+                            encoding.name,
+                            'label matching should be case-insensitive');
+            }, 'name=' + name + ' label=' + label);
+        });
+    });
+});
+
+</script>

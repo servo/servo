@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: send() - Accept-Language</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::code[contains(text(),'Accept-Language')]/.. following::code[contains(text(),'Accept-Language')]/../following::ul[1]/li[1] following::code[contains(text(),'Accept-Language')]/../following::ul[1]/li[2]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      test(function() {
+        var client = new XMLHttpRequest()
+        client.open('GET', 'resources/inspect-headers.py?filter_name=accept-language', false)
+        client.send(null)
+        assert_regexp_match(client.responseText, /accept-language:\s.+/)
+      }, 'Send "sensible" default value, whatever that means')
+      test(function() {
+        var client = new XMLHttpRequest()
+        client.open("GET", "resources/inspect-headers.py?filter_name=accept-language", false)
+        client.setRequestHeader("Accept-Language", "x-GameSpeak")
+        client.send(null)
+        assert_equals(client.responseText, "accept-language: x-GameSpeak\n")
+      })
+    </script>
+  </body>
+</html>

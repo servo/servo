@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>URL Test</title>
+    <link rel="author" title="Intel" href="http://www.intel.com/" />
+    <link rel="help" href="http://www.w3.org/html/wg/drafts/html/CR/infrastructure.html#urls" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="urltestparser.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    <![CDATA[
+    var setup = async_test("Loading data…")
+    setup.step(function() {
+      var request = new XMLHttpRequest()
+      request.open("GET", "urltestdata.txt")
+      request.send()
+      request.responseType = "text"
+      request.onload = setup.step_func(function() {
+        runURLTests(request.response);
+        setup.done()
+      })
+    })
+
+    function setBase(base) {
+      document.body.setAttributeNS("http://www.w3.org/XML/1998/namespace", "xml:base", base);
+    }
+
+    function bURL(url, base) {
+      base = base || "about:blank"
+      setBase(base)
+      var a = document.createElement("a")
+      a.setAttribute("href", url)
+      document.body.appendChild(a)
+      return a
+    }
+
+    function runURLTests(raw) {
+      var urltests = URLTestParser(raw)
+      for(var i = 0, l = urltests.length; i < l; i++) {
+        var expected = urltests[i]
+        test(function() {
+          var url = bURL(expected.input, expected.base)
+          if(expected.protocol === ':' && url.protocol !== ':')
+            assert_unreached('Expected URL to fail parsing')
+          assert_equals(url.protocol, expected.protocol, "scheme")
+          assert_equals(url.hostname, expected.host, "host")
+          assert_equals(url.port, expected.port, "port")
+          assert_equals(url.pathname, expected.path, "path")
+          assert_equals(url.search, expected.search, "search")
+          assert_equals(url.hash, expected.hash, "hash")
+          assert_equals(url.href, expected.href, "href")
+        }, "Parsing: <" + expected.input + "> against <" + expected.base + ">")
+      }
+    }
+    ]]>
+    </script>
+  </body>
+</html>

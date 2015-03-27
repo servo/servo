@@ -1,0 +1,13 @@
+<!doctype html>
+<title>WebSockets: replacing close</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+test(function() {
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/');
+  ws.close = 5;
+  assert_equals(ws.close, 5);
+});
+</script>

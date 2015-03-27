@@ -1,0 +1,29 @@
+{
+  "travil_test_1": {
+    "title": "The Title of this spec",
+    "specRef": "html > body:nth-child(2) > div:nth-child(1) > h1:nth-child(2)",
+    "notes": "This assertion is linked to the H1 in the beginning of the spec.",
+    "author": "Microsoft",
+    "date": "2012-07-11T23:39:23.634Z",
+    "testURL": "",
+    "testApproved": false
+  },
+  "travil_test_2": {
+    "title": "The Initial publication of WebIDL (at the bottom of the spec)",
+    "specRef": "#changes > dl:nth-child(4) > dt:nth-child(19)",
+    "notes": "17 October 2007 was the FPWD.\nTime to start testing.",
+    "author": "Microsoft",
+    "date": "2012-07-11T23:40:41.624Z",
+    "testURL": "",
+    "testApproved": false
+  },
+  "travil_test_3": {
+    "title": "This assertion should not be found (by design)",
+    "specRef": "#does_not_exist > div",
+    "notes": "This is for testing purposes only (testing the framework)",
+    "author": "Microsoft",
+    "date": "2012-07-11T23:40:41.624Z",
+    "testURL": "",
+    "testApproved": false
+  }
+}

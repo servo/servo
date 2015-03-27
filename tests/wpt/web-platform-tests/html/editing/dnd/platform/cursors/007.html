@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - should show drop-allowed for move dropzones</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+    position: absolute;
+    top: 8px;
+    left: 8px;
+  }
+  body > div + div {
+    background-color: navy;
+    left: 250px;
+  }
+  p:first-of-type {
+    margin-top: 220px;
+  }
+</style>
+
+<script type="text/javascript">
+
+window.onload = function() {
+  var orange = document.getElementsByTagName('div')[0], blue = document.getElementsByTagName('div')[1];
+  orange.ondragstart = function(e) {
+		e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('Text', 'dummy text');
+  };
+  blue.ondragenter = blue.ondragover = function(e) {
+   	e.preventDefault();
+		e.dataTransfer.dropEffect = 'move';
+  };
+  blue.ondrop = function(e) {
+   	e.preventDefault();
+  };
+};
+
+</script>
+
+<div draggable='true'></div><div></div>
+
+<p>Use your mouse to drag the orange box over the blue box. While dragging over the blue box, the mouse cursor should appear as a &quot;drop-allowed&quot; or &quot;drop-move-allowed&quot; cursor.<br>
+Release the drag. The cursor should revert to the default mouse cursor.</p>
+<p>This test only applies to platforms with a mouse cursor that can change to indicate drop status.</p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

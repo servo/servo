@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<script>
+ var t = parent.opener.t;
+ var do_test = t.step_func(function () {
+   localStorage.test6564729 += '5';
+   var s = 'FAIL: document.open() has canceled the navigation (' + localStorage.test6564729 + ')';
+   parent.document.open();
+   parent.document.write(s);
+   parent.document.close();
+   localStorage.test6564729 += parent.document.body.textContent.match('FAIL') == s ? 'X' : '6';
+   localStorage.test6564729 += '7';
+ });
+</script>
+<body onbeforeunload="localStorage.test6564729 += '2'"
+      onpagehide="do_test()"
+      onunload="localStorage.test6564729 += '8'">
+<p>Inner frame

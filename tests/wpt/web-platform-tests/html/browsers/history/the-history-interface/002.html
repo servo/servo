@@ -1,0 +1,308 @@
+<!doctype html>
+<html>
+    <head>
+        <title>history.replaceState tests</title>
+        <script type="text/javascript" src="/resources/testharness.js"></script>
+        <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+        <script type="text/javascript">
+//does not test for firing of popstate onload, because this was dropped from the specification on 25 March 2011
+//covers history.state after load, in accordance with the specification draft from 25 March 2011
+//history.state before load is tested in 006 and 007
+//does not test for structured cloning of FileList, File or Blob interfaces, as these require manual file selection
+
+//**This test assumes that assignments to location.hash will be synchronous - this is how all browsers implement it.
+//The spec (as of 25 March 2011) disagrees.
+
+var histlength, atstep = 0, lasttimer;
+setup({explicit_done:true}); //tests should take under 6 seconds + execution time
+
+window.onload = function () {
+    if( location.protocol == 'file:' ) {
+        document.getElementsByTagName('p')[0].innerHTML = 'ERROR: This test cannot be run from file: (URL resolving will not work). It must be loaded over HTTP.';
+        return;
+    } else if( location.protocol == 'https:' ) {
+        document.getElementsByTagName('p')[0].innerHTML += '<br>WARNING: Browsers may intentionally fail to update history.length when pages are loaded over HTTPS, as a privacy restriction. If possible, load this page over HTTP.';
+    }
+    //use a timeout, because some browsers intentionally do not add history entries for URL changes in the onload thread
+    setTimeout(testinit,100);
+};
+function testinit() {
+    atstep = 1;
+    histlength = history.length;
+    iframe = document.getElementsByTagName('iframe')[0].src = 'blank2.html';
+    //reportload will now be called by the onload handler for the iframe
+}
+function reportload() {
+    var iframe = document.getElementsByTagName('iframe')[0], hashchng = false;
+    var canvassup = false, cloneobj;
+
+    function tests1() {
+        test(function () { assert_equals( history.length, histlength + 1, 'make sure that you loaded the test in a new tab/window' ); }, 'history.length should update when loading pages in an iframe');
+        histlength = history.length;
+        iframe.contentWindow.location.hash = 'test'; //should be synchronous **SEE COMMENT AT TOP OF FILE
+        test(function () {
+            assert_equals( history.length, histlength + 1, 'make sure that you loaded the test in a new tab/window' );
+        }, 'history.length should update when setting location.hash');
+        test(function () { assert_true( !!history.replaceState, 'critical test; ignore any failures after this' ); }, 'history.replaceState must exist'); //assert_exists does not allow prototype inheritance
+        test(function () { assert_true( !!iframe.contentWindow.history.replaceState, 'critical test; ignore any failures after this' ); }, 'history.replaceState must exist within iframes');
+        test(function () {
+            assert_equals( iframe.contentWindow.history.state, null );
+        }, 'initial history.state should be null');
+        iframe.contentWindow.location.hash = 'test2';
+        history.back();
+        setTimeout(tests2,50); //.go is queued to end of thread
+    }
+    function tests2() {
+        test(function () {
+            histlength = history.length;
+            iframe.contentWindow.history.replaceState('','');
+            assert_equals( history.length, histlength );
+        }, 'history.length should not update when replacing a state with no URL');
+        test(function () {
+            assert_equals( iframe.contentWindow.history.state, '' );
+        }, 'history.state should update after a state is pushed');
+        test(function () {
+            assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test' );
+        }, 'hash should not change when replaceState is called without a URL');
+        test(function () {
+            histlength = history.length;
+            iframe.contentWindow.history.replaceState('','','#test3');
+            assert_equals( history.length, histlength );
+        }, 'history.length should not update when replacing a state with a URL');
+        test(function () {
+            assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test3' );
+        }, 'hash should change when replaceState is called with a URL');
+        history.go(-1);
+        setTimeout(tests3,50); //.go is queued to end of thread
+    }
+    function tests3() {
+        test(function () {
+            assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), '' );
+        }, 'replaceState must replace the existing state and not add an extra one');
+        history.go(2);
+        setTimeout(tests4,50); //.go is queued to end of thread
+    }
+    function tests4() {
+        test(function () {
+            assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test2' );
+        }, 'replaceState must replace the existing state without altering the forward history');
+        test(function () {
+            assert_throws('SECURITY_ERR',function () { history.replaceState('','','//exa mple'); });
+        }, 'replaceState must not be allowed to create invalid URLs');
+        test(function () {
+            assert_throws('SECURITY_ERR',function () { history.replaceState('','','http://www.example.com/'); });
+        }, 'replaceState must not be allowed to create cross-origin URLs');
+        test(function () {
+            assert_throws('SECURITY_ERR',function () { history.replaceState('','','about:blank'); });
+        }, 'replaceState must not be allowed to create cross-origin URLs (about:blank)');
+        test(function () {
+            assert_throws('SECURITY_ERR',function () { history.replaceState('','','data:text/html,'); });
+        }, 'replaceState must not be allowed to create cross-origin URLs (data:URI)');
+        test(function () {
+            assert_throws('SECURITY_ERR',function () { iframe.contentWindow.history.replaceState('','','http://www.example.com/'); },iframe.contentWindow);
+        }, 'security errors are expected to be thrown in the context of the document that owns the history object');
+        test(function () {
+            //avoids browsers running .go synchronously when only a hash change is involved
+            iframe.contentWindow.history.replaceState('','','/testing_ignore_me_404#test4');
+            assert_equals( iframe.contentWindow.location.pathname, '/testing_ignore_me_404' );
+        }, 'replaceState must be able to set location.pathname');
+        test(function () {
+            var newURL = location.href.replace(/\/[^\/]*$/)+'/testing_ignore_me_404/';
+            iframe.contentWindow.history.replaceState('','',newURL);
+            assert_equals( iframe.contentWindow.location.href, newURL );
+        }, 'replaceState must be able to set absolute URLs to the same host');
+        //begin setup for "[must not] remove any tasks queued by the history traversal task source"
+        iframe.contentWindow.history.go(-1); //must be queued so the next command takes place *beforehand*
+        try {
+            //must not remove the queued navigation in the same browsing context
+            iframe.contentWindow.history.replaceState('','',iframe.contentWindow.location.pathname+'#test5');
+        } catch(unsuperr2) {}
+        //allow the browser to run the .go
+        setTimeout(tests5,50);
+    }
+    function tests5() {
+        test(function () {
+            assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test3' );
+        }, 'replaceState must not remove any tasks queued by the history traversal task source');
+        //Safari 5.0.3 fails here - it navigates *this* document to the *iframe's* location, instead of just navigating the iframe
+        history.go(1);
+        setTimeout(tests6,50); //.go is queued to end of thread
+    }
+    function tests6() {
+        test(function () {
+            assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test5' );
+        }, '.go must queue a task with the history traversal task source (run asynchronously)');
+        //end "[must not] remove any tasks queued by the history traversal task source"
+        window.addEventListener('hashchange',function () { hashchng = true; },false);
+        try {
+            //push a state that changes the hash
+            iframe.contentWindow.history.replaceState('','',iframe.contentWindow.location.pathname+'#test6');
+        } catch(unsuperr) {}
+        setTimeout(tests7,50); //allow the hashchange event to process, if the browser has mistakenly fired it
+    }
+    function tests7() {
+        test(function () {
+            assert_false( hashchng );
+        }, 'replaceState must not fire hashchange events');
+        test(function () {
+            assert_throws( 'DATA_CLONE_ERR', function () {
+                history.replaceState({dummy:function () {}},'');
+            } );
+        }, 'replaceState must not be able to use a function as data');
+        test(function () {
+            assert_throws( 'DATA_CLONE_ERR', function () {
+                history.replaceState({dummy:window},'');
+            } );
+        }, 'replaceState must not be able to use a DOM node as data');
+        test(function () {
+            try { a.b = c; } catch(errdata) {
+                assert_throws( 'DATA_CLONE_ERR', function () {
+                    history.replaceState({dummy:errdata},'');
+                } );
+            }
+        }, 'replaceState must not be able to use an error object as data');
+        test(function () {
+            assert_throws( 'DATA_CLONE_ERR', function () {
+                iframe.contentWindow.history.replaceState(document,'');
+            }, iframe.contentWindow );
+        }, 'security errors are expected to be thrown in the context of the document that owns the history object (2)');
+        cloneobj = {
+            nulldata: null,
+            udefdata: window.undefined,
+            booldata: true,
+            numdata: 1,
+            strdata: 'string data',
+            boolobj: new Boolean(true),
+            numobj: new Number(1),
+            strobj: new String('string data'),
+            datedata: new Date(),
+            regdata: /a/g,
+            arrdata: [1]
+        };
+        cloneobj.regdata.lastIndex = 1;
+        cloneobj.looped = cloneobj;
+        //test the ImageData type, if the browser supports it
+        var canvas = document.createElement('canvas');
+        if( canvas.getContext && ( canvas = canvas.getContext('2d') ) && canvas.createImageData ) {
+            canvassup = true;
+            cloneobj.imgdata = canvas.createImageData(1,1);
+        }
+        test(function () {
+            try {
+                iframe.contentWindow.history.replaceState(cloneobj,'new title');
+            } catch(e) {
+                cloneobj.looped = null;
+                //try again because this object is needed for future tests
+                iframe.contentWindow.history.replaceState(cloneobj,'new title');
+                //rethrow so the browser gets a FAIL for not coping with the circular reference; "internal structured cloning algorithm" step 1
+                throw(e);
+            }
+        }, 'replaceState must be able to make structured clones of complex objects');
+        test(function () {
+            assert_equals( iframe.contentWindow.history.state && iframe.contentWindow.history.state.strdata, 'string data' );
+        }, 'history.state should also reference a clone of the original object');
+        test(function () {
+            assert_false( cloneobj === iframe.contentWindow.history.state );
+        }, 'history.state should be a clone of the original object, not a reference to it');
+        history.go(-1);
+        setTimeout(tests8,50); //.go is queued to end of thread
+    }
+    function tests8() {
+        var eventtime = setTimeout(function () { tests9(false); },500); //should be cleared by the event handler long before it has a chance to fire
+        iframe.contentWindow.addEventListener('popstate',function (e) { clearTimeout(eventtime); tests9(true,e); },false);
+        history.forward();
+    }
+    function tests9(hasFired,ev) {
+        test(function () {
+            assert_true( hasFired );
+        }, 'popstate event should fire when navigation occurs');
+        test(function () {
+            assert_true( !!ev && typeof(ev.state) != 'undefined', 'state information was not passed' );
+            assert_true( !!ev.state, 'state information does not contain the expected value - browser is probably stuck in the wrong history position' );
+            assert_equals( ev.state.nulldata, null, 'state null data was not correct' );
+            assert_equals( ev.state.udefdata, window.undefined, 'state undefined data was not correct' );
+            assert_true( ev.state.booldata, 'state boolean data was not correct' );
+            assert_equals( ev.state.numdata, 1, 'state numeric data was not correct' );
+            assert_equals( ev.state.strdata, 'string data', 'state string data was not correct' );
+            assert_true( !!ev.state.datedata.getTime, 'state date data was not correct' );
+            assert_exists( ev.state, 'regdata', 'state regex data was not correct' );
+            assert_equals( ev.state.regdata.source, 'a', 'state regex pattern data was not correct' );
+            assert_true( ev.state.regdata.global, 'state regex flag data was not correct' );
+            assert_equals( ev.state.regdata.lastIndex, 0, 'state regex lastIndex data was not correct' );
+            assert_equals( ev.state.arrdata.length, 1, 'state array data was not correct' );
+            assert_true( ev.state.boolobj.valueOf(), 'state boolean data was not correct' );
+            assert_equals( ev.state.numobj.valueOf(), 1, 'state numeric data was not correct' );
+            assert_equals( ev.state.strobj.valueOf(), 'string data', 'state string data was not correct' );
+            if( canvassup ) {
+                assert_equals( ev.state.imgdata.width, 1, 'state ImageData was not correct' );
+            }
+        }, 'popstate event should pass the state data');
+        test(function () {
+            assert_equals( ev.state.looped, ev.state );
+        }, 'state data should cope with circular object references');
+        test(function () {
+            assert_false( cloneobj === ev.state );
+        }, 'state data should be a clone of the original object, not a reference to it');
+        test(function () {
+            assert_equals( iframe.contentWindow.history.state && iframe.contentWindow.history.state.strdata, 'string data' );
+        }, 'history.state should also reference a clone of the original object (2)');
+        test(function () {
+            assert_false( cloneobj === iframe.contentWindow.history.state );
+        }, 'history.state should be a clone of the original object, not a reference to it (2)');
+        test(function () {
+            assert_false( iframe.contentWindow.history.state === ev.state );
+        }, 'history.state should be a separate clone of the object, not a reference to the object passed to the event handler');
+        try {
+            iframe.contentWindow.persistval = true;
+            iframe.contentWindow.history.replaceState('','', location.href.replace(/\/[^\/]*$/,'/blank3.html') );
+        } catch(unsuperr) {}
+        //it's already cached, so this should be very fast if the browser mistakenly loads it
+        //it should not need to load at all, since it's just a pushed state
+        setTimeout(tests10,1000);
+    }
+    function tests10() {
+        test(function () {
+            assert_true( iframe.contentWindow.persistval && !iframe.contentWindow.forreal );
+        }, 'replaceState should not actually load the new URL');
+        atstep = 3;
+        iframe.contentWindow.location.reload(); //load the real URL
+        lasttimer = setTimeout(function () { tests11(false); },3000); //should be cleared by the onload handler long before it has a chance to fire
+    }
+    function tests11(passed) {
+        test(function () {
+            assert_true( passed, 'expected a load event to fire when reloading the URL from cache, gave up waiting after 3 seconds' );
+        }, 'reloading a replaced state should actually load the new URL');
+        //try to make browsers behave when reloading so that the correct URL is recovered - does not always work
+        iframe.contentWindow.location.href = location.href.replace(/\/[^\/]*$/,'/blank.html');
+        done();
+    }
+
+    if( atstep == 1 ) {
+        //blank2 has loaded
+        atstep = 2;
+        //use a timeout, because some browsers intentionally do not add history entries for URL changes in an onload thread
+        setTimeout(tests1,100);
+    } else if( atstep == 3 ) {
+        //blank3 should now have loaded after the .reload() command
+        atstep = 4;
+        clearTimeout(lasttimer);
+        tests11(true);
+    }
+}
+
+
+
+        </script>
+    </head>
+    <body>
+
+        <noscript><p>Enable JavaScript and reload</p></noscript>
+        <p>WARNING: This test should always be loaded in a new tab/window, to avoid browsers attempting to recover the state of frames, and history length. Do not reload the test.</p>
+        <div id="log">Running test...</div>
+        <p><iframe onload="reportload();" src="blank.html"></iframe></p>
+        <p><iframe src="blank.html"></iframe></p>
+        <p><iframe src="blank2.html"></iframe></p>
+        <p><iframe src="blank3.html"></iframe></p>
+
+    </body>
+</html>

@@ -1,0 +1,58 @@
+#data
+<0
+#errors
+#document-fragment
+
+#data
+<0.500
+#errors
+#document-fragment
+
+#data
+<0:00.500
+#errors
+#document-fragment
+
+#data
+<00:00.500
+#errors
+#document-fragment
+| <?timestamp 00:00:00.500>
+
+#data
+<00:00:00.500
+#errors
+#document-fragment
+| <?timestamp 00:00:00.500>
+
+#data
+test<00:00:00.500>test
+#errors
+#document-fragment
+| "test"
+| <?timestamp 00:00:00.500>
+| "test"
+
+#data
+test<01:00:00.000>test
+#errors
+#document-fragment
+| "test"
+| <?timestamp 01:00:00.000>
+| "test"
+
+#data
+test<10:00:00.000>test
+#errors
+#document-fragment
+| "test"
+| <?timestamp 10:00:00.000>
+| "test"
+
+#data
+test<100:00:00.000>test
+#errors
+#document-fragment
+| "test"
+| <?timestamp 100:00:00.000>
+| "test"

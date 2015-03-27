@@ -1,0 +1,4 @@
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+<its:translateRule selector="//h:section/h:p" translate="no"/>
+<its:locNoteRule locNoteType="description" selector="//h:section/h:span" locNotePointer="../h:p"/>
+</its:rules>

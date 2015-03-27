@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Lostpointercapture triggers first and asynchronously</title>
+        <meta name="assert" content="TA11.1: After pointer capture is released for a pointer, and prior to any subsequent events for the pointer, the lostpointercapture event must be dispatched to the element from which pointer capture was removed; TA11.2: lostpointercapture must be dispatched asynchronously.">
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events capture test - lostpointercapture order</h1>
+        <h4>
+            Test Description:
+            This test checks if lostpointercapture is handled asynchronously and prior to all subsequent events.
+            Complete the following actions:
+            <ol>
+                <li>Press and hold left mouse button over "Set Capture" button. "gotpointercapture" should be logged inside of the black rectangle
+                <li>"lostpointercapture" should be logged inside of the black rectangle after a short delay
+            </ol>
+        </h4>
+        Test passes if lostpointercapture is dispatched after releasing the mouse button and before any additional pointer events.
+        <div id="target0" style="background:black; color:white"></div>
+        <br>
+        <input type="button" id="btnCapture" value="Set Capture">
+        <script type='text/javascript'>
+            var detected_pointertypes = {};
+            var detected_pointerEvents = new Array();
+            var pointerdown_event = null;
+
+            var test_pointerEvent = async_test("lostpointercapture is dispatched prior to subsequent events"); // set up test harness
+
+            var isPointerCapture = false;
+            var count=0;
+
+            var testStarted = false;
+            var eventRcvd = false;
+            var isAsync = false;
+
+            add_completion_callback(showPointerTypes);
+
+            var target0 = document.getElementById('target0');
+            var captureButton = document.getElementById('btnCapture');
+
+            function run() {
+                on_event(captureButton, 'pointerdown', function(event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    pointerdown_event = event;
+                    if(isPointerCapture == false) {
+                        isPointerCapture = true;
+                        captureButton.value = 'Release Capture';
+                        sPointerCapture(event);
+                    }
+                });
+
+                // After pointer capture is released for a pointer, and prior to any subsequent events for the pointer,
+                // the lostpointercapture event must be dispatched to the element from which pointer capture was removed.
+                // TA: 11.1
+                // listen to all events
+                for (var i = 0; i < All_Pointer_Events.length; i++) {
+                    on_event(target0, All_Pointer_Events[i], function (event) {
+                        // if the event was gotpointercapture, just log it and return
+                        if (event.type == "gotpointercapture") {
+                            testStarted = true;
+                            rPointerCapture(event);
+                            isAsync = true;
+                            log("gotpointercapture", target0);
+                            return;
+                        }
+                        else if (event.type == "lostpointercapture") {
+                            log("lostpointercapture", target0);
+                            captureButton.value = 'Set Capture';
+                            isPointerCapture = false;
+
+                            // TA: 11.2
+                            test_pointerEvent.step(function () {
+                                assert_true(isAsync, "lostpointercapture must be fired asynchronously");
+                             });
+
+                            // if any events have been received with same pointerId before lostpointercapture, then fail
+                            var eventsRcvd_str = "";
+                            if (eventRcvd) {
+                                eventsRcvd_str = "Events received before lostpointercapture: ";
+                                for (var i = 0; i < detected_pointerEvents.length; i++) {
+                                    eventsRcvd_str += detected_pointerEvents[i] + ", ";
+                                }
+                            }
+                            test_pointerEvent.step(function () {
+                                assert_false(eventRcvd, "no other events should be received before lostpointercapture." + eventsRcvd_str);
+                                assert_equals(event.pointerId, pointerdown_event.pointerId, "pointerID is same for pointerdown and lostpointercapture");
+                            });
+                            test_pointerEvent.done(); // complete test
+                        }
+                        else {
+                            if (testStarted && pointerdown_event != null && pointerdown_event.pointerId === event.pointerId) {
+                                detected_pointerEvents.push(event.type);
+                                eventRcvd = true;
+                            }
+                        }
+                    });
+                }
+            }
+        </script>
+        <h1>Pointer Events Capture Test</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>interface Counter {
+  [Replaceable] readonly attribute unsigned long value;
+  void increment();
+};</webidl>
+  <Interface name="Counter" id="::Counter">
+    <webidl>interface Counter {
+  [Replaceable] readonly attribute unsigned long value;
+  void increment();
+};</webidl>
+    <Attribute readonly="readonly" name="value" id="::Counter::value">
+      <webidl>  [Replaceable] readonly attribute unsigned long value;</webidl>
+      <ExtendedAttributeList>
+        <ExtendedAttribute name="Replaceable">
+          <webidl>Replaceable</webidl>
+        </ExtendedAttribute>
+      </ExtendedAttributeList>
+      <Type type="unsigned long"/>
+    </Attribute>
+    <Operation name="increment" id="::Counter::increment">
+      <webidl>  void increment();</webidl>
+      <Type type="void"/>
+      <ArgumentList/>
+    </Operation>
+  </Interface>
+</Definitions>

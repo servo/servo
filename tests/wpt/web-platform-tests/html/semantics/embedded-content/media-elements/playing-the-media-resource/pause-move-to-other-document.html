@@ -1,0 +1,25 @@
+<!doctype html>
+<title>paused state when moving to other document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<div id="log"></div>
+<video hidden></video>
+<iframe hidden></iframe>
+<script>
+async_test(function(t) {
+  var v = document.querySelector('video');
+  v.src = getVideoURI('/media/movie_300');
+  v.play();
+  v.onplaying = t.step_func(function() {
+    assert_false(v.paused, 'paused after playing');
+    document.querySelector('iframe').contentDocument.body.appendChild(v);
+    assert_false(v.paused, 'paused after moving');
+    setTimeout(t.step_func(function() {
+      assert_false(v.paused, 'paused after stable state')
+      t.done();
+    }), 0);
+  });
+  v.onpause = t.step_func(function() { assert_unreached(); });
+});
+</script>

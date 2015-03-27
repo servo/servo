@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>IDBFactory.deleteDatabase() - success event</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<link rel=help href="http://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#widl-IDBFactory-deleteDatabase-IDBOpenDBRequest-DOMString-name">
+<meta name=assert title="If the steps above are successful, the implementation must set the result of the request to undefined and fire a success event at the request. The event must implement the IDBVersionChangeEvent interface and have oldVersion set to database version and have the newVersion property set to null.">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js></script>
+
+<script>
+    var db
+    var open_rq = createdb(async_test(document.title, {timeout: 10000}), undefined, 9)
+
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result
+        db.createObjectStore('os')
+    }
+    open_rq.onsuccess = function(e) {
+        db.close()
+
+        var delete_rq = window.indexedDB.deleteDatabase(db.name)
+        delete_rq.onerror = fail(this, "Unexpected delete_rq.error event")
+        delete_rq.onsuccess = this.step_func( function (e) {
+            assert_equals(e.oldVersion, 9, "oldVersion")
+            assert_equals(e.newVersion, null, "newVersion")
+            assert_equals(e.target.result, undefined, "result")
+            assert_true(e instanceof IDBVersionChangeEvent, "e instanceof IDBVersionChangeEvent")
+            this.done()
+        })
+    }
+</script>
+
+<div id=log></div>

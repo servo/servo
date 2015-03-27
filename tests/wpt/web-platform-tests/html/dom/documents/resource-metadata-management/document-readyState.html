@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>document.readyState</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#resource-metadata-management">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  var t1 = async_test("readyState equals 'complete' when the document has loaded"),
+      t2 = async_test("readyState equals 'interactive' when the document is finished parsing"),
+      t3 = async_test("readystatechange event is fired each time document.readyState changes");
+
+  window.onload = t1.step_func_done(function(){
+    assert_equals(document.readyState, "complete");
+  });
+
+  document.addEventListener("DOMContentLoaded", function(event) {
+    t2.step(function() {
+      assert_equals(document.readyState, "interactive")
+    });
+    t2.done();
+  });
+
+  var states = [document.readyState];
+  document.onreadystatechange = t3.step_func(function(){
+    states.push(document.readyState);
+    if (document.readyState === "complete") {
+      assert_array_equals(states, ["loading", "interactive", "complete"]);
+      t3.done();
+    }
+  })
+</script>

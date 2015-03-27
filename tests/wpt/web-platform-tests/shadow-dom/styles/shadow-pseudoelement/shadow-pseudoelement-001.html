@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test: ::shadow pseudo element</title>
+<link rel="author" title="Kenji Baheux" href="mailto:kenjibaheux@google.com">
+<link rel="help" href="http://dev.w3.org/csswg/css-scoping/#shadow-pseudoelement">
+<meta name="assert" content="::shadow should match a shadow root">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+
+    var outerhost = d.createElement('div');
+    outerhost.setAttribute('id', 'foo-host');
+    var span0 = d.createElement('span');
+    span0.setAttribute('id', 'outer-host');
+    outerhost.appendChild(span0);
+
+    var s1 = outerhost.createShadowRoot();
+
+    var div1 = d.createElement('div');
+    var span1 = d.createElement('span');
+    span1.setAttribute('id', 'not-top');
+    div1.appendChild(span1);
+    s1.appendChild(div1);
+
+    var span2 = d.createElement('span');
+    span2.setAttribute('id', 'top');
+    s1.appendChild(span2);
+
+
+    var innerhost = d.createElement('div');
+    innerhost.setAttribute('id', 'bar-host');
+    var span3 = d.createElement('span');
+    span3.setAttribute('id', 'inner-host');
+    innerhost.appendChild(span3);
+
+    var s2 = innerhost.createShadowRoot();
+
+    var span4 = d.createElement('span');
+    span4.setAttribute('id', 'nested');
+    s2.appendChild(span4);
+    s1.appendChild(innerhost);
+
+    d.body.appendChild(outerhost);
+
+    assert_equals(d.querySelectorAll('#foo-host::shadow span').length, 3, 'Point 1: match only direct children of the outer shadow tree');
+    assert_equals(d.querySelectorAll('#foo-host::shadow span')[0], span1, 'Point 2: incorrect match');
+    assert_equals(d.querySelectorAll('#foo-host::shadow span')[1], span2, 'Point 3: incorrect match');
+    assert_equals(d.querySelectorAll('#foo-host::shadow span')[2], span3, 'Point 4: incorrect match');
+ }), 'SD_SHADOW_PSEUDOELEMENT_QUERYSELECTOR_T1');
+
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+
+    var outerhost = d.createElement('div');
+    outerhost.setAttribute('id', 'foo-host');
+    var span0 = d.createElement('span');
+    span0.setAttribute('id', 'outer-host');
+    outerhost.appendChild(span0);
+
+    var s1 = outerhost.createShadowRoot();
+
+    var div1 = d.createElement('div');
+    var span1 = d.createElement('span');
+    span1.setAttribute('id', 'not-top');
+    div1.appendChild(span1);
+    s1.appendChild(div1);
+
+    var span2 = d.createElement('span');
+    span2.setAttribute('id', 'top');
+    s1.appendChild(span2);
+
+
+    var innerhost = d.createElement('div');
+    innerhost.setAttribute('id', 'bar-host');
+    var span3 = d.createElement('span');
+    span3.setAttribute('id', 'inner-host');
+    innerhost.appendChild(span3);
+
+    var s2 = innerhost.createShadowRoot();
+
+    var span4 = d.createElement('span');
+    span4.setAttribute('id', 'nested');
+    s2.appendChild(span4);
+    s1.appendChild(innerhost);
+
+    d.body.appendChild(outerhost);
+
+    assert_equals(s1.querySelectorAll('*::shadow span').length, 1, 'Point 1: match only in the inner shadow tree');
+    assert_equals(s1.querySelectorAll('*::shadow span')[0], span4, 'Point 2: incorrect match');
+ }), 'SD_SHADOW_PSEUDOELEMENT_QUERYSELECTOR_T2');
+
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+
+    var outerhost = d.createElement('div');
+    outerhost.setAttribute('id', 'foo-host');
+    var span0 = d.createElement('span');
+    span0.setAttribute('id', 'outer-host');
+    outerhost.appendChild(span0);
+
+    var s1 = outerhost.createShadowRoot();
+
+    var div1 = d.createElement('div');
+    var span1 = d.createElement('span');
+    span1.setAttribute('id', 'not-top');
+    div1.appendChild(span1);
+    s1.appendChild(div1);
+
+    var span2 = d.createElement('span');
+    span2.setAttribute('id', 'top');
+    s1.appendChild(span2);
+
+
+    var innerhost = d.createElement('div');
+    innerhost.setAttribute('id', 'bar-host');
+    var span3 = d.createElement('span');
+    span3.setAttribute('id', 'inner-host');
+    innerhost.appendChild(span3);
+
+    var s2 = innerhost.createShadowRoot();
+
+    var span4 = d.createElement('span');
+    span4.setAttribute('id', 'nested');
+    s2.appendChild(span4);
+    s1.appendChild(innerhost);
+
+    d.body.appendChild(outerhost);
+
+    assert_equals(s2.querySelectorAll('*::shadow span').length, 0, 'Point 1: no match');
+ }), 'SD_SHADOW_PSEUDOELEMENT_QUERYSELECTOR_T3');
+
+</script>
+</body>
+</html>

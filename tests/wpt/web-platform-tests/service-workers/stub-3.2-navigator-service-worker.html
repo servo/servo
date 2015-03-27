@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<title>Service Workers: navigator.serviceWorker</title>
+    <head>
+        <link rel="help" href="https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#navigator-service-worker">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+        <script src=/resources/WebIDLParser.js></script>
+        <script src=/resources/idlharness.js></script>
+
+    </head>
+    <body>
+
+<!--
+The `serviceWorker` attribute of the [Navigator][1] interface must return an
+instance of the `ServiceWorkerContainer` interface, which provides access to
+registration, removal, upgrade, and communication with Service Workers that are
+(or will become) active for the current document. Communication with these
+workers is provided via standard [HTML5 messaging APIs][2], and [messaging
+occurs as per usual with Web Workers][3].
+-->
+<script type=text/plain id="idl_0">
+partial interface Navigator {
+  readonly attribute ServiceWorkerContainer serviceWorker;
+};
+
+interface ServiceWorkerContainer : EventTarget {
+  [Unforgeable] readonly attribute ServiceWorker? installing;
+  [Unforgeable] readonly attribute ServiceWorker? waiting;
+  [Unforgeable] readonly attribute ServiceWorker? active;
+  [Unforgeable] readonly attribute ServiceWorker? controller;
+  readonly attribute Promise<ServiceWorker> ready;
+
+  Promise<sequence<ServiceWorker>?> getAll();
+  Promise<ServiceWorker> register(DOMString url, optional RegistrationOptionList options);
+  Promise<any> unregister(DOMString? scope);
+
+  // events
+  attribute EventHandler onupdatefound;
+  attribute EventHandler oncontrollerchange;
+  attribute EventHandler onreloadpage;
+  attribute EventHandler onerror;
+};
+
+dictionary RegistrationOptionList {
+  DOMString scope = "/*";
+};
+
+interface ReloadPageEvent : Event {
+  void waitUntil(Promise<any> f);
+};
+</script>
+
+<!--
+[1]: http://goo.gl/I7WAhg
+[2]: http://www.whatwg.org/specs/web-apps/current-work/multipage/web-messaging.html
+[3]: http://www.w3.org/TR/workers/#dom-worker-postmessage
+-->
+
+
+    <script type=text/plain id="untested_idls">
+        interface ServiceWorker {};
+        interface EventHandler {};
+        interface EventTarget {};
+        interface Event {};
+    </pre>
+
+    <script>
+        var idl_array = new IdlArray();
+        idl_array.add_untested_idls(document.getElementById("untested_idls").textContent);
+        idl_array.add_idls(document.getElementById("idl_0").textContent);
+        idl_array.add_objects({
+            Navigator: ["throw new Error ('No object defined for the Navigator interface')"],
+            ServiceWorkerContainer: ["throw new Error ('No object defined for the ServiceWorkerContainer interface')"],
+            RegistrationOptionList: ["throw new Error ('No object defined for the RegistrationOptionList dictionary')"],
+            ReloadPageEvent: ["throw new Error ('No object defined for the ReloadPageEvent interface')"]
+        });
+        idl_array.test();
+    </script>
+
+    </body>
+</html>
+

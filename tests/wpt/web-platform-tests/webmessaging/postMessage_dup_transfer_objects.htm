@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> postMessage with duplicate transfer objects raises DataCloneError exception </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<div style="display:none">
+    <iframe width="70%" onload="PostMessageTest()" src="./support/ChildWindowPostMessage.htm"></iframe>
+</div>
+
+<script>
+
+
+    var description = "Test Description: " +
+                      "postMessage with duplicate transfer objects raises DataCloneError exception.";
+
+    var DATA = "ports";
+    var TARGET = document.querySelector("iframe");
+
+    function PostMessageTest()
+    {
+        test(function()
+        {
+            assert_throws("DATA_CLONE_ERR", function()
+            {
+                assert_own_property(window, "MessageChannel", "window");
+                var channel = new MessageChannel();
+                TARGET.contentWindow.postMessage(DATA, "*", [channel.port1, channel.port1]);
+            });
+        }, description);
+    }
+</script>
+</body>
+</html>

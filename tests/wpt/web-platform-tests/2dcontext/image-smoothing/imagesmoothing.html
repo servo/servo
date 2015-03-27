@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CanvasRenderingContext2D imageSmoothingEnabled test</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="stylesheet" href="/resources/testharness.css" media="all">
+    <link rel="author" title="ShinHyunjin" href="mailto:jini7927@gmail.com">
+    <link rel="help" href="http://www.w3.org/html/wg/drafts/2dcontext/html5_canvas/#image-smoothing">
+  </head>
+  <body>
+    <div id="log"></div>
+    <canvas id="test_canvas_1"></canvas>
+    <canvas id="test_canvas_2"></canvas>
+    <canvas id="test_canvas_3"></canvas>
+
+    <script>
+    (function() {
+      test(function() {
+        var canvas = document.getElementById('test_canvas_1');
+        var ctx = canvas.getContext('2d');
+
+        assert_true(ctx.imageSmoothingEnabled);
+      }, "When the CanvasRenderingContext2D object is created, the attribute must be set to true.");
+
+      test(function() {
+        var canvas = document.getElementById('test_canvas_2');
+        var ctx = canvas.getContext('2d');
+
+        ctx.imageSmoothingEnabled = false;
+        assert_false(ctx.imageSmoothingEnabled);
+        }, "On getting the imageSmoothingEnabled attribute, the user agent must return the last value it was set to.");
+
+        test(function() {
+          var canvas = document.getElementById('test_canvas_3');
+          var ctx = canvas.getContext('2d');
+
+          ctx.imageSmoothingEnabled = false;
+          assert_equals(ctx.imageSmoothingEnabled, false);
+        }, "On setting the imageSmoothingEnabled attribute, it must be set to the new value.");
+    })();
+
+
+    </script>
+  </body>
+</html>

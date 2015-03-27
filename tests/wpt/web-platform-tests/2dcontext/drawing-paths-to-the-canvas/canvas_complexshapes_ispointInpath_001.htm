@@ -1,0 +1,32 @@
+<!doctype HTML>
+<html>
+    <head>
+        <title>HTML5 Canvas Test:  isPointInPath() unaffected by the current transformation matrix</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com" />
+        <link rel="help" href="http://www.w3.org/TR/2dcontext/#dom-context-2d-ispointinpath" />
+        <meta name="assert" content="isPointInPath must check the point (x, y) as coordinates unaffected by the current transformation matrix." />
+        <script type="text/javascript">
+            function runTest()
+            {
+                var canvas = document.getElementById("canvas1");
+                var ctx = canvas.getContext("2d");
+
+                // Create a path that is transformed by a translation transformation matrix.
+                ctx.translate(100, 50);
+                ctx.rect(0, 0, 100, 50);
+
+                // Ensure that the coordinates passed to isPointInPath are unaffected by the current transformation matrix.
+                if (ctx.isPointInPath(125, 75) && !ctx.isPointInPath(25, 25))
+                {
+                    document.getElementById("testresult").firstChild.data = "PASS";
+                }
+            }
+        </script>
+    </head>
+    <body onload="runTest();">
+        <p>Description: isPointInPath must check the point (x, y) as coordinates unaffected by the current transformation matrix.</p>
+        <p>Test passes if the word "PASS" appears below.</p>
+        <div id="testresult">FAIL</div>
+        <canvas id="canvas1" width="300" height="150">Browser does not support HTML5 Canvas.</canvas>
+    </body>
+</html>

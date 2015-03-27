@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<title>Service Workers: Response Objects</title>
+    <head>
+        <link rel="help" href="https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#response-objects">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+        <script src=/resources/WebIDLParser.js></script>
+        <script src=/resources/idlharness.js></script>
+
+    </head>
+    <body>
+
+<!--
+`Response` objects model HTTP responses.
+-->
+<script type=text/plain id="idl_0">
+[Constructor]
+interface AbstractResponse {
+};
+
+interface OpaqueResponse : AbstractResponse {
+  readonly attribute unsigned short status;
+  readonly attribute ByteString statusText;
+  // Returns a filtered list of headers. See prose for details.
+  readonly attribute HeaderMap headers;
+  // No setter for headers
+  readonly attribute DOMString url;
+};
+
+interface CORSResponse : Response {
+  readonly attribute HeaderMap headers;
+};
+
+[Constructor(optional ResponseInit responseInitDict)]
+interface Response : AbstractResponse {
+  attribute unsigned short status;
+  attribute ByteString statusText;
+  readonly attribute HeaderMap headers;
+  attribute DOMString url;
+  Promise<Blob> toBlob();
+};
+
+dictionary ResponseInit {
+  unsigned short status = 200;
+  ByteString statusText = "OK";
+  HeaderMap headers;
+};
+</pre>
+
+
+
+    <script type=text/plain id="untested_idls">
+        interface HeaderMap {};
+        interface Blob {};
+    </pre>
+
+    <script>
+        var idl_array = new IdlArray();
+        idl_array.add_untested_idls(document.getElementById("untested_idls").textContent);
+        idl_array.add_idls(document.getElementById("idl_0").textContent);
+        idl_array.add_objects({
+            AbstractResponse: ["throw new Error ('No object defined for the AbstractResponse interface')"],
+            OpaqueResponse: ["throw new Error ('No object defined for the OpaqueResponse interface')"],
+            CORSResponse: ["throw new Error ('No object defined for the CORSResponse interface')"],
+            Response: ["throw new Error ('No object defined for the Response interface')"],
+            ResponseInit: ["throw new Error ('No object defined for the ResponseInit dictionary')"]
+        });
+        idl_array.test();
+    </script>
+
+    </body>
+</html>
+

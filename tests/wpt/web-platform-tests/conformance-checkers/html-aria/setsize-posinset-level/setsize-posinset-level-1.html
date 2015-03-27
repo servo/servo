@@ -1,0 +1,86 @@
+<!DOCTYPE html> 
+<html>
+  <head>  
+    <title>ARIA 1.0 Test Case 763</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case 763</h1>
+    
+    <div role="listbox">
+      <div role="option" aria-setsize="3" aria-posinset="1" tabindex="-1">Option 1</div> 
+      <div role="option" aria-setsize="3" aria-posinset="2" tabindex="-1" id="ID_TARGET">Option 2</div> 
+      <div role="option" aria-setsize="3" aria-posinset="3" tabindex="-1">Option 3</div>
+    </div>
+    
+    <h2>Description</h2>
+      <p>A div element with the role='listbox' has three child div elements each with 
+        role='option' and aria-setsize='3'.   The 1st child div element has aria-posinset='1', 
+        the 2nd child div element has aria-posinset='2' and the 3rd child div element 
+        has aria-posinset='3'.</p>
+
+
+      <h2>Expected Results</h2>
+      
+      <h3>MSAA + UIA Express</h3>
+      <ul>
+      <li>role="tree": ROLE_SYSTEM_LIST</li>
+      <li>role="treeitem": ROLE_SYSTEM_LISTITEM</li>
+      <li>LegacyIAccessible.Description will be in the form X of Y, 
+        where X is the value of aria-posinset and Y is the value of aria-setsize
+      </li>
+      </ul>
+      
+      <h3>MSAA + IAccessible2</h3>
+      <ul>
+        <li>role="tree": ROLE_SYSTEM_LIST</li>
+        <li>role="treeitem": ROLE_SYSTEM_LISTITEM</li>
+        <li>The structure should be reflected in the accessibility tree as directed by aria-posinset.</li>
+        <li>function groupPosition() should be available and have the following results:
+          <ul>
+            <li>groupLevel: 1</li>
+            <li>similarItemsInGroup: 3</li>
+            <li>positionInGroup: aria-posinest value</li>
+          </ul>
+        </li>
+      </ul>
+      
+      <h3>UIA</h3>
+      <ul>
+        <li>role="tree": List</li>
+        <li>role="treeitem": ListItem</li>
+        <li>LegacyIAccessible.Description will be in the form X of Y, 
+          where X is the value of aria-posinset and Y is the value of aria-setsize</li>
+      </ul>
+      
+      
+      <h3>ATK/AT-SPI</h3>
+      <ul>
+        <li>role="tree": ROLE_LIST</li>
+        <li>role="treeitem": ROLE_LISTITEM</li>
+        <li>aria-setsize: not mapped to setsize: value</li>
+        <li>aria-posinset: is mapped to  posinset: value</li>
+      </ul>
+      
+      <h3>AXAPI</h3>
+      <ul>
+        <li>role="tree": AXList = 'list'</li>
+        <li>role="treeitem": AXGroup = 'group'</li>
+        <li>aria-setsize: is mapped to AXARIASetSize: value</li>
+        <li>aria-posinset: is mapped to AXARIAPosInSet: value</li>
+      </ul>
+      
+    
+    <script type="text/javascript">  
+      
+     function setFocus() {
+       var node = document.getElementById('ID_TARGET');  
+       node.focus();
+     }
+     
+     window.addEventListener('load', setFocus);
+    </script>
+  </body>
+</html>
+
+

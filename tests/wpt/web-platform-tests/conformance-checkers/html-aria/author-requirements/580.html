@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>﻿A div element with style="display:none" has aria-hidden="true", and then script sets style to "display: block".</title>
+    <script type="text/javascript">
+      function replaceStyle (/* Element */ element, /* String */ selector, /* String */ newValue) {
+          element.setAttribute ('style', selector + ':' + newValue);
+          if (newValue == 'block')
+            element.setAttribute ('aria-hidden', 'false');
+          else if (newValue == 'none')
+            element.setAttribute ('aria-hidden', 'true');            
+      }
+    </script>
+  </head>
+  <body>
+    <div id="test" aria-hidden="true" style="display:none;">This &lt;div&gt;'s style switched from 'display:none' to 'display:block'.  It's <code>aria-hidden</code> was simultaneously switched to 'false'.</div>
+    <p>
+      <button onclick="replaceStyle (document.getElementById ('test'), 'display', 'block')" type="button">Change to 'display:block'</button>
+      <button onclick="replaceStyle (document.getElementById ('test'), 'display', 'none')" type="button">Change to 'display:none'</button>
+      <button onclick="window.location.reload()" type="button">Reload Page</button>
+    </p>
+  </body>
+</html>

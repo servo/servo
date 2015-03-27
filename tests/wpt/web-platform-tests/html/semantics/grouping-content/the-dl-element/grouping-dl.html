@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>the dl element</title>
+    <link rel="author" title="dzenana" href="mailto:dzenana.trenutak@gmail.com">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-dl-element">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+        "use strict";
+
+        // check that prototype matches spec's DOM interface
+        test(function () {
+            var testElement = document.createElement("dl");
+            assert_equals(Object.getPrototypeOf(testElement), HTMLDListElement.prototype, "HTMLDListElement.prototype should be used for dl");
+        }, "The prototype for dl is HTMLDListElement.prototype");
+
+        // Not checking: effects of markup on defining groups and the name-pair values within those groups
+
+    </script>
+</head>
+<body>
+    <h1>Description</h1>
+    <p>This test validates the dl element.</p>
+
+    <div id="log"></div>
+
+</body>
+</html>

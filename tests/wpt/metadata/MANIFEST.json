@@ -9548,6 +9548,10 @@
         "url": "/XMLHttpRequest/send-non-same-origin.sub.htm"
       },
       {
+        "path": "XMLHttpRequest/send-receive-utf16.htm",
+        "url": "/XMLHttpRequest/send-receive-utf16.htm"
+      },
+      {
         "path": "XMLHttpRequest/send-redirect-bogus-sync.htm",
         "url": "/XMLHttpRequest/send-redirect-bogus-sync.htm"
       },
@@ -14186,10 +14190,6 @@
       {
         "path": "html/semantics/forms/the-textarea-element/textarea-type.html",
         "url": "/html/semantics/forms/the-textarea-element/textarea-type.html"
-      },
-      {
-        "path": "html/semantics/grouping-content/the-blockquote-element/grouping-blockquote.sub.html",
-        "url": "/html/semantics/grouping-content/the-blockquote-element/grouping-blockquote.sub.html"
       },
       {
         "path": "html/semantics/grouping-content/the-dd-element/grouping-dd.html",
@@ -25034,7 +25034,7 @@
       }
     ]
   },
-  "rev": "29dfb8944e535d439ca94cf7d1b1d9138a8ad11f",
+  "rev": "0d318188757a9c996e20b82db201fd04de5aa255",
   "url_base": "/",
   "version": 2
 }

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The constraint validation API Test: element.validity.patternMismatch</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-validitystate-stepmismatch">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-constraint-validation-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/validator.js"></script>
+<div id="log"></div>
+<script>
+  //set step = 2 * default step * factor
+  var testElements = [
+    {
+      tag: "input",
+      types: ["datetime"],
+      testData: [
+        {conditions: {step: "", value: "2000-01-01T12:00:00Z"}, expected: false, name: "[target] The step attribute is not set"},
+        {conditions: {step: 2 * 60 * 1000, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
+        {conditions: {step: 2 * 60 * 1000, value: "2000-01-01T12:58Z"}, expected: false, name: "[target] The value must match the step"},
+        {conditions: {step: 2 * 60 * 1000, value: "2000-01-01T12:59Z"}, expected: true, name: "[target] The value must mismatch the step"}
+      ]
+    },
+    {
+      tag: "input",
+      types: ["date"],
+      testData: [
+        {conditions: {step: "", value: "2000-01-01"}, expected: false, name: "[target] The step attribute is not set"},
+        {conditions: {step: 2 * 1 * 86400000, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
+        {conditions: {step: 2 * 1 * 86400000, value: "1970-01-02"}, expected: false, name: "[target] The value must match the step"},
+        {conditions: {step: 2 * 1 * 86400000, value: "1970-01-03"}, expected: true, name: "[target] The value must mismatch the step"}
+      ]
+    },
+    {
+      tag: "input",
+      types: ["month"],
+      testData: [
+        {conditions: {step: "", value: "2000-01"}, expected: false, name: "[target] The step attribute is not set"},
+        {conditions: {step: 2 * 1 * 1, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
+        {conditions: {step: 2 * 1 * 1, value: "1970-03"}, expected: false, name: "[target] The value must match the step"},
+        {conditions: {step: 2 * 1 * 1, value: "1970-04"}, expected: true, name: "[target] The value must mismatch the step"}
+      ]
+    },
+    {
+      tag: "input",
+      types: ["week"],
+      testData: [
+        {conditions: {step: "", value: "1970-W01"}, expected: false, name: "[target] The step attribute is not set"},
+        {conditions: {step: 2 * 1 * 604800000, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
+        {conditions: {step: 2 * 1 * 604800000, value: "1970-W03"}, expected: false, name: "[target] The value must match the step"},
+        {conditions: {step: 2 * 1 * 604800000, value: "1970-W04"}, expected: true, name: "[target] The value must mismatch the step"}
+      ]
+    },
+    {
+      tag: "input",
+      types: ["time"],
+      testData: [
+        {conditions: {step: "", value: "12:00:00"}, expected: false, name: "[target] The step attribute is not set"},
+        {conditions: {step: 2 * 60 * 1000, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
+        {conditions: {step: 2 * 60 * 1000, value: "12:02:00"}, expected: false, name: "[target] The value must match the step"},
+        {conditions: {step: 2 * 60 * 1000, value: "12:03:00"}, expected: true, name: "[target] The value must mismatch the step"}
+      ]
+    },
+    {
+      tag: "input",
+      types: ["datetime-local"],
+      testData: [
+        {conditions: {step: "", value: "2000-01-01T12:00:00"}, expected: false, name: "[target] The step attribute is not set"},
+        {conditions: {step: 2 * 60 * 1000, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
+        {conditions: {step: 2 * 60 * 1000, value: "1970-01-01T12:02:00"}, expected: false, name: "[target] The value must match the step"},
+        {conditions: {step: 2 * 60 * 1000, value: "1970-01-01T12:03:00"}, expected: true, name: "[target] The value must mismatch the step"}
+      ]
+    },
+    {
+      tag: "input",
+      types: ["number"],
+      testData: [
+        {conditions: {step: "", value: "1"}, expected: false, name: "[target] The step attribute is not set"},
+        {conditions: {step: 2 * 1 * 1, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
+        {conditions: {step: 2 * 1 * 1, value: "2"}, expected: false, name: "[target] The value must match the step"},
+        {conditions: {step: 2 * 1 * 1, value: "3"}, expected: true, name: "[target] The value must mismatch the step"}
+      ]
+    }
+  ];
+
+  validator.run_test(testElements, "stepMismatch");
+</script>

@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+  <title>Web Storage</title>
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+    <h1>storage_local_setItem_QUOTA_EXCEEDED_ERR</h1>
+    <div id="log"></div>
+    <script>
+        test(function() {
+            localStorage.clear();
+
+            var index = 0;
+            var key = "name";
+            var val = "user";
+
+            assert_throws("QUOTA_EXCEEDED_ERR", function() {
+                while (true) {
+                    index++;
+                    localStorage.setItem("" + key + index, "" + name + index);
+                }
+            });
+
+            localStorage.clear();
+        });
+    </script>
+ </body>
+</html>

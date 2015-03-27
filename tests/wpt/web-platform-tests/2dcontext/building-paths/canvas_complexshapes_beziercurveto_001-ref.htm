@@ -1,0 +1,11 @@
+<!doctype HTML>
+<html>
+    <head>
+        <title>HTML5 Canvas Test:  bezierCurveTo() must ensure subpaths</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com" />
+    </head>
+    <body>
+        <p>Description: bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) must ensure there is a subpath for the point (cp1x,cp1y) if the context has no subpaths, then it must connect the last point in the subpath to the point (x,y).</p>
+        <div><img src='/images/smiley.png' alt='smiley' /></div>
+    </body>
+</html>

@@ -1,0 +1,20 @@
+<text xmlns:dc="http://purl.org/dc/elements/1.1/"
+  xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+  <title>Translation Revision Provenance Agent: Local Test in XML</title>
+  <body>
+    <its:span personRef="http://www.provdata.com/person/#John_Doe" 
+      toolRef="http://www.onlinemtex.com/2012/7/25/wsdl/"
+      org="acme-CAT-v2.3"
+      revToolRef="http://www.mycat.com/v1.0/download"
+      revOrg="acme-CAT-v2.3"
+      provRef="http://www.examplelsp.com/excontent987/production/prov/e6354"
+      >This paragraph was translated from the machine.</its:span>
+    <its:span tool="onlinemtex"
+      person="John Doe"
+      orgRef="http://www.legaltrans-ex.com/"
+      revPerson="Tommy Atkins"
+      revOrgRef="http://www.vistatec.com/"
+      provRef="http://www.examplelsp.com/excontent987/legal/prov/e6354 http://www.vistatec.com/job-12-7-15-X31/reviewed/prov/re8573469"
+      >This text was translated directly by a person.</its:span>
+  </body>
+</text>

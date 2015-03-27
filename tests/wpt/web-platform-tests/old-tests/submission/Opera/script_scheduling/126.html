@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html><head>
+	<title>scheduler: altering the type attribute and changing script data external script async=false </title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+<div id="log"></div>
+<script>
+  var t = async_test(undefined, {timeout:4000});
+</script>
+<script id="test" type="text/plain" src="scripts/include-2.js"></script>
+<script>
+t.step(function() {
+  var script = document.getElementById("test");
+  script.removeAttribute("type");
+  script.async = false;
+  var marker = document.createElement("script");
+  marker.src = "scripts/include-1.js?pipe=trickle(d2)";
+  marker.async = false;
+  script.parentNode.appendChild(marker);
+  script.appendChild(document.createTextNode(""));
+});
+
+onload = t.step_func(function() {
+  assert_array_equals(eventOrder, ["external script #1", "external script #2"]);
+  t.done();
+});
+</script>

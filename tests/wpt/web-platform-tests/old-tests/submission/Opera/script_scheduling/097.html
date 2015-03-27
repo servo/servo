@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html><head>
+	<title> scheduler: slow-loading async script added from document.write</title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+        <script>
+          log("inline script #1");
+          document.write("<script async src='scripts/include-1.js?pipe=trickle(d2)'><\/script>")
+        </script>
+	<script>
+          log("inline script #2");
+          var t = async_test(undefined, {timeout:3500});
+
+          addEventListener("DOMContentLoaded", t.step_func(function() {assert_array_equals(eventOrder, ["inline script #1", "inline script #2"])}), false);
+
+          onload = t.step_func(
+            function() {
+              assert_array_equals(eventOrder, ["inline script #1", "inline script #2", "external script #1"]);
+              t.done();
+            });
+          
+        </script>
+</body></html>

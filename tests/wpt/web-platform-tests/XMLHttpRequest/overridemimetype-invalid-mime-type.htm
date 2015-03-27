@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: overrideMimeType() in unsent state, invalid MIME types</title>
+    <meta charset="utf-8">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-overridemimetype()-method" data-tested-assertations="/following::ol/li[2]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      test(function() {
+        var client = new XMLHttpRequest();
+        assert_throws("SyntaxError", function() { client.overrideMimeType('text\\plain;charset=Shift-JIS'); });
+        assert_throws("SyntaxError", function() { client.overrideMimeType('text plain;charset=Shift-JIS'); });
+        assert_throws("SyntaxError", function() { client.overrideMimeType('text\nplain;charset=Shift-JIS'); });
+        assert_throws("SyntaxError", function() { client.overrideMimeType('cahrset=Shift-JIS'); });
+        assert_throws("SyntaxError", function() { client.overrideMimeType(null); });
+        assert_throws("SyntaxError", function() { client.overrideMimeType(50212); });
+        assert_throws("SyntaxError", function() { client.overrideMimeType( (new Array(1000)).join('a/b/c/') ); });
+      });
+    </script>
+  </body>
+</html>

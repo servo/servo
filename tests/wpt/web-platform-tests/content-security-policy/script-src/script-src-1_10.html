@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>data: as script src should not run with a policy that doesn't specify data: as an allowed source</title>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <h1>data: as script src should not run with a policy that doesn't specify data: as an allowed source</h1>
+    <div id='log'></div>
+
+    <script>
+        var dataScriptRan = false;
+    </script>
+
+    <!-- This is our test case, but we don't expect it to actually execute if CSP is working. -->
+    <script src="data:text/javascript;charset=utf-8;base64,ZGF0YVNjcmlwdFJhbiA9IHRydWU7"></script>
+
+    <script>
+        test(function () {
+            assert_false(dataScriptRan, "data script ran");
+        }, "Verify that data: as script src doesn't run with this policy");
+    </script>
+
+    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=default-src%20%27self%27+%27unsafe-inline%27'></script>
+</body>
+</html>

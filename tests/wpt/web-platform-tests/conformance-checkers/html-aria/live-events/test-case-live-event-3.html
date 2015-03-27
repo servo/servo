@@ -1,0 +1,76 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>ARIA 1.0 Live Region Event Test Case: Change text content</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <style type="text/css">
+      div#TEST_ID {
+        margin: 0.5em; 
+        padding: 0.25em; 
+        border: medium gray solid; 
+        width: 10em;
+      } 
+    </style>  
+  </head>
+  <body>
+    <h1>ARIA 1.0 Live Region Event Test Case: Change text content</h1>
+    
+    <div id="TEST_ID" aria-live="assertive">
+      TEST TEXT 1
+    </div>
+    
+    <button onclick="tryAgain()">Try Again</button>
+    
+    <h2>Description</h2>
+    <p>An element with an aria-live attribute with the value "assertive" has a text content changed
+    1.5 seconds after the document is loaded.</p>
+    
+    <h2>Expected Results</h2>
+    
+    <dl>
+      <dt>ATK/AT-SPI</dt>
+      <dd>ATK/AT-SPIevent: text_changed::delete event followed by text_changed::insert event</dd>
+      
+      <dt>AXAPI</dt>
+      <dd></dd>
+      <dd>AXLiveRegionChanged notification</dd>
+      
+      <dt>MSAA + IAccessible2</dt>
+      <dd>IAccessible2: IA2_EVENT_TEXT_REMOVED event followed by IA2_EVENT_TEXT_INSERTED event</dd>
+      
+      <dt>MSAA + UIA Express</dt>
+      <dd>TextPattern..::.TextChangedEvent event followed by another TextPattern..::.TextChangedEvent event</dd>
+      
+    </dl>
+    
+    
+    <script type="text/javascript">  
+
+      function tryAgain() {
+        changeText('TEST TEXT 1')
+        onLoad();        
+      }  
+
+      function changeText(str) {
+        var node = document.getElementById('TEST_ID');  
+        while (node.firstChild) node.removeChild(node.firstChild);
+
+        if (typeof str !== 'string') str = 'changed test text 2';
+        addText(str)
+      }  
+
+      function addText (str) {
+        var node = document.getElementById('TEST_ID');          
+        var text_node = document.createTextNode(str);        
+        node.appendChild(text_node);
+      }  
+
+      function onLoad() {
+        setTimeout(changeText,1500);       
+      }
+
+      window.addEventListener('load', onLoad);
+    </script>
+  </body>
+  
+</html>

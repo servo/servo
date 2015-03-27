@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<title>The :unresolved pseudoclass matching type extension</title>
+<link rel="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
+<meta name="assert" content="The :unresolved pseudoclass must match all custom elements whose created callback has not yet been invoked">
+<link rel="help" href="http://www.w3.org/TR/custom-elements/#unresolved-element-pseudoclass">
+<link rel="match" href="unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html">
+<style>
+    :unresolved {
+        background-color: red;
+    }
+    a {
+        background-color: yellow;
+    }
+    body {
+        background-color: white;
+    }
+</style>
+<script>
+function registerXElement() {
+    var obj = document.createElement('a');
+    var proto = Object.create(obj.constructor.prototype);
+    document.registerElement('x-element', { prototype: proto, extends: 'a'});
+}
+</script>
+<body onload="registerXElement();">
+    <p>Test passes if x-element background below is yellow</p>
+    <a is="x-element">
+        x-element
+    </a>
+</body>
+</html>
+

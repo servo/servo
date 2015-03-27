@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>MP4 audio-only bitrate change.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+        <script src="mediasource-config-changes.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+            mediaSourceConfigChangeTest("mp4", "a-128k-44100Hz-1ch", "a-192k-44100Hz-1ch", "Tests mp4 audio-only bitrate changes.");
+        </script>
+    </body>
+</html>

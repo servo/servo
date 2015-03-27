@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+    <head>
+        <title>setPointerCapture + inactive button state</title>
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <meta name="viewport" content="width=device-width">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body onload="run()">
+        <h1>setPointerCapture</h1>
+        <h4>
+            Test Description: This test checks if setPointerCapture works properly.
+            <ol>
+                <li>Put your mouse over the black rectangle
+                <li>Move you mouse out to complete the test
+            </ol>
+        </h4>
+        <p>
+        <div id="target0" style="background:black; color:white;"></div>
+        <script>
+            var detected_pointertypes = {};
+
+            var captureGot = false;
+
+            setup({ explicit_done: true });
+            add_completion_callback(showPointerTypes);
+
+            function run() {
+                var target0 = document.getElementById("target0");
+
+                on_event(target0, "pointerover", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    target0.setPointerCapture(event.pointerId);
+                });
+
+                 // When the setPointerCapture method is invoked, if the specified pointer is not in active button state, then the method must have no effect on subsequent pointer events.
+                 // TA: 13.2
+                on_event(target0, "pointerout", function (event) {
+                    test(function() {
+                        assert_false(captureGot, "pointer capture is not set while button state is inactive")
+                    }, "pointer capture is not set while button state is inactive");
+                    done();
+                });
+
+                on_event(target0, 'gotpointercapture', function(e) {
+                    captureGot = true;
+                });
+            }
+        </script>
+        <h1>Pointer Events setPointerCapture Tests</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

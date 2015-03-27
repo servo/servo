@@ -1,0 +1,21 @@
+<!doctype html>
+<title>Object.prototype.hasOwnProperty</title>
+<link rel=author href=mailto:Ms2ger@gmail.com title=Ms2ger>
+<link rel=help href=http://es5.github.com/#x15.4.4.5>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<div id=log></div>
+<script>
+var test_error = { name: "test" };
+
+test(function() {
+  [null, undefined, {}].forEach(function(that) {
+    test(function() {
+      assert_throws(test_error, function() {
+        ({}).hasOwnProperty.call(that, { toString: function() { throw test_error; } });
+      });
+    });
+  });
+});
+</script>

@@ -1,0 +1,13 @@
+    <its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+      <its:param name="locQualityIssueParam">q1</its:param>
+      <its:locQualityIssueRule selector="//h:span[@id=$locQualityIssueParam]"
+        locQualityIssueType="typographical"
+        locQualityIssueComment="Sentence without capitalization"
+        locQualityIssueSeverity="50"
+	locQualityIssueProfileRef="http://example.org/qaMovel/v1"/>
+       <its:locQualityIssueRule selector="//h:span[@id='q2']"
+        locQualityIssueType="misspelling"
+        locQualityIssueComment="should be 'Music can'"
+        locQualityIssueSeverity="75"
+        locQualityIssueProfileRef="http://example.org/qaMovel/v1"/>
+    </its:rules>

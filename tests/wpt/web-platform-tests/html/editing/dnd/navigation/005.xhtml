@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Selection cross page drag and drop</title>
+</head>
+<body onload="window.getSelection().selectAllChildren(document.querySelector('p'))">
+<p ondragstart="event.dataTransfer.effectAllowed = 'copy';window.location = 'helper-drop-now.xhtml'">Drag me</p>
+<p>Drag selected text. You should be redirected to the new page and be able to drop it there.</p>
+</body>
+</html>

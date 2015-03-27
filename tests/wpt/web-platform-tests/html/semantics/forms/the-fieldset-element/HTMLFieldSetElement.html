@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: HTMLFieldSetElement interface</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-fieldset-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<form name="fm1" style="display:none">
+  <fieldset id="fs_outer">
+  <legend><input type="checkbox" name="cb"></legend>
+  <input type=text name="txt" id="ctl1">
+  <button id="ctl2" name="btn">BUTTON</button>
+    <fieldset id="fs_inner">
+      <input type="text" name="txt_inner">
+      <progress name="pg" value="0.5"></progress>
+    </fieldset>
+  </fieldset>
+</form>
+<script>
+
+var fm1,
+    fs_outer,
+    children_outer;
+
+setup(function () {
+  fm1 = document.forms.fm1;
+  fs_outer = document.getElementById("fs_outer");
+  children_outer = fs_outer.elements;
+});
+
+test(function () {
+  assert_equals(fs_outer.type, "fieldset", "The value of type attribute is incorrect.");
+}, "The type attribute must return 'fieldset'");
+
+test(function () {
+  assert_equals(fs_outer.form, fm1, "The fieldset should have a form owner.");
+}, "The form attribute must return the fieldset's form owner");
+
+test(function () {
+  assert_true(children_outer instanceof HTMLFormControlsCollection,
+              "The elements attribute should be an HTMLFormControlsCollection object");
+}, "The elements must return an HTMLFormControlsCollection object");
+
+test(function () {
+  var fs_inner = document.getElementById("fs_inner");
+  var children_inner = fs_inner.elements;
+  assert_array_equals(children_inner, [fm1.txt_inner],
+                      "The items in the collection must be children of the inner fieldset element.");
+  assert_array_equals(children_outer, [fm1.cb, fm1.txt, fm1.btn, fm1.fs_inner, fm1.txt_inner],
+                      "The items in the collection must be children of the outer fieldset element.");
+}, "The controls must root at the fieldset element");
+
+</script>

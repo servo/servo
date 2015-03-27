@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, repositioning of 9 cues that overlap completely</title>
+<style>
+.video {
+    display: inline-block;
+    width: 720px;
+    height: 720px;
+    outline: solid;
+    position: relative
+}
+#cue1 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    right: 0;
+    margin-top: -18px;
+    margin-left: -18px;
+    color: #000
+}
+#cue2 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    right: 0;
+    margin-top: -54px;
+    margin-left: -18px;
+    color: #222
+}
+#cue3 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    right: 0;
+    margin-top: -18px;
+    margin-left: -54px;
+    color: #444
+}
+#cue4 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    right: 0;
+    margin-top: -18px;
+    margin-left: 18px;
+    color: #666
+}
+#cue5 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    right: 0;
+    margin-top: 18px;
+    margin-left: -18px;
+    color: #888
+}
+#cue6 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    right: 0;
+    margin-top: -54px;
+    margin-left: -54px;
+    color: #aaa
+}
+#cue7 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    right: 0;
+    margin-top: -54px;
+    margin-left: 18px;
+    color: #ccc
+}
+#cue8 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    right: 0;
+    margin-top: 18px;
+    margin-left: -54px;
+    color: #eee
+}
+#cue9 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    right: 0;
+    margin-top: 18px;
+    margin-left: 18px;
+    color: green
+}
+.cue {
+    width: 36px;
+    text-align: center
+}
+.cue > span {
+    font-family: Ahem, sans-serif;
+    background: rgba(0,0,0,0.8);
+    font-size: 36px;
+}
+</style>
+<div class="video">
+    <span class="cue" id="cue1"><span>1</span></span>
+    <span class="cue" id="cue2"><span>2</span></span>
+    <span class="cue" id="cue3"><span>3</span></span>
+    <span class="cue" id="cue4"><span>4</span></span>
+    <span class="cue" id="cue5"><span>5</span></span>
+    <span class="cue" id="cue6"><span>6</span></span>
+    <span class="cue" id="cue7"><span>7</span></span>
+    <span class="cue" id="cue8"><span>8</span></span>
+    <span class="cue" id="cue9"><span>9</span></span>
+</div>

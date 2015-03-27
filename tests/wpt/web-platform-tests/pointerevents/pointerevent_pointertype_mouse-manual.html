@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Event: If a pointer event is initiated by a mouse device, then the pointerType must be "mouse"</title>
+        <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/"/>
+        <meta name="assert" content="If a pointer event is initiated by a mouse device, then the pointerType must be 'mouse'."/>
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <!-- /resources/testharness.js -->
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <script type="text/javascript">
+            var detected_pointertypes = {};
+            var test_pointerEvent = async_test("pointer event have pointerType as mouse"); // set up test harness
+            var eventTested = false;
+
+            // showPointerTypes is defined in pointerevent_support.js
+            // Requirements: the callback function will reference the test_pointerEvent object and
+            // will fail unless the async_test is created with the var name "test_pointerEvent".
+            add_completion_callback(showPointerTypes);
+
+            function eventHandler(event) {
+                detected_pointertypes[event.pointerType] = true;
+                if(!eventTested && event.type == "pointerover") {
+                    check_PointerEvent(event);
+                    test_pointerEvent.step(function () {
+                        assert_equals(event.pointerType, "mouse", "Verify event.pointerType is 'mouse'.");
+                    });
+                    eventTested = true;
+                }
+                if (event.type == "pointerup") {
+                    test_pointerEvent.done(); // complete test
+                }
+            }
+
+            function run() {
+                var target0 = document.getElementById("target0");
+
+                // listen for all events.
+                for (var i = 0; i < All_Pointer_Events.length; i++) {
+                    on_event(target0, All_Pointer_Events[i], eventHandler);
+                }
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Event: Dispatch pointer events with pointerType equal to "mouse"</h1>
+        <h4>Test Description:
+            If a pointer event is initiated by a mouse device, then the pointerType must be 'mouse'.
+        </h4>
+        <br />
+        <div id="target0">
+            Using the mouse, click this element.
+        </div>
+        <div id="complete-notice">
+            <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

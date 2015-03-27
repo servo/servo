@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CORS - status</title>
+<meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
+<meta name=timeout content=long>
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+
+<h1>Status returned</h1>
+
+<div id=log></div>
+<script>
+
+function statusRequest(method, code, text, content, type) {
+    async_test("Status on " + method + " " + code, { timeout: 15000 })
+    .step(function() {
+        var client = new XMLHttpRequest()
+        client.open(method, CROSSDOMAIN + "resources/status.py?code="
+            + code + "&text=" + text + "&content=" + content + "&type=" + type, true)
+        client.onreadystatechange = this.step_func(function() {
+            if (client.readyState != client.DONE)
+                return
+
+            assert_equals(client.status, code, 'response status')
+            assert_equals(client.statusText, text, 'response status text')
+            assert_equals(client.getResponseHeader("X-Request-Method"), method, 'method')
+            if(method != "HEAD") {
+                if(type == "text/xml") {
+                    assert_equals(client.responseXML.documentElement.localName,
+                                "x", 'responseXML')
+                }
+                assert_equals(client.response, content, 'response content')
+            }
+            this.done()
+        })
+
+        client.send(null)
+    })
+}
+
+  /*            method     code text  content        type */
+  statusRequest("GET",     200, 'OK', 'Not today.',  '')
+  statusRequest("GET",     201, 'OK/Created', 'Not today 01.',  '')
+  statusRequest("GET",     202, 'OK/Accepted', 'Not today 02.',  '')
+  statusRequest("GET",     203, 'OK/Non-Authoritative Information', 'Not today 03.',  '')
+  statusRequest("GET",     204, 'OK/No Content', '',  '') // specifically no-content
+  statusRequest("GET",     205, 'OK/Reset Content', '',  '') // specifically no-content
+  statusRequest("GET",     206, 'OK/Partial Content', 'Not today 06.',  '')
+  statusRequest("GET",     209, 'OK', 'Not today 09.',  '')
+  statusRequest("GET",     299, 'OK', 'Not today 99.',  '')
+  statusRequest("POST",    200, 'OK', '<x>402<\/x>', 'text/xml')
+  statusRequest("HEAD",    200, 'OK', 'Nice!',       'text/doesnotmatter')
+  statusRequest("PUT",     200, 'OK', '400',         'text/plain')
+  statusRequest("CHICKEN", 200, 'OK', 'bah',         '')
+
+
+function statusRequestFail(method, code, expect_code, nonsimple) {
+    if (expect_code === undefined)
+        expect_code = code
+
+    async_test("Status on " + method + " " + code + (nonsimple?' (nonsimple)':''), { timeout: 15000 })
+    .step(function() {
+        var client = new XMLHttpRequest()
+
+        client.open(method, CROSSDOMAIN + "resources/status.py?code="
+          + code + '&headers=x-nonsimple&text=OHAI', true)
+
+        if (nonsimple)
+            client.setRequestHeader('x-nonsimple', true)
+
+        client.onreadystatechange = this.step_func(function() {
+            if (client.readyState < client.HEADERS_RECEIVED)
+                return
+            assert_equals(client.response, "", "response data")
+            assert_equals(client.status, expect_code, "response status")
+            /* Response code 200 forces webserver to send OK(?) */
+            if(expect_code == 200)
+                assert_equals(client.statusText, "OK", "response statusText")
+            else
+                assert_equals(client.statusText, (expect_code == 0 ? "" : "OHAI"), "response statusText")
+            if (client.readyState == client.DONE)
+                this.done()
+        })
+
+        client.onerror = this.step_func(function(e) {
+            assert_unreached("Got error event.")
+        })
+
+        client.send()
+    })
+}
+
+  /*                                 expect
+                    method     code  status */
+  statusRequestFail("GET",     400)
+  statusRequestFail("HEAD",    401)
+  statusRequestFail("POST",    404)
+  statusRequestFail("POST",    500)
+
+  /* Preflight response status is not 200, so the algorithm set status to 0. */
+  statusRequestFail("PUT",     699,  0)
+  statusRequestFail("CHICKEN", 501,  0)
+
+  /*                                    "forced"
+                                        preflight */
+  statusRequestFail("GET",     400,  0, true)
+  statusRequestFail("HEAD",    401,  0, true)
+  statusRequestFail("POST",    404,  0, true)
+  statusRequestFail("PUT",     699,  0, true)
+  statusRequestFail("CHICKEN", 501,  0, true)
+
+</script>

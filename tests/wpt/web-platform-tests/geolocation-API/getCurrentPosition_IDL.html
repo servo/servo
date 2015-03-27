@@ -1,0 +1,152 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Geolocation Test: getCurrentPosition tests</title>
+<link rel="help" href="http://www.w3.org/TR/geolocation-API/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<p>Clear all Geolocation permissions before running this test. If prompted for permission, please allow.</p>
+<div id="log"></div>
+<script>
+var geo, success, fail;
+
+setup(function() {
+  geo = navigator.geolocation;
+}, {explicit_done: true});
+
+function successCallback(position)
+{
+  var ii, oldval;
+
+  /*
+    [NoInterfaceObject]
+    interface Position {
+      readonly attribute Coordinates coords;
+      readonly attribute DOMTimeStamp timestamp;
+    };
+  */
+
+  test(function() {
+    assert_equals(position.toString(), "[object Position]",
+        "Position.toString should result in '[object Position]' was: " + position.toString());
+  }, "Position toString");
+
+  test(function() {
+    assert_equals(position.coords.toString(), "[object Coordinates]",
+        "position.coords.toString should result in '[object Coordinates]' was: " + position.coords.toString());
+  }, "Position.coordinates toString");
+
+  test(function() {
+    assert_equals(typeof(position.timestamp), "number",
+        "Position.timestamp should be of type 'number' was: " + typeof(position.timestamp));
+  }, "Position.timestamp is type number");
+
+  /*
+    [NoInterfaceObject]
+    interface Coordinates {
+      readonly attribute double latitude;
+      readonly attribute double longitude;
+      readonly attribute double? altitude;
+      readonly attribute double accuracy;
+      readonly attribute double? altitudeAccuracy;
+      readonly attribute double? heading;
+      readonly attribute double? speed;
+    };
+  */
+
+  for (ii in position.coords) {
+    // these four can be numbers or null
+    if (ii == "altitude" || ii == "altitudeAccuracy" || ii == "heading" || ii == "speed") {
+      test(function() {
+        assert_true(position.coords[ii] === null || typeof(position.coords[ii]) === "number",
+            ii + " must be null or 'number' type, was: " + typeof(position.coords[ii]));
+      }, ii+ " is null or number");
+    } else {
+      test(function() {
+        assert_equals(typeof(position.coords[ii]), "number",
+            ii + " should be type 'number' but typeof returned: " + typeof(position.coords[ii]));
+      }, ii + " is type number");
+    }
+
+    oldval = position.coords[ii];
+    position.coords[ii] = 666;
+
+    test(function() {
+      assert_equals(position.coords[ii], oldval,
+          ii + " should be readonly, wrote: " + position.coords[ii] + " old value was " + oldval);
+    }, ii + " readonly");
+
+  }
+
+  success.done();
+  done();
+}
+
+function BadErrorCallback(error)
+{
+  success.step(function() {
+    assert_unreached("Error callback called in error");
+  });
+  success.done();
+  done();
+}
+
+function BadSuccessCallback(position)
+{
+  fail.step(function() {
+    assert_unreached("Success callback called in error");
+  });
+  fail.done();
+}
+
+function errorCallback(error)
+{
+  test(function() {
+    assert_equals(error.toString(), "[object PositionError]",
+        "PositionError.toString should result in '[object PositionError]' was: " +
+        error.toString());
+  }, "PositionError toString");
+
+  test(function() {
+    assert_equals(error.PERMISSION_DENIED, 1,
+        "PERMISSION_DENIED should be 1 was: " + error.POSITION_DENIED);
+  }, "PERMISSION_DENIED value is 1");
+
+  test(function() {
+    assert_equals(error.POSITION_UNAVAILABLE, 2,
+        "POSITION_UNAVAILABLE should be 2' was: " + error.POSITION_UNAVAILABLE);
+  }, "POSITION_UNAVAILABLE is 2");
+
+  test(function() {
+    assert_equals(error.TIMEOUT, 3,
+        "TIMEOUT should be 3 was: " + error.TIMEOUT);
+  }, "TIMEOUT value is 3");
+
+  fail.done();
+}
+
+success = async_test("getCurrentPosition success callback tests", {timeout:20000});
+
+// with a longer timeout and with the user accepting the position request,
+// this should test the successcallback
+success.step(function() {
+  geo.getCurrentPosition(
+      successCallback,
+      BadErrorCallback,
+      {maximumAge:600000, timeout:10000}
+  );
+});
+
+fail = async_test("getCurrentPosition error callback tests");
+
+// with a timeout of 0 the error callback is hopefully consistently called
+fail.step(function() {
+  geo.getCurrentPosition(
+      BadSuccessCallback,
+      errorCallback,
+      {maximumAge:00, timeout:0}
+  );
+});
+
+</script>
+

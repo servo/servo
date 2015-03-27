@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - file drop prompt for data URI with inherited origin</title>
+<style>
+iframe { border: none; height: 250px; width: 250px; }
+</style>
+
+<script>
+window.onload = function() {
+	if( location.protocol != 'http:' && location.protocol != 'https:' ) {
+		document.getElementsByTagName('p')[0].innerHTML = 'This test should be loaded over http or https.';
+		return;
+	}
+	var url = "data:text/html,"+escape(
+'<!DOCTYPE html>\
+<title>drag &amp; drop - file drop prompt for data URI with inherited origin<\/title>\
+<style>\
+  body > div {\
+    height: 200px;\
+    width: 200px;\
+    background-color: orange;\
+  }\
+<\/style>\
+<script>\
+window.onload = function() {\
+	var orange = document.getElementsByTagName("div")[0];\
+	orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {\
+   	e.preventDefault();\
+  };\
+};\
+<\/script>\
+<div><\/div>'
+	);
+	var frame = document.createElement('iframe');
+	frame.setAttribute('src',url);
+	document.body.appendChild(frame);
+  document.getElementsByTagName('span')[0].innerHTML = location.hostname;
+};
+</script>
+
+<p>Drag a file from your desktop onto the orange square. A prompt should appear, correctly identifying the server name <span></span>.</p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

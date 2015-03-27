@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<html manifest="../resources/manifest/clock.manifest">
+  <head>
+    <title>Offline Application Cache - Event_progress</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+
+    <script>
+      var t = async_test("progress event test");
+      var cache = window.applicationCache;
+
+      cache.onprogress = t.done();
+    </script>
+  </body>
+</html>

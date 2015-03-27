@@ -1,0 +1,13 @@
+<myRes xmlns:its="http://www.w3.org/2005/11/its">
+  <head>
+      <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+        <its:param name="allowedcharParam">allowedchar</its:param>
+	<its:allowedCharactersRule allowedCharacters="[^*+]" selector="//content[@id=$allowedcharParam]"/>
+</its:rules>
+  </head>
+  <body>
+    <content id="allowedchar">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
+      nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed
+      diam voluptua.</content>
+  </body>
+</myRes>

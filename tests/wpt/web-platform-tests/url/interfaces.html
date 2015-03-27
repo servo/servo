@@ -1,0 +1,81 @@
+<!doctype html>
+<title>URL IDL tests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+
+<h1>URL IDL tests</h1>
+<div id=log></div>
+
+<script type=text/plain>
+[Constructor(DOMString url, optional DOMString base = "about:blank"),
+ Exposed=Window,Worker]
+interface URL {
+  static DOMString domainToASCII(ScalarValueString domain);
+  static DOMString domainToUnicode(ScalarValueString domain);
+};
+URL implements URLUtils;
+
+[NoInterfaceObject]
+interface URLUtils {
+  stringifier attribute ScalarValueString href;
+  readonly attribute DOMString origin;
+
+           attribute ScalarValueString protocol;
+           attribute ScalarValueString username;
+           attribute ScalarValueString password;
+           attribute ScalarValueString host;
+           attribute ScalarValueString hostname;
+           attribute ScalarValueString port;
+           attribute ScalarValueString pathname;
+           attribute ScalarValueString search;
+           attribute URLSearchParams searchParams;
+           attribute ScalarValueString hash;
+};
+
+[NoInterfaceObject]
+interface URLUtilsReadOnly {
+  stringifier readonly attribute DOMString href;
+  readonly attribute DOMString origin;
+
+  readonly attribute DOMString protocol;
+  readonly attribute DOMString host;
+  readonly attribute DOMString hostname;
+  readonly attribute DOMString port;
+  readonly attribute DOMString pathname;
+  readonly attribute DOMString search;
+  readonly attribute DOMString hash;
+};
+interface URLSearchParams {
+  void append(ScalarValueString name, ScalarValueString value);
+  void delete(ScalarValueString name);
+  DOMString? get(ScalarValueString name);
+  sequence<DOMString> getAll(ScalarValueString name);
+  boolean has(ScalarValueString name);
+  void set(ScalarValueString name, ScalarValueString value);
+  stringifier;
+};
+typedef DOMString ScalarValueString;
+</script>
+<script>
+"use strict";
+var idlArray;
+setup(function() {
+  idlArray = new IdlArray();
+  [].forEach.call(document.querySelectorAll("script[type=text\\/plain]"), function(node) {
+    if (node.className == "untested") {
+      idlArray.add_untested_idls(node.textContent);
+    } else {
+      idlArray.add_idls(node.textContent);
+    }
+  });
+}, {explicit_done:true});
+window.onload = function() {
+  idlArray.add_objects({
+    URL: ['new URL("http://foo")']
+  });
+  idlArray.test();
+  done();
+};
+</script>

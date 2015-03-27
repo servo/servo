@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Drag and drop without cancelling dragenter from non-target to non-target</title>
+		<style type="text/css">
+div:first-child {
+	height: 100px;
+	width: 100px;
+	background: orange;
+	display: inline-block;
+}
+div:first-child + div {
+	height: 100px;
+	width: 100px;
+	background: blue;
+	display: inline-block;
+}
+		</style>
+		<script type="text/javascript">
+window.onload = function () {
+	var drag = document.getElementsByTagName('div')[0], sequence = [];
+	drag.ondragstart = function (e) {
+		e.dataTransfer.setData('text','hello');
+		e.dataTransfer.effectAllowed = 'copy';
+	};
+	drag.ondragenter = function (e) {
+		sequence[sequence.length] = 'drag.dragenter';
+	};
+	drag.ondragover = function (e) {
+		if( sequence[sequence.length-1] != 'drag.dragover' ) {
+			sequence[sequence.length] = 'drag.dragover';
+		}
+	};
+	drag.ondragleave = function (e) {
+		sequence[sequence.length] = 'drag.dragleave';
+	};
+	var drop = document.getElementsByTagName('div')[1];
+	drop.ondragenter = function (e) {
+		sequence[sequence.length] = 'drop.dragenter';
+	};
+	drop.ondragover = function (e) {
+		if( sequence[sequence.length-1] != 'drop.dragover' ) {
+			sequence[sequence.length] = 'drop.dragover';
+		}
+	};
+	drop.ondrop = function (e) {
+		e.preventDefault();
+		sequence[sequence.length] = 'drop.ondrop';
+	};
+	document.body.ondragenter = function (e) {
+		sequence[sequence.length] = ( e.target == this ) ? 'body.dragenter' : 'bubble.dragenter';
+	};
+	document.body.ondragover = function (e) {
+		if( e.target != this ) { return; }
+		if( sequence[sequence.length-1] != 'body.dragover' ) {
+			sequence[sequence.length] = 'body.dragover';
+		}
+	};
+	drag.ondragend = function (e) {
+		sequence = sequence.join('=&gt;')
+		var desiredsequence = (['drag.dragenter','bubble.dragenter','body.dragenter','body.dragover','drop.dragenter','bubble.dragenter','body.dragover']).join('=&gt;')
+		if( sequence == desiredsequence ) {
+			document.getElementsByTagName('div')[2].innerHTML = 'PASS';
+		} else {
+			document.getElementsByTagName('div')[2].innerHTML = 'FAIL, got:<br>'+sequence+'<br>instead of:<br>'+desiredsequence;
+		}
+	};
+};
+		</script>
+	</head>
+	<body>
+
+		<div draggable="true"></div><div></div>
+		<div>&nbsp;</div>
+		<p>Drag the orange square onto the blue square and release it.</p>
+		<noscript><p>Enable JavaScript and reload</p></noscript>
+
+	</body>
+</html>

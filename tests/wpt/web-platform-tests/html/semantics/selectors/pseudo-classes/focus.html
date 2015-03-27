@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Selector: pseudo-classes (:focus)</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org" id=link1>
+<link rel=help href="https://html.spec.whatwg.org/multipage/#pseudo-classes" id=link2>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<body id=body tabindex=0>
+  <div id="log"></div>
+  <button id=button1 type=submit>button1</button>
+  <input id=input1>
+  <input id=input2 disabled>
+  <input id=input3 autofocus>
+  <textarea id=textarea1>textarea1</textarea>
+  <input type=checkbox id=checkbox1 checked>
+  <input type=radio id=radio1 checked>
+  <div tabindex=0 id=div1>hello</div>
+  <div contenteditable id=div2>content</div>
+  <iframe src="focus-iframe.html" id=iframe onload="load()"></iframe>
+
+  <script>
+    testSelector(":focus", ["input3"], "input3 has the attribute autofocus");
+
+    document.getElementById("input1").focus(); // set the focus on input1
+    testSelector(":focus", ["input1"], "input1 has the focus");
+
+    document.getElementById("div1").focus();
+    testSelector(":focus", ["div1"], "tabindex attribute makes the element focusable");
+
+    document.getElementById("div2").focus();
+    testSelector(":focus", ["div2"], "editable elements are focusable");
+
+    function load() {
+      document.getElementById("iframe").contentDocument.getElementById("inputiframe").focus();
+      testSelector(":focus", [], "':focus' doesn't match focused elements in iframe");
+    }
+
+    document.body.focus();
+    testSelector(":focus", ["body"], "':focus' matches focussed body with tabindex");
+  </script>
+</body>

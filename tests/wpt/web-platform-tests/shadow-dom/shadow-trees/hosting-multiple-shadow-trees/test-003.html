@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test: A_04_05_03</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#multiple-shadow-subtrees">
+<meta name="assert" content="Hosting Multiple Shadow Subtrees:When an insertion point or a shadow insertion point has nothing assigned or distributed to them, the fallback content must be used instead when rendering">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+var A_04_05_03_T1 = async_test('A_04_05_03_T01');
+
+A_04_05_03_T1.step(function () {
+    var iframe = document.createElement('iframe');
+    iframe.src = '../../resources/bobs_page.html';
+    document.body.appendChild(iframe);
+
+    iframe.onload = A_04_05_03_T1.step_func(function () {
+        try {
+            var d = iframe.contentDocument;
+            var ul = d.querySelector('ul.stories');
+
+            //make the oldest shadow subtree
+            var s1 = ul.createShadowRoot();
+            var subdiv1 = d.createElement('div');
+            subdiv1.innerHTML = '<ul><content select="#li1"></content></ul>';
+            s1.appendChild(subdiv1);
+
+            //make an old shadow subtree
+            var s2 = ul.createShadowRoot();
+            var subdiv2 = d.createElement('div');
+            subdiv2.innerHTML = '<ul><content select=".shadow"></content></ul>';
+            s2.appendChild(subdiv2);
+
+            //make the youngest shadow subtree
+            var s3 = ul.createShadowRoot();
+            var subdiv3 = d.createElement('div');
+            subdiv3.innerHTML = '<ul><content select=".shadow2"></content></ul>' +
+            	'<shadow><span id="spn_first">The first span</span></shadow>' +
+            	'<shadow><span id="spn_second">The second span</span></shadow>';
+
+            s3.appendChild(subdiv3);
+
+            //The order of DOM elements should be the following:
+            //li4, li3, li6 visible. Other elements invisible
+            assert_true(d.querySelector('#li4').offsetTop > 0,
+                'Only the younger tree should take part in the distribution');
+            assert_true(d.querySelector('#li3').offsetTop > d.querySelector('#li4').offsetTop,
+        		'Point 1: Older tree should take part in the distribution');
+            assert_true(d.querySelector('#li6').offsetTop > d.querySelector('#li3').offsetTop,
+        		'Point 2: Older tree should take part in the distribution');
+
+            assert_equals(d.querySelector('#li1').offsetTop, 0,
+                'The oldest tree shouldn\'t take part in the distribution');
+            assert_equals(d.querySelector('#li2').offsetTop, 0,
+                'Point 3: Elements that don\'t mach insertion point criteria participate in distribution');
+            assert_equals(d.querySelector('#li5').offsetTop, 0,
+                'Point 4: Elements that don\'t mach insertion point criteria participate in distribution');
+
+            //spn_first should be invisible, spn_second visible
+            assert_equals(s3.querySelector('#spn_first').offsetTop, 0,
+            	'Shadow insertion point should be active');
+            assert_true(s3.querySelector('#spn_second').offsetTop > 0,
+            	'Shadow insertion point should be inactive');
+
+        } finally {
+            iframe.parentNode.removeChild(iframe);
+        }
+        A_04_05_03_T1.done();
+    });
+});
+</script>
+</body>
+</html>

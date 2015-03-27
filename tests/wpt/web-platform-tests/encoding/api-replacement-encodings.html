@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Encoding API: replacement encoding</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/encodings.js"></script>
+<script>
+
+test(function() {
+    assert_throws({name: 'RangeError'}, function() { new TextEncoder('replacement'); });
+    assert_throws({name: 'RangeError'}, function() { new TextDecoder('replacement'); });
+}, 'The "replacement" label should not be a known encoding.');
+
+encodings_table.forEach(function(section) {
+    section.encodings.filter(function(encoding) {
+        return encoding.name === 'replacement';
+    }).forEach(function(encoding) {
+        encoding.labels.forEach(function(label) {
+            test(function() {
+                assert_throws({name: 'RangeError'}, function() { new TextEncoder(label); });
+                assert_throws({name: 'RangeError'}, function() { new TextDecoder(label); });
+            }, 'Label for "replacement" should be rejected by API: ' + label);
+        });
+    });
+});
+
+</script>

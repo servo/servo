@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>isProtocolHandlerRegistered for new protocol</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script type="application/ecmascript">
+test(function() {
+  var dir_uri = location.href.replace(/\/[^\/]*$/, "");
+  assert_equals(navigator.isProtocolHandlerRegistered('web+CustomProtocolOne', dir_uri + '/%s'), 'new');
+});
+</script>
+</head>
+<body>
+<div id="log"></div>
+</body>
+</html>

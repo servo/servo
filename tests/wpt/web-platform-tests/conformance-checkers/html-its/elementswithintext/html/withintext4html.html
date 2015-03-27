@@ -1,0 +1,39 @@
+<!DOCTYPE html> 
+ <html>
+  <head>
+<script type="application/its+xml">
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+<its:param name="withinparam">copyright</its:param>
+<its:withinTextRule selector="//h:cite" withinText="nested"/>
+<its:withinTextRule selector="//h:p[@id=$withinparam]" withinText="yes"/>
+</its:rules>
+</script>
+   <meta charset=utf-8>
+   <title>Appaloosa</title>
+  </head>
+  <body>
+   <section itemscope>
+    <h2>keywords</h2>
+    <span itemprop="keyword">horse</span>
+    <span itemprop="keyword">appaloosa</span>
+   </section>
+   <p itemscope>
+   The Appaloosa
+    <cite>
+   The name comes from "Palouse horse" in reference to the Palouse River in Northern Idaho.
+    </cite>
+   are rugged horses originally breed by the
+    <span itemprop="keyword">Nez-Perce</span>
+   tribe in the US Northwest.
+   </p>
+   <p>
+   They are often characterized by their spotted coats, as shown here:
+    <img src="appaloosa.png" alt="Appaloosa horses"/>
+   </p>
+<!--footer-->
+   <p id="copyright">
+   Copyright:
+    <em>Zebulon Inc.</em>
+   </p>
+  </body>
+ </html>

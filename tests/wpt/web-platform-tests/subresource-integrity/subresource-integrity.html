@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Subresource Integrity</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+
+<script>
+  var loads_scripts_with_badly_encoded_digest;
+  var loads_scripts_with_correct_content_type;
+  var loads_scripts_with_improper_integrity_uri_scheme;
+  var loads_scripts_with_incorrect_content_type;
+  var loads_scripts_with_matching_digest;
+  var loads_scripts_with_non_matching_digest;
+  var loads_scripts_with_weak_digest_algorithms;
+</script>
+
+<!-- Should load -->
+<script src="loads-scripts-with-correct-content-type.js" integrity="ni:///sha-256;ZrrvOG-Kjz4R-FDFrfSQCQC_oMDfc0kQ3DJNd5URlrY?ct=application/javascript"></script>
+
+<!-- Shouldn't load. Correct URI is ni:///sha-256;J9PNsSFLX168LnQhGZeryaLZDmTLy_fMdx4pO-LhjW4 -->
+<script src="loads-scripts-with-improper-integrity-uri-scheme.js" integrity="wrong:///sha-256;J9PNsSFLX168LnQhGZeryaLZDmTLy_fMdx4pO-LhjW4"></script>
+
+<!-- Shouldn't load. Correct URI is ni:///sha-256;LiWoBTgUHmhVG6gn0dO9R0lBEItHgny2pnvLtBOc0tI?ct=application/javascript -->
+<script src="loads-scripts-with-incorrect-content-type.js" integrity="ni:///sha-256;LiWoBTgUHmhVG6gn0dO9R0lBEItHgny2pnvLtBOc0tI?ct=text/plain"></script>
+
+<!-- Should load -->
+<script src="loads-scripts-with-matching-digest.js" integrity="ni:///sha-256;EKclUXH9SRRUv3FmL7bIEV0z2s3EvzHFxzHKCnfHT_E"></script>
+
+<!-- Shouldn't load. Correct URI is ni:///sha-256;mmx3g0H5KnIi_lnkuMJzYK7q6ss-Wnp-7zoGvgiQVtU -->
+<script src="loads-scripts-with-non-matching-digest.js" integrity="ni:///sha-256;EKclUXH9SRRUv3FmL7bIEV0z2s3EvzHFxzHKCnfHT_E"></script>
+
+<!-- Shouldn't load. MD5 is considered to be a weak algorithm -->
+<script src="loads-scripts-with-weak-digest-algorithms.js" integrity="ni:///md5;XHzXKrCo5jhDN4BvNhs-4A"></script>
+
+<!-- Should load -->
+<script src="loads-scripts-with-base64-encoded-sha-digests.js" integrity="ni:///sha-256;+xc7GxEqWw6VtSIsI5W90RQtOrfjeGD+6WFgxZgiuOw="></script>
+
+<!-- Should load -->
+<script src="loads-scripts-with-unhyphenated-digest-name.js" integrity="ni:///sha256;ZR6E3E_G_B3WNdop4bYFtnXaj5bH02S3znD__KOC8Io"></script>
+
+
+<script>
+  function assert_undefined(actual) {
+    assert_equals(actual, undefined, "Should be undefined.");
+  }
+
+  test(function() {
+    assert_true(loads_scripts_with_correct_content_type)
+  }, "Loads scripts with correct content type");
+
+  test(function() {
+    assert_undefined(loads_scripts_with_improper_integrity_uri_scheme)
+  }, "Doesn't load scripts with improper integrity URI scheme");
+
+  test(function() {
+    assert_undefined(loads_scripts_with_incorrect_content_type)
+  }, "Doesn't load scripts with incorrect content-type");
+
+  test(function() {
+    assert_true(loads_scripts_with_matching_digest)
+  }, "Loads scripts with matching digest");
+
+  test(function() {
+    assert_undefined(loads_scripts_with_non_matching_digest)
+  }, "Doesn't load scripts with non-matching digest");
+
+  test(function() {
+    assert_undefined(loads_scripts_with_weak_digest_algorithms)
+  }, "Doesn't load scripts using weak digest algorithm");
+
+  test(function() {
+    assert_true(loads_scripts_with_base64_encoded_sha_digests)
+  }, "Loads scripts with base64 encoded sha digests");
+
+  test(function() {
+    assert_true(loads_scripts_with_unhyphenated_digest_name)
+  }, "Loads scripts with unhyphenated digest names");
+</script>

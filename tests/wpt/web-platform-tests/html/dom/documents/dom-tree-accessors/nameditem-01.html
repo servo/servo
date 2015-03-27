@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Named items: img id &amp; name</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="test">
+<img id="a" name="b">
+</div>
+<script>
+test(function() {
+  assert_equals(document.a, document.getElementsByTagName("img")[0]);
+  assert_equals(document['a'], document.getElementsByTagName("img")[0]);
+  assert_equals(document.b, document.getElementsByTagName("img")[0]);
+  assert_equals(document['b'], document.getElementsByTagName("img")[0]);
+}, "img elements that have a name and id attribute, should be accessible by both values.");
+</script>

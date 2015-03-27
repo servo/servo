@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Text input selection drag and drop: setting dropzone attribute ondragstart</title>
+<style type="text/css">
+div
+	{display:inline-block;
+	vertical-align:top;
+	background-color:olive;
+	color:white;
+	padding:20px;
+	width:100px;
+	height:100px;}
+div:nth-child(2)
+	{background-color:green;}
+div:nth-child(3)
+	{background-color:teal;}
+</style>
+<script type="application/ecmascript">
+var effects = ['copy','move','link'];
+function selectText()
+	{document.querySelector('input').select()}
+function dropSelection(event,element)
+	{document.querySelectorAll('div')[element].appendChild(document.createTextNode((event.dataTransfer.dropEffect == effects[element])?' PASS ':' FAIL '));
+	selectText();}
+function start(event)
+	{for(var i = 0; i != 3; i++)
+		{document.querySelectorAll('div')[i].setAttribute('dropzone',effects[i] + ' string:text/plain')}
+	}
+</script>
+</head>
+<body onload="selectText()">
+<div ondrop="dropSelection(event,0)"/>
+<div ondrop="dropSelection(event,1)"/>
+<div ondrop="dropSelection(event,2)"/>
+<p ondragstart="start(event)"><input value="Drag me" ondragstart="start(event)"/></p>
+<p>You should be able to drag selection and drop it onto any of the green boxes.</p>
+</body>
+</html>

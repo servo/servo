@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+ <meta charset="utf-8">
+ <head>
+  <title>Invalid longdesc test page</title>
+ </head>
+ <body>
+  <h1>Fail if you land here</h1>
+<div>
+<p>Testing tools such as validators should give a warning that this page is probably violating the SHOULD-level requirement that external descriptions which are a fragment of a document should be a well-formed fragment. Using an empty element as a description is almost certainly an inadequate description</p>
+</div>
+<div>
+  <h1><a id="fragment"></a>The description</h1>
+ <p>The image is a drawn cartoon, on the left is a parson in a wheelchair in profile, facing toward the centre of the image, under a banner with the text "e-democracy?" on it. In front of the person is stairs, at the top of the stairs is a table. On the table is a computer, whose screen says "Vote!" and has a red and a green button</p>
+ <p>The image is signed in the space under the floor that is at the top of the stairs with an "R" rune flipped backwards, somewhat resembling a "Я" with top and bottom border lines sloping upward from left to right, and is marked ©2013. It was actually drawn by Charles McCathie Nevile.</p>
+</div>
+<p>This paragraph is not part of the description. As of September 2013 there is no conformance requirement making it a failure to read this paragraph, but best practice would be to present only the description, and not this part.</p>
+<p>The description is encapsulated in a well-formed fragment, but since the target of a link is an empty element it is not possible to positively identify it.</p> 
+ </body>
+</html>

@@ -1,0 +1,21 @@
+<!DoCtYpE hTMl>
+<html>
+  <heAd>
+    <title>EventSource: prototype et al</tiTle>
+    <scrIpt src="/resources/testharness.js"></scripT>
+    <scriPt src="/resources/testharnessreport.js"></Script>
+  </heaD>
+  <boDy>
+    <diV iD="log"></Div>
+    <sCript>
+      test(function() {
+        EventSource.prototype.ReturnTrue = function() { return true }
+        var source = new EventSource("resources/message.py")
+        assert_true(source.ReturnTrue())
+        assert_exists(window, "EventSource")
+        source.close()
+      })
+    </scrIpt>
+  </bOdy>
+</htMl>
+

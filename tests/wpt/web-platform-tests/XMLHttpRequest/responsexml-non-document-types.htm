@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: responseXML/responseText on other responseType</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsexml-attribute" data-tested-assertations="following::ol[1]/li[1]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsetext-attribute" data-tested-assertations="following::ol[1]/li[1]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsetype-attribute" data-tested-assertations="following::ol[1]/li[4]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      function request(type) {
+        var test = async_test(document.title+' ('+type+')')
+        test.step(function() {
+          var client = new XMLHttpRequest()
+          client.responseType = type
+          client.open("GET", "resources/well-formed.xml", true)
+          client.onload = function(){
+            test.step(function(){
+                if(type !== 'document'){
+                  assert_throws("InvalidStateError", function() {
+                    var x = client.responseXML;
+                  }, 'responseXML throw for '+type)
+                }
+                if(type !== 'text'){
+                  assert_throws("InvalidStateError", function() {
+                    var x = client.responseText;
+                  }, 'responseText throws for '+type)
+                }
+                test.done()
+            })
+          }
+          client.send(null)
+        })
+      }
+      request("arraybuffer")
+      request("blob")
+      request("json")
+      request("text")
+      request("document")
+    </script>
+  </body>
+</html>

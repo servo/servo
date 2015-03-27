@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>A &lt;div&gt; with role "button" followed by removal of the element and its children and an insertion of a new div having role="checkbox"</title>
+    <script type="text/javascript">
+      function changeRoleByRemoval (/* Element */ element, /* String */ newRole) {
+          var parent = element.parentNode;
+          if (parent) {
+              parent.removeChild (element);
+              var div = document.createElement ('div');
+              div.setAttribute ('role', newRole);
+              div.setAttribute ('id', 'test');
+              div.setAttribute ('tabindex', '0');
+              div.setAttribute ('onclick', 'changeRoleByRemoval (this, "checkbox");');
+              div.setAttribute ('onkeydown', 'changeRoleByRemoval (this, "checkbox");');
+              div.innerHTML = "This &lt;div&gt; has role '" + newRole + "'";
+              parent.appendChild (div);
+          }
+      }
+  </script>
+  </head>
+  <body>
+    <div>
+    <div role="button" id="test" tabindex="0" onclick="changeRoleByRemoval (this, 'checkbox');" onkeydown="changeRoleByRemoval (this, 'checkbox');">This &lt;div&gt; has role 'button'</div>
+    </div>
+    <p>
+      <button onclick="changeRoleByRemoval (document.getElementById ('test'), 'checkbox')" type="button">Change Role</button>
+      <button onclick="window.location.reload()" type="button">Reload Page</button>
+    </p>
+  </body>
+</html>

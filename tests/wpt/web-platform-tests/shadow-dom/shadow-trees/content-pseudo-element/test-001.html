@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test: A_04_04_01</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Tetsuharu OHZEKI" href="mailto:saneyuki.snyk@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#distributed-pseudo-element">
+<meta name="assert" content="Matching Children, Distributed To Insertion Points">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+</head>
+<body>
+<div id="log"></div>
+<script>
+var A_04_04_01_T1 = async_test('A_04_04_01_T01');
+
+A_04_04_01_T1.step(function () {
+    var iframe = document.createElement('iframe');
+    iframe.src = '../../resources/bobs_page.html';
+    document.body.appendChild(iframe);
+
+    iframe.onload = A_04_04_01_T1.step_func(function () {
+        try {
+            var d = iframe.contentDocument;
+
+            //make shadow tree
+            var ul = d.querySelector('ul.stories');
+            var s = createSR(ul);
+            var subdiv1 = d.createElement('div');
+            subdiv1.innerHTML = '<ul><content select="li"></content></ul>';
+            s.appendChild(subdiv1);
+
+            var shadowStyle = d.createElement('style');
+            shadowStyle.innerHTML = '*::content .shadow { display:none; }';
+            s.appendChild(shadowStyle);
+
+            //The order of DOM elements should be the following:
+            //li3, li6 - invisible. Other elements visible
+            var li3 = d.querySelector('#li3');
+            var li6 = d.querySelector('#li6');
+            assert_equals(window.getComputedStyle(li3).display, "none",
+              'Point 1: Elements that don\'t mach insertion point criteria participate in distribution');
+            assert_equals(window.getComputedStyle(li6).display, "none",
+              'Point 2: Elements that don\'t mach insertion point criteria participate in distribution');
+
+            var li1 = d.querySelector('#li1');
+            var li2 = d.querySelector('#li2');
+            var li4 = d.querySelector('#li4');
+            var li5 = d.querySelector('#li5');
+            assert_not_equals(window.getComputedStyle(li1).display, "none",
+              'Point 3: ::content pseudo-element should be a valid insertion point matching criteria, element should be visible');
+            assert_not_equals(window.getComputedStyle(li2).display, "none",
+              'Point 4: ::content pseudo-element should be a valid insertion point matching criteria, element should be visible');
+            assert_not_equals(window.getComputedStyle(li4).display, "none",
+              'Point 5: ::content pseudo-element should be a valid insertion point matching criteria, element should be visible');
+            assert_not_equals(window.getComputedStyle(li5).display, "none",
+              'Point 6: ::content pseudo-element should be a valid insertion point matching criteria, element should be visible');
+        } finally {
+            iframe.parentNode.removeChild(iframe);
+        }
+        A_04_04_01_T1.done();
+    });
+});
+</script>
+</body>
+</html>

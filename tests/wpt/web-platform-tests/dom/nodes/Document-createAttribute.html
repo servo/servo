@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Document.createAttribute</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=attributes.js></script>
+<script src=productions.js></script>
+<div id=log>
+<script>
+invalid_names.forEach(function(name) {
+  test(function() {
+    assert_throws("INVALID_CHARACTER_ERR", function() {
+      document.createAttribute(name, "test");
+    });
+  }, "createAttribute(" + format_value(name) + ")");
+});
+
+var tests = ["title", "TITLE", null, undefined];
+tests.forEach(function(name) {
+  test(function() {
+    var attribute = document.createAttribute(name);
+    attr_is(attribute, "", String(name), null, null, String(name));
+    assert_equals(attribute.ownerElement, null);
+  }, "createAttribute(" + format_value(name) + ")");
+});
+</script>

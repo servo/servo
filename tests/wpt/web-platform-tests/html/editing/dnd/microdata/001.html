@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - microdata for non looping simple drop</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+    position: absolute;
+    top: 8px;
+    left: 8px;
+  }
+  body > div * {
+    display: none;
+  }
+  body > div + div {
+    background-color: navy;
+    left: 250px;
+  }
+  body > div + div + div {
+    background-color: fuchsia;
+    left: 500px;
+  }
+  p:first-of-type {
+    margin-top: 220px;
+  }
+</style>
+
+<script>
+
+function makeEl(eltype,props,contents) {
+	var elem = document.createElement(eltype);
+	for( var i in props ) {
+		if( props.hasOwnProperty(i) ) {
+			elem.setAttribute(i,props[i]);
+		}
+	}
+	if( contents ) {
+		elem.innerHTML = contents;
+	}
+	return elem;
+}
+
+var orange, fails = [], doneonce = false;
+window.onload = function() {
+  orange = document.getElementsByTagName('div')[0];
+
+	orange.appendChild( makeEl('meta',{itemprop:'foo',content:'test'}) );
+	orange.appendChild( makeEl('audio',{itemprop:'bar',src:'test'},'fail') );
+	orange.appendChild( makeEl('embed',{itemprop:'foo',src:'test'}) );
+	orange.appendChild( makeEl('iframe',{itemprop:'bar',src:'test'},'fail') );
+	orange.appendChild( makeEl('img',{itemprop:'foo',src:'test'}) );
+	orange.appendChild( makeEl('source',{itemprop:'bar',src:'test'}) );
+	orange.appendChild( makeEl('track',{itemprop:'foo',src:'test'}) );
+	orange.appendChild( makeEl('video',{itemprop:'bar',src:'test'},'fail') );
+	orange.appendChild( makeEl('a',{itemprop:'foo',href:'test'},'fail') );
+	orange.appendChild( makeEl('area',{itemprop:'bar',href:'test'}) );
+	orange.appendChild( makeEl('link',{itemprop:'foo',href:'test'}) );
+	orange.appendChild( makeEl('object',{itemprop:'bar',data:'test'},'fail') );
+	orange.appendChild( makeEl('time',{itemprop:'foo'},'fail') );
+	orange.appendChild( makeEl('time',{itemprop:'baz',datetime:'test'},'fail') );
+	orange.appendChild( makeEl('div',{itemprop:'baz'},'test') );
+	orange.appendChild( makeEl('madeuponthespot',{itemprop:'foo'},'test') );
+	orange.appendChild( makeEl('madeuponthespot',{itemprop:'foo',content:'test',src:'test',href:'test',data:'test',datetime:'test',value:'test'},'test') );
+	orange.appendChild( makeEl('input',{itemprop:'foo',value:'test'},'test') );
+
+  orange.ondragstart = function(e) {
+		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('Text', 'dummy text');
+  	var err;
+		if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
+			fails[fails.length] = e.type + ' ' + err;
+	  }
+  };
+  orange.nextSibling.ondragenter = orange.nextSibling.ondragleave = orange.nextSibling.ondragover =
+  orange.ondrag = orange.ondragend = function(e) {
+    if( e.type == 'dragover' || e.type == 'dragenter' ) {
+    	e.preventDefault();
+	    e.dataTransfer.dropEffect = 'copy';
+    }
+    if( e.dataTransfer.getData('application/microdata+json') ) {
+			fails[fails.length] = e.type + ' unexpectedly had microdata (security restriction)';
+    }
+  };
+	orange.nextSibling.ondrop = function(e) {
+  	var err;
+		if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
+			fails[fails.length] = e.type + ' ' + err;
+	  }
+	  if( e.type != 'drop' ) { return; }
+  	if( doneonce ) { return; }
+  	doneonce = true;
+    setTimeout(function () {
+    	document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
+    	fails = [];
+    }, 200 );
+  };
+
+};
+function checkprops(md) {
+	var i;
+	if( !md ) { return 'no microdata'; }
+	md = JSON.parse(md);
+	if( !md.items || md.items.length != 1 ) { return 'no items'; }
+	if( !md.items[0].properties ) { return 'no properties'; }
+	if( !md.items[0].properties.foo ) { return 'no properties.foo'; }
+	if( !md.items[0].properties.bar ) { return 'no properties.bar'; }
+	if( !md.items[0].properties.baz ) { return 'no properties.baz'; }
+	if( md.items[0].properties.foo.length != 10 ) { return 'properties.foo length '+md.items[0].properties.foo.length+' instead of 10'; }
+	if( md.items[0].properties.bar.length != 6 ) { return 'properties.bar length '+md.items[0].properties.bar.length+' instead of 6'; }
+	if( md.items[0].properties.baz.length != 2 ) { return 'properties.baz length '+md.items[0].properties.baz.length+' instead of 2'; }
+	for( i = 0; i < 10; i++ ) {
+		if( md.items[0].properties.foo[i] != orange.properties.namedItem('foo').getValues()[i] ) { return 'properties.foo['+i+'] <i>'+md.items[0].properties.foo[i]+'</i> instead of <i>'+orange.properties.namedItem('foo').getValues()[i]+'</i>'; }
+	}
+	for( i = 0; i < 6; i++ ) {
+		if( md.items[0].properties.bar[i] != orange.properties.namedItem('bar').getValues()[i] ) { return 'properties.bar['+i+'] <i>'+md.items[0].properties.bar[i]+'</i> instead of <i>'+orange.properties.namedItem('bar').getValues()[i]+'</i>'; }
+	}
+	for( i = 0; i < 2; i++ ) {
+		if( md.items[0].properties.baz[i] != orange.properties.namedItem('baz').getValues()[i] ) { return 'properties.baz['+i+'] <i>'+md.items[0].properties.baz[i]+'</i> instead of <i>'+orange.properties.namedItem('baz').getValues()[i]+'</i>'; }
+	}
+	return '';
+}
+
+</script>
+
+<div draggable='true' itemscope></div><div></div><div></div>
+
+<p>Use your pointing device to drag the orange box to the pink box, then back to the blue box, and release it.</p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

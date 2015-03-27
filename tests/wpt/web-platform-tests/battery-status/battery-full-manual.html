@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Battery Test: battery full, charger plugged in</title>
+<meta name="flags" content="interact">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<h2>Description</h2>
+<p>
+  This test validates that all of the BatteryManager attributes exist and are set to their correct values when battery is full.
+</p>
+
+<h2>Preconditions</h2>
+<ol>
+  <li>
+    The device is plugged in to the charger before this test is run.
+  </li>
+  <li>
+    The battery is full.
+  </li>
+</ol>
+
+<script>
+
+async_test(function (t) {
+  navigator.getBattery().then(function (battery) {
+    t.step(function () {
+      assert_true(battery.charging, 'charging must be set to true');
+      assert_equals(battery.chargingTime, 0, 'chargingTime must be set to 0');
+      assert_equals(battery.dischargingTime, Infinity, 'dischargingTime must be set to Infinity');
+      assert_equals(battery.level, 1.0, 'level must be set to 1.0');
+    });
+    t.done();
+  }, function (error) {
+    t.step(function () {
+      assert_unreached(error.message);
+    });
+    t.done();
+  });
+}, document.title);
+
+</script>

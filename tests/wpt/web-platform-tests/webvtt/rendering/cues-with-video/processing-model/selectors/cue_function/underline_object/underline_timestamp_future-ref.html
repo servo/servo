@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, underline object transition with timestamp, ::cue(u:future) selector</title>
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.video {
+    display: inline-block;
+    width: 1280px;
+    height: 720px;
+    position: relative
+}
+.cue {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center
+}
+.cue > span {
+    font-family: sans-serif;
+    background: rgba(0,0,0,0.8);
+    font-size: 36px;
+    text-decoration: underline;
+    color: white;
+}
+.green {
+    text-decoration: underline;
+    color: #00ff00;
+}
+</style>
+<div class="video"><span class="cue"><span>This is a <span class="green">test subtitle</span></span></span></div>

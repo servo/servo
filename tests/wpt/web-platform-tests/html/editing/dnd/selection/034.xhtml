@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Dragging multiline text selection between textareas</title>
+<style type="text/css">
+textarea
+	{width:300px;
+	height:100px;}
+</style>
+</head>
+<body onload="var t = document.querySelector('textarea');t.select();t.setSelectionRange(24,58)">
+<p>
+<textarea>
+Here is textarea with selection
+that spans
+three lines. Drag selected text to the textarea below.
+Selected text should be moved to second textarea once you drop it there.
+</textarea>
+</p>
+<p><textarea placeholder="Drop selection here"/></p>
+</body>
+</html>

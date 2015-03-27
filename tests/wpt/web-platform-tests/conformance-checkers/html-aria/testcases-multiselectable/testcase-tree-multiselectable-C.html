@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html><head>
+  <title>ARIA 1.0 Test Case: Tree role with aria-multiselectable</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case: Tree role with aria-multiselectable</h1>
+        
+    <div role="tree" aria-multiselectable="true">
+      <div role="treeitem">Leaf 1
+        <div role="group">
+          <div role="treeitem" aria-selected="true">Leaf 1A (Selected)</div> 
+          <div role="treeitem">Leaf 1B</div>       
+          <div role="treeitem" aria-selected="false">Leaf 1C (aria-selected='false')</div>       
+        </div>
+      </div>
+      <div role="treeitem" aria-selected="true">Leaf 2  (Selected)
+        <div role="group">
+          <div role="treeitem">Leaf 2A</div> 
+          <div role="treeitem">Leaf 2B</div>       
+          <div role="treeitem">Leaf 2C</div>       
+        </div>
+      </div>
+      <div role="treeitem">Leaf 3
+        <div role="group">
+          <div role="treeitem">Leaf 3A</div> 
+          <div role="treeitem" aria-selected="false">Leaf 3B  (aria-selected='false')</div>       
+          <div role="treeitem" aria-selected="true">Leaf 3C (Selected)</div>       
+        </div>
+      </div>
+    </div>
+    
+    <script type="text/javascript">  
+      
+     function setFocus() {
+       var node = document.getElementById('ID_TARGET');  
+       node.focus();
+     }
+     
+     window.addEventListener('load', setFocus);
+    </script>
+  
+  
+
+
+</body></html>

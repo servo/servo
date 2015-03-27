@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<text xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0" its:annotatorsRef="text-analysis|http://enrycher.ijs.si">
+  <body>
+    <p><span its:taClassRef="http://nerd.eurecom.fr/ontology#Location"  its:taIdentRef="http://dbpedia.org/resource/Dublin" its:taConfidence="0.7">Dublin</span> is the <span its:taSource="Wordnet3.0" its:taIdent="301467919" its:taConfidence="0.5">capital</span> of Ireland.</p>
+  </body>
+</text>

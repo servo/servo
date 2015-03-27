@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>FormData.append</title>
+<link rel=help href=https://xhr.spec.whatwg.org/#dom-formdata-append>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+function test_formdata(creator, verifier, description) {
+  async_test(description).step(function() {
+    var fd = creator();
+    var xhr = new XMLHttpRequest();
+    xhr.onload = this.step_func(function() {
+      verifier(xhr.responseText);
+      this.done();
+    });
+    xhr.open("POST", "resources/upload.py");
+    xhr.send(fd);
+  })
+}
+test_formdata(function() {
+  var fd = new FormData();
+  fd.append("name", new String("value"));
+  return fd;
+}, function(data) {
+  assert_equals(data, "name=value,\n");
+}, "Passing a String object to FormData.append should work.");
+</script>

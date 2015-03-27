@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<title>Service Workers: Cache</title>
+    <head>
+        <link rel="help" href="https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#cache">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+        <script src=/resources/WebIDLParser.js></script>
+        <script src=/resources/idlharness.js></script>
+
+    </head>
+    <body>
+
+<script type=text/plain id="idl_0">
+[Exposed=(Window,Worker)]
+interface Cache {
+  Promise<Response> match(RequestInfo request, optional CacheQueryOptions options);
+  Promise<sequence<Response>> matchAll(optional RequestInfo request, optional CacheQueryOptions options);
+  Promise<void> add(RequestInfo request);
+  Promise<void> addAll(sequence<RequestInfo> requests);
+  Promise<void> put(RequestInfo request, Response response);
+  Promise<boolean> delete(RequestInfo request, optional CacheQueryOptions options);
+  Promise<sequence<Request>> keys(optional RequestInfo request, optional CacheQueryOptions options);
+};
+
+dictionary CacheQueryOptions {
+  boolean ignoreSearch = false;
+  boolean ignoreMethod = false;
+  boolean ignoreVary = false;
+  DOMString cacheName;
+};
+
+dictionary CacheBatchOperation {
+  DOMString type;
+  Request request;
+  Response response;
+  CacheQueryOptions options;
+};
+</pre>
+
+
+
+    <script type=text/plain id="untested_idls">
+        interface AbstractResponse {};
+        interface Request {};
+        interface ScalarValueString {};
+    </pre>
+
+    <script>
+        var idl_array = new IdlArray();
+        idl_array.add_untested_idls(document.getElementById("untested_idls").textContent);
+        idl_array.add_idls(document.getElementById("idl_0").textContent);
+        idl_array.add_objects({
+            Cache: ["throw new Error ('No object defined for the Cache interface')"],
+            QueryParams: ["throw new Error ('No object defined for the QueryParams dictionary')"],
+            CacheIterationCallback: ["throw new Error ('No object defined for the CacheIterationCallback callback')"]
+        });
+        idl_array.test();
+    </script>
+
+    </body>
+</html>
+

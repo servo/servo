@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title id='desc'> MouseEvent event on IMG element with MAP and AREA elements</title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var TARGET;
+            var EVENT = "click";
+
+            function TestEvent(evt)
+            {
+                evt.preventDefault();
+
+                if ((EVENT == evt.type) && (TARGET === evt.target))
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+
+            window.onload = function(evt)
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    document.addEventListener(EVENT, TestEvent, false);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: MouseEvent event fires on the AREA element when click the MAP AREA on an image
+        </h4>
+
+        <img src="./support/iepreview.png" usemap="#ieMap" />
+
+        <map name="ieMap">
+            <area id="target" href="MouseEvent.image.map.area.html" shape="rect" coords="140 180 250 250" title="Arrow" />
+        </map>
+
+        <p id="manualsteps">
+            Steps:
+            <ol>
+                <li> Click at the arrow pointer symbol on the bottom-right corner of the image.
+            </ol>
+        </p>
+
+        <p>Test passes if the word "PASS" appears below after following the above steps.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Removing canvas element during drag and drop</title>
+<style type="text/css">
+div
+	{height:100px;
+	width:100px;
+	padding:20px;
+	background-color:silver;}
+</style>
+<script type="application/ecmascript">
+function addImage(event)
+	{var c = document.createElement('img');
+	c.setAttribute('src',event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''));
+	document.querySelector('div').appendChild(c);}
+function start(event)
+	{event.dataTransfer.effectAllowed = 'copy';
+	event.dataTransfer.setData('text/uri-list', document.querySelector('canvas').toDataURL('image/png'));
+	document.querySelector('p').removeChild(canvas);}
+</script>
+</head>
+<body>
+<p>
+	<canvas width="100" height="100" draggable="true" ondragstart="start(event)">Canvas</canvas>
+</p>
+<p>Drag canvas pattern to the silver box below and drop it. It should be copied to the box once you drop it there.</p>
+<div ondragover="return false" ondrop="addImage(event)"/>
+<script type="application/ecmascript">
+var canvas = document.querySelector('canvas'),
+c = canvas.getContext('2d');
+for(var x = 0; x != 50; x++)
+	{c.fillStyle = (x%2 == 0)?'navy':'white';
+	c.beginPath();
+	c.moveTo(x,x);
+	c.lineTo(100-x,x);
+	c.lineTo(100-x,100-x);
+	c.lineTo(x,100-x);
+	c.closePath();
+	c.fill();}
+</script>
+</body>
+</html>

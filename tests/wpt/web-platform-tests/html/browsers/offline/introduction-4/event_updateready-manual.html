@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<html manifest="../resources/manifest/clock.manifest">
+  <head>
+    <title>Offline Application Cache - Event_updateready</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <ol>
+      <li>Modify the commented part in the manifest file (manifest/clock.manifest) on the server.</li>
+      <li>Refresh the page.</li>
+    </ol>
+    <div id="log"></div>
+
+    <script>
+      var t = async_test("updateready event test");
+      var cache = window.applicationCache;
+
+      cache.onupdateready = t.done();
+    </script>
+  </body>
+</html>

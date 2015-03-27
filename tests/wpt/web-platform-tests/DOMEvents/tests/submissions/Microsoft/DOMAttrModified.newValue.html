@@ -1,0 +1,65 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id='desc'> MutationEvent.newValue for DOMAttrModified Event </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "DOMAttrModified";
+            var ATTR = "name";
+            var TARGET;
+            var ExpectResult = ["foo", "bar", null];
+            var ActualResult = [];
+
+            window.onload = function(e)
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+
+                    TARGET.setAttribute(ATTR, "foo");
+                    TARGET.setAttribute(ATTR, "bar");
+                    TARGET.removeAttribute(ATTR);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+
+            function TestEvent(evt)
+            {
+                if (evt.type == EVENT)
+                {
+                    ActualResult.push(evt.newValue);
+                }
+
+                if (ExpectResult.toString() == ActualResult.toString())
+                {
+                    PassTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: MutationEvent.newValue indicates the new value of the Attr node in DOMAttrModified events.
+        </h4>
+
+        <div id="target"></div>
+
+        <p>Test passes if the word "PASS" appears below.</p>
+           <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

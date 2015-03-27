@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Web Notifications Test: Notification - requestPermission (allow)</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Xin Liu" href="mailto:xinx.liu@intel.com">
+<link rel="help" title="4.3 Permission" href="http://www.w3.org/TR/notifications/#permission">
+<meta name="flags" content="interact">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <p>Test Step:</p>
+  <p>1. When ask the user whether showing notifications, make sure choose allow.</p>
+  <div id="log"></div>
+  <script>
+    t = async_test("the notification the value of permission is granted", {timeout: 50000});
+    Notification.requestPermission(t.step_func(function(permission) {
+       assert_equals(permission, "granted", "notification permission");
+       t.done();
+    }));
+  </script>
+</body>
+

@@ -1,0 +1,24 @@
+<!doctype html>
+<title>drag &amp; drop - closing a popup while a drag is in operation</title>
+<style type="text/css">
+p.gone, ul { display: none; }
+p.gone + ul { display: block; }
+</style>
+<script type="text/javascript">
+window.onload = function() {
+	if( location.href.match(/#popup$/) ) { document.getElementsByTagName('p')[0].className = 'gone'; }
+  document.getElementsByTagName('ul')[0].ondragstart = function(e) {
+		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('Text', 'dummy text');
+		setTimeout(function () { window.close(); },100);
+  };
+};
+</script>
+<p><a href="javascript:alert('Click the link normally');" onclick="window.open('close-drag-001.html#popup','_blank');return false;">Open this page in a popup</a>.</p>
+<ul draggable='true'>
+	<li>Drag this text downwards, and do not release the drag.</li>
+	<li>The browser may optionally cancel the drag. The browser may optionally close the popup. Fail if the drag placeholder gets stuck. Fail if the browser crashes. Fail if anything horrible happens. Fail if your pet kitten gets sick.</li>
+	<li>Release the drag.</li>
+	<li>Fail if the drag placeholder gets stuck. Fail if the browser crashes.</li>
+</ul>
+<noscript><p>Enable JavaScript and reload</p></noscript>

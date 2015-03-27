@@ -1,0 +1,33 @@
+<!doctype html>
+<title>WebSockets: sending HttpOnly cookies in ws request</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+setup({explict_done:true})
+var cookie_id = ((new Date())-0) + '.' + Math.random();
+
+var t = async_test(function(t) {
+var iframe = document.createElement('iframe');
+iframe.src = 'support/set-cookie.py?'+encodeURIComponent('ws_test_'+cookie_id+'=test; Path=/; HttpOnly');
+iframe.onload = t.step_func(function() {
+    var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo-cookie');
+    ws.onmessage = t.step_func(function(e) {
+      ws.close();
+      assert_regexp_match(e.data, new RegExp('ws_test_'+cookie_id+'=test'));
+      t.done();;
+    });
+    ws.onclose = function() { deleteCookie(false, e.type); }
+});
+
+var cookie_removed = false;
+
+add_result_callback(function() {
+    iframe.src = 'support/set-cookie.py?'+encodeURIComponent('ws_test_'+cookie_id+'=; Path=/; HttpOnly; Expires=Sun, 06 Nov 1994 08:49:37 GMT');
+    iframe.onload = done;
+});
+
+document.body.appendChild(iframe);
+}, null, {timeout:9900});
+</script>

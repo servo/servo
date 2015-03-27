@@ -1,0 +1,16 @@
+<!doctype html>
+<title>Cloning objects with getter properties</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+   var obj = {};
+   obj.__defineGetter__( "field", function(){ throw new Error("getter_should_propagate_exceptions"); });
+
+   assert_throws(new Error("getter_should_propagate_exceptions"), function() {
+     postMessage(obj, '*');
+  });
+  this.done();
+});
+</script>

@@ -1,0 +1,59 @@
+{"tests": [
+
+{"description": "valid dir attribute value 'ltr'",
+"input": "<span dir=ltr>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "valid dir attribute value 'LTR'",
+"input": "<span dir=LTR>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "valid dir attribute value 'LtR'",
+"input": "<span dir=LtR>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "valid dir attribute value 'rtl'",
+"input": "<span dir=rtl>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "valid dir attribute value 'RTL'",
+"input": "<span dir=RTL>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "valid dir attribute value 'RtL'",
+"input": "<span dir=RtL>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "invalid dir attribute value due to leading space",
+"input": "<span dir=' ltr'>",
+"fail-unless": "invalid-enumerated-value"},
+
+{"description": "dir attribute value can not be blank",
+"input": "<span dir>",
+"fail-unless": "attribute-value-can-not-be-blank"},
+
+{"description": "dir attribute value can not be blank (with quotes)",
+"input": "<span dir=''>",
+"fail-unless": "attribute-value-can-not-be-blank"},
+
+{"description": "invalid dir attribute value 'left'",
+"input": "<span dir=left>",
+"fail-unless": "invalid-enumerated-value"},
+
+{"description": "invalid dir attribute value 'right'",
+"input": "<span dir=right>",
+"fail-unless": "invalid-enumerated-value"},
+
+{"description": "invalid dir attribute value 'lefttoright'",
+"input": "<span dir=lefttoright>",
+"fail-unless": "invalid-enumerated-value"},
+
+{"description": "invalid dir attribute value 'righttoleft'",
+"input": "<span dir=righttoleft>",
+"fail-unless": "invalid-enumerated-value"},
+
+{"description": "invalid dir attribute value 'inherit'",
+"input": "<span dir=inherit>",
+"fail-unless": "invalid-enumerated-value"}
+
+]}

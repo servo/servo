@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Shadow DOM Test - Tests shadow inserts older tree.</title>
+    <link rel="match" href="hosting-multiple-shadow-trees-002-ref.html">
+    <link rel="author" title="Hiroyuki Hayashi" href="mailto:hyshhryk@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/shadow-dom/#multiple-shadow-trees">
+    <script src="../testcommon.js"></script>
+    <meta name="assert" content="The older tree is inserted into <shadow>, and the original branch is inserted into <content>.">
+  </head>
+  <body>
+    <div id='host'>
+      <p>Original tree's node</p>
+    </div>
+  <script>
+    var shadowRoot = host.createShadowRoot();
+    shadowRoot.innerHTML = "<div><p>Older tree's node</p><content></content></div>";
+    var shadowRoot = host.createShadowRoot();
+    shadowRoot.innerHTML = "<div><p>Younger tree's node</p><shadow></shadow></div>";
+  </script>
+  </body>
+</html>

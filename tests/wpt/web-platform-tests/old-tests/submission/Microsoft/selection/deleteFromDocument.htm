@@ -1,0 +1,80 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id="desc">HTML5 Selection: Delete some text from the document while it is part of a selection</title>
+        <script type="text/javascript">
+            var testPassed = true;
+            
+            function checkSelectionAttributes(anchorNode, anchorOffset, focusNode, focusOffset, collapsed, rangeCount)
+            {
+                var selection = window.getSelection();
+                if (anchorNode != selection.anchorNode)
+                {
+                    testPassed = false;
+                }
+                if (anchorOffset != selection.anchorOffset)
+                {
+                    testPassed = false;
+                }
+                if (focusNode != selection.focusNode)
+                {
+                    testPassed = false;
+                }
+                if (focusOffset != selection.focusOffset)
+                {
+                    testPassed = false;
+                }
+                if (collapsed != selection.isCollapsed)
+                {
+                    testPassed = false;
+                }
+                if (rangeCount != selection.rangeCount)
+                {
+                    testPassed = false;
+                }
+            }
+            
+            function RunTest()
+            {
+                try
+                {
+                    var selection = window.getSelection();
+                    var p2 = document.getElementById("p2");
+                    var expectedResult = "abcdeuvwxyz";
+                    
+                    var range = document.createRange();
+                    range.setStart(p2.firstChild, 5);
+                    range.setEnd(p2.firstChild, 20);
+                    selection.addRange(range);
+                    selection.deleteFromDocument();
+                    p2.normalize();
+                    
+                    range.collapse(true);
+                    
+                    checkSelectionAttributes(range.startContainer, range.startOffset, range.endContainer, range.endOffset, true, 1);
+                    
+                    if (expectedResult != p2.firstChild.data)
+                    {
+                        testPassed = false;
+                    }
+                    
+                    if (testPassed)
+                    {
+                        document.getElementById("testresult").firstChild.data = "PASS";
+                    }
+                }
+                catch (ex)
+                {
+                    document.getElementById("testresult").firstChild.data = "FAIL";
+                }
+            }
+        </script>
+    </head>
+    <body onload="RunTest();">
+        <p id="p1">Delete some text from the document while it is part of a selection</p>
+        <p id="p2">abcdefghijklmnopqrstuvwxyz</p>
+        <p>Test passes if the word "PASS" appears below.</p>
+        <div>Test result: </div>
+        <div id="testresult">FAIL</div>
+    </body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf8">
+<title>XPath in text/html: attributes</title>
+<link rel="help" href="http://www.w3.org/TR/DOM-Level-3-XPath/xpath.html#Interfaces">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="log" nonÄsciiAttribute><span></span></div>
+<svg xmlns="http://www.w3.org/2000/svg", xmlns:xlink="http://www.w3.org/1999/xlink">
+<path id="a" refx  />
+<path id="b" nonÄscii xlink:href />
+</svg>
+
+<script>
+function test_xpath_succeeds(path, expected, resolver) {
+  resolver = resolver ? resolver : null;
+  var res = document.evaluate(path, document, resolver, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+  actual = [];
+  for (var i=0;;i++) {
+    var node = res.snapshotItem(i);
+    if (node === null) {
+       break;
+    }
+    actual.push(node);
+  }
+  assert_array_equals(actual, expected);
+}
+
+function test_xpath_throws(path, error_code, resolver) {
+  resolver = resolver ? resolver : null;
+  assert_throws(error_code, function() {document.evaluate(path, document, resolver, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)})
+}
+
+function ns_resolver(x) {
+  map = {"html":"http://www.w3.org/1999/xhtml",
+         "svg":"http://www.w3.org/2000/svg",
+         "math":"http://www.w3.org/1998/Math/MathML",
+         "xlink":"http://www.w3.org/1999/xlink"};
+  var rv = map.hasOwnProperty(x) ? map[x] : null;
+  return rv;
+}
+
+generate_tests(test_xpath_succeeds,[
+  ["Select html element based on attribute", "//div[@id='log']", [document.getElementById("log")]],
+  ["Select html element based on attribute mixed case", "//div[@Id='log']", [document.getElementById("log")]],
+  ["Select both HTML and SVG elements based on attribute", "//*[@id]", [document.getElementById("log")].concat(Array.prototype.slice.call(document.getElementsByTagName("path")))],
+  ["Select HTML element with non-ascii attribute 1", "//*[@nonÄsciiattribute]", [document.getElementById("log")]],
+  ["Select HTML element with non-ascii attribute 2", "//*[@nonäsciiattribute]", []],
+  ["Select HTML element with non-ascii attribute 3", "//*[@nonÄsciiAttribute]", [document.getElementById("log")]],
+  ["Select SVG element based on mixed case attribute", "//svg:path[@Id]", [], ns_resolver],
+  ["Select both HTML and SVG elements based on mixed case attribute", "//*[@Id]", [document.getElementById("log")]],
+  ["Select SVG elements with refX attribute", "//*[@refX]", [document.getElementById("a")]],
+  ["Select SVG elements with refX attribute incorrect case", "//*[@Refx]", []],
+  ["Select SVG elements with refX attribute lowercase", "//*[@refx]", []],
+  ["Select SVG element with non-ascii attribute 1", "//*[@nonÄscii]", [document.getElementById("b")]],
+  ["Select SVG element with non-ascii attribute 2", "//*[@nonäscii]", []],
+  ["xmlns attribute", "//*[@xmlns]", []],
+  ["svg element with XLink attribute", "//*[@xlink:href]", [document.getElementById("b")], ns_resolver]
+])
+</script>

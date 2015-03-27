@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: overrideMimeType() in unsent state, enforcing Shift-JIS encoding</title>
+    <meta charset="utf-8">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-overridemimetype()-method" data-tested-assertations="/following::ol/li[3] /following::ol/li[4]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test();
+      test.step(function() {
+        var client = new XMLHttpRequest();
+        client.overrideMimeType('text/plain;charset=Shift-JIS');
+        client.onreadystatechange = function() {
+          if (client.readyState !== 4) return;
+          assert_equals( client.responseText, 'テスト' );
+          test.done();
+        };
+        client.open("GET", "resources/status.py?type="+encodeURIComponent('text/html;charset=iso-8859-1')+'&content=%83%65%83%58%83%67');
+        client.send( '' );
+      });
+    </script>
+  </body>
+</html>

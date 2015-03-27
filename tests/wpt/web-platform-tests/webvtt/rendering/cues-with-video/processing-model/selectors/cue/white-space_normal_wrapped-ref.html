@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, ::cue, white-space: normal (cue that wraps)</title>
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.video {
+    display: inline-block;
+    width: 1280px;
+    height: 720px;
+    font-size: 36px;
+    position: relative
+}
+.cue {
+    position: absolute;
+    bottom: 0;
+    left: 40%;
+    right: 0;
+    width: 20%;
+    text-align: center;
+}
+.cue > span {
+    font-family: sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    white-space: normal
+}
+</style>
+<div class="video"><span class="cue"><span>foo bar baz</span></span></div>

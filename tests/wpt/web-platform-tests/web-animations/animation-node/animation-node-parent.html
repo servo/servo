@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>AnimationNode parent attribute tests</title>
+<meta name="assert" content="The parent animation group of this animation node or null if this animation node does not have a parent animation group">
+<link rel="help" href="http://w3c.github.io/web-animations/#dom-animationnode-parent">
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+test(function() {
+    var nodes = [newAnimation(createDiv(this)), new AnimationGroup([]), new AnimationSequence([])];
+    nodes.forEach(function(node) {
+        assert_equals(node.parent, null, type(node) + '.parent should be null');
+    });
+}, 'AnimationNode.parent is null if animation node does not have a parent animation group');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        nodes.forEach(function(node) {
+            var parent = new parentCtor([node]);
+
+            assert_equals(node.parent, parent, type(node) + '.parent should return ' +
+                'parent animation group of this animation node');
+        });
+    });
+}, 'AnimationNode.parent returns parent animation group of this animation node');
+
+test(function() {
+    var test = this;
+    var parents = [AnimationGroup, AnimationSequence];
+    parents.forEach(function(parentCtor) {
+        var nodes = [newAnimation(createDiv(test)), new AnimationGroup([]), new AnimationSequence([])];
+        var parent = new parentCtor([nodes[0], nodes[1], nodes[2]]);
+        nodes.forEach(function(node) {
+            assert_equals(node.parent, parent, type(node) + '.parent should return ' +
+                'parent animation group of this animation node');
+        });
+    });
+}, 'AnimationNode.parent returns parent animation group of this animation node. ' +
+    'The group has several children nodes');
+
+// The rest is tested in mutator methods: AnimationNode.before(), AnimationNode.after(),
+// AnimationNode.replace(), AnimationNode.remove(),
+// AnimationGroup.prepend(), AnimationGroup.append(), AnimationGroup.clone()
+</script>
+</body>

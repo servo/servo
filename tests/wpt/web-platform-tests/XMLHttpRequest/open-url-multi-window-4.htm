@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: open() resolving URLs (multi-Window; 4; evil)</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    /*
+    It's unclear what the pass condition should be for this test.
+    Implementations:
+    Firefox, Opera (Presto): terminate request with no further events when IFRAME is removed. 
+    Chrome: completes request to readyState=4 but responseText is "" so it's pretty much terminated with an extra event for "DONE" state
+    Pass condition is now according to my suggested spec text in https://github.com/whatwg/xhr/pull/3 , if that's not accepted we'll have to amend this test
+    */
+      var test = async_test()
+      function init() {
+        test.step(function() {
+          var hasErrorEvent = false
+          var client = new self[0].XMLHttpRequest()
+          client.onreadystatechange = function() { 
+            test.step(function() {
+              if(client.readyState == 4) {
+                assert_equals(client.responseText, "", "responseText is empty on inactive document error condition")
+              }
+            })
+          }
+          client.addEventListener('error', function(){
+            test.step(function() {
+              hasErrorEvent = true
+              assert_equals(client.readyState, 4, "readyState is 4 when error listener fires")
+            })
+          })
+          client.addEventListener('loadend', function(){
+            test.step(function() {
+              assert_true(hasErrorEvent, "should get an error event")
+              test.done()
+            })
+          })
+          client.open("GET", "folder.txt")
+          client.send(null)
+          document.body.removeChild(document.getElementsByTagName("iframe")[0])
+        })
+      }
+    </script>
+    <iframe src="resources/init.htm"></iframe>
+ </body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE HTML><!-- HTML 5 -->
+<html lang="en">
+<head>
+	<title>ARIA Tree Example</title>
+	<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+	<link rel="stylesheet" href="./css/treesimple.css" type="text/css">
+	<script type="text/javascript" src="./js/prototype.js"></script>
+	<script type="text/javascript" src="./js/aria.js"></script>
+	<script type="text/javascript" src="./js/init.js"></script>
+</head>
+<body>
+	
+	<h1>Directions</h1>
+	<ol>
+		<li>Tab into the tree control.</li>
+		<li>Use the up/down arrow keys to change the active descendant.</li>
+		<li>Use the right/left arrow keys to expand/collapse appropriate nodes.</li>
+	</ol>
+	
+	<p>Some <a href="javascript:$('tree0').focus();">focusable</a> content before the ARIA application.</p>
+
+	<div role="application">
+		<h1 id="treelabel">ARIA Tree Example</h1>
+		<ul id="tree0" role="tree" aria-labelledby="treelabel" aria-activedescendant="tree0_item0_2_0_1" tabindex="0">
+			<!-- all the ids and aria-* attributes are hardcoded here for sake of example (final version will use javascript to assign ids as needed) -->
+			<li id="tree0_item0" role="treeitem" aria-level="1" aria-expanded="true">
+				<!-- .expander becomes the javascript trigger for expand/collapse -->
+				<span class="expander"></span>
+				Animals
+				<ul role="group">
+					<li id="tree0_item0_0" role="treeitem" aria-level="2"><span>Birds</span></li>
+					<li id="tree0_item0_1" role="treeitem" aria-level="2" aria-expanded="false">
+						<span class="expander"></span>
+						Cats
+						<ul role="group">
+							<li id="tree0_item0_1_0" role="treeitem" aria-level="3">Siamese</li>
+							<li id="tree0_item0_1_1" role="treeitem" aria-level="3">Tabby</li>
+						</ul>
+					</li>
+					<li id="tree0_item0_2" role="treeitem" aria-level="2" aria-expanded="true">
+						<span class="expander"></span>
+						Dogs
+						<ul role="group">
+							<li id="tree0_item0_2_0" role="treeitem" aria-level="3" aria-expanded="true">
+								<span class="expander"></span>
+								Small Breeds
+								<ul role="group">
+									<li id="tree0_item0_2_0_0" role="treeitem" aria-level="4">Chihuahua</li>
+									<li id="tree0_item0_2_0_1" role="treeitem" aria-level="4">Italian Greyhound</li>
+									<li id="tree0_item0_2_0_2" role="treeitem" aria-level="4">Japanese Chin</li>
+								</ul>
+							</li>
+							<li id="tree0_item0_2_1" role="treeitem" aria-level="3" aria-expanded="false">
+								<span class="expander"></span>
+								Medium Breeds
+								<ul role="group">
+									<li id="tree0_item0_2_1_0" role="treeitem" aria-level="4">Beagle</li>
+									<li id="tree0_item0_2_1_1" role="treeitem" aria-level="4">Cocker Spaniel</li>
+									<li id="tree0_item0_2_1_2" role="treeitem" aria-level="4">Pit Bull</li>
+								</ul>
+							</li>
+							<li id="tree0_item0_2_2" role="treeitem" aria-level="3" aria-expanded="false">
+								<span class="expander"></span>
+								Large Breeds
+								<ul role="group">
+									<li id="tree0_item0_2_2_0" role="treeitem" aria-level="4">Afghan</li>
+									<li id="tree0_item0_2_2_1" role="treeitem" aria-level="4">Great Dane</li>
+									<li id="tree0_item0_2_2_2" role="treeitem" aria-level="4">Mastiff</li>
+								</ul>
+							</li>
+						</ul>
+					</li>
+				</ul>
+			</li>
+			<li id="tree0_item1" role="treeitem" aria-level="1" aria-expanded="true">
+				<span class="expander"></span>
+				Minerals
+				<ul role="group">
+					<li id="tree0_item1_0" role="treeitem" aria-level="2">Zinc</li>
+					<li id="tree0_item1_1" role="treeitem" aria-level="2" aria-expanded="false">
+						<span class="expander"></span>
+						Gold
+						<ul role="group">
+							<li id="tree0_item1_1_0" role="treeitem" aria-level="3">Yellow Gold</li>
+							<li id="tree0_item1_1_1" role="treeitem" aria-level="3">White Gold</li>
+						</ul>
+					</li>
+					<li id="tree0_item1_2" role="treeitem" aria-level="2">Silver</li>
+				</ul>
+			</li>
+			<li id="tree0_item2" role="treeitem" aria-level="1" aria-expanded="true">
+				<span class="expander"></span>
+				Vegetables
+				<ul role="group">
+					<li id="tree0_item2_0" role="treeitem" aria-level="2">Carrot</li>
+					<li id="tree0_item2_1" role="treeitem" aria-level="2">Tomato</li>
+					<li id="tree0_item2_2" role="treeitem" aria-level="2">Lettuce</li>
+				</ul>
+			</li>
+		</ul>
+	</div>
+	
+	<p>More <a href="javascript:$('tree0').focus();">focusable</a> content after the ARIA application.</p>
+	
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!doctype html>
+<title>WebSockets: new WebSocket(invalid url)</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+test(function() {assert_throws("SyntaxError", function(){new WebSocket("/test")})});
+test(function() {assert_throws("SyntaxError", function(){new WebSocket("ws://foo bar.com/")})});
+test(function() {assert_throws("SyntaxError", function(){new WebSocket("wss://foo bar.com/")})});
+test(function() {assert_throws("SyntaxError", function(){new WebSocket("http://"+location.host+"/")})});
+test(function() {assert_throws("SyntaxError", function(){new WebSocket("mailto:example@example.org")})});
+test(function() {assert_throws("SyntaxError", function(){new WebSocket("about:blank")})});
+test(function() {assert_throws("SyntaxError", function(){new WebSocket("ws://"+location.host+"/#")})});
+test(function() {assert_throws("SyntaxError", function(){new WebSocket("ws://"+location.host+"/#test")})});
+test(function() {assert_throws("SyntaxError", function(){new WebSocket("?test")})});
+test(function() {assert_throws("SyntaxError", function(){new WebSocket("#test")})});
+</script>

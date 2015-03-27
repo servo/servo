@@ -1,0 +1,16 @@
+AddType 'text/html; charset=UTF-8' html
+<Files 'the-lang-attribute-003.html'>
+AddLanguage 'ko' .html
+</Files>
+<Files 'the-lang-attribute-005.html'>
+AddLanguage 'zh' .html
+</Files>
+<Files 'the-lang-attribute-006.html'>
+AddLanguage 'zh' .html
+</Files>
+<Files 'the-lang-attribute-009.html'>
+AddLanguage 'ko' .html
+</Files>
+<Files 'the-lang-attribute-011.html'>
+AddLanguage 'ko,zh,ja' .html
+</Files>

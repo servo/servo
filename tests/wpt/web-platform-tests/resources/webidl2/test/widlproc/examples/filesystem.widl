@@ -1,0 +1,1038 @@
+/* 
+ * Licensed to OMTP Ltd. (OMTP) under one or more contributor license agreements. 
+ * See the NOTICE file distributed with this work for additional information regarding 
+ * copyright ownership. 
+ * 
+ * The Reference Implementation (save for such parts of the reference implementation made 
+ * available under separate terms and conditions) is made available under the terms of the 
+ * Apache License, version 2.0, subject to the condition that any "Works" and "Derivative 
+ * Works" used or distributed for commercial purposes must be and remain compliant with the
+ * BONDI specification as promulgated by OMTP in each release. Your implementation of the 
+ * Reference Implementation (whether object or source) must maintain these conditions, and 
+ * you must notify any recipient of this condition in a conspicuous way.
+ * 
+ * You may not use this BONDI Reference Implementation except in compliance with the License. 
+ * 
+ * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 or at 
+ * http://bondi.omtp.org/BONDI-LICENSE-2.0 
+ */
+
+/**
+ * \brief BONDI filesystem API.
+ *
+ * The BONDI filesystem API provides access to the filesystem of a device. The
+ * filesystem is abstractly represented as a collection of disjoint filesystem
+ * root locations each corresponding to some specific location in the device
+ * filesystem.  The filesystem API exposes the hierarchies below these root
+ * locations as a single virtual filesystem but provides no access to other
+ * parts of the device filesystem.
+ *
+ * The roots that are exposed are determined by the platform also by the
+ * context in which the filesystem API is invoked.
+ *
+ * Each root has a string name. Each file or directory within the virtual
+ * filesystem is addressed using a fully-qualified path of the form:
+ * <em>&lt;root name&gt;/&lt;path&gt;</em> where <em>&lt;rootname&gt;</em> is
+ * the name of the root and <em>&lt;path&gt;</em> is the path to the file or
+ * directory relative to that root.
+ * 
+ * The list of the supported root locations can be retrieved by calling
+ * filesystem.getRootLocations().
+ *
+ * The default location for a specific type of file, if one exists, can be
+ * obtained by calling the filesystem.getDefaultLocation(...) method. A set of
+ * platform-independent symbolic names for media types is defined. The default
+ * location for a given file type may itself be a root, or some subdirectory of
+ * a root. Although the set of roots available on a device is
+ * platform-dependent, the getDefaultLocation(...) functionality can be used to
+ * ensure that web applications can be written in a platform-independent way.
+ *
+ * In order to access specific locations which are prefixed with a value
+ * retrieved by filesystem.getDefaultLocation or some root location returned by
+ * filesystem.getRootLocations a File handle must be retrieved using the
+ * filesystem.resolve call.
+ *
+ * A File handle represents either a file or a directory. If it is a file the
+ * isFile attribute will be <em>true</em>, otherwise the isDirectory attribute
+ * will be <em>true</em>. A file can be opened for reading and writing, using a
+ * FileStream handle. A directory can be used to list its contents which is a
+ * list of files and sub-directories. There is a resolve method on directories
+ * as well in order to resolve files or sub-directories more conveniently than
+ * processing directory listings.
+ *
+ * The "/" character is used as the (path) component separator.
+ * The use of "." or ".." in location components is not required to be
+ * supported.
+ *
+ * All path characters need to be <a href="http://www.ietf.org/rfc/rfc2279.txt">UTF-8</a> encoded.
+ *
+ * \code
+ * 	function errorCB(err) {
+ * 		alert("BONDI filesystem API couldn't be requested: " + err.message);
+ * 	}
+ *
+ * 	function successCB() {
+ * 		var docLocation = bondi.filesystem.getDefaultLocation("documents");
+ * 		var docDir = bondi.filesystem.resolve(docLocation);
+ * 		var docFiles = docDir.listFiles();
+ * 		for(var i = 0; i &lt; docFiles.length; i++) {
+ * 			// displays name of each image file in image directory
+ * 			alert(docFiles[i].name);
+ * 		}
+ * 		var testFile = docDir.createFile("test.txt");
+ * 		var out = testFile.open("w", "UTF-8");
+ * 		// writes Hello World to test.txt
+ * 		out.write("Hello World");
+ * 		out.close();
+ * 	}
+ *
+ * 	bondi.requestFeature(successCB, errorCB, "filesystem");
+ * \endcode
+ * 
+ * \def-api-feature http://bondi.omtp.org/api/filesystem.read
+ * \brief Filesystem read operations, including reading directory listings,
+ *        file contents and resolving root locations.
+ * \device-cap io.file.read
+ *
+ * \def-api-feature http://bondi.omtp.org/api/filesystem.write
+ * \brief Filesystem write operations, including creating files/directories,
+ *        writing to files, deleting files/directories, moving and copying
+ *        files.
+ * \device-cap io.file.write
+ * 
+ * \def-api-feature-set http://bondi.omtp.org/api/filesystem
+ * \brief All the FileSystem features
+ * \api-feature http://bondi.omtp.org/api/filesystem.read
+ * \api-feature http://bondi.omtp.org/api/filesystem.write
+ *
+ * \def-device-cap io.file.read
+ * \brief Read directory or file
+ * \param name Name of directory or file, in virtual filesystem,
+ * e.g. rootlocation/filename
+ *
+ * \def-device-cap io.file.write
+ * \brief Write directory or file
+ * \param name Name of directory or file, in virtual filesystem,
+ * e.g. rootlocation/filename
+ *
+ * \author Paddy Byers &lt;paddy@aplixcorp.com&gt;
+ * \author Anselm R Garbe &lt;anselm@aplixcorp.com&gt;
+ * \version 1.1
+ */
+module filesystem {
+
+	/**
+	 * \brief Array of File handles.
+	 *
+	 * This array type is returned when directory listings are requested.
+	 */
+	typedef sequence<File> FileArray;
+
+	/**
+	 * \brief File system specific success callback.
+	 *
+	 * This callback interface specifies a success callback with a function
+	 * taking a File object as input argument. It is used in asynchronous
+	 * operations such as copying, moving and deleting files.
+	 */
+	[Callback=FunctionOnly, NoInterfaceObject] interface FileSystemSuccessCallback {
+	   /**
+	    * \brief Method invoked when the asynchronous call completes succesfully
+	    *
+	    * \param file The file resulting from the asynchronous call
+	    */
+		void onSuccess(in File file);
+	};
+
+	/**
+	 * \brief Manager class exposed as the filesystem modules API.
+	 *
+	 * This manager class exposes the filesystem base API, such as
+	 * determining root and default locations, resolving a given location
+	 * into a File Handle and registering filesystem listeners for
+	 * filesystem events.
+	 *
+	 * \code
+	 * 	function errorCB(err) {
+	 * 		alert("BONDI filesystem API couldn't be requested: " + err.message);
+	 * 	}
+	 *
+	 * 	function successCB() {
+	 * 		var docLocation = bondi.filesystem.getDefaultLocation("documents");
+	 * 		var docDir = bondi.filesystem.resolve(docLocation);
+	 * 		var docFiles = docDir.listFiles();
+	 * 		for(var i = 0; i &lt; docFiles.length; i++) {
+	 * 			// displays name of each image file in image directory
+	 * 			alert(docFiles[i].name);
+	 * 		}
+	 * 		var testFile = docDir.createFile("test.txt");
+	 * 		var out = testFile.open("w", "UTF-8");
+	 * 		// writes Hello World to test.txt
+	 * 		out.write("Hello World");
+	 * 		out.close();
+	 * 	}
+	 *
+	 * 	bondi.requestFeature(successCB, errorCB, "filesystem");
+	 * \endcode
+	 */
+	interface FileSystemManager {
+
+		/**
+		 * \brief Contains the platform-dependent maximum path length.
+		 *
+		 * Read-only.
+		 *
+		 * \code
+		 * 	alert(bondi.filesystem.maxPathLength);
+		 * \endcode
+		 */
+		readonly attribute unsigned long maxPathLength;
+
+		/**
+		 * \brief Returns a default location path for the given arguments,
+		 * including the root location prefix.
+		 *
+		 * Optionally this method can be called with the space argument
+		 * specifying the minimum free disk space required.
+		 *
+		 * This function resolves location specifiers to location paths.
+		 * The following location specifiers are supported:
+		 * \n "wgt:package" the widget package location
+		 * \n "wgt:private" the widgets private storage
+		 * \n "wgt:public"  the widgets public storage
+		 * \n "wgt:temp"    the widgets temporary storage
+		 * \n "documents"   the documents location,
+		 *                    e.g. the "My Documents" directory on some systems
+		 * \n "images"      the images location,
+		 *                    e.g. the "My Pictures" directory on some systems
+		 * \n "videos"      the videos location,
+		 *                    e.g. the "My Videos" directory on some systems
+		 * \n "temp"        the temporary storage,
+		 *                    e.g resolving to "Temp"
+		 * \n "sdcard"      the sdcard storage, if any
+		 *
+		 * \code
+		 * 	var wgtLocation = bondi.filesystem.getDefaultLocation('wgt:package');
+		 * \endcode
+		 *
+		 * \param specifier    the location specifier, see above for supported specifiers.
+		 * \param minFreeSpace optional, minimum required free disk space in bytes for
+		 *                     this location, <em>0</em> (default) means no limitation
+		 * \return the location as a string or <em>null</em> if there
+		 *         is no location for the given specifier or if there is not
+		 *         enough space left for the requested space in bytes.
+		 * \throw DeviceAPIError INVALID_ARGUMENT_ERROR if the
+		 *        specifier or space arguments are invalid
+		 */
+		DOMString getDefaultLocation(in DOMString specifier, in unsigned long minFreeSpace)
+			raises(DeviceAPIError);
+
+		/**
+		 * \brief Returns all root locations.
+		 *
+		 * The root locations are symbolic names for filesystem
+		 * locations which are accessible and supported by the
+		 * underlying platform.
+		 *
+		 * Usually the following root locations will be supported:
+		 * \n "documents" represents "My Documents" on some platforms
+		 * \n "images"    represents "My Pictures" on some platforms
+		 * \n "videos"    represents "My Videos" on some platforms
+		 * \n "temp"      represents "tmp" on some platforms
+		 * \n "sdcard"    represents the sdcard on some platforms
+		 *
+		 * See also the getDefaultLocation method.
+		 *
+		 * \code
+		 * 	var locations = bondi.filesystem.getRootLocations();
+		 * 	for(var i = 0; i &lt; locations.length; i++) {
+		 * 		// locations[i] is a resolvable root location
+		 * 	}
+		 * \endcode
+		 *
+		 * \return string array of root locations.
+		 */
+		StringArray getRootLocations();
+
+		/**
+		 * \brief Resolves a location to a File handle.
+		 *
+		 * Validates and resolves the given location to a File handle
+		 * and returns a handle. A valid location is prefixed with a
+		 * valid root or default location and must address an existing
+		 * and accessible file.  
+		 *
+		 * \api-feature http://bondi.omtp.org/api/filesystem.read
+		 *
+		 * \code
+		 * 	var location = bondi.filesystem.getDefaultLocation("temp");
+		 * 	var temp = bondi.filesystem.resolve(location);
+		 * 	var documents = bondi.filesystem.getDefaultLocation("documents");
+		 * 	var mydoc = bondi.filesystem.resolve(documents + "/data/2009/mydoc.txt");
+		 * \endcode
+		 *
+		 * \param location the location to resolve. Must be absolute
+		 *        prefixed by a valid root or default location.
+		 * \return the resolved file object.
+		 * \throw SecurityError PERMISSION_DENIED_ERROR when
+		 *        access is denied by the security policy.
+		 * \throw DeviceAPIError INVALID_ARGUMENT_ERROR if invalid location was given.
+		 */
+		File resolve(in DOMString location)
+			raises(SecurityError, DeviceAPIError);
+
+		/**
+		 * \brief Registers a filesystem event listener.
+		 *
+		 * Filesystem event listeners are used in order to retrieve
+		 * notifications if root or default locations such as storage
+		 * cards are mounted/unmounted into/from the device filesystem.
+		 *
+		 * \api-feature http://bondi.omtp.org/api/filesystem.read
+		 *
+		 * \code
+		 * 	var listener = { mountEvent: function(location) { alert('mounted ' + location); },
+		 * 	                 unmountEvent: function(location) { alert('unmounted ' + location); };
+		 * 	bondi.filesystem.registerEventListener(listener);
+		 * \endcode
+		 *
+		 * \param listener the listener interface implementation
+		 * \throw DeviceAPIError INVALID_ARGUMENT_ERROR if the given listener
+		 *        is invalid or not a listener.
+		 */
+		void registerEventListener(in FileSystemListener listener)
+			raises(DeviceAPIError);
+
+		/**
+		 * \brief Unregisters a filesystem event listener.
+		 *
+		 * \code
+		 * 	bondi.filesystem.unregisterEventListener(listener);
+		 * \endcode
+		 *
+		 * \param listener the listener interface implementation
+		 * \throw DeviceAPIError INVALID_ARGUMENT_ERROR if the given listener
+		 *        is invalid or not a listener.
+		 */
+		void unregisterEventListener(in FileSystemListener listener)
+			raises(DeviceAPIError);
+	};
+
+	/**
+	 * \brief Filesystem event listener class.
+	 *
+	 * This listener implements two methods to retrieve mount and unmount
+	 * notifications if root or default locations on a storage card get
+	 * available or unavailable.
+	 *
+	 * \code
+	 * 	var fsEventImpl = {
+	 * 		mountEvent: function(location) {
+	 * 			// location has been mounted
+	 * 		},
+	 * 		unmountEvent: function(location) {
+	 * 			// location has been unmounted
+	 * 		}
+	 * 	};
+	 * \endcode
+	 */
+	interface FileSystemListener {
+
+		/**
+		 * \brief Called when a new root location gets available.
+		 *
+		 * A new location could be a storage card for example.
+		 *
+		 * \param location the newly available location
+		 */
+		void mountEvent(in DOMString location);
+
+		/**
+		 * \brief Called when a location gets unavailable.
+		 *
+		 * Such a location could be a storage card for example.
+		 *
+		 * \param location the location which is becoming unavailable
+		 */
+		void unmountEvent(in DOMString location);
+	};
+
+	/**
+	 * \brief File class.
+	 *
+	 * This interface represents the file abstraction in use. A file handle
+	 * can address files or directories.  A file handle represents a file
+	 * if the isFile property is <em>true</em>, otherwise it represents a
+	 * directory.
+	 *
+	 * A file handle representing a file can be opened for I/O operations
+	 * such as reading and writing.
+	 *
+	 * A file handle representing a directory can list all files in the
+	 * current directory.
+	 *
+	 * \code
+	 *
+	 *	// list directory contents
+	 * 	var files = dir.listFiles();
+	 * 	for(var i = 0; i &lt; files.length; i++) {
+	 * 		// alerts each name of dir's contents
+	 * 		alert(files[i].name);
+	 * 	}
+	 * 
+	 * 	// opens a file for writing
+	 * 	var file = dir.createFile("test.txt");
+	 * 	var out  = file.open("w", "UTF-8");
+	 * 	// writes Hello World to test.txt
+	 * 	out.write("Hello World");
+	 * 	out.close();
+	 * \endcode
+	 */
+	interface File {
+
+		/**
+		 * \brief Parent directory handle.
+		 *
+		 * Read-only.
+		 *
+		 * <em>null</em> if there is no parent directory.
+		 *
+		 * If there is no parent directory, this represents a root location.
+		 *
+		 * \code
+		 * 	var parent = file.parent;
+		 * 	if(parent != null) {
+		 * 		// parent directory handle
+		 * 	}
+		 * \endcode
+		 */
+		readonly attribute File parent;
+
+		/**
+		 * \brief File/directory access state in the filesystem.
+		 *
+		 * Read-only.
+		 *
+		 * <em>false</em> if there is write access.
+		 *
+		 * This attribute represents the actual state of a
+		 * file/directory in the filesystem. It does not check if the
+		 * accessor has io.file.write permission.
+		 *
+		 * \code
+		 * 	if(file.readOnly) {
+		 * 		// file cannot be written
+		 * 	}
+		 * \endcode
+		 */
+		readonly attribute boolean readOnly;
+
+		/**
+		 * \brief File type.
+		 *
+		 * Read-only.
+		 *
+		 * <em>true</em> if this handle is a file.
+		 * <em>false</em> if this handle is a directory.
+		 *
+		 * \code
+		 * 	if(file.isFile) {
+		 * 		// is a file
+		 * 	}
+		 * \endcode
+		 */
+		readonly attribute boolean isFile;
+
+		/**
+		 * \brief File type.
+		 *
+		 * Read-only.
+		 *
+		 * <em>true</em> if this handle is a directory.
+		 * <em>false</em> if this handle is a file.
+		 *
+		 * \code
+		 * 	if(file.isDirectory) {
+		 * 		// is a directory
+		 * 	}
+		 * \endcode
+		 */
+		readonly attribute boolean isDirectory;
+
+		/**
+		 * \brief Creation timestamp.
+		 *
+		 * Read-only.
+		 *
+		 * The creation timestamp of this file. This is the timestamp
+		 * when the file was first created in the filesystem. This is
+		 * equivalent to the timestamp when a call to createFile()
+		 * succeeds.
+		 *
+		 * It is unspecified and platform-dependent if the creation
+		 * timestamp changes when a file is moved.
+		 *
+		 * \code
+		 * 	alert(file.created); // displays the creation timestamp
+		 * \endcode
+		 *
+		 */
+		readonly attribute Date created;
+
+		/**
+		 * \brief Modification timestamp.
+		 *
+		 * Read-only.
+		 *
+		 * The modification timestamp of this file. This is the timestamp
+		 * of the most recent modification to the file, usually when the last
+		 * write operation succeeded. Opening a file for reading does not change
+		 * the modification timestamp.
+		 *
+		 * \code
+		 * 	alert(file.modified); // displays the modification timestamp
+		 * \endcode
+		 *
+		 */
+		readonly attribute Date modified;
+
+		/**
+		 * \brief Path of this file, excluding the file name.
+		 *
+		 * Read-only.
+		 *
+		 * If the file path is <em>/baz/foo.bar</em>, then
+		 * the path is <em>/baz/</em>.  
+		 *
+		 * The encoding of file paths is <a href="http://www.ietf.org/rfc/rfc2279.txt">UTF-8</a>.
+		 *
+		 * \code
+		 * 	alert(file.path); // should be /baz/ if the file is /baz/foo.bar
+		 * \endcode
+		 */
+		readonly attribute DOMString path;
+
+		/**
+		 * \brief File name, excluding any path components.
+		 *
+		 * Read-only.
+		 *
+		 * Assumed the file path is <em>/baz/foo.bar</em>, then
+		 * the file name is <em>foo.bar</em>.
+		 *
+		 * The encoding of file names is <a href="http://www.ietf.org/rfc/rfc2279.txt">UTF-8</a>.
+		 *
+		 * \code
+		 * 	alert(file.name); // should be foo.bar if the file path is /baz/foo.bar
+		 * \endcode
+		 */
+		readonly attribute DOMString name;
+
+		/**
+		 * \brief Absolute path of this file.
+		 *
+		 * Read-only.
+		 *
+		 * Assumed the file path is <em>/baz/foo.bar</em>, then this is the absolute path.
+		 *
+		 * The encoding of file paths is <a href="http://www.ietf.org/rfc/rfc2279.txt">UTF-8</a>.
+		 *
+		 * \code
+		 * 	alert(file.absolutePath); // should be /baz/foo.bar if the file is /baz/foo.bar
+		 * \endcode
+		 */
+		readonly attribute DOMString absolutePath;
+
+		/**
+		 * \brief Size in bytes of this file.
+		 *
+		 * Read-only.
+		 *
+		 * If it is attempted to read this attribute on a directory,
+		 * <em>undefined</em> is returned.
+		 *
+		 * \code
+		 * 	alert(file.fileSize); // displays the file size
+		 * \endcode
+		 */
+		readonly attribute unsigned long fileSize;
+
+		/**
+		 * \brief Files metadata.
+		 *
+		 * The actual map contents are implementation dependent.
+		 *
+		 * \code
+		 * 	// should display the file author, if supported by the
+		 * 	// platform, undefined otherwise
+		 * 	alert(file.metadata.author);
+		 * \endcode
+		 */
+		readonly attribute Map metadata;
+
+		/**
+		 * \brief Returns list of all files of this directory.
+		 *
+		 * The list of files contains directories and files, it does
+		 * not contain the directories "." and "..".
+		 *
+		 * \api-feature http://bondi.omtp.org/api/filesystem.read
+		 *
+		 * \code
+		 * 	var files = dir.listFiles();
+		 * 	for(var i = 0; i &lt; files.length; i++) {
+		 * 		// files[i] iterate over all files of this directory
+		 * 	}
+		 * \endcode
+		 *
+		 * \return array of contents of this directory.
+		 * \throw SecurityError PERMISSION_DENIED_ERROR when
+		 *        access is denied by the security policy.
+		 * \throw DeviceAPIError IO_ERROR if this is not a directory.
+		 */
+		FileArray listFiles()
+			raises(SecurityError, DeviceAPIError);
+
+		/**
+		 * \brief Opens the file in the given mode supporting the given
+		 * encoding.
+		 *
+		 * \api-feature http://bondi.omtp.org/api/filesystem.read
+		 * \api-feature http://bondi.omtp.org/api/filesystem.write
+		 *
+		 * \code
+		 * 	// opens file for reading
+		 * 	var in = file.open("r", "UTF-8");
+		 * \endcode
+		 *
+		 * \param mode the mode for opening a file
+		 * \n "r" for reading
+		 * \n "a" for appending
+		 * \n "w" for [over]writing
+		 * \param encoding the encoding for read/write operations on the file,
+		 *                   supported encodings are:
+		 * \n "<a href="http://www.ietf.org/rfc/rfc2279.txt">UTF-8</a>" default encoding
+		 * \n "<a href="http://en.wikipedia.org/wiki/ISO/IEC_8859-1">ISO8859-1</a>" latin1 encoding
+		 * \return file stream handle to read/write from/to.
+		 * \throw SecurityError PERMISSION_DENIED_ERROR when
+		 *        access is denied by the security policy.
+		 * \throw DeviceAPIError INVALID_ARGUMENT_ERROR if invalid mode
+		 *        or unsupported encoding is supplied.
+		 * \throw DeviceAPIError IO_ERROR if this is not a file.
+		 */
+		FileStream open(in DOMString mode, in DOMString encoding)
+			raises(SecurityError, DeviceAPIError);
+
+		/**
+		 * \brief Copies this file.
+		 *
+		 * The copy will be created in the given path. If this function
+		 * fails and the error callback is called, it will pass an
+		 * DeviceAPIError IO_ERROR to the callback.
+		 *
+		 * The encoding of file paths is <a href="http://www.ietf.org/rfc/rfc2279.txt">UTF-8</a>.
+		 *
+		 * \api-feature http://bondi.omtp.org/api/filesystem.write
+		 *
+		 * \code
+		 * 	// copies this file to /temp/file.copy
+		 * 	var op = file.copyTo(function(copiedFile) { alert("file copied"); }, null, "/temp/file.copy", false);
+		 * \endcode
+		 *
+		 * \param successCallback called when the file has been copied.
+		 * \param errorCallback called if an error occured.
+		 * \param filePath the new file path, [a-Z0-9_- /]+ are allowed 
+		 * \param overwrite <em>true</em> enforces overwriting an existing file.
+		 * \return PendingOperation enabling the requester to cancel this request.
+		 * \throw SecurityError PERMISSION_DENIED_ERROR when
+		 *        access is denied by the security policy.
+		 * \throw DeviceAPIError IO_ERROR if it is attempted to move to a directory.
+		 * \throw DeviceAPIError IO_ERROR if overwrite is <em>false</em> and target file exists.
+		 * \throw DeviceAPIError IO_ERROR if any characters in the path are not supported.
+		 * \throw DeviceAPIError IO_ERROR if the file cannot be copied.
+		 */
+		PendingOperation copyTo(in FileSystemSuccessCallback successCallback,
+		                        in ErrorCallback errorCallback,
+		                        in DOMString filePath,
+		                        in boolean overwrite)
+			raises(SecurityError, DeviceAPIError);
+
+		/**
+		 * \brief Moves this file.
+		 *
+		 * The file will be moved atomically to the given path. This is
+		 * different to copyTo and deleting the old file, because this
+		 * operation does not need extra disk space on certain platforms.
+		 * If this function fails and the error callback is called, it
+		 * will pass an DeviceAPIError IO_ERROR to the callback.
+		 *
+		 * The encoding of file paths is <a href="http://www.ietf.org/rfc/rfc2279.txt">UTF-8</a>.
+		 *
+		 * \api-feature http://bondi.omtp.org/api/filesystem.write
+		 *
+		 * \code
+		 * 	// moves this file to /temp/file.move
+		 * 	var op = file.moveTo(function(movedFile) { file = movedFile; }, null, "/temp/file.move");
+		 * \endcode
+		 *
+		 * \param successCallback called when the file has been copied.
+		 * \param errorCallback called if an error occured.
+		 * \param filePath the new file name, [a-Z0-9_- /]+ are allowed
+		 * \param overwrite <em>true</em> enforces overwriting an existing file.
+		 * \return PendingOperation enabling the requester to cancel this request.
+		 * \throw SecurityError PERMISSION_DENIED_ERROR when
+		 *        access is denied by the security policy.
+		 * \throw DeviceAPIError IO_ERROR if it is attempted to move to a directory.
+		 * \throw DeviceAPIError IO_ERROR if overwrite is <em>false</em> and target file exists.
+		 * \throw DeviceAPIError IO_ERROR if any characters in the path are not supported.
+		 * \throw DeviceAPIError IO_ERROR if the file cannot be moved.
+		 */
+		PendingOperation moveTo(in FileSystemSuccessCallback successCallback,
+		                        in ErrorCallback errorCallback,
+		                        in DOMString filePath,
+		                        in boolean overwrite)
+			raises(SecurityError, DeviceAPIError);
+
+		/**
+		 * \brief Creates a directory.
+		 *
+		 * The new directory will be created relatively to the current
+		 * directory this operation is performed on. It will attempt to
+		 * create all necessary sub-directories as well. The use of "."
+		 * or ".." in path components is not supported. If the
+		 * bottom-most directory being created already exists this
+		 * method will throw an IO_ERROR.
+		 *
+		 * The encoding of file paths is <a href="http://www.ietf.org/rfc/rfc2279.txt">UTF-8</a>.
+		 *
+		 * \api-feature http://bondi.omtp.org/api/filesystem.write
+		 *
+		 * \code
+		 * 	var newDir = dir.createDirectory("newDir");
+		 * 	var anotherNewDir = dir.createDirectory("newDir1/subNewDir1");
+		 * \endcode
+		 *
+		 * \param dirPath the new directory path, it should only contain
+		 *        characters supported by the underlying filesystem.
+		 * \return file handle of the new directory
+		 * \throw SecurityError PERMISSION_DENIED_ERROR when
+		 *        access is denied by the security policy.
+		 * \throw DeviceAPIError IO_ERROR if this is not a directory.
+		 * \throw DeviceAPIError IO_ERROR if any path component does not exist.
+		 * \throw DeviceAPIError IO_ERROR if a file with the same name exists.
+		 * \throw DeviceAPIError IO_ERROR if any characters in the path are not supported.
+		 * \throw DeviceAPIError IO_ERROR if the directory cannot be created.
+		 */
+		File createDirectory(in DOMString dirPath)
+			raises(SecurityError, DeviceAPIError);
+
+		/**
+		 * \brief Creates a new empty file.
+		 *
+		 * The new empty file is created in the given path relatively
+		 * to the current directory the operation is performed on.  The
+		 * use of "." or ".." in path components is not supported.  If
+		 * the bottom-most file being created already exists this
+		 * method will throw an IO_ERROR.  If any path component does
+		 * not exist this method will throw an IO_ERROR.
+		 *
+		 * The encoding of file paths is <a href="http://www.ietf.org/rfc/rfc2279.txt">UTF-8</a>.
+		 *
+		 * \api-feature http://bondi.omtp.org/api/filesystem.write
+		 *
+		 * \code
+		 * 	var newFile = dir.createFile("newFile");
+		 * \endcode
+		 *
+		 * \param filePath the new file path, it should only contain
+		 *        characters supported by the underlying filesystem.
+		 * \return file handle of the new empty file
+		 * \throw SecurityError PERMISSION_DENIED_ERROR when
+		 *        access is denied by the security policy.
+		 * \throw DeviceAPIError IO_ERROR if this is not a directory.
+		 * \throw DeviceAPIError IO_ERROR if any path component does not exist.
+		 * \throw DeviceAPIError IO_ERROR if the file already exists.
+		 * \throw DeviceAPIError IO_ERROR if any characters in the path are not supported.
+		 * \throw DeviceAPIError IO_ERROR if the file cannot be created.
+		 */
+		File createFile(in DOMString filePath)
+			raises(SecurityError, DeviceAPIError);
+
+		/**
+		 * \brief Resolves an existing file or directory relatively to
+		 * the current directory this operation is performed on; and
+		 * returns a file handle for it.
+		 * 
+		 * The filePath is not allowed to contain the "." or ".." directories.
+		 *
+		 * The encoding of file paths is <a href="http://www.ietf.org/rfc/rfc2279.txt">UTF-8</a>.
+		 *
+		 * \api-feature http://bondi.omtp.org/api/filesystem.read
+		 *
+		 * \code
+		 * 	var hellofile = dir.resolve("foo/hello.txt");
+		 * \endcode
+		 *
+		 * \param filePath the relative file/directory path to resolve.
+		 * \return file handle of the file or <em>null</em> if it cannot be resolved.
+		 * \throw SecurityError PERMISSION_DENIED_ERROR when
+		 *        access is denied by the security policy.
+		 * \throw DeviceAPIError IO_ERROR if this is not a directory.
+		 * \throw DeviceAPIError IO_ERROR if any characters in the path are not supported.
+		 * \throw DeviceAPIError IO_ERROR if the file or directory cannot be resolved.
+		 */
+		File resolve(in DOMString filePath)
+			raises(SecurityError, DeviceAPIError);
+
+		/**
+		 * \brief Deletes this directory.
+		 *
+		 * This function attempts to delete a directory or directory
+		 * tree synchronously and returns <em>true</em> on success,
+		 * <em>false</em> otherwise. It may throw an IO_ERROR if a
+		 * recursive deletion partially fails and any deleted data so
+		 * far cannot be recovered. This might happen due the lack of
+		 * filesystem permissions or if any directories or files are
+		 * openened by other processes.
+		 *
+		 * \api-feature http://bondi.omtp.org/api/filesystem.write
+		 *
+		 * \code
+		 * 	var fullPath = dir.fullPath;
+		 * 	if(dir.deleteDirectory(true)) {
+		 * 		// subsequent accesses to dir will throw an error
+		 * 		alert(fullPath + ' deleted');
+		 * 	}
+		 * \endcode
+		 *
+		 * \param recursive <em>true</em> means a recursive deletion, this
+		 *        will destroy all data recursively, use with caution.
+		 * \return <em>true</em> on success
+		 * \throw SecurityError PERMISSION_DENIED_ERROR when
+		 *        access is denied by the security policy.
+		 * \throw DeviceAPIError IO_ERROR if this is a file.
+		 * \throw DeviceAPIError IO_ERROR if the directory is not empty and
+		 *        this operation is not performed recursively.
+		 * \throw DeviceAPIError IO_ERROR if the directory or any file or sub-directory cannot be deleted.
+		 */
+		boolean deleteDirectory(in boolean recursive)
+			raises(SecurityError, DeviceAPIError);
+
+		/**
+		 * \brief Deletes this file.
+		 *
+		 * Returns <em>true</em> on success, <em>false</em> otherwise.
+		 *
+		 * \api-feature http://bondi.omtp.org/api/filesystem.write
+		 *
+		 * \code
+		 * 	var fullPath = dir.fullPath;
+		 * 	if(dir.deleteFile()) {
+		 * 		// subsequent accesses to dir will throw an error
+		 * 		alert(fullPath + ' deleted');
+		 * 	}
+		 * \endcode
+		 *
+		 * \return <em>true</em> on success
+		 * \throw SecurityError PERMISSION_DENIED_ERROR when
+		 *        access is denied by the security policy.
+		 * \throw DeviceAPIError IO_ERROR if this is a directory.
+		 * \throw DeviceAPIError IO_ERROR if the file cannot be deleted due
+		 *        the lack of filesystem permissions or if it is locked or
+		 *        opened by another process.
+		 */
+		boolean deleteFile()
+			raises(SecurityError, DeviceAPIError);
+	};
+
+	/**
+	 * \brief FileStream API.
+	 *
+	 * A FileStream represents a handle to a File opened for read and/or
+	 * write operations.  Read and write operations are performed relative
+	 * to a file pointer which represents the current position in the file.
+	 * 
+	 * A series of read/write methods are available that permit both binary and
+	 * text to be processed.
+	 *
+	 * Once a file stream is closed, any operation attempted on this stream
+	 * will result in a normal JavaScript error.
+	 */
+	interface FileStream {
+
+		/**
+		 * \brief Indicates whether or not the current file pointer is at the end
+		 * of the file.
+		 * 
+		 * <em>true</em> if the position is at the end of the current file stream.
+		 *
+		 * \code
+		 * 	if(stream.eof) {
+		 * 		// file has been read completely
+		 * 	}
+		 * \endcode
+		 */
+		readonly attribute boolean eof;
+
+		/**
+		 * \brief Get/set stream position for reads/writes.
+		 * 
+		 * The stream position is an offset of bytes from the start of
+		 * the file stream.  When invoking an operation that reads or
+		 * writes from the stream, the operation will take place from
+		 * the position in the position attribute.
+		 *
+		 * \code
+		 * 	alert(stream.position); // displays current stream position
+		 * 	// alters current stream position to the begin of the file,
+		 * 	// like seek() in C
+		 * 	stream.position = 0;
+		 * \endcode
+		 * \throw DeviceAPIError IO_ERROR if a position was given that is out of the stream range.
+		 */
+		attribute unsigned long position
+			setraises(DeviceAPIError);
+
+		/**
+		 * \brief Returns the number of bytes that are available for
+		 * reading from the stream.
+		 *
+		 * The number of bytes available for reading is the maximum
+		 * amount of bytes that can be read in the next read operation.
+		 * 
+		 * -1 if eof is <em>true</em>.
+		 *
+		 * \code
+		 * 	alert(stream.bytesAvailable); // displays the available bytes to be read
+		 * \endcode
+		 */
+		readonly attribute unsigned long bytesAvailable;
+
+		/**
+		 * \brief Closes this FileStream.
+		 * 
+		 * Flushes any pending buffered writes and closes the File. Always succeeds.
+		 * Note that pending writes might not succeed.
+		 *
+		 * \code
+		 * 	stream.close(); // closes this stream, no subsequent access to stream allowed
+		 * \endcode
+		 */
+		void close();
+
+		/**
+		 * \brief Reads the specified number of characters.
+		 *
+		 * Reads specified number of characters and returns them as string.
+		 * The resulting string length might be shorter than charCount if eof
+		 * is <em>true</em>.
+		 *
+		 * \code
+		 * 	var text = stream.read(0);
+		 * 	stream.close();
+		 * \endcode
+		 *
+		 * \param charCount number of characters being read, if
+		 *                    <em>0</em> it will read as long as bytes are available.
+		 * \return the result of read characters as a string.
+		 * \throw DeviceAPIError IO_ERROR if an error occurs during read.
+		 */
+		DOMString read(in unsigned long charCount)
+			raises(DeviceAPIError);
+
+		/**
+		 * \brief Reads the specified number of bytes from this FileStream.
+		 *
+		 * If 0 is supplied it will read all available bytes in a
+		 * single read operation.
+		 *
+		 * \code
+		 * 	// reads up to 256 bytes from the stream
+		 * 	var raw = stream.readBytes(256);
+		 * 	for(var i = 0; i &lt; raw.length; i++) {
+		 * 		// raw[i] contains the i-th byte of the current data chunk
+		 * 	}
+		 * \endcode
+		 *
+		 * \param byteCount number of bytes being read. Must not be <em>0</em>.
+		 * \return the result of read bytes as a byte (or number) array.
+		 * \throw DeviceAPIError IO_ERROR if an error occurs during readBytes.
+		 */
+		ByteArray readBytes(in unsigned long byteCount)
+			raises(DeviceAPIError);
+
+		/**
+		 * \brief Reads the specified number of bytes from this FileStream, encoding
+		 * the result in base64.
+		 *
+		 * If 0 is supplied it will read all available bytes in a
+		 * single read operation.
+		 *
+		 * \code
+		 * 	// reads up to 256 bytes from the stream
+		 * 	var base64 = stream.readBase64(256);
+		 * \endcode
+		 *
+		 * \param byteCount number of bytes being read. Must not be <em>0</em>.
+		 * \return the result of read bytes as base64 encoding string.
+		 * \throw DeviceAPIError IO_ERROR if an error occurs during readBase64.
+		 */
+		DOMString readBase64(in unsigned long byteCount)
+			raises(DeviceAPIError);
+
+		/**
+		 * \brief Writes the specified DOMString to this FileStream.
+		 *
+		 * \code
+		 * 	var text = "Hello world";
+		 * 	stream.write(text);
+		 * \endcode
+		 *
+		 * \param stringData the actual string to be written.
+		 * \throw DeviceAPIError IO_ERROR if an error occurs during write.
+		 */
+		void write(in DOMString stringData)
+			raises(DeviceAPIError);
+
+		/**
+		 * \brief Writes the specified bytes to this FileStream.
+		 *
+		 * \code
+		 * 	var bytes = in.readBytes(256);
+		 * 	out.writeBytes(bytes); // writes the bytes read from in to out
+		 * \endcode
+		 *
+		 * \param byteData the byte data array being written.
+		 * \throw DeviceAPIError IO_ERROR if an error occurs during writeBytes.
+		 */
+		void writeBytes(in ByteArray byteData)
+			raises(DeviceAPIError);
+
+		/**
+		 * \brief Converts the specified base64 DOMString to bytes and writes the 
+		 * result to this FileStream.
+		 *
+		 * \code
+		 * 	var base64 = in.readBase64(256);
+		 * 	out.writeBase64(base64); // writes the base64 data read from in to out
+		 * \endcode
+		 *
+		 * \param base64Data the base64 data being written.
+		 * \throw DeviceAPIError IO_ERROR if an error occurs during writeBase64.
+		 */
+		void writeBase64(in DOMString base64Data)
+			raises(DeviceAPIError);
+	};
+
+  /**
+   * \brief Specifies what is instantiated at feature request
+   * \def-instantiated
+   * \api-feature http://bondi.omtp.org/api/filesystem.read
+   * \api-feature http://bondi.omtp.org/api/filesystem.write
+   */
+	interface FileSystemManagerObject {
+		readonly attribute FileSystemManager fileSystemManager; 
+	};
+	bondi implements FileSystemManagerObject;
+
+};

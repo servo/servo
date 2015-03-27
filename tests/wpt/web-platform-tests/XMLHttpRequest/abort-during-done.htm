@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: abort() during DONE</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-abort()-method" data-tested-assertations="following-sibling::ol/li[4] following-sibling::ol/li[5]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test()
+      test.step(function() {
+        var client = new XMLHttpRequest(),
+            result = [],
+            expected = [1, 4] // open() -> 1, send() -> 4
+        client.onreadystatechange = function() {
+          test.step(function() {
+            result.push(client.readyState)
+          })
+        }
+        client.open("GET", "resources/well-formed.xml", false)
+        client.send(null)
+        assert_equals(client.readyState, 4)
+        client.abort()
+        assert_equals(client.readyState, 0)
+        assert_array_equals(result, expected)
+        test.done()
+      })
+    </script>
+  </body>
+</html>

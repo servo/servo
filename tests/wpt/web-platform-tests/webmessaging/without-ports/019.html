@@ -1,0 +1,18 @@
+<!doctype html>
+<title>origin of the script that invoked the method, scheme/host/port</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe src="../without-ports/019-1.html"></iframe>
+<div id=log></div>
+<script>
+async_test(function() {
+  window[0].postMessage('', location.protocol.toUpperCase() + '//' + location.host.toUpperCase() + '/');
+  window[0].onmessage = this.step_func(function(e) {
+    assert_equals(e.origin, location.protocol + '//' + location.host);
+    assert_array_equals(e.ports, []);
+    this.done();
+  });
+});
+</script>
+
+

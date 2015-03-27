@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>exception test of performance.mark</title>
+        <link rel="author" title="Intel" href="http://www.intel.com/" />
+        <link rel="help" href="http://www.w3.org/TR/user-timing/#extensions-performance-interface"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="resources/webperftestharness.js"></script>
+        <script src="resources/webperftestharnessextension.js"></script>
+        <script>
+        setup({explicit_done: true});
+        test_namespace();
+
+        function onload_test() {
+            if (window.performance !== undefined && window.performance.timing !== undefined && window.performance.timing.secureConnectionStart !== undefined)
+            {
+                var context = new PerformanceContext(window.performance);
+                var optionalAttribute = "secureConnectionStart";
+                try
+                {
+                    context.mark(optionalAttribute);
+                    test_true(false,
+                              "window.performance.mark(\"" + optionalAttribute + "\") threw an exception when " +
+                              optinalAttribute + " attribute of Navigation Timing is supported.");
+                }
+                catch(e)
+                {
+                    test_true(true,
+                              "window.performance.mark(\"" + optionalAttribute + "\") threw an exception when " +
+                              optionalAttribute + " attribute of Navigation Timing is supported.");
+
+                    // confirm that a SYNTAX_ERR exception is thrown and not any other exception
+                    test_equals(e.code,
+                                e.SYNTAX_ERR,
+                                "window.performance.mark(\"" + optionalAttribute + "\") threw a SYNTAX_ERR when " +
+                              optionalAttribute + " attribute of Navigation Timing is supported.");
+                }
+            }
+            else
+            {
+                test_true(true,
+                          "This test is ignored when secureConnectionStart attribute of Navigation Timing is not supported.");
+            }
+            done();
+        }
+        </script>
+    </head>
+    <body onload=onload_test()>
+        <h1>Description</h1>
+        <p>This test validates exception scenarios of invoking performance.mark() with param of "secureConnectionStart".</p>
+        <div id="log"></div>
+    </body>
+</html>

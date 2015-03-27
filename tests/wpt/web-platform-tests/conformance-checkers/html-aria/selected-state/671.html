@@ -1,0 +1,34 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>ARIA 1.0 Test Case 671</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case 671</h1>
+    
+    <ul role="listbox">
+      <li role="option" aria-selected="false" id="ID_OPTION" tabindex="0">Option 1</li> 
+      <li role="option">Option 2</li> 
+    </ul>
+
+    <h2>Description</h2>
+    <p>For an element with role role "option" which is a child of an element with 
+      role "listbox", and the value of the "aria-selected" attribute is NOT equal 
+      to "true" or the attribute is undefined.</p>
+    
+    
+    <script type="text/javascript">  
+      
+     function setFocus() {
+       var test_node = document.getElementById('ID_OPTION');  
+       test_node.focus();
+     }
+     
+     window.addEventListener('load', setFocus);
+    </script>
+  </body>
+  
+</html>
+
+

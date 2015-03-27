@@ -1,0 +1,60 @@
+[
+    {
+        "id": "alt",
+        "original_id": "alt",
+        "children": [
+            {
+                "id": "general-guidelines",
+                "original_id": "general-guidelines"
+            },
+            {
+                "id": "a-link-or-button-containing-nothing-but-the-image",
+                "original_id": "a-link-or-button-containing-nothing-but-the-image"
+            },
+            {
+                "id": "a-phrase-or-paragraph-with-an-alternative-graphical-representation-charts-diagrams-graphs-maps-illustrations",
+                "original_id": "a-phrase-or-paragraph-with-an-alternative-graphical-representation:-charts,-diagrams,-graphs,-maps,-illustrations"
+            },
+            {
+                "id": "a-short-phrase-or-label-with-an-alternative-graphical-representation-icons-logos",
+                "original_id": "a-short-phrase-or-label-with-an-alternative-graphical-representation:-icons,-logos"
+            },
+            {
+                "id": "text-that-has-been-rendered-to-a-graphic-for-typographical-effect",
+                "original_id": "text-that-has-been-rendered-to-a-graphic-for-typographical-effect"
+            },
+            {
+                "id": "a-graphical-representation-of-some-of-the-surrounding-text",
+                "original_id": "a-graphical-representation-of-some-of-the-surrounding-text"
+            },
+            {
+                "id": "a-purely-decorative-image-that-doesn-t-add-any-information",
+                "original_id": "a-purely-decorative-image-that-doesn't-add-any-information"
+            },
+            {
+                "id": "a-group-of-images-that-form-a-single-larger-picture-with-no-links",
+                "original_id": "a-group-of-images-that-form-a-single-larger-picture-with-no-links"
+            },
+            {
+                "id": "a-group-of-images-that-form-a-single-larger-picture-with-links",
+                "original_id": "a-group-of-images-that-form-a-single-larger-picture-with-links"
+            },
+            {
+                "id": "a-key-part-of-the-content",
+                "original_id": "a-key-part-of-the-content"
+            },
+            {
+                "id": "an-image-not-intended-for-the-user",
+                "original_id": "an-image-not-intended-for-the-user"
+            },
+            {
+                "id": "guidance-for-markup-generators",
+                "original_id": "guidance-for-markup-generators"
+            },
+            {
+                "id": "guidance-for-conformance-checkers",
+                "original_id": "guidance-for-conformance-checkers"
+            }
+        ]
+    }
+]

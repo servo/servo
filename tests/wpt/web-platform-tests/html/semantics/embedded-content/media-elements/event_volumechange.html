@@ -1,0 +1,72 @@
+<!doctype html>
+<title>volumechange event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+function volumechange_test(tagName) {
+  async_test(function(t) {
+    var e = document.createElement(tagName);
+    assert_equals(e.volume, 1);
+    e.volume = 0.5;
+    assert_equals(e.volume, 0.5);
+    e.onvolumechange = t.step_func(function() {
+      assert_equals(e.volume, 0.5);
+      e.volume = 1;
+      assert_equals(e.volume, 1);
+      e.onvolumechange = t.step_func(function() {
+        assert_equals(e.volume, 1);
+        t.done();
+      });
+    });
+  }, "setting " + tagName + ".volume fires volumechange");
+
+  async_test(function(t) {
+    var e = document.createElement(tagName);
+    assert_false(e.muted);
+    e.muted = true;
+    assert_true(e.muted);
+    e.onvolumechange = t.step_func(function() {
+      assert_true(e.muted);
+      e.muted = false;
+      assert_false(e.muted);
+      e.onvolumechange = t.step_func(function() {
+        assert_false(e.muted);
+        t.done();
+      });
+    });
+  }, "setting " + tagName + ".muted fires volumechange");
+
+  async_test(function(t) {
+    var e = document.createElement(tagName);
+    e.volume = e.volume;
+    e.muted = e.muted;
+    e.onvolumechange = t.step_func(function() {
+      assert_unreached();
+    });
+    var e2 = document.createElement(tagName);
+    e2.muted = !e2.muted;
+    e2.onvolumechange = t.step_func(function() {
+      t.done();
+    });
+  }, "setting " + tagName + ".volume/muted to the same value does not fire volumechange");
+
+  async_test(function(t) {
+    var e = document.createElement(tagName);
+    e.muted = !e.muted;
+    e.volume = 1 - e.volume;
+    e.muted = !e.muted;
+    e.volume = 1 - e.volume;
+    var volumechange_count = 0;
+    e.onvolumechange = t.step_func(function() {
+      volumechange_count++;
+      if (volumechange_count == 4) {
+        t.done();
+      }
+    });
+  }, "setting " + tagName + ".volume/muted repeatedly fires volumechange repeatedly");
+}
+
+volumechange_test("audio");
+volumechange_test("video");
+</script>

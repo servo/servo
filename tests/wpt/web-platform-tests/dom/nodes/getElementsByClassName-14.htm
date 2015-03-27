@@ -1,0 +1,16 @@
+<!-- quirks mode -->
+<html class="a A">
+ <head>
+  <title>document.getElementsByClassName(): case-insensitive (quirks mode)</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body class="a a">
+  <div id="log"></div>
+  <script>test(function() {
+             assert_array_equals(document.getElementsByClassName("A a"),
+                                 [document.documentElement, document.body]);
+          })
+  </script>
+ </body>
+</html>

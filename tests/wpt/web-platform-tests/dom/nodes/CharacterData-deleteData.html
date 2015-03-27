@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CharacterData.deleteData</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-characterdata-deletedata">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-characterdata-data">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+function testNode(node) {
+  test(function() {
+    assert_throws("INDEX_SIZE_ERR", function() { node.deleteData(5, 10) })
+    assert_throws("INDEX_SIZE_ERR", function() { node.deleteData(5, 0) })
+    node.deleteData(2, 10)
+    assert_equals(node.data, "te")
+  })
+  test(function() {
+    node.data = "test"
+    assert_equals(node.data, "test")
+    node.deleteData(1, 1)
+    assert_equals(node.data, "tst")
+  })
+}
+test(function() {
+  testNode(document.createTextNode("test"))
+  testNode(document.createComment("test"))
+})
+</script>

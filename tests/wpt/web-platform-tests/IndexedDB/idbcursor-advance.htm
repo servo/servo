@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<title>IDBCursor.advance()</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+
+    var db, open;
+
+    setup(function() {
+        open = indexedDB.open("testdb-" + new Date().getTime());
+        open.onupgradeneeded = function(e) {
+            db = e.target.result;
+            var objStore = db.createObjectStore("test");
+            objStore.createIndex("index", "");
+
+            objStore.add("cupcake", 5);
+            objStore.add("pancake", 3); // Yes, it is intended
+            objStore.add("pie",     1);
+            objStore.add("pie",     4);
+            objStore.add("taco",    2);
+        };
+    },
+    { explicit_done: true });
+
+
+    open.onsuccess = function() {
+
+        async_test(document.title + " - advances").step(function(e) {
+            var count = 0;
+            var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+
+            rq.onsuccess = this.step_func(function(e) {
+                if (!e.target.result) {
+                    assert_equals(count, 3, "count");
+                    this.done();
+                    return;
+                }
+                var cursor = e.target.result;
+
+                switch(count) {
+                    case 0:
+                        assert_equals(cursor.value, "cupcake");
+                        assert_equals(cursor.primaryKey, 5);
+                        break;
+
+                    case 1:
+                        assert_equals(cursor.value, "pie");
+                        assert_equals(cursor.primaryKey, 1);
+                        break;
+
+                    case 2:
+                        assert_equals(cursor.value, "taco");
+                        assert_equals(cursor.primaryKey, 2);
+                        break;
+
+                    default:
+                        assert_unreached("Unexpected count: " + count);
+                }
+
+                count++;
+                cursor.advance(2);
+            });
+            rq.onerror = fail(this, "unexpected error")
+        });
+
+        async_test(document.title + " - advances backwards").step(function(e) {
+            var count = 0;
+            var rq = db.transaction("test").objectStore("test").index("index").openCursor(null, "prev");
+
+            rq.onsuccess = this.step_func(function(e) {
+                if (!e.target.result) {
+                    assert_equals(count, 3, "count");
+                    this.done();
+                    return;
+                }
+                var cursor = e.target.result;
+
+                switch(count) {
+                    case 0:
+                        assert_equals(cursor.value, "taco");
+                        assert_equals(cursor.primaryKey, 2);
+                        break;
+
+                    case 1:
+                        assert_equals(cursor.value, "pie");
+                        assert_equals(cursor.primaryKey, 1);
+                        break;
+
+                    case 2:
+                        assert_equals(cursor.value, "cupcake");
+                        assert_equals(cursor.primaryKey, 5);
+                        break;
+
+                    default:
+                        assert_unreached("Unexpected count: " + count);
+                }
+
+                count++;
+                cursor.advance(2);
+            });
+            rq.onerror = fail(this, "unexpected error")
+        });
+
+        async_test(document.title + " - skip far forward").step(function(e) {
+            var count = 0;
+            var rq = db.transaction("test").objectStore("test").index("index")
+                       .openCursor();
+
+            rq.onsuccess = this.step_func(function(e) {
+                if (!e.target.result) {
+                    assert_equals(count, 1, "count");
+                    this.done();
+                    return;
+                }
+                var cursor = e.target.result;
+
+                switch(count) {
+                    case 0:
+                        assert_equals(cursor.value, "cupcake");
+                        assert_equals(cursor.primaryKey, 5);
+                        break;
+
+                    default:
+                        assert_unreached("Unexpected count: " + count);
+                }
+
+                count++;
+                cursor.advance(100000);
+            });
+            rq.onerror = fail(this, "unexpected error")
+        });
+
+
+        async_test(document.title + " - within range").step(function(e) {
+            var count = 0;
+            var rq = db.transaction("test").objectStore("test").index("index")
+                       .openCursor(IDBKeyRange.lowerBound("cupcake", true));
+
+            rq.onsuccess = this.step_func(function(e) {
+                if (!e.target.result) {
+                    assert_equals(count, 2, "count");
+                    this.done();
+                    return;
+                }
+                var cursor = e.target.result;
+
+                switch(count) {
+                    case 0:
+                        assert_equals(cursor.value, "pancake");
+                        assert_equals(cursor.primaryKey, 3);
+                        break;
+
+                    case 1:
+                        assert_equals(cursor.value, "pie");
+                        assert_equals(cursor.primaryKey, 4);
+                        break;
+
+                    default:
+                        assert_unreached("Unexpected count: " + count);
+                }
+
+                count++;
+                cursor.advance(2);
+            });
+            rq.onerror = fail(this, "unexpected error")
+        });
+
+
+        async_test(document.title + " - within single key range").step(function(e) {
+            var count = 0;
+            var rq = db.transaction("test").objectStore("test").index("index")
+                       .openCursor("pancake");
+
+            rq.onsuccess = this.step_func(function(e) {
+                if (!e.target.result) {
+                    assert_equals(count, 1, "count");
+                    this.done();
+                    return;
+                }
+                var cursor = e.target.result;
+
+                switch(count) {
+                    case 0:
+                        assert_equals(cursor.value, "pancake");
+                        assert_equals(cursor.primaryKey, 3);
+                        break;
+
+                    default:
+                        assert_unreached("Unexpected count: " + count);
+                }
+
+                count++;
+                cursor.advance(1);
+            });
+            rq.onerror = fail(this, "unexpected error")
+        });
+
+
+        async_test(document.title + " - within single key range, with several results").step(function(e) {
+            var count = 0;
+            var rq = db.transaction("test").objectStore("test").index("index")
+                       .openCursor("pie");
+
+            rq.onsuccess = this.step_func(function(e) {
+                if (!e.target.result) {
+                    assert_equals(count, 2, "count");
+                    this.done();
+                    return;
+                }
+                var cursor = e.target.result;
+
+                switch(count) {
+                    case 0:
+                        assert_equals(cursor.value, "pie");
+                        assert_equals(cursor.primaryKey, 1);
+                        break;
+
+                    case 1:
+                        assert_equals(cursor.value, "pie");
+                        assert_equals(cursor.primaryKey, 4);
+                        break;
+
+                    default:
+                        assert_unreached("Unexpected count: " + count);
+                }
+
+                count++;
+                cursor.advance(1);
+            });
+            rq.onerror = fail(this, "unexpected error")
+        });
+
+
+        // Stop blocking the testing system from hereon
+        done();
+    }
+
+</script>
+
+<div id="log"></div>

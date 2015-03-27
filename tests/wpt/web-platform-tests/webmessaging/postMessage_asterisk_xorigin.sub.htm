@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> Cross-origin postMessage with targetOrigin == "*" </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<div style="display:none">
+    <iframe width="70%" onload="PostMessageTest()" src="{{location[scheme]}}://{{domains[www]}}:{{location[port]}}/webmessaging/support/ChildWindowPostMessage.htm"></iframe>
+    <iframe width="70%" onload="PostMessageTest()" src="./support/ChildWindowPostMessage.htm"></iframe>
+</div>
+
+<script>
+
+
+    var description = "Test Description: To send the message to the target regardless of origin, set the target origin to '*'.";
+
+    var t = async_test(description);
+
+    var PORT = location.port !== "" ? ":" + location.port : "";
+    var TARGET1 = document.querySelectorAll("iframe")[0];
+    var TARGET2 = document.querySelectorAll("iframe")[1];
+    var XORIGIN = "{{location[scheme]}}://{{domains[www]}}" + PORT;
+    var SORIGIN = "{{location[scheme]}}://{{host}}" + PORT;
+    var ExpectedResult = ["#1", XORIGIN, "#2", SORIGIN];
+    var ActualResult = [];
+    var loaded = 0;
+
+    function PostMessageTest()
+    {
+        loaded++;
+
+        if (loaded == 2)
+        {
+            TARGET1.contentWindow.postMessage("#1", "*");
+            TARGET2.contentWindow.postMessage("#2", "*");
+        }
+    }
+
+    window.onmessage = t.step_func(function(e)
+    {
+        ActualResult.push(e.data, e.origin);
+
+        if (ActualResult.length >= ExpectedResult.length)
+        {
+            assert_array_equals(ActualResult, ExpectedResult, "ActualResult");
+            t.done();
+        }
+    });
+</script>
+</body>
+</html>

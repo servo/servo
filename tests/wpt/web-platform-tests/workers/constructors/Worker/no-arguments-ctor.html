@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>without arguments</title>
+<link rel=help href="http://dev.w3.org/2006/webapi/WebIDL/#es-interface-call">
+<link rel=help href="http://www.whatwg.org/html/#dedicated-workers-and-the-worker-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  assert_throws(new TypeError(), function() { new Worker(); });
+});
+</script>

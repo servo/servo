@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Cursor position and drag image</title>
+<script type="application/ecmascript">
+function start(event)
+	{event.dataTransfer.effectAllowed = 'copy';
+	event.dataTransfer.setDragImage(document.querySelector('canvas'), 50, 50);}
+</script>
+</head>
+<body>
+<p><a href="data:text/plain,1" ondragstart="start(event)">Drag me</a></p>
+<p>Try to drag link above. Feedback overlay should be based on canvas below and mouse pointer should be anchored in its center.</p>
+<p>
+	<canvas width="100" height="100">Canvas</canvas>
+</p>
+<script type="application/ecmascript">
+var canvas = document.querySelector('canvas'),
+c = canvas.getContext('2d');
+for(var x = 0; x != 50; x++)
+	{c.fillStyle = (x%2 == 0)?'navy':'white';
+	c.beginPath();
+	c.moveTo(x,x);
+	c.lineTo(100-x,x);
+	c.lineTo(100-x,100-x);
+	c.lineTo(x,100-x);
+	c.closePath();
+	c.fill();}
+</script>
+</body>
+</html>

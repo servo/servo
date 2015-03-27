@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>same-origin checks; the script is in a script element</title>
+<link rel=help href="http://www.whatwg.org/html/#dom-worker">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+// Needed to prevent a race condition if a worker throws an exception that may or may
+// not propogate to the window before the tests finish
+setup({allow_uncaught_exception: true});
+
+test(function() {
+  assert_throws("SecurityError", function() { new Worker('unsupported:'); });
+}, "unsupported_scheme");
+
+async_test(function() {
+  var worker = new Worker('data:,postMessage(1);');
+  worker.onmessage = this.step_func_done(function(e) {
+    assert_equals(e.data, 1);
+  });
+}, "data_url");
+
+test(function() {
+  assert_throws("SecurityError", function() { new Worker('about:blank'); });
+}, "about_blank");
+
+test(function() {
+  assert_throws("SecurityError", function() { new Worker('http://www.example.invalid/'); });
+}, "example_invalid");
+
+test(function() {
+  assert_throws("SecurityError", function() { new Worker(location.protocol+'//'+location.hostname+':81/'); });
+}, "port_81");
+
+test(function() {
+  assert_throws("SecurityError", function() { new Worker('https://'+location.hostname+':80/'); });
+}, "https_port_80");
+
+test(function() {
+  assert_throws("SecurityError", function() { new Worker('https://'+location.hostname+':8000/'); });
+}, "https_port_8000");
+
+test(function() {
+  assert_throws("SecurityError", function() { new Worker('http://'+location.hostname+':8012/'); });
+}, "http_post_8012");
+
+test(function() {
+  assert_throws("SecurityError", function() { new Worker('javascript:""'); });
+}, "javascript_url");
+</script>

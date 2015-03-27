@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang=en>
+<meta charset=utf-8>
+<title>XMLHttpRequest: upload progress event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onprogress" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::*//a[contains(@href,'#make-upload-progress-notifications')] following::ol[1]/li[8]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#make-upload-progress-notifications" data-tested-assertations=".. ../following::ul/li[1]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-xmlhttprequest-upload" data-tested-assertations=".." />
+
+<div id="log"></div>
+<script>
+  var test = async_test();
+  test.step(function() {
+    var client = new XMLHttpRequest();
+    client.upload.onprogress = test.step_func(function() {
+      test.done();
+    });
+    client.onreadystatechange = test.step_func(function() {
+      if (client.readyState === 4) assert_unreached("onprogress not called.");
+    });
+    client.open("POST", "resources/upload.py");
+    client.send("This is a test string.");
+  });
+</script>

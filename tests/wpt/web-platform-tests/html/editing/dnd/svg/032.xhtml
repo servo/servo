@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Cross fragment drag and drop of SVG text selection from text element to textArea</title>
+<style type="text/css">
+textarea
+	{width:300px;
+	height:100px;}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="200px" height="50px" viewBox="0 0 200 50">
+<text x="10" y="45" font-size="30" fill="navy">Select me</text>
+</svg>
+<p>Drag selection above to the textarea below. Copy of selection should end up in the textarea once you drop it there.</p>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" width="500px" height="300px" viewBox="0 0 500 300">
+<textArea x="10" y="10" width="480" height="280" font-size="20" editable="simple" pointer-events="boundingBox">Drop selection here</textArea>
+<rect x="10" y="10" width="480" height="280" stroke="black" stroke-width="1" fill="none"/>
+</svg>
+</body>
+</html>

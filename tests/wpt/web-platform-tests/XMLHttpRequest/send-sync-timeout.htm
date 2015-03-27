@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: timeout during sync send() should not run</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method"/>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#same-origin-request-steps" data-tested-assertations="following::DL[1]/DT[1]"/>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test(),
+          hasrun = false
+      test.step(function() {
+        client = new XMLHttpRequest()
+        client.open("GET", "folder.txt", false)
+        setTimeout(function() { test.step(function() { hasrun = true }) }, 0)
+        client.onreadystatechange = function() {
+          test.step(function() {
+            assert_equals(client.readyState, 4)
+            assert_false(hasrun)
+          })
+        }
+        client.send(null)
+        test.done()
+      })
+    </script>
+  </body>
+</html>

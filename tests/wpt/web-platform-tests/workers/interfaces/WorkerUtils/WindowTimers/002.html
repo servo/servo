@@ -1,0 +1,21 @@
+<!--
+var t = setTimeout(function() { postMessage(1); }, 10);
+clearTimeout(t);
+/*
+-->
+<!doctype html>
+<title>clearTimeout</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  var worker = new Worker('#');
+  var gotMessage = false;
+  worker.onmessage = function() { gotMessage = true; };
+  setTimeout(this.step_func(function() { assert_false(gotMessage); this.done(); }), 100);
+});
+</script>
+<!--
+*/
+//-->

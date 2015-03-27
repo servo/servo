@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id="desc">HTML5 Selection: Call removeAllRanges() to clear the selection</title>
+        <script type="text/javascript">
+            var testPassed = true;
+            
+            function checkDefaultSelectionAttributes()
+            {
+                var selection = window.getSelection();
+                if (null != selection.anchorNode)
+                {
+                    testPassed = false;
+                }
+                if (0 != selection.anchorOffset)
+                {
+                    testPassed = false;
+                }
+                if (null != selection.focusNode)
+                {
+                    testPassed = false;
+                }
+                if (0 != selection.focusOffset)
+                {
+                    testPassed = false;
+                }
+                if (!selection.isCollapsed)
+                {
+                    testPassed = false;
+                }
+                if (0 != selection.rangeCount)
+                {
+                    testPassed = false;
+                }
+            }
+            
+            function RunTest()
+            {
+                try
+                {
+                    var selection = window.getSelection();
+                    var p1 = document.getElementById("p1");
+                    
+                    var range = document.createRange();
+                    range.selectNode(p1);
+                    selection.addRange(range);
+                    selection.removeAllRanges();
+                    
+                    checkDefaultSelectionAttributes();
+                    if ("" != selection.toString())
+                    {
+                        testPassed = false;
+                    }
+                    
+                    if (testPassed)
+                    {
+                        document.getElementById("testresult").firstChild.data = "PASS";
+                    }
+                }
+                catch (ex)
+                {
+                    document.getElementById("testresult").firstChild.data = "FAIL";
+                }
+            }
+        </script>
+    </head>
+    <body onload="RunTest();">
+        <p id="p1">Call removeAllRanges() to clear the selection</p>
+        <p>Test passes if the word "PASS" appears below.</p>
+        <div>Test result: </div>
+        <div id="testresult">FAIL</div>
+    </body>
+</html>

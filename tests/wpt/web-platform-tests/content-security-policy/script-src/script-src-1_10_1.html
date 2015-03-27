@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>data: as script src should run with a policy that specifies data: as an allowed source but not 'unsafe-inline'</title>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <h1>data: as script src should run with a policy that specifies data: as an allowed source but not 'unsafe-inline'</h1>
+    <div id='log'></div>
+
+    <script src="10_1_support_1.js"></script>
+
+    <script src="data:text/javascript;charset=utf-8;base64,ZGF0YVNjcmlwdFJhbiA9IHRydWU7"></script>
+
+    <script src="10_1_support_2.js"></script>
+
+    <script async defer src='../support/checkReport.sub.js?reportExists=false'></script>
+</body>
+</html>

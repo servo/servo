@@ -1,0 +1,28 @@
+<text xmlns:dc="http://purl.org/dc/elements/1.1/"
+  xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+  <dc:creator>John Doe</dc:creator>
+  <its:provenanceRecords xml:id="pr1">
+    <its:provenanceRecord
+      tool="onlinemtex"
+      revPerson="James Joyce"
+      revTool="mycat-v1.0"
+      revOrg="acme-CAT-v2.3"
+      provRef="http://www.examplelsp.com/excontent987/production/prov/e6354"/>
+  </its:provenanceRecords>
+  <its:provenanceRecords xml:id="pr2">
+    <its:provenanceRecord
+      person="John Doe"
+      org="legaltrans-ex"
+      revPerson="Tommy Atkins"
+      revOrg="vistatec"
+      provRef="http://www.examplelsp.com/excontent987/legal/prov/e6354 http://www.vistatec.com/job-12-7-15-X31/reviewed/prov/re8573469"/>
+  </its:provenanceRecords>
+  <its:rules version="2.0">
+    <its:provRule selector="//*[@ref]" provenanceRecordsRefPointer="@ref"/>
+  </its:rules>
+  <title>Translation Revision Provenance Agent: Global Test in XML</title>
+  <body>
+    <par ref="#pr1"> This paragraph was translated from the machine.</par>
+    <legalnotice ref="#pr2">This text was translated directly by a person.</legalnotice>
+  </body>
+</text>

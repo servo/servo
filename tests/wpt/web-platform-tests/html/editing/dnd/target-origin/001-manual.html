@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+	<head>
+		<title>allowTargetOrigin syntax</title>
+		<style type="text/css">
+blockquote { height: 100px; width: 100px; background: orange; margin: 0; padding: 0; }
+		</style>
+		<script type="text/javascript" src="/resources/testharness.js"></script>
+		<script type="text/javascript">
+setup(function () {},{explicit_done:true});
+window.onload = function () {
+	document.getElementsByTagName('blockquote')[0].ondragstart = function (e) {
+		test(function() {
+			assert_true( !!e.dataTransfer.allowTargetOrigin );
+		}, 'allowTargetOrigin should be supported' );
+		test(function() {
+			assert_throws( new TypeError(), function () { e.dataTransfer.allowTargetOrigin(); } );
+		}, 'no parameter should throw TypeError' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin(''); } );
+		}, 'empty string should be an invalid URL' );
+		test(function() {
+			e.dataTransfer.allowTargetOrigin('*');
+		}, '* should be a valid URL' );
+		test(function() {
+			e.dataTransfer.allowTargetOrigin('/');
+		}, '/ should be a valid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('/foo'); } );
+		}, '/foo should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('foo'); } );
+		}, 'foo should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('//foo'); } );
+		}, '//foo should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('http://'); } );
+		}, 'http:// should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('http://*'); } );
+		}, 'http://* should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('http://foo*'); } );
+		}, 'http://foo* should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('http://foo.*'); } );
+		}, 'http://foo.* should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('http://*.foo'); } );
+		}, 'http://*.foo should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('http://foo:bar'); } );
+		}, 'http://foo:bar should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('http://foo:bar@'); } );
+		}, 'http://foo:bar@ should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('file:'); } );
+		}, 'file: should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('file://'); } );
+		}, 'file:// should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('data:'); } );
+		}, 'data: should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('data:text/html'); } );
+		}, 'data:text/html should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('file://localhost/'); } );
+		}, 'file://localhost/ should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('file:///'); } );
+		}, 'file:/// should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('data:text/html,'); } );
+		}, 'data:text/html, should be an invalid URL' );
+		test(function() {
+			assert_throws( 'SYNTAX_ERR', function () { e.dataTransfer.allowTargetOrigin('javascript:'); } );
+		}, 'javascript: should be an invalid URL' );
+		test(function() {
+			e.dataTransfer.allowTargetOrigin('http://foo');
+		}, 'http://foo should be a valid URL' );
+		test(function() {
+			e.dataTransfer.allowTargetOrigin('http://foo.bar');
+		}, 'http://foo.bar should be a valid URL' );
+		test(function() {
+			e.dataTransfer.allowTargetOrigin('http://foo/bar');
+		}, 'http://foo/bar should be a valid URL' );
+		test(function() {
+			e.dataTransfer.allowTargetOrigin('http://foo:123');
+		}, 'http://foo:123 should be a valid URL' );
+		test(function() {
+			e.dataTransfer.allowTargetOrigin('http://foo:bar@baz');
+		}, 'http://foo:bar@baz should be a valid URL' );
+		test(function() {
+			e.dataTransfer.allowTargetOrigin('http://foo:bar@baz:123/qux');
+		}, 'http://foo:bar@baz:123/qux should be a valid URL' );
+		done();
+	};
+};
+		</script>
+	</head>
+	<body>
+		<blockquote draggable="true"></blockquote>
+		<div id="log">Drag the orange square above until the drag placeholder appears, then release it.</div>
+		<noscript><p>Enable JavaScript and reload</p></noscript>
+	</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Page Visibility API Operation While Minimizing Browser Window</title>
+        <meta name="flags" content="interact" />
+        <script type="text/javascript" src="/resources/testharness.js"></script>
+        <script type="text/javascript" src="resources/pagevistestharness.js"></script>
+
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates that the page properly becomes hidden and visible due to minimizing, maximizing, and
+           restoring the browser window.</p>
+
+        <h1>Manual Test Steps:</h1>
+        <p>
+            <ol>
+                <li> Ensure this page is the foreground and click the "Start Test"</li>
+                <li> Minimize the browser</li>
+                <li> Restore or maximize the browser</li>
+            </ol>
+            Note: This test will automatically timeout and fail if not completed within 60 seconds.
+        </p>
+
+        <button onclick="start_test();">Start Test</button>
+
+        <div id="log"></div>
+
+        <br />
+        IFrame with default style:
+        <br />
+        <iframe id="childDocShown" src="resources/blank_page_green.html">
+            iframes unsupported
+        </iframe>
+        <hr />
+        IFrame with "display:none" style:
+        <br />
+        <iframe id="childDocHidden" src="resources/blank_page_green.html" style="display:none">
+            iframes unsupported
+        </iframe>
+
+        <script type="text/javascript" >
+            var child_doc_shown = null;
+            var child_doc_hidden = null;
+            var transition_mode;
+            var manual_test = null;
+
+            var expected_notification_count = 2;
+            var notification_count = new Array();
+            var page_docs = new Array();
+            var notification_handlers = new Array();
+            var two_notifications = false;
+
+            var PAGE_HIDDEN_VAL = "hidden";
+            var PAGE_VISIBLE_VAL = "visible";
+
+            setup({ explicit_done: true });
+
+            function test_transition_init()
+            {
+                child_doc_shown = document.getElementById("childDocShown").contentDocument;
+                child_doc_hidden = document.getElementById("childDocHidden").contentDocument;
+
+                // fill in data for page documents
+                page_docs.push([document, "document"]);
+                page_docs.push([child_doc_shown, "document.getElementById(\"childDocShown\").contentDocument"]);
+                page_docs.push([child_doc_hidden, "document.getElementById(\"childDocHidden\").contentDocument"]);
+
+                notification_handlers[0] = function(){ VerifyNotification(0); };
+                notification_handlers[1] = function(){ VerifyNotification(1); };
+                notification_handlers[2] = function(){ VerifyNotification(2); };
+
+                for (var i in page_docs)
+                {
+                    notification_count[i] = 0;
+                    page_docs[i][0].addEventListener("visibilitychange", notification_handlers[i]);
+                }
+
+                test_true(!document.hidden, "Page is visible on load.");
+                test_true((!child_doc_shown.hidden) && (!child_doc_hidden.hidden),
+                          "All IFrame child documents are visible on load.");
+
+                document.addEventListener("visibilitychange", notification_handlers[0]);
+                document.addEventListener("visibilitychange", VerifyTwoNotifications);
+
+                manual_test = AddManual("Browser minimization has occurred.");
+            }
+
+            function VerifyNotification(doc_index)
+            {
+                doc = page_docs[doc_index][0];
+                docName = page_docs[doc_index][1];
+
+                notification_count[doc_index]++;
+                switch (notification_count[doc_index])
+                {
+                    case 1:
+                        // First step, check page visibility after tab deselection / minimization.
+                        // hidden should change to true; visibilityState should change to "hidden"
+                        test_true(doc.hidden, docName + ".hidden == true (after browser frame minimization)");
+                        test_true(doc.visibilityState == PAGE_HIDDEN_VAL,
+                                  docName + ".visibilityState == \"hidden\" (after browser frame minimization)");
+
+                        break;
+
+                    case 2:
+                        //Second step, check page visibility after tab reselection / maximization / restoration.
+                        // hidden should change to false; visibilityState should change to "visible"
+                        test_true(!doc.hidden,
+                                  docName + ".hidden == false (after browser frame maximization / restoration)");
+                        test_true(doc.visibilityState == PAGE_VISIBLE_VAL,
+                                  docName + ".visibilityState == \"visible\" (after browser frame maximization / " +
+                                  "restoration)");
+
+                        // perform tests specific to the main document
+                        if (doc == document)
+                        {
+                            //Verify that a second registration to a different callback also occurred
+                            test_true(two_notifications, "Two registrations (different callbacks) occurred.");
+
+                            //Verify that a second registration to the same callback did not occur
+                            test_equals(notification_count[doc_index],
+                                        expected_notification_count,
+                                        "Two registrations (same callback) did not occur.");
+
+                            // pass the manual item associated with these tests
+                            AddManualResult(manual_test, true);
+
+                            document.removeEventListener("visibilitychange", VerifyTwoNotifications);
+
+                            // schedule the rollup
+                            setTimeout(VerifyAllNotifications, 200);
+                        }
+
+                        //Remove all event listeners and verify that the event does not fire
+                        doc.removeEventListener("visibilitychange", notification_handlers[doc_index]);
+                        break;
+                    case 3:
+                        //This step should not have occurred since the event handlers were cleared
+                        test_true(false, "Event did not fire when event listener is removed.");
+
+                        //On final step, schedule the rollup
+                        setTimeout(done, 2000);
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            function VerifyAllNotifications()
+            {
+                //On final step, schedule the rollup
+                setTimeout(done, 1000);
+            }
+
+            function VerifyTwoNotifications()
+            {
+                //This is a duplicate registration on visibilitychange and
+                //should never get fired.  Check that duplicate_notification
+                //is false to verify that this never occurred.
+                two_notifications = true;
+            }
+
+            // Manual Test helper functions
+            function AddManual(test)
+            {
+                // add asynchronous test for manual tests
+                return async_test(test);
+            }
+
+            function AddManualResult(oManualTest, passState)
+            {
+                // add assertion to manual test for the pass state
+                oManualTest.step(function() {assert_true(passState)});
+
+                // end manual test
+                oManualTest.done();
+            }
+
+            function start_test()
+            {
+                test_transition_init();
+            }
+        </script>
+    </body>
+</html>

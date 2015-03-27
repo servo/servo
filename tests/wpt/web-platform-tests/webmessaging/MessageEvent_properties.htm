@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> MessageEvent interface and properties </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<div style="display:none">
+    <iframe width="70%" onload="PostMessageTest()" src="./support/ChildWindowPostMessage.htm"></iframe>
+</div>
+
+<script>
+
+
+    var description = "Test Description: " +
+            "Create an event that uses the MessageEvent interface, with the event type message, " +
+            "which does not bubble, is not cancelable, and has no default action.";
+
+    var t = async_test(description);
+
+    var DATA = "foo";
+    var TARGET = document.querySelector("iframe");
+    var ExpectedResult = [true, true, false, false, false];
+    var ActualResult = [];
+
+    function PostMessageTest()
+    {
+        TARGET.contentWindow.postMessage(DATA, "*");
+    }
+
+    window.addEventListener("message", t.step_func(function(e)
+    {
+        e.preventDefault();
+
+        ActualResult = [(e instanceof MessageEvent), (e.type == "message"), e.bubbles, e.cancelable, e.defaultPrevented];
+
+        assert_array_equals(ActualResult, ExpectedResult, "ActualResult");
+
+        t.done();
+
+    }), false);
+</script>
+</body>
+</html>

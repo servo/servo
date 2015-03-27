@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>IDBDatabase.transaction() - attempt to open a transaction with invalid mode </title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+    var db,
+      t = async_test(document.title, {timeout: 10000}),
+      open_rq = createdb(t);
+
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result;
+        db.createObjectStore('test');
+    };
+
+    open_rq.onsuccess = function(e) {
+        assert_throws({ name: 'TypeError' },
+            function() { db.transaction('test', 'whatever'); });
+
+        t.done();
+    };
+</script>
+
+<div id="log"></div>

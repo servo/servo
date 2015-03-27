@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html><head>
+	<title> scheduler: defer script after initial onload event</title>
+</head>
+<body>
+	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+	<script>
+          onload = function() {
+              document.open();
+              document.write("<title> scheduler: defer script after initial onload event</title><script src='/resources/testharness.js'><\/script><script src='/resources/testharnessreport.js'><\/script><script src='testlib/testlib.js'><\/script><div id='log'>document.written content</div><script>var t = async_test(); log('inline script #1')<\/script><script src='scripts/include-1.js'><\/script><script async src='scripts/include-2.js'><\/script>");
+              document.close();
+              window.setTimeout(function() {
+                window.t.step(function() {
+                  window.assert_any(window.assert_array_equals, window.eventOrder, 
+                                    [['inline script #1', 'external script #1', 'external script #2'],
+                                     ['inline script #1', 'external script #2', 'external script #1']]); 
+                  window.t.done();
+                })}, 
+                1000);
+            };
+        </script>
+</body>
+</html>

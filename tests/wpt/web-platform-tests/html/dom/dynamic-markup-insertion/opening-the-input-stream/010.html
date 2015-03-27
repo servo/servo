@@ -1,0 +1,22 @@
+<!doctype html>
+<title>Salvagability of document.opened document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe src="010-1.html"></iframe>
+<script>
+var iframe;
+var t = async_test();
+onload = t.step_func(function() {
+  iframe = document.getElementsByTagName("iframe")[0];
+  iframe.contentDocument.open();
+  iframe.contentDocument.close();
+
+  iframe.contentWindow.setTimeout(t.step_func(function() {t.done();}), 500);
+
+  onload = null;
+
+  iframe.src = "010-2.html"
+  setTimeout(t.step_func(function() {assert_unreached()}), 1000)
+})
+</script>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>IDBFactory.open() - new database is empty</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js></script>
+
+<script>
+    var open_rq = createdb(async_test(), 'database_name');
+
+    open_rq.onupgradeneeded = function() {};
+    open_rq.onsuccess = function(e) {
+        assert_equals(e.target.result.objectStoreNames.length, 0, "objectStoreNames.length");
+        this.done();
+    };
+</script>
+
+<div id=log></div>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: Window Security</title>
+<link rel="author" title="Intel" href="http://www.intel.com/" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/multipage/browsers.html#the-window-object" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/multipage/timers.html#timers" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/multipage/webappapis.html#atob" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#windowsessionstorage" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#windowlocalstorage" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/multipage/browsers.html#window" />
+<link rel="help" href="http://dev.w3.org/csswg/cssom/#extensions-to-the-window-interface" />
+<link rel="help" href="http://dev.w3.org/csswg/cssom-view/#extensions-to-the-window-interface" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe id="fr" src="http://{{domains[www1]}}:{{ports[http][0]}}/" onload="fr_load()" style="display:none"></iframe>
+<script>
+
+var t = async_test("Window Security testing");
+
+function fr_load() {
+  fr = document.getElementById("fr");
+
+  t.step(function () {
+    //SecurityError should be thrown
+    [
+      //attributes
+      {name: "applicationCache"},
+      {name: "devicePixelRatio"},
+      {name: "document"},
+      {name: "external"},
+      {name: "frameElement"},
+      {name: "history"},
+      {name: "innerWidth"},
+      {name: "innerHeight"},
+      {name: "locationbar"},
+      {name: "localStorage"},
+      {name: "menubar"},
+      {name: "name"},
+      {name: "navigator"},
+      {name: "onabort"},
+      {name: "onafterprint"},
+      {name: "onbeforeprint"},
+      {name: "onbeforeunload"},
+      {name: "onblur"},
+      {name: "oncancel"},
+      {name: "oncanplay"},
+      {name: "oncanplaythrough"},
+      {name: "onchange"},
+      {name: "onclick"},
+      {name: "onclose"},
+      {name: "oncontextmenu"},
+      {name: "oncuechange"},
+      {name: "ondblclick"},
+      {name: "ondrag"},
+      {name: "ondragend"},
+      {name: "ondragenter"},
+      {name: "ondragleave"},
+      {name: "ondragover"},
+      {name: "ondragstart"},
+      {name: "ondrop"},
+      {name: "ondurationchange"},
+      {name: "onemptied"},
+      {name: "onended"},
+      {name: "onerror"},
+      {name: "onfocus"},
+      {name: "onhashchange"},
+      {name: "oninput"},
+      {name: "oninvalid"},
+      {name: "onkeydown"},
+      {name: "onkeypress"},
+      {name: "onkeyup"},
+      {name: "onload"},
+      {name: "onloadeddata"},
+      {name: "onloadedmetadata"},
+      {name: "onloadstart"},
+      {name: "onmessage"},
+      {name: "onmousedown"},
+      {name: "onmousemove"},
+      {name: "onmouseout"},
+      {name: "onmouseover"},
+      {name: "onmouseup"},
+      {name: "onmousewheel"},
+      {name: "onoffline"},
+      {name: "ononline"},
+      {name: "onpause"},
+      {name: "onplay"},
+      {name: "onplaying"},
+      {name: "onpagehide"},
+      {name: "onpageshow"},
+      {name: "onpopstate"},
+      {name: "onprogress"},
+      {name: "onratechange"},
+      {name: "onreset"},
+      {name: "onresize"},
+      {name: "onscroll"},
+      {name: "onseeked"},
+      {name: "onseeking"},
+      {name: "onselect"},
+      {name: "onshow"},
+      {name: "onstalled"},
+      {name: "onstorage"},
+      {name: "onsubmit"},
+      {name: "onsuspend"},
+      {name: "ontimeupdate"},
+      {name: "onunload"},
+      {name: "onvolumechange"},
+      {name: "onwaiting"},
+      {name: "pageXOffset"},
+      {name: "pageYOffset"},
+      {name: "personalbar"},
+      {name: "screen"},
+      {name: "scrollbars"},
+      {name: "statusbar"},
+      {name: "status"},
+      {name: "screenX"},
+      {name: "screenY"},
+      {name: "sessionStorage"},
+      {name: "toolbar"},
+      //methods
+      {name: "alert", isMethod: true},
+      {name: "clearInterval", isMethod: true, args:[1]},
+      {name: "clearTimeout", isMethod: true, args:[function () {}, 1]},
+      {name: "confirm", isMethod: true},
+      {name: "getComputedStyle", isMethod: true, args:[document.body, null]},
+      {name: "getSelection", isMethod: true},
+      {name: "matchMedia", isMethod: true, args:["(min-width:50px)"]},
+      {name: "moveBy", isMethod: true, args:[10, 10]},
+      {name: "moveTo", isMethod: true, args:[10, 10]},
+      {name: "open", isMethod: true},
+      {name: "print", isMethod: true},
+      {name: "prompt", isMethod: true},
+      {name: "resizeTo", isMethod: true, args:[10, 10]},
+      {name: "resizeBy", isMethod: true, args:[10, 10]},
+      {name: "scroll", isMethod: true, args:[10, 10]},
+      {name: "scrollTo", isMethod: true, args:[10, 10]},
+      {name: "scrollBy", isMethod: true, args:[10, 10]},
+      {name: "setInterval", isMethod: true, args:[function () {}, 1]},
+      {name: "setTimeout", isMethod: true, args:[function () {}, 1]},
+      {name: "showModalDialog", isMethod: true, args:["auto:blank", "dialog"]},
+      {name: "stop", isMethod: true},
+    ].forEach(function (item) {
+      test(function () {
+        assert_true(item.name in window, "window." + item.name + " should exist.");
+        assert_throws("SecurityError", function () {
+          if (item.isMethod)
+            if (item.args)
+              fr.contentWindow[item.name](item.args[0], item.args[1]);
+            else
+              fr.contentWindow[item.name]();
+          else
+            fr.contentWindow[item.name];
+        }, "A SecurityError exception should be thrown.");
+      }, "A SecurityError exception must be thrown when window." + item.name + " is accessed from a different origin.");
+    });
+
+    //SecurityError should not be thrown
+    [
+      //attributes
+      {name: "closed"},
+      {name: "frames"},
+      {name: "length"},
+      {name: "location"},
+      {name: "opener"},
+      {name: "parent"},
+      {name: "self"},
+      {name: "top"},
+      {name: "window"},
+      //methods
+      {name: "blur", isMethod: true},
+      {name: "close", isMethod: true},
+      {name: "focus", isMethod: true},
+      {name: "postMessage", isMethod: true, args: [{msg: 'foo'}, "*"]}
+    ].forEach(function (item) {
+      test(function () {
+        assert_true(item.name in window, "window." + item.name + " should exist.");
+        try {
+          if (item.isMethod)
+            if (item.args)
+              fr.contentWindow[item.name](item.args[0], item.args[1]);
+            else
+               fr.contentWindow[item.name]();
+          else
+            fr.contentWindow[item.name];
+        } catch (e) {
+          assert_unreached("An unexpected exception was thrown.");
+        }
+      }, "A SecurityError exception should not be thrown when window." + item.name + " is accessed from a different origin.");
+    });
+  });
+  t.done();
+}
+
+</script>

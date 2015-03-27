@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>window.performance.navigation.redirectCount on a non-redirected navigation</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="resources/webperftestharness.js"></script>
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates that the value of the window.performance.navigation.redirectCount attribute, as well as the window.performance.timing.redirectStart and redirectEnd attributes on a non-redirected navigation.</p>
+
+        <div id="log"></div>
+
+        <script>
+        test_namespace('navigation');
+
+        if (performanceNamespace !== undefined)
+        {
+            test_equals(performanceNamespace.timing.redirectStart, 0, 'timing.redirectStart on an non-redirected navigation');
+            test_equals(performanceNamespace.timing.redirectEnd, 0, 'timing.redirectEnd on an non-redirected navigation');
+            test_equals(performanceNamespace.navigation.redirectCount, 0, 'navigation.redirectCount on an non-redirected navigation',{help:"http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"});
+        }
+        </script>
+    </body>
+</html>

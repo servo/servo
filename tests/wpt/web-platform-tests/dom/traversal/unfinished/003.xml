@@ -1,0 +1,58 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>DOM Traversal: NodeIterator: Removal of nodes that should have no effect</title>
+  <!--
+   This tests these cases that should have no effect:
+    1. Remove a node unrelated to the reference node
+    2. Remove an ancestor of the root node
+    3. Remove the root node itself
+    4. Remove descendant of reference node
+  -->
+  <script type="text/javascript"> <![CDATA[
+    var errors = 0;
+    var log = '';
+    function doTest() {
+      var iterator = document.createNodeIterator(document.getElementById('root'), NodeFilter.SHOW_ALL, null, false);
+      var root = document.getElementById('root');
+      var A = document.getElementById('A');
+      var B = document.getElementById('B');
+      var C = document.getElementById('C');
+      var D = document.getElementById('D');
+      var E = document.getElementById('E');
+      check(iterator.nextNode(), root);
+      remove(document.getElementById('X'));
+      check(iterator.nextNode(), A);
+      remove(document.getElementById('Y'));
+      check(iterator.nextNode(), B);
+      remove(root);
+      check(iterator.nextNode(), C);
+      remove(E);
+      check(iterator.nextNode(), D);
+      if (errors)
+        document.getElementById('result').firstChild.data = 'FAIL: ' + errors + ' errors:\n' + log;
+      else
+        document.getElementById('result').firstChild.data = 'PASS';
+    }
+    function check(a, b) {
+      if (!a) {
+        errors += 1;
+        log += 'Found null but expected ' + b + ' (' + b.id + ').\n';
+      } else if (a != b) {
+        errors += 1;
+        log += 'Found ' + a + ' (' + a.id + ') but expected ' + b + ' (' + b.id + ').\n';
+      }
+    }
+    function remove(a) {
+      if (!a) {
+        errors += 1;
+        log += 'Tried removing null node.\n';
+      } else
+      a.parentNode.removeChild(a);
+    }
+  ]]></script>
+ </head>
+ <body onload="doTest()">
+  <pre id="result">FAIL: Script did not complete.</pre>
+  <p><span id="X"></span><span id="Y"><span id="root"><span id="A"><span id="B"><span id="C"><span id="D"><span id="E"></span></span></span></span></span></span></span></p>
+ </body>
+</html>

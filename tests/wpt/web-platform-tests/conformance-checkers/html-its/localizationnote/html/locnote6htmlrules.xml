@@ -1,0 +1,15 @@
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+<its:locNoteRule selector="//@alt" locNoteType="description">
+<its:locNote>This text will be displayed over the image.</its:locNote>
+</its:locNoteRule>
+<its:locNoteRule selector="//h:span[@id='1']/h:img/@alt" locNoteType="alert">
+<its:locNote>Do not translate the word "Chobe"</its:locNote>
+</its:locNoteRule>
+<its:locNoteRule locNoteType="alert" selector="//h:span[@id='DisableInfo']">
+<its:locNote>
+The variable
+{0}
+has three possible values: 'printer', 'stacker' and 'stapler options'.
+</its:locNote>
+</its:locNoteRule>
+</its:rules>

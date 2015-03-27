@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>test wildcard host name matching (www*.web-platform.test is bad, *www.web-platform.test is bad)</title>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='wildcardHostTestFailure.js'></script>
+    <script>
+      var head = document.getElementsByTagName('head')[0];
+      var script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = "http://www." + location.hostname + ":" + location.port + "/content-security-policy/generic/wildcardHostTestSuceeds.js";
+      head.appendChild(script);
+    </script>
+</head>
+<body>
+    <h1>test wildcard host name matching (www*.web-platform.test is bad, *www.web-platform.test is bad)</h1>
+    <div id='log'></div>
+    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=script-src%20%27self%27%20*w.{{host}}:{{ports[http][0]}}%20w*.{{host}}:{{ports[http][0]}}%20%27unsafe-inline%27'></script>
+</body>
+</html>

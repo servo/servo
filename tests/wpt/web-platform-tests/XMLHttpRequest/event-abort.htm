@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: abort event</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onabort" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#event-xhr-abort" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-xmlhttprequest-abort" data-tested-assertations="following::ol//ol//ol/li[3]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test();
+      test.step(function() {
+        var client = new XMLHttpRequest();
+        client.onabort = test.step_func(function() {
+          test.done();
+        });
+        client.open("GET", "resources/well-formed.xml");
+        client.send(null);
+        client.abort();
+        setTimeout(test.step_func(function () {
+          assert_unreached("onabort not called after 4 ms");
+        }), 4);
+      });
+    </script>
+  </body>
+</html>

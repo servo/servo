@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="500px" height="500px" viewBox="0 0 500 500">
+<title>SVG link cross page drag and drop</title>
+<a xlink:href="data:text/plain,1">
+	<circle cx="50" cy="50" r="40" fill="green"/>
+</a>
+<textArea x="10" y="100" width="480" height="200" font-size="30">Drag circle above. You should be redirected to the new page and be able to drop it there.</textArea>
+<script type="application/ecmascript">
+document.querySelector('a').addEventListener('dragstart',
+function (event)
+	{event.dataTransfer.effectAllowed = 'copy';
+	window.location = '059-1.svg'}
+,false);
+</script>
+</svg>

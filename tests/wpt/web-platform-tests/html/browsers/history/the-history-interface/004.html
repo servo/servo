@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Final history position for history.go should be calculated when executing the task</title>
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+    <script type="text/javascript">
+setup({explicit_done:true});
+window.onload = function () {
+  var hashcount = 0;
+  if( location.hash && location.hash != '#' ) {
+    location.href = location.href.replace(/#.*$/,'');
+    return;
+  }
+  setTimeout(add1,100);
+  function add1() {
+    location.hash = '#foo';
+    setTimeout(add2,100);
+  }
+  function add2() {
+    location.hash = '#bar';
+    setTimeout(add3,100);
+  }
+  function add3() {
+    location.hash = '#baz';
+    setTimeout(dojumps,100);
+  }
+  function dojumps() {
+    window.onhashchange = function () {
+      hashcount++;
+    };
+    history.go(-2);
+    test(function () {
+      //many browsers special-case jumps that only imply hash changes and will do them synchronously - the spec does allow this
+      assert_equals( hashcount, 0, 'hashchange fired even though the location should not have changed' );
+      assert_equals( location.hash.replace(/^#/,''), 'baz', 'the browser navigated synchronously' );
+    }, '.go commands should be queued until the thread has ended');
+    history.go(-1);
+    setTimeout(checkjumps,100);
+  }
+  function checkjumps() {
+    test(function () {
+      assert_true( !!hashcount, 'this testcase requires haschange support; the test cannot be used in this browser' );
+    }, 'browser needs to support hashchange events for this testcase');
+    test(function () {
+      assert_equals( hashcount, 2, 'the wrong number of queued commands were executed' );
+    }, 'queued .go commands should all be executed when the queue is processed');
+    test(function () {
+      assert_equals( location.hash.replace(/^#/,''), '' );
+    }, 'history position should be calculated when executing, not when calling the .go command');
+    done();
+  }
+};
+    </script>
+  </head>
+  <body>
+
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+    <div id="log"></div>
+
+  </body>
+</html>

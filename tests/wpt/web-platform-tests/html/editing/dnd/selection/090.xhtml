@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Scrolling during selection drag and drop to object</title>
+<style type="text/css">
+object
+	{width:350px;
+	height:150px;}
+</style>
+</head>
+<body onload="window.getSelection().selectAllChildren(document.querySelector('p'))">
+<p>Drag me</p>
+<p><object type="application/xhtml+xml" data="helper-scroll-then-drop-input.xhtml">XHTML document</object></p>
+</body>
+</html>

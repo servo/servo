@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Modifier keys selecting dropEffect with script overriding it</title>
+		<style type="text/css">
+div:first-child {
+	height: 100px;
+	width: 100px;
+	background: orange;
+	display: inline-block;
+}
+div:first-child + div {
+	height: 100px;
+	width: 100px;
+	background: blue;
+	display: inline-block;
+}
+div:first-child + div + div {
+	height: 100px;
+	width: 100px;
+	background: fuchsia;
+	display: inline-block;
+}
+table {
+	display: inline-table;
+	margin-right: 1em;
+	border-collapse: collapse;
+}
+table, th, td {
+	border: 1px solid black;
+}
+thead th {
+	background: silver;
+	color: black;
+}
+		</style>
+		<script type="text/javascript">
+window.onload = function () {
+	var dragenterbefore = '', dragenterafter = '', dragoverbefore = '', dragoverafter = '';
+	var orange = document.getElementsByTagName('div')[0];
+	orange.ondragstart = function (e) {
+		e.dataTransfer.setData('text','http://example.com/');
+		e.dataTransfer.effectAllowed = 'all';
+	};
+	var fuchsia = document.getElementsByTagName('div')[2];
+	fuchsia.ondragenter = function (e) {
+		e.preventDefault();
+		if( e.dataTransfer.dropEffect != 'link' ) {
+			dragenterbefore = e.dataTransfer.dropEffect;
+		}
+		try {
+			e.dataTransfer.dropEffect = 'move';
+		} catch(e) {}
+		if( e.dataTransfer.dropEffect != 'move' ) {
+			dragenterafter = e.dataTransfer.dropEffect;
+		}
+	};
+	fuchsia.ondragover = function (e) {
+		e.preventDefault();
+		if( e.dataTransfer.dropEffect != 'link' ) {
+			dragoverbefore = e.dataTransfer.dropEffect;
+		}
+		try {
+			e.dataTransfer.dropEffect = 'move';
+		} catch(e) {}
+		if( e.dataTransfer.dropEffect != 'move' ) {
+			dragoverafter = e.dataTransfer.dropEffect;
+		}
+	};
+	fuchsia.ondrop = function (e) {
+		e.preventDefault();
+		document.getElementsByTagName('div')[3].innerHTML = ( dragenterbefore || dragenterafter || dragoverbefore || dragoverafter || e.dataTransfer.dropEffect != 'move' ) ? ( 'FAIL' +
+			( dragenterbefore ? ( '<br>dragenter.dropEffect was '+dragenterbefore+' instead of link' ) : '' ) +
+			( dragenterafter ? ( '<br>dragenter.dropEffect after writing was '+dragenterafter+' instead of move' ) : '' ) +
+			( dragoverbefore ? ( '<br>dragover.dropEffect was '+dragoverbefore+' instead of link' ) : '' ) +
+			( dragoverafter ? ( '<br>dragover.dropEffect after writing was '+dragoverafter+' instead of move' ) : '' ) +
+			( ( e.dataTransfer.dropEffect != 'move' ) ? ( '<br>drop.dropEffect was '+e.dataTransfer.dropEffect+' instead of move' ) : '' )
+			) : 'PASS';
+	};
+};
+		</script>
+	</head>
+	<body>
+
+		<div draggable="true"></div>
+		<div></div>
+		<div></div>
+		<div>&nbsp;</div>
+		<ol>
+			<li>Drag the orange square over the blue square</li>
+			<li>Press the relevant modifier keys for your platform to request a &quot;link&quot; drop effect (eg. Alt on Windows, Ctrl+Shift on Unix/Linux, Command+Option on Mac)</li>
+			<li>Continue dragging over the pink square</li>
+			<li>If supported by the platform, the mouse cursor should show that a &quot;move&quot; drop effect will be used</li>
+			<li>Release the drag, then the keys</li>
+			<li>Fail if no new text appears above this list</li>
+		</ol>
+
+	</body>
+</html>

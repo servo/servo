@@ -1,0 +1,28 @@
+<!doctype html>
+<title>Revoking blob URL used with XMLHttpRequest</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async_test(function(t) {
+    var blob = new Blob(["test"]);
+    var url = URL.createObjectURL(blob);
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", url);
+
+    // Revoke the object URL.  XHR should take a reference to the blob as soon as
+    // it receives it in open(), so the request succeeds even though we revoke the
+    // URL before calling send().
+    URL.revokeObjectURL(url);
+
+    xhr.send();
+
+    xhr.onload = t.step_func(function() {
+        assert_equals(xhr.response, "test");
+        t.done();
+    })
+    xhr.onerror = t.step_func(function() {
+        assert_unreached("Got unexpected error event");
+    })
+});
+</script>

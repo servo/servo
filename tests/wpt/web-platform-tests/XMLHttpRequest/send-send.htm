@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: send() - send()</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::ol/li[2]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      test(function() {
+        var client = new XMLHttpRequest()
+        client.open("GET", "resources/well-formed.xml")
+        client.send(null)
+        assert_throws("InvalidStateError", function() { client.send(null) })
+        client.abort()
+      })
+    </script>
+  </body>
+</html>

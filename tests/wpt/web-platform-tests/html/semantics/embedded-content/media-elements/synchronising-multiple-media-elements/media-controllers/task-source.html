@@ -1,0 +1,27 @@
+<!doctype html>
+<title>MediaController events task source</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(function(t) {
+  // Both MediaControllers should use the DOM manipulation task source, so the
+  // events should fire in the same order as the attributes are modified.
+  var mc1 = new MediaController();
+  var mc2 = new MediaController();
+  mc1.volume = 0;
+  mc2.volume = 0;
+  mc1.volume = 1;
+  mc2.volume = 1;
+  var targets = [];
+  var callback = t.step_func(function(event) {
+    targets.push(event.target);
+    if (targets.length == 4) {
+      assert_array_equals(targets, [mc1, mc2, mc1, mc2]);
+      t.done();
+    }
+  });
+  mc1.addEventListener('volumechange', callback);
+  mc2.addEventListener('volumechange', callback);
+});
+</script>

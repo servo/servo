@@ -1,0 +1,24 @@
+<!--
+var x = postMessage;
+postMessage = 1;
+x(postMessage == 1);
+
+/*
+-->
+<!doctype html>
+<title>setting postMessage</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+(async_test()).step(function() {
+  var worker = new Worker('#');
+  worker.onmessage = this.step_func(function(e) {
+    assert_true(e.data);
+    this.done();
+  });
+});
+</script>
+<!--
+*/
+//-->

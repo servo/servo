@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title id='desc'> MutationEvent: DOMNodeInserted Event Type </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "DOMNodeInserted";
+            var TARGET;
+            var NODE;
+
+            window.onload = function()
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+
+                    NODE = document.createElement("INPUT");
+                    TARGET.appendChild(NODE);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+
+            function TestEvent(evt)
+            {
+                if (EVENT == evt.type)
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: DOMNodeInserted event fires when a node has been added as a child of another node.
+        </h4>
+
+        <span id="parent">
+            <div id="target" style="border:solid 1px green; width:200px; height:50px">
+            </div>
+        </span>
+
+        <p>Test passes if the word "PASS" appears below.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

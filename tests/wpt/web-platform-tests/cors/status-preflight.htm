@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CORS - status after preflight</title>
+<meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+
+<h1>Status after preflight</h1>
+
+<div id=log></div>
+<script>
+var counter = 0
+
+function statusAfterPreflight(method, code) {
+    counter++
+
+    async_test(document.title + " on " + method + " " + code).step(function() {
+        var client = new XMLHttpRequest()
+        client.open(method, CROSSDOMAIN + "resources/status.py?" + counter
+            +"&code=" + code + '&headers=x-nonsimple&preflight=200', true)
+
+        client.setRequestHeader('x-nonsimple', true)
+        client.onreadystatechange = this.step_func(function() {
+            if (client.readyState < client.HEADERS_RECEIVED)
+                return
+            assert_equals(client.response, "", "response data")
+            assert_equals(client.status, code, "response status")
+            if (client.readyState == client.DONE)
+                /* Wait for spurious error events */
+                setTimeout(this.step_func(function() { this.done() }), 10)
+        })
+
+        client.onerror = this.step_func(function() {
+            assert_unreached("Shouldn't throw no error event!")
+        })
+
+        client.send()
+    })
+}
+
+/*                   method     code */
+statusAfterPreflight("GET",     200)
+statusAfterPreflight("GET",     204)
+statusAfterPreflight("GET",     400)
+statusAfterPreflight("GET",     401)
+
+statusAfterPreflight("HEAD",    200)
+statusAfterPreflight("HEAD",    204)
+statusAfterPreflight("HEAD",    400)
+statusAfterPreflight("HEAD",    401)
+statusAfterPreflight("HEAD",    501)
+statusAfterPreflight("HEAD",    699)
+
+statusAfterPreflight("POST",    204)
+statusAfterPreflight("POST",    400)
+statusAfterPreflight("POST",    401)
+statusAfterPreflight("POST",    404)
+
+statusAfterPreflight("PUT",     699)
+statusAfterPreflight("CHICKEN", 501)
+
+</script>

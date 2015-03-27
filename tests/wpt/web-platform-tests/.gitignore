@@ -1,0 +1,11 @@
+*#
+*.py[co]
+*.sw[po]
+*~
+MANIFEST.json
+\#*
+_certs
+config.json
+node_modules
+scratch
+testharness_runner.html

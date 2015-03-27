@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>radio group name compatibility caseless</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel="help" href="http://people.mozilla.org/~jdaggett/tests/radiobuttonnamecase.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<input id=r1 type="radio" name="sImPlE">
+<input id=r2 type="radio" name="simple">
+<input id=r3 type="radio" name="SIMPLE">
+
+<input id=r4 type="radio" name="paSSfield-killroyß">
+<input id=r5 type="radio" name="passfield-killroyß">
+<input id=r6 type="radio" name="PASSFIELD-KILLROYß">
+<input id=r7 type="radio" name="paſſfield-killroyß">
+<input id=r8 type="radio" name="passfield-&#x212a;illroyß">
+<input id=r9 type="radio" name="paßfield-killroyß">
+<input id=r10 type="radio" name="paẞfield-killroyß">
+<input id=r11 type="radio" name="passfield-killroyẞ">
+<input id=r12 type="radio" name="passﬁeld-killroyß">
+<input id=r13 type="radio" name="passfıeld-killroyß">
+<input id=r14 type="radio" name="passfİeld-killroyß">
+
+<input id=r15 type="radio" name="глупый">
+<input id=r16 type="radio" name="глупы&#x438;&#x306;">
+<input id=r17 type="radio" name="ГЛУПЫЙ">
+<input id=r18 type="radio" name="ГЛУПЫ&#x418;&#x306;">
+
+<input id=r19 type="radio" name="åωk">
+<input id=r20 type="radio" name="ÅΩK">
+<input id=r21 type="radio" name="&#x212b;ωk">
+<input id=r22 type="radio" name="å&#x2126;k">
+<input id=r23 type="radio" name="åω&#x212a;">
+
+<input id=r24 type="radio" name="blah1">
+<input id=r25 type="radio" name="blah&#x2460;">
+<input id=r26 type="radio" name="bl&#x24b6;h1">
+<input id=r27 type="radio" name="bl&#x24d0;h1">
+
+<input id=r28 type="radio" name="t&Eacute;dz5アパートFi">
+<input id=r29 type="radio" name="T&Eacute;DZ5アパートFi">
+<input id=r30 type="radio" name="T&eacute;&#x01F1;&#x2075;アパートFi">
+<input id=r31 type="radio" name="t&Eacute;dz5&#x3300;Fi">
+<input id=r32 type="radio" name="t&Eacute;dz5&#x30A2;&#x30CF;&#x309A;&#x30FC;&#x30C8;Fi">
+<input id=r33 type="radio" name="t&Eacute;dz5&#x30A2;&#x30D1;&#x30FC;&#x30C8;Fi">
+<input id=r34 type="radio" name="T&Eacute;DZ⁵アパートFi">
+<input id=r35 type="radio" name="T&Eacute;DZ5アパートﬁ">
+
+<input id=r36 type="radio" name="ΣΣ">
+<input id=r37 type="radio" name="σς">
+<script>
+  var groups = [["r1" ,"r2", "r3"],
+                ["r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "r13", "r14"],
+                ["r15", "r16", "r17", "r18"],
+                ["r19", "r20", "r21", "r22", "r23"],
+                ["r24", "r25", "r26", "r27"],
+                ["r28", "r29", "r30", "r31", "r32", "r33", "r34", "r35"],
+                ["r36", "r37"]],
+      groupName = ["sImPlE", "paSSfield-killroyß", "глупый", "åωk", "blah1", "tÉdz5アパートFi", "ΣΣ"];
+  groups.forEach(function(group, index) {
+    test(function(){
+      group.forEach(function(radioId) {
+        assert_false(document.getElementById(radioId).checked);
+      });
+      for (var i = 0; i < group.length; i++) {
+        document.getElementById(group[i]).checked = true;
+        assert_true(document.getElementById(group[i]).checked);
+        for (var j = 0; j < group.length; j++) {
+          if (j != i) assert_false(document.getElementById(group[j]).checked);
+        }
+      }
+    }, "radio button group name = " + groupName[index]);
+  });
+</script>

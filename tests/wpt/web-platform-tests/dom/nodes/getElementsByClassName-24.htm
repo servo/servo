@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><head>
+        <meta charset='utf-8'>
+        <title>getElementsByClassName</title>
+        <meta content="handle unicode chars" name="description">
+    <link href="https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname" rel="help">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+    <body>
+        <div id="log"></div>
+        <div>
+            <div>
+                <a class="ΔЙあ叶葉 말 link" href="#foo">ΔЙあ叶葉 말 link</a>
+            </div>
+            <b class="text">text</b>
+        </div>
+        <div class="ΔЙあ叶葉 קم">ΔЙあ叶葉 קم</div>
+
+        <script type="text/javascript">
+            test(function()
+            {
+                var collection = document.getElementsByClassName("ΔЙあ叶葉");
+                assert_equals(collection.length, 2);
+                assert_equals(collection[0].parentNode.nodeName, "DIV");
+                assert_equals(collection[1].parentNode.nodeName, "BODY");
+            }, "handle unicode chars");
+        </script>
+
+</body></html>

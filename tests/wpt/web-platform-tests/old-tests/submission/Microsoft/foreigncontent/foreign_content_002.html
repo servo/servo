@@ -1,0 +1,47 @@
+<!DOCTYPE html >
+<html>
+    <head>
+        <title>HTML 5 Foreign Content SVG in HTML </title>
+        <meta description="Test to verify SVG inside HTML I element parses correctly" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />        
+        <script type="text/javascript">
+        
+            function RunTest()
+            {
+                try
+                {
+
+                    if(document.getElementsByTagName("i")[0].childNodes[1].localName=="svg")
+                    {
+                        var svgNamespace = "http://www.w3.org/2000/svg";
+                        var textElem = document.createElementNS(svgNamespace, "text");
+                        
+                        var textContent = document.createTextNode("FillerText");
+                        textElem.appendChild(textContent);
+
+                        var container = document.getElementById("svg1");
+                        container.appendChild(textElem);
+
+                    }
+                }
+                catch(ex)
+                {                    
+                }
+            }
+        </script>
+    </head>
+
+    <body onLoad="RunTest()">
+
+        <div class="testdata">
+            <p id="instructions">Test passes if 'FillerText' is rendered as italic.</p>
+        </div>
+        <div>
+            <i>
+                <svg id="svg1" width="100px" height="100px">                    
+                </svg>
+            </i>
+        </div>
+
+    </body>
+</html>

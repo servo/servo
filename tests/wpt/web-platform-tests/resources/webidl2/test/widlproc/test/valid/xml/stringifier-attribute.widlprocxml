@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>[Constructor]
+interface Student {
+  attribute unsigned long id;
+  stringifier attribute DOMString name;
+};</webidl>
+  <Interface name="Student" id="::Student">
+    <webidl>[Constructor]
+interface Student {
+  attribute unsigned long id;
+  stringifier attribute DOMString name;
+};</webidl>
+    <ExtendedAttributeList>
+      <ExtendedAttribute name="Constructor">
+        <webidl>Constructor</webidl>
+      </ExtendedAttribute>
+    </ExtendedAttributeList>
+    <Attribute name="id" id="::Student::id">
+      <webidl>  attribute unsigned long id;</webidl>
+      <Type type="unsigned long"/>
+    </Attribute>
+    <Attribute stringifier="stringifier" name="name" id="::Student::name">
+      <webidl>  stringifier attribute DOMString name;</webidl>
+      <Type type="DOMString"/>
+    </Attribute>
+  </Interface>
+</Definitions>

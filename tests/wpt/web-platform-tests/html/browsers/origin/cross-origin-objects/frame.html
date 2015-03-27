@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<script>
+  // Override the |frames| property to test that such overrides are
+  // properly ignored cross-origin.
+  window.frames = "override";
+
+  // If we get a postMessage, we grab references to everything and set
+  // document.domain to trim off our topmost subdomain.
+  window.onmessage = function(evt) {
+    window.windowReferences = [];
+    window.locationReferences = [];
+    for (var i = 0; i < parent.length; ++i) {
+      windowReferences.push(parent[i]);
+      locationReferences.push(parent[i].location);
+    }
+    document.domain = document.domain.substring(document.domain.indexOf('.') + 1);
+    evt.source.postMessage('', '*');
+  }
+
+  function checkWindowReferences() {
+    for (var i = 0; i < parent.length; ++i) {
+      if (windowReferences[i] != parent[i])
+        throw new Error("Window references don't match for " + i + " after document.domain");
+      if (locationReferences[i] != parent[i].location)
+        throw new Error("Location references don't match for " + i + " after document.domain");
+    }
+    return true;
+  }
+</script>
+</head>
+<body>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>IDBFactory.open() - errors in version argument</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js></script>
+
+<script>
+function should_throw(val, name) {
+    if (!name) {
+        name = ((typeof val == "object" && val) ? "object" : format_value(val))
+    }
+    test(function() {
+      assert_throws(new TypeError(), function() {
+        window.indexedDB.open('test', val);
+      });
+    }, "Calling open() with version argument " + name + " should throw TypeError.")
+}
+
+should_throw(-1)
+should_throw(-0.5)
+should_throw(0)
+should_throw(0.5)
+should_throw(0.8)
+should_throw(0x20000000000000)
+should_throw(NaN)
+should_throw(Infinity)
+should_throw(-Infinity)
+should_throw("foo")
+should_throw(undefined)
+should_throw(null)
+should_throw(false)
+
+should_throw({
+    toString: function() { assert_unreached("toString should not be called for ToPrimitive [Number]"); },
+    valueOf: function() { return 0; }
+})
+should_throw({
+    toString: function() { return 0; },
+    valueOf: function() { return {}; }
+}, 'object (second)')
+should_throw({
+    toString: function() { return {}; },
+    valueOf: function() { return {}; },
+}, 'object (third)')
+
+/* Valid */
+
+function should_work(val) {
+    var t = async_test("Calling open() with version argument 1.5 should not throw.")
+    var rq = createdb(t)
+    rq.onupgradeneeded = function() {
+        t.done()
+    }
+}
+
+should_work(1.5)
+
+</script>
+
+<div id=log></div>

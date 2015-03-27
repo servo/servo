@@ -1,0 +1,38 @@
+<!doctype html>
+<title>TextTrackCue.track</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+setup(function(){
+    window.video = document.createElement('video');
+    window.t1 = video.addTextTrack('subtitles');
+    document.body.appendChild(video);
+});
+test(function(){
+    var c1 = new VTTCue(0, 1, 'text1');
+    assert_equals(c1.track, null);
+    t1.addCue(c1);
+    assert_equals(c1.track, t1);
+    t1.removeCue(c1);
+    assert_equals(c1.track, null);
+}, document.title+', script-created cue');
+
+var t_parsed = async_test(document.title+', parsed cue');
+t_parsed.step(function(){
+    var t = document.createElement('track');
+    t.onload = this.step_func(function(){
+        var c = t.track.cues[0];
+        assert_equals(c.track, t.track);
+        t.track.removeCue(c);
+        assert_equals(c.track, null);
+        this.done();
+    });
+    t.onerror = this.step_func(function() {
+      assert_unreached('got error event');
+    });
+    t.src = 'data:text/vtt,'+encodeURIComponent('WEBVTT\n\n00:00:00.000 --> 00:00:00.001\ntest');
+    t.track.mode = 'showing';
+    video.appendChild(t);
+});
+</script>

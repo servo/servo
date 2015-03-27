@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Selector: pseudo-classes (:valid, :invalid)</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org" id=link1>
+<link rel=help href="https://html.spec.whatwg.org/multipage/#pseudo-classes" id=link2>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<div id="log"></div>
+<div id='simpleConstraints'>
+  <input type=text id=text1 value="foobar" required>
+  <input type=text id=text2 required>
+</div>
+<div id='FormSelection'>
+  <form id=form1>
+    <input type=text id=text3 value="foobar" required>
+  </form>
+  <form id=form2>
+    <input type=text id=text4 required>
+  </form>
+</div>
+<div id='FieldSetSelection'>
+  <fieldset id=fieldset1>
+    <input type=text id=text5 value="foobar" required>
+  </fieldset>
+  <fieldset id=fieldset2>
+    <input type=text id=text6 required>
+  </fieldset>
+</div>
+<div id='patternConstraints'>
+  <input type=text id=text7 value="AAA" pattern="[0-9][A-Z]{3}">
+  <input type=text id=text8 value="0AAA" pattern="[0-9][A-Z]{3}">
+</div>
+<div id='numberConstraints'>
+  <input type=number id=number1 value=0 min=1>
+  <input type=number id=number2 value=1 min=1>
+</div>
+
+<script>
+  testSelector("#simpleConstraints :valid", ["text1"], "':valid' matches elements that satisfy their constraints");
+
+  testSelector("#FormSelection :valid", ["form1", "text3"], "':valid' matches form elements that are not the form owner of any elements that themselves are candidates for constraint validation but do not satisfy their constraints");
+
+  testSelector("#FieldSetSelection :valid", ["fieldset1", "text5"], "':valid' matches fieldset elements that have no descendant elements that themselves are candidates for constraint validation but do not satisfy their constraints");
+
+  testSelector("#patternConstraints :valid", [ "text8" ], "':valid' matches elements that satisfy their pattern constraints");
+
+  testSelector("#numberConstraints :valid", [ "number2" ], "':valid' matches elements that satisfy their number constraints");
+
+
+  testSelector("#simpleConstraints :invalid", ["text2"], "':invalid' matches elements that do not satisfy their simple text  constraints");
+
+  testSelector("#FormSelection :invalid", ["form2", "text4"], "':invalid' matches form elements that are the form owner of one or more elements that themselves are candidates for constraint validation but do not satisfy their constraints");
+
+  testSelector("#FieldSetSelection :invalid", ["fieldset2", "text6"], "':invalid' matches fieldset elements that have of one or more descendant elements that themselves are candidates for constraint validation but do not satisfy their constraints");
+
+  testSelector("#patternConstraints :invalid", ["text7"], "':invalid' matches elements that do not satisfy their pattern constraints");
+
+  testSelector("#numberConstraints :invalid", ["number1"], "':invalid' matches elements that do not satisfy their number constraints");
+
+  document.getElementById("text7").value="0BBB";
+  testSelector("#patternConstraints :valid", [ "text7", "text8" ], "':valid' matches new elements that satisfy their constraints");
+  testSelector("#patternConstraints :invalid", [], "':invalid' doesn't match new elements that satisfy their constraints");
+
+  document.getElementById("text8").value="BBB";
+  testSelector("#patternConstraints :valid", ["text7"], "':valid' doesn't match new elements that do not satisfy their constraints");
+  testSelector("#patternConstraints :invalid", ["text8"], "':invalid' matches new elements that do not satisfy their constraints");
+</script>

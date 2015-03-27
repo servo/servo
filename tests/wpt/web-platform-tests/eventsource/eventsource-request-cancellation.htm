@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>EventSource: request cancellation</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test(null, {timeout: 5000});
+      var url = "resources/message.py?sleep=1000&message=" + encodeURIComponent("retry:1000\ndata:abc\n\n");
+      var es = new EventSource(url);
+      var lastEventTime = 0;
+      var lastEventType = "";
+      var readyStateAtLastEvent = -1;
+      es.onmessage =
+      es.onerror =
+      es.onopen = function (event) {
+        lastEventTime = (new Date()).getTime();
+        lastEventType = event.type;
+        readyStateAtLastEvent = es.readyState;
+      };
+      setTimeout(function () {
+        if (typeof window.stop === "function") {
+          window.stop();
+        }
+      }, 100);
+      setTimeout(function () {
+        test.step(function () {
+          var isActive = ((new Date()).getTime() - lastEventTime) < 2500;
+          if (es.readyState === EventSource.CLOSED) {
+            assert_true(!isActive, "In case EventSource was stopped, it should not be active");
+            assert_equals(lastEventType, "error", "In case EventSource was stopped, the last event should be an error event");
+            assert_equals(readyStateAtLastEvent, EventSource.CLOSED, "In case EventSource was stopped, readyState at last event should be closed");
+          } else {
+            assert_true(isActive, "EventSource is active, but readyState is not EventSource.CLOSED.");
+          }
+        });
+        es.close();
+        test.done();
+      }, 4000);
+    </script>
+  </body>
+</html>

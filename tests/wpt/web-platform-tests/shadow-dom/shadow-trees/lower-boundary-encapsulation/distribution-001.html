@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!--
+Distributed under both the W3C Test Suite License [1] and the W3C
+3-clause BSD License [2]. To contribute to a W3C Test Suite, see the
+policies and contribution forms [3].
+
+[1] http://www.w3.org/Consortium/Legal/2008/04-testsuite-license
+[2] http://www.w3.org/Consortium/Legal/2008/03-bsd-license
+[3] http://www.w3.org/2004/10/27-testcases
+-->
+<html>
+<head>
+<title>Shadow DOM Test: Distribution: Unordered list</title>
+<link rel="match" href="distribution-001-ref.html">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#shadow-trees">
+<meta name="assert" content="Lower-boundary Encapsulation: Each insertion point participates in distribution by providing a matching criteria for the child nodes. The matching criteria determines whether a given node could be distributed to a given insertion point.">
+<script src="../../testcommon.js"></script>
+</head>
+<body>
+<p>
+You should see an unordered list below, consisting of ten elements
+each of which contains a capital letter ranging from "A" to "J",
+in alphabetical order.
+</p>
+<ul id="list">
+<li>H</li>
+<li class="first">B</li>
+<li class="second">E</li>
+<li>I</li>
+<li class="first">C</li>
+</ul>
+<script>
+var shadowRoot = document.getElementById('list').createShadowRoot();
+shadowRoot.innerHTML =
+    '<li>A</li>' +
+    '<content select=".first"></content>' +
+    '<li>D</li>' +
+    '<content select=".second"></content>' +
+    '<li>F</li>' +
+    '<content select="img"></content>' +
+    '<li>G</li>' +
+    '<content></content>' +
+    '<li>J</li>';
+</script>
+</body>
+</html>

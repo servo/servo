@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>window.performance.now exists</title>
+<link rel="author" title="W3C" href="http://www.w3.org/" />
+<link rel="help" href="http://www.w3.org/TR/hr-time/#sec-extenstions-performance-interface"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css" />
+<script>
+test(function() {
+  assert_equals(typeof window.performance, "object");
+}, "window.performance is defined", {assert: "The window.performance attribute provides a hosting area for performance related attributes."});
+
+test(function() {
+  assert_not_equals(window.performance.now, undefined, 'window.performance.now is defined');
+}, "High Resolution Time extension to the Performance interface", {assert: "window.performance.now exists"});
+
+test(function() {
+  assert_equals(typeof window.performance.now, "function", "window.performance.now is a function");
+}, "window.performance.now() function", {assert: "window.performance.now is a function"});
+
+test(function() {
+  assert_equals(typeof window.performance.now(), "number", "window.performance.now() returns a number");
+}, "window.performance.now() returns a number", {assert: "The now method MUST return a DOMHighResTimeStamp"});
+</script>
+</head>
+<body>
+<h1>Description</h1>
+<p>This test validates that window.performance.now() exist and is a function.</p>
+
+<div id="log"></div>
+
+</body>
+</html>

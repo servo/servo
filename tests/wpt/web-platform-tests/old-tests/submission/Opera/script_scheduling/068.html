@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html><head>
+	<title> scheduler: external script and parsing of markup added with document.write </title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+
+</head>
+<body>
+
+	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+	<script>
+          log('inline script #1');
+	  document.write('<script src="scripts/find-foo.js">log(\'inline code in external script (not expected to run!!)\')<\/script>' + '<div id="foo"></div>');
+	  log('end script #1');
+
+           var t = async_test()
+              
+
+           function test() {
+              if(!window.findFooLoaded) {
+                  return setTimeout(t.step_func(test),200);
+              }
+              assert_array_equals(eventOrder, ['inline script #1', 'end script #1', 'found #foo element: NO']);
+              t.done();
+           }
+           onload = t.step_func(test)
+	</script>
+
+</body></html>

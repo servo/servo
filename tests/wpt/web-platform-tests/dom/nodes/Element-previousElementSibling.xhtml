@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>previousElementSibling</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<h1>Test of previousElementSibling</h1>
+<div id="log"></div>
+<p id="parentEl">The result of <span id="first_element_child">this test</span> is
+<span id="middle_element_child" style="font-weight:bold;">unknown.</span>
+
+
+
+<span id="last_element_child" style="display:none;">fnord</span> </p>
+<script><![CDATA[
+test(function() {
+  var parentEl = document.getElementById("parentEl");
+  var lec = document.getElementById("last_element_child");
+  var pes = lec.previousElementSibling;
+  assert_true(!!pes)
+  assert_equals(pes.nodeType, 1)
+  assert_equals(pes.getAttribute("id"), "middle_element_child")
+})
+]]></script>
+</body>
+</html>

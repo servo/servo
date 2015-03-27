@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title> AbstractWorker ErrorEvent.type </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function(t) {
+  var worker = new Worker('./support/ErrorEvent.js');
+  worker.onerror = t.step_func_done(function(e) {
+    assert_class_string(e, 'ErrorEvent');
+    assert_equals(e.type, 'error');
+  });
+  worker.postMessage("Error Message");
+});
+</script>

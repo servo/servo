@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'/>
+    <title>Vibration API: cancel ongoing vibrate() with 0</title>
+    <link rel='author' title='Robin Berjon' href='mailto:robin@berjon.com'/>
+    <link rel='help' href='http://www.w3.org/TR/vibration/#methods'/>
+    <meta name='flags' content='dom, interact'/>
+    <meta name='assert' content='If pattern is 0, cancel the pre-existing instance of the processing vibration patterns algorithm'/>
+  </head>
+  <body>
+    <h1>Description</h1>
+    <p>
+      After hitting the button below, your device must vibrate for a short period of time (roughly one
+      second). If it vibrates for a longer time (roughly five seconds, it should feel somewhat long) then
+      the test has failed.
+    </p>
+    <button id='vib'>Vibrate!</button>
+    <script src='/common/vendor-prefix.js' data-prefixed-objects='[{"ancestors":["navigator"], "name":"vibrate"}]'></script>
+    <script>
+      if (undefined !== navigator.vibrate) {
+          document.getElementById("vib").onclick = function () {
+              navigator.vibrate(5000);
+              setTimeout(function () {
+                  navigator.vibrate(0);
+              }, 1000);
+          };
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<meta charset='utf-8'>
+<title>Geolocation Test: watchPosition location access denied</title>
+<link rel='help' href='http://www.w3.org/TR/geolocation-API/#watch-position'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='support.js'></script>
+
+<p>Clear all Geolocation permissions before running this test. If prompted for permission, please deny.</p>
+<div id='log'></div>
+
+<script>
+// Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00062
+var t = async_test('Check that watchPosition returns synchronously before any callbacks are invoked.'),
+    id, checkMethodHasReturned, hasMethodReturned = false;
+
+checkMethodHasReturned = t.step_func(function() {
+  assert_true(hasMethodReturned);
+  done();
+});
+
+try {
+  id = geo.watchPosition(checkMethodHasReturned, checkMethodHasReturned);
+  hasMethodReturned = true;
+} catch(e) {
+  t.step(function() {
+    assert_unreached('An exception was thrown unexpectedly: ' + e.message);
+  });
+}
+
+// Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00151
+test(function() {
+  assert_greater_than_equal(id, -2147483648);
+  assert_less_than_equal(id, 2147483647);
+}, 'Check that watchPosition returns a long');
+</script>

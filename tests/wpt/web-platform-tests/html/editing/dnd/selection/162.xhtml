@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Selection drag and drop between contenteditable elements</title>
+<style type="text/css">
+div + div[contenteditable]
+	{width:300px;
+	height:100px;
+	margin-top:20px;
+	padding:10px;
+	color:white;
+	background-color:navy;}
+</style>
+</head>
+<body onload="window.getSelection().selectAllChildren(document.querySelector('div'))">
+<p>Drag selected text to the blue box. Copy of selection should end up in the blue box once you drop it there.</p>
+<div contenteditable="true">Drag me</div>
+<div contenteditable="true"/>
+</body>
+</html>

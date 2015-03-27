@@ -1,0 +1,64 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id='desc'> FocusEvent.relatedTarget for focusout Event </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "focusout";
+            var TARGET, HELPER;
+
+            window.onload = function(e)
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    HELPER = document.getElementById("helper");
+                    TARGET.addEventListener("focusout", TestEvent, true);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+
+            function TestEvent(evt)
+            {
+                if (evt.type == EVENT && evt.relatedTarget == HELPER)
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: FocusEvent.relatedTarget for focusout event is the event target receiving focus.
+        </h4>
+
+        <pre>
+            <input id="target" value="" /> <button id="helper">BUTTON</button>
+
+            Steps:
+            1) Click in the above textbox using mouse
+            2) Then click the above button using mouse
+        </pre>
+
+        <p>Test passes if the word "PASS" appears below after following the above steps.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

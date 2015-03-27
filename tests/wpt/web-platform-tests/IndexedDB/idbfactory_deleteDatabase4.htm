@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>Test events opening a second database when one connection is open already</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<div id="log"></div>
+
+<script>
+
+    var t = async_test("Delete an existing database");
+
+    t.step(function() {
+        var openrq = indexedDB.open('db', 3);
+
+        openrq.onupgradeneeded = function(e) {
+            e.target.result.createObjectStore('store');
+        };
+        openrq.onsuccess = t.step_func(function(e) {
+            db = e.target.result;
+
+            // Errors
+            db.onversionchange = fail(t, "db.versionchange");
+            db.onerror = fail(t, "db.error");
+            db.abort = fail(t, "db.abort");
+
+            setTimeout(t.step_func(Second), 4);
+            db.close();
+        });
+
+        // Errors
+        openrq.onerror = fail(t, "open.error");
+        openrq.onblocked = fail(t, "open.blocked");
+    });
+
+    function Second(e) {
+        var deleterq = indexedDB.deleteDatabase('db');
+
+        deleterq.onsuccess = function(e) { t.done(); }
+
+        deleterq.onerror = fail(t, "delete.error");
+        deleterq.onblocked = fail(t, "delete.blocked");
+        deleterq.onupgradeneeded = fail(t, "delete.upgradeneeded");
+    }
+
+    async_test("Delete a nonexistant database").step(function(e) {
+        var deleterq = indexedDB.deleteDatabase('nonexistant');
+
+        deleterq.onsuccess = this.step_func(function(e) { this.done(); });
+
+        deleterq.onerror = fail(this, "delete.error");
+        deleterq.onblocked = fail(this, "delete.blocked");
+        deleterq.onupgradeneeded = fail(this, "delete.upgradeneeded");
+    });
+
+</script>
+</script>

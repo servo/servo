@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>history_replaceState</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    test(function () {
+      window.history.replaceState(1, document.title, '?x=1');
+
+      var second;
+      second = window.history.state;
+      assert_equals(second, 1, "history state");
+    }, "history replaceState");
+    </script>
+  </body>
+</html>

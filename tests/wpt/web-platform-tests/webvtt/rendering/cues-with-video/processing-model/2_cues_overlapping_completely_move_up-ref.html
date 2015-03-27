@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, repositioning (up) when 2 cues overlap completely</title>
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.video {
+    display: inline-block;
+    width: 1280px;
+    height: 720px;
+    position: relative
+}
+#cue1 {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    margin-top: -18px;
+    text-align: center
+}
+#cue2 {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    margin-top: -54px;
+    text-align: center
+}
+.cue > span {
+    font-family: Ahem, sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: green;
+    font-size: 36px;
+}
+</style>
+<div class="video"><span class="cue" id="cue1"><span>This is a test subtitle</span></span><span class="cue" id="cue2"><span>This is another test subtitle</span></span></div>

@@ -1,0 +1,115 @@
+{"tests": [
+
+{"description": "valid ID 'a'",
+"input": "<span id=a>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "valid ID '1'",
+"input": "<span id=1>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "wacky but valid ID",
+"input": "<span id='<html><head><title>a</title></head><body><p>b</p></body></html>'>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "invalid blank ID",
+"input": "<span id>",
+"fail-unless": "attribute-value-can-not-be-blank"},
+
+{"description": "invalid blank ID with quotes",
+"input": "<span id=''>",
+"fail-unless": "attribute-value-can-not-be-blank"},
+
+{"description": "invalid ID because of leading space",
+"input": "<span id=' a'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of trailing space",
+"input": "<span id='a '>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of space in value",
+"input": "<span id='a b'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of leading tab",
+"input": "<span id='\ta'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of trailing tab",
+"input": "<span id='a\t'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of tab in value",
+"input": "<span id='a\tb'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of leading LF",
+"input": "<span id='\na'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of trailing LF",
+"input": "<span id='a\n'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of LF in value",
+"input": "<span id='a\nb'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of leading LT",
+"input": "<span id='\u000Ba'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of trailing LT",
+"input": "<span id='a\u000B'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of LT in value",
+"input": "<span id='a\u000Bb'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of leading FF",
+"input": "<span id='\u000Ca'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of trailing FF",
+"input": "<span id='a\u000C'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of FF in value",
+"input": "<span id='a\u000Cb'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of leading CR",
+"input": "<span id='\ra'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of trailing CR",
+"input": "<span id='a\r'>",
+"fail-unless": "space-in-id"},
+
+{"description": "invalid ID because of CR in value",
+"input": "<span id='a\rb'>",
+"fail-unless": "space-in-id"},
+
+{"description": "duplicate ID values",
+"input": "<span id=a><span id=a>",
+"fail-unless": "duplicate-id"},
+
+{"description": "duplicate ID values with spaces (weird but true)",
+"input": "<span id='a '><span id='a '>",
+"fail-unless": "duplicate-id"},
+
+{"description": "not duplicate ID values because spaces don't match",
+"input": "<span id=a><span id='a '>",
+"fail-if": "duplicate-id"},
+
+{"description": "not duplicate ID values because spaces don't match",
+"input": "<span id=' a'><span id='a '>",
+"fail-if": "duplicate-id"},
+
+{"description": "not duplicate ID values because case doesn't match",
+"input": "<span id=a><span id=A>",
+"fail-if": "duplicate-id"}
+
+]}

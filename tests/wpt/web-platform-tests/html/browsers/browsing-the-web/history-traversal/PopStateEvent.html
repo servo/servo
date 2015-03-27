@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Synthetic popstate events</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function () {
+  assert_throws('NotSupportedError', function() {
+    document.createEvent('PopStateEvent');
+  }, 'document.createEvent("PopStateEvent") should not be supported');
+}, 'document.createEvent');
+
+test(function () {
+  assert_false('initPopStateEvent' in PopStateEvent.prototype,
+               'There should be no PopStateEvent#initPopStateEvent');
+}, 'initPopStateEvent');
+
+test(function () {
+  var state = history.state;
+  var data;
+  window.addEventListener('popstate', function (e) {
+    data = e.state;
+  });
+  window.dispatchEvent(new PopStateEvent('popstate', {
+    'state': {testdata:true}
+  }));
+  assert_true(data.testdata,'state data was corrupted');
+  assert_equals(history.state, state, "history.state was NOT set by dispatching the event");
+}, 'Dispatching a synthetic PopStateEvent');
+</script>

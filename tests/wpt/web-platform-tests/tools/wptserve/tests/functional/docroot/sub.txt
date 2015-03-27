@@ -1,0 +1,1 @@
+{{host}} {{domains[]}} {{ports[http][0]}}

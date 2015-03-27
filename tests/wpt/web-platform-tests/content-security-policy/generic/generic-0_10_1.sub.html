@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>implicit port number matching fails with a different port</title>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='negativeTests.js'></script>
+    <script>
+      var head = document.getElementsByTagName('head')[0];
+      var script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = "http://www." + location.hostname + ":{{ports[http][1]}}/content-security-policy/generic/unreached.js";
+      head.appendChild(script);
+    </script>
+</head>
+<body>
+    <h1>implicit port number matching fails with a different port</h1>
+    <div id='log'></div>
+
+    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=script-src%20%27self%27%20www.{{host}}%20%27unsafe-inline%27'></script>
+</body>
+</html>

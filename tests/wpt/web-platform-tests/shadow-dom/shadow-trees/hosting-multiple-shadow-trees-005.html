@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Shadow DOM Test - The older shadow tree is not used.</title>
+    <link rel="match" href="hosting-multiple-shadow-trees-005-ref.html">
+    <link rel="author" title="Hiroyuki Hayashi" href="mailto:hyshhryk@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/shadow-dom/#multiple-shadow-trees">
+    <script src="../testcommon.js"></script>
+    <meta name="assert" content="The older shadow tree is not used when the youngest shadow tree doesn't have <shadow>. The original tree's node is inserted into <content> instead.">
+  </head>
+  <body>
+    <div id='host'>
+      <p>Original tree's node</p>
+    </div>
+  <script>
+    var shadowRoot = host.createShadowRoot();
+    shadowRoot.innerHTML = "<div><p>1st shadow tree's node</p><shadow></shadow></div>";
+    var shadowRoot = host.createShadowRoot();
+    shadowRoot.innerHTML = "<div><p>2nd shadow tree's node</p><content></content></div>";
+  </script>
+  </body>
+</html>

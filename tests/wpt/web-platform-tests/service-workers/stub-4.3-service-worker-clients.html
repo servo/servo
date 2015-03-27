@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<title>Service Workers: ServiceWorkerClients</title>
+    <head>
+        <link rel="help" href="https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-clients">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+        <script src=/resources/WebIDLParser.js></script>
+        <script src=/resources/idlharness.js></script>
+
+    </head>
+    <body>
+
+<script type=text/plain id="idl_0">
+interface ServiceWorkerClients {
+  // A list of client objects, identifiable by ID, that correspond to windows
+  // (or workers) that are "controlled" by this SW
+  Promise<sequence<Client>?> getServiced();
+  Promise<any> reloadAll();
+};
+</pre>
+
+<!--
+The `ServiceWorkerClients` interface represents a container for a list of
+`[Client][1]` objects.
+
+[1]: #client-interface
+-->
+
+
+    <script type=text/plain id="untested_idls">
+        interface Client {};
+    </pre>
+
+    <script>
+        var idl_array = new IdlArray();
+        idl_array.add_untested_idls(document.getElementById("untested_idls").textContent);
+        idl_array.add_idls(document.getElementById("idl_0").textContent);
+        idl_array.add_objects({
+            ServiceWorkerClients: ["throw new Error ('No object defined for the ServiceWorkerClients interface')"]
+        });
+        idl_array.test();
+    </script>
+
+    </body>
+</html>
+

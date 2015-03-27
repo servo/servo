@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+<title>Manual Gamepad getGamepads polling tests</title>
+<link rel="help" href="https://dvcs.w3.org/hg/gamepad/raw-file/default/gamepad.html#navigator-interface-extension">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({explicit_timeout: true});
+// Poll until we see a gamepad.
+var id = setInterval(function() {
+  var gamepads = navigator.getGamepads();
+  var found = null;
+  for (var i = 0; i < gamepads.length; i++) {
+    if (gamepads[i]) {
+      found = gamepads[i];
+      break;
+    }
+  }
+  if (found) {
+    clearInterval(id);
+    done();
+  }
+}, 15);
+</script>
+</head>
+<body>
+<p>This test requires a gamepad. Connect one and press any button to start the test.</p>
+</body>
+</html>

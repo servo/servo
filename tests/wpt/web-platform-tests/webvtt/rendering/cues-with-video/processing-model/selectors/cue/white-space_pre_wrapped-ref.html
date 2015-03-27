@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, ::cue, white-space: pre (cue that wraps)</title>
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.video {
+    display: inline-block;
+    width: 1280px;
+    height: 720px;
+    font-size: 36px;
+    position: relative
+}
+.cue {
+    position: absolute;
+    bottom: 0;
+    left: 30%;
+    right: 0;
+    width: 40%;
+    font-family: sans-serif;
+    text-align: center;
+}
+.cue > span {
+    background: rgba(0,0,0,0.8);
+    color: white;
+    white-space: pre
+}
+</style>
+<div class="video"><span class="cue"><span>A A  A   A	A	<br>	A		<br>A	A   A  A A</span></span></div>

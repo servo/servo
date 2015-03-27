@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+    <title>Shadow DOM Test Ref file - Tests nested shadow tree.</title>
+    <link rel="author" title="shingo.miyazawa" href="mailto:kumatronik@gmail.com" >
+    <script src="../../testcommon.js"></script>
+    <meta name="assert" content="nested shadow tree style is valid." >
+    <style>
+      #host {
+        width: 100px;
+        height: 100px;
+        background-color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <p>The test passes if there is a green square. Test failed if there is a red square.</p>
+    <div id='host'>
+      <div id="sub" style="width: 100%;height:100%;">
+        <div style="width:100%; height:100%;background-color: green;"></div>
+      </div>
+    </div>
+  </body>
+</html>

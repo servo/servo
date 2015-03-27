@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CharacterData.replaceData</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-characterdata-replacedata">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-characterdata-data">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+function testNode(node) {
+  test(function() {
+    assert_throws("INDEX_SIZE_ERR", function() { node.replaceData(5, 1, "x") })
+    assert_throws("INDEX_SIZE_ERR", function() { node.replaceData(5, 0, "") })
+    node.replaceData(2, 10, "yo")
+    assert_equals(node.data, "teyo")
+  })
+  test(function() {
+    node.data = "test"
+    assert_equals(node.data, "test")
+    node.replaceData(1, 1, "waddup")
+    assert_equals(node.data, "twaddupst")
+    node.replaceData(1, 1, "yup")
+    assert_equals(node.data, "tyupaddupst")
+  })
+}
+test(function() {
+  testNode(document.createTextNode("test"))
+  testNode(document.createComment("test"))
+})
+</script>

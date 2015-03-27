@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<!--
+Test adapted from https://mxr.mozilla.org/chromium/source/src/third_party/WebKit/LayoutTests/fast/dom/TreeWalker/script-tests/traversal-reject.js
+-->
+<head>
+<title>TreeWalker: traversal-reject</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="traversal-support.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<div id=log></div>
+</head>
+<body>
+<p>Test TreeWalker with rejection</p>
+<script>
+var testElement;
+setup(function() {
+    testElement = document.createElement("div");
+    testElement.id = 'root';
+    //testElement.innerHTML='<div id="A1">  <div id="B1">  <div id="C1"></div>  </div>  <div id="B2"></div><div id="B3"></div>  </div>';
+    // <div id="A1">
+    //   <div id="B1">
+    //     <div id="C1"></div>
+    //   </div>
+    //   <div id="B2"></div>
+    //   <div id="B3"></div>
+    // </div>
+
+
+    // XXX for Servo, build the tree without using innerHTML
+    var a1 = document.createElement("div"); a1.id = "A1";
+    var b1 = document.createElement("div"); b1.id = "B1";
+    var b2 = document.createElement("div"); b2.id = "B2";
+    var b3 = document.createElement("div"); b3.id = "B3";
+    var c1 = document.createElement("div"); c1.id = "C1";
+
+    testElement.appendChild(a1);
+    a1.appendChild(b1);
+    a1.appendChild(b2);
+    a1.appendChild(b3);
+    b1.appendChild(c1);
+});
+
+var rejectB1Filter = {
+  acceptNode: function(node) {
+    if (node.id == 'B1')
+      return /*NodeFilter.*/FILTER_REJECT;
+
+    return /*NodeFilter.*/FILTER_ACCEPT;
+  }
+}
+
+var skipB2Filter = {
+  acceptNode: function(node) {
+    if (node.id == 'B2')
+      return /*NodeFilter.*/FILTER_SKIP;
+
+    return /*NodeFilter.*/FILTER_ACCEPT;
+  }
+}
+
+test(function()
+{
+    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, rejectB1Filter);
+    assert_node(walker.nextNode(), { type: Element, id: 'A1' });
+    assert_node(walker.nextNode(), { type: Element, id: 'B2' });
+    assert_node(walker.nextNode(), { type: Element, id: 'B3' });
+}, 'Testing nextNode');
+
+test(function()
+{
+    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, rejectB1Filter);
+    assert_node(walker.firstChild(), { type: Element, id: 'A1' });
+    assert_node(walker.firstChild(), { type: Element, id: 'B2' });
+}, 'Testing firstChild');
+
+test(function()
+{
+    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, skipB2Filter);
+    assert_node(walker.firstChild(), { type: Element, id: 'A1' });
+    assert_node(walker.firstChild(), { type: Element, id: 'B1' });
+    assert_node(walker.nextSibling(), { type: Element, id: 'B3' });
+}, 'Testing nextSibling');
+
+test(function()
+{
+    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, rejectB1Filter);
+    walker.currentNode = testElement.querySelectorAll('#C1')[0];
+    assert_node(walker.parentNode(), { type: Element, id: 'A1' });
+}, 'Testing parentNode');
+
+test(function()
+{
+    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, skipB2Filter);
+    walker.currentNode = testElement.querySelectorAll('#B3')[0];
+    assert_node(walker.previousSibling(), { type: Element, id: 'B1' });
+}, 'Testing previousSibling');
+
+test(function()
+{
+    var walker = document.createTreeWalker(testElement, /*NodeFilter.*/SHOW_ELEMENT, rejectB1Filter);
+    walker.currentNode = testElement.querySelectorAll('#B3')[0];
+    assert_node(walker.previousNode(), { type: Element, id: 'B2' });
+    assert_node(walker.previousNode(), { type: Element, id: 'A1' });
+}, 'Testing previousNode');
+
+</script>
+</body>
+</html>

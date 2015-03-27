@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Reload during selection drag and drop roundtrip</title>
+</head>
+<body onload="window.getSelection().selectAllChildren(document.querySelector('span'))">
+<p><span ondragstart="window.location.reload()" ondragenter="event.preventDefault()" ondragover="return false" ondrop="document.querySelector('span').firstChild.nodeValue = (event.dataTransfer.getData('text/plain') == 'Drag me')?'PASS':'FAIL'">Drag me</span></p>
+<p>Drag selected text around page and then drag it back and drop on itself. You should see word PASS once you drop it.</p>
+</body>
+</html>

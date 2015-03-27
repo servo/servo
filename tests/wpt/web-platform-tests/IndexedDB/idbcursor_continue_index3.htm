@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>IDBCursor.continue() - index - attempt to iterate to the previous record when the direction is set for the next record </title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<link rel=help href="http://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#widl-IDBCursor-continue-void-any-key">
+<link rel=assert title="The parameter is less than or equal to this cursor's position and this cursor's direction is 'next' or 'nextunique'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+
+    var db,
+      t = async_test(),
+      records = [ { pKey: "primaryKey_0", iKey: "indexKey_0" },
+                  { pKey: "primaryKey_1", iKey: "indexKey_1" } ];
+
+    var open_rq = createdb(t);
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result;
+        var objStore = db.createObjectStore("test", {keyPath:"pKey"});
+
+        objStore.createIndex("index", "iKey");
+
+        for (var i = 0; i < records.length; i++)
+            objStore.add(records[i]);
+    };
+
+    open_rq.onsuccess = function(e) {
+        var count = 0;
+        var cursor_rq = db.transaction("test")
+                          .objectStore("test")
+                          .index("index")
+                          .openCursor(undefined, "next"); // XXX: Fx has issue with "undefined"
+
+        cursor_rq.onsuccess = t.step_func(function(e) {
+            var cursor = e.target.result;
+            if (!cursor) {
+                assert_equals(count, 2, "ran number of times");
+                t.done();
+            }
+
+            // First time checks key equal, second time checks key less than
+            assert_throws("DataError",
+                function() { cursor.continue(records[0].iKey); });
+
+            cursor.continue();
+
+            count++;
+        });
+    };
+
+</script>
+
+<div id="log"></div>

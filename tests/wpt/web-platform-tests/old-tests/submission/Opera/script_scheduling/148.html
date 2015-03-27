@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html><head>
+	<title>scheduler: insert multiple inline scripts; first script deletes subsequent script </title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+var t = async_test();
+</script>
+<div id="container"></div>
+<script>
+t.step(function() {
+  log("inline script #1");
+  var container = document.getElementById("container");
+
+  var frag = document.createDocumentFragment();
+  var frag_script_1 = document.createElement("script");
+  var frag_script_2 = document.createElement("script");
+  frag_script_2.id = "delete";
+  var frag_script_3 = document.createElement("script");
+
+  frag_script_1.textContent = "t.step(function() {log('inline script #2'); var s = document.getElementById('delete'); s.parentNode.removeChild(s)});";
+  frag_script_2.textContent = "t.step(function() {log('inline script #3');})";
+  frag_script_3.textContent = "t.step(function() {log('inline script #4');})";
+  
+  [frag_script_1, frag_script_2, frag_script_3].forEach(function(x) {frag.appendChild(x)});
+
+  container.appendChild(frag);
+});
+
+onload = t.step_func(function() {
+  assert_array_equals(eventOrder, ["inline script #1", "inline script #2", "inline script #3", "inline script #4"]);
+  t.done();
+});
+</script>
+</body>
+</html>

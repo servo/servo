@@ -1,0 +1,63 @@
+{"tests": [
+
+{"description": "valid irrelevant attribute value 'irrelevant'",
+"input": "<span irrelevant=irrelevant>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "valid irrelevant attribute value ''",
+"input": "<span irrelevant=''>",
+"fail-if": "invalid-attribute-value"},
+
+{"description": "invalid irrelevant attribute value due to uppercase",
+"input": "<span irrelevant=IRRELEVANT>",
+"fail-unless": "invalid-boolean-value"},
+
+{"description": "invalid irrelevant attribute value due to mixed case",
+"input": "<span irrelevant=IrReLeVaNt>",
+"fail-unless": "invalid-boolean-value"},
+
+{"description": "invalid irrelevant attribute value due to leading space",
+"input": "<span irrelevant=' irrelevant'>",
+"fail-unless": "invalid-boolean-value"},
+
+{"description": "invalid irrelevant attribute value due to trailing space",
+"input": "<span irrelevant='irrelevant '>",
+"fail-unless": "invalid-boolean-value"},
+
+{"description": "invalid irrelevant attribute value 'foo'",
+"input": "<span irrelevant=foo>",
+"fail-unless": "invalid-boolean-value"},
+
+{"description": "invalid irrelevant attribute value '0'",
+"input": "<span irrelevant=0>",
+"fail-unless": "invalid-boolean-value"},
+
+{"description": "invalid irrelevant attribute value '1'",
+"input": "<span irrelevant=1>",
+"fail-unless": "invalid-boolean-value"},
+
+{"description": "invalid irrelevant attribute value 'yes'",
+"input": "<span irrelevant=yes>",
+"fail-unless": "invalid-boolean-value"},
+
+{"description": "invalid irrelevant attribute value 'no'",
+"input": "<span irrelevant=no>",
+"fail-unless": "invalid-boolean-value"},
+
+{"description": "invalid irrelevant attribute value 'true'",
+"input": "<span irrelevant=true>",
+"fail-unless": "invalid-boolean-value"},
+
+{"description": "invalid irrelevant attribute value 'false'",
+"input": "<span irrelevant=false>",
+"fail-unless": "invalid-boolean-value"},
+
+{"description": "invalid irrelevant attribute value 'auto'",
+"input": "<span irrelevant=auto>",
+"fail-unless": "invalid-boolean-value"},
+
+{"description": "invalid irrelevant attribute value 'inherit'",
+"input": "<span irrelevant=inherit>",
+"fail-unless": "invalid-boolean-value"}
+
+]}

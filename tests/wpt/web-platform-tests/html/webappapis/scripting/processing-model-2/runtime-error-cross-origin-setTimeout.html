@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+ <head>
+  <title>window.onerror - runtime error in cross-origin setTimeout</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+  <div id=log></div>
+  <script>
+    setup({allow_uncaught_exception:true});
+    var t = async_test();
+    var t_col = async_test(document.title+' (column)');
+    var ran = false;
+    var col_value;
+    window.onerror = t.step_func(function(a, b, c, d){
+        ran = true;
+        col_value = d;
+        assert_equals(a, 'Script error.', 'first arg');
+        assert_equals(b, '', 'second arg');
+        assert_equals(c, 0, 'third arg');
+    });
+    function col_check() {
+        assert_equals(col_value, 0, 'fourth arg');
+        t_col.done();
+    }
+    var script = document.createElement('script');
+    script.src = location.href.replace('://', '://www1.').replace(/\/[^\/]+$/, '/support/undefined-variable-in-setTimeout.js');
+    document.body.appendChild(script);
+  </script>
+ </body>
+</html>

@@ -1,0 +1,114 @@
+#data
+&
+#errors
+#document-fragment
+| "&"
+
+#data
+&amp
+#errors
+#document-fragment
+| "&amp"
+
+#data
+&amp;
+#errors
+#document-fragment
+| "&"
+
+#data
+&AMP;
+#errors
+#document-fragment
+| "&AMP;"
+
+#data
+&lt;
+#errors
+#document-fragment
+| "<"
+
+#data
+&gt;
+#errors
+#document-fragment
+| ">"
+
+#data
+a&lrm;b
+#errors
+#document-fragment
+| "a‎b"
+
+#data
+a&rlm;b
+#errors
+#document-fragment
+| "a‏b"
+
+#data
+&quot;
+#errors
+#document-fragment
+| "&quot;"
+
+#data
+&nbsp;
+#errors
+#document-fragment
+| " "
+
+#data
+&copy;
+#errors
+#document-fragment
+| "&copy;"
+
+#data
+&&
+#errors
+#document-fragment
+| "&&"
+
+#data
+&1
+#errors
+#document-fragment
+| "&1"
+
+#data
+&1;
+#errors
+#document-fragment
+| "&1;"
+
+#data
+&<
+#errors
+#document-fragment
+| "&"
+
+#data
+&<c
+#errors
+#document-fragment
+| "&"
+| <span>
+
+#data
+&#32;
+#errors
+#document-fragment
+| "&#32;"
+
+#data
+&#x20;
+#errors
+#document-fragment
+| "&#x20;"
+
+#data
+&;
+#errors
+#document-fragment
+| "&;"

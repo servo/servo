@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>test implicit port number matching (requires port 80)</title>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script>
+      var head = document.getElementsByTagName('head')[0];
+      var script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = "http://www." + location.hostname + "/content-security-policy/generic/positiveTest.js";
+      head.appendChild(script);
+    </script>
+</head>
+<body>
+    <h1>test implicit port number matching (requires port 80)</h1>
+    <div id='log'></div>
+
+    <script async defer src='../support/checkReport.sub.js?reportExists=false'></script>
+</body>
+</html>

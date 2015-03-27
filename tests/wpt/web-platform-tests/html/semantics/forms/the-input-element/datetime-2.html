@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Form input type=datetime</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/multipage/common-microsyntaxes.html#global-dates-and-times">
+<link rel=help href="https://html.spec.whatwg.org/multipage/multipage/states-of-the-type-attribute.html#local-date-and-time-state-(type=datetime)">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  var datetime = [
+    // valid values
+    {value: "", expected: "", testname: "empty value"},
+    {value: "2014-01-01T11:11Z", expected: "2014-01-01T11:11Z", testname: "datetime input value set to 2014-01-01T11:11Z without min/max"},
+    {value: "2014-01-01 11:11Z", expected: "2014-01-01T11:11Z", testname: "datetime input value set to 2014-01-01 11:11Z without min/max"},
+    {value: "2014-01-01 11:11-04:00", expected: "2014-01-01T15:11Z", testname: "datetime input value set to 2014-01-01 11:11-04:00 without min/max"},
+    {value: "2014-01-01 11:11-0400", expected: "2014-01-01T15:11Z", testname: "datetime input value set to 2014-01-01 11:11-0400 without min/max"},
+    {value: "2014-01-01 11:11:00.000-04:00", expected: "2014-01-01T15:11Z", testname: "datetime input value set to 2014-01-01 11:11:00.000-04:00 without min/max"},
+    // invalid values
+    {value: "2014-01-01  11:11:00.000Z", expected: "", testname: "datetime input value set to 2014-01-01  11:11:00.000Z without min/max"},
+    {value: "2014-01-01 11:11:00.000", expected: "", testname: "datetime input value set to 2014-01-01 11:11:00.000 without min/max"},
+    {value: "2014-01-01 11:11:00.000+", expected: "", testname: "datetime input value set to 2014-01-01 11:11:00.000+ without min/max"},
+    {value: "2014-01-01 11:11:00.000+24", expected: "", testname: "datetime input value set to 2014-01-01 11:11:00.000+24 without min/max"},
+    {value: "2014-01-01 11:11:00.000+2360", expected: "", testname: "datetime input value set to 2014-01-01 11:11:00.000+2360 without min/max"},
+    {value: "2014-01-0 11:11:00.000+0400", expected: "", testname: "datetime input value set to 2014-01-0 11:11:00.000+0400 without min/max"},
+    {value: "2014-01-01 11:1:00.000+0400", expected: "", testname: "datetime input value set to 2014-01-01 11:1:00.000+0400 without min/max"},
+    // min/max
+    {value: "2014-01-01 11:11Z", attributes: { min: "2014-01-01T11:10Z" }, expected: "2014-01-01T11:11Z", testname: "Value >= min attribute"},
+    {value: "2014-01-01 11:10Z", attributes: { min: "2014-01-01T11:11Z" }, expected: "2014-01-01T11:11Z", testname: "Value < min attribute"},
+    {value: "2014-01-01 11:10Z", attributes: { max: "2014-01-01T11:11Z" }, expected: "2014-01-01T11:11Z", testname: "Value <= max attribute"},
+    {value: "2014-01-01 11:11Z", attributes: { max: "2014-01-01T11:10Z" }, expected: "2014-01-01T11:10Z", testname: "Value > max attribute"}
+  ];
+  for (var i = 0; i < datetime.length; i++) {
+    var w = datetime[i];
+    test(function() {
+      var input = document.createElement("input");
+      input.type = "datetime";
+      input.value = w.value;
+      for(var attr in w.attributes) {
+        input[attr] = w.attributes[attr];
+      }
+      assert_equals(input.value, w.expected);
+    }, w.testname);
+  }
+</script>

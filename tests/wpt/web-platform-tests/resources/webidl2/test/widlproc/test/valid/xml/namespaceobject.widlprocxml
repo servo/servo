@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <Module name="acme" id="::acme">
+    <webidl>[NamespaceObject]
+module acme {
+  
+  exception DeviceException { };
+
+  module pim {
+
+    [Constructor]
+    interface Contact { };
+
+    [Constructor,
+     NamedConstructor=RecurringEvent(long freq)]
+    interface CalendarEvent { };
+  };
+};</webidl>
+    <ExtendedAttributeList>
+      <ExtendedAttribute name="NamespaceObject"/>
+    </ExtendedAttributeList>
+    <Exception name="DeviceException" id="::acme::DeviceException">
+      <webidl>  exception DeviceException { };</webidl>
+    </Exception>
+    <Module name="pim" id="::acme::pim">
+      <webidl>  module pim {
+
+    [Constructor]
+    interface Contact { };
+
+    [Constructor,
+     NamedConstructor=RecurringEvent(long freq)]
+    interface CalendarEvent { };
+  };</webidl>
+      <Interface name="Contact" id="::acme::pim::Contact">
+        <webidl>    [Constructor]
+    interface Contact { };</webidl>
+        <ExtendedAttributeList>
+          <ExtendedAttribute name="Constructor"/>
+        </ExtendedAttributeList>
+      </Interface>
+      <Interface name="CalendarEvent" id="::acme::pim::CalendarEvent">
+        <webidl>    [Constructor,
+     NamedConstructor=RecurringEvent(long freq)]
+    interface CalendarEvent { };</webidl>
+        <ExtendedAttributeList>
+          <ExtendedAttribute name="Constructor"/>
+          <ExtendedAttribute name="NamedConstructor" value="RecurringEvent">
+            <ArgumentList>
+              <Argument name="freq">
+                <Type type="long"/>
+              </Argument>
+            </ArgumentList>
+          </ExtendedAttribute>
+        </ExtendedAttributeList>
+      </Interface>
+    </Module>
+  </Module>
+</Definitions>

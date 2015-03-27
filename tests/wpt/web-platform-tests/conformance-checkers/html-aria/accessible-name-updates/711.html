@@ -1,0 +1,55 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>ARIA 1.0 Test Case 711</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case 711</h1>
+    
+    <div id="TEST_ID_1">
+    </div>
+    
+    <h2>Description</h2>
+    <p>An element with an aria-live attribute is added to the document by a script 
+      during the onload event with the value="polite" and the element has a child 
+      DOM element node that contains text content. After the onload event completes 
+      the CSS 'visibility' property of the child DOM element node is changed 
+      to visibility="hidden".</p>
+    
+    <script type="text/javascript">  
+
+
+      function hideElement() {
+        var node  = document.getElementById('TEST_ID_2');  
+        node.setAttribute('style', 'visibility: hidden');        
+      }
+
+      function addLiveRegion() {
+        var node = document.getElementById('TEST_ID_1');  
+        
+        var live_node = document.createElement('div');
+        live_node.setAttribute('aria-live', 'polite');
+        live_node.setAttribute('id', 'TESTZ');
+
+        var element_node = document.createElement('div');
+        element_node.setAttribute('id', 'TEST_ID_2');
+        
+        var text_node = document.createTextNode('TEST TEXT');
+        
+        element_node.appendChild(text_node);
+        live_node.appendChild(element_node);
+        node.appendChild(live_node);
+        
+        setTimeout(hideElement,1000);
+      }
+
+      function onload() {
+        addLiveRegion();
+      }
+     
+      window.addEventListener('load', onload);
+    </script>
+  </body>
+  
+</html>

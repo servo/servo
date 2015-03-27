@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Resetting drag image on drag</title>
+<style type="text/css">
+span, strong
+	{color:green;
+	background-color:yellow;}
+strong
+	{color:red;}
+</style>
+<script type="application/ecmascript">
+function start(event)
+	{event.dataTransfer.effectAllowed = 'copy';
+	event.dataTransfer.setDragImage(document.querySelector('span'), 1, 1);}
+function resetImage(event)
+	{event.dataTransfer.setDragImage(document.querySelector('strong'), 1, 1);}
+</script>
+</head>
+<body>
+<p><a href="data:text/plain,1" ondragstart="start(event)" ondrag="resetImage(event)">Drag me</a></p>
+<p>Try to drag link above. You should see word <span>PASS</span> not <strong>FAIL</strong> in feedback overlay all the time.</p>
+</body>
+</html>

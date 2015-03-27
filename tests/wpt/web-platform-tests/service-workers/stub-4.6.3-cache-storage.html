@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<title>Service Workers: CacheStorage</title>
+    <head>
+        <link rel="help" href="https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#cache-storage">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+        <script src=/resources/WebIDLParser.js></script>
+        <script src=/resources/idlharness.js></script>
+
+    </head>
+    <body>
+
+<script type=text/plain id="idl_0">
+[Constructor(sequence<any> iterable)]
+interface CacheStorage {
+  Promise<any> match(ScalarValueString url, optional DOMString cacheName);
+  Promise<Cache> get(DOMString key);
+  Promise<boolean> has(DOMString key);
+  Promise<any> set(DOMString key, Cache val);
+  Promise<any> clear();
+  Promise<any> delete(DOMString key);
+  void forEach(CacheStorageIterationCallback callback, optional object thisArg);
+  Promise<sequence<any>> entries();
+  Promise<sequence<DOMString>> keys();
+  Promise<sequence<Cache>> values();
+  Promise<unsigned long> size();
+};
+
+callback CacheStorageIterationCallback = void (Cache value, DOMString key, CacheStorage map);
+</pre>
+
+<!--
+**Note**:[CacheStorage][1]interface is designed to largely conform
+to[ECMAScript 6 Map objects][2]but entirely async, and with additional
+convenience methods.
+
+[1]: #cache-storage-interface
+[2]: http://goo.gl/gNnDPO
+-->
+
+
+    <script type=text/plain id="untested_idls">
+        interface ScalarValueString {};
+        interface Cache {};
+    </pre>
+
+    <script>
+        var idl_array = new IdlArray();
+        idl_array.add_untested_idls(document.getElementById("untested_idls").textContent);
+        idl_array.add_idls(document.getElementById("idl_0").textContent);
+        idl_array.add_objects({
+            CacheStorage: ["throw new Error ('No object defined for the CacheStorage interface')"],
+            CacheStorageIterationCallback: ["throw new Error ('No object defined for the CacheStorageIterationCallback callback')"]
+        });
+        idl_array.test();
+    </script>
+
+    </body>
+</html>
+

@@ -1,0 +1,14 @@
+<!doctype html>
+<title>WebSockets: members of EventTarget</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.js?pipe=sub></script>
+<div id=log></div>
+<script>
+test(function(){
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/');
+  assert_equals(typeof ws.addEventListener, 'function');
+  assert_equals(typeof ws.removeEventListener, 'function');
+  assert_equals(typeof ws.dispatchEvent, 'function');
+});
+</script>

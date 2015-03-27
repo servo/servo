@@ -1,0 +1,19 @@
+<!doctype html>
+<title>document.title and the empty string</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#document.title">
+<meta name="assert" content="On setting document.title to the empty string, no text node must be created.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  var head = document.documentElement.firstChild;
+  head.removeChild(head.firstChild);
+  assert_equals(document.title, "");
+  document.title = "";
+  assert_equals(document.title, "");
+  assert_true(head.lastChild instanceof HTMLTitleElement, "Need a title element.");
+  assert_equals(head.lastChild.firstChild, null);
+});
+</script>

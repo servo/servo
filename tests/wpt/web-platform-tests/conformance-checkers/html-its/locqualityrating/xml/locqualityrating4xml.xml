@@ -1,0 +1,10 @@
+<doc xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+  <title>The Adventures of Tom Sawyer</title>
+  <its:span locQualityRatingVote="-1"
+  locQualityRatingVoteThreshold="10"
+  locQualityRatingProfileRef="http://example.org/qaModel/v13"><para>He got home pretty late that night, and when he climbed cautiously in at
+    the window, he uncovered an ambuscade, in the person of his aunt; and when
+    she saw the state his clothes were in her resolution to turn his Saturday
+    holiday into captivity at hard labor became adamantine in its
+    firmness.</para></its:span>
+</doc>

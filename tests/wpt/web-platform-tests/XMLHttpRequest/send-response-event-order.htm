@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onloadstart" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onloadend" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#event-xhr-loadstart" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#event-xhr-loadend" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following-sibling::ol/li[9]/ol/li[2] following-sibling::ol/li[9]/ol/li[3] following::a[contains(@href,'#make-upload-progress-notifications')]/.. following::a[contains(@href,'#make-progress-notifications')]/.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#make-upload-progress-notifications" data-tested-assertations="following::ul[1]/li[1] following::ul[1]/li[2]/ol[1]/li[2] following::ul[1]/li[2]/ol[1]/li[3] following::ul[1]/li[2]/ol[1]/li[4]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#make-progress-notifications" data-tested-assertations=".." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#infrastructure-for-the-send()-method" data-tested-assertations="following::a[contains(@href,'#switch-done')]/.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#switch-done" data-tested-assertations="following::ol[1]/li[3] following::ol[1]/li[4] following::ol[1]/li[5] following::ol[1]/li[6] following::ol[1]/li[7]" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>XMLHttpRequest: The send() method: event order when synchronous flag is unset</title>
+</head>
+
+<body>
+    <div id="log"></div>
+
+    <script type="text/javascript">
+        var test = async_test();
+
+        test.step(function()
+        {
+            var xhr = new XMLHttpRequest();
+            var expect =  ["loadstart", "upload.loadstart", "upload.progress", "upload.load", "upload.loadend", "progress", 4, "load", "loadend"];
+            var actual = [];
+
+            xhr.onreadystatechange = function()
+            {
+                test.step(function()
+                {
+                    if (xhr.readyState == 4)
+                    {
+                        actual.push(xhr.readyState);
+                    }
+                });
+            };
+
+            xhr.onloadstart        = function(e){ actual.push(e.type); };
+            xhr.onload             = function(e){ actual.push(e.type); };
+            xhr.onloadend          = function(e){ actual.push(e.type); VerifyResult()};
+            xhr.onprogress         = function(e){ actual.push(e.type);};
+
+            xhr.upload.onloadstart = function(e){ actual.push("upload." + e.type); };
+            xhr.upload.onload      = function(e){ actual.push("upload." + e.type); };
+            xhr.upload.onloadend   = function(e){ actual.push("upload." + e.type);};
+            xhr.upload.onprogress  = function(e){ actual.push("upload." + e.type);};
+
+            function VerifyResult()
+            {
+                test.step(function()
+                {
+                    assert_array_equals(actual, expect);
+                    test.done();
+                });
+            };
+
+            xhr.open("POST", "./resources/content.py", true);
+            xhr.send("Test Message");
+        });
+    </script>
+</body>
+</html>

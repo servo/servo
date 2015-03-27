@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+<title>Adding a track to a finished MediaStream</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStreamTrackList-add-void-MediaStreamTrack-track">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStreamTrack-stop-void">
+<link rel='stylesheet' href='/resources/testharness.css' media='all'/>
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your audio stream, then
+your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that adding a track to a finished
+MediaStream raises an INVALID_STATE_ERR exception.</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"}]'></script>
+<script>
+var t = async_test("Tests that an addition to a finished MediaStream raises an exception", {timeout:20000});
+t.step(function () {
+  var audio, video;
+
+  navigator.getUserMedia({audio:true}, gotAudio, function() {});
+  function gotAudio(stream) {
+    audio = stream;
+    navigator.getUserMedia({video:true}, gotVideo, function() {});
+  }
+
+  function gotVideo(stream) {
+    video = stream;
+    t.step(function () {
+       audio.getAudioTracks()[0].stop();
+       assert_true(audio.ended, "Audio stream is ended after stopping its only audio track");
+       assert_throws("INVALID_STATE_ERR", function () {
+          video.addTrack(audio.getAudioTracks()[0]);
+          }, "Adding a track from a finished stream raises an INVALID_STATE_ERR exception");
+       assert_throws("INVALID_STATE_ERR", function () {
+          audio.removeTrack(audio.getAudioTracks()[0]);
+          }, "Removing a track from a finished stream raises an INVALID_STATE_ERR exception");
+     });
+    t.done();
+  }
+});
+</script>
+</body>
+</html>

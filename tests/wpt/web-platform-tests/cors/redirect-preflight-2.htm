@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CORS - preflight after a redirect</title>
+<meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+<script src=/common/utils.js></script>
+
+<h1>Preflight after redirect</h1>
+
+<div id=log></div>
+<script>
+
+async_test(function() {
+    var test_id = "fail_" +  new Date().getTime()
+    var client = new XMLHttpRequest()
+    var last_url = CROSSDOMAIN + 'resources/cors-makeheader.py?origin=*&ident=' + test_id
+
+    client.open('GET', 'resources/cors-makeheader.py?origin=*&location=' + encodeURIComponent(last_url))
+    client.setRequestHeader('custom-header', 'admin')
+    client.onerror = this.step_func(function() {
+        this.done()
+    })
+    client.onload = this.step_func(function(e) { assert_unreached("Request should not succeed!") })
+    client.send()
+}, "Same-origin custom-header request, redirect to cross-origin fails after doing a non-successful preflight")
+
+
+async_test(function() {
+    var client = new XMLHttpRequest()
+    var uuid_token = token();
+    var last_url = CROSSDOMAIN + 'resources/cors-makeheader.py?headers=custom-header&origin=*&token=' + uuid_token;
+
+    client.open('GET', 'resources/cors-makeheader.py?origin=*&location=' + encodeURIComponent(last_url))
+    client.setRequestHeader('custom-header', 'admin')
+    client.onload = this.step_func(function() {
+        // Test that I got custom-header
+
+        /* To check whether we did a preflight */
+        client.open('GET', 'resources/cors-makeheader.py?check&token=' + uuid_token)
+        client.onload = this.step_func(function() {
+            assert_equals(client.response, "1", "did preflight")
+            this.done()
+        })
+        client.onerror = this.step_func(function(e) { assert_unreached("Error on getting preflight data") })
+        client.send()
+    })
+    client.onerror = this.step_func(function(e) { assert_unreached("Error during request", e) })
+    client.send()
+}, "Same-origin custom-header request, redirect to cross-origin succeeds after doing a preflight")
+
+
+</script>

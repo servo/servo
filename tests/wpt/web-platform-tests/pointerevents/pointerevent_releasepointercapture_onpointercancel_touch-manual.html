@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Release capture on pointercancel</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body class="scrollable">
+        <h1>Pointer Events Capture Test - release capture on pointercancel</h1>
+        <h4>
+            Test Description: This test checks if setCapture/releaseCapture functions works properly. Complete the following actions:
+            <ol>
+                <li> Touch black rectangle and do not release your touch
+                <li> Move your touch to scroll the page. "lostpointercapture" should be logged inside of the black rectangle immediately after "pointercancel"
+            </ol>
+        </h4>
+        Test passes if the proper behavior of the events is observed.
+        <div id="target0" style="background:black; color:white"></div>
+
+        <script type='text/javascript'>
+            var pointercancelGot = false;
+            var count=0;
+            var detected_pointertypes = {};
+            var test_pointerEvent = async_test("pointer capture is released on pointercancel");
+
+            var target0 = document.getElementById('target0');
+
+            add_completion_callback(showPointerTypes);
+
+            window.onload = function() {
+                on_event(target0, 'pointerdown', function(e) {
+                    detected_pointertypes[e.pointerType] = true;
+                    test_pointerEvent.step(function () {
+                        assert_equals(e.pointerType, "touch", "Test should be run using a touch as input");
+                    });
+                    isPointerCapture = true;
+                    sPointerCapture(e);
+                    pointercancelGot = false;
+                });
+
+                on_event(target0, 'gotpointercapture', function(e) {
+                    log("gotpointercapture", document.getElementById('target0'));
+                });
+
+                // If the setPointerCapture method has been invoked on the pointer specified by pointerId, and the releasePointerCapture method has not been invoked, a lostpointercapture event must be dispatched to the element on which the setPointerCapture method was invoked. Furthermore, subsequent events for the specified pointer must follow normal hit testing mechanisms for determining the event target.
+                // TA: 4.4
+                on_event(target0, 'lostpointercapture', function(e) {
+                    log("lostpointercapture", document.getElementById('target0'));
+                    test_pointerEvent.step(function () {
+                        assert_true(pointercancelGot, "pointercancel was received before lostpointercapture");
+                    });
+                    test_pointerEvent.done();
+                });
+
+                on_event(target0, 'pointercancel', function(e) {
+                    log("pointercancel", target0);
+                    pointercancelGot = true;
+                });
+            }
+        </script>
+        <h1>Pointer Events Capture Test</h1>
+        <div id="complete-notice">
+            <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

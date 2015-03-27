@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBIndex.multiEntry: array keyPath with multiEntry</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<link rel=help href="http://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#key-construct">
+<link rel=assert title="XXX">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+    createdb(async_test(document.title, {timeout: 10000})).onupgradeneeded = function(e) {
+        var store = e.target.result.createObjectStore("store");
+
+        assert_throws('InvalidAccessError', function() {
+            store.createIndex('actors', ['name'], { multiEntry: true })
+        });
+
+        this.done();
+    };
+</script>
+
+<div id="log"></div>

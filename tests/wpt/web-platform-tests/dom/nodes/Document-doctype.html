@@ -1,0 +1,21 @@
+<!-- comment -->
+<!doctype html>
+<meta charset=utf-8>
+<title>Document.doctype</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-document-doctype">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  assert_true(document.doctype instanceof DocumentType,
+              "Doctype should be a DocumentType");
+  assert_equals(document.doctype, document.childNodes[1]);
+}, "Window document with doctype");
+
+test(function() {
+  var newdoc = new Document();
+  newdoc.appendChild(newdoc.createElement("html"));
+  assert_equals(newdoc.doctype, null);
+}, "new Document()");
+</script>

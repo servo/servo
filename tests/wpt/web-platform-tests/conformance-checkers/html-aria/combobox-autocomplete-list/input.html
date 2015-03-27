@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>Input with role="combobox" and aria-autocomplete="list"</title>
+   </head>
+   <body>
+   	<input tabindex="0" type="text" id="test" role="combobox" aria-label="Tag" aria-expanded="true"
+   		aria-autocomplete="list" aria-owns="owned_listbox" aria-activedescendant="selected_option" />
+   	<ul role="listbox" id="owned_listbox">
+   		<li role="option">Zebra</li>
+   		<li role="option" id="selected_option" aria-selected="true">Zoom</li>
+   	</ul>
+   </body>
+</html>

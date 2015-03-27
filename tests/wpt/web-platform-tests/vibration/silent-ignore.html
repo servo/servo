@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'/>
+    <title>Vibration API: test that calls to vibrate() are silently ignored when the device cannot vibrate</title>
+    <link rel='author' title='Robin Berjon' href='mailto:robin@berjon.com'/>
+    <link rel='help' href='http://www.w3.org/TR/vibration/#methods'/>
+    <meta name='flags' content='dom, no-vibrator'/>
+    <meta name='assert' content='If the device does not provide a vibration mechanism, or it is disabled, the user agent must silently ignore any invocations of the vibrate() method.'/>
+    <link rel='stylesheet' href='/resources/testharness.css' media='all'/>
+  </head>
+  <body>
+    <h1>Description</h1>
+    <p>
+      <strong>This test is only useful on devices that do not have vibration capability</strong>.
+      If your device supports vibration, then <strong>skip</strong> this test. An implementation
+      supporting this API but running on a device that cannot vibrate must silently ignore the
+      call (we test that it doesn't throw).
+    </p>
+    <div id='log'></div>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/common/vendor-prefix.js' data-prefixed-objects='[{"ancestors":["navigator"], "name":"vibrate"}]'></script>
+    <script>
+      if (undefined !== navigator.vibrate) {
+          test(function () {
+              assert_true(navigator.vibrate(1000), "vibrate() returns true when vibration is not supported");
+          }, "Calling vibrate returns true");
+      }
+    </script>
+  </body>
+</html>

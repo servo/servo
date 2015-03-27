@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>  interface Node {
+    readonly attribute unsigned short nodeType;
+  };
+
+  interface EventTarget {
+    void addEventListener(DOMString type,
+                          <ref>EventListener</ref> listener,
+                          boolean useCapture);
+  };
+
+  <ref>Node</ref> implements <ref>EventTarget</ref>;</webidl>
+  <Interface name="Node" id="::Node">
+    <webidl>  interface Node {
+    readonly attribute unsigned short nodeType;
+  };</webidl>
+    <Attribute readonly="readonly" name="nodeType" id="::Node::nodeType">
+      <webidl>    readonly attribute unsigned short nodeType;</webidl>
+      <Type type="unsigned short"/>
+    </Attribute>
+  </Interface>
+  <Interface name="EventTarget" id="::EventTarget">
+    <webidl>  interface EventTarget {
+    void addEventListener(DOMString type,
+                          <ref>EventListener</ref> listener,
+                          boolean useCapture);
+  };</webidl>
+    <Operation name="addEventListener" id="::EventTarget::addEventListener">
+      <webidl>    void addEventListener(DOMString type,
+                          <ref>EventListener</ref> listener,
+                          boolean useCapture);</webidl>
+      <Type type="void"/>
+      <ArgumentList>
+        <Argument name="type">
+          <Type type="DOMString"/>
+        </Argument>
+        <Argument name="listener">
+          <Type name="EventListener"/>
+        </Argument>
+        <Argument name="useCapture">
+          <Type type="boolean"/>
+        </Argument>
+      </ArgumentList>
+    </Operation>
+  </Interface>
+  <Implements name1="Node" name2="EventTarget">
+    <webidl>  <ref>Node</ref> implements <ref>EventTarget</ref>;</webidl>
+  </Implements>
+</Definitions>

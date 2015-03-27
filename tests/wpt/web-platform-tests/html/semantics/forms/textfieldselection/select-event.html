@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>text field selection: select()</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#textFieldSelection">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<textarea>foobar</textarea>
+<script>
+  var input_types = ["text", "search", "tel", "url", "password"],
+      t1 = async_test("select() on textarea queues select event"),
+      q1 = false;
+
+  input_types.forEach(function(type) {
+    var input = document.createElement("input"),
+        t = async_test("select() on input type " + type + " queues select event"),
+        q = false;
+    t.step(function() {
+      input.type = type;
+      input.value = "foobar";
+      document.body.appendChild(input);
+      input.onselect = t.step_func_done(function(e) {
+        assert_true(q, "event should be queued");
+        assert_true(e.isTrusted, "event is trusted");
+        assert_true(e.bubbles, "event bubbles");
+        assert_false(e.cancelable, "event is not cancelable");
+      });
+      input.select();
+      q=true;
+    });
+  });
+
+  document.querySelector("textarea").onselect = t1.step_func_done(function(e) {
+    assert_true(q1, "event should be queued");
+    assert_true(e.isTrusted, "event is trusted");
+    assert_true(e.bubbles, "event bubbles");
+    assert_false(e.cancelable, "event is not cancelable");
+  });
+
+  t1.step(function() {
+    document.querySelector("textarea").select();
+    q1=true;
+  });
+</script>

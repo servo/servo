@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Web Notifications Test: notification - close (basic)</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Xin Liu" href="mailto:xinx.liu@intel.com">
+<link rel="help" title="4.6 Closing a notification" href="http://www.w3.org/TR/notifications/#closing-a-notification">
+<meta name="flags" content="interact">
+<meta name="assert" content="The notification.close() method will close this notification.">
+<body>
+  <p>Test passes if a notification popups and it disappears after a while(about 3 seconds).</p>
+  <script>
+    var closetime = 3000;
+    var notification = new Notification("New Email Received", {
+      body: "Room 101"
+    });
+    setTimeout(function() {
+      notification.close();
+    }, closetime);
+  </script>
+</body>
+

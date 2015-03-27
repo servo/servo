@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBObjectStore.add() - Attempt to call 'add' without an key parameter when the object store uses out-of-line keys </title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+    var db,
+      t = async_test(),
+      record = { property: "data" };
+
+    var open_rq = createdb(t);
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result;
+
+        var rq,
+          objStore = db.createObjectStore("store");
+
+        assert_throws("DataError",
+            function() { rq = objStore.add(record); });
+
+        assert_equals(rq, undefined);
+        t.done();
+    };
+</script>
+
+<div id="log"></div>

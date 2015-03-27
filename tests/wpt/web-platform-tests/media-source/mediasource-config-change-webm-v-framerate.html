@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebM video-only frame rate change.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+        <script src="mediasource-config-changes.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+            mediaSourceConfigChangeTest("webm", "v-128k-320x240-24fps-8kfr", "v-128k-320x240-30fps-10kfr", "Tests webm video-only frame rate changes.");
+        </script>
+    </body>
+</html>

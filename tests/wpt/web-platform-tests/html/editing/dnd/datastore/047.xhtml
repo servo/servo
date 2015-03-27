@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>dataTransfer.types during PNG image drag and drop</title>
+<style type="text/css">
+div
+	{height:100px;
+	width:100px;
+	padding:20px;
+	background-color:silver;}
+</style>
+<script type="application/ecmascript">
+<![CDATA[
+var dataTypes = ['text/uri-list', 'text/plain', 'application/xml', 'application/xhtml+xml', 'application/mathml+xml', 'image/svg+xml', 'text/html', 'text/x-example'],
+data = ['data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAEq0lEQVR42u1dvU4bQRAeR0RCCilSp0peIoKGB4DSXYRDlcZlFClKBI4bB/kV/AymIDwCTahiicaioEOxhCsjWVTJziyKMfYZn+9ud3bvG2mEZB13u9+nndmf2Rki7fKFXtEBbVKD9o22jB4bPaND6hm9Mjo0enevw/vfevKMfbYl/8vv4HdBUkvFALhltG2A7dN3+pur8jv53fwN/hZkjjRo3eiuAatjdJA7CcnkDOSb/G1uQ6mFzUeDagaQrvl764yEJOU22LbUymXaGrRhOt40OvJOQvLIGUkbP9GLeIn4SM9NJ+tOTVI+Jq0ubY9sVFRNxy6DIWKWmEvpQ/ByQNumI+fBEjHrZ86lT8HJV3ptGn8aDRGzxJxKHwMZFe9Mg6+jJWNCyrX0VbUc0nuj4+jJmPiWsfRZodN+ZvSoNETMjpYjwUCFfKaXpjEnpSVjQsqJYOF5ZLw1elF6MiakXAgmnpw378DegIgZUm4EGw8jA2QsIuUbvXHpM2CmljFfhfsUO5uCA0/j6AudfZV5arv6WuVHcYs+ALwqKTkvHnmLoEwr8CJW9Llts9iNwvj3plzsfeWyIRnzrq37kfIzq6naBpA5a6bzlJgOl/SMkl+rklEFgIX5k5THwTYgIdwzcP2jhM/o19KsOeoArnBS6suaqo2gQnXCJWSwXNwXB4gBMFekNBeTwSGUmiMK4yNktDhsleNaAZRrUvYWmasuQHJOSDdpdKyriEIvo9maexWC70gAIF/bKTvzzFUH4HgbJZ3HdFSw9vC6lfKHpq7X8X07AOOblK2HhLQBindC2g/9Rx+gePcj/cnqHIDoUFm1c9gjwNAy/d0kyXIAMLSYrQ8kqScAhhbH3iLJBwIwtBByTJKkBWBoIeSMJHMOwNBCyG+SdEYAQ4tTvyLJMQUwtBAyJEn8BTC0EHIHQhQSApOlzGTBqaty6jzVAhhaCOlhYahuYYitE02EHGNzURchLZItX4ChhZB9HFBpUjmgwhGuHv0feI0gBw1T3j7CgHT5jzYC5XQRsjUdSsrhjADGl7ka0EylBgRb+ySkMy9rww7A8Waududf2MH9Qh9k3CbXLsGVNh/mqrvojuEeQHI+Qmq4Fq1ndIyeruaDxAEuCWk+ncmB0z3gepubtQenMUHyGTWELJl8xk6B15CeqVAyLtPXtUICsyJnVivWs+J0dAAwbzLOkQRTk2YuKsapTQFkXqPjlDILEinnRcZ1fpXdkGo866xqnH9FNyTjz0JIQZXcuPQCAE5rqo6oMEFBl7RknBRfTg8lj5Yl48JdGT0ueIWiYIvIuHFfPg9l85LJcF42b+JTUFjysZnyVlhy2qfA0asovTo9+0JxYnWC8t0KBQXuFYrdkIy3mBj3LbeNQrejZTuqOlbcl8znGTqcfjXoM3pboqgaPhEPxda1qgcVYsRt5TanDkgISWzcV1N1hCS3jdu4dNxUDMIhlBzXysHGGspkcBtsW2pPh3fGLrZ2ya5cXHFp0qxJ6si3E68EQCpy344vQRZxO5jfye+2d/oqgHsV02Z3lvcl9QTnA+EkLZw5h9MZcY4pTvxldXj/W0+esc+25H/5HQGYon+Q5f+MwFz+8QAAAABJRU5ErkJggg==', 'PASS', '<result>PASS</result>', '<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Data store item</title></head><body><p>PASS</p></body></html>', '<math xmlns="http://www.w3.org/1998/Math/MathML"><mn>1</mn></math>', '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="100px" height="50px" viewBox="0 0 100 50"><text x="0" y="40" font-size="40" fill="green">PASS</text></svg>', '<!DOCTYPE html><html><head><title>Data store item</title></head><body><p>PASS</p></body></html>', 'PASS'],
+e = 0, result = true;
+function start(event)
+	{event.dataTransfer.effectAllowed = 'copy';
+	for(var i = event.dataTransfer.items.length; i != 0; i--)
+		{delete event.dataTransfer.items[i-1]}
+	for(var i = 0; i != dataTypes.length; i++)
+		{event.dataTransfer.items.add(data[i],dataTypes[i])}
+	if(event.dataTransfer.items.length != dataTypes.length)
+			{say('items.length (ondragstart) : FAIL (items.length should be' + dataTypes.length + ')')}
+	if(event.dataTransfer.types.length != dataTypes.length)
+			{say('types.length (ondragstart) : FAIL (items.length should be' + dataTypes.length + ')')}
+	for(var i = 0; i != dataTypes.length; i++)
+		{if(event.dataTransfer.getData(dataTypes[i]) != data[i])
+			{say('getData (ondragstart): FAIL (getData(' + dataTypes[i] + ') returns wrong data)')}
+		if(event.dataTransfer.types[i] != dataTypes[i])
+			{say('Types (ondragstart): FAIL (dataTransfer.types[' + i + '] returns wrong value)')}
+		}
+	for(var i = 0; i != event.dataTransfer.items.length; i++)
+		{if(event.dataTransfer.items[i].kind != 'string')
+			{say('Item kind (ondragstart): FAIL (items[' + i + '].kind should be string)')}
+		if(event.dataTransfer.items[i].type != dataTypes[i])
+			{say('Item type (ondragstart): FAIL (items[' + i + '].type should be' + dataTypes[i] + ')')}
+		event.dataTransfer.items[i].getAsString(
+			function ()
+				{if(arguments[0] != data[e++])
+					{say('getAsString : FAIL (items[' + i + '].getAsString should pass' + data[e] + ')')}
+				}
+			);
+		}
+	}
+function dragElement(event)
+	{event.dataTransfer.items.clear();
+	if(event.dataTransfer.items.length != dataTypes.length)
+		{say('items.length (ondrag) : FAIL (items.length should be' + dataTypes.length + ')')}
+	if(event.dataTransfer.types.length != dataTypes.length)
+			{say('types.length (ondrag) : FAIL (items.length should be' + dataTypes.length + ')')}
+	for(var i = 0; i != dataTypes.length; i++)
+		{if(event.dataTransfer.types[i] != dataTypes[i])
+			{say('Types (ondrag): FAIL (dataTransfer.types[' + i + '] returns wrong value)')}
+		}
+	for(var i = 0; i != event.dataTransfer.items.length; i++)
+		{if(event.dataTransfer.items[i].kind != 'string')
+			{say('Item kind (ondrag): FAIL (items[' + i + '].kind should be string)')}
+		if(event.dataTransfer.items[i].type != dataTypes[i])
+			{say('Item type (ondrag): FAIL (items[' + i + '].type should be' + dataTypes[i] + ')')}
+		event.dataTransfer.items[i].getAsString(
+			function ()
+				{if(arguments[0])
+					{say('getAsString : FAIL (items[' + i + '].getAsString should not reveal data to drag event handler)')}
+				}
+			);
+		}
+	}
+function enterElement(event)
+	{event.preventDefault();
+	event.dataTransfer.items.clear();
+	if(event.dataTransfer.items.length != dataTypes.length)
+		{say('items.length (ondragenter) : FAIL (items.length should be' + dataTypes.length + ')')}
+	if(event.dataTransfer.types.length != dataTypes.length)
+			{say('types.length (ondragenter) : FAIL (items.length should be' + dataTypes.length + ')')}
+	for(var i = 0; i != dataTypes.length; i++)
+		{if(event.dataTransfer.types[i] != dataTypes[i])
+			{say('Types (ondragenter): FAIL (dataTransfer.types[' + i + '] returns wrong value)')}
+		}
+	for(var i = 0; i != event.dataTransfer.items.length; i++)
+		{delete event.dataTransfer.items[i];
+		if(event.dataTransfer.items[i].kind != 'string')
+			{say('Item kind (ondragenter): FAIL (items[' + i + '].kind should be string)')}
+		if(event.dataTransfer.items[i].type != dataTypes[i])
+			{say('Item type (ondragenter): FAIL (items[' + i + '].type should be' + dataTypes[i] + ')')}
+		event.dataTransfer.items[i].getAsString(
+			function ()
+				{if(arguments[0])
+					{say('getAsString : FAIL (items[' + i + '].getAsString should not reveal data to drag event handler)')}
+				}
+			);
+		}
+	}
+function overElement(event)
+	{event.preventDefault();
+	event.dataTransfer.items.clear();
+	if(event.dataTransfer.items.length != dataTypes.length)
+		{say('items.length (ondragover) : FAIL (items.length should be' + dataTypes.length + ')')}
+	if(event.dataTransfer.types.length != dataTypes.length)
+			{say('types.length (ondragover) : FAIL (items.length should be' + dataTypes.length + ')')}
+	for(var i = 0; i != dataTypes.length; i++)
+		{if(event.dataTransfer.types[i] != dataTypes[i])
+			{say('Types (ondragover): FAIL (dataTransfer.types[' + i + '] returns wrong value)')}
+		}
+	for(var i = 0; i != event.dataTransfer.items.length; i++)
+		{if(event.dataTransfer.items[i].kind != 'string')
+			{say('Item kind (ondragover): FAIL (items[' + i + '].kind should be string)')}
+		if(event.dataTransfer.items[i].type != dataTypes[i])
+			{say('Item type (ondragover): FAIL (items[' + i + '].type should be' + dataTypes[i] + ')')}
+		event.dataTransfer.items[i].getAsString(
+			function ()
+				{if(arguments[0])
+					{say('getAsString : FAIL (items[' + i + '].getAsString should not reveal data to dragover event handler)')}
+				}
+			);
+		}
+	}
+function dataDrop(event)
+	{e = 0;
+	event.dataTransfer.items.clear();
+	if(event.dataTransfer.items.length != dataTypes.length)
+			{say('items.length (ondrop) : FAIL (items.length should be' + dataTypes.length + ')')}
+	if(event.dataTransfer.types.length != dataTypes.length)
+			{say('types.length (ondrop) : FAIL (items.length should be' + dataTypes.length + ')')}
+	for(var i = 0; i != dataTypes.length; i++)
+		{if(event.dataTransfer.types[i] != dataTypes[i])
+			{say('Types (ondrop): FAIL (dataTransfer.types[' + i + '] returns wrong value)')}
+		if(event.dataTransfer.getData(dataTypes[i]) != data[i])
+			{say('getData (ondrop): FAIL (getData(' + dataTypes[i] + ') returns wrong data)')}
+		}
+	for(var i = 0; i != event.dataTransfer.items.length; i++)
+		{delete event.dataTransfer.items[i];
+		if(event.dataTransfer.items[i].kind != 'string')
+			{say('Item kind (ondrop): FAIL (items[' + i + '].kind should be string)')}
+		if(event.dataTransfer.items[i].type != dataTypes[i])
+			{say('Item type (ondrop): FAIL (items[' + i + '].type should be' + dataTypes[i] + ')')}
+		event.dataTransfer.items[i].getAsString(
+			function ()
+				{if(arguments[0] != data[e++])
+					{say('getAsString : FAIL (items[' + i + '].getAsString should pass' + data[e] + ')')}
+				}
+			);
+		}
+	document.querySelector('div').setAttribute('style','background-color:' + (result?'green':'red'));}
+function say(it)
+	{result = false;
+	document.querySelector('pre').appendChild(document.createTextNode(it + '\n'));}
+]]>
+</script>
+</head>
+<body>
+<p><img ondragstart="start(event)" ondrag="dragElement(event)" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAEq0lEQVR42u1dvU4bQRAeR0RCCilSp0peIoKGB4DSXYRDlcZlFClKBI4bB/kV/AymIDwCTahiicaioEOxhCsjWVTJziyKMfYZn+9ud3bvG2mEZB13u9+nndmf2Rki7fKFXtEBbVKD9o22jB4bPaND6hm9Mjo0enevw/vfevKMfbYl/8vv4HdBUkvFALhltG2A7dN3+pur8jv53fwN/hZkjjRo3eiuAatjdJA7CcnkDOSb/G1uQ6mFzUeDagaQrvl764yEJOU22LbUymXaGrRhOt40OvJOQvLIGUkbP9GLeIn4SM9NJ+tOTVI+Jq0ubY9sVFRNxy6DIWKWmEvpQ/ByQNumI+fBEjHrZ86lT8HJV3ptGn8aDRGzxJxKHwMZFe9Mg6+jJWNCyrX0VbUc0nuj4+jJmPiWsfRZodN+ZvSoNETMjpYjwUCFfKaXpjEnpSVjQsqJYOF5ZLw1elF6MiakXAgmnpw378DegIgZUm4EGw8jA2QsIuUbvXHpM2CmljFfhfsUO5uCA0/j6AudfZV5arv6WuVHcYs+ALwqKTkvHnmLoEwr8CJW9Llts9iNwvj3plzsfeWyIRnzrq37kfIzq6naBpA5a6bzlJgOl/SMkl+rklEFgIX5k5THwTYgIdwzcP2jhM/o19KsOeoArnBS6suaqo2gQnXCJWSwXNwXB4gBMFekNBeTwSGUmiMK4yNktDhsleNaAZRrUvYWmasuQHJOSDdpdKyriEIvo9maexWC70gAIF/bKTvzzFUH4HgbJZ3HdFSw9vC6lfKHpq7X8X07AOOblK2HhLQBindC2g/9Rx+gePcj/cnqHIDoUFm1c9gjwNAy/d0kyXIAMLSYrQ8kqScAhhbH3iLJBwIwtBByTJKkBWBoIeSMJHMOwNBCyG+SdEYAQ4tTvyLJMQUwtBAyJEn8BTC0EHIHQhQSApOlzGTBqaty6jzVAhhaCOlhYahuYYitE02EHGNzURchLZItX4ChhZB9HFBpUjmgwhGuHv0feI0gBw1T3j7CgHT5jzYC5XQRsjUdSsrhjADGl7ka0EylBgRb+ySkMy9rww7A8Waududf2MH9Qh9k3CbXLsGVNh/mqrvojuEeQHI+Qmq4Fq1ndIyeruaDxAEuCWk+ncmB0z3gepubtQenMUHyGTWELJl8xk6B15CeqVAyLtPXtUICsyJnVivWs+J0dAAwbzLOkQRTk2YuKsapTQFkXqPjlDILEinnRcZ1fpXdkGo866xqnH9FNyTjz0JIQZXcuPQCAE5rqo6oMEFBl7RknBRfTg8lj5Yl48JdGT0ueIWiYIvIuHFfPg9l85LJcF42b+JTUFjysZnyVlhy2qfA0asovTo9+0JxYnWC8t0KBQXuFYrdkIy3mBj3LbeNQrejZTuqOlbcl8znGTqcfjXoM3pboqgaPhEPxda1qgcVYsRt5TanDkgISWzcV1N1hCS3jdu4dNxUDMIhlBzXysHGGspkcBtsW2pPh3fGLrZ2ya5cXHFp0qxJ6si3E68EQCpy344vQRZxO5jfye+2d/oqgHsV02Z3lvcl9QTnA+EkLZw5h9MZcY4pTvxldXj/W0+esc+25H/5HQGYon+Q5f+MwFz+8QAAAABJRU5ErkJggg==" alt="PNG circle"/></p>
+<p>Drag circle above to the silver box below and drop it. Silver box should turn green.</p>
+<div ondragenter="enterElement(event)" ondragover="overElement(event)" ondrop="dataDrop(event)"/>
+<pre/>
+</body>
+</html>

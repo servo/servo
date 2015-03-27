@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html><head>
+	<title> scheduler: document.write several scripts into IFRAME </title>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+	<script src="testlib/testlib.js"></script>
+
+</head>
+<body>
+
+	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+  <iframe style="width:1px;height:1px"></iframe>
+
+  <script type="text/javascript">
+    var doc = document.getElementsByTagName('iframe')[0].contentDocument;
+    doc.open();
+
+    var html = '<html><head><title>test</title></head>'+
+              '<script>top.log("inline script #1");'+
+              '<\/script>'+
+              /* made url unique because Chrome will change
+                 order depending on file cached status */
+              '<script src="scripts/include-6.js?'+new Date().getTime()+'"><\/script>'+
+              '</head>'+
+              '<body>'+
+              '<div id="foo"></div>'+
+              '</body></html>'+
+              '<script>top.log("inline script #2");<\/script>';
+    log("calling document.write");
+    doc.write(html);
+
+    log("calling document.close");
+    doc.close();
+
+    var t = async_test()
+
+
+    function test() {
+      if( !window.include6Loaded )return setTimeout(t.step_func(test),200); //  try checking again if external script didn't run yet
+      assert_array_equals(eventOrder, ['calling document.write',
+          'inline script #1',
+          'calling document.close',
+          'external script (#foo found? NO)',
+          'inline script #2'
+        ]);
+      t.done();
+}
+
+    onload = t.step_func(test)
+  </script>
+</head>
+
+</body>
+</html>

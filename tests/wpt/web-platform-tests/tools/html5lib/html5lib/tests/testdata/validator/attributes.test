@@ -1,0 +1,1035 @@
+{"tests": [
+
+{"description": "allowed 'class' attribute on <span>",
+"input": "<span class>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'contenteditable' attribute on <span>",
+"input": "<span contenteditable>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'contextmenu' attribute on <span>",
+"input": "<span contextmenu>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'dir' attribute on <span>",
+"input": "<span dir>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'draggable' attribute on <span>",
+"input": "<span draggable>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'id' attribute on <span>",
+"input": "<span id>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'irrelevant' attribute on <span>",
+"input": "<span irrelevant>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'lang' attribute on <span>",
+"input": "<span lang>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'ref' attribute on <span>",
+"input": "<span ref>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'tabindex' attribute on <span>",
+"input": "<span tabindex>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'template' attribute on <span>",
+"input": "<span template>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'title' attribute on <span>",
+"input": "<span title>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onabort' attribute on <span>",
+"input": "<span onabort>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onbeforeunload' attribute on <span>",
+"input": "<span onbeforeunload>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onblur' attribute on <span>",
+"input": "<span onblur>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onchange' attribute on <span>",
+"input": "<span onchange>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onclick' attribute on <span>",
+"input": "<span onclick>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'oncontextmenu' attribute on <span>",
+"input": "<span oncontextmenu>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'ondblclick' attribute on <span>",
+"input": "<span ondblclick>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'ondrag' attribute on <span>",
+"input": "<span ondrag>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'ondragend' attribute on <span>",
+"input": "<span ondragend>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'ondragenter' attribute on <span>",
+"input": "<span ondragenter>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'ondragleave' attribute on <span>",
+"input": "<span ondragleave>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'ondragover' attribute on <span>",
+"input": "<span ondragover>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'ondragstart' attribute on <span>",
+"input": "<span ondragstart>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'ondrop' attribute on <span>",
+"input": "<span ondrop>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onerror' attribute on <span>",
+"input": "<span onerror>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onfocus' attribute on <span>",
+"input": "<span onfocus>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onkeydown' attribute on <span>",
+"input": "<span onkeydown>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onkeypress' attribute on <span>",
+"input": "<span onkeypress>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onkeyup' attribute on <span>",
+"input": "<span onkeyup>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onload' attribute on <span>",
+"input": "<span onload>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onmessage' attribute on <span>",
+"input": "<span onmessage>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onmousedown' attribute on <span>",
+"input": "<span onmousedown>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onmousemove' attribute on <span>",
+"input": "<span onmousemove>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onmouseout' attribute on <span>",
+"input": "<span onmouseout>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onmouseover' attribute on <span>",
+"input": "<span onmouseover>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onmouseup' attribute on <span>",
+"input": "<span onmouseup>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onmousewheel' attribute on <span>",
+"input": "<span onmousewheel>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onresize' attribute on <span>",
+"input": "<span onresize>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onscroll' attribute on <span>",
+"input": "<span onscroll>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onselect' attribute on <span>",
+"input": "<span onselect>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onsubmit' attribute on <span>",
+"input": "<span onsubmit>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onunload' attribute on <span>",
+"input": "<span onunload>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'type' attribute on <command>",
+"input": "<command type>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'label' attribute on <command>",
+"input": "<command label>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'icon' attribute on <command>",
+"input": "<command icon>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'hidden' attribute on <command>",
+"input": "<command hidden>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'disabled' attribute on <command>",
+"input": "<command disabled>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'checked' attribute on <command>",
+"input": "<command checked>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'radiogroup' attribute on <command>",
+"input": "<command radiogroup>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'default' attribute on <command>",
+"input": "<command default>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'value' attribute on <meter>",
+"input": "<meter value>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'min' attribute on <meter>",
+"input": "<meter min>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'low' attribute on <meter>",
+"input": "<meter low>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'high' attribute on <meter>",
+"input": "<meter high>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'max' attribute on <meter>",
+"input": "<meter max>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'optimum' attribute on <meter>",
+"input": "<meter optimum>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'cite' attribute on <ins>",
+"input": "<ins cite>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'datetime' attribute on <ins>",
+"input": "<ins datetime>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'multiple' attribute on <datagrid>",
+"input": "<datagrid multiple>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'disabled' attribute on <datagrid>",
+"input": "<datagrid disabled>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'name' attribute on <meta>",
+"input": "<meta name>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'http-equiv' attribute on <meta>",
+"input": "<meta http-equiv>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'content' attribute on <meta>",
+"input": "<meta content>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'charset' attribute on <meta>",
+"input": "<meta charset>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'src' attribute on <video>",
+"input": "<video src>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'autoplay' attribute on <video>",
+"input": "<video autoplay>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'start' attribute on <video>",
+"input": "<video start>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'loopstart' attribute on <video>",
+"input": "<video loopstart>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'loopend' attribute on <video>",
+"input": "<video loopend>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'end' attribute on <video>",
+"input": "<video end>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'loopcount' attribute on <video>",
+"input": "<video loopcount>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'controls' attribute on <video>",
+"input": "<video controls>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'style' attribute on <font>",
+"input": "<font style>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'media' attribute on <style>",
+"input": "<style media>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'type' attribute on <style>",
+"input": "<style type>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'scoped' attribute on <style>",
+"input": "<style scoped>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'alt' attribute on <img>",
+"input": "<img alt>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'src' attribute on <img>",
+"input": "<img src>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'usemap' attribute on <img>",
+"input": "<img usemap>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'ismap' attribute on <img>",
+"input": "<img ismap>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'height' attribute on <img>",
+"input": "<img height>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'width' attribute on <img>",
+"input": "<img width>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'alt' attribute on <area>",
+"input": "<area alt>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'coords' attribute on <area>",
+"input": "<area coords>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'shape' attribute on <area>",
+"input": "<area shape>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'href' attribute on <area>",
+"input": "<area href>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'target' attribute on <area>",
+"input": "<area target>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'ping' attribute on <area>",
+"input": "<area ping>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'rel' attribute on <area>",
+"input": "<area rel>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'media' attribute on <area>",
+"input": "<area media>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'hreflang' attribute on <area>",
+"input": "<area hreflang>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'type' attribute on <area>",
+"input": "<area type>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'type' attribute on <menu>",
+"input": "<menu type>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'label' attribute on <menu>",
+"input": "<menu label>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'autosubmit' attribute on <menu>",
+"input": "<menu autosubmit>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'name' attribute on <param>",
+"input": "<param name>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'value' attribute on <param>",
+"input": "<param value>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'value' attribute on <li>",
+"input": "<li value>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'src' attribute on <source>",
+"input": "<source src>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'type' attribute on <source>",
+"input": "<source type>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'media' attribute on <source>",
+"input": "<source media>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'xmlns' attribute on <html>",
+"input": "<html xmlns>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'open' attribute on <details>",
+"input": "<details open>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'colspan' attribute on <th>",
+"input": "<th colspan>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'rowspan' attribute on <th>",
+"input": "<th rowspan>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'scope' attribute on <th>",
+"input": "<th scope>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'value' attribute on <progress>",
+"input": "<progress value>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'max' attribute on <progress>",
+"input": "<progress max>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'colspan' attribute on <td>",
+"input": "<td colspan>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'rowspan' attribute on <td>",
+"input": "<td rowspan>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'cite' attribute on <blockquote>",
+"input": "<blockquote cite>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'data' attribute on <object>",
+"input": "<object data>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'type' attribute on <object>",
+"input": "<object type>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'usemap' attribute on <object>",
+"input": "<object usemap>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'height' attribute on <object>",
+"input": "<object height>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'width' attribute on <object>",
+"input": "<object width>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'height' attribute on <canvas>",
+"input": "<canvas height>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'width' attribute on <canvas>",
+"input": "<canvas width>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'href' attribute on <base>",
+"input": "<base href>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'target' attribute on <base>",
+"input": "<base target>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'href' attribute on <link>",
+"input": "<link href>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'rel' attribute on <link>",
+"input": "<link rel>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'media' attribute on <link>",
+"input": "<link media>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'hreflang' attribute on <link>",
+"input": "<link hreflang>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'type' attribute on <link>",
+"input": "<link type>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'href' attribute on <a>",
+"input": "<a href>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'target' attribute on <a>",
+"input": "<a target>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'ping' attribute on <a>",
+"input": "<a ping>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'rel' attribute on <a>",
+"input": "<a rel>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'media' attribute on <a>",
+"input": "<a media>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'hreflang' attribute on <a>",
+"input": "<a hreflang>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'type' attribute on <a>",
+"input": "<a type>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'src' attribute on <event-source>",
+"input": "<event-source src>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'start' attribute on <ol>",
+"input": "<ol start>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'span' attribute on <colgroup>",
+"input": "<colgroup span>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'src' attribute on <script>",
+"input": "<script src>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'defer' attribute on <script>",
+"input": "<script defer>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'async' attribute on <script>",
+"input": "<script async>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'type' attribute on <script>",
+"input": "<script type>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'cite' attribute on <q>",
+"input": "<q cite>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'cite' attribute on <del>",
+"input": "<del cite>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'datetime' attribute on <del>",
+"input": "<del datetime>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'src' attribute on <iframe>",
+"input": "<iframe src>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'datetime' attribute on <time>",
+"input": "<time datetime>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'src' attribute on <audio>",
+"input": "<audio src>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'autoplay' attribute on <audio>",
+"input": "<audio autoplay>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'start' attribute on <audio>",
+"input": "<audio start>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'loopstart' attribute on <audio>",
+"input": "<audio loopstart>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'loopend' attribute on <audio>",
+"input": "<audio loopend>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'end' attribute on <audio>",
+"input": "<audio end>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'loopcount' attribute on <audio>",
+"input": "<audio loopcount>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'controls' attribute on <audio>",
+"input": "<audio controls>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'span' attribute on <col>",
+"input": "<col span>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'disabled' attribute on <fieldset>",
+"input": "<fieldset disabled>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'form' attribute on <fieldset>",
+"input": "<fieldset form>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onsubmit' attribute on <form>",
+"input": "<form onsubmit>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'name' attribute on <form>",
+"input": "<form name>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onreset' attribute on <form>",
+"input": "<form onreset>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'accept' attribute on <form>",
+"input": "<form accept>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'replace' attribute on <form>",
+"input": "<form replace>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'accept-charset' attribute on <form>",
+"input": "<form accept-charset>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'action' attribute on <form>",
+"input": "<form action>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'data' attribute on <form>",
+"input": "<form data>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'method' attribute on <form>",
+"input": "<form method>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'enctype' attribute on <form>",
+"input": "<form enctype>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'rows' attribute on <textarea>",
+"input": "<textarea rows>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'name' attribute on <textarea>",
+"input": "<textarea name>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'form' attribute on <textarea>",
+"input": "<textarea form>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'required' attribute on <textarea>",
+"input": "<textarea required>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'cols' attribute on <textarea>",
+"input": "<textarea cols>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'accept' attribute on <textarea>",
+"input": "<textarea accept>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'disabled' attribute on <textarea>",
+"input": "<textarea disabled>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'readonly' attribute on <textarea>",
+"input": "<textarea readonly>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'wrap' attribute on <textarea>",
+"input": "<textarea wrap>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'autofocus' attribute on <textarea>",
+"input": "<textarea autofocus>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'maxlength' attribute on <textarea>",
+"input": "<textarea maxlength>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'a' attribute on <datalist>",
+"input": "<datalist a>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "allowed 'd' attribute on <datalist>",
+"input": "<datalist d>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "allowed 't' attribute on <datalist>",
+"input": "<datalist t>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "allowed 'action' attribute on <button>",
+"input": "<button action>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'enctype' attribute on <button>",
+"input": "<button enctype>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'method' attribute on <button>",
+"input": "<button method>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'replace' attribute on <button>",
+"input": "<button replace>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'template' attribute on <button>",
+"input": "<button template>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'name' attribute on <button>",
+"input": "<button name>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'form' attribute on <button>",
+"input": "<button form>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'value' attribute on <button>",
+"input": "<button value>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'disabled' attribute on <button>",
+"input": "<button disabled>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'autofocus' attribute on <button>",
+"input": "<button autofocus>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'type' attribute on <button>",
+"input": "<button type>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'accesskey' attribute on <label>",
+"input": "<label accesskey>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'form' attribute on <label>",
+"input": "<label form>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'for' attribute on <label>",
+"input": "<label for>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'disabled' attribute on <optgroup>",
+"input": "<optgroup disabled>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'label' attribute on <optgroup>",
+"input": "<optgroup label>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onforminput' attribute on <output>",
+"input": "<output onforminput>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'onformchange' attribute on <output>",
+"input": "<output onformchange>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'name' attribute on <output>",
+"input": "<output name>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'form' attribute on <output>",
+"input": "<output form>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'for' attribute on <output>",
+"input": "<output for>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'multiple' attribute on <select>",
+"input": "<select multiple>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'name' attribute on <select>",
+"input": "<select name>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'form' attribute on <select>",
+"input": "<select form>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'accesskey' attribute on <select>",
+"input": "<select accesskey>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'disabled' attribute on <select>",
+"input": "<select disabled>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'autofocus' attribute on <select>",
+"input": "<select autofocus>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'data' attribute on <select>",
+"input": "<select data>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'size' attribute on <select>",
+"input": "<select size>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'selected' attribute on <option>",
+"input": "<option selected>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'value' attribute on <option>",
+"input": "<option value>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'label' attribute on <option>",
+"input": "<option label>",
+"fail-if": "unknown-attribute"},
+
+{"description": "allowed 'disabled' attribute on <option>",
+"input": "<option disabled>",
+"fail-if": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <command>",
+"input": "<command foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <meter>",
+"input": "<meter foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <ins>",
+"input": "<ins foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <datagrid>",
+"input": "<datagrid foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <meta>",
+"input": "<meta foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <video>",
+"input": "<video foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <font>",
+"input": "<font foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <style>",
+"input": "<style foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <img>",
+"input": "<img foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <area>",
+"input": "<area foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <menu>",
+"input": "<menu foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <param>",
+"input": "<param foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <li>",
+"input": "<li foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <source>",
+"input": "<source foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <html>",
+"input": "<html foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <details>",
+"input": "<details foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <th>",
+"input": "<th foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <progress>",
+"input": "<progress foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <td>",
+"input": "<td foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <blockquote>",
+"input": "<blockquote foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <object>",
+"input": "<object foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <canvas>",
+"input": "<canvas foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <base>",
+"input": "<base foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <link>",
+"input": "<link foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <a>",
+"input": "<a foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <event-source>",
+"input": "<event-source foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <ol>",
+"input": "<ol foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <colgroup>",
+"input": "<colgroup foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <script>",
+"input": "<script foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <q>",
+"input": "<q foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <del>",
+"input": "<del foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <iframe>",
+"input": "<iframe foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <time>",
+"input": "<time foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <audio>",
+"input": "<audio foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "unknown 'foo' attribute on <col>",
+"input": "<col foo>",
+"fail-unless": "unknown-attribute"},
+
+{"description": "missing required 'href' attribute on <link>",
+"input": "<link rel>",
+"fail-unless": "missing-required-attribute"},
+
+{"description": "missing required 'rel' attribute on <link>",
+"input": "<link href>",
+"fail-unless": "missing-required-attribute"},
+
+{"description": "missing required 'dir' attribute on <bdo>",
+"input": "<bdo>",
+"fail-unless": "missing-required-attribute"},
+
+{"description": "missing required 'src' attribute on <img>",
+"input": "<img>",
+"fail-unless": "missing-required-attribute"},
+
+{"description": "missing required 'src' attribute on <embed>",
+"input": "<embed>",
+"fail-unless": "missing-required-attribute"},
+
+{"description": "missing required 'name' attribute on <param>",
+"input": "<param value>",
+"fail-unless": "missing-required-attribute"},
+
+{"description": "missing required 'value' attribute on <param>",
+"input": "<param name>",
+"fail-unless": "missing-required-attribute"},
+
+{"description": "missing required 'src' attribute on <source>",
+"input": "<source>",
+"fail-unless": "missing-required-attribute"},
+
+{"description": "missing required 'id' attribute on <map>",
+"input": "<map>",
+"fail-unless": "missing-required-attribute"}
+
+]}

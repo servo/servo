@@ -1,0 +1,35 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>ARIA 1.0 Test Case 701</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case 701</h1>
+    
+    <div id="TESTZ" aria-live="polite">
+      Text before: <span id="TEST_ID_1">TEST TEXT</span> :text after
+    </div>
+    
+    <h2>Description</h2>
+    <p>An element with an aria-live attribute is defined in markup with 
+      the value="polite" has a child DOM element node that contains text 
+      content. After the onload event completes the CSS 'display' property 
+      of the child DOM element node is changed to display="none".</p>
+    
+    <script type="text/javascript">  
+
+      function hideElement() {
+        var node  = document.getElementById('TEST_ID_1');  
+        node.setAttribute('style', 'display: none');
+      }
+
+      function onload() {
+        setTimeout(hideElement,1000);
+      }
+     
+      window.addEventListener('load', onload);
+    </script>
+  </body>
+  
+</html>

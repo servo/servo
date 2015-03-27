@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Dropzone should not affect the dropEffect seen by dragenter and dragover</title>
+		<style type="text/css">
+div:first-child {
+	height: 100px;
+	width: 100px;
+	background: orange;
+	display: inline-block;
+}
+div:first-child + div {
+	height: 100px;
+	width: 100px;
+	background: blue;
+	display: inline-block;
+}
+		</style>
+		<script type="text/javascript">
+window.onload = function () {
+	var drag = document.getElementsByTagName('div')[0];
+	drag.ondragstart = function (e) {
+		e.dataTransfer.setData('text','hello');
+		e.dataTransfer.effectAllowed = 'all';
+	};
+	var drop = document.getElementsByTagName('div')[1], dragenter, dragover;
+	drop.ondragenter = function (e) {
+		dragenter = e.dataTransfer.dropEffect;
+	};
+	drop.ondragover = function (e) {
+		dragover = e.dataTransfer.dropEffect;
+	};
+	drop.ondrop = function (e) {
+		var sequence = ([dragenter,dragover,e.dataTransfer.dropEffect]).join('=&gt;')
+		var desiredsequence = (['copy','copy','link']).join('=&gt;')
+		if( sequence == desiredsequence ) {
+			document.getElementsByTagName('div')[2].innerHTML = 'PASS';
+		} else {
+			document.getElementsByTagName('div')[2].innerHTML = 'FAIL, got:<br>'+sequence+'<br>instead of:<br>'+desiredsequence;
+		}
+	};
+};
+		</script>
+	</head>
+	<body>
+
+		<div draggable="true"></div>
+		<div dropzone="link string:text/plain"></div>
+		<div>&nbsp;</div>
+		<p>Drag the orange square onto the blue square and release it.</p>
+		<noscript><p>Enable JavaScript and reload</p></noscript>
+
+	</body>
+</html>

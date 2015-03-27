@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - blocked drop</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+  }
+</style>
+
+<script>
+//This test assumes that if the page does not want to use the drop, that the browser will revert to default behaviour of opening the file
+window.onload = function() {
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragover = orange.ondragenter = function(e) {
+   	e.preventDefault();
+    e.dataTransfer.dropEffect = 'none';
+  };
+	orange.ondrop = function(e) {
+   	e.preventDefault();
+  };
+
+};
+</script>
+
+<div></div>
+
+<p>Save <a href="../resources/pass.png">this image</a> to your desktop. Use your pointing device to drag the saved file from your desktop onto the orange box, and release it. Fail if nothing happens.</p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

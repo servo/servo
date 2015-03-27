@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Node.cloneNode</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-clonenode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+function assert_equal_node(nodeA, nodeB) {
+  assert_equals(nodeB.nodeType, nodeA.nodeType, "nodeType");
+  assert_equals(nodeB.nodeName, nodeA.nodeName, "nodeName");
+
+  if (nodeA.nodeType === Node.ELEMENT_NODE) {
+    assert_equals(nodeB.prefix, nodeA.prefix);
+    assert_equals(nodeB.namespaceURI, nodeA.namespaceURI);
+    assert_equals(nodeB.localName, nodeA.localName);
+    assert_equals(nodeB.tagName, nodeA.tagName);
+    assert_not_equals(nodeB.attributes != nodeA.attributes);
+    assert_equals(nodeB.attributes.length, nodeA.attributes.length);
+    for (var i = 0, il = nodeA.attributes.length; i < il; ++i) {
+      assert_not_equals(nodeB.attributes[i], nodeA.attributes[i]);
+      assert_equals(nodeB.attributes[i].name, nodeA.attributes[i].name);
+      assert_equals(nodeB.attributes[i].prefix, nodeA.attributes[i].prefix);
+      assert_equals(nodeB.attributes[i].namespaceURI, nodeA.attributes[i].namespaceURI);
+      assert_equals(nodeB.attributes[i].value, nodeA.attributes[i].value);
+    }
+  }
+}
+
+test(function() {
+  var el = document.createElement("foo");
+  el.appendChild(document.createElement("bar"));
+  el.setAttribute("a", "b");
+  el.setAttribute("c", "d");
+  var c = el.cloneNode(false);
+  assert_equal_node(el, c);
+  assert_equals(c.childNodes.length, 0);
+}, "Unprefixed HTML element")
+
+test(function() {
+  var el = document.createElementNS("http://www.w3.org/1999/xhtml", "foo:div");
+  var c = el.cloneNode(false);
+  assert_equal_node(el, c);
+}, "Prefixed HTML element")
+
+test(function() {
+  var el = document.createElementNS("http://www.example.com/", "foo:div");
+  var c = el.cloneNode(false);
+  assert_equal_node(el, c);
+}, "Prefixed non-HTML element")
+</script>

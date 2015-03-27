@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>The output element</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#the-output-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<output id=output></output>
+<script>
+  var output = document.getElementById("output");
+
+  test(function(){
+    assert_equals(output.type, "output", "type must return the string 'output'");
+    assert_equals(output.textContent, "", "textContent is empty");
+    assert_equals(output.value, "", "value should be empty");
+    assert_equals(output.defaultValue, "", "defaultValue should be empty");
+
+    output.textContent="5";
+    assert_equals(output.value, "5", "textContent is set to 5: value is updated");
+    assert_equals(output.textContent, "5", "textContent is set to 5");
+    assert_equals(output.defaultValue, "5", "textContent is set to 5: defaultValue is updated");
+
+    output.defaultValue="10"; // value mode flag is in "default" mode. Setting defaultValue should set textContent as well
+    assert_equals(output.value, "10", "defaultValue is set to 10: value is updated");
+    assert_equals(output.textContent, "10", "defaultValue is set to 10: textContent is updated");
+    assert_equals(output.defaultValue, "10", "defaultValue is set to 10");
+
+    output.value="20";  // set the value mode flag to "value": default value remains unchanged
+    assert_equals(output.value, "20", "value is set to 20");
+    assert_equals(output.textContent, "20", "value is set to 20: textContent is updated");
+    assert_equals(output.defaultValue, "10", "value is set to 20: defaultValue remains unchanged");
+
+    output.defaultValue="15"; // value mode flag is in "value" mode. textContent remains unchanged when setting defaultValue
+    assert_equals(output.value, "20", "defaultValue is set to 15: value remains unchanged");
+    assert_equals(output.textContent, "20", "defaultValue is set to 15: textContent remains unchanged");
+    assert_equals(output.defaultValue, "15", "defaultValue is set to 15");
+  }, "output value and defaultValue");
+</script>

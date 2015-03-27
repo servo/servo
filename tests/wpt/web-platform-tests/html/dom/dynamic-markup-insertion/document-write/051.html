@@ -1,0 +1,16 @@
+<!doctype html>
+<title>document.write \r\n</title>
+<script src="/resources/testharness.js"></script><script src="/resources/testharnessreport.js"></script>
+<div id="log"></div><script>
+var t = async_test()
+t.step(function() {
+  document.write("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\nA");
+})
+
+onload = function() {
+  t.step(function() {
+    assert_equals(document.body.lastChild.data, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nA\n");
+  });
+  t.done();
+};
+</script>

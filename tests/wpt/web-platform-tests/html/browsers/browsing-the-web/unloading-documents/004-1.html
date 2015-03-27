@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<script>
+ var t = opener.t;
+ var do_test = t.step_func(function() {
+   localStorage.test6564729 += 'B';
+   var d = document;
+   var e = document.open(); // unload triggered here - beforeunload C, D in 004b; pagehide E, unload F, pagehide G in 004b, unload HIJK in 004b
+   localStorage.test6564729 += (e == d) ? 'L' : 'Y';
+   var s = 'FAIL if you see this | ' + localStorage.test6564729;
+   document.write(s);
+   localStorage.test6564729 += document.body.textContent == s ? 'M' : 'y';
+   document.close();
+   localStorage.test6564729 += 'N';
+   location = '004a.html'; // unload triggers again here, but they're not registered event listeners any more
+ })
+onload = t.step_func(function() {
+  localStorage.test6564729 = 'A';
+  setTimeout(t.step_func(function() {document.getElementsByTagName("input")[0].click()}), 100);
+})
+</script>
+<body onbeforeunload="localStorage.test6564729 += 'C'"
+      onpagehide="localStorage.test6564729 += 'E'"
+      onunload="localStorage.test6564729 += 'F'">
+<input type=button value="Activate this button to run the test" onclick="do_test()">
+<p><iframe src="004b.html"></iframe>

@@ -1,0 +1,24 @@
+<!doctype html>
+<title>Array.[[DefineOwnProperty]]</title>
+<link rel=author href=mailto:Ms2ger@gmail.com title=Ms2ger>
+<link rel=help href=http://es5.github.com/#x15.4.5.1>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+  var arr = new Array;
+  assert_equals(arr.length, 0);
+
+  var called = 0;
+  Object.defineProperty(arr, 0, { get: function() { ++called; return 7 } });
+  assert_equals(arr.length, 1);
+  assert_equals(called, 0);
+
+  assert_equals(arr[0], 7);
+  assert_equals(called, 1);
+
+  assert_equals(String(arr), "7");
+  assert_equals(called, 2);
+});
+</script>

@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id="desc">HTML5 Selection: Get the range from the selection</title>
+        <script type="text/javascript">
+            function RunTest()
+            {
+                try
+                {
+                    var selection = window.getSelection();
+                    var p1 = document.getElementById("p1");
+                    var testPassed = true;
+                    
+                    var range = document.createRange();
+                    range.selectNode(p1);
+                    selection.addRange(range);
+                    
+                    var returnedRange = selection.getRangeAt(0);
+                    
+                    if (range.toString() != returnedRange.toString())
+                    {
+                        testPassed = false;
+                    }
+                    if (range.startContainer != returnedRange.startContainer)
+                    {
+                        testPassed = false;
+                    }
+                    if (range.startOffset != returnedRange.startOffset)
+                    {
+                        testPassed = false;
+                    }
+                    if (range.endContainer != returnedRange.endContainer)
+                    {
+                        testPassed = false;
+                    }
+                    if (range.endOffset != returnedRange.endOffset)
+                    {
+                        testPassed = false;
+                    }
+                    
+                    if (testPassed)
+                    {
+                        document.getElementById("testresult").firstChild.data = "PASS";
+                    }
+                }
+                catch (ex)
+                {
+                    document.getElementById("testresult").firstChild.data = "FAIL";
+                }
+            }
+        </script>
+    </head>
+    <body onload="RunTest();">
+        <p id="p1">Get the range from the selection</p>
+        <p>Test passes if the word "PASS" appears below.</p>
+        <div>Test result: </div>
+        <div id="testresult">FAIL</div>
+    </body>
+</html>

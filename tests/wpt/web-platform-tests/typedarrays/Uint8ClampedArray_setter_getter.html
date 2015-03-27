@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Typed Arrays Test: Uint8ClampedArray setter and getter</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="http://www.khronos.org/registry/typedarray/specs/latest/#7.1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+
+var testData = [
+  [1, 1], [257, 255], [3.2, 3], [-3.8, 0], [+0, 0], [-0, 0],
+  ["1", 1], [false, 0], [true, 1], [undefined, 0], [null, 0],
+  [NaN, 0], [+Infinity, 255], [-Infinity, 0]
+];
+
+testData.forEach(function (arg) {
+  test(function() {
+    var obj = new Uint8ClampedArray(8);
+    //set [Clamp] octet value
+    obj[0] = arg[0];
+    assert_equals(obj[0], arg[1], "The value of Uint8ClampedArray");
+  }, "Check if the getter can get " + arg[1] + " after set " + format_value(arg[0]) + " by the setter");
+});
+
+test(function() {
+  var obj = new Uint8ClampedArray(8);
+  var arg = [1, 2, 3];
+  //set octet[]
+  obj.set(arg);
+  assert_equals(obj[1], arg[1], "The value of Uint8ClampedArray");
+}, "Check if the parameter of Uint8ClampedArray.set() accept octet[]");
+
+test(function() {
+  var obj = new Uint8ClampedArray(8);
+  var arg = [1, 2, 3];
+  //set octet[] with offset
+  obj.set(arg, 1);
+  assert_equals(obj[1], arg[0], "The value of Uint8ClampedArray");
+}, "Check if the parameter of Uint8ClampedArray.set() accept octet[] and offset");
+
+test(function() {
+  var obj = new Uint8ClampedArray(8);
+  var arg = new Uint8ClampedArray([1, 2, 3]);
+  //set Uint8ClampedArray
+  obj.set(arg);
+  assert_equals(obj[1], arg[1], "The value of Uint8ClampedArray");
+}, "Check if the parameter of Uint8ClampedArray.set() accept Uint8ClampedArray");
+
+test(function() {
+  var obj = new Uint8ClampedArray(8);
+  var arg = new Uint8ClampedArray([1, 2, 3]);
+  //set Uint8ClampedArray with offset
+  obj.set(arg, 1);
+  assert_equals(obj[1], arg[0], "The value of Uint8ClampedArray");
+}, "Check if the parameter of Uint8ClampedArray.set() accept Uint8ClampedArray and offset");
+
+test(function() {
+  var obj = new Uint8ClampedArray(3);
+  var arg = new Uint8ClampedArray([1, 2, 3]);
+  assert_throws(new RangeError(), function() {
+    obj.set(arg, 1);
+  });
+}, "Check if an exception is raised when the offset plus the length of the given array is out of range for the current array");
+
+</script>

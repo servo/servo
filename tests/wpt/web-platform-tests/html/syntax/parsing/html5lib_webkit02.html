@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf8">
+    <title>HTML 5 Parser tests html5lib_webkit02.html</title>
+    <meta name="timeout" content="long">
+    <meta name="variant" content="?run_type=uri">
+    <meta name="variant" content="?run_type=write">
+    <meta name="variant" content="?run_type=write_single">
+  </head>
+  <body>
+    <h1>html5lib Parser Test</h1>
+    <div id="log"></div>
+    <script src="common.js"></script>
+    <script src="test.js"></script>
+    <script src="template.js"></script>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+      var num_iframes = 8;
+      var order = ['f50b8c15847159a6d2c6ecc2bd1e4a944ba5aae6','326328ea805a2ebdde707e08567713f88a4cf8ab','05138397908cfdad69a3bfe5da5a06098320b504','2aaa2ac0d7cec6144633d8f82f3bcaafa7498cd9','4a256d7ef602c7c917c758e15981b9710f9b4130','98cea04429ddbe4ffaaa0b91fe77b8c0b1f7c1f4','209ad7d6f6c9c53cb856c7d78b2bc4a7f38abd5f','cb9a86fbac96b08a6e708a2dbcd9f78539dfe9c6',];
+      var tests = {
+          "f50b8c15847159a6d2c6ecc2bd1e4a944ba5aae6":[async_test('html5lib_webkit02.html f50b8c15847159a6d2c6ecc2bd1e4a944ba5aae6'), "%3Cfoo%20bar%3Dqux/%3E", "%23document%0A%7C%20%3Chtml%3E%0A%7C%20%20%20%3Chead%3E%0A%7C%20%20%20%3Cbody%3E%0A%7C%20%20%20%20%20%3Cfoo%3E%0A%7C%20%20%20%20%20%20%20bar%3D%22qux/%22"],"326328ea805a2ebdde707e08567713f88a4cf8ab":[async_test('html5lib_webkit02.html 326328ea805a2ebdde707e08567713f88a4cf8ab'), "%3Cp%20id%3D%22status%22%3E%3Cnoscript%3E%3Cstrong%3EA%3C/strong%3E%3C/noscript%3E%3Cspan%3EB%3C/span%3E%3C/p%3E", "%23document%0A%7C%20%3Chtml%3E%0A%7C%20%20%20%3Chead%3E%0A%7C%20%20%20%3Cbody%3E%0A%7C%20%20%20%20%20%3Cp%3E%0A%7C%20%20%20%20%20%20%20id%3D%22status%22%0A%7C%20%20%20%20%20%20%20%3Cnoscript%3E%0A%7C%20%20%20%20%20%20%20%20%20%22%3Cstrong%3EA%3C/strong%3E%22%0A%7C%20%20%20%20%20%20%20%3Cspan%3E%0A%7C%20%20%20%20%20%20%20%20%20%22B%22"],"05138397908cfdad69a3bfe5da5a06098320b504":[async_test('html5lib_webkit02.html 05138397908cfdad69a3bfe5da5a06098320b504'), "%3Cdiv%3E%3Csarcasm%3E%3Cdiv%3E%3C/div%3E%3C/sarcasm%3E%3C/div%3E", "%23document%0A%7C%20%3Chtml%3E%0A%7C%20%20%20%3Chead%3E%0A%7C%20%20%20%3Cbody%3E%0A%7C%20%20%20%20%20%3Cdiv%3E%0A%7C%20%20%20%20%20%20%20%3Csarcasm%3E%0A%7C%20%20%20%20%20%20%20%20%20%3Cdiv%3E"],"2aaa2ac0d7cec6144633d8f82f3bcaafa7498cd9":[async_test('html5lib_webkit02.html 2aaa2ac0d7cec6144633d8f82f3bcaafa7498cd9'), "%3Chtml%3E%3Cbody%3E%3Cimg%20src%3D%22%22%20border%3D%220%22%20alt%3D%22%3E%3Cdiv%3EA%3C/div%3E%3C/body%3E%3C/html%3E", "%23document%0A%7C%20%3Chtml%3E%0A%7C%20%20%20%3Chead%3E%0A%7C%20%20%20%3Cbody%3E"],"4a256d7ef602c7c917c758e15981b9710f9b4130":[async_test('html5lib_webkit02.html 4a256d7ef602c7c917c758e15981b9710f9b4130'), "%3Ctable%3E%3Ctd%3E%3C/tbody%3EA", "%23document%0A%7C%20%3Chtml%3E%0A%7C%20%20%20%3Chead%3E%0A%7C%20%20%20%3Cbody%3E%0A%7C%20%20%20%20%20%22A%22%0A%7C%20%20%20%20%20%3Ctable%3E%0A%7C%20%20%20%20%20%20%20%3Ctbody%3E%0A%7C%20%20%20%20%20%20%20%20%20%3Ctr%3E%0A%7C%20%20%20%20%20%20%20%20%20%20%20%3Ctd%3E"],"98cea04429ddbe4ffaaa0b91fe77b8c0b1f7c1f4":[async_test('html5lib_webkit02.html 98cea04429ddbe4ffaaa0b91fe77b8c0b1f7c1f4'), "%3Ctable%3E%3Ctd%3E%3C/thead%3EA", "%23document%0A%7C%20%3Chtml%3E%0A%7C%20%20%20%3Chead%3E%0A%7C%20%20%20%3Cbody%3E%0A%7C%20%20%20%20%20%3Ctable%3E%0A%7C%20%20%20%20%20%20%20%3Ctbody%3E%0A%7C%20%20%20%20%20%20%20%20%20%3Ctr%3E%0A%7C%20%20%20%20%20%20%20%20%20%20%20%3Ctd%3E%0A%7C%20%20%20%20%20%20%20%20%20%20%20%20%20%22A%22"],"209ad7d6f6c9c53cb856c7d78b2bc4a7f38abd5f":[async_test('html5lib_webkit02.html 209ad7d6f6c9c53cb856c7d78b2bc4a7f38abd5f'), "%3Ctable%3E%3Ctd%3E%3C/tfoot%3EA", "%23document%0A%7C%20%3Chtml%3E%0A%7C%20%20%20%3Chead%3E%0A%7C%20%20%20%3Cbody%3E%0A%7C%20%20%20%20%20%3Ctable%3E%0A%7C%20%20%20%20%20%20%20%3Ctbody%3E%0A%7C%20%20%20%20%20%20%20%20%20%3Ctr%3E%0A%7C%20%20%20%20%20%20%20%20%20%20%20%3Ctd%3E%0A%7C%20%20%20%20%20%20%20%20%20%20%20%20%20%22A%22"],"cb9a86fbac96b08a6e708a2dbcd9f78539dfe9c6":[async_test('html5lib_webkit02.html cb9a86fbac96b08a6e708a2dbcd9f78539dfe9c6'), "%3Ctable%3E%3Cthead%3E%3Ctd%3E%3C/tbody%3EA", "%23document%0A%7C%20%3Chtml%3E%0A%7C%20%20%20%3Chead%3E%0A%7C%20%20%20%3Cbody%3E%0A%7C%20%20%20%20%20%3Ctable%3E%0A%7C%20%20%20%20%20%20%20%3Cthead%3E%0A%7C%20%20%20%20%20%20%20%20%20%3Ctr%3E%0A%7C%20%20%20%20%20%20%20%20%20%20%20%3Ctd%3E%0A%7C%20%20%20%20%20%20%20%20%20%20%20%20%20%22A%22"],
+      }
+      init_tests(get_type());
+    </script>
+  </body>
+</html>

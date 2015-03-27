@@ -1,0 +1,34 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>ARIA 1.0 Test Case 673</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case 673</h1>
+    
+    <div id="TEST_ID" aria-live="polite" >
+    </div>
+    
+    <h2>Description</h2>
+    <p>An element with an aria-live attribute is defined in markup with the value="polite". 
+      After the onload event completes a child DOM text node is added to the element with 
+      the aria-live attribute.</p>
+    
+    <script type="text/javascript">  
+  
+     function addTextNode() {
+       var node = document.getElementById('TEST_ID');  
+       var text_node = document.createTextNode('TEST TEXT');
+       node.appendChild(text_node);
+     }
+     
+     function onload() {
+       setTimeout(addTextNode,1000);
+     }
+     
+     window.addEventListener('load', onload);
+    </script>
+  </body>
+  
+</html>

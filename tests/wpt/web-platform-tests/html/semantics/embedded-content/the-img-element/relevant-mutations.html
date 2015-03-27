@@ -1,0 +1,386 @@
+<!doctype html>
+<title>img relevant mutations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+
+<!-- should invoke update the image data -->
+
+<img data-desc="src set">
+<img src="/images/green-2x2.png" data-desc="src changed">
+<img src="/images/green-2x2.png" data-desc="src removed">
+
+<img data-desc="srcset set">
+<img srcset="/images/green-2x2.png" data-desc="srcset changed">
+<img srcset="/images/green-2x2.png" data-desc="srcset removed">
+
+<img data-desc="sizes set">
+<img sizes="" data-desc="sizes changed">
+<img sizes="" data-desc="sizes removed">
+
+<img src="/images/green-2x2.png" data-desc="src set to same value">
+
+<img data-desc="crossorigin absent to empty">
+<img data-desc="crossorigin absent to anonymous">
+<img data-desc="crossorigin absent to use-credentials">
+<img crossorigin data-desc="crossorigin empty to absent">
+<img crossorigin data-desc="crossorigin empty to use-credentials">
+<img crossorigin=anonymous data-desc="crossorigin anonymous to absent">
+<img crossorigin=anonymous data-desc="crossorigin anonymous to use-credentials">
+<img crossorigin=use-credentials data-desc="crossorigin use-credentials to absent">
+<img crossorigin=use-credentials data-desc="crossorigin use-credentials to empty">
+<img crossorigin=use-credentials data-desc="crossorigin use-credentials to anonymous">
+
+<img src="/images/green-2x2.png" data-desc="inserted into picture"><picture></picture>
+
+<picture><img src="/images/green-2x2.png" data-desc="removed from picture"></picture>
+
+<picture><img src="/images/green-2x2.png" data-desc="parent is picture, previous source inserted"></picture>
+
+<picture><source><img src="/images/green-2x2.png" data-desc="parent is picture, previous source removed"></picture>
+
+<picture><source><img src="/images/green-2x2.png" data-desc="parent is picture, previous source has srcset set"></picture>
+<picture><source srcset=""><img src="/images/green-2x2.png" data-desc="parent is picture, previous source has srcset changed"></picture>
+<picture><source srcset=""><img src="/images/green-2x2.png" data-desc="parent is picture, previous source has srcset removed"></picture>
+
+<picture><source><img src="/images/green-2x2.png" data-desc="parent is picture, previous source has sizes set"></picture>
+<picture><source sizes=""><img src="/images/green-2x2.png" data-desc="parent is picture, previous source has sizes changed"></picture>
+<picture><source sizes=""><img src="/images/green-2x2.png" data-desc="parent is picture, previous source has sizes removed"></picture>
+
+<picture><source><img src="/images/green-2x2.png" data-desc="parent is picture, previous source has media set"></picture>
+<picture><source media=""><img src="/images/green-2x2.png" data-desc="parent is picture, previous source has media changed"></picture>
+<picture><source media=""><img src="/images/green-2x2.png" data-desc="parent is picture, previous source has media removed"></picture>
+
+<picture><source><img src="/images/green-2x2.png" data-desc="parent is picture, previous source has type set"></picture>
+<picture><source type=""><img src="/images/green-2x2.png" data-desc="parent is picture, previous source has type changed"></picture>
+<picture><source type=""><img src="/images/green-2x2.png" data-desc="parent is picture, previous source has type removed"></picture>
+
+<!-- should not invoke update the image data -->
+
+<img srcset="/images/green-2x2.png" data-desc="srcset is set to same value">
+<img srcset="/images/green-2x2.png" sizes data-desc="sizes is set to same value">
+
+<img src="/images/green-2x2.png" data-desc="crossorigin state not changed: absent, removeAttribute">
+<img src="/images/green-2x2.png" crossorigin data-desc="crossorigin state not changed: empty to anonymous">
+<img src="/images/green-2x2.png" crossorigin=anonymous data-desc="crossorigin state not changed: anonymous to foobar">
+<img src="/images/green-2x2.png" crossorigin=use-credentials data-desc="crossorigin state not changed: use-credentials to USE-CREDENTIALS">
+
+<img src="/images/green-2x2.png" data-desc="inserted into picture ancestor"><picture><span></span></picture>
+<picture><span><img src="/images/green-2x2.png" data-desc="removed from picture ancestor"></span></picture>
+
+<picture><span><img src="/images/green-2x2.png" data-desc="ancestor picture has a source inserted"></span></picture>
+<picture><source><span><img src="/images/green-2x2.png" data-desc="ancestor picture has a source removed"></span></picture>
+
+<picture><span><img src="/images/green-2x2.png" data-desc="ancestor picture; previous sibling source inserted"></span></picture>
+<picture><span><source><img src="/images/green-2x2.png" data-desc="ancestor picture; previous sibling source removed"></span></picture>
+
+<picture><img src="/images/green-2x2.png" data-desc="parent is picture, following sibling source inserted"></picture>
+<picture><img src="/images/green-2x2.png" data-desc="parent is picture, following sibling source removed"><source></picture>
+
+<picture><img src="/images/green-2x2.png" data-desc="parent is picture, following sibling source has srcset set"><source></picture>
+
+<img src="/images/green-2x2.png" data-desc="media on img set">
+<img src="/images/green-2x2.png" data-desc="type on img set">
+<img src="/images/green-2x2.png" data-desc="class on img set">
+<img src="/images/green-2x2.png" data-desc="alt on img set">
+
+<picture><source><img src="/images/green-2x2.png" data-desc="src on previous sibling source set"></picture>
+<picture><source><img src="/images/green-2x2.png" data-desc="class on previous sibling source set"></picture>
+
+<img src="/images/green-2x2.png" data-desc="inserted/removed children of img">
+
+<picture><img src="/images/green-2x2.png" data-desc="picture is inserted"></picture><span></span>
+<picture><img src="/images/green-2x2.png" data-desc="picture is removed"></picture>
+
+<picture><img src="/images/green-2x2.png" data-desc="parent is picture, following img inserted"></picture>
+<picture><img src="/images/green-2x2.png" data-desc="parent is picture, following img removed"><img></picture>
+<picture><img src="/images/green-2x2.png" data-desc="parent is picture, following img has src set"><img></picture>
+<picture><img src="/images/green-2x2.png" data-desc="parent is picture, following img has srcset set"><img></picture>
+<picture><img src="/images/green-2x2.png" data-desc="parent is picture, following img has sizes set"><img></picture>
+
+
+<script>
+setup({explicit_done:true});
+
+function t(desc, func, expect) {
+  async_test(function() {
+    var img = document.querySelector('[data-desc="' + desc + '"]');
+    img.onload = img.onerror = this.unreached_func('update the image data was run');
+    if (expect == 'timeout') {
+      setTimeout(this.step_func_done(), 250);
+    } else {
+      img['on' + expect] = this.step_func_done(function() {});
+      setTimeout(this.unreached_func('update the image data was not run'), 250)
+    }
+    func.call(this, img);
+  }, desc);
+}
+
+onload = function() {
+
+  t('src set', function(img) {
+    img.src = '/images/green-2x2.png';
+  }, 'load');
+
+  t('src changed', function(img) {
+    img.src = '/images/green-2x2.png ';
+  }, 'load');
+
+  t('src removed', function(img) {
+    img.removeAttribute('src');
+  }, 'error');
+
+  t('srcset set', function(img) {
+    img.srcset = '/images/green-2x2.png';
+  }, 'load');
+
+  t('srcset changed', function(img) {
+    img.srcset = '/images/green-2x2.png ';
+  }, 'load');
+
+  t('srcset removed', function(img) {
+    img.removeAttribute('srcset');
+  }, 'error');
+
+  t('sizes set', function(img) {
+    img.sizes = '';
+  }, 'error');
+
+  t('sizes changed', function(img) {
+    img.sizes = ' ';
+  }, 'error');
+
+  t('sizes removed', function(img) {
+    img.removeAttribute('sizes');
+  }, 'error');
+
+  t('src set to same value', function(img) {
+    img.src = '/images/green-2x2.png';
+  }, 'load');
+
+  t('crossorigin absent to empty', function(img) {
+    img.crossOrigin = '';
+  }, 'error');
+
+  t('crossorigin absent to anonymous', function(img) {
+    img.crossOrigin = 'anonymous';
+  }, 'error');
+
+  t('crossorigin absent to use-credentials', function(img) {
+    img.crossOrigin = 'use-credentials';
+  }, 'error');
+
+  t('crossorigin empty to absent', function(img) {
+    img.removeAttribute('crossorigin');
+  }, 'error');
+
+  t('crossorigin empty to use-credentials', function(img) {
+    img.crossOrigin = 'use-credentials';
+  }, 'error');
+
+  t('crossorigin anonymous to absent', function(img) {
+    img.removeAttribute('crossorigin');
+  }, 'error');
+
+  t('crossorigin anonymous to use-credentials', function(img) {
+    img.crossOrigin = 'use-credentials';
+  }, 'error');
+
+  t('crossorigin use-credentials to absent', function(img) {
+    img.removeAttribute('crossorigin');
+  }, 'error');
+
+  t('crossorigin use-credentials to empty', function(img) {
+    img.crossOrigin = '';
+  });
+
+  t('crossorigin use-credentials to anonymous', function(img) {
+    img.crossOrigin = 'anonymous';
+  });
+
+  t('inserted into picture', function(img) {
+    img.nextSibling.appendChild(img);
+  }, 'load');
+
+  t('removed from picture', function(img) {
+    img.parentNode.removeChild(img);
+  }, 'load');
+
+  t('parent is picture, previous source inserted', function(img) {
+    img.parentNode.insertBefore(document.createElement('source'), img);
+  }, 'load');
+
+  t('parent is picture, previous source removed', function(img) {
+    img.parentNode.removeChild(img.previousSibling);
+  }, 'load');
+
+  t('parent is picture, previous source has srcset set', function(img) {
+    img.previousSibling.srcset = '';
+  }, 'load');
+
+  t('parent is picture, previous source has srcset changed', function(img) {
+    img.previousSibling.srcset = ' ';
+  }, 'load');
+
+  t('parent is picture, previous source has srcset removed', function(img) {
+    img.previousSibling.removeAttribute('srcset');
+  }, 'load');
+
+  t('parent is picture, previous source has sizes set', function(img) {
+    img.previousSibling.sizes = '';
+  }, 'load');
+
+  t('parent is picture, previous source has sizes changed', function(img) {
+    img.previousSibling.sizes = ' ';
+  }, 'load');
+
+  t('parent is picture, previous source has sizes removed', function(img) {
+    img.previousSibling.removeAttribute('sizes');
+  }, 'load');
+
+  t('parent is picture, previous source has media set', function(img) {
+    img.previousSibling.media = '';
+  }, 'load');
+
+  t('parent is picture, previous source has media changed', function(img) {
+    img.previousSibling.media = ' ';
+  }, 'load');
+
+  t('parent is picture, previous source has media removed', function(img) {
+    img.previousSibling.removeAttribute('media');
+  }, 'load');
+
+  t('parent is picture, previous source has type set', function(img) {
+    img.previousSibling.type = '';
+  }, 'load');
+
+  t('parent is picture, previous source has type changed', function(img) {
+    img.previousSibling.type = ' ';
+  }, 'load');
+
+  t('parent is picture, previous source has type removed', function(img) {
+    img.previousSibling.removeAttribute('type');
+  }, 'load');
+
+  t('srcset is set to same value', function(img) {
+    img.srcset = "/images/green-2x2.png";
+  }, 'timeout');
+
+  t('sizes is set to same value', function(img) {
+    img.sizes = '';
+  }, 'timeout');
+
+  t('crossorigin state not changed: absent, removeAttribute', function(img) {
+    img.removeAttribute('crossorigin');
+  }, 'timeout');
+
+  t('crossorigin state not changed: empty to anonymous', function(img) {
+    img.crossOrigin = 'anonymous';
+  }, 'timeout');
+
+  t('crossorigin state not changed: anonymous to foobar', function(img) {
+    img.crossOrigin = 'foobar';
+  }, 'timeout');
+
+  t('crossorigin state not changed: use-credentials to USE-CREDENTIALS', function(img) {
+    img.crossOrigin = 'USE-CREDENTIALS';
+  }, 'timeout');
+
+  t('inserted into picture ancestor', function(img) {
+    img.nextSibling.firstChild.appendChild(img);
+  }, 'timeout');
+
+  t('removed from picture ancestor', function(img) {
+    img.parentNode.removeChild(img);
+  }, 'timeout');
+
+  t('ancestor picture has a source inserted', function(img) {
+    img.parentNode.parentNode.insertBefore(document.createElement('source'), img.parentNode);
+  }, 'timeout');
+
+  t('ancestor picture has a source removed', function(img) {
+    img.parentNode.parentNode.removeChild(img.parentNode.previousSibling);
+  }, 'timeout');
+
+  t('ancestor picture; previous sibling source inserted', function(img) {
+    img.parentNode.insertBefore(document.createElement('source'), img);
+  }, 'timeout');
+
+  t('ancestor picture; previous sibling source removed', function(img) {
+    img.parentNode.removeChild(img.previousSibling);
+  }, 'timeout');
+
+  t('parent is picture, following sibling source inserted', function(img) {
+    img.parentNode.appendChild(document.createElement('source'));
+  }, 'timeout');
+
+  t('parent is picture, following sibling source removed', function(img) {
+    img.parentNode.removeChild(img.nextSibling);
+  }, 'timeout');
+
+  t('parent is picture, following sibling source has srcset set', function(img) {
+    img.nextSibling.srcset = '';
+  }, 'timeout');
+
+  t('media on img set', function(img) {
+    img.setAttribute('media', '');
+  }, 'timeout');
+
+  t('type on img set', function(img) {
+    img.setAttribute('type', '');
+  }, 'timeout');
+
+  t('class on img set', function(img) {
+    img.className = '';
+  }, 'timeout');
+
+  t('alt on img set', function(img) {
+    img.alt = '';
+  }, 'timeout');
+
+  t('src on previous sibling source set', function(img) {
+    img.previousSibling.setAttribute('src', '');
+  }, 'timeout');
+
+  t('class on previous sibling source set', function(img) {
+    img.previousSibling.className = '';
+  }, 'timeout');
+
+  t('inserted/removed children of img', function(img) {
+    img.appendChild(document.createElement('source'));
+    setTimeout(this.step_func(function() {
+      img.removeChild(img.firstChild);
+    }), 0);
+  }, 'timeout');
+
+  t('picture is inserted', function(img) {
+    img.parentNode.nextSibling.appendChild(img.parentNode);
+  }, 'timeout');
+
+  t('picture is removed', function(img) {
+    img.parentNode.parentNode.removeChild(img.parentNode);
+  }, 'timeout');
+
+  t('parent is picture, following img inserted', function(img) {
+    img.parentNode.appendChild(document.createElement('img'));
+  }, 'timeout');
+
+  t('parent is picture, following img removed', function(img) {
+    img.parentNode.removeChild(img.nextSibling);
+  }, 'timeout');
+
+  t('parent is picture, following img has src set', function(img) {
+    img.nextSibling.src = '';
+  }, 'timeout');
+
+  t('parent is picture, following img has srcset set', function(img) {
+    img.nextSibling.srcset = '';
+  }, 'timeout');
+
+  t('parent is picture, following img has sizes set', function(img) {
+    img.nextSibling.sizes = '';
+  }, 'timeout');
+
+  done();
+};
+</script>

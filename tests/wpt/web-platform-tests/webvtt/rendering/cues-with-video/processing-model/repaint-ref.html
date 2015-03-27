@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, cue should repaint after hiding a covering abspos box</title>
+<style>
+.video {
+    display: inline-block;
+    width: 320px;
+    height: 240px;
+    position: relative
+}
+.cue {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center
+}
+.cue > span {
+    font-family: sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: green;
+    font-size: 50px;
+}
+</style>
+<p>You should see the word 'PASS' below.</p>
+<div class="video"><span class="cue"><span>PASS</span></span></div>
