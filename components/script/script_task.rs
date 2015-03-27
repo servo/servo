@@ -57,7 +57,7 @@ use script_traits::ScriptTaskFactory;
 use msg::compositor_msg::ReadyState::{FinishedLoading, Loading, PerformingLayout};
 use msg::compositor_msg::{LayerId, ScriptListener};
 use msg::constellation_msg::{ConstellationChan};
-use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent};
+use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent, WorkerId};
 use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net::image_cache_task::ImageCacheTask;
@@ -1114,20 +1114,24 @@ impl ScriptTask {
         chan.send(ConstellationMsg::LoadComplete).unwrap();
 
         // Notify devtools that a new script global exists.
+        self.notify_devtools(document.r().Title(), final_url, (incomplete.pipeline_id, None));
+
+        page_remover.neuter();
+    }
+
+    fn notify_devtools(&self, title: DOMString, url: Url, ids: (PipelineId, Option<WorkerId>)) {
         match self.devtools_chan {
             None => {}
             Some(ref chan) => {
                 let page_info = DevtoolsPageInfo {
-                    title: document.r().Title(),
-                    url: final_url
+                    title: title,
+                    url: url,
                 };
-                chan.send(DevtoolsControlMsg::NewGlobal(incomplete.pipeline_id,
+                chan.send(DevtoolsControlMsg::NewGlobal(ids,
                                                         self.devtools_sender.clone(),
                                                         page_info)).unwrap();
             }
         }
-
-        page_remover.neuter();
     }
 
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: JSRef<Element>) {

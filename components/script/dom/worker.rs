@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::error::{Fallible, ErrorResult};
@@ -14,12 +15,15 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
+use dom::window::WindowHelpers;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
 use script_task::{ScriptChan, ScriptMsg, Runnable};
+
+use devtools_traits::{DevtoolsControlMsg, DevtoolsPageInfo};
 
 use util::str::DOMString;
 
@@ -70,6 +74,23 @@ impl Worker {
         let (sender, receiver) = channel();
         let worker = Worker::new(global, sender.clone()).root();
         let worker_ref = Trusted::new(global.get_cx(), worker.r(), global.script_chan());
+
+
+        if let GlobalRef::Window(window) = global {
+            if let Some(ref chan) = window.devtools_chan() {
+                let pipeline_id = window.Window().root().r().pipeline();
+                let (devtools_sender, _) = channel();
+                let title = format!("Worker for {}", worker_url);
+                let page_info = DevtoolsPageInfo {
+                    title: title,
+                    url: worker_url.clone(),
+                };
+                let worker_id = global.get_next_worker_id();
+                chan.send(
+                    DevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)), devtools_sender.clone(), page_info)
+                ).unwrap();
+            }
+        }
 
         DedicatedWorkerGlobalScope::run_worker_scope(
             worker_url, worker_ref, resource_task, global.script_chan(),

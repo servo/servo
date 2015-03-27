@@ -312,6 +312,9 @@ pub enum NavigationDirection {
 pub struct FrameId(pub uint);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
+pub struct WorkerId(pub uint);
+
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
 pub struct PipelineId(pub uint);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]

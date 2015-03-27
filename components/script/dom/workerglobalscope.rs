@@ -19,6 +19,8 @@ use dom::window::{base64_atob, base64_btoa};
 use script_task::{ScriptChan, TimerSource};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
+use msg::constellation_msg::WorkerId;
+
 use net::resource_task::{ResourceTask, load_whole_resource};
 use util::str::DOMString;
 
@@ -28,6 +30,7 @@ use js::rust::Cx;
 
 use std::default::Default;
 use std::rc::Rc;
+use std::cell::Cell;
 use url::{Url, UrlParser};
 
 #[derive(Copy, PartialEq)]
@@ -41,6 +44,7 @@ pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
     worker_url: Url,
     js_context: Rc<Cx>,
+    next_worker_id: Cell<WorkerId>,
     resource_task: ResourceTask,
     location: MutNullableJS<WorkerLocation>,
     navigator: MutNullableJS<WorkerNavigator>,
@@ -55,6 +59,7 @@ impl WorkerGlobalScope {
                          resource_task: ResourceTask) -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WorkerGlobalScope(type_id)),
+            next_worker_id: Cell::new(WorkerId(0)),
             worker_url: worker_url,
             js_context: cx,
             resource_task: resource_task,
@@ -80,6 +85,13 @@ impl WorkerGlobalScope {
 
     pub fn get_url<'a>(&'a self) -> &'a Url {
         &self.worker_url
+    }
+
+    pub fn get_next_worker_id(&self) -> WorkerId {
+        let worker_id = self.next_worker_id.get();
+        let WorkerId(id_num) = worker_id;
+        self.next_worker_id.set(WorkerId(id_num + 1));
+        worker_id
     }
 }
 
