@@ -10,7 +10,6 @@
 #![feature(collections)]
 #![feature(core)]
 #![feature(exit_status)]
-#![feature(old_io)]
 #![feature(path)]
 #![feature(rustc_private)]
 #![feature(std_misc)]
@@ -25,8 +24,7 @@ use getopts::{getopts, reqopt};
 use std::{str, env};
 use std::ffi::OsStr;
 use std::fs::read_dir;
-use std::old_io::Reader;
-use std::old_io::process::{Command, Ignored, CreatePipe, InheritFd, ExitStatus};
+use std::process::{Command, Stdio};
 use std::thunk::Thunk;
 
 #[derive(Clone)]
@@ -99,8 +97,6 @@ fn run_test(file: String) {
     let path = env::current_dir().unwrap().join(&file);
     // FIXME (#1094): not the right way to transform a path
     let infile = format!("file://{}", path.display());
-    let stdout = CreatePipe(false, true);
-    let stderr = InheritFd(2);
     let args = ["-z", "-f", infile.as_slice()];
 
     let mut prc_arg = env::current_exe().unwrap();
@@ -108,29 +104,19 @@ fn run_test(file: String) {
         true => prc_arg.join("servo"),
         _ => panic!("could not pop directory"),
     };
-    let mut prc = match Command::new(prc_arg.to_str().unwrap())
+    let output = match Command::new(prc_arg.to_str().unwrap())
         .args(args.as_slice())
-        .stdin(Ignored)
-        .stdout(stdout)
-        .stderr(stderr)
-        .spawn()
+        .stdin(Stdio::null())
+        .stderr(Stdio::inherit())
+        .output()
     {
         Ok(p) => p,
         _ => panic!("Unable to spawn process."),
     };
-    let mut output = Vec::new();
-    loop {
-        let byte = prc.stdout.as_mut().unwrap().read_byte();
-        match byte {
-            Ok(byte) => {
-                print!("{}", byte as char);
-                output.push(byte);
-            }
-            _ => break
-        }
-    }
 
-    let out = str::from_utf8(output.as_slice());
+    print!("{}", str::from_utf8(&output.stdout).unwrap());
+
+    let out = str::from_utf8(&output.stderr);
     let lines: Vec<&str> = out.unwrap().split('\n').collect();
     for &line in lines.iter() {
         if line.contains("TEST-UNEXPECTED-FAIL") {
@@ -138,8 +124,7 @@ fn run_test(file: String) {
         }
     }
 
-    let retval = prc.wait();
-    if retval != Ok(ExitStatus(0)) {
-        panic!("Servo exited with non-zero status {:?}", retval);
+    if !output.status.success() {
+        panic!("Servo exited with non-zero status {:?}", output.status);
     }
 }
