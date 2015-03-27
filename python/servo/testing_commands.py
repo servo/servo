@@ -93,7 +93,7 @@ class MachCommands(CommandBase):
             return self.infer_test_by_dir(params)
 
         test_start = time()
-        for t in ["tidy", "ref", "content", "wpt", "unit"]:
+        for t in ["tidy", "ref", "content", "wpt", "css", "unit"]:
             Registrar.dispatch("test-%s" % t, context=self.context)
         elapsed = time() - test_start
 
@@ -241,6 +241,33 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         self.ensure_wpt_virtualenv()
         run_file = path.abspath(path.join("tests", "wpt", "update.py"))
+        run_globals = {"__file__": run_file}
+        execfile(run_file, run_globals)
+        return run_globals["update_tests"](**kwargs)
+
+    @Command('test-css',
+             description='Run the web platform tests',
+             category='testing',
+             parser=wptcommandline.create_parser())
+    @CommandArgument('--release', default=False, action="store_true",
+                     help="Run with a release build of servo")
+    def test_css(self, **kwargs):
+        self.ensure_bootstrapped()
+        self.ensure_wpt_virtualenv()
+
+        run_file = path.abspath(path.join("tests", "wpt", "run_css.py"))
+        run_globals = {"__file__": run_file}
+        execfile(run_file, run_globals)
+        return run_globals["run_tests"](**kwargs)
+
+    @Command('update-css',
+             description='Update the web platform tests',
+             category='testing',
+             parser=updatecommandline.create_parser())
+    def update_css(self, **kwargs):
+        self.ensure_bootstrapped()
+        self.ensure_wpt_virtualenv()
+        run_file = path.abspath(path.join("tests", "wpt", "update_css.py"))
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)
