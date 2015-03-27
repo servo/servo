@@ -132,7 +132,7 @@ impl Element {
                          document: JSRef<Document>) -> Element {
         Element {
             node: Node::new_inherited(NodeTypeId::Element(type_id), document),
-            local_name: Atom::from_slice(local_name.as_slice()),
+            local_name: Atom::from_slice(&local_name),
             namespace: namespace,
             prefix: prefix,
             attrs: DOMRefCell::new(vec!()),
@@ -458,7 +458,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn parsed_name(self, name: DOMString) -> DOMString {
         if self.html_element_in_html_document() {
-            name.as_slice().to_ascii_lowercase()
+            name.to_ascii_lowercase()
         } else {
             name
         }
@@ -486,12 +486,10 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
 
     fn summarize(self) -> Vec<AttrInfo> {
         let attrs = self.Attributes().root();
-        let mut i = 0;
         let mut summarized = vec!();
-        while i < attrs.r().Length() {
+        for i in 0..attrs.r().Length() {
             let attr = attrs.r().Item(i).unwrap().root();
             summarized.push(attr.r().summarize());
-            i += 1;
         }
         summarized
     }
@@ -516,23 +514,17 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
             let index = declarations.normal
                                     .iter()
                                     .position(|decl| decl.name() == property);
-            match index {
-                Some(index) => {
-                    declarations.normal.make_unique().remove(index);
-                    return;
-                }
-                None => ()
+            if let Some(index) = index {
+                declarations.normal.make_unique().remove(index);
+                return;
             }
 
             let index = declarations.important
                                     .iter()
                                     .position(|decl| decl.name() == property);
-            match index {
-                Some(index) => {
-                    declarations.important.make_unique().remove(index);
-                    return;
-                }
-                None => ()
+            if let Some(index) = index {
+                declarations.important.make_unique().remove(index);
+                return;
             }
         });
     }
@@ -665,7 +657,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let attr_local_name = attr.local_name();
-            if *attr_local_name == *local_name {
+            if attr_local_name == local_name {
                 Some(Temporary::from_rooted(attr))
             } else {
                 None
@@ -699,7 +691,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         assert!(!name.as_slice().contains(":"));
 
         self.do_set_attribute(name.clone(), value, name.clone(),
-            ns!(""), None, |attr| *attr.local_name() == *name);
+            ns!(""), None, |attr| attr.local_name() == name);
     }
 
     // https://html.spec.whatwg.org/multipage/dom.html#attr-data-*
@@ -711,7 +703,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
 
         // Steps 2-5.
-        let name = Atom::from_slice(name.as_slice());
+        let name = Atom::from_slice(&name);
         let value = self.parse_attribute(&ns!(""), &name, value);
         self.do_set_attribute(name.clone(), value, name.clone(), ns!(""), None, |attr| {
             *attr.name() == name && *attr.namespace() == ns!("")
@@ -763,25 +755,23 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             *attr.r().local_name() == local_name
         });
 
-        match idx {
-            None => (),
-            Some(idx) => {
-                if namespace == ns!("") {
-                    let attr = (*self.attrs.borrow())[idx].root();
-                    vtable_for(&NodeCast::from_ref(self)).before_remove_attr(attr.r());
-                }
+        if let Some(idx) = idx {
+            if namespace == ns!("") {
+                let attr = (*self.attrs.borrow())[idx].root();
+                vtable_for(&NodeCast::from_ref(self)).before_remove_attr(attr.r());
+            }
 
-                self.attrs.borrow_mut().remove(idx);
+            self.attrs.borrow_mut().remove(idx);
 
-                let node: JSRef<Node> = NodeCast::from_ref(self);
-                if node.is_in_doc() {
-                    let document = document_from_node(self).root();
-                    if local_name == atom!("style") {
-                        document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
-                    } else {
-                        document.r().content_changed(node, NodeDamage::OtherNodeDamage);
-                    }
-                }
+            let node: JSRef<Node> = NodeCast::from_ref(self);
+            if node.is_in_doc() {
+                let document = document_from_node(self).root();
+                let damage = if local_name == atom!("style") {
+                    NodeDamage::NodeStyleDamaged
+                } else {
+                    NodeDamage::OtherNodeDamage
+                };
+                document.r().content_changed(node, damage);
             }
         };
     }
@@ -936,7 +926,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             None => self.local_name.as_slice().into_cow()
         };
         if self.html_element_in_html_document() {
-            qualified_name.as_slice().to_ascii_uppercase()
+            qualified_name.to_ascii_uppercase()
         } else {
             qualified_name.into_owned()
         }
@@ -982,7 +972,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dom.spec.whatwg.org/#dom-element-getattribute
     fn GetAttribute(self, name: DOMString) -> Option<DOMString> {
         let name = self.parsed_name(name);
-        self.get_attribute(ns!(""), &Atom::from_slice(name.as_slice())).root()
+        self.get_attribute(ns!(""), &Atom::from_slice(&name)).root()
                      .map(|s| s.r().Value())
     }
 
@@ -991,7 +981,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> Option<DOMString> {
         let namespace = namespace::from_domstring(namespace);
-        self.get_attribute(namespace, &Atom::from_slice(local_name.as_slice())).root()
+        self.get_attribute(namespace, &Atom::from_slice(&local_name)).root()
                      .map(|attr| attr.r().Value())
     }
 
@@ -1000,16 +990,15 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                     name: DOMString,
                     value: DOMString) -> ErrorResult {
         // Step 1.
-        match xml_name_type(name.as_slice()) {
-            InvalidXMLName => return Err(InvalidCharacter),
-            _ => {}
+        if xml_name_type(&name) == InvalidXMLName {
+            return Err(InvalidCharacter);
         }
 
         // Step 2.
         let name = self.parsed_name(name);
 
         // Step 3-5.
-        let name = Atom::from_slice(name.as_slice());
+        let name = Atom::from_slice(&name);
         let value = self.parse_attribute(&ns!(""), &name, value);
         self.do_set_attribute(name.clone(), value, name.clone(), ns!(""), None, |attr| {
             *attr.name() == name
@@ -1025,7 +1014,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         // Step 1.
         let namespace = namespace::from_domstring(namespace_url);
 
-        let name_type = xml_name_type(name.as_slice());
+        let name_type = xml_name_type(&name);
         match name_type {
             // Step 2.
             InvalidXMLName => return Err(InvalidCharacter),
@@ -1035,28 +1024,26 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         }
 
         // Step 4.
-        let (prefix, local_name) = get_attribute_parts(name.as_slice());
-        match prefix {
-            Some(ref prefix_str) => {
-                // Step 5.
-                if namespace == ns!("") {
-                    return Err(NamespaceError);
-                }
+        let (prefix, local_name) = get_attribute_parts(&name);
 
-                // Step 6.
-                if "xml" == prefix_str.as_slice() && namespace != ns!(XML) {
-                    return Err(NamespaceError);
-                }
+        if let Some(ref prefix_str) = prefix {
+            // Step 5.
+            if namespace == ns!("") {
+                return Err(NamespaceError);
+            }
 
-                // Step 7b.
-                if "xmlns" == prefix_str.as_slice() && namespace != ns!(XMLNS) {
-                    return Err(NamespaceError);
-                }
-            },
-            None => {}
+            // Step 6.
+            if "xml" == *prefix_str && namespace != ns!(XML) {
+                return Err(NamespaceError);
+            }
+
+            // Step 7b.
+            if "xmlns" == *prefix_str && namespace != ns!(XMLNS) {
+                return Err(NamespaceError);
+            }
         }
 
-        let name = Atom::from_slice(name.as_slice());
+        let name = Atom::from_slice(&name);
         let local_name = Atom::from_slice(local_name);
         let xmlns = atom!("xmlns");
 
@@ -1084,7 +1071,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dom.spec.whatwg.org/#dom-element-removeattribute
     fn RemoveAttribute(self, name: DOMString) {
         let name = self.parsed_name(name);
-        self.remove_attribute(ns!(""), name.as_slice())
+        self.remove_attribute(ns!(""), &name)
     }
 
     // http://dom.spec.whatwg.org/#dom-element-removeattributens
@@ -1092,7 +1079,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                          namespace: Option<DOMString>,
                          localname: DOMString) {
         let namespace = namespace::from_domstring(namespace);
-        self.remove_attribute(namespace, localname.as_slice())
+        self.remove_attribute(namespace, &localname)
     }
 
     // http://dom.spec.whatwg.org/#dom-element-hasattribute
@@ -1240,7 +1227,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-matches
     fn Matches(self, selectors: DOMString) -> Fallible<bool> {
-        match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
+        match parse_author_origin_selector_list_from_str(&selectors) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
                 let root: JSRef<Node> = NodeCast::from_ref(self);
@@ -1251,7 +1238,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // https://dom.spec.whatwg.org/#dom-element-closest
     fn Closest(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
-        match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
+        match parse_author_origin_selector_list_from_str(&selectors) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
                 let root: JSRef<Node> = NodeCast::from_ref(self);
@@ -1267,14 +1254,12 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 pub fn get_attribute_parts<'a>(name: &'a str) -> (Option<&'a str>, &'a str) {
     //FIXME: Throw for XML-invalid names
     //FIXME: Throw for XMLNS-invalid names
-    let (prefix, local_name) = if name.contains(":")  {
+    if name.contains(":")  {
         let mut parts = name.splitn(1, ':');
         (Some(parts.next().unwrap()), parts.next().unwrap())
     } else {
         (None, name)
-    };
-
-    (prefix, local_name)
+    }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Element> {
@@ -1288,10 +1273,10 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             s.after_set_attr(attr);
         }
 
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match attr.local_name() {
             &atom!("style") => {
                 // Modifying the `style` attribute might change style.
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
                 let doc = document_from_node(*self).root();
                 let base_url = doc.r().url();
                 let value = attr.value();
@@ -1304,7 +1289,6 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             }
             &atom!("class") => {
                 // Modifying a class can change style.
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
                 if node.is_in_doc() {
                     let document = document_from_node(*self).root();
                     document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
@@ -1312,7 +1296,6 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             }
             &atom!("id") => {
                 // Modifying an ID might change style.
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
                 let value = attr.value();
                 if node.is_in_doc() {
                     let doc = document_from_node(*self).root();
@@ -1325,7 +1308,6 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             }
             _ => {
                 // Modifying any other attribute might change arbitrary things.
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
                 if node.is_in_doc() {
                     let document = document_from_node(*self).root();
                     document.r().content_changed(node, NodeDamage::OtherNodeDamage);
@@ -1339,12 +1321,12 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             s.before_remove_attr(attr);
         }
 
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
         match attr.local_name() {
             &atom!("style") => {
                 // Modifying the `style` attribute might change style.
                 *self.style_attribute.borrow_mut() = None;
 
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
                 if node.is_in_doc() {
                     let doc = document_from_node(*self).root();
                     doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
@@ -1352,7 +1334,6 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             }
             &atom!("id") => {
                 // Modifying an ID can change style.
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
                 let value = attr.value();
                 if node.is_in_doc() {
                     let doc = document_from_node(*self).root();
@@ -1365,7 +1346,6 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             }
             &atom!("class") => {
                 // Modifying a class can change style.
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
                 if node.is_in_doc() {
                     let document = document_from_node(*self).root();
                     document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
@@ -1373,7 +1353,6 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             }
             _ => {
                 // Modifying any other attribute might change arbitrary things.
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
                 if node.is_in_doc() {
                     let doc = document_from_node(*self).root();
                     doc.r().content_changed(node, NodeDamage::OtherNodeDamage);
@@ -1397,16 +1376,13 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         if !tree_in_doc { return; }
 
-        match self.get_attribute(ns!(""), &atom!("id")).root() {
-            Some(attr) => {
-                let doc = document_from_node(*self).root();
-                let value = attr.r().Value();
-                if !value.is_empty() {
-                    let value = Atom::from_slice(value.as_slice());
-                    doc.r().register_named_element(*self, value);
-                }
+        if let Some(attr) = self.get_attribute(ns!(""), &atom!("id")).root() {
+            let doc = document_from_node(*self).root();
+            let value = attr.r().Value();
+            if !value.is_empty() {
+                let value = Atom::from_slice(value.as_slice());
+                doc.r().register_named_element(*self, value);
             }
-            _ => ()
         }
     }
 
@@ -1417,16 +1393,13 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         if !tree_in_doc { return; }
 
-        match self.get_attribute(ns!(""), &atom!("id")).root() {
-            Some(attr) => {
-                let doc = document_from_node(*self).root();
-                let value = attr.r().Value();
-                if !value.is_empty() {
-                    let value = Atom::from_slice(value.as_slice());
-                    doc.r().unregister_named_element(*self, value);
-                }
+        if let Some(attr) = self.get_attribute(ns!(""), &atom!("id")).root() {
+            let doc = document_from_node(*self).root();
+            let value = attr.r().Value();
+            if !value.is_empty() {
+                let value = Atom::from_slice(value.as_slice());
+                doc.r().unregister_named_element(*self, value);
             }
-            _ => ()
         }
     }
 }
@@ -1532,16 +1505,10 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
     fn each_class<F>(self, mut callback: F)
         where F: FnMut(&Atom)
     {
-        match self.get_attribute(ns!(""), &atom!("class")).root() {
-            None => {}
-            Some(ref attr) => {
-                match attr.r().value().tokens() {
-                    None => {}
-                    Some(tokens) => {
-                        for token in tokens.iter() {
-                            callback(token)
-                        }
-                    }
+        if let Some(ref attr) = self.get_attribute(ns!(""), &atom!("class")).root() {
+            if let Some(tokens) = attr.r().value().tokens() {
+                for token in tokens {
+                    callback(token)
                 }
             }
         }
