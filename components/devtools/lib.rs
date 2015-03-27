@@ -30,6 +30,7 @@ extern crate util;
 
 use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
+use actors::worker::WorkerActor;
 use actors::inspector::InspectorActor;
 use actors::root::RootActor;
 use actors::tab::TabActor;
@@ -37,7 +38,7 @@ use protocol::JsonPacketStream;
 
 use devtools_traits::{ConsoleMessage, DevtoolsControlMsg};
 use devtools_traits::{DevtoolsPageInfo, DevtoolScriptControlMsg};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, WorkerId};
 use util::task::spawn_named;
 
 use std::borrow::ToOwned;
@@ -55,6 +56,7 @@ mod actors {
     pub mod inspector;
     pub mod root;
     pub mod tab;
+    pub mod worker;
 }
 mod protocol;
 
@@ -107,6 +109,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
     let mut actor_pipelines: HashMap<PipelineId, String> = HashMap::new();
 
+
     /// Process the input from a single devtools client until EOF.
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
         println!("connection established to {}", stream.peer_addr().unwrap());
@@ -142,11 +145,15 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
     // clients can theoretically connect to multiple globals simultaneously.
     // TODO: move this into the root or tab modules?
     fn handle_new_global(actors: Arc<Mutex<ActorRegistry>>,
-                         pipeline: PipelineId,
+                         ids: (PipelineId, Option<WorkerId>),
                          scriptSender: Sender<DevtoolScriptControlMsg>,
                          actor_pipelines: &mut HashMap<PipelineId, String>,
                          page_info: DevtoolsPageInfo) {
         let mut actors = actors.lock().unwrap();
+
+        let (pipeline, worker_id) = ids;
+
+        let mut actor_workers: HashMap<(PipelineId, WorkerId), String> = HashMap::new();
 
         //TODO: move all this actor creation into a constructor method on TabActor
         let (tab, console, inspector) = {
@@ -178,6 +185,15 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
             root.tabs.push(tab.name.clone());
             (tab, console, inspector)
         };
+
+        if let Some(id) = worker_id {
+            let worker = WorkerActor {
+                name: actors.new_name("worker"),
+                id: id,
+            };
+            actor_workers.insert((pipeline, id), worker.name.clone());
+            actors.register(box worker);
+        }
 
         actor_pipelines.insert(pipeline, tab.name.clone());
         actors.register(box tab);
@@ -241,8 +257,8 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 })
             }
             Ok(DevtoolsControlMsg::ServerExitMsg) | Err(RecvError) => break,
-            Ok(DevtoolsControlMsg::NewGlobal(id, scriptSender, pageinfo)) =>
-                handle_new_global(actors.clone(), id, scriptSender, &mut actor_pipelines,
+            Ok(DevtoolsControlMsg::NewGlobal(ids, scriptSender, pageinfo)) =>
+                handle_new_global(actors.clone(), ids, scriptSender, &mut actor_pipelines,
                                   pageinfo),
             Ok(DevtoolsControlMsg::SendConsoleMessage(id, console_message)) =>
                 handle_console_message(actors.clone(), id, console_message,

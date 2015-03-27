@@ -36,7 +36,7 @@ use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
 use devtools_traits::DevtoolsControlChan;
 use msg::compositor_msg::ScriptListener;
-use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData};
+use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
 use net::storage_task::{StorageTask, StorageType};
@@ -97,6 +97,8 @@ pub struct Window {
     session_storage: MutNullableJS<Storage>,
     local_storage: MutNullableJS<Storage>,
     timers: TimerManager,
+
+    next_worker_id: Cell<WorkerId>,
 
     /// For providing instructions to an optional devtools server.
     devtools_chan: Option<DevtoolsControlChan>,
@@ -169,6 +171,13 @@ impl Window {
 
     pub fn script_chan(&self) -> Box<ScriptChan+Send> {
         self.script_chan.clone()
+    }
+
+    pub fn get_next_worker_id(&self) -> WorkerId {
+        let worker_id = self.next_worker_id.get();
+        let WorkerId(id_num) = worker_id;
+        self.next_worker_id.set(WorkerId(id_num + 1));
+        worker_id
     }
 
     pub fn pipeline(&self) -> PipelineId {
@@ -814,6 +823,7 @@ impl Window {
             session_storage: Default::default(),
             local_storage: Default::default(),
             timers: TimerManager::new(),
+            next_worker_id: Cell::new(WorkerId(0)),
             id: id,
             parent_info: parent_info,
             dom_static: GlobalStaticData::new(),

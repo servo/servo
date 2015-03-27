@@ -20,7 +20,7 @@ extern crate url;
 extern crate util;
 
 use rustc_serialize::{Decodable, Decoder};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, WorkerId};
 use util::str::DOMString;
 use url::Url;
 
@@ -41,7 +41,7 @@ pub struct DevtoolsPageInfo {
 /// according to changes in the browser.
 pub enum DevtoolsControlMsg {
     AddClient(TcpStream),
-    NewGlobal(PipelineId, Sender<DevtoolScriptControlMsg>, DevtoolsPageInfo),
+    NewGlobal((PipelineId, Option<WorkerId>), Sender<DevtoolScriptControlMsg>, DevtoolsPageInfo),
     SendConsoleMessage(PipelineId, ConsoleMessage),
     ServerExitMsg
 }
