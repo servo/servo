@@ -1,0 +1,153 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+ <head>
+  <title>Grid Containers - CSS Grid Layout Module Level 1 CR Test Suite</title>
+  <style type="text/css">
+    @import "http://www.w3.org/StyleSheets/TR/base.css";
+    @import "../indices.css";
+  </style>
+ </head>
+
+ <body>
+
+  <h1>CSS Grid Layout Module Level 1 CR Test Suite</h1>
+  <h2>Grid Containers (9 tests)</h2>
+  <table width="100%">
+    <col id="test-column">
+    <col id="refs-column">
+    <col id="flags-column">
+    <col id="info-column">
+    <thead>
+      <tr>
+        <th>Test</th>
+        <th><abbr title="Rendering References">Refs</abbr></th>
+        <th>Flags</th>
+        <th>Info</th>
+      </tr>
+    </thead>
+    <tbody id="s3">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s3">+</a>
+        <a href="http://www.w3.org/TR/css-grid-1/#grid-model">3 Grid Containers</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s3.1">+</a>
+        <a href="http://www.w3.org/TR/css-grid-1/#grid-containers">3.1 Establishing Grid Containers: the grid and inline-grid display values</a></th></tr>
+      <!-- 9 tests -->
+      <tr id="display-grid-3.1" class="primary">
+        <td><strong>
+            <a href="display-grid.htm">display-grid</a></strong></td>
+        <td><a href="reference/display-grid-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Grid Layout: display: grid
+          <ul class="assert">
+            <li>'display: grid' causes an element to generate a block-level grid container box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="display-inline-grid-3.1" class="primary">
+        <td><strong>
+            <a href="display-inline-grid.htm">display-inline-grid</a></strong></td>
+        <td><a href="reference/display-inline-grid-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Grid Layout: display: inline-grid
+          <ul class="assert">
+            <li>'display: inline-grid' causes an element to generate an inline-level grid container box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-display-grid-001-3.1" class="primary ahem">
+        <td><strong>
+            <a href="grid-display-grid-001.htm">grid-display-grid-001</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'grid' value for 'display' property
+          <ul class="assert">
+            <li>This test checks that 'grid' value for 'display' property generates a block level containing box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-display-inline-grid-001-3.1" class="primary">
+        <td><strong>
+            <a href="grid-display-inline-grid-001.htm">grid-display-inline-grid-001</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>'inline-grid' value for 'display' property
+          <ul class="assert">
+            <li>This test checks that 'inline-grid' value for 'display' property generates an inline level containing box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-float-001-3.1" class="primary">
+        <td><strong>
+            <a href="grid-float-001.htm">grid-float-001</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>'float' has no effect on grid items
+        </td>
+      </tr>
+      <tr id="grid-inline-float-001-3.1" class="primary">
+        <td><strong>
+            <a href="grid-inline-float-001.htm">grid-inline-float-001</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>'float' has no effect on grid items within an inline grid
+        </td>
+      </tr>
+      <tr id="grid-inline-vertical-align-001-3.1" class="primary ahem">
+        <td><strong>
+            <a href="grid-inline-vertical-align-001.htm">grid-inline-vertical-align-001</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'vertical-align' has no effect on grid items within an inline grid
+        </td>
+      </tr>
+      <tr id="grid-support-display-001-3.1" class="primary dom script">
+        <td><strong>
+            <a href="grid-support-display-001.htm">grid-support-display-001</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>DOM support for 'grid' and 'inline-grid' 'display' values
+          <ul class="assert">
+            <li>This test checks that 'grid' and 'inline-grid' values for 'display' property are supported so that DOM methods, specifically getComputedValue(), and its associated CSS2Properties interface, can fetch such 'display' values.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="grid-vertical-align-001-3.1" class="primary ahem">
+        <td><strong>
+            <a href="grid-vertical-align-001.htm">grid-vertical-align-001</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'vertical-align' has no effect on grid items
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s3.1.#grid-container">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1.#grid-formatting-context">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1.#valdef-display-grid">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.1.#valdef-display-inline-grid">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.2">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s3.2">+</a>
+        <a href="http://www.w3.org/TR/css-grid-1/#intrinsic-sizes">3.2 Sizing Grid Containers</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s3.2.#issue-839d056f">
+      <!-- 0 tests -->
+    </tbody>
+  </table>
+
+ </body>
+</html>

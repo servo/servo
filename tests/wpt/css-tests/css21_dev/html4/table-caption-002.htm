@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: CSS Tables: Multiple captions</title>
+        <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch">
+        <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/caption/001.html" type="text/html">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes">
+        <style type="text/css">
+            .table
+            {
+                display: table;
+            }
+            .caption
+            {
+                display: table-caption;
+                color: green;
+            }
+            .row
+            {
+                display: table-row;
+                color: green;
+            }
+            .cell
+            {
+                display: table-cell;
+            }
+        </style>
+    </head>
+    <body class="table">
+        <div class="cell">Test passes if the numbers above are in order from top-to-bottom (1-3) and the number below are in order from top-to-bottom (4-6).</div>
+        <div class="row">4. This line should be green.</div>
+        <div class="caption">1. This line should be green.</div>
+        <div class="caption">2. This line should be green.</div>
+        <div class="row">5. This line should be green.</div>
+        <div class="caption">3. This line should be green.</div>
+        <div class="row">6. This line should be green.</div>
+    </body>
+</html>

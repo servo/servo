@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+--><html><head><title>CSS Test: Test declaring a variable where the custom property name includes an unescaped Chinese character and an escape that is terminated by a space character.</title>
+<link href="mailto:cam@mcc.id.au" rel="author" title="Cameron McCormack">
+<link href="http://www.w3.org/TR/css-variables-1/#defining-variables" rel="help">
+<link href="support/color-green-ref.htm" rel="match">
+<meta charset="utf-8">
+<style>
+p {
+  color: red;
+}
+p {
+  color: orange;
+  --a-长-name-that-might-be-longer-than-you\27 d-normally-use: green;
+  color: var(--a-长-name-that-might-be-longer-than-you\27 d-normally-use);
+}
+</style>
+</head><body><p>This text must be green.</p>
+</body></html>

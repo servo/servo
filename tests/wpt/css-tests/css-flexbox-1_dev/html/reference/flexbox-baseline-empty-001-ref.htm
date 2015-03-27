@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+--><!-- In this reference case, we have inline-blocks instead of inline
+     flex containers. We stick an Ahem whitespace character in each
+     inline-block, with a customized line-height to make the baseline
+     end up at the bottom of the inline-block's content-box. --><html><head>
+  <title>CSS Reftest Reference</title>
+  <link href="mailto:dholbert@mozilla.com" rel="author" title="Daniel Holbert">
+  <meta charset="utf-8">
+  <link href="support/ahem.css" type="text/css" rel="stylesheet">
+  <style>
+    body {
+      font: 20px Ahem;
+    }
+    .flexContainer {
+      display: inline-block;
+      height: 16px;
+      width: 16px;
+      /* Each inline-block's baseline will be the baseline of the single Ahem
+         character that it contains. We want to set up that char such that its
+         baseline is at the bottom of the container's content box (since that's
+         the corresponding flex container's baseline). So, we use a line-height
+         of 20px, which gives us a baseline of 20px * 0.8 = 16px, which is the
+         bottom of the container's content-box -- awesome. */
+      line-height: 20px;
+      background: purple;
+      border: 0px dotted black;
+      /* (Elements that want a border will set their border-width.) */
+    }
+  </style>
+</head>
+<body>
+  A
+  <!-- We have to include a character in the inline-blocks in order for them
+       to baseline-align; otherwise, they align the bottom of their
+       border-boxes. -->
+  <div class="flexContainer">&nbsp;</div>
+  <div style="padding-bottom: 20px" class="flexContainer">&nbsp;</div>
+  <div style="padding: 10px" class="flexContainer">&nbsp;</div>
+  <div style="border-width: 3px" class="flexContainer">&nbsp;</div>
+  <div style="border-bottom-width: 4px" class="flexContainer">&nbsp;</div>
+
+
+</body></html>

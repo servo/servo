@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>interface B {
+  void g();
+  void g(<ref>B</ref> b);
+  void g([AllowAny] DOMString s);
+};</webidl>
+  <Interface name="B" id="::B">
+    <webidl>interface B {
+  void g();
+  void g(<ref>B</ref> b);
+  void g([AllowAny] DOMString s);
+};</webidl>
+    <Operation name="g" id="::B::g">
+      <webidl>  void g();</webidl>
+      <Type type="void"/>
+      <ArgumentList/>
+    </Operation>
+    <Operation name="g" id="::B::g">
+      <webidl>  void g(<ref>B</ref> b);</webidl>
+      <Type type="void"/>
+      <ArgumentList>
+        <Argument name="b">
+          <Type name="B"/>
+        </Argument>
+      </ArgumentList>
+    </Operation>
+    <Operation name="g" id="::B::g">
+      <webidl>  void g([AllowAny] DOMString s);</webidl>
+      <Type type="void"/>
+      <ArgumentList>
+        <Argument name="s">
+          <ExtendedAttributeList>
+            <ExtendedAttribute name="AllowAny">
+              <webidl>AllowAny</webidl>
+            </ExtendedAttribute>
+          </ExtendedAttributeList>
+          <Type type="DOMString"/>
+        </Argument>
+      </ArgumentList>
+    </Operation>
+  </Interface>
+</Definitions>

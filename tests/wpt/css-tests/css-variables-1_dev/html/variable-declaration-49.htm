@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+--><html><head><title>CSS Test: Test declaring a variable that is a dependent of a variable involved in a cycle but which itself is not involved in a cycle.</title>
+<link href="mailto:cam@mcc.id.au" rel="author" title="Cameron McCormack">
+<link href="http://www.w3.org/TR/css-variables-1/#cycles" rel="help">
+<link href="support/color-green-ref.htm" rel="match">
+<style>
+body {
+  color: orange;
+}
+p {
+  color: crimson;
+  --a: red var(--b) var(--g);
+  --b: var(--c);
+  --c: var(--d);
+  --d: var(--e);
+  --e: var(--a);
+  --f: var(--e);
+  --g: green;
+  color: var(--g);
+}
+</style>
+</head><body><p>This text must be green.</p>
+</body></html>

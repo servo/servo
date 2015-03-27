@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+--><html><head><meta charset="utf-8">
+<title>CSS Test: Test declaring a variable with a value whose name is "initial" but using Turkish dotted/dotless 'i's.</title>
+<link href="mailto:cam@mcc.id.au" rel="author" title="Cameron McCormack">
+<link href="http://www.w3.org/TR/css-variables-1/#syntax" rel="help">
+<link href="support/color-green-ref.htm" rel="match">
+<style>
+div {
+  color: orange;
+  --a: green;
+  color: var(--a);
+}
+p {
+  --b: İnitial;
+  --c: ınitial;
+  color: var(--b,var(--c,red));
+}
+</style>
+</head><body><div><p>This text must be green.</p></div>
+</body></html>

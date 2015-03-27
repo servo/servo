@@ -1,0 +1,79 @@
+{"tests": [
+
+{"description": "valid tabindex attribute value '-1'",
+"input": "<span tabindex=-1>",
+"fail-if": "invalid-integer-value"},
+
+{"description": "valid tabindex attribute value '0'",
+"input": "<span tabindex=0>",
+"fail-if": "invalid-integer-value"},
+
+{"description": "valid tabindex attribute value '1'",
+"input": "<span tabindex=1>",
+"fail-if": "invalid-integer-value"},
+
+{"description": "valid tabindex attribute value '32768'",
+"input": "<span tabindex=32768>",
+"fail-if": "invalid-integer-value"},
+
+{"description": "valid tabindex attribute value '-32768'",
+"input": "<span tabindex=-32768>",
+"fail-if": "invalid-integer-value"},
+
+{"description": "valid tabindex attribute value with leading spaces",
+"input": "<span tabindex=' -32768'>",
+"fail-if": "invalid-integer-value"},
+
+{"description": "valid tabindex attribute value with trailing spaces",
+"input": "<span tabindex='-32768 '>",
+"fail-if": "invalid-integer-value"},
+
+{"description": "valid tabindex attribute value with trailing junk",
+"input": "<span tabindex='32768a'>",
+"fail-if": "invalid-integer-value"},
+
+{"description": "valid tabindex attribute value with trailing junk and whitespace",
+"input": "<span tabindex='32768a '>",
+"fail-if": "invalid-integer-value"},
+
+{"description": "valid tabindex attribute value with trailing whitespace and junk",
+"input": "<span tabindex='32768 a'>",
+"fail-if": "invalid-integer-value"},
+
+{"description": "valid tabindex attribute value with leading spaces",
+"input": "<span tabindex=' 32768'>",
+"fail-if": "invalid-integer-value"},
+
+{"description": "valid tabindex attribute value with leading spaces (with sign)",
+"input": "<span tabindex=' -32768'>",
+"fail-if": "invalid-integer-value"},
+
+{"description": "invalid tabindex attribute value (blank)",
+"input": "<span tabindex>",
+"fail-unless": "attribute-value-can-not-be-blank"},
+
+{"description": "invalid tabindex attribute value due to leading junk",
+"input": "<span tabindex=a1>",
+"fail-unless": "invalid-integer-value"},
+
+{"description": "invalid tabindex attribute value due to two hyphens",
+"input": "<span tabindex=--1>",
+"fail-unless": "invalid-integer-value"},
+
+{"description": "invalid tabindex attribute value due to non-numeric",
+"input": "<span tabindex=foo>",
+"fail-unless": "invalid-integer-value"},
+
+{"description": "invalid tabindex attribute value due to positive sign",
+"input": "<span tabindex=+1>",
+"fail-unless": "invalid-integer-value"},
+
+{"description": "invalid tabindex attribute value due to decimal point",
+"input": "<span tabindex=.1>",
+"fail-unless": "invalid-integer-value"},
+
+{"description": "valid tabindex attribute value with trailing decimal point",
+"input": "<span tabindex=1.0>",
+"fail-if": "invalid-integer-value"}
+
+]}

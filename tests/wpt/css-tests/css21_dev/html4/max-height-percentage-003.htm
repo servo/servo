@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+ <head>
+
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+  <title>CSS Test: max-height percentage - inline replaced element inside an auto-height container</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <!--
+  Original post:
+  Image % sizing interoperability
+  from Bogdan Brinza who deserves credit for reporting this
+  http://lists.w3.org/Archives/Public/www-style/2014Jun/0079.html
+  -->
+
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-heights" title="10.7 Minimum and maximum heights: 'min-height' and 'max-height'">
+  <link rel="bookmark" href="http://lists.w3.org/Archives/Public/www-style/2014Jun/0079.html" title="Image % sizing interoperability">
+  <link rel="match" href="reference/ref-filled-black-96px-square.htm">
+
+  <meta content="image" name="flags">
+  <meta content="This test checks that a max-height percentage is calculated with respect to the height of the generated box's containing block only if and only when such containing block's height is specified explicitly (i.e., it depends on content height; its specified height is not 'auto'). In this test, the div#child has an 'auto' height; therefore the max-height percentage is treated as 'none' and so the image should be rendered (entirely visible) inside that div#child. Note that div#parent's initial overflow value is 'visible'." name="assert">
+
+  <style type="text/css">
+  div#parent {height: 0px;}
+
+  img {max-height: 100%;}
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled black square.</p>
+
+  <div id="parent">
+    <div id="child"><img src="support/black96x96.png" alt="Image download support must be enabled"></div>
+  </div>
+
+ </body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>CSS Test: A relative positioned child elements' offset is ignored for 'height' on a block-level non-replaced elements in normal flow when 'overflow' does not compute to 'visible'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#normal-block">
+        <meta name="flags" content="">
+        <meta name="assert" content="A relative positioned child elements' offset is not considered when sizing the 'height' of a block-level non-replaced element is in normal flow.">
+        <style type="text/css">
+            html, body
+            {
+                overflow: scroll;
+            }
+            #div1
+            {
+                position: relative;
+            }
+            #div2
+            {
+                background: blue;
+            }
+            #div2 div
+            {
+                position: relative;
+                top: 1in;
+            }
+            #div3
+            {
+                background: orange;
+                left: 1in;
+                position: absolute;
+                top: 0;
+            }
+            #div2 div, #div3
+            {
+                height: 1in;
+            }
+            div div
+            {
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange boxes below are the same height.</p>
+        <div id="div1">
+            <div id="div2">
+                <div></div>
+            </div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

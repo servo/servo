@@ -1,0 +1,1225 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Inline Direction and Bidirectionality - CSS Writing Modes Module Level 3 CR Test Suite</title>
+  <style type="text/css">
+    @import "http://www.w3.org/StyleSheets/TR/base.css";
+    @import "../indices.css";
+  </style>
+ </head>
+
+ <body>
+
+  <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
+  <h2>Inline Direction and Bidirectionality (101 tests)</h2>
+  <table width="100%">
+    <col id="test-column"></col>
+    <col id="refs-column"></col>
+    <col id="flags-column"></col>
+    <col id="info-column"></col>
+    <thead>
+      <tr>
+        <th>Test</th>
+        <th><abbr title="Rendering References">Refs</abbr></th>
+        <th>Flags</th>
+        <th>Info</th>
+      </tr>
+    </thead>
+    <tbody id="s2">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s2">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#text-direction">2 Inline Direction and Bidirectionality</a></th></tr>
+      <!-- 96 tests -->
+      <tr id="bidi-embed-001-2" class="primary">
+        <td><strong>
+            <a href="bidi-embed-001.xht">bidi-embed-001</a></strong></td>
+        <td><a href="reference/bidi-embed-001.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction rtl, unicode-bidi embed (1)
+          <ul class="assert">
+            <li>In a ltr context, if direction:rtl and unicode-bidi:embed are applied to an inline element containing mixed direction text, the text in that element will be displayed in rtl order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-embed-002-2" class="primary">
+        <td><strong>
+            <a href="bidi-embed-002.xht">bidi-embed-002</a></strong></td>
+        <td><a href="reference/bidi-embed-002.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction rtl, unicode-bidi embed (2)
+          <ul class="assert">
+            <li>In a ltr context, if direction:rtl and unicode-bidi:embed are applied to an inline element containing mixed direction text, the text in that element will be displayed in rtl order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-embed-003-2" class="primary">
+        <td><strong>
+            <a href="bidi-embed-003.xht">bidi-embed-003</a></strong></td>
+        <td><a href="reference/bidi-embed-003.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction ltr, unicode-bidi embed (1)
+          <ul class="assert">
+            <li>In a rtl context, if direction:ltr and unicode-bidi:embed are applied to an inline element containing mixed direction text, the text in that element will be displayed in ltr order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-embed-004-2" class="primary">
+        <td><strong>
+            <a href="bidi-embed-004.xht">bidi-embed-004</a></strong></td>
+        <td><a href="reference/bidi-embed-004.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction ltr, unicode-bidi embed (2)
+          <ul class="assert">
+            <li>In a rtl context, if direction:ltr and unicode-bidi:embed are applied to an inline element containing mixed direction text, the text in that element will be displayed in ltr order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-embed-005-2" class="primary">
+        <td><strong>
+            <a href="bidi-embed-005.xht">bidi-embed-005</a></strong></td>
+        <td><a href="reference/bidi-embed-005.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element as directional character with unicode-bidi embed, rtl
+          <ul class="assert">
+            <li>If unicode-bidi:embed is applied to an inline element, that element will interact with the surrounding text like a strongly directional character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-embed-006-2" class="primary">
+        <td><strong>
+            <a href="bidi-embed-006.xht">bidi-embed-006</a></strong></td>
+        <td><a href="reference/bidi-embed-006.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element as directional character with unicode-bidi embed, ltr
+          <ul class="assert">
+            <li>If unicode-bidi:embed is applied to an inline element, that element will interact with the surrounding text like a strongly directional character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-embed-007-2" class="primary">
+        <td><strong>
+            <a href="bidi-embed-007.xht">bidi-embed-007</a></strong></td>
+        <td><a href="reference/bidi-embed-007.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi embed, rtl + number
+          <ul class="assert">
+            <li>If unicode-bidi:embed is applied to an inline element, the text in that element will NOT be directionally isolated from surrounding text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-embed-008-2" class="primary">
+        <td><strong>
+            <a href="bidi-embed-008.xht">bidi-embed-008</a></strong></td>
+        <td><a href="reference/bidi-embed-008.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi embed, ltr + number
+          <ul class="assert">
+            <li>If unicode-bidi:embed is applied to an inline element, the text in that element will NOT be directionally isolated from surrounding text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-embed-009-2" class="primary">
+        <td><strong>
+            <a href="bidi-embed-009.xht">bidi-embed-009</a></strong></td>
+        <td><a href="reference/bidi-embed-009.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi embed, rtl list
+          <ul class="assert">
+            <li>If unicode-bidi:embed is applied to an inline element, the text in that element will NOT be directionally isolated from following content.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-embed-010-2" class="primary">
+        <td><strong>
+            <a href="bidi-embed-010.xht">bidi-embed-010</a></strong></td>
+        <td><a href="reference/bidi-embed-010.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi embed, ltr list
+          <ul class="assert">
+            <li>If unicode-bidi:embed is applied to an inline element, the text in that element will NOT be directionally isolated from following content.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-embed-011-2" class="primary">
+        <td><strong>
+            <a href="bidi-embed-011.xht">bidi-embed-011</a></strong></td>
+        <td><a href="reference/bidi-embed-011.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: direction alone and inherited, unicode-bidi embed
+          <ul class="assert">
+            <li>Directionality is not changed by the direction property on its own, but unicode-bidi: embed will apply direction declared on a higher level element.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-001-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-001.xht">bidi-isolate-001</a></strong></td>
+        <td><a href="reference/bidi-isolate-001.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction rtl, unicode-bidi isolate (1)
+          <ul class="assert">
+            <li>In a ltr context, if direction:rtl and unicode-bidi:isolate are applied to an inline element containing mixed direction text, the text in that element will be displayed in rtl order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-002-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-002.xht">bidi-isolate-002</a></strong></td>
+        <td><a href="reference/bidi-isolate-002.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction rtl, unicode-bidi isolate (2)
+          <ul class="assert">
+            <li>In a ltr context, if direction:rtl and unicode-bidi:isolate are applied to an inline element containing mixed direction text, the text in that element will be displayed in rtl order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-003-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-003.xht">bidi-isolate-003</a></strong></td>
+        <td><a href="reference/bidi-isolate-003.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction ltr, unicode-bidi isolate (1)
+          <ul class="assert">
+            <li>In a rtl context, if direction:ltr and unicode-bidi:isolate are applied to an inline element containing mixed direction text, the text in that element will be displayed in ltr order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-004-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-004.xht">bidi-isolate-004</a></strong></td>
+        <td><a href="reference/bidi-isolate-004.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction ltr, unicode-bidi isolate (2)
+          <ul class="assert">
+            <li>In a rtl context, if direction:ltr and unicode-bidi:isolate are applied to an inline element containing mixed direction text, the text in that element will be displayed in ltr order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-005-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-005.xht">bidi-isolate-005</a></strong></td>
+        <td><a href="reference/bidi-isolate-005.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element as directional character with unicode-bidi isolate, rtl
+          <ul class="assert">
+            <li>If unicode-bidi:isolate is applied to an inline element, that element will interact with the surrounding text like a neutral directional character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-006-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-006.xht">bidi-isolate-006</a></strong></td>
+        <td><a href="reference/bidi-isolate-006.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element as directional character with unicode-bidi isolate, ltr
+          <ul class="assert">
+            <li>If unicode-bidi:isolate is applied to an inline element, that element will interact with the surrounding text like a neutral directional character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-007-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-007.xht">bidi-isolate-007</a></strong></td>
+        <td><a href="reference/bidi-isolate-007.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi isolate, rtl + number
+          <ul class="assert">
+            <li>If unicode-bidi:isolate is applied to an inline element, the text in that element WILL be directionally isolated from surrounding text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-008-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-008.xht">bidi-isolate-008</a></strong></td>
+        <td><a href="reference/bidi-isolate-008.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi isolate, ltr + number
+          <ul class="assert">
+            <li>If unicode-bidi:isolate is applied to an inline element, the text in that element WILL be directionally isolated from surrounding text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-009-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-009.xht">bidi-isolate-009</a></strong></td>
+        <td><a href="reference/bidi-isolate-009.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi isolate, rtl list
+          <ul class="assert">
+            <li>If unicode-bidi:isolate is applied to an inline element, the text in that element WILL be directionally isolated from following content.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-010-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-010.xht">bidi-isolate-010</a></strong></td>
+        <td><a href="reference/bidi-isolate-010.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi isolate, ltr list
+          <ul class="assert">
+            <li>If unicode-bidi:isolate is applied to an inline element, the text in that element will NOT be directionally isolated from following content.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-011-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-011.xht">bidi-isolate-011</a></strong></td>
+        <td><a href="reference/bidi-embed-011.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: direction alone and inherited, unicode-bidi embed
+          <ul class="assert">
+            <li>Directionality is not changed by the direction property on its own, but unicode-bidi: isolate will apply direction declared on a higher level element.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-override-001-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-override-001.xht">bidi-isolate-override-001</a></strong></td>
+        <td><a href="reference/bidi-isolate-override-001.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction rtl, isolate-override (1)
+          <ul class="assert">
+            <li>In a ltr context, if direction:rtl and unicode-bidi:isolate-override are applied to an inline element containing mixed direction text, the characters in that element will all be displayed in rtl order, ignoring the bidi algorithm.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-override-002-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-override-002.xht">bidi-isolate-override-002</a></strong></td>
+        <td><a href="reference/bidi-isolate-override-002.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction rtl, isolate-override (2)
+          <ul class="assert">
+            <li>In a ltr context, if direction:rtl and unicode-bidi:isolate-override are applied to an inline element containing mixed direction text, the characters in that element will all be displayed in rtl order, ignoring the bidi algorithm.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-override-003-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-override-003.xht">bidi-isolate-override-003</a></strong></td>
+        <td><a href="reference/bidi-isolate-override-003.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction ltr, isolate-override (1)
+          <ul class="assert">
+            <li>In a rtl context, if direction:ltr and unicode-bidi:isolate-override are applied to an inline element containing mixed direction text, the characters in that element will all be displayed in ltr order, ignoring the bidi algorithm.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-override-004-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-override-004.xht">bidi-isolate-override-004</a></strong></td>
+        <td><a href="reference/bidi-isolate-override-004.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction ltr, isolate-override (2)
+          <ul class="assert">
+            <li>In a rtl context, if direction:ltr and unicode-bidi:isolate-override are applied to an inline element containing mixed direction text, the characters in that element will all be displayed in ltr order, ignoring the bidi algorithm.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-override-005-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-override-005.xht">bidi-isolate-override-005</a></strong></td>
+        <td><a href="reference/bidi-isolate-override-005.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element as directional character with isolate-override, rtl
+          <ul class="assert">
+            <li>If unicode-bidi:isolate-override is applied to an inline element, that element will interact with the surrounding text like a neutral directional character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-override-006-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-override-006.xht">bidi-isolate-override-006</a></strong></td>
+        <td><a href="reference/bidi-isolate-override-006.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element as directional character with isolate-override, ltr
+          <ul class="assert">
+            <li>If unicode-bidi:isolate-override is applied to an inline element, that element will interact with the surrounding text like a neutral directional character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-override-007-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-override-007.xht">bidi-isolate-override-007</a></strong></td>
+        <td><a href="reference/bidi-isolate-override-007.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and isolate-override, rtl + number
+          <ul class="assert">
+            <li>If unicode-bidi:isolate-override is applied to an inline element, the text in that element WILL be directionally isolated from surrounding text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-override-008-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-override-008.xht">bidi-isolate-override-008</a></strong></td>
+        <td><a href="reference/bidi-isolate-override-008.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and isolate-override, ltr + number
+          <ul class="assert">
+            <li>If unicode-bidi:isolate-override is applied to an inline element, the text in that element WILL be directionally isolated from surrounding text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-override-009-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-override-009.xht">bidi-isolate-override-009</a></strong></td>
+        <td><a href="reference/bidi-isolate-override-009.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and isolate-override, rtl list
+          <ul class="assert">
+            <li>If unicode-bidi:isolate-override is applied to an inline element, the text in that element WILL be directionally isolated from following content.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-override-010-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-override-010.xht">bidi-isolate-override-010</a></strong></td>
+        <td><a href="reference/bidi-isolate-override-010.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and isolate-override, ltr list
+          <ul class="assert">
+            <li>If unicode-bidi:isolate-override is applied to an inline element, the text in that element WILL be directionally isolated from following content.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-override-011-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-override-011.xht">bidi-isolate-override-011</a></strong></td>
+        <td><a href="reference/bidi-isolate-override-011.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: direction alone and inherited, isolate-override
+          <ul class="assert">
+            <li>unicode-bidi: isolate-override will apply direction declared on a higher level element.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-isolate-override-012-2" class="primary">
+        <td><strong>
+            <a href="bidi-isolate-override-012.xht">bidi-isolate-override-012</a></strong></td>
+        <td><a href="reference/bidi-isolate-override-012.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: default direction, isolate-override
+          <ul class="assert">
+            <li>unicode-bidi: When no direction is set, isolate-override will apply ltr ordering to text within its scope.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-normal-001-2" class="primary">
+        <td><strong>
+            <a href="bidi-normal-001.xht">bidi-normal-001</a></strong></td>
+        <td><a href="reference/bidi-normal-001.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction rtl, unicode-bidi normal (1)
+          <ul class="assert">
+            <li>In a ltr context, if direction:rtl and unicode-bidi:normal are applied to an inline element containing mixed direction text, the text in that element will NOT be displayed in rtl order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-normal-002-2" class="primary">
+        <td><strong>
+            <a href="bidi-normal-002.xht">bidi-normal-002</a></strong></td>
+        <td><a href="reference/bidi-normal-002.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction rtl, unicode-bidi normal (2)
+          <ul class="assert">
+            <li>In a ltr context, if direction:rtl and unicode-bidi:normal are applied to an inline element containing mixed direction text, the text in that element will NOT be displayed in rtl order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-normal-003-2" class="primary">
+        <td><strong>
+            <a href="bidi-normal-003.xht">bidi-normal-003</a></strong></td>
+        <td><a href="reference/bidi-normal-003.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction ltr, unicode-bidi normal (1)
+          <ul class="assert">
+            <li>In a rtl context, if direction:ltr and unicode-bidi:normal are applied to an inline element containing mixed direction text, the text in that element will NOT be displayed in ltr order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-normal-004-2" class="primary">
+        <td><strong>
+            <a href="bidi-normal-004.xht">bidi-normal-004</a></strong></td>
+        <td><a href="reference/bidi-normal-004.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction ltr, unicode-bidi normal (2)
+          <ul class="assert">
+            <li>In a rtl context, if direction:ltr and unicode-bidi:normal are applied to an inline element containing mixed direction text, the text in that element will NOT be displayed in ltr order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-normal-005-2" class="primary">
+        <td><strong>
+            <a href="bidi-normal-005.xht">bidi-normal-005</a></strong></td>
+        <td><a href="reference/bidi-normal-005.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element as directional character with unicode-bidi normal, rtl
+          <ul class="assert">
+            <li>If unicode-bidi:normal is applied to an inline element, that element will NOT interact with the surrounding text like a strong or neutral directional character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-normal-006-2" class="primary">
+        <td><strong>
+            <a href="bidi-normal-006.xht">bidi-normal-006</a></strong></td>
+        <td><a href="reference/bidi-normal-006.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element as directional character with unicode-bidi normal, ltr
+          <ul class="assert">
+            <li>If unicode-bidi:normal is applied to an inline element, that element will NOT interact with the surrounding text like a strong or neutral directional character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-normal-007-2" class="primary">
+        <td><strong>
+            <a href="bidi-normal-007.xht">bidi-normal-007</a></strong></td>
+        <td><a href="reference/bidi-normal-007.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi normal, rtl + number
+          <ul class="assert">
+            <li>If unicode-bidi:normal is applied to an inline element, the text in that element will NOT be directionally isolated from surrounding text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-normal-008-2" class="primary">
+        <td><strong>
+            <a href="bidi-normal-008.xht">bidi-normal-008</a></strong></td>
+        <td><a href="reference/bidi-normal-008.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi normal, ltr + number
+          <ul class="assert">
+            <li>If unicode-bidi:normal is applied to an inline element, the text in that element will NOT be directionally isolated from surrounding text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-normal-009-2" class="primary">
+        <td><strong>
+            <a href="bidi-normal-009.xht">bidi-normal-009</a></strong></td>
+        <td><a href="reference/bidi-normal-009.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi normal, rtl list
+          <ul class="assert">
+            <li>If unicode-bidi:normal is applied to an inline element, the text in that element will NOT be directionally isolated from following content.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-normal-010-2" class="primary">
+        <td><strong>
+            <a href="bidi-normal-010.xht">bidi-normal-010</a></strong></td>
+        <td><a href="reference/bidi-normal-010.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi normal, ltr list
+          <ul class="assert">
+            <li>If unicode-bidi:normal is applied to an inline element, the text in that element will NOT be directionally isolated from following content.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-normal-011-2" class="primary">
+        <td><strong>
+            <a href="bidi-normal-011.xht">bidi-normal-011</a></strong></td>
+        <td><a href="reference/bidi-embed-011.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: direction alone and inherited, unicode-bidi normal
+          <ul class="assert">
+            <li>Directionality is not changed by the direction property on its own, nor by unicode-bidi:normal set on a lower level element.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-override-001-2" class="primary">
+        <td><strong>
+            <a href="bidi-override-001.xht">bidi-override-001</a></strong></td>
+        <td><a href="reference/bidi-override-001.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction rtl, bidi-override (1)
+          <ul class="assert">
+            <li>In a ltr context, if direction:rtl and unicode-bidi:bidi-override are applied to an inline element containing mixed direction text, the characters in that element will all be displayed in rtl order, ignoring the bidi algorithm.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-override-002-2" class="primary">
+        <td><strong>
+            <a href="bidi-override-002.xht">bidi-override-002</a></strong></td>
+        <td><a href="reference/bidi-override-002.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction rtl, bidi-override (2)
+          <ul class="assert">
+            <li>In a ltr context, if direction:rtl and unicode-bidi:bidi-override are applied to an inline element containing mixed direction text, the characters in that element will all be displayed in rtl order, ignoring the bidi algorithm.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-override-003-2" class="primary">
+        <td><strong>
+            <a href="bidi-override-003.xht">bidi-override-003</a></strong></td>
+        <td><a href="reference/bidi-override-003.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction ltr, bidi-override (1)
+          <ul class="assert">
+            <li>In a rtl context, if direction:ltr and unicode-bidi:bidi-override are applied to an inline element containing mixed direction text, the characters in that element will all be displayed in ltr order, ignoring the bidi algorithm.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-override-004-2" class="primary">
+        <td><strong>
+            <a href="bidi-override-004.xht">bidi-override-004</a></strong></td>
+        <td><a href="reference/bidi-override-004.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction ltr, bidi-override (2)
+          <ul class="assert">
+            <li>In a rtl context, if direction:ltr and unicode-bidi:bidi-override are applied to an inline element containing mixed direction text, the characters in that element will all be displayed in ltr order, ignoring the bidi algorithm.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-override-005-2" class="primary">
+        <td><strong>
+            <a href="bidi-override-005.xht">bidi-override-005</a></strong></td>
+        <td><a href="reference/bidi-override-005.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element as directional character with bidi-override, rtl
+          <ul class="assert">
+            <li>If unicode-bidi:bidi-override is applied to an inline element, that element will interact with the surrounding text like a strongly directional character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-override-006-2" class="primary">
+        <td><strong>
+            <a href="bidi-override-006.xht">bidi-override-006</a></strong></td>
+        <td><a href="reference/bidi-override-006.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element as directional character with bidi-override, ltr
+          <ul class="assert">
+            <li>If unicode-bidi:bidi-override is applied to an inline element, that element will interact with the surrounding text like a strongly directional character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-override-007-2" class="primary">
+        <td><strong>
+            <a href="bidi-override-007.xht">bidi-override-007</a></strong></td>
+        <td><a href="reference/bidi-override-007.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and bidi-override, rtl + number
+          <ul class="assert">
+            <li>If unicode-bidi:bidi-override is applied to an inline element, the text in that element will NOT be directionally isolated from surrounding text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-override-008-2" class="primary">
+        <td><strong>
+            <a href="bidi-override-008.xht">bidi-override-008</a></strong></td>
+        <td><a href="reference/bidi-override-008.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and bidi-override, ltr + number
+          <ul class="assert">
+            <li>If unicode-bidi:bidi-override is applied to an inline element, the text in that element will NOT be directionally isolated from surrounding text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-override-009-2" class="primary">
+        <td><strong>
+            <a href="bidi-override-009.xht">bidi-override-009</a></strong></td>
+        <td><a href="reference/bidi-override-009.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and bidi-override, rtl list
+          <ul class="assert">
+            <li>If unicode-bidi:bidi-override is applied to an inline element, the text in that element will NOT be directionally isolated from following content.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-override-010-2" class="primary">
+        <td><strong>
+            <a href="bidi-override-010.xht">bidi-override-010</a></strong></td>
+        <td><a href="reference/bidi-override-010.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and bidi-override, ltr list
+          <ul class="assert">
+            <li>If unicode-bidi:bidi-override is applied to an inline element, the text in that element will NOT be directionally isolated from following content.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-override-011-2" class="primary">
+        <td><strong>
+            <a href="bidi-override-011.xht">bidi-override-011</a></strong></td>
+        <td><a href="reference/bidi-override-011.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: direction alone and inherited, bidi-override
+          <ul class="assert">
+            <li>unicode-bidi: bidi-override will apply direction declared on a higher level element.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-override-012-2" class="primary">
+        <td><strong>
+            <a href="bidi-override-012.xht">bidi-override-012</a></strong></td>
+        <td><a href="reference/bidi-override-012.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: default direction, bidi-override
+          <ul class="assert">
+            <li>unicode-bidi: When no direction is set, bidi-override will apply ltr ordering to text within its scope.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-plaintext-001-2" class="primary">
+        <td><strong>
+            <a href="bidi-plaintext-001.xht">bidi-plaintext-001</a></strong></td>
+        <td><a href="reference/bidi-plaintext-001.xht">=</a> </td>
+        <td></td>
+        <td>unicode-bidi: span unicode-bidi plaintext, rtl (1)
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to an inline element containing mixed direction text with a first strong directional character that is rtl, the text in that element will be displayed in rtl order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-plaintext-002-2" class="primary">
+        <td><strong>
+            <a href="bidi-plaintext-002.xht">bidi-plaintext-002</a></strong></td>
+        <td><a href="reference/bidi-plaintext-002.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span unicode-bidi plaintext, rtl (2)
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to an inline element containing mixed direction text with a first strong directional character that is rtl, the text in that element will be displayed in rtl order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-plaintext-003-2" class="primary">
+        <td><strong>
+            <a href="bidi-plaintext-003.xht">bidi-plaintext-003</a></strong></td>
+        <td><a href="reference/bidi-plaintext-003.xht">=</a> </td>
+        <td></td>
+        <td>unicode-bidi: span unicode-bidi plaintext, ltr (1)
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to an inline element containing mixed direction text with a first strong directional character that is ltr, the text in that element will be displayed in ltr order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-plaintext-004-2" class="primary">
+        <td><strong>
+            <a href="bidi-plaintext-004.xht">bidi-plaintext-004</a></strong></td>
+        <td><a href="reference/bidi-plaintext-004.xht">=</a> </td>
+        <td></td>
+        <td>unicode-bidi: span unicode-bidi plaintext, ltr (2)
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to an inline element containing mixed direction text with a first strong directional character that is ltr, the text in that element will be displayed in ltr order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-plaintext-005-2" class="primary">
+        <td><strong>
+            <a href="bidi-plaintext-005.xht">bidi-plaintext-005</a></strong></td>
+        <td><a href="reference/bidi-plaintext-005.xht">=</a> </td>
+        <td></td>
+        <td>unicode-bidi: element as directional character with unicode-bidi plaintext, rtl
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to an inline element, that element will interact with the surrounding text like a neutral directional character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-plaintext-006-2" class="primary">
+        <td><strong>
+            <a href="bidi-plaintext-006.xht">bidi-plaintext-006</a></strong></td>
+        <td><a href="reference/bidi-plaintext-006.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element as directional character with unicode-bidi plaintext, ltr
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to an inline element, that element will interact with the surrounding text like a neutral directional character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-plaintext-007-2" class="primary">
+        <td><strong>
+            <a href="bidi-plaintext-007.xht">bidi-plaintext-007</a></strong></td>
+        <td><a href="reference/bidi-plaintext-007.xht">=</a> </td>
+        <td></td>
+        <td>unicode-bidi: element isolation and unicode-bidi plaintext, rtl + number
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to an inline element, the text in that element WILL be directionally isolated from surrounding text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-plaintext-008-2" class="primary">
+        <td><strong>
+            <a href="bidi-plaintext-008.xht">bidi-plaintext-008</a></strong></td>
+        <td><a href="reference/bidi-plaintext-008.xht">=</a> </td>
+        <td></td>
+        <td>unicode-bidi: element isolation and unicode-bidi plaintext, ltr + number
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to an inline element, the text in that element WILL be directionally isolated from surrounding text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-plaintext-009-2" class="primary">
+        <td><strong>
+            <a href="bidi-plaintext-009.xht">bidi-plaintext-009</a></strong></td>
+        <td><a href="reference/bidi-plaintext-009.xht">=</a> </td>
+        <td></td>
+        <td>unicode-bidi: element isolation and unicode-bidi plaintext, rtl list
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to an inline element, the text in that element WILL be directionally isolated from following content.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-plaintext-010-2" class="primary">
+        <td><strong>
+            <a href="bidi-plaintext-010.xht">bidi-plaintext-010</a></strong></td>
+        <td><a href="reference/bidi-plaintext-010.xht">=</a> </td>
+        <td></td>
+        <td>unicode-bidi: element isolation and unicode-bidi plaintext, ltr list
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to an inline element, the text in that element WILL be directionally isolated from following content.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-plaintext-011-2" class="primary">
+        <td><strong>
+            <a href="bidi-plaintext-011.xht">bidi-plaintext-011</a></strong></td>
+        <td><a href="reference/bidi-plaintext-002.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span unicode-bidi plaintext, no strong (1)
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to an inline element containing mixed direction text with no strong directional character, the text in that element will be displayed in ltr order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-table-001-2" class="primary">
+        <td><strong>
+            <a href="bidi-table-001.xht">bidi-table-001</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>direction: table columns
+          <ul class="assert">
+            <li>If direction is applied to the ancestor of a table element, columns will be displayed in that direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-unset-001-2" class="primary">
+        <td><strong>
+            <a href="bidi-unset-001.xht">bidi-unset-001</a></strong></td>
+        <td><a href="reference/bidi-normal-001.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction rtl, unicode-bidi unset (1)
+          <ul class="assert">
+            <li>In a ltr context, if direction:rtl is set but unicode-bidi is not set on an inline element containing mixed direction text, the text in that element will NOT be displayed in rtl order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-unset-002-2" class="primary">
+        <td><strong>
+            <a href="bidi-unset-002.xht">bidi-unset-002</a></strong></td>
+        <td><a href="reference/bidi-normal-002.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction rtl, unicode-bidi unset (2)
+          <ul class="assert">
+            <li>In a ltr context, if direction:rtl is set but unicode-bidi is not set on an inline element containing mixed direction text, the text in that element will NOT be displayed in rtl order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-unset-003-2" class="primary">
+        <td><strong>
+            <a href="bidi-unset-003.xht">bidi-unset-003</a></strong></td>
+        <td><a href="reference/bidi-normal-003.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction ltr, unicode-bidi unset (1)
+          <ul class="assert">
+            <li>In a rtl context, if direction:ltr is set but unicode-bidi is not set on an inline element containing mixed direction text, the text in that element will NOT be displayed in ltr order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-unset-004-2" class="primary">
+        <td><strong>
+            <a href="bidi-unset-004.xht">bidi-unset-004</a></strong></td>
+        <td><a href="reference/bidi-normal-004.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: span direction ltr, unicode-bidi unset (2)
+          <ul class="assert">
+            <li>In a rtl context, if direction:ltr is set but unicode-bidi is not set on an inline element containing mixed direction text, the text in that element will NOT be displayed in ltr order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-unset-005-2" class="primary">
+        <td><strong>
+            <a href="bidi-unset-005.xht">bidi-unset-005</a></strong></td>
+        <td><a href="reference/bidi-normal-005.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element as directional character with unicode-bidi unset, rtl
+          <ul class="assert">
+            <li>If direction is set but unicode-bidi is not set on an inline element, that element will NOT interact with the surrounding text like a strong or neutral directional character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-unset-006-2" class="primary">
+        <td><strong>
+            <a href="bidi-unset-006.xht">bidi-unset-006</a></strong></td>
+        <td><a href="reference/bidi-normal-006.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element as directional character with unicode-bidi unset, ltr
+          <ul class="assert">
+            <li>If direction is set but unicode-bidi is not set on an inline element, that element will NOT interact with the surrounding text like a strong or neutral directional character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-unset-007-2" class="primary">
+        <td><strong>
+            <a href="bidi-unset-007.xht">bidi-unset-007</a></strong></td>
+        <td><a href="reference/bidi-normal-007.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi unset, rtl + number
+          <ul class="assert">
+            <li>If direction is set but unicode-bidi is not set on an inline element, the text in that element will NOT be directionally isolated from surrounding text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-unset-008-2" class="primary">
+        <td><strong>
+            <a href="bidi-unset-008.xht">bidi-unset-008</a></strong></td>
+        <td><a href="reference/bidi-normal-008.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi unset, ltr + number
+          <ul class="assert">
+            <li>If direction is set but unicode-bidi is not set on an inline element, the text in that element will NOT be directionally isolated from surrounding text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-unset-009-2" class="primary">
+        <td><strong>
+            <a href="bidi-unset-009.xht">bidi-unset-009</a></strong></td>
+        <td><a href="reference/bidi-normal-009.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi unset, rtl list
+          <ul class="assert">
+            <li>If direction is set but unicode-bidi is not set on an inline element, the text in that element will NOT be directionally isolated from following content.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="bidi-unset-010-2" class="primary">
+        <td><strong>
+            <a href="bidi-unset-010.xht">bidi-unset-010</a></strong></td>
+        <td><a href="reference/bidi-normal-010.xht">=</a> </td>
+        <td></td>
+        <td>direction/unicode-bidi: element isolation and unicode-bidi unset, ltr list
+          <ul class="assert">
+            <li>If direction is set but unicode-bidi is not set on an inline element, the text in that element will NOT be directionally isolated from following content.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-embed-001-2" class="primary">
+        <td><strong>
+            <a href="block-embed-001.xht">block-embed-001</a></strong></td>
+        <td><a href="reference/block-embed-001.xht">=</a> </td>
+        <td></td>
+        <td>direction: div direction rtl
+          <ul class="assert">
+            <li>If direction is applied to a block element containing mixed direction text, the text in that element will be displayed in the expected order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-embed-002-2" class="primary">
+        <td><strong>
+            <a href="block-embed-002.xht">block-embed-002</a></strong></td>
+        <td><a href="reference/block-embed-002.xht">=</a> </td>
+        <td></td>
+        <td>direction: div direction ltr
+          <ul class="assert">
+            <li>If direction is applied to a block element containing mixed direction text, the text in that element will be displayed in the expected order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-embed-003-2" class="primary">
+        <td><strong>
+            <a href="block-embed-003.xht">block-embed-003</a></strong></td>
+        <td><a href="reference/block-embed-003.xht">=</a> </td>
+        <td></td>
+        <td>direction: div direction rtl
+          <ul class="assert">
+            <li>If direction is applied to a block element, contained block elements inherit that direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-override-001-2" class="primary">
+        <td><strong>
+            <a href="block-override-001.xht">block-override-001</a></strong></td>
+        <td><a href="reference/block-override-001.xht">=</a> </td>
+        <td></td>
+        <td>direction: div override rtl
+          <ul class="assert">
+            <li>If unicode-bidi:bidi-override is applied to a block element, characters are displayed strictly in sequence according to the direction property.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-override-002-2" class="primary">
+        <td><strong>
+            <a href="block-override-002.xht">block-override-002</a></strong></td>
+        <td><a href="reference/block-override-002.xht">=</a> </td>
+        <td></td>
+        <td>direction: div override ltr
+          <ul class="assert">
+            <li>If unicode-bidi:bidi-override is applied to a block element, characters are displayed strictly in sequence according to the direction property.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-override-003-2" class="primary">
+        <td><strong>
+            <a href="block-override-003.xht">block-override-003</a></strong></td>
+        <td><a href="reference/block-override-003.xht">=</a> </td>
+        <td></td>
+        <td>direction: div direction ltr
+          <ul class="assert">
+            <li>If unicode-bidi:bidi-override is applied to a block element with no direction value set, characters are displayed strictly in sequence, in ltr order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-override-004-2" class="primary">
+        <td><strong>
+            <a href="block-override-004.xht">block-override-004</a></strong></td>
+        <td><a href="reference/block-override-004.xht">=</a> </td>
+        <td></td>
+        <td>unicode-bidi: div override inheritance
+          <ul class="assert">
+            <li>If unicode-bidi:bidi-override is applied to a block element, all characters in immediate inline text are displayed strictly in sequence according to the direction property, but content of contained blocks is not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-override-isolate-001-2" class="primary">
+        <td><strong>
+            <a href="block-override-isolate-001.xht">block-override-isolate-001</a></strong></td>
+        <td><a href="reference/block-override-isolate-001.xht">=</a> </td>
+        <td></td>
+        <td>direction: div override rtl
+          <ul class="assert">
+            <li>If unicode-bidi:isolate-override is applied to a block element, characters are displayed strictly in sequence according to the direction property.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-override-isolate-002-2" class="primary">
+        <td><strong>
+            <a href="block-override-isolate-002.xht">block-override-isolate-002</a></strong></td>
+        <td><a href="reference/block-override-isolate-002.xht">=</a> </td>
+        <td></td>
+        <td>direction: div override ltr
+          <ul class="assert">
+            <li>If unicode-bidi:isolate-override is applied to a block element, characters are displayed strictly in sequence according to the direction property.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-override-isolate-003-2" class="primary">
+        <td><strong>
+            <a href="block-override-isolate-003.xht">block-override-isolate-003</a></strong></td>
+        <td><a href="reference/block-override-isolate-003.xht">=</a> </td>
+        <td></td>
+        <td>direction: div direction ltr
+          <ul class="assert">
+            <li>If unicode-bidi:isolate-override is applied to a block element with no direction value set, characters are displayed strictly in sequence, in ltr order.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-override-isolate-004-2" class="primary">
+        <td><strong>
+            <a href="block-override-isolate-004.xht">block-override-isolate-004</a></strong></td>
+        <td><a href="reference/block-override-isolate-004.xht">=</a> </td>
+        <td></td>
+        <td>unicode-bidi: div override inheritance
+          <ul class="assert">
+            <li>If unicode-bidi:isolate-override is applied to a block element, all characters in immediate inline text are displayed strictly in sequence according to the direction property, but content of contained blocks is not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-plaintext-001-2" class="primary">
+        <td><strong>
+            <a href="block-plaintext-001.xht">block-plaintext-001</a></strong></td>
+        <td><a href="reference/block-plaintext-001.xht">=</a> </td>
+        <td></td>
+        <td>unicode-bidi: div plaintext, rtl
+          <ul class="assert">
+            <li>If unicode-bidi: plaintext is applied to a div element containing mixed direction text, the order of directional runs in the text in that element will be determined by its first strong character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-plaintext-002-2" class="primary">
+        <td><strong>
+            <a href="block-plaintext-002.xht">block-plaintext-002</a></strong></td>
+        <td><a href="reference/block-plaintext-002.xht">=</a> </td>
+        <td></td>
+        <td>unicode-bidi: div plaintext, ltr
+          <ul class="assert">
+            <li>If unicode-bidi: plaintext is applied to a div element containing mixed direction text, the order of directional runs in the text in that element will be determined by its first strong character.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-plaintext-003-2" class="primary">
+        <td><strong>
+            <a href="block-plaintext-003.xht">block-plaintext-003</a></strong></td>
+        <td><a href="reference/block-plaintext-003.xht">=</a> </td>
+        <td></td>
+        <td>unicode-bidi: div plaintext inheritance
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to a block element, directional runs are displayed according to the first strong character, but content of contained blocks is not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-plaintext-004-2" class="primary">
+        <td><strong>
+            <a href="block-plaintext-004.xht">block-plaintext-004</a></strong></td>
+        <td><a href="reference/block-plaintext-004.xht">=</a> </td>
+        <td></td>
+        <td>unicode-bidi: div plaintext with br
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to a div element containing br tags, each line of characters that starts after br is displayed according to the first strong character after the br.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-plaintext-005-2" class="primary">
+        <td><strong>
+            <a href="block-plaintext-005.xht">block-plaintext-005</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>unicode-bidi: textarea plaintext
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to a textarea element, each line of characters after a linebreak is displayed according to the first strong character after the linebreak.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="block-plaintext-006-2" class="primary">
+        <td><strong>
+            <a href="block-plaintext-006.xht">block-plaintext-006</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>unicode-bidi: pre plaintext
+          <ul class="assert">
+            <li>If unicode-bidi:plaintext is applied to a pre element, each line of characters after a linebreak is displayed according to the first strong character after the linebreak.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s2.#bidi-paragraph">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.#bidirectionality">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.#forced-paragraph-break">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.1">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s2.1">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#direction">2.1 Specifying Directionality: the direction property</a></th></tr>
+      <!-- 5 tests -->
+      <tr id="extract-ordered-list-direction-and-writing-modes-2.1" class="">
+        <td>
+            <a href="extract-ordered-list-direction-and-writing-modes.xht">extract-ordered-list-direction-and-writing-modes</a></td>
+        <td><a href="reference/extract-ordered-list-direction-and-writing-modes-ref.xht">=</a> </td>
+        <td></td>
+        <td>flow-into on list items that use different text directions or writing modes
+          <ul class="assert">
+            <li>The flow-into property can be applied to elements that have different text directions and writing modes. This tests that the rendering for lists that use different text directions/writing modes are not affected when they are extracted in a named flow and rendered in a region.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-column-order-002-2.1" class="primary ahem">
+        <td><strong>
+            <a href="table-column-order-002.xht">table-column-order-002</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'direction: rtl' - table columns order and vertical-rl
+          <ul class="assert">
+            <li>This test checks that a table with 'writing-mode' set to 'vertical-rl' and with 'direction' set to 'rtl' will have its column displayed from bottom (1st column) to top (last column). The inline base direction is still from top to bottom.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-column-order-003-2.1" class="primary ahem">
+        <td><strong>
+            <a href="table-column-order-003.xht">table-column-order-003</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'direction: rtl' - table columns order and vertical-lr
+          <ul class="assert">
+            <li>This test checks that a table with 'writing-mode' set to 'vertical-lr' and with 'direction' set to 'rtl' will have its column displayed from bottom (1st column) to top (last column). The inline base direction is still from top to bottom.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-column-order-004-2.1" class="primary ahem">
+        <td><strong>
+            <a href="table-column-order-004.xht">table-column-order-004</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'direction: rtl' - table columns order and vertical-rl
+          <ul class="assert">
+            <li>This test checks that colspanned cells in a table with 'direction' set to 'rtl' are handled according to a bottom-to-top column direction.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-column-order-005-2.1" class="primary ahem">
+        <td><strong>
+            <a href="table-column-order-005.xht">table-column-order-005</a></strong></td>
+        <td><a href="reference/block-flow-direction-001-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>'direction: rtl' - table columns order and vertical-lr
+          <ul class="assert">
+            <li>This test checks that colspanned cells in a table with 'direction' set to 'rtl' are handled according to a bottom-to-top column direction.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s2.1.#propdef-direction">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.1.#valuedef-ltr">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.1.#valuedef-rtl">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.2">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s2.2">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#unicode-bidi">2.2 Embeddings and Overrides: the unicode-bidi property</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.2.#bidi-isolate">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.2.#directional-embedding">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.2.#directional-override">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.2.#isolated-sequence">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.2.#propdef-unicode-bidi">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.2.#valuedef-bidi-override">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.2.#valuedef-embed">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.2.#valuedef-isolate">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.2.#valuedef-isolate-override">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.2.#valuedef-normal">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.2.#valuedef-plaintext">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.3">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s2.3">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#bidi-example">2.3 Example of Bidirectional Text</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s2.4">
+      <tr><th colspan="4" scope="rowgroup">
+        <a href="#s2.4">+</a>
+        <a href="http://www.w3.org/TR/css-writing-modes-3/#bidi-box-model">2.4 Box model for inline boxes in bidirectional context</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+  </table>
+
+ </body>
+</html>

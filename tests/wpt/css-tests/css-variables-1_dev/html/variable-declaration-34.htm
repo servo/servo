@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+--><html><head><title>CSS Test: Test declaring a variable where the variable name begins with a lone surrogate.</title>
+<link href="mailto:cam@mcc.id.au" rel="author" title="Cameron McCormack">
+<link href="http://www.w3.org/TR/css-variables-1/#defining-variables" rel="help">
+<link href="support/color-green-ref.htm" rel="match">
+<style>
+p {
+  color: red;
+}
+p {
+  color: orange;
+  --\d800: green;
+  color: var(--\fffd);
+}
+</style>
+</head><body><p>This text must be green.</p>
+</body></html>

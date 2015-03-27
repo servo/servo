@@ -1,0 +1,13 @@
+# UA version OS version
+# UA string (if applicable)
+# http://test.csswg.org/suites/geometry-1_dev/DATESTAMP/
+# See http://wiki.csswg.org/test/implementation-report for instructions
+testname    result  comment
+html4/dommatrix-001.htm	?	
+xhtml1/dommatrix-001.xht	?	
+html4/dompoint-001.htm	?	
+xhtml1/dompoint-001.xht	?	
+html4/domquad-001.htm	?	
+xhtml1/domquad-001.xht	?	
+html4/domrect-001.htm	?	
+xhtml1/domrect-001.xht	?	

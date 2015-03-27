@@ -1,0 +1,31 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8" />
+<title>CSS Basic User Interface Test: caret-color is not inherited</title>
+<link href="mailto:chris@w3.org" rel="author" title="Chris Lilley" />
+<link href="http://www.w3.org/TR/css3-ui/#caret-color" rel="help" title="7.2.1. Coloring the insertion caret: caret-color" />
+<meta content="" name="flags" />
+<meta content="Test checks that caret-color value does not inherit" name="assert" />
+<style>
+  #container {
+     caret-color:red;
+  }
+  #test1 {
+    caret-color:#070;
+  }
+  textarea {
+    font-size: 2em;
+    font-weight: bold;
+    width: 10em;
+  }
+  }
+</style>
+</head><body>
+  <p>Test passes if, when the cursor is placed in the first textarea for editing, the caret is green and then,
+  when placed in the second textarea, the caret is not red.</p>
+  <p>The shape of the caret, and whether it flashes, are not part of the test.</p>
+  <textarea id="test1">First textarea</textarea>
+  <div id="container">
+    <textarea id="test2">Second textarea</textarea>
+  </div>
+
+</body></html>

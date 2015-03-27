@@ -1,0 +1,90 @@
+[
+    {
+        "type": "interface",
+        "name": "Dog",
+        "partial": false,
+        "members": [
+            {
+                "type": "attribute",
+                "static": false,
+                "stringifier": false,
+                "inherit": false,
+                "readonly": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "DOMString"
+                },
+                "name": "name",
+                "extAttrs": []
+            },
+            {
+                "type": "attribute",
+                "static": false,
+                "stringifier": false,
+                "inherit": false,
+                "readonly": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "DOMString"
+                },
+                "name": "owner",
+                "extAttrs": []
+            },
+            {
+                "type": "operation",
+                "getter": false,
+                "setter": false,
+                "creator": false,
+                "deleter": false,
+                "legacycaller": false,
+                "static": false,
+                "stringifier": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "boolean"
+                },
+                "name": "isMemberOfBreed",
+                "arguments": [
+                    {
+                        "optional": false,
+                        "variadic": false,
+                        "extAttrs": [
+                            {
+                                "name": "TreatNullAs",
+                                "arguments": null,
+                                "rhs": {
+                                    "type": "identifier",
+                                    "value": "EmptyString"
+                                }
+                            }
+                        ],
+                        "idlType": {
+                            "sequence": false,
+                            "generic": null,
+                            "nullable": false,
+                            "array": false,
+                            "union": false,
+                            "idlType": "DOMString"
+                        },
+                        "name": "breedName"
+                    }
+                ],
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    }
+]

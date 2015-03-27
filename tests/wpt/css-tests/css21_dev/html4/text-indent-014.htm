@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <title>CSS Test: text-indent on anonymous blocks</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop">
+  <meta name="flags" content="">
+  <meta name="assert" content="text-indent affects only the first line of     a block container if that line is also the first formatted line of an     element.">
+  <style type="text/css">
+    .container {
+      font: 20px/1 Ahem;
+      border: solid orange;
+      width: 12em;
+    }
+    .outer {
+      text-indent: 6em;
+    }
+    .inner {
+      text-indent: 0;
+    }
+    .outer {
+    }
+    .outer:before {
+      content: "BlockA";
+      display: block;
+    }
+
+    .controlA, .controlB {
+      background: red;
+      height: 3em;
+      width: 6em;
+    }
+    .controlA {
+      margin-left: 6em;
+      margin-bottom: -3em;
+    }
+    .controlB {
+      margin-top: -3em;
+    }
+  </style>
+</head>
+<body>
+  <p>There must be a 4-square checkerboard pattern in the orange box below
+    and no red present.</p>
+  <div class="container">
+    <div class="controlA"></div>
+    <div class="outer">
+      <div>
+        BlockA
+        <div>BlockA</div>
+        BlockB
+        <div class="inner">BlockB</div>
+        BlockB
+      </div>
+    </div>
+    <div class="controlB"></div>
+  </div>
+</body>
+</html>

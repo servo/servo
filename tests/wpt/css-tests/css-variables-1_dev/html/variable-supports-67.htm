@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+--><html><head><title>CSS Test: Test a declaration for a custom property has an invalid value does not cause the @supports rule to fail to parse.</title>
+<link href="mailto:cam@mcc.id.au" rel="author" title="Cameron McCormack">
+<link href="http://www.w3.org/TR/css-variables-1/#defining-variables" rel="help">
+<link href="support/color-green-ref.htm" rel="match">
+<style>
+body { color: red; }
+@supports (--a: !) or (--a: a) {
+  p { color: green; }
+}
+</style>
+</head><body><p>This text must be green.</p>
+</body></html>

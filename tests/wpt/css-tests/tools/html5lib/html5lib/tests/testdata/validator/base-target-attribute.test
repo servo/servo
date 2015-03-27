@@ -1,0 +1,35 @@
+{"tests": [
+
+{"description": "valid base target attribute '_self'",
+"input": "<base target=_self>",
+"fail-if": "invalid-browsing-context"},
+
+{"description": "valid base target attribute '_parent'",
+"input": "<base target=_parent>",
+"fail-if": "invalid-browsing-context"},
+
+{"description": "valid base target attribute '_top'",
+"input": "<base target=_top>",
+"fail-if": "invalid-browsing-context"},
+
+{"description": "valid base target attribute '_blank'",
+"input": "<base target=_blank>",
+"fail-if": "invalid-browsing-context"},
+
+{"description": "valid base target attribute 'foo'",
+"input": "<base target=foo>",
+"fail-if": "invalid-browsing-context"},
+
+{"description": "base target attribute may be blank",
+"input": "<base target>",
+"fail-if": "invalid-browsing-context"},
+
+{"description": "invalid base target attribute '_'",
+"input": "<base target=_>",
+"fail-unless": "invalid-browsing-context"},
+
+{"description": "invalid base target attribute '_foo'",
+"input": "<base target=_foo>",
+"fail-unless": "invalid-browsing-context"}
+
+]}

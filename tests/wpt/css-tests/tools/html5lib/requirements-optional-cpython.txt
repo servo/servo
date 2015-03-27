@@ -1,0 +1,5 @@
+-r requirements-optional.txt
+
+# lxml is supported with its own treebuilder ("lxml") and otherwise
+# uses the standard ElementTree support
+lxml

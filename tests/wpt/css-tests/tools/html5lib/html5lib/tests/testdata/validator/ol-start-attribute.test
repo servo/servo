@@ -1,0 +1,7 @@
+{"tests": [
+
+{"description": "invalid ol start attribute value due to leading junk",
+"input": "<ol start=a1>",
+"fail-unless": "invalid-integer-value"}
+
+]}

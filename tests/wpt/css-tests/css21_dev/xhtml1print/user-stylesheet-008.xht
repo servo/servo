@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>CSS Test: Attribute selector defined in user stylesheet can be applied</title>
+  <style type="text/css">
+    @page { font: italic 8pt sans-serif; color: gray;
+            margin: 7%;
+            counter-increment: page;
+            @top-left { content: "CSS 2.1 Conformance Test Suite"; }
+            @top-right { content: "Test user-stylesheet-008"; }
+            @bottom-right { content: counter(page); }
+          }
+</style>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html" />
+        <meta name="flags" content="userstyle" />
+        <meta name="assert" content="The attribute selector defined in user stylesheet is applied to the appropriate element." />
+        <style type="text/css"></style>
+    </head>
+    <body>
+        <p id="user-stylesheet">PREREQUISITE: The <a href="support/user-stylesheet.css">"user-stylesheet.css"</a> file is enabled as the user agent's user style sheet.</p>
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <p class="user-stylesheet-008">Filler Text</p>
+    </body>
+</html>

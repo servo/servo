@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Definitions SYSTEM "widlprocxml.dtd">
+<Definitions>
+  <webidl>interface NumberQuadrupler {
+  legacycaller float compute(float x);
+};</webidl>
+  <Interface name="NumberQuadrupler" id="::NumberQuadrupler">
+    <webidl>interface NumberQuadrupler {
+  legacycaller float compute(float x);
+};</webidl>
+    <Operation legacycaller="legacycaller" name="compute" id="::NumberQuadrupler::compute">
+      <webidl>  legacycaller float compute(float x);</webidl>
+      <Type type="float"/>
+      <ArgumentList>
+        <Argument name="x">
+          <Type type="float"/>
+        </Argument>
+      </ArgumentList>
+    </Operation>
+  </Interface>
+</Definitions>
