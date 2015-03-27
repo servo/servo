@@ -315,7 +315,7 @@ pub struct FrameId(pub u32);
 pub struct WorkerId(pub u32);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
-pub struct PipelineId(pub uint);
+pub struct PipelineId(pub u32);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
 pub struct SubpageId(pub uint);
