@@ -946,7 +946,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         let fragment = DocumentFragment::new(context_document.r()).root();
         let fragment_node: JSRef<Node> = NodeCast::from_ref(fragment.r());
         for node in new_children {
-            let _ = fragment_node.AppendChild(node.root().r());
+            fragment_node.AppendChild(node.root().r()).unwrap();
         }
         Ok(Temporary::from_rooted(fragment.r()))
     }
