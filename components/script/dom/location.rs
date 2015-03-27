@@ -46,6 +46,10 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
         UrlHelper::Href(&self.get_url())
     }
 
+    fn Pathname(self) -> USVString {
+        UrlHelper::Pathname(&self.get_url())
+    }
+
     fn Stringify(self) -> DOMString {
         self.Href().0
     }

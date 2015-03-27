@@ -4,7 +4,7 @@
 
 use dom::bindings::str::USVString;
 
-use url::Url;
+use url::{Url, SchemeData};
 
 use std::borrow::ToOwned;
 
@@ -28,6 +28,15 @@ impl UrlHelper {
             None => "".to_owned(),
             Some(ref hash) if hash.as_slice() == "" => "".to_owned(),
             Some(ref hash) => format!("#{}", hash)
+        })
+    }
+
+    pub fn Pathname(url: &Url) -> USVString {
+        // https://url.spec.whatwg.org/#dom-urlutils-pathname
+        // FIXME: Url null check is skipped for now
+        USVString(match url.scheme_data {
+            SchemeData::NonRelative(ref scheme_data) => scheme_data.clone(),
+            SchemeData::Relative(..) => url.serialize_path().unwrap()
         })
     }
 
