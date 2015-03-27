@@ -16,13 +16,13 @@ pub trait RangeIndex: Int + fmt::Debug {
     fn get(self) -> Self::Index;
 }
 
-impl RangeIndex for int {
-    type Index = int;
+impl RangeIndex for isize {
+    type Index = isize;
     #[inline]
-    fn new(x: int) -> int { x }
+    fn new(x: isize) -> isize { x }
 
     #[inline]
-    fn get(self) -> int { self }
+    fn get(self) -> isize { self }
 }
 
 /// Implements a range index type with operator overloads
@@ -35,8 +35,8 @@ macro_rules! int_range_index {
 
         impl $Self_ {
             #[inline]
-            pub fn to_uint(self) -> uint {
-                self.get() as uint
+            pub fn to_usize(self) -> usize {
+                self.get() as usize
             }
         }
 
@@ -172,16 +172,16 @@ macro_rules! int_range_index {
             }
         }
 
-        impl Shl<uint> for $Self_ {
+        impl Shl<usize> for $Self_ {
             type Output = $Self_;
-            fn shl(self, n: uint) -> $Self_ {
+            fn shl(self, n: usize) -> $Self_ {
                 $Self_(self.get() << n)
             }
         }
 
-        impl Shr<uint> for $Self_ {
+        impl Shr<usize> for $Self_ {
             type Output = $Self_;
-            fn shr(self, n: uint) -> $Self_ {
+            fn shr(self, n: usize) -> $Self_ {
                 $Self_(self.get() >> n)
             }
         }
@@ -247,7 +247,7 @@ impl<T: Int, I: RangeIndex<Index=T>> Iterator for EachIndex<T, I> {
     }
 
     #[inline]
-    fn size_hint(&self) -> (uint, Option<uint>) {
+    fn size_hint(&self) -> (usize, Option<usize>) {
         self.it.size_hint()
     }
 }
@@ -399,7 +399,7 @@ impl<T: Int, I: RangeIndex<Index=T>> Range<I> {
     #[inline]
     pub fn is_valid_for_string(&self, s: &str) -> bool {
         let s_len = s.len();
-        match num::cast::<uint, T>(s_len) {
+        match num::cast::<usize, T>(s_len) {
             Some(len) => {
                 let len = RangeIndex::new(len);
                 self.begin() < len

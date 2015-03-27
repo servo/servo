@@ -1600,8 +1600,8 @@ impl Fragment {
         // FIXME(pcwalton): Is there a more clever (i.e. faster) way to do this?
         if let Some(ref mut inline_end_range) = inline_end_range {
             let inline_end_fragment_text =
-                text_fragment_info.run.text.slice_chars(inline_end_range.begin().to_uint(),
-                                                        inline_end_range.end().to_uint());
+                text_fragment_info.run.text.slice_chars(inline_end_range.begin().to_usize(),
+                                                        inline_end_range.end().to_usize());
             let mut leading_whitespace_character_count = 0i;
             for ch in inline_end_fragment_text.chars() {
                 if ch.is_whitespace() {
@@ -2128,7 +2128,7 @@ pub enum CoordinateSystem {
 /// if any modifications were made.
 fn strip_trailing_whitespace(text_run: &TextRun, range: &mut Range<CharIndex>) -> bool {
     // FIXME(pcwalton): Is there a more clever (i.e. faster) way to do this?
-    let text = text_run.text.slice_chars(range.begin().to_uint(), range.end().to_uint());
+    let text = text_run.text.slice_chars(range.begin().to_usize(), range.end().to_usize());
     let mut trailing_whitespace_character_count = 0i;
     for ch in text.chars().rev() {
         if ch.is_whitespace() {

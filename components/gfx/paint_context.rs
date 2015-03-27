@@ -1199,7 +1199,7 @@ impl ScaledFontExtensionMethods for ScaledFont {
 
         let mut origin = baseline_origin.clone();
         let mut azglyphs = vec!();
-        azglyphs.reserve(range.length().to_uint());
+        azglyphs.reserve(range.length().to_usize());
 
         for slice in run.natural_word_slices_in_range(range) {
             for (_i, glyph) in slice.glyphs.iter_glyphs_for_char_range(&slice.range) {

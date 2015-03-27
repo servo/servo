@@ -8,7 +8,6 @@
 #![feature(core)]
 #![feature(exit_status)]
 #![feature(hash)]
-#![feature(int_uint)]
 #![feature(io)]
 #![feature(old_io)]
 #![feature(optin_builtin_traits)]
