@@ -309,16 +309,16 @@ pub enum NavigationDirection {
 }
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
-pub struct FrameId(pub uint);
+pub struct FrameId(pub u32);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
-pub struct WorkerId(pub uint);
+pub struct WorkerId(pub u32);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
-pub struct PipelineId(pub uint);
+pub struct PipelineId(pub u32);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug)]
-pub struct SubpageId(pub uint);
+pub struct SubpageId(pub u32);
 
 // The type of pipeline exit. During complete shutdowns, pipelines do not have to
 // release resources automatically released on process termination.

@@ -1869,11 +1869,11 @@ impl Flow for BlockFlow {
         self.fragment.border_box - self.fragment.style().logical_border_width()
     }
 
-    fn layer_id(&self, fragment_index: uint) -> LayerId {
+    fn layer_id(&self, fragment_index: u32) -> LayerId {
         // FIXME(#2010, pcwalton): This is a hack and is totally bogus in the presence of pseudo-
         // elements. But until we have incremental reflow we can't do better--we recreate the flow
         // for every DOM node so otherwise we nuke layers on every reflow.
-        LayerId(self.fragment.node.id() as uint, fragment_index)
+        LayerId(self.fragment.node.id() as usize, fragment_index)
     }
 
     fn is_absolute_containing_block(&self) -> bool {

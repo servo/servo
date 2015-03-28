@@ -119,7 +119,7 @@ pub struct Window {
     parent_info: Option<(PipelineId, SubpageId)>,
 
     /// Unique id for last reflow request; used for confirming completion reply.
-    last_reflow_id: Cell<uint>,
+    last_reflow_id: Cell<u32>,
 
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
@@ -460,7 +460,7 @@ pub trait WindowHelpers {
     fn layout(&self) -> &LayoutRPC;
     fn content_box_query(self, content_box_request: TrustedNodeAddress) -> Rect<Au>;
     fn content_boxes_query(self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>>;
-    fn handle_reflow_complete_msg(self, reflow_id: uint);
+    fn handle_reflow_complete_msg(self, reflow_id: u32);
     fn handle_resize_inactive_msg(self, new_size: WindowSizeData);
     fn set_fragment_name(self, fragment: Option<String>);
     fn steal_fragment_name(self) -> Option<String>;
@@ -631,7 +631,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         rects
     }
 
-    fn handle_reflow_complete_msg(self, reflow_id: uint) {
+    fn handle_reflow_complete_msg(self, reflow_id: u32) {
         let last_reflow_id = self.last_reflow_id.get();
         if last_reflow_id == reflow_id {
             *self.layout_join_port.borrow_mut() = None;

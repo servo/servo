@@ -115,7 +115,7 @@ pub struct Reflow {
     /// The channel that we send a notification to.
     pub script_join_chan: Sender<()>,
     /// Unique identifier
-    pub id: uint,
+    pub id: u32,
     /// The type of query if any to perform during this reflow.
     pub query_type: ReflowQueryType,
     ///  A clipping rectangle for the page, an enlarged rectangle containing the viewport.
