@@ -135,13 +135,7 @@ impl URLSearchParamsHelpers for URLSearchParams {
 
                     // Encode everything else using 'percented-encoded bytes'
                     // http://url.spec.whatwg.org/#percent-encode
-                    a => {
-                        let mut encoded = vec!(0x25); // %
-                        let s = format!("{}", radix(a, 16)).into_ascii_uppercase();
-                        let bytes = s.as_bytes();
-                        encoded.push_all(bytes);
-                        encoded
-                    }
+                    a => format!("%{:X}", a).into_bytes(),
                 };
                 buf.push_all(&append);
             }
