@@ -267,10 +267,10 @@ impl<'ln> LayoutNode<'ln> {
                 self.type_id(), self.has_changed(), self.is_dirty(), self.has_dirty_descendants())
     }
 
-    pub fn flow_debug_id(self) -> uint {
+    pub fn flow_debug_id(self) -> usize {
         let layout_data_ref = self.borrow_layout_data();
         match *layout_data_ref {
-            None              => 0u,
+            None => 0,
             Some(ref layout_data) => layout_data.data.flow_construction_result.debug_id()
         }
     }
@@ -806,7 +806,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         self.node.debug_id()
     }
 
-    pub fn flow_debug_id(self) -> uint {
+    pub fn flow_debug_id(self) -> usize {
         self.node.flow_debug_id()
     }
 
