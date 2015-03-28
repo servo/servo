@@ -17,6 +17,7 @@ extern crate msg;
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate url;
 extern crate util;
+extern crate time;
 
 use rustc_serialize::{Decodable, Decoder};
 use msg::constellation_msg::{PipelineId, WorkerId};
@@ -83,6 +84,28 @@ pub struct NodeInfo {
     pub incompleteValue: bool,
 }
 
+#[derive(PartialEq, Eq)]
+pub enum TracingMetadata {
+    Default,
+    IntervalStart,
+    IntervalEnd,
+    Event,
+    EventBacktrace,
+}
+
+pub struct TimelineMarker {
+    pub name: String,
+    pub metadata: TracingMetadata,
+    pub time: u64,
+    pub stack: Option<Vec<()>>,
+}
+
+#[derive(PartialEq, Eq, Hash, Clone)]
+pub enum TimelineMarkerType {
+    Reflow,
+    DOMEvent,
+}
+
 /// Messages to process in a particular script task, as instructed by a devtools client.
 pub enum DevtoolScriptControlMsg {
     EvaluateJS(PipelineId, String, Sender<EvaluateJSReply>),
@@ -92,6 +115,8 @@ pub enum DevtoolScriptControlMsg {
     GetLayout(PipelineId, String, Sender<(f32, f32)>),
     ModifyAttribute(PipelineId, String, Vec<Modification>),
     WantsLiveNotifications(PipelineId, bool),
+    SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, Sender<TimelineMarker>),
+    DropTimelineMarkers(PipelineId, Vec<TimelineMarkerType>),
 }
 
 /// Messages to instruct devtools server to update its state relating to a particular
@@ -127,4 +152,15 @@ pub enum ConsoleMessage {
     // Log: message, filename, line number, column number
     LogMessage(String, String, u32, u32),
     //WarnMessage(String),
+}
+
+impl TimelineMarker {
+    pub fn new(name: String, metadata: TracingMetadata) -> TimelineMarker {
+        TimelineMarker {
+            name: name,
+            metadata: metadata,
+            time: time::precise_time_ns(),
+            stack: None,
+        }
+    }
 }

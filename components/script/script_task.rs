@@ -47,6 +47,7 @@ use devtools;
 
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, DevtoolsPageInfo};
 use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
+use devtools_traits::{TimelineMarker, TimelineMarkerType, TracingMetadata};
 use script_traits::CompositorEvent;
 use script_traits::CompositorEvent::{ResizeEvent, ReflowEvent, ClickEvent};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
@@ -86,6 +87,7 @@ use std::ascii::AsciiExt;
 use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
+use std::collections::HashSet;
 use std::num::ToPrimitive;
 use std::option::Option;
 use std::ptr;
@@ -279,6 +281,10 @@ pub struct ScriptTask {
     /// no such server exists.
     devtools_port: DevtoolsControlPort,
     devtools_sender: Sender<DevtoolScriptControlMsg>,
+    /// For sending timeline markers. Will be ignored if
+    /// no devtools server
+    devtools_markers: RefCell<HashSet<TimelineMarkerType>>,
+    devtools_marker_sender: RefCell<Option<Sender<TimelineMarker>>>,
 
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
@@ -447,6 +453,8 @@ impl ScriptTask {
             devtools_chan: devtools_chan,
             devtools_port: devtools_receiver,
             devtools_sender: devtools_sender,
+            devtools_markers: RefCell::new(HashSet::new()),
+            devtools_marker_sender: RefCell::new(None),
 
             js_runtime: js_runtime,
             js_context: DOMRefCell::new(Some(js_context)),
@@ -700,6 +708,10 @@ impl ScriptTask {
                 devtools::handle_modify_attribute(&page, id, node_id, modifications),
             DevtoolScriptControlMsg::WantsLiveNotifications(pipeline_id, to_send) =>
                 devtools::handle_wants_live_notifications(&page, pipeline_id, to_send),
+            DevtoolScriptControlMsg::SetTimelineMarkers(_pipeline_id, marker_types, reply) =>
+                devtools::handle_set_timeline_markers(&page, self, marker_types, reply),
+            DevtoolScriptControlMsg::DropTimelineMarkers(_pipeline_id, marker_types) =>
+                devtools::handle_drop_timeline_markers(&page, self, marker_types),
         }
     }
 
@@ -1150,8 +1162,14 @@ impl ScriptTask {
     ///
     /// TODO: Actually perform DOM event dispatch.
     fn handle_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
+
         match event {
             ResizeEvent(new_size) => {
+                let _marker;
+                if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
+                   _marker = AutoDOMEventMarker::new(self);
+                }
+
                 self.handle_resize_event(pipeline_id, new_size);
             }
 
@@ -1179,6 +1197,10 @@ impl ScriptTask {
             }
 
             ClickEvent(button, point) => {
+                let _marker;
+                if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
+                    _marker = AutoDOMEventMarker::new(self);
+                }
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document().root();
                 document.r().handle_click_event(self.js_runtime.ptr, button, point);
@@ -1187,6 +1209,10 @@ impl ScriptTask {
             MouseDownEvent(..) => {}
             MouseUpEvent(..) => {}
             MouseMoveEvent(point) => {
+                let _marker;
+                if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
+                    _marker = AutoDOMEventMarker::new(self);
+                }
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document().root();
                 let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();
@@ -1195,6 +1221,10 @@ impl ScriptTask {
             }
 
             KeyEvent(key, state, modifiers) => {
+                let _marker;
+                if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
+                    _marker = AutoDOMEventMarker::new(self);
+                }
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document().root();
                 document.r().dispatch_key_event(
@@ -1311,6 +1341,26 @@ impl ScriptTask {
 
         self.incomplete_loads.borrow_mut().push(incomplete);
     }
+
+    fn need_emit_timeline_marker(&self, timeline_type: TimelineMarkerType) -> bool {
+        self.devtools_markers.borrow().contains(&timeline_type)
+    }
+
+    fn emit_timeline_marker(&self, marker: TimelineMarker) {
+        let sender = self.devtools_marker_sender.borrow();
+        let sender = sender.as_ref().expect("There is no marker sender");
+        sender.send(marker);
+    }
+
+    pub fn set_devtools_timeline_marker(&self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>) {
+        *self.devtools_marker_sender.borrow_mut() = Some(reply);
+        self.devtools_markers.borrow_mut().insert(marker);
+    }
+
+    pub fn drop_devtools_timeline_markers(&self) {
+        self.devtools_markers.borrow_mut().clear();
+        *self.devtools_marker_sender.borrow_mut() = None;
+    }
 }
 
 impl Drop for ScriptTask {
@@ -1318,6 +1368,28 @@ impl Drop for ScriptTask {
         SCRIPT_TASK_ROOT.with(|root| {
             *root.borrow_mut() = None;
         });
+    }
+}
+
+struct AutoDOMEventMarker<'a> {
+    script_task: &'a ScriptTask
+}
+
+impl<'a> AutoDOMEventMarker<'a> {
+    fn new(script_task: &'a ScriptTask) -> AutoDOMEventMarker<'a> {
+        let marker = TimelineMarker::new("DOMEvent".to_owned(), TracingMetadata::IntervalStart);
+        script_task.emit_timeline_marker(marker);
+        AutoDOMEventMarker {
+            script_task: script_task
+        }
+    }
+}
+
+#[unsafe_destructor]
+impl<'a> Drop for AutoDOMEventMarker<'a> {
+    fn drop(&mut self) {
+        let marker = TimelineMarker::new("DOMEvent".to_owned(), TracingMetadata::IntervalEnd);
+        self.script_task.emit_timeline_marker(marker);
     }
 }
 
