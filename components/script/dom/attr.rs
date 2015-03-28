@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::AttrBinding;
-use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
@@ -41,7 +40,7 @@ pub enum AttrValue {
 impl AttrValue {
     pub fn from_serialized_tokenlist(tokens: DOMString) -> AttrValue {
         let mut atoms: Vec<Atom> = vec!();
-        for token in split_html_space_chars(tokens.as_slice()).map(|slice| Atom::from_slice(slice)) {
+        for token in split_html_space_chars(&tokens).map(Atom::from_slice) {
             if !atoms.iter().any(|atom| *atom == token) {
                 atoms.push(token);
             }
@@ -50,10 +49,7 @@ impl AttrValue {
     }
 
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
-        let tokens = {
-            let slices: Vec<&str> = atoms.iter().map(|atom| atom.as_slice()).collect();
-            slices.connect("\x20")
-        };
+        let tokens = atoms.iter().map(Atom::as_slice).collect::<Vec<_>>().connect("\x20");
         AttrValue::TokenList(tokens, atoms)
     }
 
@@ -64,7 +60,7 @@ impl AttrValue {
     }
 
     pub fn from_atomic(string: DOMString) -> AttrValue {
-        let value = Atom::from_slice(string.as_slice());
+        let value = Atom::from_slice(&string);
         AttrValue::Atom(value)
     }
 
@@ -80,13 +76,14 @@ impl Str for AttrValue {
     fn as_slice<'a>(&'a self) -> &'a str {
         match *self {
             AttrValue::String(ref value) |
-            AttrValue::TokenList(ref value, _) |
-            AttrValue::UInt(ref value, _) => value.as_slice(),
+                AttrValue::TokenList(ref value, _) |
+                AttrValue::UInt(ref value, _) => &value,
             AttrValue::Atom(ref value) => value.as_slice(),
         }
     }
 }
 
+// https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]
 pub struct Attr {
     reflector_: Reflector,
@@ -101,8 +98,7 @@ pub struct Attr {
 }
 
 impl Attr {
-    fn new_inherited(local_name: Atom, value: AttrValue,
-                     name: Atom, namespace: Namespace,
+    fn new_inherited(local_name: Atom, value: AttrValue, name: Atom, namespace: Namespace,
                      prefix: Option<DOMString>, owner: Option<JSRef<Element>>) -> Attr {
         Attr {
             reflector_: Reflector::new(),
@@ -111,15 +107,17 @@ impl Attr {
             name: name,
             namespace: namespace,
             prefix: prefix,
-            owner: owner.map(|o| JS::from_rooted(o)),
+            owner: owner.map(JS::from_rooted),
         }
     }
 
     pub fn new(window: JSRef<Window>, local_name: Atom, value: AttrValue,
                name: Atom, namespace: Namespace,
                prefix: Option<DOMString>, owner: Option<JSRef<Element>>) -> Temporary<Attr> {
-        reflect_dom_object(box Attr::new_inherited(local_name, value, name, namespace, prefix, owner),
-                           GlobalRef::Window(window), AttrBinding::Wrap)
+        reflect_dom_object(
+            box Attr::new_inherited(local_name, value, name, namespace, prefix, owner),
+            GlobalRef::Window(window),
+            AttrBinding::Wrap)
     }
 
     #[inline]
@@ -139,19 +137,20 @@ impl Attr {
 }
 
 impl<'a> AttrMethods for JSRef<'a, Attr> {
+    // https://dom.spec.whatwg.org/#dom-attr-localname
     fn LocalName(self) -> DOMString {
         self.local_name().as_slice().to_owned()
     }
 
+    // https://dom.spec.whatwg.org/#dom-attr-value
     fn Value(self) -> DOMString {
         self.value().as_slice().to_owned()
     }
 
+    // https://dom.spec.whatwg.org/#dom-attr-value
     fn SetValue(self, value: DOMString) {
         match self.owner {
-            None => {
-                *self.value.borrow_mut() = AttrValue::String(value)
-            }
+            None => *self.value.borrow_mut() = AttrValue::String(value),
             Some(o) => {
                 let owner = o.root();
                 let value = owner.r().parse_attribute(&self.namespace, self.local_name(), value);
@@ -160,26 +159,32 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-attr-textcontent
     fn TextContent(self) -> DOMString {
         self.Value()
     }
 
+    // https://dom.spec.whatwg.org/#dom-attr-textcontent
     fn SetTextContent(self, value: DOMString) {
         self.SetValue(value)
     }
 
+    // https://dom.spec.whatwg.org/#dom-attr-nodevalue
     fn NodeValue(self) -> DOMString {
         self.Value()
     }
 
+    // https://dom.spec.whatwg.org/#dom-attr-nodevalue
     fn SetNodeValue(self, value: DOMString) {
         self.SetValue(value)
     }
 
+    // https://dom.spec.whatwg.org/#dom-attr-name
     fn Name(self) -> DOMString {
         self.name.as_slice().to_owned()
     }
 
+    // https://dom.spec.whatwg.org/#dom-attr-namespaceuri
     fn GetNamespaceURI(self) -> Option<DOMString> {
         let Namespace(ref atom) = self.namespace;
         match atom.as_slice() {
@@ -188,14 +193,17 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-attr-prefix
     fn GetPrefix(self) -> Option<DOMString> {
         self.prefix.clone()
     }
 
+    // https://dom.spec.whatwg.org/#dom-attr-ownerelement
     fn GetOwnerElement(self) -> Option<Temporary<Element>> {
         self.owner.map(|o| Temporary::new(o))
     }
 
+    // https://dom.spec.whatwg.org/#dom-attr-specified
     fn Specified(self) -> bool {
         true // Always returns true
     }
