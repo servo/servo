@@ -47,6 +47,7 @@ use devtools;
 
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, DevtoolsPageInfo};
 use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
+use devtools_traits::{TimelineMarker, TimelineMarkerType, TracingMetadata};
 use script_traits::CompositorEvent;
 use script_traits::CompositorEvent::{ResizeEvent, ReflowEvent, ClickEvent};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
@@ -65,6 +66,7 @@ use net::resource_task::{ResourceTask, ControlMsg, LoadResponse};
 use net::resource_task::LoadData as NetLoadData;
 use net::storage_task::StorageTask;
 use string_cache::Atom;
+use time::precise_time_ns;
 use util::geometry::to_frac_px;
 use util::smallvec::SmallVec;
 use util::str::DOMString;
@@ -87,6 +89,7 @@ use std::ascii::AsciiExt;
 use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
+use std::collections::HashSet;
 use std::num::ToPrimitive;
 use std::option::Option;
 use std::ptr;
@@ -278,6 +281,10 @@ pub struct ScriptTask {
     /// no such server exists.
     devtools_port: DevtoolsControlPort,
     devtools_sender: Sender<DevtoolScriptControlMsg>,
+    /// For sending timeline markers. Will be ignored if
+    /// no devtools server
+    devtools_markers: RefCell<HashSet<TimelineMarkerType>>,
+    devtools_marker_sender: RefCell<Option<Sender<TimelineMarker>>>,
 
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
@@ -446,6 +453,8 @@ impl ScriptTask {
             devtools_chan: devtools_chan,
             devtools_port: devtools_receiver,
             devtools_sender: devtools_sender,
+            devtools_markers: RefCell::new(HashSet::new()),
+            devtools_marker_sender: RefCell::new(None),
 
             js_runtime: js_runtime,
             js_context: DOMRefCell::new(Some(js_context)),
@@ -724,6 +733,10 @@ impl ScriptTask {
                 devtools::handle_modify_attribute(&page, id, node_id, modifications),
             DevtoolScriptControlMsg::WantsLiveNotifications(pipeline_id, to_send) =>
                 devtools::handle_wants_live_notifications(&page, pipeline_id, to_send),
+            DevtoolScriptControlMsg::SetTimelineMarker(pipeline_id, marker_type, reply) =>
+                devtools::handle_set_timeline_marker(&page, self, marker_type, reply),
+            DevtoolScriptControlMsg::DropTimelineMarker(pipeline_id, marker_type) =>
+                devtools::handle_drop_timeline_marker(&page, self, marker_type),
         }
     }
 
@@ -1177,6 +1190,16 @@ impl ScriptTask {
     ///
     /// TODO: Actually perform DOM event dispatch.
     fn handle_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
+        // overhead: creating each time timeline marker
+        self.emit_timeline_marker(
+            TimelineMarkerType::DOMEvent,
+            TimelineMarker {
+                name: String::from_str("DOMEvent"),
+                metadata: TracingMetadata::IntervalStart,
+                time: precise_time_ns(),
+                stack: None,
+        });
+
         match event {
             ResizeEvent(new_size) => {
                 self.handle_resize_event(pipeline_id, new_size);
@@ -1230,6 +1253,16 @@ impl ScriptTask {
                     key, state, modifiers, &mut *self.compositor.borrow_mut());
             }
         }
+
+        // overhead: creating each time timeline marker
+        self.emit_timeline_marker(
+            TimelineMarkerType::DOMEvent,
+            TimelineMarker {
+                name: String::from_str("DOMEvent"),
+                metadata: TracingMetadata::IntervalEnd,
+                time: precise_time_ns(),
+                stack: None,
+        });
     }
 
     /// https://html.spec.whatwg.org/multipage/browsers.html#navigating-across-documents
@@ -1340,6 +1373,27 @@ impl ScriptTask {
         });
 
         self.incomplete_loads.borrow_mut().push(incomplete);
+    }
+
+    fn emit_timeline_marker(&self, timeline_type: TimelineMarkerType, marker: TimelineMarker) {
+        if self.devtools_markers.borrow().contains(&timeline_type) {
+            match self.devtools_marker_sender.borrow().clone() {
+                Some(sender) => {
+                    sender.send(marker);
+                }
+                None => panic!("There is no marker sender")
+            }
+        }
+    }
+
+    pub fn set_devtools_timeline_marker(&self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>) {
+        *self.devtools_marker_sender.borrow_mut() = Some(reply);
+        self.devtools_markers.borrow_mut().insert(marker);
+    }
+
+    pub fn drop_devtools_timeline_markers(&self) {
+        *self.devtools_markers.borrow_mut() = HashSet::new();
+        *self.devtools_marker_sender.borrow_mut() = None;
     }
 }
 
