@@ -19,6 +19,7 @@ use util::opts;
 use util::resource_files::resources_dir_path;
 use std::borrow::ToOwned;
 use std::fs::read_dir;
+use std::path::PathBuf;
 
 #[dom_struct]
 pub struct HTMLHeadElement {
@@ -51,34 +52,38 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLHeadElement> {
         Some(htmlelement as &VirtualMethods)
     }
     fn bind_to_tree(&self, _tree_in_doc: bool) {
-        if !opts::get().userscripts {
-            return;
-        }
+        if let Some(ref path_str) = opts::get().userscripts {
+            let node: &JSRef<Node> = NodeCast::from_borrowed_ref(self);
+            let first_child = node.GetFirstChild().root();
+            let doc = node.owner_doc().root();
+            let doc = doc.r();
 
-        let node: &JSRef<Node> = NodeCast::from_borrowed_ref(self);
-        let first_child = node.GetFirstChild().root();
-        let doc = node.owner_doc().root();
-        let doc = doc.r();
-
-        let mut path = resources_dir_path();
-        path.push("user-agent-js");
-        let mut files = match read_dir(&path) {
-            Ok(d) => d.filter_map(|e| e.ok()).map(|e| e.path()).collect::<Vec<_>>(),
-            Err(_) => return
-        };
-
-        files.sort();
-
-        for file in files {
-            let name = match file.into_os_string().into_string() {
-                Ok(ref s) if s.ends_with(".js") => "file://".to_owned() + &s[..],
-                _ => continue
+            let path = if &**path_str == "" {
+                let mut p = resources_dir_path();
+                p.push("user-agent-js");
+                p
+            } else {
+                PathBuf::new(path_str)
             };
-            let new_script = doc.CreateElement("script".to_owned()).unwrap().root();
-            let new_script = new_script.r();
-            new_script.set_string_attribute(&atom!("src"), name);
-            let new_script_node: &JSRef<Node> = NodeCast::from_borrowed_ref(&new_script);
-            node.InsertBefore(*new_script_node, first_child.r()).unwrap();
+
+            let mut files = match read_dir(&path) {
+                Ok(d) => d.filter_map(|e| e.ok()).map(|e| e.path()).collect::<Vec<_>>(),
+                Err(_) => return
+            };
+
+            files.sort();
+
+            for file in files {
+                let name = match file.into_os_string().into_string() {
+                    Ok(ref s) if s.ends_with(".js") => "file://".to_owned() + &s[..],
+                    _ => continue
+                };
+                let new_script = doc.CreateElement("script".to_owned()).unwrap().root();
+                let new_script = new_script.r();
+                new_script.set_string_attribute(&atom!("src"), name);
+                let new_script_node: &JSRef<Node> = NodeCast::from_borrowed_ref(&new_script);
+                node.InsertBefore(*new_script_node, first_child.r()).unwrap();
+            }
         }
     }
 }
