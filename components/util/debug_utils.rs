@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::old_io as io;
-use std::old_io::Writer;
+use std::io::{self, Write};
 use std::mem;
 use std::mem::size_of;
 use std::slice;
