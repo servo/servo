@@ -21,6 +21,8 @@ use string_cache::{Atom, Namespace};
 
 use std::borrow::ToOwned;
 use std::cell::Ref;
+use std::collections::BTreeSet;
+use std::iter::FromIterator;
 use std::mem;
 
 pub enum AttrSettingType {
@@ -39,13 +41,13 @@ pub enum AttrValue {
 
 impl AttrValue {
     pub fn from_serialized_tokenlist(tokens: DOMString) -> AttrValue {
-        let mut atoms: Vec<Atom> = vec!();
-        for token in split_html_space_chars(&tokens).map(Atom::from_slice) {
-            if !atoms.iter().any(|atom| *atom == token) {
-                atoms.push(token);
-            }
-        }
-        AttrValue::TokenList(tokens, atoms)
+        // Deduplicate tokens before creating AttrValue by utilizing Set
+        let atoms_set = {
+            let atoms = split_html_space_chars(&tokens).map(Atom::from_slice);
+            BTreeSet::<Atom>::from_iter(atoms)
+        };
+        let atoms_vec = Vec::<Atom>::from_iter(atoms_set);
+        AttrValue::TokenList(tokens, atoms_vec)
     }
 
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
