@@ -435,6 +435,10 @@ pub trait MutableFlowUtils {
     /// So, kids have their flow origin already set. In the case of absolute flow kids, they have
     /// their hypothetical box position already set.
     fn collect_static_block_offsets_from_children(self);
+
+    /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
+    /// calling them individually, since there is no reason not to perform both operations.
+    fn repair_style_and_bubble_inline_sizes(self, style: &Arc<ComputedValues>);
 }
 
 pub trait MutableOwnedFlowUtils {
@@ -1308,6 +1312,13 @@ impl<'a> MutableFlowUtils for &'a mut (Flow + 'a) {
             }
         }
         mut_base(self).abs_descendants.static_block_offsets = absolute_descendant_block_offsets
+    }
+
+    /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
+    /// calling them individually, since there is no reason not to perform both operations.
+    fn repair_style_and_bubble_inline_sizes(self, style: &Arc<ComputedValues>) {
+        self.repair_style(style);
+        self.bubble_inline_sizes();
     }
 }
 
