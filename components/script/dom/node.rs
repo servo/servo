@@ -700,14 +700,16 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         //
         // TODO(cgaebel): This is a very conservative way to account for sibling
         // selectors. Maybe we can do something smarter in the future.
-        let parent =
-            match self.parent_node() {
-                None         => return,
-                Some(parent) => parent,
-            };
+        if !self.get_has_dirty_siblings() {
+            let parent =
+                match self.parent_node() {
+                    None         => return,
+                    Some(parent) => parent,
+                };
 
-        for sibling in parent.root().r().children() {
-            sibling.set_has_dirty_siblings(true);
+            for sibling in parent.root().r().children() {
+                sibling.set_has_dirty_siblings(true);
+            }
         }
 
         // 4. Dirty ancestors.
