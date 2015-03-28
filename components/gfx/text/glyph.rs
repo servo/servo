@@ -455,7 +455,7 @@ pub enum GlyphInfo<'a> {
 impl<'a> GlyphInfo<'a> {
     pub fn id(self) -> GlyphId {
         match self {
-            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.to_uint()].id(),
+            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.to_usize()].id(),
             GlyphInfo::Detail(store, entry_i, detail_j) => {
                 store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).id
             }
@@ -466,7 +466,7 @@ impl<'a> GlyphInfo<'a> {
     // FIXME: Resolution conflicts with IteratorUtil trait so adding trailing _
     pub fn advance(self) -> Au {
         match self {
-            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.to_uint()].advance(),
+            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.to_usize()].advance(),
             GlyphInfo::Detail(store, entry_i, detail_j) => {
                 store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).advance
             }
@@ -575,13 +575,13 @@ impl<'a> GlyphStore {
         };
 
         // FIXME(pcwalton): Is this necessary? I think it's a no-op.
-        entry = entry.adapt_character_flags_of_entry(self.entry_buffer[i.to_uint()]);
+        entry = entry.adapt_character_flags_of_entry(self.entry_buffer[i.to_usize()]);
 
         if character == Some(' ') {
             entry = entry.set_char_is_space()
         }
 
-        self.entry_buffer[i.to_uint()] = entry;
+        self.entry_buffer[i.to_usize()] = entry;
     }
 
     pub fn add_glyphs_for_char_index(&mut self, i: CharIndex, data_for_glyphs: &[GlyphData]) {
@@ -605,11 +605,11 @@ impl<'a> GlyphStore {
                                     first_glyph_data.ligature_start,
                                     glyph_count)
             }
-        }.adapt_character_flags_of_entry(self.entry_buffer[i.to_uint()]);
+        }.adapt_character_flags_of_entry(self.entry_buffer[i.to_usize()]);
 
         debug!("Adding multiple glyphs[idx={:?}, count={}]: {:?}", i, glyph_count, entry);
 
-        self.entry_buffer[i.to_uint()] = entry;
+        self.entry_buffer[i.to_usize()] = entry;
     }
 
     // used when a character index has no associated glyph---for example, a ligature continuation.
@@ -619,7 +619,7 @@ impl<'a> GlyphStore {
         let entry = GlyphEntry::complex(cluster_start, ligature_start, 0);
         debug!("adding spacer for chracter without associated glyph[idx={:?}]", i);
 
-        self.entry_buffer[i.to_uint()] = entry;
+        self.entry_buffer[i.to_usize()] = entry;
     }
 
     pub fn iter_glyphs_for_char_index(&'a self, i: CharIndex) -> GlyphIterator<'a> {
@@ -652,57 +652,57 @@ impl<'a> GlyphStore {
     // getter methods
     pub fn char_is_space(&self, i: CharIndex) -> bool {
         assert!(i < self.char_len());
-        self.entry_buffer[i.to_uint()].char_is_space()
+        self.entry_buffer[i.to_usize()].char_is_space()
     }
 
     pub fn char_is_tab(&self, i: CharIndex) -> bool {
         assert!(i < self.char_len());
-        self.entry_buffer[i.to_uint()].char_is_tab()
+        self.entry_buffer[i.to_usize()].char_is_tab()
     }
 
     pub fn char_is_newline(&self, i: CharIndex) -> bool {
         assert!(i < self.char_len());
-        self.entry_buffer[i.to_uint()].char_is_newline()
+        self.entry_buffer[i.to_usize()].char_is_newline()
     }
 
     pub fn is_ligature_start(&self, i: CharIndex) -> bool {
         assert!(i < self.char_len());
-        self.entry_buffer[i.to_uint()].is_ligature_start()
+        self.entry_buffer[i.to_usize()].is_ligature_start()
     }
 
     pub fn is_cluster_start(&self, i: CharIndex) -> bool {
         assert!(i < self.char_len());
-        self.entry_buffer[i.to_uint()].is_cluster_start()
+        self.entry_buffer[i.to_usize()].is_cluster_start()
     }
 
     pub fn can_break_before(&self, i: CharIndex) -> BreakType {
         assert!(i < self.char_len());
-        self.entry_buffer[i.to_uint()].can_break_before()
+        self.entry_buffer[i.to_usize()].can_break_before()
     }
 
     // setter methods
     pub fn set_char_is_space(&mut self, i: CharIndex) {
         assert!(i < self.char_len());
-        let entry = self.entry_buffer[i.to_uint()];
-        self.entry_buffer[i.to_uint()] = entry.set_char_is_space();
+        let entry = self.entry_buffer[i.to_usize()];
+        self.entry_buffer[i.to_usize()] = entry.set_char_is_space();
     }
 
     pub fn set_char_is_tab(&mut self, i: CharIndex) {
         assert!(i < self.char_len());
-        let entry = self.entry_buffer[i.to_uint()];
-        self.entry_buffer[i.to_uint()] = entry.set_char_is_tab();
+        let entry = self.entry_buffer[i.to_usize()];
+        self.entry_buffer[i.to_usize()] = entry.set_char_is_tab();
     }
 
     pub fn set_char_is_newline(&mut self, i: CharIndex) {
         assert!(i < self.char_len());
-        let entry = self.entry_buffer[i.to_uint()];
-        self.entry_buffer[i.to_uint()] = entry.set_char_is_newline();
+        let entry = self.entry_buffer[i.to_usize()];
+        self.entry_buffer[i.to_usize()] = entry.set_char_is_newline();
     }
 
     pub fn set_can_break_before(&mut self, i: CharIndex, t: BreakType) {
         assert!(i < self.char_len());
-        let entry = self.entry_buffer[i.to_uint()];
-        self.entry_buffer[i.to_uint()] = entry.set_can_break_before(t);
+        let entry = self.entry_buffer[i.to_usize()];
+        self.entry_buffer[i.to_usize()] = entry.set_can_break_before(t);
     }
 
     pub fn space_count_in_range(&self, range: &Range<CharIndex>) -> u32 {
@@ -723,7 +723,7 @@ impl<'a> GlyphStore {
         for index in range.each_index() {
             // TODO(pcwalton): Handle spaces that are detailed glyphs -- these are uncommon but
             // possible.
-            let entry = &mut self.entry_buffer[index.to_uint()];
+            let entry = &mut self.entry_buffer[index.to_usize()];
             if entry.is_simple() && entry.char_is_space() {
                 // FIXME(pcwalton): This can overflow for very large font-sizes.
                 let advance =
@@ -789,7 +789,7 @@ impl<'a> Iterator for GlyphIterator<'a> {
             self.char_range.next().and_then(|i| {
                 self.char_index = i;
                 assert!(i < self.store.char_len());
-                let entry = self.store.entry_buffer[i.to_uint()];
+                let entry = self.store.entry_buffer[i.to_usize()];
                 if entry.is_simple() {
                     Some((self.char_index, GlyphInfo::Simple(self.store, i)))
                 } else {

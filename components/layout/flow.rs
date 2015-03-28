@@ -311,12 +311,9 @@ pub trait Flow: fmt::Debug + Sync {
 
     /// Returns a layer ID for the given fragment.
     #[allow(unsafe_code)]
-    fn layer_id(&self, fragment_id: uint) -> LayerId {
-        unsafe {
-            let obj = mem::transmute::<&&Self, &raw::TraitObject>(&self);
-            let pointer: uint = mem::transmute(obj.data);
-            LayerId(pointer, fragment_id)
-        }
+    fn layer_id(&self, fragment_id: u32) -> LayerId {
+        let obj = unsafe { mem::transmute::<&&Self, &raw::TraitObject>(&self) };
+        LayerId(obj.data as usize, fragment_id)
     }
 
     /// Attempts to perform incremental fixup of this flow by replacing its fragment's style with

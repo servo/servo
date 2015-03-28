@@ -34,7 +34,7 @@ pub enum ReadyState {
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[derive(PartialEq, Eq, Debug, Copy)]
-pub struct Epoch(pub uint);
+pub struct Epoch(pub u32);
 
 impl Epoch {
     pub fn next(&mut self) {
@@ -44,7 +44,7 @@ impl Epoch {
 }
 
 #[derive(Clone, PartialEq, Eq, Copy)]
-pub struct LayerId(pub uint, pub uint);
+pub struct LayerId(pub usize, pub u32);
 
 impl Debug for LayerId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {

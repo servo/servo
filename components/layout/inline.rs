@@ -915,7 +915,7 @@ impl InlineFlow {
         }
 
         for fragment_index in range(line.range.begin(), line.range.end()) {
-            let fragment = fragments.get_mut(fragment_index.to_uint());
+            let fragment = fragments.get_mut(fragment_index.to_usize());
             let size = fragment.border_box.size;
             fragment.border_box = LogicalRect::new(fragment.style.writing_mode,
                                                    inline_start_position_for_fragment,
@@ -940,7 +940,7 @@ impl InlineFlow {
         // First, calculate the number of expansion opportunities (spaces, normally).
         let mut expansion_opportunities = 0i32;
         for fragment_index in line.range.each_index() {
-            let fragment = fragments.get(fragment_index.to_uint());
+            let fragment = fragments.get(fragment_index.to_usize());
             let scanned_text_fragment_info =
                 if let SpecificFragmentInfo::ScannedText(ref info) = fragment.specific {
                     info
@@ -957,7 +957,7 @@ impl InlineFlow {
         let space_per_expansion_opportunity = slack_inline_size.to_subpx() /
             (expansion_opportunities as f64);
         for fragment_index in line.range.each_index() {
-            let fragment = fragments.get_mut(fragment_index.to_uint());
+            let fragment = fragments.get_mut(fragment_index.to_usize());
             let mut scanned_text_fragment_info =
                 if let SpecificFragmentInfo::ScannedText(ref mut info) = fragment.specific {
                     info
@@ -1004,7 +1004,7 @@ impl InlineFlow {
                                     baseline_distance_from_block_start: Au,
                                     largest_depth_below_baseline: Au) {
         for fragment_index in range(line.range.begin(), line.range.end()) {
-            let fragment = fragments.get_mut(fragment_index.to_uint());
+            let fragment = fragments.get_mut(fragment_index.to_usize());
             match fragment.vertical_align() {
                 vertical_align::T::top => {
                     fragment.border_box.start.b = fragment.border_box.start.b +
@@ -1221,7 +1221,7 @@ impl Flow for InlineFlow {
                  mut largest_block_size_for_bottom_fragments) = (Au(0), Au(0));
 
             for fragment_index in range(line.range.begin(), line.range.end()) {
-                let fragment = &mut self.fragments.fragments[fragment_index.to_uint()];
+                let fragment = &mut self.fragments.fragments[fragment_index.to_usize()];
 
                 let InlineMetrics {
                     mut block_size_above_baseline,
