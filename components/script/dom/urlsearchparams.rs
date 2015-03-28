@@ -19,8 +19,6 @@ use encoding::types::{EncodingRef, EncoderTrap};
 
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::fmt::radix;
-use std::ascii::OwnedAsciiExt;
 
 #[dom_struct]
 pub struct URLSearchParams {
