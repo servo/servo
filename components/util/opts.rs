@@ -14,7 +14,7 @@ use getopts;
 use std::collections::HashSet;
 use std::cmp;
 use std::env;
-use std::old_io as io;
+use std::io::{self, Write};
 use std::mem;
 use std::ptr;
 use std::rt;
@@ -156,7 +156,9 @@ pub fn print_debug_usage(app: &str)  {
 }
 
 fn args_fail(msg: &str) {
-    io::stderr().write_line(msg).unwrap();
+    let mut stderr = io::stderr();
+    stderr.write_all(msg.as_bytes()).unwrap();
+    stderr.write_all(b"\n").unwrap();
     env::set_exit_status(1);
 }
 
