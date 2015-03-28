@@ -33,7 +33,7 @@ use util::opts;
 use util::task::spawn_named;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::old_io as io;
+use std::io::{self, Write};
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::sync::mpsc::{Receiver, channel};
@@ -399,8 +399,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             // It's quite difficult to make Servo exit cleanly if some tasks have failed.
             // Hard fail exists for test runners so we crash and that's good enough.
             let mut stderr = io::stderr();
-            stderr.write_str("Pipeline failed in hard-fail mode.  Crashing!\n").unwrap();
-            stderr.flush().unwrap();
+            stderr.write_all("Pipeline failed in hard-fail mode.  Crashing!\n".as_bytes()).unwrap();
             unsafe { libc::exit(1); }
         }
 
