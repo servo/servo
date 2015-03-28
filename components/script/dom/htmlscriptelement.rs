@@ -202,8 +202,8 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         }
 
         // Step 12.
-        match (element.get_attribute(ns!(""), &atom!("for")).root(),
-               element.get_attribute(ns!(""), &Atom::from_slice("event")).root()) {
+        match (element.get_attribute(ns!(""), &atom!("for")).root().r(),
+               element.get_attribute(ns!(""), &Atom::from_slice("event")).root().r()) {
             (Some(for_script), Some(event)) => {
                 if for_script.r().Value().to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS) != "window" {
                     return;
