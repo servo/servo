@@ -626,12 +626,12 @@ impl RootCollection {
         }
     }
 
-    /// Track a stack-based root to ensure LIFO root ordering
-    fn root<'b, T: Reflectable>(&self, untracked: &Root<T>) {
+    /// Track a stack-based root as a pointer to ensure LIFO root ordering.
+    fn root<'b>(&self, untracked_js_ptr: *mut JSObject) {
         unsafe {
             let roots = self.roots.get();
-            (*roots).push(untracked.js_ptr);
-            debug!("  rooting {:?}", untracked.js_ptr);
+            (*roots).push(untracked_js_ptr);
+            debug!("  rooting {:?}", untracked_js_ptr);
             assert!(!(*roots).spilled());
         }
     }
@@ -668,15 +668,18 @@ impl<T: Reflectable> Root<T> {
     /// Create a new stack-bounded root for the provided JS-owned value.
     /// It cannot not outlive its associated `RootCollection`, and it contains
     /// a `JSRef` which cannot outlive this new `Root`.
+    #[inline]
     fn new(roots: &'static RootCollection, unrooted: NonZero<*const T>)
            -> Root<T> {
-        let root = Root {
+        let js_ptr = unsafe {
+            (**unrooted).reflector().get_jsobject()
+        };
+        roots.root(js_ptr);
+        Root {
             root_list: roots,
             ptr: unrooted,
-            js_ptr: unsafe { (**unrooted).reflector().get_jsobject() },
-        };
-        roots.root(&root);
-        root
+            js_ptr: js_ptr,
+        }
     }
 
     /// Obtain a safe reference to the wrapped JS owned-value that cannot
