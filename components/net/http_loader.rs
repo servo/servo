@@ -11,7 +11,7 @@ use log;
 use std::collections::HashSet;
 use file_loader;
 use hyper::client::Request;
-use hyper::header::{ContentLength, ContentType, Host, Location};
+use hyper::header::{Accept, ContentLength, ContentType, Host, Location, Quality, QualityItem};
 use hyper::HttpError;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -151,6 +151,12 @@ reason: \"certificate verify failed\" }]";
         }
 
         req.headers_mut().set(host);
+
+        let accept = Accept(vec![
+            QualityItem::new(Mime(TopLevel::Text, SubLevel::Html, vec![]), Quality(900u16)),
+            QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
+        ]);
+        req.headers_mut().set(accept);
 
         let (tx, rx) = channel();
         cookies_chan.send(ControlMsg::GetCookiesForUrl(url.clone(), tx, CookieSource::HTTP)).unwrap();
