@@ -351,7 +351,7 @@ impl StyleSharingCandidateCache {
         }
     }
 
-    pub fn touch(&mut self, index: uint) {
+    pub fn touch(&mut self, index: usize) {
         self.cache.touch(index)
     }
 }
@@ -363,7 +363,7 @@ pub enum StyleSharingResult {
     CannotShare(bool),
     /// The node's style can be shared. The integer specifies the index in the LRU cache that was
     /// hit and the damage that was done.
-    StyleWasShared(uint, RestyleDamage),
+    StyleWasShared(usize, RestyleDamage),
 }
 
 pub trait MatchMethods {
