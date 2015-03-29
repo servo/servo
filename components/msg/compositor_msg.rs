@@ -117,5 +117,5 @@ pub trait ScriptListener {
     fn set_title(&mut self, pipeline_id: PipelineId, new_title: Option<String>);
     fn close(&mut self);
     fn dup(&mut self) -> Box<ScriptListener+'static>;
-    fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers);
+    fn send_key_event(&mut self, key: Key, modifiers: KeyModifiers);
 }

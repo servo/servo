@@ -14,6 +14,8 @@ use dom::event::{Event, EventTypeId};
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use msg::constellation_msg;
+use msg::constellation_msg::{KeyState, KeyEventProperties};
+use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
 use util::str::DOMString;
 
 use std::borrow::ToOwned;
@@ -113,15 +115,38 @@ impl KeyboardEvent {
         Ok(event)
     }
 
-    pub fn key_properties(key: constellation_msg::Key, mods: constellation_msg::KeyModifiers)
-        -> KeyEventProperties {
-            KeyEventProperties {
-                key: key_value(key, mods),
-                code: code_value(key),
-                location: key_location(key),
-                char_code: key_charcode(key, mods),
-                key_code: key_keycode(key),
-            }
+    pub fn key_properties(key: constellation_msg::Key,
+                          state: KeyState,
+                          mods: constellation_msg::KeyModifiers) -> KeyEventProperties {
+        KeyEventProperties {
+            key: key_value(key, mods).to_owned(),
+            code: code_value(key).to_owned(),
+            location: key_location(key),
+            ctrl: mods.contains(CONTROL),
+            alt: mods.contains(ALT),
+            shift: mods.contains(SHIFT),
+            meta: mods.contains(SUPER),
+            repeat: state == KeyState::Repeated,
+            is_composing: false,
+            char_code: key_charcode(key, mods),
+            key_code: key_keycode(key),
+        }
+    }
+
+    pub fn serialize(&self) -> KeyEventProperties {
+        KeyEventProperties {
+            key: self.key.borrow().clone(),
+            code: self.code.borrow().clone(),
+            location: self.location.get(),
+            ctrl: self.ctrl.get(),
+            alt: self.alt.get(),
+            shift: self.shift.get(),
+            meta: self.meta.get(),
+            repeat: self.repeat.get(),
+            is_composing: self.is_composing.get(),
+            char_code: self.char_code.get(),
+            key_code: self.key_code.get(),
+        }
     }
 }
 
@@ -533,20 +558,6 @@ fn key_keycode(key: constellation_msg::Key) -> u32 {
 
         //§ B.2.1.8
         _ => 0
-    }
-}
-
-pub struct KeyEventProperties {
-    pub key: &'static str,
-    pub code: &'static str,
-    pub location: u32,
-    pub char_code: Option<u32>,
-    pub key_code: u32,
-}
-
-impl KeyEventProperties {
-    pub fn is_printable(&self) -> bool {
-        self.char_code.is_some()
     }
 }
 

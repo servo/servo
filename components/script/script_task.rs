@@ -57,7 +57,7 @@ use script_traits::ScriptTaskFactory;
 use msg::compositor_msg::ReadyState::{FinishedLoading, Loading, PerformingLayout};
 use msg::compositor_msg::{LayerId, ScriptListener};
 use msg::constellation_msg::{ConstellationChan};
-use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent, WorkerId};
+use msg::constellation_msg::{LoadData, PipelineId, SubpageId, IFrameEvent, MozBrowserEvent, WorkerId};
 use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net::image_cache_task::ImageCacheTask;
@@ -664,6 +664,10 @@ impl ScriptTask {
                                                      old_subpage_id,
                                                      new_subpage_id) =>
                 self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
+            ConstellationControlMsg::IFrameEventMsg(pipeline_id, event) =>
+                self.handle_iframe_event_msg(pipeline_id, event),
+            ConstellationControlMsg::FocusIFrameMsg(containing_pipeline_id, subpage_id) =>
+                self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
         }
     }
 
@@ -805,6 +809,43 @@ impl ScriptTask {
 
         let window = page.window().root();
         window.r().thaw();
+    }
+
+    fn handle_iframe_event_msg(&self, pipeline_id: PipelineId, event: IFrameEvent) {
+        let borrowed_page = self.root_page();
+        let page = borrowed_page.find(pipeline_id).unwrap();
+        let doc = page.document().root();
+
+        match event {
+            IFrameEvent::Keyboard(event_type, props) => {
+                doc.r().dispatch_key_event(event_type,
+                                           &props,
+                                           &mut *self.compositor.borrow_mut());
+                let window = page.window().root();
+                window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::KeyEvent);
+            }
+        }
+    }
+
+    fn handle_focus_iframe_msg(&self,
+                               parent_pipeline_id: PipelineId,
+                               subpage_id: SubpageId) {
+        let borrowed_page = self.root_page();
+        let page = borrowed_page.find(parent_pipeline_id).unwrap();
+
+        let doc = page.document().root();
+        let doc_node: JSRef<Node> = NodeCast::from_ref(doc.r());
+
+        let frame_element = doc_node.traverse_preorder()
+                                    .filter_map(HTMLIFrameElementCast::to_ref)
+                                    .find(|node| node.subpage_id() == Some(subpage_id))
+                                    .map(ElementCast::from_ref);
+
+        if let Some(frame_element) = frame_element {
+            doc.r().begin_focus_transaction();
+            doc.r().request_focus(frame_element);
+            doc.r().commit_focus_transaction();
+        }
     }
 
     /// Handles a mozbrowser event, for example see:
@@ -1211,7 +1252,8 @@ impl ScriptTask {
             KeyEvent(key, state, modifiers) => {
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document().root();
-                document.r().dispatch_key_event(
+
+                document.r().handle_key_event(
                     key, state, modifiers, &mut *self.compositor.borrow_mut());
             }
         }

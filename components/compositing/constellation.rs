@@ -20,7 +20,7 @@ use msg::constellation_msg::{self, ConstellationChan, Failure};
 use msg::constellation_msg::{IFrameSandboxState, NavigationDirection};
 use msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
 use msg::constellation_msg::{FrameId, PipelineExitType, PipelineId};
-use msg::constellation_msg::{SubpageId, WindowSizeData, MozBrowserEvent};
+use msg::constellation_msg::{IFrameEvent, SubpageId, WindowSizeData, MozBrowserEvent};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use net::resource_task::{self, ResourceTask};
@@ -372,6 +372,14 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                  subpage_id,
                                                  event);
             }
+            ConstellationMsg::IFrameEventMsg(pipeline_id, subpage_id, event) => {
+                debug!("constellation got iframe event message");
+                self.handle_iframe_event_msg(pipeline_id, subpage_id, event);
+            }
+            ConstellationMsg::FocusIFrameMsg(pipeline_id, subpage_id) => {
+                debug!("constellation got focus iframe message");
+                self.handle_focus_iframe_msg(pipeline_id, subpage_id);
+            }
         }
         true
     }
@@ -611,19 +619,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_key_msg(&self, key: Key, state: KeyState, mods: KeyModifiers) {
-        match self.root_frame_id {
-            Some(root_frame_id) => {
-                let root_frame = self.frame(root_frame_id);
-                let pipeline = self.pipeline(root_frame.current);
-                let ScriptControlChan(ref chan) = pipeline.script_chan;
-                let event = CompositorEvent::KeyEvent(key, state, mods);
-                chan.send(ConstellationControlMsg::SendEvent(pipeline.id,
-                                                             event)).unwrap();
-            }
-            None => {
-                let event = CompositorMsg::KeyEvent(key, state, mods);
-                self.compositor_proxy.clone_compositor_proxy().send(event);
-            }
+        if let Some(root_frame_id) = self.root_frame_id {
+            let root_frame = self.frame(root_frame_id);
+            let pipeline = self.pipeline(root_frame.current);
+            let ScriptControlChan(ref chan) = pipeline.script_chan;
+            let event = CompositorEvent::KeyEvent(key, state, mods);
+            chan.send(ConstellationControlMsg::SendEvent(pipeline.id,
+                                                         event)).unwrap();
         }
     }
 
@@ -647,6 +649,30 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // and pass the event to that script task.
         let pipeline = self.pipeline(containing_pipeline_id);
         pipeline.trigger_mozbrowser_event(subpage_id, event);
+    }
+
+    fn handle_iframe_event_msg(&mut self,
+                               containing_pipeline_id: PipelineId,
+                               subpage_id: SubpageId,
+                               event: IFrameEvent) {
+
+        // Find the script channel for the given parent pipeline,
+        // and pass the event to that script task.
+        let pipeline = self.find_subpage(containing_pipeline_id, subpage_id);
+        pipeline.trigger_iframe_event(event);
+    }
+
+    fn handle_focus_iframe_msg(&mut self,
+                               containing_pipeline_id: PipelineId,
+                               subpage_id: SubpageId) {
+        // Find the script channel for the given parent pipeline,
+        // and pass the event to that script task.
+        let pipeline = self.pipeline(containing_pipeline_id);
+
+        let ScriptControlChan(ref script_channel) = pipeline.script_chan;
+        let event = ConstellationControlMsg::FocusIFrameMsg(containing_pipeline_id,
+                                                            subpage_id);
+        script_channel.send(event).unwrap();
     }
 
     fn add_or_replace_pipeline_in_frame_tree(&mut self, frame_change: FrameChange) {

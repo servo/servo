@@ -20,7 +20,7 @@ use layers::layers::LayerBufferSet;
 use msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
 use msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
 use msg::constellation_msg::{ConstellationChan, PipelineId};
-use msg::constellation_msg::{Key, KeyState, KeyModifiers};
+use msg::constellation_msg::{Key, KeyModifiers};
 use profile::mem;
 use profile::time;
 use std::sync::mpsc::{channel, Sender, Receiver};
@@ -89,8 +89,8 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
         self.send(Msg::ChangePageTitle(pipeline_id, title))
     }
 
-    fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers) {
-        self.send(Msg::KeyEvent(key, state, modifiers));
+    fn send_key_event(&mut self, key: Key, modifiers: KeyModifiers) {
+        self.send(Msg::KeyEvent(key, modifiers));
     }
 }
 
@@ -211,7 +211,7 @@ pub enum Msg {
     /// composite should happen. (See the `scrolling` module.)
     ScrollTimeout(u64),
     /// Sends an unconsumed key event back to the compositor.
-    KeyEvent(Key, KeyState, KeyModifiers),
+    KeyEvent(Key, KeyModifiers),
     /// Changes the cursor.
     SetCursor(Cursor),
     /// Informs the compositor that the paint task for the given pipeline has exited.

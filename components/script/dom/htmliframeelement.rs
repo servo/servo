@@ -5,10 +5,11 @@
 use dom::attr::Attr;
 use dom::attr::AttrValue;
 use dom::attr::AttrHelpers;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventCast, KeyboardEventCast};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLElementCast, HTMLIFrameElementDerived};
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{ErrorResult, Fallible};
@@ -23,13 +24,14 @@ use dom::event::{Event, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::keyboardevent::KeyboardEvent;
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{Window, WindowHelpers};
 use page::IterablePage;
 
-use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan, MozBrowserEvent, NavigationDirection};
+use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan, MozBrowserEvent, IFrameEvent, NavigationDirection};
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use util::opts;
@@ -384,6 +386,32 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         if tree_in_doc {
             self.process_the_iframe_attributes();
         }
+    }
+
+    fn handle_event(&self, event: JSRef<Event>) {
+        if let Some(s) = self.super_type() {
+            s.handle_event(event);
+        }
+
+        if !event.DefaultPrevented() {
+            match event.Type().as_slice() {
+                "keydown" => {
+                    let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
+                    keyevent.map(|keyevent| {
+                        let window = window_from_node(*self).root();
+                        let window = window.r();
+                        let event = IFrameEvent::Keyboard(event.Type(), keyevent.serialize());
+                        let ConstellationChan(ref chan) = window.constellation_chan();
+                        chan.send(ConstellationMsg::IFrameEventMsg(self.containing_page_pipeline_id().unwrap(),
+                                                                   self.subpage_id().unwrap(),
+                                                                   event)).unwrap();
+                    });
+                }
+                _ => {}
+            }
+        }
+
+        event.PreventDefault();
     }
 }
 

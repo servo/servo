@@ -214,6 +214,63 @@ pub enum Msg {
     SetCursor(Cursor),
     /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
     MozBrowserEventMsg(PipelineId, SubpageId, MozBrowserEvent),
+    /// Dispatch a DOM event to a given iframe.
+    IFrameEventMsg(PipelineId, SubpageId, IFrameEvent),
+    /// Set an iframe to be focused. Used when an element in an iframe gains focus.
+    FocusIFrameMsg(PipelineId, SubpageId),
+}
+
+pub struct KeyEventProperties {
+    pub key: String,
+    pub code: String,
+    pub location: u32,
+    pub ctrl: bool,
+    pub alt: bool,
+    pub shift: bool,
+    pub meta: bool,
+    pub repeat: bool,
+    pub is_composing: bool,
+    pub char_code: Option<u32>,
+    pub key_code: u32,
+}
+
+impl KeyEventProperties {
+    pub fn is_printable(&self) -> bool {
+        self.char_code.is_some()
+    }
+
+    pub fn get_modifiers(&self) -> KeyModifiers {
+        let mut mods = KeyModifiers::empty();
+        if self.ctrl {
+            mods.insert(CONTROL);
+        }
+        if self.alt {
+            mods.insert(ALT);
+        }
+        if self.meta {
+            mods.insert(SUPER);
+        }
+        if self.shift {
+            mods.insert(SHIFT);
+        }
+        mods
+    }
+
+    pub fn get_key(&self) -> Option<Key> {
+        match self.code.as_slice() {
+            "Enter" => Some(Key::Enter),
+            "Equals" => Some(Key::Equal),
+            "Minus" => Some(Key::Minus),
+            "Backspace" => Some(Key::Backspace),
+            "PageUp" => Some(Key::PageUp),
+            "PageDown" => Some(Key::PageDown),
+            k => { println!("unknown {:?}", k); None }
+        }
+    }
+}
+
+pub enum IFrameEvent {
+    Keyboard(String, KeyEventProperties),
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
