@@ -11,6 +11,7 @@ use dom::navigatorinfo;
 use dom::workerglobalscope::WorkerGlobalScope;
 use util::str::DOMString;
 
+// https://html.spec.whatwg.org/multipage/workers.html#workernavigator
 #[dom_struct]
 pub struct WorkerNavigator {
     reflector_: Reflector,

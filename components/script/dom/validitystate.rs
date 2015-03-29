@@ -8,6 +8,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
 
+// https://html.spec.whatwg.org/#validitystate
 #[dom_struct]
 pub struct ValidityState {
     reflector_: Reflector,

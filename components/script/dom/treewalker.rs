@@ -64,14 +64,17 @@ impl TreeWalker {
 }
 
 impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
+    // https://dom.spec.whatwg.org/#dom-treewalker-root
     fn Root(self) -> Temporary<Node> {
         Temporary::new(self.root_node)
     }
 
+    // https://dom.spec.whatwg.org/#dom-treewalker-whattoshow
     fn WhatToShow(self) -> u32 {
         self.what_to_show
     }
 
+    // https://dom.spec.whatwg.org/#dom-treewalker-filter
     fn GetFilter(self) -> Option<NodeFilter> {
         match self.filter {
             Filter::None => None,
@@ -80,38 +83,47 @@ impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-treewalker-currentnode
     fn CurrentNode(self) -> Temporary<Node> {
         Temporary::new(self.current_node.get())
     }
 
+    // https://dom.spec.whatwg.org/#dom-treewalker-currentnode
     fn SetCurrentNode(self, node: JSRef<Node>) {
         self.current_node.set(JS::from_rooted(node));
     }
 
+    // https://dom.spec.whatwg.org/#dom-treewalker-parentnode
     fn ParentNode(self) -> Fallible<Option<Temporary<Node>>> {
         self.parent_node()
     }
 
+    // https://dom.spec.whatwg.org/#dom-treewalker-firstchild
     fn FirstChild(self) -> Fallible<Option<Temporary<Node>>> {
         self.first_child()
     }
 
+    // https://dom.spec.whatwg.org/#dom-treewalker-lastchild
     fn LastChild(self) -> Fallible<Option<Temporary<Node>>> {
         self.last_child()
     }
 
+    // https://dom.spec.whatwg.org/#dom-treewalker-previoussibling
     fn PreviousSibling(self) -> Fallible<Option<Temporary<Node>>> {
         self.prev_sibling()
     }
 
+    // https://dom.spec.whatwg.org/#dom-treewalker-nextsibling
     fn NextSibling(self) -> Fallible<Option<Temporary<Node>>> {
         self.next_sibling()
     }
 
+    // https://dom.spec.whatwg.org/#dom-treewalker-previousnode
     fn PreviousNode(self) -> Fallible<Option<Temporary<Node>>> {
         self.prev_node()
     }
 
+    // https://dom.spec.whatwg.org/#dom-treewalker-nextnode
     fn NextNode(self) -> Fallible<Option<Temporary<Node>>> {
         self.next_node()
     }
