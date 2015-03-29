@@ -294,7 +294,7 @@ impl LayoutTask {
         };
 
         // Register this thread as a memory reporter, via its own channel.
-        let reporter = Box::new(chan.clone());
+        let reporter = box chan.clone();
         let reporter_name = format!("layout-reporter-{}", id.0);
         mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name.clone(), reporter));
 

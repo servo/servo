@@ -118,7 +118,7 @@ impl Profiler {
         // Register the system memory reporter, which will run on the memory profiler's own thread.
         // It never needs to be unregistered, because as long as the memory profiler is running the
         // system memory reporter can make measurements.
-        let system_reporter = Box::new(SystemReporter);
+        let system_reporter = box SystemReporter;
         mem_profiler_chan.send(ProfilerMsg::RegisterReporter("system".to_owned(), system_reporter));
 
         mem_profiler_chan

@@ -453,7 +453,7 @@ extern fn gnw_decRef(base: *mut ANativeBase) {
 
 impl GonkNativeWindow {
     pub fn new(alloc_dev: *mut alloc_device, hwc_dev: *mut hwc_composer_device, width: i32, height: i32, usage: c_int) -> *mut GonkNativeWindow {
-        let win = Box::new(GonkNativeWindow {
+        let win = box GonkNativeWindow {
             window: ANativeWindow {
                 common: ANativeBase {
                     magic: ANativeBase::magic('_', 'w', 'n', 'd'),
@@ -496,7 +496,7 @@ impl GonkNativeWindow {
             last_idx: -1,
             bufs: unsafe { zeroed() },
             fences: [-1, -1],
-        });
+        };
 
         unsafe { transmute(win) }
     }
@@ -584,7 +584,7 @@ extern fn gnwb_decRef(base: *mut ANativeBase) {
 
 impl GonkNativeWindowBuffer {
     pub fn new(dev: *mut alloc_device, width: i32, height: i32, format: c_int, usage: c_int) -> *mut GonkNativeWindowBuffer {
-        let mut buf = Box::new(GonkNativeWindowBuffer {
+        let mut buf = box GonkNativeWindowBuffer {
             buffer: ANativeWindowBuffer {
                 common: ANativeBase {
                     magic: ANativeBase::magic('_', 'b', 'f', 'r'),
@@ -603,7 +603,7 @@ impl GonkNativeWindowBuffer {
                 reserved_proc: unsafe { zeroed() },
             },
             count: 1,
-        });
+        };
 
         let ret = unsafe { ((*dev).alloc)(dev, width, height, format, usage, &mut buf.buffer.handle, &mut buf.buffer.stride) };
         assert!(ret == 0, "Failed to allocate gralloc buffer!");
@@ -822,11 +822,11 @@ impl WindowMethods for Window {
     fn create_compositor_channel(window: &Option<Rc<Window>>)
                                  -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>) {
         let (sender, receiver) = channel();
-        (Box::new(GonkCompositorProxy {
+        (box GonkCompositorProxy {
              sender: sender,
              event_sender: window.as_ref().unwrap().event_send.clone(),
-         }) as Box<CompositorProxy+Send>,
-         Box::new(receiver) as Box<CompositorReceiver>)
+         } as Box<CompositorProxy+Send>,
+         box receiver as Box<CompositorReceiver>)
     }
 
     fn set_cursor(&self, _: Cursor) {
@@ -849,10 +849,10 @@ impl CompositorProxy for GonkCompositorProxy {
         self.event_sender.send(WindowEvent::Idle).ok().unwrap();
     }
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
-        Box::new(GonkCompositorProxy {
+        box GonkCompositorProxy {
             sender: self.sender.clone(),
             event_sender: self.event_sender.clone(),
-        }) as Box<CompositorProxy+Send>
+        } as Box<CompositorProxy+Send>
     }
 }
 
