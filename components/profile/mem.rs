@@ -32,12 +32,13 @@ macro_rules! path {
     }}
 }
 
+/// A single memory-related measurement.
 pub struct Report {
     /// The identifying path for this report.
     pub path: Vec<String>,
 
     /// The size, in bytes.
-    pub size: u64,
+    pub size: usize,
 }
 
 /// A channel through which memory reports can be sent.
@@ -208,7 +209,7 @@ impl Profiler {
 struct ReportsTree {
     /// For leaf nodes, this is the sum of the sizes of all reports that mapped to this location.
     /// For interior nodes, this is the sum of the sizes of all its child nodes.
-    size: u64,
+    size: usize,
 
     /// For leaf nodes, this is the count of all reports that mapped to this location.
     /// For interor nodes, this is always zero.
@@ -243,7 +244,7 @@ impl ReportsTree {
     }
 
     // Insert the path and size into the tree, adding any nodes as necessary.
-    fn insert(&mut self, path: &[String], size: u64) {
+    fn insert(&mut self, path: &[String], size: usize) {
         let mut t: &mut ReportsTree = self;
         for path_seg in path.iter() {
             let i = match t.find_child(&path_seg) {
@@ -264,7 +265,7 @@ impl ReportsTree {
 
     // Fill in sizes for interior nodes. Should only be done once all the reports have been
     // inserted.
-    fn compute_interior_node_sizes(&mut self) -> u64 {
+    fn compute_interior_node_sizes(&mut self) -> usize {
         if !self.children.is_empty() {
             // Interior node. Derive its size from its children.
             if self.size != 0 {
@@ -313,7 +314,7 @@ impl ReportsForest {
     }
 
     // Insert the path and size into the forest, adding any trees and nodes as necessary.
-    fn insert(&mut self, path: &[String], size: u64) {
+    fn insert(&mut self, path: &[String], size: usize) {
         // Get the right tree, creating it if necessary.
         if !self.trees.contains_key(&path[0]) {
             self.trees.insert(path[0].clone(), ReportsTree::new(path[0].clone()));
@@ -440,7 +441,7 @@ mod system_reporter {
     }
 
     #[cfg(target_os="linux")]
-    fn get_system_heap_allocated() -> Option<u64> {
+    fn get_system_heap_allocated() -> Option<usize> {
         let mut info: struct_mallinfo;
         unsafe {
             info = mallinfo();
@@ -449,11 +450,11 @@ mod system_reporter {
         // would suffice, but that only gets the small allocations that are put in
         // the brk heap. We need |hblkhd| as well to get the larger allocations
         // that are mmapped.
-        Some((info.hblkhd + info.uordblks) as u64)
+        Some((info.hblkhd + info.uordblks) as usize)
     }
 
     #[cfg(not(target_os="linux"))]
-    fn get_system_heap_allocated() -> Option<u64> {
+    fn get_system_heap_allocated() -> Option<usize> {
         None
     }
 
@@ -462,7 +463,7 @@ mod system_reporter {
                       newp: *mut c_void, newlen: size_t) -> c_int;
     }
 
-    fn get_jemalloc_stat(value_name: &str) -> Option<u64> {
+    fn get_jemalloc_stat(value_name: &str) -> Option<usize> {
         // Before we request the measurement of interest, we first send an "epoch"
         // request. Without that jemalloc gives cached statistics(!) which can be
         // highly inaccurate.
@@ -494,7 +495,7 @@ mod system_reporter {
             return None;
         }
 
-        Some(value as u64)
+        Some(value as usize)
     }
 
     // Like std::macros::try!, but for Option<>.
@@ -503,7 +504,7 @@ mod system_reporter {
     );
 
     #[cfg(target_os="linux")]
-    fn get_proc_self_statm_field(field: usize) -> Option<u64> {
+    fn get_proc_self_statm_field(field: usize) -> Option<usize> {
         use std::fs::File;
         use std::io::Read;
 
@@ -511,42 +512,42 @@ mod system_reporter {
         let mut contents = String::new();
         option_try!(f.read_to_string(&mut contents).ok());
         let s = option_try!(contents.words().nth(field));
-        let npages = option_try!(s.parse::<u64>().ok());
-        Some(npages * (::std::env::page_size() as u64))
+        let npages = option_try!(s.parse::<usize>().ok());
+        Some(npages * ::std::env::page_size())
     }
 
     #[cfg(target_os="linux")]
-    fn get_vsize() -> Option<u64> {
+    fn get_vsize() -> Option<usize> {
         get_proc_self_statm_field(0)
     }
 
     #[cfg(target_os="linux")]
-    fn get_resident() -> Option<u64> {
+    fn get_resident() -> Option<usize> {
         get_proc_self_statm_field(1)
     }
 
     #[cfg(target_os="macos")]
-    fn get_vsize() -> Option<u64> {
+    fn get_vsize() -> Option<usize> {
         virtual_size()
     }
 
     #[cfg(target_os="macos")]
-    fn get_resident() -> Option<u64> {
+    fn get_resident() -> Option<usize> {
         resident_size()
     }
 
     #[cfg(not(any(target_os="linux", target_os = "macos")))]
-    fn get_vsize() -> Option<u64> {
+    fn get_vsize() -> Option<usize> {
         None
     }
 
     #[cfg(not(any(target_os="linux", target_os = "macos")))]
-    fn get_resident() -> Option<u64> {
+    fn get_resident() -> Option<usize> {
         None
     }
 
     #[cfg(target_os="linux")]
-    fn get_resident_segments() -> Vec<(String, u64)> {
+    fn get_resident_segments() -> Vec<(String, usize)> {
         use regex::Regex;
         use std::collections::HashMap;
         use std::collections::hash_map::Entry;
@@ -575,7 +576,7 @@ mod system_reporter {
         let rss_re = Regex::new(r"^Rss: +(\d+) kB").unwrap();
 
         // We record each segment's resident size.
-        let mut seg_map: HashMap<String, u64> = HashMap::new();
+        let mut seg_map: HashMap<String, usize> = HashMap::new();
 
         #[derive(PartialEq)]
         enum LookingFor { Segment, Rss }
@@ -620,7 +621,7 @@ mod system_reporter {
                     Some(cap) => cap,
                     None => continue,
                 };
-                let rss = cap.at(1).unwrap().parse::<u64>().unwrap() * 1024;
+                let rss = cap.at(1).unwrap().parse::<usize>().unwrap() * 1024;
 
                 if rss > 0 {
                     // Aggregate small segments into "other".
@@ -639,7 +640,7 @@ mod system_reporter {
             }
         }
 
-        let mut segs: Vec<(String, u64)> = seg_map.into_iter().collect();
+        let mut segs: Vec<(String, usize)> = seg_map.into_iter().collect();
 
         // Note that the sum of all these segments' RSS values differs from the "resident" measurement
         // obtained via /proc/<pid>/statm in get_resident(). It's unclear why this difference occurs;
@@ -650,7 +651,7 @@ mod system_reporter {
     }
 
     #[cfg(not(target_os="linux"))]
-    fn get_resident_segments() -> Vec<(String, u64)> {
+    fn get_resident_segments() -> Vec<(String, usize)> {
         vec![]
     }
 }
