@@ -28,7 +28,7 @@ use std::mem;
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.
-type Generation = uint;
+type Generation = u32;
 
 /// A pair of the bloom filter used for css selector matching, and the node to
 /// which it applies. This is used to efficiently do `Descendant` selector

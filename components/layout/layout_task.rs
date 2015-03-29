@@ -107,7 +107,7 @@ pub struct LayoutTaskData {
 
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
-    pub generation: uint,
+    pub generation: u32,
 
     /// A queued response for the union of the content boxes of a node.
     pub content_box_response: Rect<Au>,

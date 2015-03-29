@@ -248,7 +248,7 @@ impl<'ln> LayoutNode<'ln> {
         self.dump_indent(0);
     }
 
-    fn dump_indent(self, indent: uint) {
+    fn dump_indent(self, indent: u32) {
         let mut s = String::new();
         for _ in range(0, indent) {
             s.push_str("  ");
@@ -267,10 +267,10 @@ impl<'ln> LayoutNode<'ln> {
                 self.type_id(), self.has_changed(), self.is_dirty(), self.has_dirty_descendants())
     }
 
-    pub fn flow_debug_id(self) -> uint {
+    pub fn flow_debug_id(self) -> usize {
         let layout_data_ref = self.borrow_layout_data();
         match *layout_data_ref {
-            None              => 0u,
+            None => 0,
             Some(ref layout_data) => layout_data.data.flow_construction_result.debug_id()
         }
     }
@@ -806,7 +806,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         self.node.debug_id()
     }
 
-    pub fn flow_debug_id(self) -> uint {
+    pub fn flow_debug_id(self) -> usize {
         self.node.flow_debug_id()
     }
 
@@ -1135,11 +1135,11 @@ pub trait PostorderNodeMutTraversal {
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
 /// Must be transmutable to and from LayoutNode/ThreadSafeLayoutNode.
-pub type UnsafeLayoutNode = (uint, uint);
+pub type UnsafeLayoutNode = (usize, usize);
 
 pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode {
     unsafe {
-        let ptr: uint = mem::transmute_copy(node);
+        let ptr: usize = mem::transmute_copy(node);
         (ptr, 0)
     }
 }

@@ -88,7 +88,7 @@ impl ConstructionResult {
         (*self).clone()
     }
 
-    pub fn debug_id(&self) -> uint {
+    pub fn debug_id(&self) -> usize {
         match self {
             &ConstructionResult::None => 0u,
             &ConstructionResult::ConstructionItem(_) => 0u,

@@ -72,9 +72,6 @@ pub struct FloatedBlockInfo {
     /// box).
     pub float_ceiling: Au,
 
-    /// Index into the fragment list for inline floats
-    pub index: Option<uint>,
-
     /// Left or right?
     pub float_kind: FloatKind,
 }
@@ -84,7 +81,6 @@ impl FloatedBlockInfo {
         FloatedBlockInfo {
             containing_inline_size: Au(0),
             float_ceiling: Au(0),
-            index: None,
             float_kind: float_kind,
         }
     }
