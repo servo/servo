@@ -17,6 +17,7 @@ pub enum NodeListType {
     Children(JS<Node>)
 }
 
+// https://dom.spec.whatwg.org/#interface-nodelist
 #[dom_struct]
 pub struct NodeList {
     reflector_: Reflector,
@@ -47,6 +48,7 @@ impl NodeList {
 }
 
 impl<'a> NodeListMethods for JSRef<'a, NodeList> {
+    // https://dom.spec.whatwg.org/#dom-nodelist-length
     fn Length(self) -> u32 {
         match self.list_type {
             NodeListType::Simple(ref elems) => elems.len() as u32,
@@ -57,6 +59,7 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-nodelist-item
     fn Item(self, index: u32) -> Option<Temporary<Node>> {
         match self.list_type {
             _ if index >= self.Length() => None,

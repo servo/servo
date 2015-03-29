@@ -20,6 +20,7 @@ use encoding::types::{EncodingRef, EncoderTrap};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 
+// https://url.spec.whatwg.org/#interface-urlsearchparams
 #[dom_struct]
 pub struct URLSearchParams {
     reflector_: Reflector,
@@ -39,6 +40,7 @@ impl URLSearchParams {
                            URLSearchParamsBinding::Wrap)
     }
 
+    // https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams
     pub fn Constructor(global: GlobalRef, init: Option<StringOrURLSearchParams>) ->
                        Fallible<Temporary<URLSearchParams>> {
         let usp = URLSearchParams::new(global).root();
@@ -65,6 +67,7 @@ impl URLSearchParams {
 }
 
 impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
+    // https://url.spec.whatwg.org/#dom-urlsearchparams-append
     fn Append(self, name: DOMString, value: DOMString) {
         let mut data = self.data.borrow_mut();
 
@@ -78,23 +81,27 @@ impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
         self.update_steps();
     }
 
+    // https://url.spec.whatwg.org/#dom-urlsearchparams-delete
     fn Delete(self, name: DOMString) {
         self.data.borrow_mut().remove(&name);
         self.update_steps();
     }
 
+    // https://url.spec.whatwg.org/#dom-urlsearchparams-get
     fn Get(self, name: DOMString) -> Option<DOMString> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let data = self.data.borrow();
         data.get(&name).map(|v| v[0].clone())
     }
 
+    // https://url.spec.whatwg.org/#dom-urlsearchparams-has
     fn Has(self, name: DOMString) -> bool {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let data = self.data.borrow();
         data.contains_key(&name)
     }
 
+    // https://url.spec.whatwg.org/#dom-urlsearchparams-set
     fn Set(self, name: DOMString, value: DOMString) {
         self.data.borrow_mut().insert(name, vec!(value));
         self.update_steps();

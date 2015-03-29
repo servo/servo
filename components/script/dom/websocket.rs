@@ -11,6 +11,7 @@ use dom::bindings::utils::reflect_dom_object;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use util::str::DOMString;
 
+// https://html.spec.whatwg.org/#the-websocket-interface
 #[dom_struct]
 pub struct WebSocket {
     eventtarget: EventTarget,
@@ -37,6 +38,7 @@ impl WebSocket {
 }
 
 impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
+    // https://html.spec.whatwg.org/#dom-websocket-url
     fn Url(self) -> DOMString {
         self.url.clone()
     }

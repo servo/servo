@@ -39,6 +39,7 @@ pub enum WorkerGlobalScopeTypeId {
     DedicatedGlobalScope,
 }
 
+// https://html.spec.whatwg.org/multipage/workers.html#the-workerglobalscope-common-interface
 #[dom_struct]
 pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
@@ -96,16 +97,19 @@ impl WorkerGlobalScope {
 }
 
 impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
+    // https://html.spec.whatwg.org/multipage/workers.html#dom-workerglobalscope-self
     fn Self_(self) -> Temporary<WorkerGlobalScope> {
         Temporary::from_rooted(self)
     }
 
+    // https://html.spec.whatwg.org/multipage/workers.html#dom-workerglobalscope-location
     fn Location(self) -> Temporary<WorkerLocation> {
         self.location.or_init(|| {
             WorkerLocation::new(self, self.worker_url.clone())
         })
     }
 
+    // https://html.spec.whatwg.org/multipage/workers.html#dom-workerglobalscope-importscripts
     fn ImportScripts(self, url_strings: Vec<DOMString>) -> ErrorResult {
         let mut urls = Vec::with_capacity(url_strings.len());
         for url in url_strings.into_iter() {
@@ -138,6 +142,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
         Ok(())
     }
 
+    // https://html.spec.whatwg.org/multipage/workers.html#dom-worker-navigator
     fn Navigator(self) -> Temporary<WorkerNavigator> {
         self.navigator.or_init(|| WorkerNavigator::new(self))
     }
