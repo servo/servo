@@ -122,7 +122,7 @@ impl<'a> PartialEq<ApplicableDeclarationsCacheEntry> for ApplicableDeclarationsC
 impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         for declaration in self.declarations.iter() {
-            let ptr: uint = unsafe {
+            let ptr: usize = unsafe {
                 mem::transmute_copy(declaration)
             };
             ptr.hash(state);
@@ -130,7 +130,7 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
     }
 }
 
-static APPLICABLE_DECLARATIONS_CACHE_SIZE: uint = 32;
+static APPLICABLE_DECLARATIONS_CACHE_SIZE: usize = 32;
 
 pub struct ApplicableDeclarationsCache {
     cache: SimpleHashCache<ApplicableDeclarationsCacheEntry,Arc<ComputedValues>>,
@@ -331,7 +331,7 @@ impl StyleSharingCandidate {
     }
 }
 
-static STYLE_SHARING_CANDIDATE_CACHE_SIZE: uint = 40;
+static STYLE_SHARING_CANDIDATE_CACHE_SIZE: usize = 40;
 
 impl StyleSharingCandidateCache {
     pub fn new() -> StyleSharingCandidateCache {
@@ -351,7 +351,7 @@ impl StyleSharingCandidateCache {
         }
     }
 
-    pub fn touch(&mut self, index: uint) {
+    pub fn touch(&mut self, index: usize) {
         self.cache.touch(index)
     }
 }
@@ -363,7 +363,7 @@ pub enum StyleSharingResult {
     CannotShare(bool),
     /// The node's style can be shared. The integer specifies the index in the LRU cache that was
     /// hit and the damage that was done.
-    StyleWasShared(uint, RestyleDamage),
+    StyleWasShared(usize, RestyleDamage),
 }
 
 pub trait MatchMethods {

@@ -35,7 +35,7 @@ fn static_assertion(node: UnsafeLayoutNode) {
 }
 
 /// Vtable + pointer representation of a Flow trait object.
-pub type UnsafeFlow = (uint, uint);
+pub type UnsafeFlow = (usize, usize);
 
 fn null_unsafe_flow() -> UnsafeFlow {
     (0, 0)
