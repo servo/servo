@@ -28,7 +28,8 @@ use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NamespaceError, InvalidCharacter, Syntax};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
-use dom::bindings::js::{OptionalRootable, Root};
+use dom::bindings::js::OptionalRootable;
+use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::xml_name_type;
 use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
 use dom::create::create_element;
@@ -1114,17 +1115,18 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn GetClientRects(self) -> Temporary<DOMRectList> {
         let win = window_from_node(self).root();
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        let rects = node.get_content_boxes();
-        let rects: Vec<Root<DOMRect>> = rects.iter().map(|r| {
-            DOMRect::new(
-                win.r(),
-                r.origin.y,
-                r.origin.y + r.size.height,
-                r.origin.x,
-                r.origin.x + r.size.width).root()
-        }).collect();
+        let raw_rects = node.get_content_boxes();
+        let mut rects = RootedVec::new();
+        for rect in raw_rects.iter() {
+            let rect = DOMRect::new(win.r(),
+                                    rect.origin.y,
+                                    rect.origin.y + rect.size.height,
+                                    rect.origin.x,
+                                    rect.origin.x + rect.size.width);
+            rects.push(JS::from_rooted(rect));
+        }
 
-        DOMRectList::new(win.r(), rects.iter().map(|rect| rect.r()).collect())
+        DOMRectList::new(win.r(), &rects)
     }
 
     // http://dev.w3.org/csswg/cssom-view/#dom-element-getboundingclientrect
