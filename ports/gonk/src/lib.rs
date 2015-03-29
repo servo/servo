@@ -5,7 +5,7 @@
 #![feature(thread_local)]
 #![feature(box_syntax)]
 #![feature(int_uint)]
-#![feature(core, path, rustc_private)]
+#![feature(path, rustc_private)]
 // For FFI
 #![allow(non_snake_case, dead_code)]
 
@@ -58,10 +58,6 @@ use util::taskpool::TaskPool;
 use std::env;
 #[cfg(not(test))]
 use std::rc::Rc;
-#[cfg(not(test))]
-use std::thread::Builder;
-#[cfg(not(test))]
-use std::sync::mpsc::channel;
 
 pub struct Browser {
     compositor: Box<CompositorEventListener + 'static>,
@@ -85,59 +81,45 @@ impl Browser {
             devtools::start_server(port)
         });
 
-        let opts_clone = opts.clone();
-        let time_profiler_chan_clone = time_profiler_chan.clone();
-        let mem_profiler_chan_clone = mem_profiler_chan.clone();
+        // Create a Servo instance.
+        let resource_task = new_resource_task(opts.user_agent.clone());
 
-        let (result_chan, result_port) = channel();
-        let compositor_proxy_for_constellation = compositor_proxy.clone_compositor_proxy();
-        Builder::new()
-            .spawn(move || {
-            let opts = &opts_clone;
-            // Create a Servo instance.
-            let resource_task = new_resource_task(opts.user_agent.clone());
-            // If we are emitting an output file, then we need to block on
-            // image load or we risk emitting an output file missing the
-            // image.
-            let image_cache_task = if opts.output_file.is_some() {
-                ImageCacheTask::new_sync(resource_task.clone(), shared_task_pool,
-                                         time_profiler_chan_clone.clone())
-            } else {
-                ImageCacheTask::new(resource_task.clone(), shared_task_pool,
-                                    time_profiler_chan_clone.clone())
+        // If we are emitting an output file, then we need to block on
+        // image load or we risk emitting an output file missing the
+        // image.
+        let image_cache_task = if opts.output_file.is_some() {
+            ImageCacheTask::new_sync(resource_task.clone(), shared_task_pool,
+                                     time_profiler_chan.clone())
+        } else {
+            ImageCacheTask::new(resource_task.clone(), shared_task_pool,
+                                time_profiler_chan.clone())
+        };
+        let font_cache_task = FontCacheTask::new(resource_task.clone());
+        let storage_task = StorageTaskFactory::new();
+        let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
+                                                 script::script_task::ScriptTask>::start(
+                                                      compositor_proxy.clone_compositor_proxy(),
+                                                      resource_task,
+                                                      image_cache_task,
+                                                      font_cache_task,
+                                                      time_profiler_chan.clone(),
+                                                      mem_profiler_chan.clone(),
+                                                      devtools_chan,
+                                                      storage_task);
+
+        // Send the URL command to the constellation.
+        let cwd = env::current_dir().unwrap();
+        for url in opts.urls.iter() {
+            let url = match url::Url::parse(&*url) {
+                Ok(url) => url,
+                Err(url::ParseError::RelativeUrlWithoutBase)
+                => url::Url::from_file_path(&*cwd.join(&*url)).unwrap(),
+                Err(_) => panic!("URL parsing failed"),
             };
-            let font_cache_task = FontCacheTask::new(resource_task.clone());
-            let storage_task = StorageTaskFactory::new();
-            let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
-                                                     script::script_task::ScriptTask>::start(
-                                                          compositor_proxy_for_constellation,
-                                                          resource_task,
-                                                          image_cache_task,
-                                                          font_cache_task,
-                                                          time_profiler_chan_clone,
-                                                          mem_profiler_chan_clone,
-                                                          devtools_chan,
-                                                          storage_task);
 
-            // Send the URL command to the constellation.
-            let cwd = env::current_dir().unwrap();
-            for url in opts.urls.iter() {
-                let url = match url::Url::parse(url.as_slice()) {
-                    Ok(url) => url,
-                    Err(url::ParseError::RelativeUrlWithoutBase)
-                    => url::Url::from_file_path(&*cwd.join(url.as_slice())).unwrap(),
-                    Err(_) => panic!("URL parsing failed"),
-                };
-
-                let ConstellationChan(ref chan) = constellation_chan;
-                chan.send(ConstellationMsg::InitLoadUrl(url)).ok().unwrap();
-            }
-
-            // Send the constallation Chan as the result
-            result_chan.send(constellation_chan).ok().unwrap();
-        });
-
-        let constellation_chan = result_port.recv().unwrap();
+            let ConstellationChan(ref chan) = constellation_chan;
+            chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
+        }
 
         debug!("preparing to enter main loop");
         let compositor = CompositorTask::create(window,

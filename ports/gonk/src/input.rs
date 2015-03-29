@@ -10,7 +10,7 @@ use std::os::errno;
 use std::os::unix::AsRawFd;
 use std::num::Float;
 use std::fs::File;
-use std::thread::Thread;
+use std::thread;
 use std::sync::mpsc::Sender;
 use std::io::Read;
 
@@ -238,7 +238,7 @@ fn read_input_device(device_path: &Path,
 
 pub fn run_input_loop(event_sender: &Sender<WindowEvent>) {
     let sender = event_sender.clone();
-    Thread::spawn(move || {
+    thread::spawn(move || {
         // XXX need to scan all devices and read every one.
         let touchinputdev = Path::new("/dev/input/event0");
         read_input_device(&touchinputdev, &sender);
