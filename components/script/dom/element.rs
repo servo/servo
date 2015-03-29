@@ -798,7 +798,6 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_atomic_attribute(self, name: &Atom, value: DOMString) {
-        assert!(name.as_slice().eq_ignore_ascii_case(name.as_slice()));
         let value = AttrValue::from_atomic(value);
         self.set_attribute(name, value);
     }
