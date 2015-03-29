@@ -359,10 +359,10 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         } else {
             let chan = window.r().script_chan();
             let handler = Trusted::new(window.r().get_cx(), self, chan.clone());
-            let dispatcher = Box::new(EventDispatcher {
+            let dispatcher = box EventDispatcher {
                 element: handler,
                 is_error: false,
-            });
+            };
             chan.send(ScriptMsg::RunnableMsg(dispatcher)).unwrap();
         }
     }
@@ -372,10 +372,10 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         let window = window.r();
         let chan = window.script_chan();
         let handler = Trusted::new(window.get_cx(), self, chan.clone());
-        let dispatcher = Box::new(EventDispatcher {
+        let dispatcher = box EventDispatcher {
             element: handler,
             is_error: true,
-        });
+        };
         chan.send(ScriptMsg::RunnableMsg(dispatcher)).unwrap();
     }
 

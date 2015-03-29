@@ -1101,7 +1101,7 @@ impl ScriptTask {
 
         // https://html.spec.whatwg.org/multipage/#the-end step 4
         let addr: Trusted<Document> = Trusted::new(self.get_cx(), document.r(), self.chan.clone());
-        let handler = Box::new(DocumentProgressHandler::new(addr.clone(), DocumentProgressTask::DOMContentLoaded));
+        let handler = box DocumentProgressHandler::new(addr.clone(), DocumentProgressTask::DOMContentLoaded);
         self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
 
         // We have no concept of a document loader right now, so just dispatch the
@@ -1109,7 +1109,7 @@ impl ScriptTask {
         // the initial load.
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
-        let handler = Box::new(DocumentProgressHandler::new(addr, DocumentProgressTask::Load));
+        let handler = box DocumentProgressHandler::new(addr, DocumentProgressTask::Load);
         self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
 
         window.r().set_fragment_name(final_url.fragment.clone());
