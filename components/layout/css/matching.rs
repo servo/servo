@@ -122,7 +122,7 @@ impl<'a> PartialEq<ApplicableDeclarationsCacheEntry> for ApplicableDeclarationsC
 impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         for declaration in self.declarations.iter() {
-            let ptr: uint = unsafe {
+            let ptr: usize = unsafe {
                 mem::transmute_copy(declaration)
             };
             ptr.hash(state);
