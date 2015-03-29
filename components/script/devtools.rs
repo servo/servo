@@ -26,7 +26,7 @@ pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, r
     let page = get_page(&*page, pipeline);
     let window = page.window().root();
     let cx = window.r().get_cx();
-    let rval = window.r().evaluate_js_on_global_with_result(eval.as_slice());
+    let rval = window.r().evaluate_js_on_global_with_result(&eval);
 
     reply.send(if rval.is_undefined() {
         EvaluateJSReply::VoidValue
@@ -69,7 +69,7 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     let node: JSRef<Node> = NodeCast::from_ref(document.r());
 
     for candidate in node.traverse_preorder() {
-        if candidate.get_unique_id().as_slice() == node_id.as_slice() {
+        if candidate.get_unique_id() == node_id {
             return Temporary::from_rooted(candidate);
         }
     }

@@ -52,7 +52,7 @@ impl<'a> CanvasGradientMethods for JSRef<'a, CanvasGradient> {
 
         self.stops.borrow_mut().push(CanvasGradientStop {
             offset: (*offset) as f64,
-            color: parse_color(color.as_slice()).unwrap_or(default_black),
+            color: parse_color(&color).unwrap_or(default_black),
         });
     }
 }
