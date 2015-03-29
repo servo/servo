@@ -24,7 +24,7 @@ impl ByteString {
     /// otherwise.
     pub fn as_str<'a>(&'a self) -> Option<&'a str> {
         let ByteString(ref vec) = *self;
-        str::from_utf8(vec.as_slice()).ok()
+        str::from_utf8(&vec).ok()
     }
 
     /// Returns the underlying vector as a slice.

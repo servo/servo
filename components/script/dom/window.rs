@@ -218,8 +218,7 @@ impl Window {
 }
 
 // http://www.whatwg.org/html/#atob
-pub fn base64_btoa(btoa: DOMString) -> Fallible<DOMString> {
-    let input = btoa.as_slice();
+pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     // "The btoa() method must throw an InvalidCharacterError exception if
     //  the method's first argument contains any character whose code point
     //  is greater than U+00FF."
@@ -239,10 +238,7 @@ pub fn base64_btoa(btoa: DOMString) -> Fallible<DOMString> {
 }
 
 // http://www.whatwg.org/html/#atob
-pub fn base64_atob(atob: DOMString) -> Fallible<DOMString> {
-    // "Let input be the string being parsed."
-    let input = atob.as_slice();
-
+pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     // "Remove all space characters from input."
     // serialize::base64::from_base64 ignores \r and \n,
     // but it treats the other space characters as

@@ -52,7 +52,7 @@ macro_rules! css_properties(
 fn serialize_list(list: &Vec<PropertyDeclaration>) -> DOMString {
     let mut result = String::new();
     for declaration in list.iter() {
-        result.push_str(serialize_value(declaration).as_slice());
+        result.push_str(&serialize_value(declaration));
         result.push_str(" ");
     }
     result
@@ -131,10 +131,10 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
     fn GetPropertyValue(self, property: DOMString) -> DOMString {
         // Step 1
-        let property = Atom::from_slice(property.as_slice().to_ascii_lowercase().as_slice());
+        let property = Atom::from_slice(&property.to_ascii_lowercase());
 
         // Step 2
-        let longhand_properties = longhands_from_shorthand(property.as_slice());
+        let longhand_properties = longhands_from_shorthand(&property);
         if let Some(longhand_properties) = longhand_properties {
             // Step 2.1
             let mut list = vec!();
@@ -142,7 +142,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
             // Step 2.2
             for longhand in longhand_properties.iter() {
                 // Step 2.2.1
-                let declaration = self.get_declaration(&Atom::from_slice(longhand.as_slice()));
+                let declaration = self.get_declaration(&Atom::from_slice(&longhand));
 
                 // Step 2.2.2 & 2.2.3
                 match declaration {
@@ -166,15 +166,15 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
     fn GetPropertyPriority(self, property: DOMString) -> DOMString {
         // Step 1
-        let property = Atom::from_slice(property.as_slice().to_ascii_lowercase().as_slice());
+        let property = Atom::from_slice(&property.to_ascii_lowercase());
 
         // Step 2
-        let longhand_properties = longhands_from_shorthand(property.as_slice());
+        let longhand_properties = longhands_from_shorthand(&property);
         if let Some(longhand_properties) = longhand_properties {
             // Step 2.1 & 2.2 & 2.3
             if longhand_properties.iter()
                                   .map(|longhand| self.GetPropertyPriority(longhand.clone()))
-                                  .all(|priority| priority.as_slice() == "important") {
+                                  .all(|priority| priority == "important") {
 
                 return "important".to_owned();
             }
@@ -196,10 +196,10 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         }
 
         // Step 2
-        let property = property.as_slice().to_ascii_lowercase();
+        let property = property.to_ascii_lowercase();
 
         // Step 3
-        if !is_supported_property(property.as_slice()) {
+        if !is_supported_property(&property) {
             return Ok(());
         }
 
@@ -209,20 +209,19 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         }
 
         // Step 5
-        let priority = priority.as_slice().to_ascii_lowercase();
-        if priority.as_slice() != "!important" && !priority.is_empty() {
+        let priority = priority.to_ascii_lowercase();
+        if priority != "!important" && !priority.is_empty() {
             return Ok(());
         }
 
         // Step 6
-        let mut synthesized_declaration = String::from_str(property.as_slice());
+        let mut synthesized_declaration = String::from_str(&property);
         synthesized_declaration.push_str(": ");
-        synthesized_declaration.push_str(value.as_slice());
+        synthesized_declaration.push_str(&value);
 
         let owner = self.owner.root();
         let window = window_from_node(owner.r()).root();
-        let decl_block = parse_style_attribute(synthesized_declaration.as_slice(),
-                                               &window.r().get_url());
+        let decl_block = parse_style_attribute(&synthesized_declaration, &window.r().get_url());
 
         // Step 7
         if decl_block.normal.len() == 0 {
@@ -253,23 +252,22 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         }
 
         // Step 2
-        let property = property.as_slice().to_ascii_lowercase();
+        let property = property.to_ascii_lowercase();
 
         // Step 3
-        if !is_supported_property(property.as_slice()) {
+        if !is_supported_property(&property) {
             return Ok(());
         }
 
         // Step 4
-        let priority = priority.as_slice().to_ascii_lowercase();
-        if priority.as_slice() != "important" && !priority.is_empty() {
+        let priority = priority.to_ascii_lowercase();
+        if priority != "important" && !priority.is_empty() {
             return Ok(());
         }
 
         let owner = self.owner.root();
         let window = window_from_node(owner.r()).root();
-        let decl_block = parse_style_attribute(property.as_slice(),
-                                               &window.r().get_url());
+        let decl_block = parse_style_attribute(&property, &window.r().get_url());
         let element: JSRef<Element> = ElementCast::from_ref(owner.r());
 
         // Step 5
@@ -298,12 +296,12 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         }
 
         // Step 2
-        let property = property.as_slice().to_ascii_lowercase();
+        let property = property.to_ascii_lowercase();
 
         // Step 3
         let value = self.GetPropertyValue(property.clone());
 
-        let longhand_properties = longhands_from_shorthand(property.as_slice());
+        let longhand_properties = longhands_from_shorthand(&property);
         match longhand_properties {
             Some(longhands) => {
                 // Step 4

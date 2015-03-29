@@ -493,7 +493,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
     fn SetStrokeStyle(self, value: StringOrCanvasGradientOrCanvasPattern) {
         match value {
             StringOrCanvasGradientOrCanvasPattern::eString(string) => {
-                match parse_color(string.as_slice()) {
+                match parse_color(&string) {
                     Ok(rgba) => {
                         self.stroke_color.set(rgba);
                         self.renderer
@@ -521,7 +521,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
     fn SetFillStyle(self, value: StringOrCanvasGradientOrCanvasPattern) {
         match value {
             StringOrCanvasGradientOrCanvasPattern::eString(string) => {
-                match parse_color(string.as_slice()) {
+                match parse_color(&string) {
                     Ok(rgba) => {
                         self.fill_color.set(rgba);
                         self.renderer
@@ -640,7 +640,7 @@ impl Drop for CanvasRenderingContext2D {
 }
 
 pub fn parse_color(string: &str) -> Result<RGBA,()> {
-    match CSSColor::parse(&mut Parser::new(string.as_slice())) {
+    match CSSColor::parse(&mut Parser::new(&string)) {
         Ok(CSSColor::RGBA(rgba)) => Ok(rgba),
         _ => Err(()),
     }

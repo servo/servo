@@ -567,7 +567,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
             declarations.normal
                         .iter()
                         .chain(declarations.important.iter())
-                        .find(|decl| decl.matches(property.as_slice()))
+                        .find(|decl| decl.matches(&property))
                         .map(|decl| decl.clone())
         })
     }
@@ -577,7 +577,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
         inline_declarations.as_ref().and_then(|declarations| {
             declarations.important
                         .iter()
-                        .find(|decl| decl.matches(property.as_slice()))
+                        .find(|decl| decl.matches(&property))
                         .map(|decl| decl.clone())
         })
     }
@@ -680,7 +680,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             None => qname.local.clone(),
             Some(ref prefix) => {
                 let name = format!("{}:{}", *prefix, qname.local.as_slice());
-                Atom::from_slice(name.as_slice())
+                Atom::from_slice(&name)
             },
         };
         let value = self.parse_attribute(&qname.ns, &qname.local, value);
@@ -688,8 +688,8 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_attribute(self, name: &Atom, value: AttrValue) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
-        assert!(!name.as_slice().contains(":"));
+        assert!(name.as_slice() == name.to_ascii_lowercase());
+        assert!(!name.contains(":"));
 
         self.do_set_attribute(name.clone(), value, name.clone(),
             ns!(""), None, |attr| attr.local_name() == name);
@@ -698,7 +698,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     // https://html.spec.whatwg.org/multipage/dom.html#attr-data-*
     fn set_custom_attribute(self, name: DOMString, value: DOMString) -> ErrorResult {
         // Step 1.
-        match xml_name_type(name.as_slice()) {
+        match xml_name_type(&name) {
             InvalidXMLName => return Err(InvalidCharacter),
             _ => {}
         }
@@ -785,7 +785,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         };
         let is_equal = |lhs: &Atom, rhs: &Atom| match quirks_mode {
             NoQuirks | LimitedQuirks => lhs == rhs,
-            Quirks => lhs.as_slice().eq_ignore_ascii_case(rhs.as_slice())
+            Quirks => lhs.eq_ignore_ascii_case(&rhs)
         };
         self.get_attribute(ns!(""), &atom!("class")).root().map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
@@ -798,13 +798,13 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_atomic_attribute(self, name: &Atom, value: DOMString) {
-        assert!(name.as_slice().eq_ignore_ascii_case(name.as_slice()));
+        assert!(name.eq_ignore_ascii_case(name));
         let value = AttrValue::from_atomic(value);
         self.set_attribute(name, value);
     }
 
     fn has_attribute(self, name: &Atom) -> bool {
-        assert!(name.as_slice().bytes().all(|b| b.to_ascii_lowercase() == b));
+        assert!(name.bytes().all(|b| b.to_ascii_lowercase() == b));
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let attrs = self.attrs.borrow();
         attrs.iter().map(|attr| attr.root()).any(|attr| {
@@ -821,12 +821,12 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         if value {
             self.set_string_attribute(name, String::new());
         } else {
-            self.remove_attribute(ns!(""), name.as_slice());
+            self.remove_attribute(ns!(""), &name);
         }
     }
 
     fn get_url_attribute(self, name: &Atom) -> DOMString {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
+        assert!(name.as_slice() == name.to_ascii_lowercase());
         if !self.has_attribute(name) {
             return "".to_owned();
         }
@@ -835,7 +835,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let base = doc.r().url();
         // https://html.spec.whatwg.org/multipage/infrastructure.html#reflect
         // XXXManishearth this doesn't handle `javascript:` urls properly
-        match UrlParser::new().base_url(&base).parse(url.as_slice()) {
+        match UrlParser::new().base_url(&base).parse(&url) {
             Ok(parsed) => parsed.serialize(),
             Err(_) => "".to_owned()
         }
@@ -851,7 +851,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
     fn set_string_attribute(self, name: &Atom, value: DOMString) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
+        assert!(name.as_slice() == name.to_ascii_lowercase());
         self.set_attribute(name, AttrValue::String(value));
     }
 
@@ -867,17 +867,17 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_tokenlist_attribute(self, name: &Atom, value: DOMString) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
+        assert!(name.as_slice() == name.to_ascii_lowercase());
         self.set_attribute(name, AttrValue::from_serialized_tokenlist(value));
     }
 
     fn set_atomic_tokenlist_attribute(self, name: &Atom, tokens: Vec<Atom>) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
+        assert!(name.as_slice() == name.to_ascii_lowercase());
         self.set_attribute(name, AttrValue::from_atomic_tokens(tokens));
     }
 
     fn get_uint_attribute(self, name: &Atom) -> u32 {
-        assert!(name.as_slice().chars().all(|ch| {
+        assert!(name.chars().all(|ch| {
             !ch.is_ascii() || ch.to_ascii_lowercase() == ch
         }));
         let attribute = self.get_attribute(ns!(""), name).root();
@@ -893,7 +893,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
     fn set_uint_attribute(self, name: &Atom, value: u32) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
+        assert!(name.as_slice() == name.to_ascii_lowercase());
         self.set_attribute(name, AttrValue::UInt(value.to_string(), value));
     }
 }
@@ -1382,7 +1382,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             let doc = document_from_node(*self).root();
             let value = attr.r().Value();
             if !value.is_empty() {
-                let value = Atom::from_slice(value.as_slice());
+                let value = Atom::from_slice(&value);
                 doc.r().register_named_element(*self, value);
             }
         }
@@ -1399,7 +1399,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             let doc = document_from_node(*self).root();
             let value = attr.r().Value();
             if !value.is_empty() {
-                let value = Atom::from_slice(value.as_slice());
+                let value = Atom::from_slice(&value);
                 doc.r().unregister_named_element(*self, value);
             }
         }

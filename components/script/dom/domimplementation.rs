@@ -53,7 +53,7 @@ impl DOMImplementation {
 impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
     fn CreateDocumentType(self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<Temporary<DocumentType>> {
-        match xml_name_type(qname.as_slice()) {
+        match xml_name_type(&qname) {
             // Step 1.
             InvalidXMLName => Err(InvalidCharacter),
             // Step 2.

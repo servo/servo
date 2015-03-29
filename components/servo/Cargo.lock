@@ -815,7 +815,7 @@ source = "git+https://github.com/servo/rust-stb-image#b683cc9e7ba52a1bb65361347d
 [[package]]
 name = "string_cache"
 version = "0.0.0"
-source = "git+https://github.com/servo/string-cache#8c05fdf456a0e4f884e85d7e3a7700b2e4ca91eb"
+source = "git+https://github.com/servo/string-cache#124cb555651bd7838c5c6dc4788bc4f5350947a9"
 dependencies = [
  "lazy_static 0.1.8 (git+https://github.com/Kimundi/lazy-static.rs)",
  "phf 0.6.12 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -827,7 +827,7 @@ dependencies = [
 [[package]]
 name = "string_cache_plugin"
 version = "0.0.0"
-source = "git+https://github.com/servo/string-cache#8c05fdf456a0e4f884e85d7e3a7700b2e4ca91eb"
+source = "git+https://github.com/servo/string-cache#124cb555651bd7838c5c6dc4788bc4f5350947a9"
 dependencies = [
  "lazy_static 0.1.8 (git+https://github.com/Kimundi/lazy-static.rs)",
  "mac 0.0.2 (git+https://github.com/reem/rust-mac)",
