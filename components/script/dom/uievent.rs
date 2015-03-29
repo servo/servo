@@ -18,6 +18,7 @@ use util::str::DOMString;
 use std::cell::Cell;
 use std::default::Default;
 
+// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#interface-UIEvent
 #[dom_struct]
 pub struct UIEvent {
     event: Event,
@@ -70,10 +71,12 @@ impl UIEvent {
 }
 
 impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
+    // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-UIEvent-view
     fn GetView(self) -> Option<Temporary<Window>> {
         self.view.get()
     }
 
+    // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-UIEvent-detail
     fn Detail(self) -> i32 {
         self.detail.get()
     }
