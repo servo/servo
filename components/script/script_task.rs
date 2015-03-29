@@ -28,7 +28,7 @@ use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, RootedReference}
 use dom::bindings::js::{RootCollection, RootCollectionPtr, Unrooted};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::bindings::trace::JSTraceable;
+use dom::bindings::trace::{JSTraceable, trace_collections};
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource};
 use dom::element::{Element, AttributeHandlers};
@@ -461,6 +461,10 @@ impl ScriptTask {
             !ptr.is_null()
         });
 
+
+        unsafe {
+            JS_SetExtraGCRootsTracer((*js_runtime).ptr, Some(trace_collections), ptr::null_mut());
+        }
         // Unconstrain the runtime's threshold on nominal heap size, to avoid
         // triggering GC too often if operating continuously near an arbitrary
         // finite threshold. This leaves the maximum-JS_malloc-bytes threshold
