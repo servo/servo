@@ -130,7 +130,7 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
     }
 }
 
-static APPLICABLE_DECLARATIONS_CACHE_SIZE: uint = 32;
+static APPLICABLE_DECLARATIONS_CACHE_SIZE: usize = 32;
 
 pub struct ApplicableDeclarationsCache {
     cache: SimpleHashCache<ApplicableDeclarationsCacheEntry,Arc<ComputedValues>>,
@@ -331,7 +331,7 @@ impl StyleSharingCandidate {
     }
 }
 
-static STYLE_SHARING_CANDIDATE_CACHE_SIZE: uint = 40;
+static STYLE_SHARING_CANDIDATE_CACHE_SIZE: usize = 40;
 
 impl StyleSharingCandidateCache {
     pub fn new() -> StyleSharingCandidateCache {
