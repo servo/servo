@@ -171,7 +171,7 @@ impl CORSRequest {
         };
         // Substep 4
         if methods.len() == 0 || preflight.mode == RequestMode::ForcedPreflight {
-            methods = methods_substep4.as_slice();
+            methods = &methods_substep4;
         }
         // Substep 5
         if !is_simple_method(&self.method) &&
@@ -183,7 +183,7 @@ impl CORSRequest {
             if is_simple_header(&h) {
                 continue;
             }
-            if !headers.iter().any(|ref h2| h.name().eq_ignore_ascii_case(h2.as_slice())) {
+            if !headers.iter().any(|ref h2| h.name().eq_ignore_ascii_case(h2)) {
                 return error;
             }
         }
@@ -254,7 +254,7 @@ pub enum HeaderOrMethod {
 impl HeaderOrMethod {
     fn match_header(&self, header_name: &str) -> bool {
         match *self {
-            HeaderOrMethod::HeaderData(ref s) => s.as_slice().eq_ignore_ascii_case(header_name),
+            HeaderOrMethod::HeaderData(ref s) => s.eq_ignore_ascii_case(header_name),
             _ => false
         }
     }

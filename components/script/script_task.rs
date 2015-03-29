@@ -1074,7 +1074,7 @@ impl ScriptTask {
             window: JS::from_rooted(window.r()),
         }));
 
-        let is_javascript = incomplete.url.scheme.as_slice() == "javascript";
+        let is_javascript = incomplete.url.scheme == "javascript";
         let parse_input = if is_javascript {
             let evalstr = incomplete.url.non_relative_scheme_data().unwrap();
             let jsval = window.r().evaluate_js_on_global_with_result(evalstr);
@@ -1305,7 +1305,7 @@ impl ScriptTask {
         let resource_task = self.resource_task.clone();
 
         spawn_named(format!("fetch for {:?}", load_data.url.serialize()), move || {
-            if load_data.url.scheme.as_slice() == "javascript" {
+            if load_data.url.scheme == "javascript" {
                 load_data.url = Url::parse("about:blank").unwrap();
             }
 

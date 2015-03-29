@@ -94,7 +94,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
 
     // http://dom.spec.whatwg.org/#dom-domtokenlist-contains
     fn Contains(self, token: DOMString) -> Fallible<bool> {
-        self.check_token_exceptions(token.as_slice()).map(|token| {
+        self.check_token_exceptions(&token).map(|token| {
             self.attribute().root().map(|attr| {
                 // FIXME(https://github.com/rust-lang/rust/issues/23338)
                 let attr = attr.r();
@@ -112,7 +112,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
         let element = self.element.root();
         let mut atoms = element.r().get_tokenlist_attribute(&self.local_name);
         for token in tokens.iter() {
-            let token = try!(self.check_token_exceptions(token.as_slice()));
+            let token = try!(self.check_token_exceptions(&token));
             if !atoms.iter().any(|atom| *atom == token) {
                 atoms.push(token);
             }
@@ -126,7 +126,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
         let element = self.element.root();
         let mut atoms = element.r().get_tokenlist_attribute(&self.local_name);
         for token in tokens.iter() {
-            let token = try!(self.check_token_exceptions(token.as_slice()));
+            let token = try!(self.check_token_exceptions(&token));
             atoms.iter().position(|atom| *atom == token).map(|index| {
                 atoms.remove(index)
             });
@@ -139,7 +139,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
     fn Toggle(self, token: DOMString, force: Option<bool>) -> Fallible<bool> {
         let element = self.element.root();
         let mut atoms = element.r().get_tokenlist_attribute(&self.local_name);
-        let token = try!(self.check_token_exceptions(token.as_slice()));
+        let token = try!(self.check_token_exceptions(&token));
         match atoms.iter().position(|atom| *atom == token) {
             Some(index) => match force {
                 Some(true) => Ok(true),

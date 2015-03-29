@@ -78,7 +78,7 @@ impl Str for AttrValue {
             AttrValue::String(ref value) |
                 AttrValue::TokenList(ref value, _) |
                 AttrValue::UInt(ref value, _) => &value,
-            AttrValue::Atom(ref value) => value.as_slice(),
+            AttrValue::Atom(ref value) => &value,
         }
     }
 }

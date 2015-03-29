@@ -146,7 +146,7 @@ pub trait HTMLElementCustomAttributeHelpers {
 
 fn to_snake_case(name: DOMString) -> DOMString {
     let mut attr_name = "data-".to_owned();
-    for ch in name.as_slice().chars() {
+    for ch in name.chars() {
         if ch.is_uppercase() {
             attr_name.push('\x2d');
             attr_name.push(ch.to_lowercase());
@@ -170,7 +170,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
 
     fn get_custom_attr(self, name: DOMString) -> Option<DOMString> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.get_attribute(ns!(""), &Atom::from_slice(to_snake_case(name).as_slice())).map(|attr| {
+        element.get_attribute(ns!(""), &Atom::from_slice(&to_snake_case(name))).map(|attr| {
             let attr = attr.root();
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
@@ -181,7 +181,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
 
     fn delete_custom_attr(self, name: DOMString) {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.remove_attribute(ns!(""), to_snake_case(name).as_slice())
+        element.remove_attribute(ns!(""), &to_snake_case(name))
     }
 }
 
@@ -196,7 +196,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
             s.after_set_attr(attr);
         }
 
-        let name = attr.local_name().as_slice();
+        let name = attr.local_name();
         if name.starts_with("on") {
             let window = window_from_node(*self).root();
             let (cx, url, reflector) = (window.r().get_cx(),

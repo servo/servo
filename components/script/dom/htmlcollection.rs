@@ -76,7 +76,7 @@ impl HTMLCollection {
 
     pub fn by_tag_name(window: JSRef<Window>, root: JSRef<Node>, tag: DOMString)
                        -> Temporary<HTMLCollection> {
-        if tag.as_slice() == "*" {
+        if tag == "*" {
             return HTMLCollection::all_elements(window, root, None);
         }
 
@@ -95,8 +95,8 @@ impl HTMLCollection {
             }
         }
         let filter = TagNameFilter {
-            tag: Atom::from_slice(tag.as_slice()),
-            ascii_lower_tag: Atom::from_slice(tag.as_slice().to_ascii_lowercase().as_slice()),
+            tag: Atom::from_slice(&tag),
+            ascii_lower_tag: Atom::from_slice(&tag.to_ascii_lowercase()),
         };
         HTMLCollection::create(window, root, box filter)
     }
@@ -104,11 +104,11 @@ impl HTMLCollection {
     pub fn by_tag_name_ns(window: JSRef<Window>, root: JSRef<Node>, tag: DOMString,
                           maybe_ns: Option<DOMString>) -> Temporary<HTMLCollection> {
         let namespace_filter = match maybe_ns {
-            Some(ref namespace) if namespace.as_slice() == "*" => None,
+            Some(ref namespace) if namespace == &"*" => None,
             ns => Some(namespace::from_domstring(ns)),
         };
 
-        if tag.as_slice() == "*" {
+        if tag == "*" {
             return HTMLCollection::all_elements(window, root, namespace_filter);
         }
         #[jstraceable]
@@ -128,7 +128,7 @@ impl HTMLCollection {
             }
         }
         let filter = TagNameNSFilter {
-            tag: Atom::from_slice(tag.as_slice()),
+            tag: Atom::from_slice(&tag),
             namespace_filter: namespace_filter
         };
         HTMLCollection::create(window, root, box filter)
@@ -146,7 +146,7 @@ impl HTMLCollection {
             }
         }
         let filter = ClassNameFilter {
-            classes: split_html_space_chars(classes.as_slice()).map(|class| {
+            classes: split_html_space_chars(&classes).map(|class| {
                          Atom::from_slice(class)
                      }).collect()
         };

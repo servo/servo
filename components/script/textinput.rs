@@ -140,13 +140,13 @@ impl TextInput {
             let lines_suffix = &self.lines[end.line + 1..];
 
             let mut insert_lines = if self.multiline {
-                insert.as_slice().split('\n').map(|s| s.to_owned()).collect()
+                insert.split('\n').map(|s| s.to_owned()).collect()
             } else {
                 vec!(insert)
             };
 
             let mut new_line = prefix.to_owned();
-            new_line.push_str(insert_lines[0].as_slice());
+            new_line.push_str(&insert_lines[0]);
             insert_lines[0] = new_line;
 
             let last_insert_lines_index = insert_lines.len() - 1;
@@ -157,7 +157,7 @@ impl TextInput {
 
             let mut new_lines = vec!();
             new_lines.push_all(lines_prefix);
-            new_lines.push_all(insert_lines.as_slice());
+            new_lines.push_all(&insert_lines);
             new_lines.push_all(lines_suffix);
             new_lines
         };
@@ -341,7 +341,7 @@ impl TextInput {
     pub fn get_content(&self) -> DOMString {
         let mut content = "".to_owned();
         for (i, line) in self.lines.iter().enumerate() {
-            content.push_str(line.as_slice());
+            content.push_str(&line);
             if i < self.lines.len() - 1 {
                 content.push('\n');
             }
@@ -353,7 +353,7 @@ impl TextInput {
     /// any \n encountered will be stripped and force a new logical line.
     pub fn set_content(&mut self, content: DOMString) {
         self.lines = if self.multiline {
-            content.as_slice().split('\n').map(|s| s.to_owned()).collect()
+            content.split('\n').map(|s| s.to_owned()).collect()
         } else {
             vec!(content)
         };
@@ -367,14 +367,14 @@ fn test_textinput_delete_char() {
     let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned());
     textinput.adjust_horizontal(2, Selection::NotSelected);
     textinput.delete_char(DeleteDir::Backward);
-    assert_eq!(textinput.get_content().as_slice(), "acdefg");
+    assert_eq!(textinput.get_content(), "acdefg");
 
     textinput.delete_char(DeleteDir::Forward);
-    assert_eq!(textinput.get_content().as_slice(), "adefg");
+    assert_eq!(textinput.get_content(), "adefg");
 
     textinput.adjust_horizontal(2, Selection::Selected);
     textinput.delete_char(DeleteDir::Forward);
-    assert_eq!(textinput.get_content().as_slice(), "afg");
+    assert_eq!(textinput.get_content(), "afg");
 }
 
 #[test]
@@ -382,11 +382,11 @@ fn test_textinput_insert_char() {
     let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned());
     textinput.adjust_horizontal(2, Selection::NotSelected);
     textinput.insert_char('a');
-    assert_eq!(textinput.get_content().as_slice(), "abacdefg");
+    assert_eq!(textinput.get_content(), "abacdefg");
 
     textinput.adjust_horizontal(2, Selection::Selected);
     textinput.insert_char('b');
-    assert_eq!(textinput.get_content().as_slice(), "ababefg");
+    assert_eq!(textinput.get_content(), "ababefg");
 }
 
 #[test]
@@ -413,7 +413,7 @@ fn test_textinput_replace_selection() {
     textinput.adjust_horizontal(2, Selection::Selected);
 
     textinput.replace_selection("xyz".to_owned());
-    assert_eq!(textinput.get_content().as_slice(), "abxyzefg");
+    assert_eq!(textinput.get_content(), "abxyzefg");
 }
 
 #[test]
@@ -470,12 +470,12 @@ fn test_textinput_handle_return() {
     let mut single_line_textinput = TextInput::new(Lines::Single, "abcdef".to_owned());
     single_line_textinput.adjust_horizontal(3, Selection::NotSelected);
     single_line_textinput.handle_return();
-    assert_eq!(single_line_textinput.get_content().as_slice(), "abcdef");
+    assert_eq!(single_line_textinput.get_content(), "abcdef");
 
     let mut multi_line_textinput = TextInput::new(Lines::Multiple, "abcdef".to_owned());
     multi_line_textinput.adjust_horizontal(3, Selection::NotSelected);
     multi_line_textinput.handle_return();
-    assert_eq!(multi_line_textinput.get_content().as_slice(), "abc\ndef");
+    assert_eq!(multi_line_textinput.get_content(), "abc\ndef");
 }
 
 #[test]
@@ -492,19 +492,19 @@ fn test_textinput_select_all() {
 #[test]
 fn test_textinput_get_content() {
     let single_line_textinput = TextInput::new(Lines::Single, "abcdefg".to_owned());
-    assert_eq!(single_line_textinput.get_content().as_slice(), "abcdefg");
+    assert_eq!(single_line_textinput.get_content(), "abcdefg");
 
     let multi_line_textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned());
-    assert_eq!(multi_line_textinput.get_content().as_slice(), "abc\nde\nf");
+    assert_eq!(multi_line_textinput.get_content(), "abc\nde\nf");
 }
 
 #[test]
 fn test_textinput_set_content() {
     let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned());
-    assert_eq!(textinput.get_content().as_slice(), "abc\nde\nf");
+    assert_eq!(textinput.get_content(), "abc\nde\nf");
 
     textinput.set_content("abc\nf".to_owned());
-    assert_eq!(textinput.get_content().as_slice(), "abc\nf");
+    assert_eq!(textinput.get_content(), "abc\nf");
 
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 0);
@@ -512,7 +512,7 @@ fn test_textinput_set_content() {
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 3);
     textinput.set_content("de".to_owned());
-    assert_eq!(textinput.get_content().as_slice(), "de");
+    assert_eq!(textinput.get_content(), "de");
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 2);
 }
