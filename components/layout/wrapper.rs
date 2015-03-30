@@ -582,6 +582,14 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 
     #[inline]
+    fn get_focus_state(self) -> bool {
+        unsafe {
+            let node: &Node = NodeCast::from_actual(self.element);
+            node.get_focus_state_for_layout()
+        }
+    }
+
+    #[inline]
     fn get_id(self) -> Option<Atom> {
         unsafe {
             self.element.get_attr_atom_for_layout(&ns!(""), &atom!("id"))

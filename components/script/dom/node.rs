@@ -152,6 +152,8 @@ bitflags! {
         #[doc = "Specifies whether or not there is an authentic click in progress on \
                  this element."]
         const CLICK_IN_PROGRESS = 0x100,
+        #[doc = "Specifies whether this node has the focus."]
+        const IN_FOCUS_STATE = 0x200,
     }
 }
 
@@ -440,6 +442,9 @@ pub trait NodeHelpers<'a> {
     fn get_hover_state(self) -> bool;
     fn set_hover_state(self, state: bool);
 
+    fn get_focus_state(self) -> bool;
+    fn set_focus_state(self, state: bool);
+
     fn get_disabled_state(self) -> bool;
     fn set_disabled_state(self, state: bool);
 
@@ -616,6 +621,14 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     fn set_hover_state(self, state: bool) {
         self.set_flag(IN_HOVER_STATE, state)
+    }
+
+    fn get_focus_state(self) -> bool {
+        self.get_flag(IN_FOCUS_STATE)
+    }
+
+    fn set_focus_state(self, state: bool) {
+        self.set_flag(IN_FOCUS_STATE, state)
     }
 
     fn get_disabled_state(self) -> bool {
@@ -1036,6 +1049,8 @@ pub trait RawLayoutNodeHelpers {
     #[allow(unsafe_code)]
     unsafe fn get_hover_state_for_layout(&self) -> bool;
     #[allow(unsafe_code)]
+    unsafe fn get_focus_state_for_layout(&self) -> bool;
+    #[allow(unsafe_code)]
     unsafe fn get_disabled_state_for_layout(&self) -> bool;
     #[allow(unsafe_code)]
     unsafe fn get_enabled_state_for_layout(&self) -> bool;
@@ -1047,6 +1062,11 @@ impl RawLayoutNodeHelpers for Node {
     #[allow(unsafe_code)]
     unsafe fn get_hover_state_for_layout(&self) -> bool {
         self.flags.get().contains(IN_HOVER_STATE)
+    }
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn get_focus_state_for_layout(&self) -> bool {
+        self.flags.get().contains(IN_FOCUS_STATE)
     }
     #[inline]
     #[allow(unsafe_code)]
