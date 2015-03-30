@@ -150,6 +150,7 @@ interface CanvasPathMethods {
 
   //void rect(double x, double y, double w, double h);
 
+  [Throws]
   void arc(double x, double y, double radius, double startAngle, double endAngle, optional boolean anticlockwise = false);
 // NOT IMPLEMENTED  [LenientFloat] void ellipse(double x, double y, double radiusX, double radiusY, double rotation, double startAngle, double endAngle, boolean anticlockwise);
 };
