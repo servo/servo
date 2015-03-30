@@ -20,8 +20,9 @@ use layout_debug;
 use opaque_node::OpaqueNodeMethods;
 use parallel::{self, UnsafeFlow};
 use sequential;
-use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutNode, TLayoutNode};
 
+use azure::azure::AzColor;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use geom::matrix2d::Matrix2D;
@@ -47,9 +48,7 @@ use profile::mem::{self, Report, ReportsChan};
 use profile::time::{self, ProfilerMetadata, profile};
 use profile::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script::dom::bindings::js::LayoutJS;
-use script::dom::element::ElementTypeId;
-use script::dom::htmlelement::HTMLElementTypeId;
-use script::dom::node::{LayoutData, Node, NodeTypeId};
+use script::dom::node::{LayoutData, Node};
 use script::layout_interface::ReflowQueryType;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse};
 use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC};
@@ -697,7 +696,6 @@ impl LayoutTask {
 
     fn build_display_list_for_reflow<'a>(&'a self,
                                          data: &Reflow,
-                                         node: &mut LayoutNode,
                                          layout_root: &mut FlowRef,
                                          shared_layout_context: &mut SharedLayoutContext,
                                          rw_data: &mut RWGuard<'a>) {
@@ -732,40 +730,7 @@ impl LayoutTask {
 
             debug!("Done building display list.");
 
-            // FIXME(pcwalton): This is really ugly and can't handle overflow: scroll. Refactor
-            // it with extreme prejudice.
-
-            // The default computed value for background-color is transparent (see
-            // http://dev.w3.org/csswg/css-backgrounds/#background-color). However, we
-            // need to propagate the background color from the root HTML/Body
-            // element (http://dev.w3.org/csswg/css-backgrounds/#special-backgrounds) if
-            // it is non-transparent. The phrase in the spec "If the canvas background
-            // is not opaque, what shows through is UA-dependent." is handled by rust-layers
-            // clearing the frame buffer to white. This ensures that setting a background
-            // color on an iframe element, while the iframe content itself has a default
-            // transparent background color is handled correctly.
-            let mut color = color::transparent_black();
-            for child in node.traverse_preorder() {
-                if child.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHtmlElement))) ||
-                        child.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement))) {
-                    let element_bg_color = {
-                        let thread_safe_child = ThreadSafeLayoutNode::new(&child);
-                        thread_safe_child.style()
-                                         .resolve_color(thread_safe_child.style()
-                                                                         .get_background()
-                                                                         .background_color)
-                                         .to_gfx_color()
-                    };
-
-                    let black = color::transparent_black();
-                    if element_bg_color != black {
-
-                        color = element_bg_color;
-                        break;
-                    }
-                }
-            }
-
+            let root_background_color = get_root_flow_background_color(&mut **layout_root);
             let root_size = {
                 let root_flow = flow::base(&**layout_root);
                 root_flow.position.size.to_physical(root_flow.writing_mode)
@@ -774,7 +739,7 @@ impl LayoutTask {
             flow::mut_base(&mut **layout_root).display_list_building_result
                                               .add_to(&mut *display_list);
             let paint_layer = Arc::new(PaintLayer::new(layout_root.layer_id(0),
-                                                       color,
+                                                       root_background_color,
                                                        ScrollPolicy::Scrollable));
             let origin = Rect(Point2D(Au(0), Au(0)), root_size);
 
@@ -942,7 +907,6 @@ impl LayoutTask {
         match data.goal {
             ReflowGoal::ForDisplay => {
                 self.build_display_list_for_reflow(data,
-                                                   node,
                                                    &mut layout_root,
                                                    &mut shared_layout_context,
                                                    &mut rw_data);
@@ -1172,3 +1136,34 @@ impl FragmentBorderBoxIterator for CollectingFragmentBorderBoxIterator {
         self.node_address == fragment.node
     }
 }
+
+// The default computed value for background-color is transparent (see
+// http://dev.w3.org/csswg/css-backgrounds/#background-color). However, we
+// need to propagate the background color from the root HTML/Body
+// element (http://dev.w3.org/csswg/css-backgrounds/#special-backgrounds) if
+// it is non-transparent. The phrase in the spec "If the canvas background
+// is not opaque, what shows through is UA-dependent." is handled by rust-layers
+// clearing the frame buffer to white. This ensures that setting a background
+// color on an iframe element, while the iframe content itself has a default
+// transparent background color is handled correctly.
+fn get_root_flow_background_color(flow: &mut Flow) -> AzColor {
+    if !flow.is_block_like() {
+        return color::transparent_black()
+    }
+
+    let block_flow = flow.as_block();
+    let kid = match block_flow.base.children.iter_mut().next() {
+        None => return color::transparent_black(),
+        Some(kid) => kid,
+    };
+    if !kid.is_block_like() {
+        return color::transparent_black()
+    }
+
+    let kid_block_flow = kid.as_block();
+    kid_block_flow.fragment
+                  .style
+                  .resolve_color(kid_block_flow.fragment.style.get_background().background_color)
+                  .to_gfx_color()
+}
+
