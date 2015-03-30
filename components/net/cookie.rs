@@ -71,7 +71,7 @@ impl Cookie {
         if path.is_empty() || path.char_at(0) != '/' {
             let url_path = request.serialize_path();
             let url_path = url_path.as_ref().map(|path| &**path);
-            path = Cookie::default_path(url_path.unwrap_or(""));
+            path = Cookie::default_path(url_path.unwrap_or("")).to_owned();
         }
         cookie.path = Some(path);
 
@@ -96,15 +96,21 @@ impl Cookie {
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.1.4
-    fn default_path(request_path: &str) -> String {
-        if request_path == "" || request_path.char_at(0) != '/' ||
-           request_path.chars().filter(|&c| c == '/').count() == 1 {
-            "/".to_owned()
-        } else if request_path.ends_with("/") {
-            request_path[..request_path.len() - 1].to_owned()
-        } else {
-            request_path.to_owned()
+    fn default_path(request_path: &str) -> &str {
+        // Step 2
+        if request_path.is_empty() || !request_path.starts_with("/") {
+            return "/";
         }
+
+        // Step 3
+        let rightmost_slash_idx = request_path.rfind("/").unwrap();
+        if rightmost_slash_idx == 0 {
+            // There's only one slash; it's the first character
+            return "/";
+        }
+
+        // Step 4
+        &request_path[..rightmost_slash_idx]
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.1.4
@@ -180,6 +186,7 @@ fn test_domain_match() {
 #[test]
 fn test_default_path() {
     assert!(&*Cookie::default_path("/foo/bar/baz/") == "/foo/bar/baz");
+    assert!(&*Cookie::default_path("/foo/bar/baz") == "/foo/bar");
     assert!(&*Cookie::default_path("/foo/") == "/foo");
     assert!(&*Cookie::default_path("/foo") == "/");
     assert!(&*Cookie::default_path("/") == "/");
