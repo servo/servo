@@ -10,21 +10,21 @@ use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDerived};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLInputElementCast};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLInputElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
 use dom::bindings::js::{JSRef, Temporary, MutNullableJS};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::error::Error::Syntax;
 use dom::bindings::utils::Reflectable;
 use dom::cssstyledeclaration::{CSSStyleDeclaration, CSSModificationAccess};
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::domstringmap::DOMStringMap;
 use dom::element::{Element, ElementTypeId, ActivationElementHelpers, AttributeHandlers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmlmediaelement::HTMLMediaElementTypeId;
 use dom::htmltablecellelement::HTMLTableCellElementTypeId;
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
@@ -134,6 +134,32 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27430 ?
         element.as_maybe_activatable().map(|a| a.synthetic_click_activation(false, false, false, false));
+    }
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#dom-focus
+    fn Focus(self) {
+        // TODO: Mark the element as locked for focus and run the focusing steps.
+        // https://html.spec.whatwg.org/multipage/interaction.html#focusing-steps
+        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let document = document_from_node(self).root();
+        let document = document.r();
+        document.begin_focus_transaction();
+        document.request_focus(element);
+        document.commit_focus_transaction();
+    }
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#dom-blur
+    fn Blur(self) {
+        // TODO: Run the unfocusing steps.
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        if !node.get_focus_state() {
+            return;
+        }
+        // https://html.spec.whatwg.org/multipage/interaction.html#unfocusing-steps
+        let document = document_from_node(self).root();
+        document.r().begin_focus_transaction();
+        // If `request_focus` is not called, focus will be set to None.
+        document.r().commit_focus_transaction();
     }
 }
 
