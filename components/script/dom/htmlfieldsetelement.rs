@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDerived};
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeHandlers, Element, ElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -93,20 +93,27 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
-                let maybe_legend = node.children().find(|node| node.is_htmllegendelement());
-                let filtered: Vec<JSRef<Node>> = node.children().filter(|child| {
-                    maybe_legend.map_or(true, |legend| legend != *child)
-                }).collect();
-                for descendant in filtered.iter().flat_map(|child| child.traverse_preorder()) {
-                    match descendant.type_id() {
-                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
-                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
-                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
-                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-                            descendant.set_disabled_state(true);
-                            descendant.set_enabled_state(false);
-                        },
-                        _ => ()
+                let maybe_legend = node.children()
+                                       .map(|node| node.root())
+                                       .find(|node| node.r().is_htmllegendelement());
+
+                for child in node.children() {
+                    let child = child.root();
+                    if Some(child.r()) == maybe_legend.r() {
+                        continue;
+                    }
+
+                    for descendant in child.r().traverse_preorder() {
+                        match descendant.type_id() {
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
+                                descendant.set_disabled_state(true);
+                                descendant.set_enabled_state(false);
+                            },
+                            _ => ()
+                        }
                     }
                 }
             },
@@ -124,20 +131,27 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
-                let maybe_legend = node.children().find(|node| node.is_htmllegendelement());
-                let filtered: Vec<JSRef<Node>> = node.children().filter(|child| {
-                    maybe_legend.map_or(true, |legend| legend != *child)
-                }).collect();
-                for descendant in filtered.iter().flat_map(|child| child.traverse_preorder()) {
-                    match descendant.type_id() {
-                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
-                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
-                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
-                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-                            descendant.check_disabled_attribute();
-                            descendant.check_ancestors_disabled_state_for_form_control();
-                        },
-                        _ => ()
+                let maybe_legend = node.children()
+                                       .map(|node| node.root())
+                                       .find(|node| node.r().is_htmllegendelement());
+
+                for child in node.children() {
+                    let child = child.root();
+                    if Some(child.r()) == maybe_legend.r() {
+                        continue;
+                    }
+
+                    for descendant in child.r().traverse_preorder() {
+                        match descendant.type_id() {
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
+                                descendant.check_disabled_attribute();
+                                descendant.check_ancestors_disabled_state_for_form_control();
+                            },
+                            _ => ()
+                        }
                     }
                 }
             },

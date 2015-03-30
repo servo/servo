@@ -69,9 +69,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptGroupElement> {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
-                for child in node.children().filter(|child| child.is_htmloptionelement()) {
-                    child.set_disabled_state(true);
-                    child.set_enabled_state(false);
+                for child in node.children() {
+                    let child = child.root();
+                    if child.r().is_htmloptionelement() {
+                        child.r().set_disabled_state(true);
+                        child.r().set_enabled_state(false);
+                    }
                 }
             },
             _ => (),
@@ -88,8 +91,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptGroupElement> {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
-                for child in node.children().filter(|child| child.is_htmloptionelement()) {
-                    child.check_disabled_attribute();
+                for child in node.children() {
+                    let child = child.root();
+                    if child.r().is_htmloptionelement() {
+                        child.r().check_disabled_attribute();
+                    }
                 }
             },
             _ => ()
