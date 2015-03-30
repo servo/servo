@@ -1118,21 +1118,21 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // TODO: Support root SVG namespace: https://github.com/servo/servo/issues/5315
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     fn Title(self) -> DOMString {
-        let mut title = String::new();
-        self.GetDocumentElement().root().map(|root| {
-            let root: JSRef<Node> = NodeCast::from_ref(root.r());
-            root.traverse_preorder()
+        let title_element = self.GetDocumentElement().root().and_then(|root| {
+            NodeCast::from_ref(root.get_unsound_ref_forever())
+                .traverse_preorder()
                 .find(|node| node.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)))
-                .map(|title_elem| {
-                    let children = title_elem.children().filter_map(|n| {
-                        let t: Option<JSRef<Text>> = TextCast::to_ref(n);
-                        t
-                    });
-                    for text in children {
-                        title.push_str(&text.characterdata().data());
-                    }
-                });
         });
+
+        let mut title = String::new();
+        if let Some(title_element) = title_element {
+            for child in title_element.children() {
+                if let Some(text) = TextCast::to_ref(child) {
+                    title.push_str(&text.characterdata().data());
+                }
+            }
+        }
+
         let v: Vec<&str> = split_html_space_chars(&title).collect();
         v.connect(" ")
     }
