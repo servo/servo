@@ -104,6 +104,7 @@ dependencies = [
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net 0.0.1",
+ "net_traits 0.0.1",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "profile 0.0.1",
  "script_traits 0.0.1",
@@ -327,7 +328,7 @@ dependencies = [
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
- "net 0.0.1",
+ "net_traits 0.0.1",
  "plugins 0.0.1",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "profile 0.0.1",
@@ -533,7 +534,7 @@ dependencies = [
  "layout_traits 0.0.1",
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
- "net 0.0.1",
+ "net_traits 0.0.1",
  "plugins 0.0.1",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "profile 0.0.1",
@@ -554,7 +555,7 @@ version = "0.0.1"
 dependencies = [
  "gfx 0.0.1",
  "msg 0.0.1",
- "net 0.0.1",
+ "net_traits 0.0.1",
  "profile 0.0.1",
  "script_traits 0.0.1",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -645,14 +646,27 @@ dependencies = [
  "flate2 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "hyper 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "net_traits 0.0.1",
  "openssl 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "profile 0.0.1",
  "regex 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex_macros 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "time 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "net_traits"
+version = "0.0.1"
+dependencies = [
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "hyper 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "png 0.1.0 (git+https://github.com/servo/rust-png)",
+ "profile 0.0.1",
+ "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
@@ -791,7 +805,7 @@ dependencies = [
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
- "net 0.0.1",
+ "net_traits 0.0.1",
  "plugins 0.0.1",
  "profile 0.0.1",
  "rustc-serialize 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -814,7 +828,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
- "net 0.0.1",
+ "net_traits 0.0.1",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
@@ -822,7 +836,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-selectors#12d3ce84a12ded4cf1def63651ccab06e1cfa80e"
+source = "git+https://github.com/servo/rust-selectors#0d7d846090c21d71ebb1bc17921806933a38f52b"
 dependencies = [
  "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.2.0 (git+https://github.com/servo/rust-cssparser)",
@@ -843,6 +857,7 @@ dependencies = [
  "layout 0.0.1",
  "msg 0.0.1",
  "net 0.0.1",
+ "net_traits 0.0.1",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "profile 0.0.1",
  "script 0.0.1",

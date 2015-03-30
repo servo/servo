@@ -454,7 +454,20 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     /// transaction, or none if no elements requested it.
     fn commit_focus_transaction(self) {
         //TODO: dispatch blur, focus, focusout, and focusin events
+
+        if let Some(ref elem) = self.focused.get().root() {
+            let node: JSRef<Node> = NodeCast::from_ref(elem.r());
+            node.set_focus_state(false);
+        }
+
         self.focused.assign(self.possibly_focused.get());
+
+        if let Some(ref elem) = self.focused.get().root() {
+            let node: JSRef<Node> = NodeCast::from_ref(elem.r());
+            node.set_focus_state(true);
+        }
+        // TODO: Update the focus state for all elements in the focus chain.
+        // https://html.spec.whatwg.org/multipage/interaction.html#focus-chain
     }
 
     /// Handles any updates when the document's title has changed.
