@@ -48,7 +48,8 @@ impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let mut content = String::new();
         for child in node.children() {
-            let text: Option<JSRef<Text>> = TextCast::to_ref(child);
+            let child = child.root();
+            let text: Option<JSRef<Text>> = TextCast::to_ref(child.r());
             match text {
                 Some(text) => content.push_str(text.characterdata().data().as_slice()),
                 None => (),

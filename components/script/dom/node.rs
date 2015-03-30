@@ -27,6 +27,7 @@ use dom::bindings::js::{JS, JSRef, LayoutJS, RootedReference, Temporary, Root, U
 use dom::bindings::js::{TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable, MutNullableJS};
 use dom::bindings::trace::JSTraceable;
+use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
@@ -407,10 +408,10 @@ impl<'a> Iterator for QuerySelectorIterator<'a> {
 pub trait NodeHelpers<'a> {
     fn ancestors(self) -> AncestorIterator<'a>;
     fn inclusive_ancestors(self) -> AncestorIterator<'a>;
-    fn children(self) -> NodeChildrenIterator<'a>;
+    fn children(self) -> NodeChildrenIterator;
     fn rev_children(self) -> ReverseChildrenIterator;
     fn child_elements(self) -> ChildElementIterator<'a>;
-    fn following_siblings(self) -> NodeChildrenIterator<'a>;
+    fn following_siblings(self) -> NodeChildrenIterator;
     fn is_in_doc(self) -> bool;
     fn is_inclusive_ancestor_of(self, parent: JSRef<Node>) -> bool;
     fn is_parent_of(self, child: JSRef<Node>) -> bool;
@@ -478,7 +479,7 @@ pub trait NodeHelpers<'a> {
     fn debug_str(self) -> String;
 
     fn traverse_preorder(self) -> TreeIterator<'a>;
-    fn inclusively_following_siblings(self) -> NodeChildrenIterator<'a>;
+    fn inclusively_following_siblings(self) -> NodeChildrenIterator;
 
     fn to_trusted_node_address(self) -> TrustedNodeAddress;
 
@@ -502,7 +503,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     fn teardown(self) {
         self.layout_data.dispose();
         for kid in self.children() {
-            kid.teardown();
+            let kid = kid.root();
+            kid.r().teardown();
         }
     }
 
@@ -523,7 +525,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
         // FIXME: this should have a pure version?
         for kid in self.children() {
-            kid.dump_indent(indent + 1u)
+            let kid = kid.root();
+            kid.r().dump_indent(indent + 1u)
         }
     }
 
@@ -690,7 +693,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             node.set_flag(IS_DIRTY | HAS_DIRTY_SIBLINGS | HAS_DIRTY_DESCENDANTS, true);
 
             for kid in node.children() {
-                dirty_subtree(kid);
+                let kid = kid.root();
+                dirty_subtree(kid.r());
             }
         }
 
@@ -708,7 +712,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
                 };
 
             for sibling in parent.root().r().children() {
-                sibling.set_has_dirty_siblings(true);
+                let sibling = sibling.root();
+                sibling.r().set_has_dirty_siblings(true);
             }
         }
 
@@ -724,9 +729,9 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         TreeIterator::new(self)
     }
 
-    fn inclusively_following_siblings(self) -> NodeChildrenIterator<'a> {
+    fn inclusively_following_siblings(self) -> NodeChildrenIterator {
         NodeChildrenIterator {
-            current: Some(self.clone()),
+            current: Some(Temporary::from_rooted(self)),
         }
     }
 
@@ -734,9 +739,9 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         self == parent || parent.ancestors().any(|ancestor| ancestor == self)
     }
 
-    fn following_siblings(self) -> NodeChildrenIterator<'a> {
+    fn following_siblings(self) -> NodeChildrenIterator {
         NodeChildrenIterator {
-            current: self.next_sibling().root().map(|next| next.get_unsound_ref_forever()),
+            current: self.next_sibling(),
         }
     }
 
@@ -833,9 +838,9 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         self.owner_doc().root().r().is_html_document()
     }
 
-    fn children(self) -> NodeChildrenIterator<'a> {
+    fn children(self) -> NodeChildrenIterator {
         NodeChildrenIterator {
-            current: self.first_child.get().map(|node| node.root().get_unsound_ref_forever()),
+            current: self.first_child.get(),
         }
     }
 
@@ -846,12 +851,13 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn child_elements(self) -> ChildElementIterator<'a> {
-        fn cast(n: JSRef<Node>) -> Option<JSRef<Element>> {
-            ElementCast::to_ref(n)
+        fn cast<'a>(n: Temporary<Node>) -> Option<JSRef<'a, Element>> {
+            let n = n.root();
+            ElementCast::to_ref(n.get_unsound_ref_forever())
         }
 
         self.children()
-            .filter_map(cast as fn(JSRef<Node>) -> Option<JSRef<Element>>)
+            .filter_map(cast as fn(_) -> _)
             .peekable()
     }
 
@@ -1064,20 +1070,23 @@ impl RawLayoutNodeHelpers for Node {
 //
 
 pub type ChildElementIterator<'a> =
-    Peekable<FilterMap<NodeChildrenIterator<'a>,
-                       fn(JSRef<Node>) -> Option<JSRef<Element>>>>;
+    Peekable<FilterMap<NodeChildrenIterator,
+                       fn(Temporary<Node>) -> Option<JSRef<'a, Element>>>>;
 
-pub struct NodeChildrenIterator<'a> {
-    current: Option<JSRef<'a, Node>>,
+pub struct NodeChildrenIterator {
+    current: Option<Temporary<Node>>,
 }
 
-impl<'a> Iterator for NodeChildrenIterator<'a> {
-    type Item = JSRef<'a, Node>;
+impl Iterator for NodeChildrenIterator {
+    type Item = Temporary<Node>;
 
-    fn next(&mut self) -> Option<JSRef<'a, Node>> {
-        let node = self.current;
-        self.current = node.and_then(|node| node.next_sibling().map(|node| node.root().get_unsound_ref_forever()));
-        node
+    fn next(&mut self) -> Option<Temporary<Node>> {
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        }.root();
+        self.current = current.r().next_sibling();
+        Some(Temporary::from_rooted(current.r()))
     }
 }
 
@@ -1271,7 +1280,10 @@ impl Node {
                     // Step 6.1
                     NodeTypeId::DocumentFragment => {
                         // Step 6.1.1(b)
-                        if node.children().any(|c| c.is_text()) {
+                        if node.children()
+                               .map(|c| c.root())
+                               .any(|c| c.r().is_text())
+                        {
                             return Err(HierarchyRequest);
                         }
                         match node.child_elements().count() {
@@ -1283,7 +1295,8 @@ impl Node {
                                 }
                                 if let Some(child) = child {
                                     if child.inclusively_following_siblings()
-                                        .any(|child| child.is_doctype()) {
+                                        .map(|c| c.root())
+                                        .any(|child| child.r().is_doctype()) {
                                             return Err(HierarchyRequest);
                                     }
                                 }
@@ -1299,21 +1312,27 @@ impl Node {
                         }
                         if let Some(ref child) = child {
                             if child.inclusively_following_siblings()
-                                .any(|child| child.is_doctype()) {
+                                .map(|c| c.root())
+                                .any(|child| child.r().is_doctype()) {
                                     return Err(HierarchyRequest);
                             }
                         }
                     },
                     // Step 6.3
                     NodeTypeId::DocumentType => {
-                        if parent.children().any(|c| c.is_doctype()) {
+                        if parent.children()
+                                 .map(|c| c.root())
+                                 .any(|c| c.r().is_doctype())
+                        {
                             return Err(HierarchyRequest);
                         }
                         match child {
-                            Some(ref child) => {
+                            Some(child) => {
                                 if parent.children()
-                                    .take_while(|c| c != child)
-                                    .any(|c| c.is_element()) {
+                                         .map(|c| c.root())
+                                         .take_while(|c| c.r() != child)
+                                         .any(|c| c.r().is_element())
+                                {
                                     return Err(HierarchyRequest);
                                 }
                             },
@@ -1386,18 +1405,21 @@ impl Node {
                 // Step 6: DocumentFragment.
                 let mut kids = Vec::new();
                 for kid in node.children() {
-                    kids.push(kid.clone());
-                    Node::remove(kid, node, SuppressObserver::Suppressed);
+                    let kid = kid.root();
+                    kids.push(Temporary::from_rooted(kid.r()));
+                    Node::remove(kid.r(), node, SuppressObserver::Suppressed);
                 }
 
                 // Step 7: mutation records.
                 // Step 8.
-                for kid in kids.iter() {
-                    do_insert((*kid).clone(), parent, child);
+                for kid in kids.clone().into_iter() {
+                    let kid = kid.root();
+                    do_insert(kid.r(), parent, child);
                 }
 
                 for kid in kids.into_iter() {
-                    fire_observer_if_necessary(kid, suppress_observers);
+                    let kid = kid.root();
+                    fire_observer_if_necessary(kid.r(), suppress_observers);
                 }
             }
             _ => {
@@ -1425,20 +1447,24 @@ impl Node {
         }
 
         // Step 2.
-        let removed_nodes: Vec<JSRef<Node>> = parent.children().collect();
+        let mut removed_nodes: RootedVec<JS<Node>> = RootedVec::new();
+        for child in parent.children() {
+            removed_nodes.push(JS::from_rooted(child));
+        }
 
         // Step 3.
         let added_nodes = match node {
             None => vec!(),
             Some(node) => match node.type_id() {
                 NodeTypeId::DocumentFragment => node.children().collect(),
-                _ => vec!(node.clone()),
+                _ => vec!(Temporary::from_rooted(node)),
             },
         };
 
         // Step 4.
         for child in parent.children() {
-            Node::remove(child, parent, SuppressObserver::Suppressed);
+            let child = child.root();
+            Node::remove(child.r(), parent, SuppressObserver::Suppressed);
         }
 
         // Step 5.
@@ -1452,10 +1478,12 @@ impl Node {
         // Step 7.
         let parent_in_doc = parent.is_in_doc();
         for removed_node in removed_nodes.iter() {
-            removed_node.node_removed(parent_in_doc);
+            let removed_node = removed_node.root();
+            removed_node.r().node_removed(parent_in_doc);
         }
-        for added_node in added_nodes.iter() {
-            added_node.node_inserted();
+        for added_node in added_nodes {
+            let added_node = added_node.root();
+            added_node.r().node_inserted();
         }
     }
 
@@ -1596,7 +1624,9 @@ impl Node {
         // Step 6.
         if clone_children == CloneChildrenFlag::CloneChildren {
             for child in node.children() {
-                let child_copy = Node::clone(child, Some(document), clone_children).root();
+                let child = child.root();
+                let child_copy = Node::clone(child.r(), Some(document),
+                                             clone_children).root();
                 let _inserted_node = Node::pre_insert(child_copy.r(), copy.r(), None);
             }
         }
@@ -1855,7 +1885,10 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                     // Step 6.1
                     NodeTypeId::DocumentFragment => {
                         // Step 6.1.1(b)
-                        if node.children().any(|c| c.is_text()) {
+                        if node.children()
+                               .map(|c| c.root())
+                               .any(|c| c.r().is_text())
+                        {
                             return Err(HierarchyRequest);
                         }
                         match node.child_elements().count() {
@@ -1866,7 +1899,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                                     return Err(HierarchyRequest);
                                 }
                                 if child.following_siblings()
-                                        .any(|child| child.is_doctype()) {
+                                        .map(|c| c.root())
+                                        .any(|child| child.r().is_doctype()) {
                                     return Err(HierarchyRequest);
                                 }
                             },
@@ -1876,22 +1910,31 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                     },
                     // Step 6.2
                     NodeTypeId::Element(..) => {
-                        if self.child_elements().any(|c| NodeCast::from_ref(c) != child) {
+                        if self.child_elements()
+                               .any(|c| NodeCast::from_ref(c) != child)
+                        {
                             return Err(HierarchyRequest);
                         }
                         if child.following_siblings()
-                                .any(|child| child.is_doctype()) {
+                                .map(|c| c.root())
+                                .any(|child| child.r().is_doctype())
+                        {
                             return Err(HierarchyRequest);
                         }
                     },
                     // Step 6.3
                     NodeTypeId::DocumentType => {
-                        if self.children().any(|c| c.is_doctype() && c != child) {
+                        if self.children()
+                               .map(|c| c.root())
+                               .any(|c| c.r().is_doctype() && c.r() != child)
+                        {
                             return Err(HierarchyRequest);
                         }
                         if self.children()
-                            .take_while(|c| *c != child)
-                            .any(|c| c.is_element()) {
+                               .map(|c| c.root())
+                               .take_while(|c| c.r() != child)
+                               .any(|c| c.r().is_element())
+                        {
                             return Err(HierarchyRequest);
                         }
                     },
@@ -1921,7 +1964,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         Node::adopt(node, document.r());
 
         // Step 12.
-        let mut nodes: Vec<JSRef<Node>> = vec!();
+        let mut nodes: RootedVec<JS<Node>> = RootedVec::new();
         if node.type_id() == NodeTypeId::DocumentFragment {
             // Collect fragment children before Step 11,
             // because Node::insert removes a DocumentFragment's children,
@@ -1929,10 +1972,11 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             // Issue filed against the spec:
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=28330
             for child_node in node.children() {
-                nodes.push(child_node);
+                let child_node = child_node.root();
+                nodes.push(JS::from_rooted(child_node.r()));
             }
         } else {
-            nodes.push(node);
+            nodes.push(JS::from_rooted(node));
         }
 
         {
@@ -1945,8 +1989,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
         // Step 13: mutation records.
         child.node_removed(self.is_in_doc());
-        for child_node in nodes {
-            child_node.node_inserted();
+        for child_node in &*nodes {
+            let child_node = child_node.root();
+            child_node.r().node_inserted();
         }
 
         // Step 14.
@@ -1961,27 +2006,28 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // http://dom.spec.whatwg.org/#dom-node-normalize
     fn Normalize(self) {
-        let mut prev_text = None;
+        let mut prev_text: Option<Temporary<Text>> = None;
         for child in self.children() {
-            let t: Option<JSRef<Text>> = TextCast::to_ref(child);
-            match t {
+            let child = child.root();
+            match TextCast::to_ref(child.r()) {
                 Some(text) => {
                     let characterdata: JSRef<CharacterData> = CharacterDataCast::from_ref(text);
                     if characterdata.Length() == 0 {
-                        self.remove_child(child);
+                        self.remove_child(child.r());
                     } else {
                         match prev_text {
-                            Some(text_node) => {
-                                let prev_characterdata: JSRef<CharacterData> = CharacterDataCast::from_ref(text_node);
+                            Some(ref text_node) => {
+                                let text_node = text_node.clone().root();
+                                let prev_characterdata: JSRef<CharacterData> = CharacterDataCast::from_ref(text_node.r());
                                 let _ = prev_characterdata.AppendData(characterdata.Data());
-                                self.remove_child(child);
+                                self.remove_child(child.r());
                             },
-                            None => prev_text = Some(text)
+                            None => prev_text = Some(Temporary::from_rooted(text))
                         }
                     }
                 },
                 None => {
-                    child.Normalize();
+                    child.r().Normalize();
                     prev_text = None;
                 }
             }
@@ -2066,8 +2112,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             }
 
             // Step 6.
-            this.children().zip(node.children()).all(|(ref child, ref other_child)| {
-                is_equal_node(*child, *other_child)
+            this.children().zip(node.children()).all(|(child, other_child)| {
+                is_equal_node(child.root().r(), other_child.root().r())
             })
         }
         match maybe_node {
@@ -2335,10 +2381,13 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
                 self.set_enabled_state(false);
                 return;
             }
-            match ancestor.children().find(|child| child.is_htmllegendelement()) {
+            match ancestor.children()
+                          .map(|child| child.root())
+                          .find(|child| child.r().is_htmllegendelement())
+            {
                 Some(legend) => {
                     // XXXabinader: should we save previous ancestor to avoid this iteration?
-                    if self.ancestors().any(|ancestor| ancestor == legend) { continue; }
+                    if self.ancestors().any(|ancestor| ancestor == legend.r()) { continue; }
                 },
                 None => ()
             }
