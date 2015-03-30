@@ -4,9 +4,7 @@
 
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::{self, CSSStyleDeclarationMethods};
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
-use dom::bindings::error::Error;
-use dom::bindings::error::ErrorResult;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, OptionalRootedRootable, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -50,20 +48,14 @@ macro_rules! css_properties(
 );
 
 fn serialize_list(list: &Vec<PropertyDeclaration>) -> DOMString {
-    let mut result = String::new();
-    for declaration in list.iter() {
-        result.push_str(&serialize_value(declaration));
-        result.push_str(" ");
-    }
-    result
-}
-
-fn serialize_value(declaration: &PropertyDeclaration) -> DOMString {
-    declaration.value()
+    list.iter().fold(String::new(), |accum, ref declaration| {
+        accum + &declaration.value() + " "
+    })
 }
 
 impl CSSStyleDeclaration {
-    pub fn new_inherited(owner: JSRef<HTMLElement>, modification_access: CSSModificationAccess) -> CSSStyleDeclaration {
+    pub fn new_inherited(owner: JSRef<HTMLElement>,
+                         modification_access: CSSModificationAccess) -> CSSStyleDeclaration {
         CSSStyleDeclaration {
             reflector_: Reflector::new(),
             owner: JS::from_rooted(owner),
@@ -71,7 +63,8 @@ impl CSSStyleDeclaration {
         }
     }
 
-    pub fn new(global: JSRef<Window>, owner: JSRef<HTMLElement>, modification_access: CSSModificationAccess) -> Temporary<CSSStyleDeclaration> {
+    pub fn new(global: JSRef<Window>, owner: JSRef<HTMLElement>,
+               modification_access: CSSModificationAccess) -> Temporary<CSSStyleDeclaration> {
         reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner, modification_access),
                            GlobalRef::Window(global),
                            CSSStyleDeclarationBinding::Wrap)
@@ -98,6 +91,7 @@ impl<'a> PrivateCSSStyleDeclarationHelpers for JSRef<'a, CSSStyleDeclaration> {
 }
 
 impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
+    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(self) -> u32 {
         let owner = self.owner.root();
         let elem: JSRef<Element> = ElementCast::from_ref(owner.r());
@@ -108,6 +102,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         len as u32
     }
 
+    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item
     fn Item(self, index: u32) -> DOMString {
         let index = index as usize;
         let owner = self.owner.root();
@@ -157,7 +152,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
         // Step 3 & 4
         if let Some(ref declaration) = self.get_declaration(&property) {
-            serialize_value(declaration)
+            declaration.value()
         } else {
             "".to_owned()
         }
@@ -234,7 +229,11 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         // Step 8
         for decl in decl_block.normal.iter() {
             // Step 9
-            let style_priority = if priority.is_empty() { StylePriority::Normal } else { StylePriority::Important };
+            let style_priority = if priority.is_empty() {
+                StylePriority::Normal
+            } else {
+                StylePriority::Important
+            };
             element.update_inline_style(decl.clone(), style_priority);
         }
 
@@ -273,7 +272,11 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         // Step 5
         for decl in decl_block.normal.iter() {
             // Step 6
-            let style_priority = if priority.is_empty() { StylePriority::Normal } else { StylePriority::Important };
+            let style_priority = if priority.is_empty() {
+                StylePriority::Normal
+            } else {
+                StylePriority::Important
+            };
             element.update_inline_style(decl.clone(), style_priority);
         }
 
