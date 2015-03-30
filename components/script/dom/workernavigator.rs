@@ -55,5 +55,9 @@ impl<'a> WorkerNavigatorMethods for JSRef<'a, WorkerNavigator> {
     fn UserAgent(self) -> DOMString {
         navigatorinfo::UserAgent()
     }
+
+    fn AppVersion(self) -> DOMString {
+        navigatorinfo::AppVersion()
+    }
 }
 
