@@ -537,7 +537,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         debug!("script: performing reflow for goal {:?}", goal);
 
         let root: JSRef<Node> = NodeCast::from_ref(root);
-        if !root.get_has_dirty_descendants() {
+        if query_type == ReflowQueryType::NoQuery && !root.get_has_dirty_descendants() {
             debug!("root has no dirty descendants; avoiding reflow");
             return
         }

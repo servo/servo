@@ -92,6 +92,7 @@ pub enum ReflowGoal {
 }
 
 /// Any query to perform with this reflow.
+#[derive(PartialEq)]
 pub enum ReflowQueryType {
     NoQuery,
     ContentBoxQuery(TrustedNodeAddress),
