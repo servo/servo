@@ -460,15 +460,21 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                                                     Point2D(x as f32, y as f32))).unwrap();
     }
 
-    fn Arc(self, x: Finite<f64>, y: Finite<f64>, r: Finite<f64>, start: Finite<f64>, end: Finite<f64>, ccw: bool) {
+    fn Arc(self, x: Finite<f64>, y: Finite<f64>, r: Finite<f64>,
+           start: Finite<f64>, end: Finite<f64>, ccw: bool) -> Fallible<()> {
         let x = *x;
         let y = *y;
         let r = *r;
         let start = *start;
         let end = *end;
 
+        if r < 0.0 {
+            return Err(IndexSize);
+        }
+
         self.renderer.send(CanvasMsg::Arc(Point2D(x as f32, y as f32), r as f32,
                                           start as f32, end as f32, ccw)).unwrap();
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/#dom-context-2d-imagesmoothingenabled
