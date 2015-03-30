@@ -27,16 +27,11 @@ use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
-use script_traits::UntrustedNodeAddress;
-use rustc_serialize::{Encodable, Encoder};
 use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net_traits::image::holder::ImageHolder;
 use net_traits::local_image_cache::LocalImageCache;
-use util::geometry::{self, Au, ZERO_POINT};
-use util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin, WritingMode};
-use util::range::*;
-use util::smallvec::SmallVec;
-use util::str::is_whitespace;
+use rustc_serialize::{Encodable, Encoder};
+use script_traits::UntrustedNodeAddress;
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::collections::LinkedList;
@@ -56,6 +51,12 @@ use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
 use text::TextRunScanner;
 use url::Url;
+use util::geometry::{self, Au, ZERO_POINT};
+use util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin, WritingMode};
+use util::range::*;
+use util::smallvec::SmallVec;
+use util::str::is_whitespace;
+use util;
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, fragments do not have a simple correspondence with CSS fragments in the
@@ -580,36 +581,27 @@ pub struct ScannedTextFragmentInfo {
     /// The text run that this represents.
     pub run: Arc<Box<TextRun>>,
 
+    /// The intrinsic size of the text fragment.
+    pub content_size: LogicalSize<Au>,
+
     /// The range within the above text run that this represents.
     pub range: Range<CharIndex>,
 
-    /// The positions of newlines within this scanned text fragment.
-    ///
-    /// FIXME(#2260, pcwalton): Can't this go somewhere else, like in the text run or something?
-    /// Or can we just remove it?
-    pub new_line_pos: Vec<CharIndex>,
-
-    /// The new_line_pos is eaten during line breaking. If we need to re-merge
-    /// fragments, it will have to be restored.
-    pub original_new_line_pos: Option<Vec<CharIndex>>,
-
-    /// The intrinsic size of the text fragment.
-    pub content_size: LogicalSize<Au>,
+    /// The endpoint of the above range, including whitespace that was stripped out. This exists
+    /// so that we can restore the range to its original value (before line breaking occurred) when
+    /// performing incremental reflow.
+    pub range_end_including_stripped_whitespace: CharIndex,
 }
 
 impl ScannedTextFragmentInfo {
     /// Creates the information specific to a scanned text fragment from a range and a text run.
-    pub fn new(run: Arc<Box<TextRun>>,
-               range: Range<CharIndex>,
-               new_line_positions: Vec<CharIndex>,
-               content_size: LogicalSize<Au>)
+    pub fn new(run: Arc<Box<TextRun>>, range: Range<CharIndex>, content_size: LogicalSize<Au>)
                -> ScannedTextFragmentInfo {
         ScannedTextFragmentInfo {
             run: run,
             range: range,
-            new_line_pos: new_line_positions,
-            original_new_line_pos: None,
             content_size: content_size,
+            range_end_including_stripped_whitespace: range.end(),
         }
     }
 }
@@ -769,32 +761,6 @@ impl Fragment {
         self.margin = LogicalMargin::zero(self.style.writing_mode);
     }
 
-    /// Saves the new_line_pos vector into a `SpecificFragmentInfo::ScannedText`. This will fail
-    /// if called on any other type of fragment.
-    pub fn save_new_line_pos(&mut self) {
-        match &mut self.specific {
-            &mut SpecificFragmentInfo::ScannedText(ref mut info) => {
-                if !info.new_line_pos.is_empty() {
-                    info.original_new_line_pos = Some(info.new_line_pos.clone());
-                }
-            }
-            _ => {}
-        }
-    }
-
-    pub fn restore_new_line_pos(&mut self) {
-        match &mut self.specific {
-            &mut SpecificFragmentInfo::ScannedText(ref mut info) => {
-                match info.original_new_line_pos.take() {
-                    None => {}
-                    Some(new_line_pos) => info.new_line_pos = new_line_pos,
-                }
-                return
-            }
-            _ => {}
-        }
-    }
-
     /// Returns a debug ID of this fragment. This ID should not be considered stable across
     /// multiple layouts or fragment manipulations.
     pub fn debug_id(&self) -> u16 {
@@ -823,14 +789,12 @@ impl Fragment {
     }
 
     /// Transforms this fragment using the given `SplitInfo`, preserving all the other data.
-    pub fn transform_with_split_info(&self,
-                                     split: &SplitInfo,
-                                     text_run: Arc<Box<TextRun>>)
+    pub fn transform_with_split_info(&self, split: &SplitInfo, text_run: Arc<Box<TextRun>>)
                                      -> Fragment {
         let size = LogicalSize::new(self.style.writing_mode,
                                     split.inline_size,
                                     self.border_box.size.block);
-        let info = box ScannedTextFragmentInfo::new(text_run, split.range, Vec::new(), size);
+        let info = box ScannedTextFragmentInfo::new(text_run, split.range, size);
         self.transform(size, SpecificFragmentInfo::ScannedText(info))
     }
 
@@ -857,7 +821,6 @@ impl Fragment {
                                     style: Arc<ComputedValues>,
                                     first_frag: bool,
                                     last_frag: bool) {
-
         if self.inline_context.is_none() {
             self.inline_context = Some(InlineFragmentContext::new());
         }
@@ -1179,25 +1142,11 @@ impl Fragment {
         }
     }
 
-    /// Returns true if this element can be split. This is true for text fragments.
+    /// Returns true if this element can be split. This is true for text fragments, unless
+    /// `white-space: pre` is set.
     pub fn can_split(&self) -> bool {
-        self.is_scanned_text_fragment()
-    }
-
-    /// Returns the newline positions of this fragment, if it's a scanned text fragment.
-    pub fn newline_positions(&self) -> Option<&Vec<CharIndex>> {
-        match self.specific {
-            SpecificFragmentInfo::ScannedText(ref info) => Some(&info.new_line_pos),
-            _ => None,
-        }
-    }
-
-    /// Returns the newline positions of this fragment, if it's a scanned text fragment.
-    pub fn newline_positions_mut(&mut self) -> Option<&mut Vec<CharIndex>> {
-        match self.specific {
-            SpecificFragmentInfo::ScannedText(ref mut info) => Some(&mut info.new_line_pos),
-            _ => None,
-        }
+        self.is_scanned_text_fragment() &&
+            self.style.get_inheritedtext().white_space != white_space::T::pre
     }
 
     /// Returns true if and only if this fragment is a generated content fragment.
@@ -1359,64 +1308,6 @@ impl Fragment {
         self.border_box - self.border_padding
     }
 
-    /// Find the split of a fragment that includes a new-line character.
-    ///
-    /// A return value of `None` indicates that the fragment is not splittable.
-    /// Otherwise the split information is returned. The right information is
-    /// optional due to the possibility of it being whitespace.
-    //
-    // TODO(bjz): The text run should be removed in the future, but it is currently needed for
-    // the current method of fragment splitting in the `inline::try_append_*` functions.
-    pub fn find_split_info_by_new_line(&self)
-            -> Option<(SplitInfo, Option<SplitInfo>, Arc<Box<TextRun>> /* TODO(bjz): remove */)> {
-        match self.specific {
-            SpecificFragmentInfo::Canvas(_) |
-            SpecificFragmentInfo::Generic |
-            SpecificFragmentInfo::GeneratedContent(_) |
-            SpecificFragmentInfo::Iframe(_) |
-            SpecificFragmentInfo::Image(_) |
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper => {
-                None
-            }
-            SpecificFragmentInfo::TableColumn(_) => {
-                panic!("Table column fragments do not need to split")
-            }
-            SpecificFragmentInfo::UnscannedText(_) => {
-                panic!("Unscanned text fragments should have been scanned by now!")
-            }
-            SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
-                panic!("Inline blocks or inline absolute hypothetical fragments do not get split")
-            }
-            SpecificFragmentInfo::ScannedText(ref text_fragment_info) => {
-                let mut new_line_pos = text_fragment_info.new_line_pos.clone();
-                let cur_new_line_pos = new_line_pos.remove(0);
-
-                let inline_start_range = Range::new(text_fragment_info.range.begin(),
-                                                    cur_new_line_pos);
-                let inline_end_range = Range::new(
-                    text_fragment_info.range.begin() + cur_new_line_pos + CharIndex(1),
-                    text_fragment_info.range.length() - (cur_new_line_pos + CharIndex(1)));
-
-                // Left fragment is for inline-start text of first founded new-line character.
-                let inline_start_fragment = SplitInfo::new(inline_start_range,
-                                                           &**text_fragment_info);
-
-                // Right fragment is for inline-end text of first founded new-line character.
-                let inline_end_fragment = if inline_end_range.length() > CharIndex(0) {
-                    Some(SplitInfo::new(inline_end_range, &**text_fragment_info))
-                } else {
-                    None
-                };
-
-                Some((inline_start_fragment, inline_end_fragment, text_fragment_info.run.clone()))
-            }
-        }
-    }
-
     /// Attempts to find the split positions of a text fragment so that its inline-size is no more
     /// than `max_inline_size`.
     ///
@@ -1495,13 +1386,13 @@ impl Fragment {
 
     /// A helper method that uses the breaking strategy described by `slice_iterator` (at present,
     /// either natural word breaking or character breaking) to split this fragment.
-    fn calculate_split_position_using_breaking_strategy<'a,I>(&self,
-                                                              slice_iterator: I,
-                                                              max_inline_size: Au,
-                                                              flags: SplitOptions)
-                                                              -> Option<SplitResult>
-                                                              where I: Iterator<Item=
-                                                                                TextRunSlice<'a>> {
+    fn calculate_split_position_using_breaking_strategy<'a,I>(
+            &self,
+            slice_iterator: I,
+            max_inline_size: Au,
+            flags: SplitOptions)
+            -> Option<SplitResult>
+            where I: Iterator<Item=TextRunSlice<'a>> {
         let text_fragment_info =
             if let SpecificFragmentInfo::ScannedText(ref text_fragment_info) = self.specific {
                 text_fragment_info
@@ -1515,31 +1406,35 @@ impl Fragment {
         let mut inline_end_range = None;
         let mut overflowing = false;
 
-        debug!("calculate_split_position: splitting text fragment (strlen={}, range={:?}, \
-                max_inline_size={:?})",
+        debug!("calculate_split_position_using_breaking_strategy: splitting text fragment \
+                (strlen={}, range={:?}, max_inline_size={:?})",
                text_fragment_info.run.text.len(),
                text_fragment_info.range,
                max_inline_size);
 
         for slice in slice_iterator {
-            debug!("calculate_split_position: considering slice (offset={:?}, slice range={:?}, \
-                    remaining_inline_size={:?})",
+            debug!("calculate_split_position_using_breaking_strategy: considering slice \
+                    (offset={:?}, slice range={:?}, remaining_inline_size={:?})",
                    slice.offset,
                    slice.range,
                    remaining_inline_size);
 
+            // Use the `remaining_inline_size` to find a split point if possible. If not, go around
+            // the loop again with the next slice.
             let metrics = text_fragment_info.run.metrics_for_slice(slice.glyphs, &slice.range);
             let advance = metrics.advance_width;
 
             // Have we found the split point?
             if advance <= remaining_inline_size || slice.glyphs.is_whitespace() {
                 // Keep going; we haven't found the split point yet.
-                if flags.contains(STARTS_LINE) && pieces_processed_count == 0 &&
+                if flags.contains(STARTS_LINE) &&
+                        pieces_processed_count == 0 &&
                         slice.glyphs.is_whitespace() {
-                    debug!("calculate_split_position: skipping leading trimmable whitespace");
+                    debug!("calculate_split_position_using_breaking_strategy: skipping \
+                            leading trimmable whitespace");
                     inline_start_range.shift_by(slice.range.length());
                 } else {
-                    debug!("split_to_inline_size: enlarging span");
+                    debug!("calculate_split_position_using_breaking_strategy: enlarging span");
                     remaining_inline_size = remaining_inline_size - advance;
                     inline_start_range.extend_by(slice.range.length());
                 }
@@ -1570,60 +1465,31 @@ impl Fragment {
                        inline_end);
             }
 
-            break
-        }
+            // If we failed to find a suitable split point, we're on the verge of overflowing the
+            // line.
+            if inline_start_range.is_empty() || overflowing {
+                // If we've been instructed to retry at character boundaries (probably via
+                // `overflow-wrap: break-word`), do so.
+                if flags.contains(RETRY_AT_CHARACTER_BOUNDARIES) {
+                    let character_breaking_strategy =
+                        text_fragment_info.run
+                                          .character_slices_in_range(&text_fragment_info.range);
+                    let mut flags = flags;
+                    flags.remove(RETRY_AT_CHARACTER_BOUNDARIES);
+                    return self.calculate_split_position_using_breaking_strategy(
+                        character_breaking_strategy,
+                        max_inline_size,
+                        flags)
+                }
 
-        // If we failed to find a suitable split point, we're on the verge of overflowing the line.
-        if inline_start_range.is_empty() || overflowing {
-            // If we've been instructed to retry at character boundaries (probably via
-            // `overflow-wrap: break-word`), do so.
-            if flags.contains(RETRY_AT_CHARACTER_BOUNDARIES) {
-                let character_breaking_strategy =
-                    text_fragment_info.run.character_slices_in_range(&text_fragment_info.range);
-                let mut flags = flags;
-                flags.remove(RETRY_AT_CHARACTER_BOUNDARIES);
-                return self.calculate_split_position_using_breaking_strategy(
-                    character_breaking_strategy,
-                    max_inline_size,
-                    flags)
-            }
-
-            // We aren't at the start of the line, so don't overflow. Let inline layout wrap to the
-            // next line instead.
-            if !flags.contains(STARTS_LINE) {
-                return None
-            }
-        }
-
-        // Remove trailing whitespace from the inline-start split, if necessary.
-        //
-        // FIXME(pcwalton): Is there a more clever (i.e. faster) way to do this?
-        strip_trailing_whitespace(&**text_fragment_info.run, &mut inline_start_range);
-
-        // Remove leading whitespace from the inline-end split, if necessary.
-        //
-        // FIXME(pcwalton): Is there a more clever (i.e. faster) way to do this?
-        if let Some(ref mut inline_end_range) = inline_end_range {
-            let inline_end_fragment_text =
-                text_fragment_info.run.text.slice_chars(inline_end_range.begin().to_usize(),
-                                                        inline_end_range.end().to_usize());
-            let mut leading_whitespace_character_count = 0;
-            for ch in inline_end_fragment_text.chars() {
-                if ch.is_whitespace() {
-                    leading_whitespace_character_count += 1
-                } else {
-                    break
+                // We aren't at the start of the line, so don't overflow. Let inline layout wrap to
+                // the next line instead.
+                if !flags.contains(STARTS_LINE) {
+                    return None
                 }
             }
-            inline_end_range.adjust_by(CharIndex(leading_whitespace_character_count),
-                                       -CharIndex(leading_whitespace_character_count));
-        }
 
-        // Normalize our split so that the inline-end fragment will never be `Some` while the
-        // inline-start fragment is `None`.
-        if inline_start_range.is_empty() && inline_end_range.is_some() {
-            inline_start_range = inline_end_range.unwrap();
-            inline_end_range = None
+            break
         }
 
         let inline_start = if !inline_start_range.is_empty() {
@@ -1642,22 +1508,21 @@ impl Fragment {
         })
     }
 
-    /// Attempts to strip trailing whitespace from this fragment by adjusting the text run range.
-    /// Returns true if any modifications were made.
-    pub fn strip_trailing_whitespace_if_necessary(&mut self) -> bool {
-        let text_fragment_info =
-            if let SpecificFragmentInfo::ScannedText(ref mut text_fragment_info) = self.specific {
-                text_fragment_info
-            } else {
-                return false
-            };
-
-        let run = text_fragment_info.run.clone();
-        if strip_trailing_whitespace(&**run, &mut text_fragment_info.range) {
-            self.border_box.size.inline = run.advance_for_range(&text_fragment_info.range);
-            return true
+    /// The opposite of `calculate_split_position_using_breaking_strategy`: merges this fragment
+    /// with the next one.
+    pub fn merge_with(&mut self, next_fragment: Fragment) {
+        match (&mut self.specific, &next_fragment.specific) {
+            (&mut SpecificFragmentInfo::ScannedText(ref mut this_info),
+             &SpecificFragmentInfo::ScannedText(ref other_info)) => {
+                debug_assert!(util::arc_ptr_eq(&this_info.run, &other_info.run));
+                this_info.range.extend_to(other_info.range_end_including_stripped_whitespace);
+                this_info.content_size.inline =
+                    this_info.run.metrics_for_range(&this_info.range).advance_width;
+                self.border_box.size.inline = this_info.content_size.inline +
+                    self.border_padding.inline_start_end();
+            }
+            _ => panic!("Can only merge two scanned-text fragments!"),
         }
-        false
     }
 
     /// Returns true if this fragment is an unscanned text fragment that consists entirely of
@@ -1669,7 +1534,7 @@ impl Fragment {
         }
         match self.specific {
             SpecificFragmentInfo::UnscannedText(ref text_fragment_info) => {
-                is_whitespace(text_fragment_info.text.as_slice())
+                util::str::is_whitespace(text_fragment_info.text.as_slice())
             }
             _ => false,
         }
@@ -1890,11 +1755,14 @@ impl Fragment {
     /// Returns true if this fragment can merge with another adjacent fragment or false otherwise.
     pub fn can_merge_with_fragment(&self, other: &Fragment) -> bool {
         match (&self.specific, &other.specific) {
-            (&SpecificFragmentInfo::UnscannedText(_), &SpecificFragmentInfo::UnscannedText(_)) => {
+            (&SpecificFragmentInfo::UnscannedText(ref first_unscanned_text),
+             &SpecificFragmentInfo::UnscannedText(_)) => {
                 // FIXME: Should probably use a whitelist of styles that can safely differ (#3165)
+                let length = first_unscanned_text.text.len();
                 self.style().get_font() == other.style().get_font() &&
                     self.text_decoration() == other.text_decoration() &&
-                    self.white_space() == other.white_space()
+                    self.white_space() == other.white_space() &&
+                    (length == 0 || first_unscanned_text.text.char_at_reverse(length) != '\n')
             }
             _ => false,
         }
@@ -2076,14 +1944,57 @@ impl Fragment {
             _ => {}
         }
     }
+
+    pub fn requires_line_break_afterward_if_wrapping_on_newlines(&self) -> bool {
+        match self.specific {
+            SpecificFragmentInfo::ScannedText(ref scanned_text) => {
+                !scanned_text.range.is_empty() &&
+                    scanned_text.run.text.char_at_reverse(scanned_text.range
+                                                                      .end()
+                                                                      .get() as usize) == '\n'
+            }
+            _ => false,
+        }
+    }
+
+    pub fn strip_leading_whitespace_if_necessary(&mut self) {
+        let mut scanned_text_fragment_info = match self.specific {
+            SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
+                scanned_text_fragment_info
+            }
+            _ => return,
+        };
+
+        if self.style.get_inheritedtext().white_space == white_space::T::pre {
+            return
+        }
+
+        let mut leading_whitespace_character_count = 0;
+        {
+            let text = scanned_text_fragment_info.run.text.slice_chars(
+                scanned_text_fragment_info.range.begin().to_usize(),
+                scanned_text_fragment_info.range.end().to_usize());
+            for character in text.chars() {
+                if util::str::char_is_whitespace(character) {
+                    leading_whitespace_character_count += 1
+                } else {
+                    break
+                }
+            }
+        }
+
+        scanned_text_fragment_info.range.adjust_by(CharIndex(leading_whitespace_character_count),
+                                                   -CharIndex(leading_whitespace_character_count));
+    }
 }
 
 impl fmt::Debug for Fragment {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "({} {} ", self.debug_id(), self.specific.get_type()));
-        try!(write!(f, "bp {:?}", self.border_padding));
-        try!(write!(f, " "));
-        try!(write!(f, "m {:?}", self.margin));
+        try!(write!(f, "bb {:?} bp {:?} m {:?}",
+                    self.border_box,
+                    self.border_padding,
+                    self.margin));
         write!(f, ")")
     }
 }
@@ -2105,7 +2016,7 @@ bitflags! {
         const STARTS_LINE = 0x01,
         #[doc="True if we should attempt to split at character boundaries if this split fails. \
                This is used to implement `overflow-wrap: break-word`."]
-        const RETRY_AT_CHARACTER_BOUNDARIES = 0x02
+        const RETRY_AT_CHARACTER_BOUNDARIES = 0x02,
     }
 }
 
@@ -2127,27 +2038,5 @@ pub enum CoordinateSystem {
     Parent,
     /// The border box returned is relative to the fragment's own stacking context, if applicable.
     Own,
-}
-
-/// Given a range and a text run, adjusts the range to eliminate trailing whitespace. Returns true
-/// if any modifications were made.
-fn strip_trailing_whitespace(text_run: &TextRun, range: &mut Range<CharIndex>) -> bool {
-    // FIXME(pcwalton): Is there a more clever (i.e. faster) way to do this?
-    let text = text_run.text.slice_chars(range.begin().to_usize(), range.end().to_usize());
-    let mut trailing_whitespace_character_count = 0;
-    for ch in text.chars().rev() {
-        if ch.is_whitespace() {
-            trailing_whitespace_character_count += 1
-        } else {
-            break
-        }
-    }
-
-    if trailing_whitespace_character_count == 0 {
-        return false
-    }
-
-    range.extend_by(-CharIndex(trailing_whitespace_character_count));
-    return true
 }
 

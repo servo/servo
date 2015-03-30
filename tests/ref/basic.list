@@ -151,6 +151,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 != img_simple.html img_simple_ref.html
 == img_size_a.html img_size_b.html
 == incremental_float_a.html incremental_float_ref.html
+== incremental_inline_layout_a.html incremental_inline_layout_ref.html
 != inline_background_a.html inline_background_ref.html
 == inline_block_baseline_a.html inline_block_baseline_ref.html
 == inline_block_border_a.html inline_block_border_ref.html
@@ -184,6 +185,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == legacy_td_bgcolor_attribute_a.html legacy_td_bgcolor_attribute_ref.html
 == legacy_td_width_attribute_a.html legacy_td_width_attribute_ref.html
 == letter_spacing_a.html letter_spacing_ref.html
+== line_breaking_whitespace_collapse_a.html line_breaking_whitespace_collapse_ref.html
 == line_height_a.html line_height_ref.html
 != linear_gradients_corners_a.html linear_gradients_corners_ref.html
 == linear_gradients_lengths_a.html linear_gradients_lengths_ref.html
