@@ -578,13 +578,15 @@ impl ScriptTask {
             }
         };
 
-        // Squash any pending resize and reflow events in the queue.
+        // Squash any pending resize, reflow, and mouse-move events in the queue.
+        let mut mouse_move_event_index = None;
         loop {
             match event {
                 // This has to be handled before the ResizeMsg below,
                 // otherwise the page may not have been added to the
                 // child list yet, causing the find() to fail.
-                MixedMessage::FromConstellation(ConstellationControlMsg::AttachLayout(new_layout_info)) => {
+                MixedMessage::FromConstellation(ConstellationControlMsg::AttachLayout(
+                        new_layout_info)) => {
                     self.handle_new_layout(new_layout_info);
                 }
                 MixedMessage::FromConstellation(ConstellationControlMsg::Resize(id, size)) => {
@@ -592,6 +594,19 @@ impl ScriptTask {
                 }
                 MixedMessage::FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => {
                     self.handle_viewport(id, rect);
+                }
+                MixedMessage::FromConstellation(ConstellationControlMsg::SendEvent(
+                        _,
+                        MouseMoveEvent(_))) => {
+                    match mouse_move_event_index {
+                        None => {
+                            mouse_move_event_index = Some(sequential.len());
+                            sequential.push(event);
+                        }
+                        Some(index) => {
+                            sequential[index] = event
+                        }
+                    }
                 }
                 _ => {
                     sequential.push(event);
