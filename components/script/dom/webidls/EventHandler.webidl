@@ -25,6 +25,8 @@ interface GlobalEventHandlers {
            attribute EventHandler onload;
            attribute EventHandler oninput;
            attribute EventHandler onchange;
+           attribute EventHandler onsubmit;
+           attribute EventHandler onfocusin;
 };
 
 [NoInterfaceObject]
