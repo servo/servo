@@ -20,7 +20,7 @@ TaskBasicInfo(struct task_basic_info* info)
 }
 
 int
-TaskBasicInfoVirtualSize(int64_t *virtualSize)
+TaskBasicInfoVirtualSize(size_t* virtualSize)
 {
     struct task_basic_info ti;
     int rv = TaskBasicInfo(&ti);
@@ -29,7 +29,7 @@ TaskBasicInfoVirtualSize(int64_t *virtualSize)
 }
 
 int
-TaskBasicInfoResidentSize(int64_t *residentSize)
+TaskBasicInfoResidentSize(size_t* residentSize)
 {
     struct task_basic_info ti;
     int rv = TaskBasicInfo(&ti);

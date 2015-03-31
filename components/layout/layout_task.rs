@@ -508,7 +508,7 @@ impl LayoutTask {
         let stacking_context = rw_data.stacking_context.as_ref();
         reports.push(Report {
             path: path!["pages", format!("url({})", self.url), "display-list"],
-            size: stacking_context.map_or(0, |sc| sc.heap_size_of_children() as u64),
+            size: stacking_context.map_or(0, |sc| sc.heap_size_of_children()),
         });
 
         reports_chan.send(reports);
