@@ -170,13 +170,11 @@ impl<'a> TreeSink for servohtmlparser::Sink {
 
     fn reparent_children(&mut self, node: JS<Node>, new_parent: JS<Node>) {
         let new_parent: Root<Node> = new_parent.root();
-        let new_parent = new_parent.r();        
+        let new_parent = new_parent.r();
         let old_parent: Root<Node> = node.root();
         let old_parent = old_parent.r();
         while let Some(child) = old_parent.GetFirstChild() {
-            if new_parent.AppendChild(child.root().r()).is_err() { 
-                panic!("tried to reparent an non-Node in HTML parsing");
-            }
+           new_parent.AppendChild(child.root().r()).unwrap();
         }
 
     }
