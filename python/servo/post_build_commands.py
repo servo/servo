@@ -67,7 +67,7 @@ class MachCommands(CommandBase):
 
         print("The %s profile is not built. Please run './mach build%s' "
               "and try again." % ("release" if release else "dev",
-                                   "--release" if release else ""))
+                                   " --release" if release else ""))
         sys.exit()
 
     @Command('run',
