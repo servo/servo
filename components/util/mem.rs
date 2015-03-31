@@ -158,3 +158,31 @@ impl<T> Drop for LinkedList2<T> {
     fn drop(&mut self) {}
 }
 
+/// For use on types defined in external crates
+/// with known heap sizes
+#[macro_export]
+macro_rules! known_heap_size(
+    ($size:expr, $($ty:ident),+) => (
+        $(
+            impl $crate::mem::HeapSizeOf for $ty {
+                #[inline]
+                fn heap_size_of_children(&self) -> usize {
+                    $size
+                }
+            }
+        )+
+    );
+    ($size: expr, $ty:ident<$($gen:ident),+>) => (
+        impl<$($gen),+> $crate::mem::HeapSizeOf for $ty<$($gen),+> {
+            #[inline]
+            fn heap_size_of_children(&self) -> usize {
+                $size
+            }
+        }
+    );
+);
+
+
+known_heap_size!(0, u8, u16, u32, u64, usize);
+known_heap_size!(0, i8, i16, i32, i64, isize);
+known_heap_size!(0, bool);
