@@ -214,6 +214,10 @@ pub enum Msg {
     SetCursor(Cursor),
     /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
     MozBrowserEventMsg(PipelineId, SubpageId, MozBrowserEvent),
+    /// Indicates whether this pipeline is currently running animations.
+    ChangeRunningAnimationsState(PipelineId, bool),
+    /// Requests that the constellation instruct layout to begin a new tick of the animation.
+    TickAnimation(PipelineId),
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events

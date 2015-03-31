@@ -180,7 +180,8 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                         node.cascade_node(self.layout_context.shared,
                                           parent_opt,
                                           &applicable_declarations,
-                                          self.layout_context.applicable_declarations_cache());
+                                          self.layout_context.applicable_declarations_cache(),
+                                          &self.layout_context.shared.new_animations_sender);
                     }
 
                     // Add ourselves to the LRU cache.

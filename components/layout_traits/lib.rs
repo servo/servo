@@ -29,6 +29,7 @@ use url::Url;
 /// Messages sent to the layout task from the constellation
 pub enum LayoutControlMsg {
     ExitNowMsg(PipelineExitType),
+    TickAnimationsMsg,
 }
 
 /// A channel wrapper for constellation messages

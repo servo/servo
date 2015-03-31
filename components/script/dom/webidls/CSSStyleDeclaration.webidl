@@ -186,4 +186,10 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString zIndex;
 
   [TreatNullAs=EmptyString] attribute DOMString imageRendering;
+
+  [TreatNullAs=EmptyString] attribute DOMString transition;
+  [TreatNullAs=EmptyString] attribute DOMString transitionDuration;
+  [TreatNullAs=EmptyString] attribute DOMString transitionTimingFunction;
+  [TreatNullAs=EmptyString] attribute DOMString transitionProperty;
+  [TreatNullAs=EmptyString] attribute DOMString transitionDelay;
 };

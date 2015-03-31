@@ -862,11 +862,57 @@ pub mod specified {
         "inset" => inset,
         "outset" => outset,
     }
+
+    /// A time in seconds according to CSS-VALUES § 6.2.
+    #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+    pub struct Time(pub CSSFloat);
+
+    impl Time {
+        /// Returns the time in fractional seconds.
+        pub fn seconds(self) -> f64 {
+            let Time(seconds) = self;
+            seconds
+        }
+
+        /// Parses a time according to CSS-VALUES § 6.2.
+        fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Time,()> {
+            if unit.eq_ignore_ascii_case("s") {
+                Ok(Time(value))
+            } else if unit.eq_ignore_ascii_case("ms") {
+                Ok(Time(value / 1000.0))
+            } else {
+                Err(())
+            }
+        }
+
+        pub fn parse(input: &mut Parser) -> Result<Time,()> {
+            match input.next() {
+                Ok(Token::Dimension(ref value, ref unit)) => {
+                    Time::parse_dimension(value.value, unit.as_slice())
+                }
+                _ => Err(()),
+            }
+        }
+    }
+
+    impl super::computed::ToComputedValue for Time {
+        type ComputedValue = Time;
+
+        #[inline]
+        fn to_computed_value(&self, _: &super::computed::Context) -> Time {
+            *self
+        }
+    }
+
+    impl ToCss for Time {
+        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+            dest.write_str(format!("{}ms", self.0).as_slice())
+        }
+    }
 }
 
-
 pub mod computed {
-    pub use super::specified::BorderStyle;
+    pub use super::specified::{BorderStyle, Time};
     use super::specified::{AngleOrCorner};
     use super::{specified, CSSFloat};
     pub use cssparser::Color as CSSColor;
