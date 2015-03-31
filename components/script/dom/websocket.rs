@@ -23,6 +23,8 @@ enum WebsocketRequestState {
 	Opened = 1,
 	Sending = 2,
 	Receiving = 3,
+	Closing = 4,
+	Closed = 5,
 }
 
 #[dom_struct]
@@ -34,7 +36,8 @@ pub struct WebSocket {
 
 impl WebSocket {
     pub fn new_inherited(url: DOMString) -> WebSocket {
-        WebSocket {
+        println!("Creating websocket...");
+	WebSocket {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WebSocket),
             url: url,
 		ready_state: Cell::new(WebsocketRequestState::Unsent)
@@ -54,6 +57,7 @@ impl WebSocket {
 
 impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
     fn Url(self) -> DOMString {
+	println!("Setting URL");
        self.url.clone()
     }
 	
