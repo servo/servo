@@ -57,7 +57,7 @@ use js::jsval::JSVal;
 use layout_interface::TrustedNodeAddress;
 use script_task::STACK_ROOTS;
 
-use util::smallvec::{SmallVec, SmallVec16};
+use util::smallvec::{SmallVec, SmallVec24};
 
 use core::nonzero::NonZero;
 use std::cell::{Cell, UnsafeCell};
@@ -610,7 +610,7 @@ impl<T: Assignable<U>, U: Reflectable> TemporaryPushable<T> for Vec<JS<U>> {
 /// See also [*Exact Stack Rooting - Storing a GCPointer on the CStack*]
 /// (https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Internals/GC/Exact_Stack_Rooting).
 pub struct RootCollection {
-    roots: UnsafeCell<SmallVec16<*mut JSObject>>,
+    roots: UnsafeCell<SmallVec24<*mut JSObject>>,
 }
 
 /// A pointer to a RootCollection, for use in global variables.
@@ -622,7 +622,7 @@ impl RootCollection {
     /// Create an empty collection of roots
     pub fn new() -> RootCollection {
         RootCollection {
-            roots: UnsafeCell::new(SmallVec16::new()),
+            roots: UnsafeCell::new(SmallVec24::new()),
         }
     }
 
@@ -632,6 +632,7 @@ impl RootCollection {
             let roots = self.roots.get();
             (*roots).push(untracked.js_ptr);
             debug!("  rooting {:?}", untracked.js_ptr);
+            assert!(!(*roots).spilled());
         }
     }
 
