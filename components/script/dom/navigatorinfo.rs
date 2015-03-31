@@ -33,3 +33,7 @@ pub fn UserAgent() -> DOMString {
         None => "".to_owned(),
     }
 }
+
+pub fn AppVersion() -> DOMString {
+    "4.0".to_owned()
+}

@@ -19,7 +19,7 @@ Navigator implements NavigatorID;
 interface NavigatorID {
   readonly attribute DOMString appCodeName; // constant "Mozilla"
   readonly attribute DOMString appName;
-  //readonly attribute DOMString appVersion;
+  readonly attribute DOMString appVersion;
   readonly attribute DOMString platform;
   readonly attribute DOMString product; // constant "Gecko"
   boolean taintEnabled(); // constant false
