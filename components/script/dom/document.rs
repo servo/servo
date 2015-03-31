@@ -61,8 +61,7 @@ use dom::window::{Window, WindowHelpers, ReflowReason};
 use layout_interface::{HitTestResponse, MouseOverResponse};
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, Key, KeyState, KeyModifiers, MozBrowserEvent};
-use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
+use msg::constellation_msg::{ConstellationChan, Key, KeyEventProperties, KeyState, KeyModifiers, MozBrowserEvent};
 use net::resource_task::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
 use net::cookie_storage::CookieSource::NonHTTP;
 use script_task::Runnable;
@@ -217,8 +216,10 @@ pub trait DocumentHelpers<'a> {
     fn send_title_to_compositor(self);
     fn dirty_all_nodes(self);
     fn handle_click_event(self, js_runtime: *mut JSRuntime, _button: uint, point: Point2D<f32>);
-    fn dispatch_key_event(self, key: Key, state: KeyState,
+    fn handle_key_event(self, key: Key, state: KeyState,
         modifiers: KeyModifiers, compositor: &mut Box<ScriptListener+'static>);
+    fn dispatch_key_event(self, event_type: String, props: &KeyEventProperties,
+                          compositor: &mut Box<ScriptListener+'static>) -> bool;
     /// Return need force reflow or not
     fn handle_mouse_move_event(self, js_runtime: *mut JSRuntime, point: Point2D<f32>,
                                prev_mouse_over_targets: &mut Vec<JS<Node>>) -> bool;
@@ -453,6 +454,16 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     fn commit_focus_transaction(self) {
         //TODO: dispatch blur, focus, focusout, and focusin events
         self.focused.assign(self.possibly_focused.get());
+
+        // If this is an iframe, send a message to the constellation to
+        // focus the iframe element.
+        let window = self.window.root();
+        if let Some((containing_pipeline_id, subpage_id)) = window.r().parent_info() {
+            let ConstellationChan(ref chan) = window.r().constellation_chan();
+            let event = ConstellationMsg::FocusIFrameMsg(containing_pipeline_id,
+                                                         subpage_id);
+            chan.send(event).unwrap();
+        }
     }
 
     /// Handles any updates when the document's title has changed.
@@ -601,11 +612,10 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         needs_reflow
     }
 
-    /// The entry point for all key processing for web content
-    fn dispatch_key_event(self, key: Key,
-                          state: KeyState,
-                          modifiers: KeyModifiers,
-                          compositor: &mut Box<ScriptListener+'static>) {
+    fn dispatch_key_event(self,
+                          event_type: String,
+                          props: &KeyEventProperties,
+                          compositor: &mut Box<ScriptListener+'static>) -> bool {
         let window = self.window.root();
         let focused = self.get_focused_element().root();
         let body = self.GetBody().root();
@@ -616,64 +626,90 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             (&None, &None) => EventTargetCast::from_ref(window.r()),
         };
 
-        let ctrl = modifiers.contains(CONTROL);
-        let alt = modifiers.contains(ALT);
-        let shift = modifiers.contains(SHIFT);
-        let meta = modifiers.contains(SUPER);
+        let key_event = KeyboardEvent::new(window.r(), event_type, true, true,
+                                           Some(window.r()), 0,
+                                           props.key.to_owned(), props.code.to_owned(),
+                                           props.location, props.repeat, props.is_composing,
+                                           props.ctrl, props.alt, props.shift, props.meta,
+                                           props.char_code, props.key_code).root();
 
-        let is_composing = false;
-        let is_repeating = state == KeyState::Repeated;
-        let ev_type = match state {
+        let event = EventCast::from_ref(key_event.r());
+        event.fire(target);
+
+        let default_prevented = event.DefaultPrevented();
+
+        if !default_prevented {
+            let modifiers = props.get_modifiers();
+            if let Some(key) = props.get_key() {
+                compositor.send_key_event(key, modifiers);
+            }
+
+            // This behavior is unspecced
+            // We are supposed to dispatch synthetic click activation for Space and/or Return,
+            // however *when* we do it is up to ups
+            // I'm dispatching it after the key event so the script has a chance to cancel it
+            // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
+            if event.Type().as_slice() == "keyup" {
+                match props.code.as_slice() {
+                    "Space" => {
+                        println!("act space");
+
+                        let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(target);
+                        maybe_elem.map(|el| {
+                            el.as_maybe_activatable().map(|a| {
+                                a.synthetic_click_activation(props.ctrl,
+                                                             props.alt,
+                                                             props.shift,
+                                                             props.meta)
+                            });
+                        });
+                    }
+                    "Enter" => {
+                        println!("act enter");
+
+                        let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(target);
+                        maybe_elem.map(|el| {
+                            el.as_maybe_activatable().map(|a| {
+                                a.implicit_submission(props.ctrl,
+                                                      props.alt,
+                                                      props.shift,
+                                                      props.meta)
+                            });
+                        });
+                    }
+                    _ => ()
+                }
+            }
+        }
+
+        default_prevented
+    }
+
+    /// The entry point for all key processing for web content
+    fn handle_key_event(self, key: Key,
+                        state: KeyState,
+                        modifiers: KeyModifiers,
+                        compositor: &mut Box<ScriptListener+'static>) {
+        let window = self.window.root();
+
+        let event_type = match state {
             KeyState::Pressed | KeyState::Repeated => "keydown",
             KeyState::Released => "keyup",
         }.to_owned();
 
-        let props = KeyboardEvent::key_properties(key, modifiers);
-
-        let keyevent = KeyboardEvent::new(window.r(), ev_type, true, true,
-                                          Some(window.r()), 0,
-                                          props.key.to_owned(), props.code.to_owned(),
-                                          props.location, is_repeating, is_composing,
-                                          ctrl, alt, shift, meta,
-                                          None, props.key_code).root();
-        let event = EventCast::from_ref(keyevent.r());
-        event.fire(target);
-        let mut prevented = event.DefaultPrevented();
+        let mut props = KeyboardEvent::key_properties(key, state, modifiers);
+        let char_code = props.char_code.take();
+        let prevented = self.dispatch_key_event(event_type, &props, compositor);
 
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
         if state != KeyState::Released && props.is_printable() && !prevented {
+            props.char_code = char_code;
+            props.key_code = 0;
+
             // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
-            let event = KeyboardEvent::new(window.r(), "keypress".to_owned(),
-                                           true, true, Some(window.r()),
-                                           0, props.key.to_owned(), props.code.to_owned(),
-                                           props.location, is_repeating, is_composing,
-                                           ctrl, alt, shift, meta,
-                                           props.char_code, 0).root();
-            let ev = EventCast::from_ref(event.r());
-            ev.fire(target);
-            prevented = ev.DefaultPrevented();
+            self.dispatch_key_event("keypress".to_owned(), &props, compositor);
+
             // TODO: if keypress event is canceled, prevent firing input events
-        }
-
-        if !prevented {
-            compositor.send_key_event(key, state, modifiers);
-        }
-
-        // This behavior is unspecced
-        // We are supposed to dispatch synthetic click activation for Space and/or Return,
-        // however *when* we do it is up to us
-        // I'm dispatching it after the key event so the script has a chance to cancel it
-        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-        match key {
-            Key::Space if !prevented && state == KeyState::Released => {
-                let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(target);
-                maybe_elem.map(|el| el.as_maybe_activatable().map(|a| a.synthetic_click_activation(ctrl, alt, shift, meta)));
-            }
-            Key::Enter if !prevented && state == KeyState::Released => {
-                let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(target);
-                maybe_elem.map(|el| el.as_maybe_activatable().map(|a| a.implicit_submission(ctrl, alt, shift, meta)));
-            }
-            _ => ()
         }
 
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::KeyEvent);

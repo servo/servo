@@ -15,7 +15,8 @@ use gfx::paint_task::{PaintChan, PaintTask};
 use gfx::font_cache_task::FontCacheTask;
 use layers::geometry::DevicePixel;
 use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
-use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType, MozBrowserEvent};
+use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
+use msg::constellation_msg::{IFrameEvent, MozBrowserEvent};
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
 use net::storage_task::StorageTask;
@@ -255,6 +256,14 @@ impl Pipeline {
         let event = ConstellationControlMsg::MozBrowserEventMsg(self.id,
                                                                 subpage_id,
                                                                 event);
+        script_channel.send(event).unwrap();
+    }
+
+    pub fn trigger_iframe_event(&self,
+                                event: IFrameEvent) {
+        let ScriptControlChan(ref script_channel) = self.script_chan;
+        let event = ConstellationControlMsg::IFrameEventMsg(self.id,
+                                                            event);
         script_channel.send(event).unwrap();
     }
 }

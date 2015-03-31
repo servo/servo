@@ -21,7 +21,7 @@ use devtools_traits::DevtoolsControlChan;
 use libc::c_void;
 use msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeData};
 use msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
-use msg::constellation_msg::{MozBrowserEvent, PipelineExitType};
+use msg::constellation_msg::{IFrameEvent, MozBrowserEvent, PipelineExitType};
 use msg::compositor_msg::ScriptListener;
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
@@ -76,6 +76,10 @@ pub enum ConstellationControlMsg {
     MozBrowserEventMsg(PipelineId, SubpageId, MozBrowserEvent),
     /// Updates the current subpage id of a given iframe
     UpdateSubpageId(PipelineId, SubpageId, SubpageId),
+    /// Dispatch a DOM event to a given iframe.
+    IFrameEventMsg(PipelineId, IFrameEvent),
+    /// Set an iframe to be focused. Used when an element in an iframe gains focus.
+    FocusIFrameMsg(PipelineId, SubpageId),
 }
 
 unsafe impl Send for ConstellationControlMsg {
