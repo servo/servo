@@ -54,5 +54,9 @@ impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
     fn UserAgent(self) -> DOMString {
         navigatorinfo::UserAgent()
     }
+
+    fn AppVersion(self) -> DOMString {
+        navigatorinfo::AppVersion()
+    }
 }
 
