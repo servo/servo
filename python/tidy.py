@@ -13,7 +13,7 @@ import os
 import fnmatch
 from licenseck import licenses
 
-directories_to_check = ["ports/gonk", "components"]
+directories_to_check = ["ports", "components"]
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py"]
 
 ignored_files = [
@@ -27,6 +27,7 @@ ignored_files = [
     "components/servo/target/*",
     "ports/gonk/target/*",
     "ports/gonk/src/native_window_glue.cpp",
+    "ports/cef/*",
 
     # MIT license
     "components/util/deque/mod.rs",
