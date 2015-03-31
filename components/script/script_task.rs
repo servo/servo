@@ -498,7 +498,7 @@ impl ScriptTask {
     }
 
     // Return the root page in the frame tree. Panics if it doesn't exist.
-    fn root_page(&self) -> Rc<Page> {
+    pub fn root_page(&self) -> Rc<Page> {
         self.page.borrow().as_ref().unwrap().clone()
     }
 

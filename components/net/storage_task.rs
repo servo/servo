@@ -30,10 +30,10 @@ pub enum StorageTaskMsg {
 
     /// sets the value of the given key in the associated storage data
     /// TODO throw QuotaExceededError in case of error
-    SetItem(Sender<bool>, Url, StorageType, DOMString, DOMString),
+    SetItem(Sender<(bool, Option<DOMString>)>, Url, StorageType, DOMString, DOMString),
 
     /// removes the key/value pair for the given key in the associated storage data
-    RemoveItem(Sender<bool>, Url, StorageType, DOMString),
+    RemoveItem(Sender<Option<DOMString>>, Url, StorageType, DOMString),
 
     /// clears the associated storage data by removing all the key/value pairs
     Clear(Sender<bool>, Url, StorageType),
@@ -133,23 +133,25 @@ impl StorageManager {
                     .map(|key| key.clone())).unwrap();
     }
 
-    fn set_item(&mut self, sender: Sender<bool>, url: Url, storage_type: StorageType, name: DOMString, value: DOMString) {
+    /// Sends Some(old_value) in case there was a previous value with the same key name but with different
+    /// value name, otherwise sends None
+    fn set_item(&mut self, sender: Sender<(bool, Option<DOMString>)>, url: Url, storage_type: StorageType, name: DOMString, value: DOMString) {
         let origin = self.get_origin_as_string(url);
         let data = self.select_data_mut(storage_type);
         if !data.contains_key(&origin) {
             data.insert(origin.clone(), BTreeMap::new());
         }
 
-        let updated = data.get_mut(&origin).map(|entry| {
-            if entry.get(&origin).map_or(true, |item| *item != value) {
-                entry.insert(name.clone(), value.clone());
-                true
-            } else {
-                false
-            }
+        let (changed, old_value) = data.get_mut(&origin).map(|entry| {
+            entry.insert(name, value.clone()).map_or(
+                (true, None),
+                |old| if old == value {
+                    (false, None)
+                } else {
+                    (true, Some(old))
+                })
         }).unwrap();
-
-        sender.send(updated).unwrap();
+        sender.send((changed, old_value)).unwrap();
     }
 
     fn get_item(&self, sender: Sender<Option<DOMString>>, url: Url, storage_type: StorageType, name: DOMString) {
@@ -160,11 +162,14 @@ impl StorageManager {
                     .map(|value| value.to_string())).unwrap();
     }
 
-    fn remove_item(&mut self, sender: Sender<bool>, url: Url, storage_type: StorageType, name: DOMString) {
+    /// Sends Some(old_value) in case there was a previous value with the key name, otherwise sends None
+    fn remove_item(&mut self, sender: Sender<Option<DOMString>>, url: Url, storage_type: StorageType, name: DOMString) {
         let origin = self.get_origin_as_string(url);
         let data = self.select_data_mut(storage_type);
-        sender.send(data.get_mut(&origin)
-                    .map_or(false, |entry| entry.remove(&name).is_some())).unwrap();
+        let old_value = data.get_mut(&origin).map(|entry| {
+            entry.remove(&name)
+        }).unwrap();
+        sender.send(old_value).unwrap();
     }
 
     fn clear(&mut self, sender: Sender<bool>, url: Url, storage_type: StorageType) {
