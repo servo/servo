@@ -31,6 +31,7 @@ pub struct Pipeline {
     pub id: PipelineId,
     pub parent_info: Option<(PipelineId, SubpageId)>,
     pub script_chan: ScriptControlChan,
+    /// A channel to layout, for performing reflows and shutdown.
     pub layout_chan: LayoutControlChan,
     pub paint_chan: PaintChan,
     pub layout_shutdown_port: Receiver<()>,
@@ -40,6 +41,9 @@ pub struct Pipeline {
     /// The title of the most recently-loaded page.
     pub title: Option<String>,
     pub rect: Option<TypedRect<PagePx, f32>>,
+    /// Whether this pipeline is currently running animations. Pipelines that are running
+    /// animations cause composites to be continually scheduled.
+    pub running_animations: bool,
     pub children: Vec<FrameId>,
 }
 
@@ -113,12 +117,14 @@ impl Pipeline {
                 ScriptControlChan(script_chan)
             }
             Some(script_chan) => {
-                let (containing_pipeline_id, subpage_id) = parent_info.expect("script_pipeline != None but subpage_id == None");
+                let (containing_pipeline_id, subpage_id) =
+                    parent_info.expect("script_pipeline != None but subpage_id == None");
                 let new_layout_info = NewLayoutInfo {
                     containing_pipeline_id: containing_pipeline_id,
                     new_pipeline_id: id,
                     subpage_id: subpage_id,
-                    layout_chan: ScriptTaskFactory::clone_layout_channel(None::<&mut STF>, &layout_pair),
+                    layout_chan: ScriptTaskFactory::clone_layout_channel(None::<&mut STF>,
+                                                                         &layout_pair),
                     load_data: load_data.clone(),
                 };
 
@@ -186,6 +192,7 @@ impl Pipeline {
             title: None,
             children: vec!(),
             rect: rect,
+            running_animations: false,
         }
     }
 

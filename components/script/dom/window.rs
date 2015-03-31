@@ -27,7 +27,7 @@ use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
 use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflow, Msg};
-use layout_interface::{ContentBoxResponse, ContentBoxesResponse};
+use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ScriptReflow};
 use page::Page;
 use script_task::{TimerSource, ScriptChan};
 use script_task::ScriptMsg;
@@ -564,17 +564,19 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         }
 
         // Send new document and relevant styles to layout.
-        let reflow = box Reflow {
+        let reflow = box ScriptReflow {
+            reflow_info: Reflow {
+                goal: goal,
+                url: self.get_url(),
+                iframe: self.parent_info.is_some(),
+                page_clip_rect: self.page_clip_rect.get(),
+            },
             document_root: root.to_trusted_node_address(),
-            url: self.get_url(),
-            iframe: self.parent_info.is_some(),
-            goal: goal,
             window_size: window_size,
             script_chan: self.control_chan.clone(),
             script_join_chan: join_chan,
             id: last_reflow_id.get(),
             query_type: query_type,
-            page_clip_rect: self.page_clip_rect.get(),
         };
 
         let LayoutChan(ref chan) = self.layout_chan;

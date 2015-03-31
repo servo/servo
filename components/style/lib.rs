@@ -50,6 +50,7 @@ pub mod node;
 pub mod media_queries;
 pub mod font_face;
 pub mod legacy;
+pub mod animation;
 
 macro_rules! reexport_computed_values {
     ( $( $name: ident )+ ) => {

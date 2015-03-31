@@ -62,6 +62,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "clock_ticks"
+version = "0.0.4"
+source = "git+https://github.com/tomaka/clock_ticks#6a3005279bedc406b13eea09ff92447f05ca0de6"
+
+[[package]]
 name = "compositing"
 version = "0.0.1"
 dependencies = [
@@ -433,6 +438,7 @@ dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
+ "clock_ticks 0.0.4 (git+https://github.com/tomaka/clock_ticks)",
  "cssparser 0.2.0 (git+https://github.com/servo/rust-cssparser)",
  "encoding 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",

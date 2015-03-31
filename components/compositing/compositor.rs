@@ -13,32 +13,32 @@ use windowing::{MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg}
 
 use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
-use geom::size::{Size2D, TypedSize2D};
 use geom::scale_factor::ScaleFactor;
+use geom::size::{Size2D, TypedSize2D};
 use gfx::color;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::PaintRequest;
-use layers::geometry::{DevicePixel, LayerPixel};
-use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
-use layers::rendergl;
-use layers::rendergl::RenderContext;
-use layers::scene::Scene;
-use png;
 use gleam::gl::types::{GLint, GLsizei};
 use gleam::gl;
-use script_traits::{ConstellationControlMsg, ScriptControlChan};
+use layers::geometry::{DevicePixel, LayerPixel};
+use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
+use layers::rendergl::RenderContext;
+use layers::rendergl;
+use layers::scene::Scene;
 use msg::compositor_msg::{Epoch, LayerId};
 use msg::compositor_msg::{ReadyState, PaintState, ScrollPolicy};
-use msg::constellation_msg::{ConstellationChan, NavigationDirection};
 use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::{ConstellationChan, NavigationDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineId, WindowSizeData};
+use png;
 use profile::mem;
 use profile::time::{self, ProfilerCategory, profile};
+use script_traits::{ConstellationControlMsg, ScriptControlChan};
 use std::cmp;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::mem::replace;
+use std::mem as std_mem;
 use std::num::Float;
 use std::rc::Rc;
 use std::slice::bytes::copy_memory;
@@ -164,6 +164,9 @@ struct PipelineDetails {
 
     /// The status of this pipeline's PaintTask.
     paint_state: PaintState,
+
+    /// Whether animations are running.
+    animations_running: bool,
 }
 
 impl PipelineDetails {
@@ -172,6 +175,7 @@ impl PipelineDetails {
             pipeline: None,
             ready_state: ReadyState::Blank,
             paint_state: PaintState::Painting,
+            animations_running: false,
         }
     }
 }
@@ -272,6 +276,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.change_paint_state(pipeline_id, paint_state);
             }
 
+            (Msg::ChangeRunningAnimationsState(pipeline_id, running_animations),
+             ShutdownState::NotShuttingDown) => {
+                self.change_running_animations_state(pipeline_id, running_animations);
+            }
+
             (Msg::ChangePageTitle(pipeline_id, title), ShutdownState::NotShuttingDown) => {
                 self.change_page_title(pipeline_id, title);
             }
@@ -311,7 +320,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.set_layer_rect(pipeline_id, layer_id, &rect);
             }
 
-            (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies), ShutdownState::NotShuttingDown) => {
+            (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies),
+             ShutdownState::NotShuttingDown) => {
                 for (layer_id, new_layer_buffer_set) in replies.into_iter() {
                     self.assign_painted_buffers(pipeline_id, layer_id, new_layer_buffer_set, epoch);
                 }
@@ -397,6 +407,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn change_paint_state(&mut self, pipeline_id: PipelineId, paint_state: PaintState) {
         self.get_or_create_pipeline_details(pipeline_id).paint_state = paint_state;
         self.window.set_paint_state(paint_state);
+    }
+
+    /// Sets or unsets the animations-running flag for the given pipeline, and schedules a
+    /// recomposite if necessary.
+    fn change_running_animations_state(&mut self,
+                                       pipeline_id: PipelineId,
+                                       animations_running: bool) {
+        self.get_or_create_pipeline_details(pipeline_id).animations_running = animations_running;
+
+        if animations_running {
+            self.composite_if_necessary();
+        }
     }
 
     pub fn get_or_create_pipeline_details<'a>(&'a mut self,
@@ -867,15 +889,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn process_pending_scroll_events(&mut self) {
         let had_scroll_events = self.pending_scroll_events.len() > 0;
-        for scroll_event in replace(&mut self.pending_scroll_events, Vec::new()).into_iter() {
+        for scroll_event in std_mem::replace(&mut self.pending_scroll_events,
+                                             Vec::new()).into_iter() {
             let delta = scroll_event.delta / self.scene.scale;
             let cursor = scroll_event.cursor.as_f32() / self.scene.scale;
 
-            match self.scene.root {
-                Some(ref mut layer) => {
-                    layer.handle_scroll_event(delta, cursor);
-                }
-                None => {}
+            if let Some(ref mut layer) = self.scene.root {
+                layer.handle_scroll_event(delta, cursor);
             }
 
             self.start_scrolling_timer_if_necessary();
@@ -884,6 +904,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         if had_scroll_events {
             self.send_viewport_rects_for_all_layers();
+        }
+    }
+
+    /// If there are any animations running, dispatches appropriate messages to the constellation.
+    fn process_animations(&mut self) {
+        for (pipeline_id, pipeline_details) in self.pipeline_details.iter() {
+            if !pipeline_details.animations_running {
+                continue
+            }
+            self.constellation_chan.0.send(ConstellationMsg::TickAnimation(*pipeline_id)).unwrap();
         }
     }
 
@@ -1086,7 +1116,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let mut framebuffer_ids = vec!();
         let mut texture_ids = vec!();
-        let (width, height) = (self.window_size.width.get() as usize, self.window_size.height.get() as usize);
+        let (width, height) =
+            (self.window_size.width.get() as usize, self.window_size.height.get() as usize);
 
         if output_image {
             framebuffer_ids = gl::gen_framebuffers(1);
@@ -1172,6 +1203,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         self.composition_request = CompositionRequest::NoCompositingNecessary;
         self.process_pending_scroll_events();
+        self.process_animations();
     }
 
     fn composite_if_necessary(&mut self) {
