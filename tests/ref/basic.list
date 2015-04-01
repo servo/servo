@@ -102,6 +102,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == floated_generated_content_a.html floated_generated_content_b.html
 == floated_list_item_a.html floated_list_item_ref.html
 == floated_table_with_margin_a.html floated_table_with_margin_ref.html
+== font_advance.html font_advance_ref.html
 == font_size.html font_size_ref.html
 == font_style.html font_style_ref.html
 == height_compute_reset.html height_compute.html
