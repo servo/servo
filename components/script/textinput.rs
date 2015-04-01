@@ -127,7 +127,7 @@ impl TextInput {
 
     /// Insert a string at the current editing point
     fn insert_string(&mut self, s: &str) {
-        // it looks like this could be made performant by avoiding some redundant 
+        // it looks like this could be made performant by avoiding some redundant
         //  selection-related checks, but use the simple implementation for now
         for ch in s.chars() {
             self.insert_char(ch);
