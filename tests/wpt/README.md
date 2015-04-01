@@ -1,46 +1,54 @@
-This folder contains the web platform tests and the code required to integrate
-them with Servo.
+This folder contains the web platform tests, CSS WG tests, and the
+code required to integrate them with Servo.
 
 Contents
 ========
 
 In particular, this folder contains:
 
-* `config.ini`: some configuration for the wpt libraries;
-* `include.ini`: the subset of tests we currently run;
-* `run.py` and `run.sh`: glue code to run the tests in Servo;
-* `metadata`: expected failures for the tests we run;
-* `web-platform-tests`: submodule pointer to the actual tests.
+* `config.ini`: some configuration for the web-platform-tests.
+* `include.ini`: the subset of web-platform-tests we currently run.
+* `config_css.ini`: some configuration for the CSSWG tests.
+* `include_css.ini`: the subset of the CSSWG tests we currently run.
+* `run_wpt.py` glue code to run the web-platform-tests in Servo.
+* `run_css.py` glue code to run the CSSWG tests in Servo.
+* `run.py` common code used by `run_wpt.py` and `run_css.py`.
+* `web-platform-tests`: copy of the web-platform-tests.
+* `metadata`: expected failures for the web-platform-tests we run.
+* `css-tests` copy of the built CSSWG tests.
+* `metadata-css` expected failures for the CSSWG tests we run.
 
 Running the tests
 =================
 
-The simplest way to run the tests in Servo is `./mach test-wpt` in the root
-directory. This will run the subset of JavaScript tests defined in
-`include.ini` and log the output to stdout.
+The simplest way to run the web-platform-tests in Servo is `./mach
+test-wpt` in the root directory. This will run the subset of
+JavaScript tests defined in `include.ini` and log the output to
+stdout.
 
-Some of the arguments of `./mach test-wpt` include:
+Similarly the CSSWG tests can be run using `./mach test-css`.
 
-* `--include`: specifies which test(s) to run.
-  For example, `--include=/dom` runs all the DOM tests, `--include=/dom/errors`
-  runs all the DOM error tests and
-  `--include=/dom/errors/DOMException-constants.html` runs one specific test. Paths should be relative to the `web-platform-tests` submodule.
-  (Note that this overrides `include.ini` completely.)
-* `--processes`: specifies the number of parallel processes to use (default 1).
-  When this argument is passed, the runner will spawn multiple instances of
-  Servo simultaneously to run multiple tests in parallel for more efficiency
-  (especially on multi-core processors).
+A subset of tests may be run by providing positional arguments to the
+mach command, either as filesystem paths or as test urls e.g.
+
+    ./mach test-wpt tests/wpt/web-platform-tests/dom/historical.html
+
+to run the dom/historical.html test, or
+
+    ./mach test-wpt dom
+
+to run all the DOM tests.
+
+There are also a large number of command line options accepted by the
+test harness; these are documented by running with `--help`.
 
 Running the tests without mach
 ------------------------------
 
-When avoiding `mach` for some reason, one can run `run.py` directly. However,
-this requires in the first place that the virtualenv has been set up. To set up
-the virtualenv and run the tests run the following from the root directory:
-
-    bash tests/wpt/run.sh
-
-You can substitute `bash` for another shell which supports `source`.
+When avoiding `mach` for some reason, one can run either `run_wpt.py`
+ir `run_css.py` directly. However, this requires that all the
+dependencies for `wptrunner` are avaliable in the current python
+environment.
 
 Running the tests manually
 --------------------------
@@ -73,28 +81,47 @@ This first requires saving the raw, unformatted log from a test run, for
 example by running `./mach test-wpt --log-raw /tmp/servo.log`. Once the
 log is saved, run from the root directory:
 
-    source tests/wpt/_virtualenv/bin/activate
-    tests/wpt/_virtualenv/bin/wptupdate \
-      --ignore-existing \
-      --config tests/wpt/config.ini \
-      /tmp/servo.log
+    ./mach update-wpt /tmp/servo.log
 
-This will update the `.ini` files under the `metadata` folder; commit those
-changes along with the code changes that require them.
+For CSSWG tests a similar prcedure works, with `./mach test-css` and
+`./mach update-css`.
+
+Editing tests
+=============
+
+web-platform-tests may be edited in-place and the changes committed to
+the servo tree. These changes will be upstreamed when the tests are
+next synced.
+
+For CSS tests this kind of in-place update is not possible because the
+tests have a build step before they are pulled into the servo
+repository. Therefore corrections must be submitted directly to the
+source repository.
 
 Updating the upstream tests
 ===========================
 
-In order to update the upstream tests, fetch the latest commits on the `master`
-branch of the upstream `git@github.com:w3c/web-platform-tests.git` repository.
-and create a new branch `servo_[current date]` with those commits. Then
-cherry-pick our changes to the `resources` submodule; those should be the
-latest commits on the branch currently used by Servo. If the `resources`
-submodule has been updated upstream, this will also require cherry-picking the
-changes there. Finally, push the `servo_[current date]` to our fork at
-`git@github.com:servo/web-platform-tests.git` and create a pull request to the
-Servo repository with:
-* the submodule pointer update;
-* an update to `MANIFEST.json` generated by running `tools/scripts/manifest.py`
-  in web-platform-tests;
-* the updated test expectations.
+In order to update the tests from upstream use the same mach update
+commands. e.g. to update the web-platform-tests:
+
+    ./mach update-wpt --sync
+    ./mach test-wpt --log-raw=update.log
+    ./mach update-wpt update.log
+
+This should create two commits in your servo repository with the
+updated tests and updated metadata. The same process works for the
+CSSWG tests, using the `update-css` and `test-css` mach commands.
+
+Updating the test harness
+=========================
+
+The easiest way to update the test harness is using git:
+
+    cd tests/wpt/harness
+    git init .
+    git remote add origin https://github.com/w3c/wptrunner
+    git fetch origin
+    git checkout master origin/master
+    cd ../../..
+
+At this point you should commit the updated files in the *servo* git repository.
