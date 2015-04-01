@@ -7,19 +7,24 @@ use font::SpecifiedFontStyle;
 use platform::font_context::FontContextHandle;
 use style::computed_values::{font_style, font_variant};
 
+use font::FontHandleMethods;
 use font_cache_task::FontCacheTask;
 use font_template::FontTemplateDescriptor;
-use platform::font_template::FontTemplateData;
-use font::FontHandleMethods;
 use platform::font::FontHandle;
-use util::cache::HashCache;
-use util::smallvec::{SmallVec, SmallVec8};
-use util::geometry::Au;
+use platform::font_template::FontTemplateData;
 use util::arc_ptr_eq;
+use util::cache::HashCache;
+use util::fnv::FnvHasher;
+use util::geometry::Au;
+use util::smallvec::{SmallVec, SmallVec8};
 
-use std::borrow::ToOwned;
-use std::rc::Rc;
+use std::borrow::{self, ToOwned};
 use std::cell::RefCell;
+use std::collections::HashMap;
+use std::collections::hash_state::DefaultState;
+use std::default::Default;
+use std::hash::{Hash, Hasher};
+use std::rc::Rc;
 use std::sync::Arc;
 
 use azure::AzFloat;
@@ -76,8 +81,8 @@ pub struct FontContext {
     /// per frame. TODO: Make this weak when incremental redraw is done.
     paint_font_cache: Vec<PaintFontCacheEntry>,
 
-    last_style: Option<Arc<SpecifiedFontStyle>>,
-    last_fontgroup: Option<Rc<FontGroup>>,
+    layout_font_group_cache:
+        HashMap<LayoutFontGroupCacheKey,Rc<FontGroup>,DefaultState<FnvHasher>>,
 }
 
 impl FontContext {
@@ -89,8 +94,7 @@ impl FontContext {
             layout_font_cache: vec!(),
             fallback_font_cache: vec!(),
             paint_font_cache: vec!(),
-            last_style: None,
-            last_fontgroup: None,
+            layout_font_group_cache: HashMap::with_hash_state(Default::default()),
         }
     }
 
@@ -132,13 +136,20 @@ impl FontContext {
     /// this context.
     pub fn get_layout_font_group_for_style(&mut self, style: Arc<SpecifiedFontStyle>)
                                             -> Rc<FontGroup> {
-        let matches = match self.last_style {
-            Some(ref last_style) => arc_ptr_eq(&style, last_style),
-            None => false,
-        };
-        if matches {
-            return self.last_fontgroup.as_ref().unwrap().clone();
+        let address = &*style as *const SpecifiedFontStyle as usize;
+        if let Some(ref cached_font_group) = self.layout_font_group_cache.get(&address) {
+            return (*cached_font_group).clone()
         }
+
+        let layout_font_group_cache_key = LayoutFontGroupCacheKey {
+            pointer: style.clone(),
+            size: style.font_size,
+            address: address,
+        };
+        if let Some(ref cached_font_group) =
+            self.layout_font_group_cache.get(&layout_font_group_cache_key) {
+                return (*cached_font_group).clone()
+            }
 
         // TODO: The font context holds a strong ref to the cached fonts
         // so they will never be released. Find out a good time to drop them.
@@ -147,6 +158,7 @@ impl FontContext {
                                                style.font_stretch,
                                                style.font_style == font_style::T::italic ||
                                                 style.font_style == font_style::T::oblique);
+
         let mut fonts = SmallVec8::new();
 
         for family in style.font_family.iter() {
@@ -160,7 +172,7 @@ impl FontContext {
                             break;
                         }
                         Some(ref cached_font_ref) => {
-                            let cached_font = cached_font_ref.borrow();
+                            let cached_font = (*cached_font_ref).borrow();
                             if cached_font.descriptor == desc &&
                                cached_font.requested_pt_size == style.font_size &&
                                cached_font.variant == style.font_variant {
@@ -243,8 +255,7 @@ impl FontContext {
         }
 
         let font_group = Rc::new(FontGroup::new(fonts));
-        self.last_style = Some(style);
-        self.last_fontgroup = Some(font_group.clone());
+        self.layout_font_group_cache.insert(layout_font_group_cache_key, font_group.clone());
         font_group
     }
 
@@ -275,3 +286,34 @@ impl FontContext {
         self.font_cache_task.clone()
     }
 }
+
+struct LayoutFontGroupCacheKey {
+    pointer: Arc<SpecifiedFontStyle>,
+    size: Au,
+    address: usize,
+}
+
+impl PartialEq for LayoutFontGroupCacheKey {
+    fn eq(&self, other: &LayoutFontGroupCacheKey) -> bool {
+        self.pointer.font_family == other.pointer.font_family &&
+            self.pointer.font_stretch == other.pointer.font_stretch &&
+            self.pointer.font_style == other.pointer.font_style &&
+            self.pointer.font_weight as u16 == other.pointer.font_weight as u16 &&
+            self.size == other.size
+    }
+}
+
+impl Eq for LayoutFontGroupCacheKey {}
+
+impl Hash for LayoutFontGroupCacheKey {
+    fn hash<H>(&self, hasher: &mut H) where H: Hasher {
+        self.pointer.hash.hash(hasher)
+    }
+}
+
+impl borrow::Borrow<usize> for LayoutFontGroupCacheKey {
+    fn borrow(&self) -> &usize {
+        &self.address
+    }
+}
+
