@@ -55,7 +55,6 @@ extern crate uuid;
 extern crate string_cache;
 #[cfg(target_os="linux")]
 extern crate xlib;
-#[cfg(target_os="linux")]
 extern crate clipboard;
 
 pub mod cors;
