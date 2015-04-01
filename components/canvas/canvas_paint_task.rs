@@ -16,6 +16,7 @@ use util::vec::byte_swap;
 
 use cssparser::RGBA;
 use std::borrow::ToOwned;
+use std::num::Float;
 use std::sync::mpsc::{channel, Sender};
 
 #[derive(Clone)]
@@ -34,6 +35,7 @@ pub enum CanvasMsg {
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
     BezierCurveTo(Point2D<f32>, Point2D<f32>, Point2D<f32>),
     Arc(Point2D<f32>, f32, f32, f32, bool),
+    ArcTo(Point2D<f32>, Point2D<f32>, f32),
     SetFillStyle(FillOrStrokeStyle),
     SetStrokeStyle(FillOrStrokeStyle),
     SetTransform(Matrix2D<f32>),
@@ -230,6 +232,9 @@ impl<'a> CanvasPaintTask<'a> {
                     CanvasMsg::Arc(ref center, radius, start, end, ccw) => {
                         painter.arc(center, radius, start, end, ccw)
                     }
+                    CanvasMsg::ArcTo(ref cp1, ref cp2, radius) => {
+                        painter.arc_to(cp1, cp2, radius)
+                    }
                     CanvasMsg::SetFillStyle(style) => painter.set_fill_style(style),
                     CanvasMsg::SetStrokeStyle(style) => painter.set_stroke_style(style),
                     CanvasMsg::SetTransform(ref matrix) => painter.set_transform(matrix),
@@ -342,6 +347,61 @@ impl<'a> CanvasPaintTask<'a> {
            end_angle: AzFloat,
            ccw: bool) {
         self.path_builder.arc(*center, radius, start_angle, end_angle, ccw)
+    }
+
+    fn arc_to(&self,
+              cp1: &Point2D<AzFloat>,
+              cp2: &Point2D<AzFloat>,
+              radius: AzFloat) {
+        let cp0 = self.path_builder.get_current_point();
+        let cp1 = *cp1;
+        let cp2 = *cp2;
+
+        if (cp0.x == cp1.x && cp0.y == cp1.y) || cp1 == cp2 || radius == 0.0 {
+            self.line_to(&cp1);
+            return;
+        }
+
+        // if all three control points lie on a single straight line,
+        // connect the first two by a straight line
+        let direction = (cp2.x - cp1.x) * (cp0.y - cp1.y) + (cp2.y - cp1.y) * (cp1.x - cp0.x);
+        if direction == 0.0 {
+            self.line_to(&cp1);
+            return;
+        }
+
+        // otherwise, draw the Arc
+        let a2 = (cp0.x - cp1.x).powi(2) + (cp0.y - cp1.y).powi(2);
+        let b2 = (cp1.x - cp2.x).powi(2) + (cp1.y - cp2.y).powi(2);
+        let d = {
+            let c2 = (cp0.x - cp2.x).powi(2) + (cp0.y - cp2.y).powi(2);
+            let cosx = (a2 + b2 - c2) / (2.0 * (a2 * b2).sqrt());
+            let sinx = (1.0 - cosx.powi(2)).sqrt();
+            radius / ((1.0 - cosx) / sinx)
+        };
+
+        // first tangent point
+        let anx = (cp1.x - cp0.x) / a2.sqrt();
+        let any = (cp1.y - cp0.y) / a2.sqrt();
+        let tp1 = Point2D::<AzFloat>(cp1.x - anx * d, cp1.y - any * d);
+
+        // second tangent point
+        let bnx = (cp1.x - cp2.x) / b2.sqrt();
+        let bny = (cp1.y - cp2.y) / b2.sqrt();
+        let tp2 = Point2D::<AzFloat>(cp1.x - bnx * d, cp1.y - bny * d);
+
+        // arc center and angles
+        let anticlockwise = direction < 0.0;
+        let cx = tp1.x + any * radius * if anticlockwise { 1.0 } else { -1.0 };
+        let cy = tp1.y - anx * radius * if anticlockwise { 1.0 } else { -1.0 };
+        let angle_start = (tp1.y - cy).atan2(tp1.x - cx);
+        let angle_end = (tp2.y - cy).atan2(tp2.x - cx);
+
+        self.line_to(&tp1);
+        if [cx, cy, angle_start, angle_end].iter().all(|x| x.is_finite()) {
+            self.arc(&Point2D::<AzFloat>(cx, cy), radius,
+                     angle_start, angle_end, anticlockwise);
+        }
     }
 
     fn set_fill_style(&mut self, style: FillOrStrokeStyle) {
