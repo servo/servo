@@ -317,6 +317,7 @@ pub mod treewalker;
 pub mod uievent;
 pub mod urlhelper;
 pub mod urlsearchparams;
+pub mod userscripts;
 pub mod validitystate;
 pub mod virtualmethods;
 pub mod websocket;
