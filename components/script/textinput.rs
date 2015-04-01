@@ -31,6 +31,8 @@ struct TextPoint {
     index: usize,
 }
 
+no_jsmanaged_fields!(ClipboardContext);
+
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
 #[jstraceable]
 pub struct TextInput {
@@ -302,7 +304,7 @@ impl TextInput {
                 KeyReaction::Nothing
             },
             "v" if is_control_key(event) => {
-                let contents = self.clipboard_ctx.get_contents();
+                let contents = self.clipboard_ctx.get_contents().unwrap();
                 self.insert_string(contents.as_slice());
                 KeyReaction::DispatchInput
             },

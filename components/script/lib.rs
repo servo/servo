@@ -55,6 +55,8 @@ extern crate uuid;
 extern crate string_cache;
 #[cfg(target_os="linux")]
 extern crate xlib;
+#[cfg(target_os="linux")]
+extern crate clipboard;
 
 pub mod cors;
 
@@ -67,7 +69,6 @@ pub mod layout_interface;
 pub mod page;
 pub mod script_task;
 mod timers;
-pub mod clipboard;
 pub mod textinput;
 mod devtools;
 
