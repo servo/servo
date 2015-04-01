@@ -19,7 +19,7 @@ use css::node_style::StyledNode;
 use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataAccess, LayoutDataWrapper};
 use floats::FloatKind;
 use flow::{Descendants, AbsDescendants};
-use flow::{Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
+use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow;
 use flow_ref::FlowRef;
@@ -85,6 +85,8 @@ impl ConstructionResult {
             return mem::replace(self, ConstructionResult::None)
         }
 
+        // FIXME(pcwalton): Stop doing this with inline fragments. Cloning fragments is very
+        // inefficient!
         (*self).clone()
     }
 
@@ -1164,7 +1166,30 @@ impl<'a> FlowConstructor<'a> {
                 // The node's flow is of the same type and has the same set of children and can
                 // therefore be repaired by simply propagating damage and style to the flow.
                 flow::mut_base(&mut *flow).restyle_damage.insert(node.restyle_damage());
-                flow.repair_style(node.style());
+                flow.repair_style_and_bubble_inline_sizes(node.style());
+                true
+            }
+            ConstructionResult::ConstructionItem(ConstructionItem::InlineFragments(
+                    mut inline_fragments_construction_result)) => {
+                if !inline_fragments_construction_result.splits.is_empty() {
+                    return false
+                }
+
+                let damage = node.restyle_damage();
+                for fragment in inline_fragments_construction_result.fragments.iter_mut() {
+                    match fragment.specific {
+                        SpecificFragmentInfo::InlineBlock(ref mut inline_block_fragment) => {
+                            flow::mut_base(&mut *inline_block_fragment.flow_ref).restyle_damage
+                                                                                .insert(damage);
+                            // FIXME(pcwalton): Fragment restyle damage too?
+                            inline_block_fragment.flow_ref.repair_style_and_bubble_inline_sizes(
+                                node.style());
+                        }
+                        _ => {
+                            return false
+                        }
+                    }
+                }
                 true
             }
             ConstructionResult::ConstructionItem(_) => {
