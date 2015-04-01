@@ -12,7 +12,6 @@ use font_cache_task::FontCacheTask;
 use font_template::FontTemplateDescriptor;
 use platform::font::FontHandle;
 use platform::font_template::FontTemplateData;
-use util::arc_ptr_eq;
 use util::cache::HashCache;
 use util::fnv::FnvHasher;
 use util::geometry::Au;

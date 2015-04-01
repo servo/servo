@@ -1460,7 +1460,6 @@ pub mod longhands {
 
     <%self:longhand name="font-family">
         use self::computed_value::FontFamily;
-        use std::borrow::ToOwned;
         use string_cache::Atom;
         use values::computed::ComputedValueAsSpecified;
 
