@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Token, Parser, DeclarationListParser, AtRuleParser, DeclarationParser};
-use std::ascii::AsciiExt;
-use stylesheets::CSSRule;
-use properties::longhands::font_family::parse_one_family;
 use computed_values::font_family::FontFamily;
+use cssparser::{Token, Parser, DeclarationListParser, AtRuleParser, DeclarationParser};
 use media_queries::Device;
-use url::{Url, UrlParser};
 use parser::{ParserContext, log_css_error};
+use properties::longhands::font_family::parse_one_family;
+use std::ascii::AsciiExt;
+use string_cache::Atom;
+use stylesheets::CSSRule;
+use url::{Url, UrlParser};
 
-
-pub fn iter_font_face_rules_inner<F>(rules: &[CSSRule], device: &Device,
-                                     callback: &F) where F: Fn(&str, &Source) {
+pub fn iter_font_face_rules_inner<F>(rules: &[CSSRule], device: &Device, callback: &F)
+                                     where F: Fn(&Atom, &Source) {
     for rule in rules.iter() {
         match *rule {
             CSSRule::Style(..) |
@@ -34,7 +34,7 @@ pub fn iter_font_face_rules_inner<F>(rules: &[CSSRule], device: &Device,
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Source {
     Url(UrlSource),
-    Local(String),
+    Local(Atom),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -45,10 +45,9 @@ pub struct UrlSource {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct FontFaceRule {
-    pub family: String,
+    pub family: Atom,
     pub sources: Vec<Source>,
 }
-
 
 pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
                              -> Result<FontFaceRule, ()> {
@@ -83,7 +82,7 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
 }
 
 enum FontFaceDescriptorDeclaration {
-    Family(String),
+    Family(Atom),
     Src(Vec<Source>),
 }
 
@@ -106,7 +105,8 @@ impl<'a, 'b> DeclarationParser for FontFaceRuleParser<'a, 'b> {
     fn parse_value(&self, name: &str, input: &mut Parser) -> Result<FontFaceDescriptorDeclaration, ()> {
         match_ignore_ascii_case! { name,
             "font-family" => {
-                Ok(FontFaceDescriptorDeclaration::Family(try!(parse_one_non_generic_family_name(input))))
+                Ok(FontFaceDescriptorDeclaration::Family(try!(
+                            parse_one_non_generic_family_name(input))))
             },
             "src" => {
                 Ok(FontFaceDescriptorDeclaration::Src(try!(input.parse_comma_separated(|input| {
@@ -118,9 +118,9 @@ impl<'a, 'b> DeclarationParser for FontFaceRuleParser<'a, 'b> {
     }
 }
 
-fn parse_one_non_generic_family_name(input: &mut Parser) -> Result<String, ()> {
+fn parse_one_non_generic_family_name(input: &mut Parser) -> Result<Atom, ()> {
     match parse_one_family(input) {
-        Ok(FontFamily::FamilyName(name)) => Ok(name),
+        Ok(FontFamily::FamilyName(name)) => Ok(name.clone()),
         _ => Err(())
     }
 }

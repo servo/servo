@@ -597,7 +597,7 @@ impl LayoutTask {
 
         if mq.evaluate(&rw_data.stylist.device) {
             iter_font_face_rules(&sheet, &rw_data.stylist.device, &|family, src| {
-                self.font_cache_task.add_web_font(family.to_owned(), (*src).clone());
+                self.font_cache_task.add_web_font((*family).clone(), (*src).clone());
             });
             rw_data.stylist.add_stylesheet(sheet);
         }

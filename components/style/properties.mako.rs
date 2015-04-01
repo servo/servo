@@ -8,10 +8,13 @@
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
+use std::default::Default;
 use std::fmt;
 use std::fmt::Debug;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
+use util::fnv::FnvHasher;
 use util::logical_geometry::{WritingMode, LogicalMargin};
 use util::geometry::Au;
 use url::Url;
@@ -1456,18 +1459,20 @@ pub mod longhands {
     ${new_style_struct("Font", is_inherited=True)}
 
     <%self:longhand name="font-family">
-        use std::borrow::ToOwned;
         use self::computed_value::FontFamily;
+        use std::borrow::ToOwned;
+        use string_cache::Atom;
         use values::computed::ComputedValueAsSpecified;
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
         pub mod computed_value {
             use cssparser::ToCss;
+            use string_cache::Atom;
             use text_writer::{self, TextWriter};
 
-            #[derive(PartialEq, Eq, Clone)]
+            #[derive(PartialEq, Eq, Clone, Hash)]
             pub enum FontFamily {
-                FamilyName(String),
+                FamilyName(Atom),
                 // Generic
 //                Serif,
 //                SansSerif,
@@ -1476,16 +1481,17 @@ pub mod longhands {
 //                Monospace,
             }
             impl FontFamily {
+                #[inline]
                 pub fn name(&self) -> &str {
                     match *self {
-                        FontFamily::FamilyName(ref name) => name,
+                        FontFamily::FamilyName(ref name) => name.as_slice(),
                     }
                 }
             }
             impl ToCss for FontFamily {
                 fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
                     match self {
-                        &FontFamily::FamilyName(ref name) => dest.write_str(&**name),
+                        &FontFamily::FamilyName(ref name) => dest.write_str(name.as_slice()),
                     }
                 }
             }
@@ -1506,7 +1512,7 @@ pub mod longhands {
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            vec![FontFamily::FamilyName("serif".to_owned())]
+            vec![FontFamily::FamilyName(Atom::from_slice("serif"))]
         }
         /// <family-name>#
         /// <family-name> = <string> | [ <ident>+ ]
@@ -1516,7 +1522,7 @@ pub mod longhands {
         }
         pub fn parse_one_family(input: &mut Parser) -> Result<FontFamily, ()> {
             if let Ok(value) = input.try(|input| input.expect_string()) {
-                return Ok(FontFamily::FamilyName(value.into_owned()))
+                return Ok(FontFamily::FamilyName(Atom::from_slice(value.as_slice())))
             }
             let first_ident = try!(input.expect_ident());
 //            match_ignore_ascii_case! { first_ident,
@@ -1532,7 +1538,7 @@ pub mod longhands {
                 value.push_str(" ");
                 value.push_str(&ident);
             }
-            Ok(FontFamily::FamilyName(value))
+            Ok(FontFamily::FamilyName(Atom::from_slice(value.as_slice())))
         }
     </%self:longhand>
 
@@ -1592,10 +1598,10 @@ pub mod longhands {
         }
         pub mod computed_value {
             use std::fmt;
-            #[derive(PartialEq, Eq, Copy, Clone)]
+            #[derive(PartialEq, Eq, Copy, Clone, Hash)]
             pub enum T {
                 % for weight in range(100, 901, 100):
-                    Weight${weight},
+                    Weight${weight} = ${weight},
                 % endfor
             }
             impl fmt::Debug for T {
@@ -1608,6 +1614,7 @@ pub mod longhands {
                 }
             }
             impl T {
+                #[inline]
                 pub fn is_bold(self) -> bool {
                     match self {
                         T::Weight900 | T::Weight800 |
@@ -4663,6 +4670,9 @@ pub mod style_structs {
             % for longhand in style_struct.longhands:
                 pub ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,
             % endfor
+            % if style_struct.name == "Font":
+                pub hash: u64,
+            % endif
         }
     % endfor
 }
@@ -4836,6 +4846,9 @@ lazy_static! {
                 % for longhand in style_struct.longhands:
                     ${longhand.ident}: longhands::${longhand.ident}::get_initial_value(),
                 % endfor
+                % if style_struct.name == "Font":
+                    hash: 0,
+                % endif
             }),
         % endfor
         shareable: true,
@@ -4930,6 +4943,11 @@ fn cascade_with_cached_declarations(
                 % endfor
             }
         }
+    }
+
+    if seen.get_font_style() || seen.get_font_weight() || seen.get_font_stretch() ||
+            seen.get_font_family() {
+        compute_font_hash(&mut *style_font.make_unique())
     }
 
     ComputedValues {
@@ -5180,6 +5198,11 @@ pub fn cascade(viewport_size: Size2D<Au>,
         context.root_font_size = context.font_size;
     }
 
+    if seen.get_font_style() || seen.get_font_weight() || seen.get_font_stretch() ||
+            seen.get_font_family() {
+        compute_font_hash(&mut *style_font.make_unique())
+    }
+
     (ComputedValues {
         writing_mode: get_writing_mode(&*style_inheritedbox),
         % for style_struct in STYLE_STRUCTS:
@@ -5297,3 +5320,13 @@ pub fn longhands_from_shorthand(shorthand: &str) -> Option<Vec<String>> {
         _ => None,
     }
 }
+
+/// Corresponds to the fields in `gfx::font_template::FontTemplateDescriptor`.
+fn compute_font_hash(font: &mut style_structs::Font) {
+    let mut hasher: FnvHasher = Default::default();
+    hasher.write_u16(font.font_weight as u16);
+    font.font_stretch.hash(&mut hasher);
+    font.font_family.hash(&mut hasher);
+    font.hash = hasher.finish()
+}
+

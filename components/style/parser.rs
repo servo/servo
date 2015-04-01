@@ -10,7 +10,6 @@ use log;
 
 use stylesheets::Origin;
 
-
 pub struct ParserContext<'a> {
     pub base_url: &'a Url,
     pub selector_context: SelectorParserContext,

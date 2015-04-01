@@ -9,16 +9,17 @@ use platform::font_list::get_last_resort_font_families;
 use platform::font_context::FontContextHandle;
 
 use collections::str::Str;
+use font_template::{FontTemplate, FontTemplateDescriptor};
+use net::resource_task::{ResourceTask, load_whole_resource};
+use platform::font_template::FontTemplateData;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::mpsc::{Sender, Receiver, channel};
-use font_template::{FontTemplate, FontTemplateDescriptor};
-use platform::font_template::FontTemplateData;
-use net::resource_task::{ResourceTask, load_whole_resource};
-use util::task::spawn_named;
-use util::str::LowercaseString;
+use string_cache::Atom;
 use style::font_face::Source;
+use util::str::LowercaseString;
+use util::task::spawn_named;
 
 /// A list of font templates that make up a given font family.
 struct FontFamily {
@@ -77,7 +78,7 @@ impl FontFamily {
 pub enum Command {
     GetFontTemplate(String, FontTemplateDescriptor, Sender<Reply>),
     GetLastResortFontTemplate(FontTemplateDescriptor, Sender<Reply>),
-    AddWebFont(String, Source, Sender<()>),
+    AddWebFont(Atom, Source, Sender<()>),
     Exit(Sender<()>),
 }
 
@@ -315,7 +316,7 @@ impl FontCacheTask {
         }
     }
 
-    pub fn add_web_font(&self, family: String, src: Source) {
+    pub fn add_web_font(&self, family: Atom, src: Source) {
         let (response_chan, response_port) = channel();
         self.chan.send(Command::AddWebFont(family, src, response_chan)).unwrap();
         response_port.recv().unwrap();
