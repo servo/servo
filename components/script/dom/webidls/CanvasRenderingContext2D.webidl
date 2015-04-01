@@ -131,6 +131,26 @@ interface CanvasRenderingContext2D {
 };
 
 [NoInterfaceObject]
+interface CanvasDrawingStyles {
+  // line caps/joins
+  attribute unrestricted double lineWidth; // (default 1)
+  //attribute DOMString lineCap; // "butt", "round", "square" (default "butt")
+  //attribute DOMString lineJoin; // "round", "bevel", "miter" (default "miter")
+  //attribute unrestricted double miterLimit; // (default 10)
+
+  // dashed lines
+  //void setLineDash(sequence<unrestricted double> segments); // default empty
+  //sequence<unrestricted double> getLineDash();
+  //attribute unrestricted double lineDashOffset;
+
+  // text
+  //attribute DOMString font; // (default 10px sans-serif)
+  //attribute DOMString textAlign; // "start", "end", "left", "right", "center" (default: "start")
+  //attribute DOMString textBaseline; // "top", "hanging", "middle", "alphabetic", "ideographic", "bottom" (default: "alphabetic")
+  //attribute DOMString direction; // "ltr", "rtl", "inherit" (default: "inherit")
+};
+
+[NoInterfaceObject]
 interface CanvasPathMethods {
   // shared path API methods
   void closePath();
@@ -159,5 +179,6 @@ interface CanvasPathMethods {
 };
 
 
+CanvasRenderingContext2D implements CanvasDrawingStyles;
 CanvasRenderingContext2D implements CanvasPathMethods;
 

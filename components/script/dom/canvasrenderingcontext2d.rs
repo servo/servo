@@ -41,6 +41,7 @@ pub struct CanvasRenderingContext2D {
     canvas: JS<HTMLCanvasElement>,
     image_smoothing_enabled: Cell<bool>,
     stroke_color: Cell<RGBA>,
+    line_width: Cell<f64>,
     fill_color: Cell<RGBA>,
     transform: Cell<Matrix2D<f32>>,
 }
@@ -61,6 +62,7 @@ impl CanvasRenderingContext2D {
             canvas: JS::from_rooted(canvas),
             image_smoothing_enabled: Cell::new(true),
             stroke_color: Cell::new(black),
+            line_width: Cell::new(1.0),
             fill_color: Cell::new(black),
             transform: Cell::new(Matrix2D::identity()),
         }
@@ -648,6 +650,19 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         }
         Ok(CanvasGradient::new(self.global.root().r(),
                                CanvasGradientStyle::Radial(RadialGradientStyle::new(x0, y0, r0, x1, y1, r1, Vec::new()))))
+    }
+
+    fn LineWidth(self) -> f64 {
+        self.line_width.get()
+    }
+
+    fn SetLineWidth(self, width: f64) {
+        if !width.is_finite() || width <= 0.0 {
+            return;
+        }
+
+        self.line_width.set(width);
+        self.renderer.send(CanvasMsg::SetLineWidth(width as f32)).unwrap()
     }
 }
 
