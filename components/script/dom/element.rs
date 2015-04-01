@@ -1172,11 +1172,10 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     fn SetInnerHTML(self, value: DOMString) -> Fallible<()> {
-        // 1. Let fragment be the result of invoking the fragment parsing algorithm
-        //    with the new value as markup, and the context object as the context element.
-        // 2. Replace all with fragment within the context object.
         let context_node: JSRef<Node> = NodeCast::from_ref(self);
+        // Step 1.
         let frag = try!(context_node.parse_fragment(value));
+        // Step 2.
         Node::replace_all(Some(NodeCast::from_ref(frag.root().r())), context_node);
         Ok(())
     }
@@ -1188,22 +1187,18 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn SetOuterHTML(self, value: DOMString) -> Fallible<()> {
         let context_document = document_from_node(self).root();
         let context_node: JSRef<Node> = NodeCast::from_ref(self);
-        // 1. Let parent be the context object's parent.
+        // Step 1.
         let context_parent = match context_node.parent_node() {
-            // 2. If parent is null, terminate these steps.
+            // Step 2.
             None => return Ok(()),
             Some(parent) => parent.root()
         };
 
         let parent: Root<Node> = match context_parent.r().type_id() {
-            // 3. If parent is a Document, throw a DOMException
-            //    with name "NoModificationAllowedError" exception.
+            // Step 3.
             NodeTypeId::Document => return Err(NoModificationAllowed),
 
-            // 4. If parent is a DocumentFragment, let parent be a new Element with
-            //    body as its local name,
-            //    The HTML namespace as its namespace, and
-            //    The context object's node document as its node document.
+            // Step 4.
             NodeTypeId::DocumentFragment => {
                 let body_elem = Element::create(QualName::new(ns!(HTML), atom!(body)),
                                                 None, context_document.r(),
@@ -1214,10 +1209,9 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             _ => context_node.parent_node().unwrap().root()
         };
 
-        // 5. Let fragment be the result of invoking the fragment parsing algorithm with
-        //    the new value as markup, and parent as the context element.
-        // 6. Replace the context object with fragment within the context object's parent.
+        // Step 5.
         let frag = try!(parent.r().parse_fragment(value));
+        // Step 6.
         try!(context_parent.r().ReplaceChild(NodeCast::from_ref(frag.root().r()),
                                              context_node));
         Ok(())

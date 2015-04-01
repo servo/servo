@@ -336,24 +336,16 @@ pub fn parse_html_fragment(context_node: JSRef<Node>, input: DOMString) -> Vec<T
     let context_document = document_from_node(context_node).root();
     let url = context_document.r().url();
 
-    // 1. Create a new Document node, and mark it as being an HTML document.
+    // Step 1.
     let document = Document::new(window.r(), Some(url.clone()),
                                  IsHTMLDocument::HTMLDocument,
                                  None, None,
                                  DocumentSource::FromParser).root();
 
-    // 2. If the node document of the context element is in quirks mode,
-    //    then let the Document be in quirks mode. Otherwise,
-    //    the node document of the context element is in limited-quirks mode,
-    //    then let the Document be in limited-quirks mode. Otherwise,
-    //    leave the Document in no-quirks mode.
+    // Step 2.
     document.r().set_quirks_mode(context_document.r().quirks_mode());
 
-    // 11. Set the parser's form element pointer to the nearest node to
-    //     the context element that is a form element (going straight up
-    //     the ancestor chain, and including the element itself, if it
-    //     is a form element), if any. (If there is no such form element,
-    //     the form element pointer keeps its initial value, null.)
+    // Step 11.
     let form = context_node.inclusive_ancestors()
                            .find(|element| element.is_htmlformelement());
     let fragment_context = FragmentContext {
@@ -362,7 +354,7 @@ pub fn parse_html_fragment(context_node: JSRef<Node>, input: DOMString) -> Vec<T
     };
     parse_html(document.r(), HTMLInput::InputString(input), &url, Some(fragment_context));
 
-    // "14. Return the child nodes of root, in tree order."
+    // Step 14.
     let root_element = document.r().GetDocumentElement().expect("no document element").root();
     let root_node: JSRef<Node> = NodeCast::from_ref(root_element.r());
     root_node.children()
