@@ -27,6 +27,7 @@ use geom::size::Size2D;
 
 use canvas::canvas_paint_task::{CanvasMsg, CanvasPaintTask, FillOrStrokeStyle};
 use canvas::canvas_paint_task::{LinearGradientStyle, RadialGradientStyle};
+use canvas::canvas_paint_task::StrokeLineOptions;
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -41,6 +42,7 @@ pub struct CanvasRenderingContext2D {
     canvas: JS<HTMLCanvasElement>,
     image_smoothing_enabled: Cell<bool>,
     stroke_color: Cell<RGBA>,
+    stroke_options: Cell<StrokeLineOptions>,
     fill_color: Cell<RGBA>,
     transform: Cell<Matrix2D<f32>>,
 }
@@ -61,6 +63,7 @@ impl CanvasRenderingContext2D {
             canvas: JS::from_rooted(canvas),
             image_smoothing_enabled: Cell::new(true),
             stroke_color: Cell::new(black),
+            stroke_options: Cell::new(StrokeLineOptions::default()),
             fill_color: Cell::new(black),
             transform: Cell::new(Matrix2D::identity()),
         }
@@ -74,6 +77,10 @@ impl CanvasRenderingContext2D {
 
     pub fn recreate(&self, size: Size2D<i32>) {
         self.renderer.send(CanvasMsg::Recreate(size)).unwrap();
+    }
+
+    fn update_stroke_options(&self) {
+        self.renderer.send(CanvasMsg::SetStrokeOptions(self.stroke_options.get())).unwrap()
     }
 
     fn update_transform(&self) {
@@ -648,6 +655,21 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         }
         Ok(CanvasGradient::new(self.global.root().r(),
                                CanvasGradientStyle::Radial(RadialGradientStyle::new(x0, y0, r0, x1, y1, r1, Vec::new()))))
+    }
+
+    fn LineWidth(self) -> f64 {
+        self.stroke_options.get().line_width
+    }
+
+    fn SetLineWidth(self, value: f64) {
+        if !value.is_finite() || value <= 0.0 {
+            return;
+        }
+
+        let mut opts = self.stroke_options.get();
+        opts.line_width = value;
+        self.stroke_options.set(opts);
+        self.update_stroke_options();
     }
 }
 
