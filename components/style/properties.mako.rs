@@ -4436,7 +4436,6 @@ pub mod shorthands {
                 column_width: column_width,
             })
         }
-
     </%self:shorthand>
 
     <%self:shorthand name="overflow" sub_properties="overflow-x overflow-y">
