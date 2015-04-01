@@ -1920,6 +1920,21 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         let document = document_from_node(self).root();
         Node::adopt(node, document.r());
 
+        // Step 12.
+        let mut nodes: Vec<JSRef<Node>> = vec!();
+        if node.type_id() == NodeTypeId::DocumentFragment {
+            // Collect fragment children before Step 11,
+            // because Node::insert removes a DocumentFragment's children,
+            // and we need them in Step 13.
+            // Issue filed against the spec:
+            // https://www.w3.org/Bugs/Public/show_bug.cgi?id=28330
+            for child_node in node.children() {
+                nodes.push(child_node);
+            }
+        } else {
+            nodes.push(node);
+        }
+
         {
             // Step 10.
             Node::remove(child, self, SuppressObserver::Suppressed);
@@ -1928,18 +1943,13 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             Node::insert(node, self, reference_child, SuppressObserver::Suppressed);
         }
 
-        // Step 12-14.
         // Step 13: mutation records.
         child.node_removed(self.is_in_doc());
-        if node.type_id() == NodeTypeId::DocumentFragment {
-            for child_node in node.children() {
-                child_node.node_inserted();
-            }
-        } else {
-            node.node_inserted();
+        for child_node in nodes {
+            child_node.node_inserted();
         }
 
-        // Step 15.
+        // Step 14.
         Ok(Temporary::from_rooted(child))
     }
 
