@@ -202,25 +202,26 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         }
 
         // Step 12.
-        match element.get_attribute(ns!(""), &atom!("for")).root() {
-            Some(for_script) => {
-                if for_script.r().Value().to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS) != "window" {
+        let for_attribute = element.get_attribute(ns!(""), &atom!("for")).root();
+        let event_attribute = element.get_attribute(ns!(""), &Atom::from_slice("event")).root();
+        match (for_attribute.r(), event_attribute.r()) {
+            (Some(for_attribute), Some(event_attribute)) => {
+                let for_value = for_attribute.Value()
+                                             .to_ascii_lowercase();
+                let for_value = for_value.trim_matches(HTML_SPACE_CHARACTERS);
+                if for_value != "window" {
                     return;
                 }
-            }
-            _ => { }
+
+                let event_value = event_attribute.Value().to_ascii_lowercase();
+                let event_value = event_value.trim_matches(HTML_SPACE_CHARACTERS);
+                if event_value != "onload" && event_value != "onload()" {
+                    return;
+                }
+            },
+            (_, _) => (),
         }
 
-        match element.get_attribute(ns!(""), &Atom::from_slice("event")).root() {
-            Some(event) => {
-                let event = event.r().Value().to_ascii_lowercase();
-                let event = event.trim_matches(HTML_SPACE_CHARACTERS);
-                if event != "onload" && event != "onload()" {
-                    return;
-                }
-            }
-            _ => { }
-        }
         // Step 13.
         if let Some(charset) = element.get_attribute(ns!(""), &Atom::from_slice("charset")).root() {
             if let Some(encodingRef) = encoding_from_whatwg_label(&charset.r().Value()) {
