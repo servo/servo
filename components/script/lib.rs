@@ -28,7 +28,6 @@
 extern crate log;
 
 #[macro_use] extern crate bitflags;
-//#[macro_use] extern crate lazy_static;
 extern crate core;
 extern crate devtools_traits;
 extern crate cssparser;

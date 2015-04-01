@@ -48,11 +48,6 @@ pub struct TextInput {
     clipboard_ctx: ClipboardContext,
 }
 
-/*
-lazy_static! {
-    static ref clipboard_ctx: Result<ClipboardContext, &'static str> = ClipboardContext::new();
-}*/
-
 /// Resulting action to be taken by the owner of a text input that is handling an event.
 pub enum KeyReaction {
     TriggerDefaultAction,
