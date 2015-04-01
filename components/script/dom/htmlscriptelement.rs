@@ -202,24 +202,19 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         }
 
         // Step 12.
-        match element.get_attribute(ns!(""), &atom!("for")).root() {
-            Some(for_script) => {
-                if for_script.r().Value().to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS) != "window" {
+        match (element.get_attribute(ns!(""), &atom!("for")).root().r(),
+               element.get_attribute(ns!(""), &Atom::from_slice("event")).root().r()) {
+            (Some(for_script), Some(event)) => {
+                if for_script.Value().to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS) != "window" {
                     return;
                 }
-            }
-            _ => { }
-        }
-
-        match element.get_attribute(ns!(""), &Atom::from_slice("event")).root() {
-            Some(event) => {
-                let event = event.r().Value().to_ascii_lowercase();
+                let event = event.Value().to_ascii_lowercase();
                 let event = event.trim_matches(HTML_SPACE_CHARACTERS);
                 if event != "onload" && event != "onload()" {
                     return;
                 }
             }
-            _ => { }
+            (_, _) => { }
         }
         // Step 13.
         if let Some(charset) = element.get_attribute(ns!(""), &Atom::from_slice("charset")).root() {
