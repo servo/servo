@@ -936,16 +936,16 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     fn parse_fragment(self, markup: DOMString) -> Fallible<Temporary<DocumentFragment>> {
         let context_node: JSRef<Node> = NodeCast::from_ref(self);
         let context_document = document_from_node(self).root();
-        let new_children =
-            if context_document.r().is_html_document() {
-                parse_html_fragment(context_node, markup)
-            } else {
-                // FIXME: XML case
-                unimplemented!()
-            };
+        let mut new_children: RootedVec<JS<Node>> = RootedVec::new();
+        if context_document.r().is_html_document() {
+            parse_html_fragment(context_node, markup, &mut new_children);
+        } else {
+            // FIXME: XML case
+            unimplemented!();
+        }
         let fragment = DocumentFragment::new(context_document.r()).root();
         let fragment_node: JSRef<Node> = NodeCast::from_ref(fragment.r());
-        for node in new_children {
+        for node in new_children.iter() {
             fragment_node.AppendChild(node.root().r()).unwrap();
         }
         Ok(Temporary::from_rooted(fragment.r()))

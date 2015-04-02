@@ -12,6 +12,7 @@ use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, TextCast, CommentCa
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
 use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
+use dom::bindings::trace::RootedVec;
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers};
 use dom::document::{DocumentSource, IsHTMLDocument};
@@ -331,7 +332,9 @@ pub fn parse_html(document: JSRef<Document>,
 }
 
 // https://html.spec.whatwg.org/multipage/syntax.html#parsing-html-fragments
-pub fn parse_html_fragment(context_node: JSRef<Node>, input: DOMString) -> Vec<Temporary<Node>> {
+pub fn parse_html_fragment(context_node: JSRef<Node>,
+                           input: DOMString,
+                           output: &mut RootedVec<JS<Node>>) {
     let window = window_from_node(context_node).root();
     let context_document = document_from_node(context_node).root();
     let url = context_document.r().url();
@@ -357,7 +360,7 @@ pub fn parse_html_fragment(context_node: JSRef<Node>, input: DOMString) -> Vec<T
     // Step 14.
     let root_element = document.r().GetDocumentElement().expect("no document element").root();
     let root_node: JSRef<Node> = NodeCast::from_ref(root_element.r());
-    root_node.children()
-             .map(|node| Temporary::from_rooted(node))
-             .collect()
+    for child in root_node.children() {
+        output.push(JS::from_rooted(child));
+    }
 }
