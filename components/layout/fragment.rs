@@ -1503,7 +1503,7 @@ impl Fragment {
                 return None
             };
 
-        let mut pieces_processed_count: uint = 0;
+        let mut pieces_processed_count: u32 = 0;
         let mut remaining_inline_size = max_inline_size;
         let mut inline_start_range = Range::new(text_fragment_info.range.begin(), CharIndex(0));
         let mut inline_end_range = None;
