@@ -9,6 +9,7 @@ use azure::azure_hl::{ColorMatrixAttribute, ColorMatrixInput, CompositeInput, Dr
 use azure::azure_hl::{FilterNode, FilterType, LinearTransferAttribute, LinearTransferInput};
 use azure::azure_hl::{Matrix5x4, TableTransferAttribute, TableTransferInput};
 use azure::azure_hl::{GaussianBlurAttribute, GaussianBlurInput};
+use util::geometry::Au;
 
 use std::num::Float;
 use style::computed_values::filter;
@@ -93,9 +94,9 @@ pub fn create_filters(draw_target: &DrawTarget,
                 filter = contrast
             }
             filter::Filter::Blur(amount) => {
-                let amount = amount as AzFloat;
+                //FIXME: hardcoded until we implement ComputedValues.
+                let amount = 2.0;
                 let blur = draw_target.create_filter(FilterType::GaussianBlur);
-                // TODO(Savago): Maybe limit the size of mask used for filter?
                 blur.set_attribute(GaussianBlurAttribute::StdDeviation(amount));
                 blur.set_input(GaussianBlurInput, &filter);
                 filter = blur
