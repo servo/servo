@@ -727,7 +727,7 @@ impl InlineFragments {
     }
 
     /// Returns the number of inline fragments.
-    pub fn len(&self) -> uint {
+    pub fn len(&self) -> usize {
         self.fragments.len()
     }
 
@@ -748,12 +748,12 @@ impl InlineFragments {
     }
 
     /// A convenience function to return the fragment at a given index.
-    pub fn get<'a>(&'a self, index: uint) -> &'a Fragment {
+    pub fn get<'a>(&'a self, index: usize) -> &'a Fragment {
         &self.fragments[index]
     }
 
     /// A convenience function to return a mutable reference to the fragment at a given index.
-    pub fn get_mut<'a>(&'a mut self, index: uint) -> &'a mut Fragment {
+    pub fn get_mut<'a>(&'a mut self, index: usize) -> &'a mut Fragment {
         &mut self.fragments[index]
     }
 }
