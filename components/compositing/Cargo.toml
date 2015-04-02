@@ -58,6 +58,9 @@ git = "https://github.com/servo/rust-core-text"
 [dependencies.gleam]
 git = "https://github.com/servo/gleam"
 
+[dependencies.clipboard]
+git = "https://github.com/aweinstock314/rust-x11-clipboard"
+
 [dependencies]
 url = "0.2.16"
 time = "0.1.17"

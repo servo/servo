@@ -80,6 +80,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "clipboard"
+version = "0.0.1"
+source = "git+https://github.com/aweinstock314/rust-x11-clipboard#eae9596e7e407c8b6037b934c1a8e42a309423fd"
+dependencies = [
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
+]
+
+[[package]]
 name = "clock_ticks"
 version = "0.0.4"
 source = "git+https://github.com/tomaka/clock_ticks#6a3005279bedc406b13eea09ff92447f05ca0de6"
@@ -98,6 +107,7 @@ name = "compositing"
 version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
+ "clipboard 0.0.1 (git+https://github.com/aweinstock314/rust-x11-clipboard)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
  "devtools_traits 0.0.1",
@@ -846,7 +856,6 @@ dependencies = [
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "uuid 0.1.11 (git+https://github.com/rust-lang/uuid)",
- "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
 
 [[package]]

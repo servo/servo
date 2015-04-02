@@ -52,7 +52,6 @@ extern crate style;
 extern crate url;
 extern crate uuid;
 extern crate string_cache;
-extern crate clipboard;
 
 pub mod cors;
 

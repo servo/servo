@@ -6,6 +6,8 @@
 
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use dom::bindings::js::JSRef;
+use msg::constellation_msg::ConstellationChan;
+use msg::constellation_msg::Msg as ConstellationMsg;
 use dom::keyboardevent::KeyboardEvent;
 use util::str::DOMString;
 
@@ -13,8 +15,7 @@ use std::borrow::ToOwned;
 use std::cmp::{min, max};
 use std::default::Default;
 use std::num::SignedInt;
-
-use clipboard::ClipboardContext;
+use std::sync::mpsc::channel;
 
 #[derive(Copy, PartialEq)]
 pub enum Selection {
@@ -31,8 +32,6 @@ pub struct TextPoint {
     pub index: usize,
 }
 
-no_jsmanaged_fields!(ClipboardContext);
-
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
 #[jstraceable]
 pub struct TextInput {
@@ -44,8 +43,7 @@ pub struct TextInput {
     selection_begin: Option<TextPoint>,
     /// Is this a multiline input?
     multiline: bool,
-    /// Means of accessing the clipboard
-    clipboard_ctx: ClipboardContext,
+    constellation_channel: ConstellationChan
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
@@ -93,13 +91,13 @@ fn is_control_key(event: JSRef<KeyboardEvent>) -> bool {
 
 impl TextInput {
     /// Instantiate a new text input control
-    pub fn new(lines: Lines, initial: DOMString) -> TextInput {
+    pub fn new(lines: Lines, initial: DOMString, cc: ConstellationChan) -> TextInput {
         let mut i = TextInput {
             lines: vec!(),
             edit_point: Default::default(),
             selection_begin: None,
             multiline: lines == Lines::Multiple,
-            clipboard_ctx: ClipboardContext::new().unwrap(),
+            constellation_channel: cc,
         };
         i.set_content(initial);
         i
@@ -299,7 +297,9 @@ impl TextInput {
                 KeyReaction::Nothing
             },
             "v" if is_control_key(event) => {
-                let contents = self.clipboard_ctx.get_contents().unwrap();
+                let (tx, rx) = channel();
+                self.constellation_channel.0.send(ConstellationMsg::GetClipboardContents(tx)).unwrap();
+                let contents = rx.recv().unwrap();
                 self.insert_string(contents.as_slice());
                 KeyReaction::DispatchInput
             },
