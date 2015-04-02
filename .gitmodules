@@ -1,6 +1,3 @@
-[submodule "tests/wpt/web-platform-tests"]
-	path = tests/wpt/web-platform-tests
-	url = https://github.com/servo/web-platform-tests.git
 [submodule "support/android-rs-glue"]
 	path = support/android-rs-glue
 	url = https://github.com/tomaka/android-rs-glue
