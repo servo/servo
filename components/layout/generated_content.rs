@@ -293,10 +293,10 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
         let quotes = &style.get_list().quotes;
         debug_assert!(!quotes.0.is_empty());
         let &(ref open_quote, ref close_quote) =
-            if self.traversal.quote as uint >= quotes.0.len() {
+            if self.traversal.quote as usize >= quotes.0.len() {
                 quotes.0.last().unwrap()
             } else {
-                &quotes.0[self.traversal.quote as uint]
+                &quotes.0[self.traversal.quote as usize]
             };
         if close {
             close_quote.to_string()
@@ -525,9 +525,9 @@ fn push_alphabetic_representation(mut value: i32, system: &[char], accumulator: 
         // Step 1.
         value = value - 1;
         // Step 2.
-        string.push(system[(value as uint) % system.len()]);
+        string.push(system[(value as usize) % system.len()]);
         // Step 3.
-        value = ((value as uint) / system.len()) as i32;
+        value = ((value as usize) / system.len()) as i32;
     }
 
     for i in range(0, string.len()).rev() {
@@ -548,9 +548,9 @@ fn push_numeric_representation(mut value: i32, system: &[char], accumulator: &mu
     let mut string = SmallVec8::new();
     while value != 0 {
         // Step 2.1.
-        string.push(system[(value as uint) % system.len()]);
+        string.push(system[(value as usize) % system.len()]);
         // Step 2.2.
-        value = ((value as uint) / system.len()) as i32;
+        value = ((value as usize) / system.len()) as i32;
     }
 
     // Step 3.

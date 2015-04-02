@@ -92,8 +92,8 @@ impl ConstructionResult {
 
     pub fn debug_id(&self) -> usize {
         match self {
-            &ConstructionResult::None => 0u,
-            &ConstructionResult::ConstructionItem(_) => 0u,
+            &ConstructionResult::None => 0,
+            &ConstructionResult::ConstructionItem(_) => 0,
             &ConstructionResult::Flow(ref flow_ref, _) => flow::base(&**flow_ref).debug_id(),
         }
     }

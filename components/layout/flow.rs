@@ -394,7 +394,7 @@ pub trait ImmutableFlowUtils {
     fn is_leaf(self) -> bool;
 
     /// Returns the number of children that this flow possesses.
-    fn child_count(self) -> uint;
+    fn child_count(self) -> usize;
 
     /// Return true if this flow is a Block Container.
     fn is_block_container(self) -> bool;
@@ -409,7 +409,7 @@ pub trait ImmutableFlowUtils {
     fn dump(self);
 
     /// Dumps the flow tree for debugging, with a prefix to indicate that we're at the given level.
-    fn dump_with_level(self, level: uint);
+    fn dump_with_level(self, level: u32);
 }
 
 pub trait MutableFlowUtils {
@@ -561,7 +561,7 @@ static HAS_FLOATED_DESCENDANTS_BITMASK: FlowFlags = FlowFlags { bits: 0b0000_001
 /// The number of bits we must shift off to handle the text alignment field.
 ///
 /// NB: If you update this, update `TEXT_ALIGN` above.
-static TEXT_ALIGN_SHIFT: uint = 11;
+static TEXT_ALIGN_SHIFT: usize = 11;
 
 impl FlowFlags {
     /// Propagates text alignment flags from an appropriate parent flow per CSS 2.1.
@@ -650,7 +650,7 @@ impl Descendants {
         }
     }
 
-    pub fn len(&self) -> uint {
+    pub fn len(&self) -> usize {
         self.descendant_links.len()
     }
 
@@ -1152,7 +1152,7 @@ impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
     }
 
     /// Returns the number of children that this flow possesses.
-    fn child_count(self) -> uint {
+    fn child_count(self) -> usize {
         base(self).children.len()
     }
 
@@ -1195,7 +1195,7 @@ impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
     }
 
     /// Dumps the flow tree for debugging, with a prefix to indicate that we're at the given level.
-    fn dump_with_level(self, level: uint) {
+    fn dump_with_level(self, level: u32) {
         let mut indent = String::new();
         for _ in range(0, level) {
             indent.push_str("| ")

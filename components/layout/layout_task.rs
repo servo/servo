@@ -192,7 +192,7 @@ impl ImageResponder<UntrustedNodeAddress> for LayoutImageResponder {
         let script_chan = self.script_chan.clone();
         box move |_, node_address| {
             let ScriptControlChan(ref chan) = script_chan;
-            debug!("Dirtying {:x}", node_address.0 as uint);
+            debug!("Dirtying {:p}", node_address.0);
             let mut nodes = SmallVec1::new();
             nodes.vec_push(node_address);
             drop(chan.send(ConstellationControlMsg::SendEvent(

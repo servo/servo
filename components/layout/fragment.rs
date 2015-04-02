@@ -274,8 +274,8 @@ impl CanvasFragmentInfo {
     pub fn new(node: &ThreadSafeLayoutNode) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
-                Some(Au::from_px(node.get_canvas_width() as int)),
-                Some(Au::from_px(node.get_canvas_height() as int))),
+                Some(Au::from_px(node.get_canvas_width() as isize)),
+                Some(Au::from_px(node.get_canvas_height() as isize))),
             renderer: node.get_renderer().map(|rec| Arc::new(Mutex::new(rec))),
         }
     }
@@ -311,10 +311,9 @@ impl ImageFragmentInfo {
                -> ImageFragmentInfo {
         fn convert_length(node: &ThreadSafeLayoutNode, name: &Atom) -> Option<Au> {
             let element = node.as_element();
-            element.get_attr(&ns!(""), name).and_then(|string| {
-                let n: Option<int> = FromStr::from_str(string).ok();
-                n
-            }).and_then(|pixels| Some(Au::from_px(pixels)))
+            element.get_attr(&ns!(""), name)
+                   .and_then(|string| string.parse::<isize>().ok())
+                   .map(|pixels| Au::from_px(pixels))
         }
 
         ImageFragmentInfo {
@@ -342,7 +341,7 @@ impl ImageFragmentInfo {
     /// Tile an image
     pub fn tile_image(position: &mut Au, size: &mut Au,
                         virtual_position: Au, image_size: u32) {
-        let image_size = image_size as int;
+        let image_size = image_size as isize;
         let delta_pixels = geometry::to_px(virtual_position - *position);
         let tile_count = (delta_pixels + image_size - 1) / image_size;
         let offset = Au::from_px(image_size * tile_count);
@@ -672,7 +671,7 @@ impl UnscannedTextFragmentInfo {
 #[derive(Copy, Clone)]
 pub struct TableColumnFragmentInfo {
     /// the number of columns a <col> element should span
-    pub span: int,
+    pub span: u32,
 }
 
 impl TableColumnFragmentInfo {
@@ -681,7 +680,7 @@ impl TableColumnFragmentInfo {
         let span = {
             let element = node.as_element();
             element.get_attr(&ns!(""), &atom!("span")).and_then(|string| {
-                let n: Option<int> = FromStr::from_str(string).ok();
+                let n: Option<u32> = FromStr::from_str(string).ok();
                 n
             }).unwrap_or(0)
         };
@@ -1504,7 +1503,7 @@ impl Fragment {
                 return None
             };
 
-        let mut pieces_processed_count: uint = 0;
+        let mut pieces_processed_count: u32 = 0;
         let mut remaining_inline_size = max_inline_size;
         let mut inline_start_range = Range::new(text_fragment_info.range.begin(), CharIndex(0));
         let mut inline_end_range = None;
@@ -1602,7 +1601,7 @@ impl Fragment {
             let inline_end_fragment_text =
                 text_fragment_info.run.text.slice_chars(inline_end_range.begin().to_usize(),
                                                         inline_end_range.end().to_usize());
-            let mut leading_whitespace_character_count = 0i;
+            let mut leading_whitespace_character_count = 0;
             for ch in inline_end_fragment_text.chars() {
                 if ch.is_whitespace() {
                     leading_whitespace_character_count += 1
@@ -2129,7 +2128,7 @@ pub enum CoordinateSystem {
 fn strip_trailing_whitespace(text_run: &TextRun, range: &mut Range<CharIndex>) -> bool {
     // FIXME(pcwalton): Is there a more clever (i.e. faster) way to do this?
     let text = text_run.text.slice_chars(range.begin().to_usize(), range.end().to_usize());
-    let mut trailing_whitespace_character_count = 0i;
+    let mut trailing_whitespace_character_count = 0;
     for ch in text.chars().rev() {
         if ch.is_whitespace() {
             trailing_whitespace_character_count += 1
