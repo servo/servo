@@ -109,6 +109,7 @@ static DEFAULT_INPUT_SIZE: u32 = 20;
 
 impl HTMLInputElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLInputElement {
+        let chan = document.window().root().r().constellation_chan();
         HTMLInputElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLInputElement, localName, prefix, document),
             input_type: Cell::new(InputType::InputText),
@@ -117,7 +118,7 @@ impl HTMLInputElement {
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned(), document.window().root().r().constellation_chan())),
+            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned(), chan)),
             activation_state: DOMRefCell::new(InputActivationState::new())
         }
     }
