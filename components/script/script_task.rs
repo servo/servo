@@ -1218,9 +1218,7 @@ impl ScriptTask {
                 let document = page.document().root();
                 let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();
 
-                if document.r().handle_mouse_move_event(self.js_runtime.ptr, point, mouse_over_targets) {
-                    self.force_reflow(&page, ReflowReason::MouseEvent)
-                }
+                document.r().handle_mouse_move_event(self.js_runtime.ptr, point, mouse_over_targets);
             }
 
             KeyEvent(key, state, modifiers) => {
