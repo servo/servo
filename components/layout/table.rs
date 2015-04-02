@@ -595,7 +595,7 @@ impl<'a> ChildInlineSizeInfo<'a> {
     /// lays out that child in the inline direction.
     pub fn propagate_to_child(&self,
                               kid: &mut Flow,
-                              child_index: uint,
+                              child_index: usize,
                               content_inline_size: Au,
                               writing_mode: WritingMode,
                               inline_start_margin_edge: &mut Au) {
