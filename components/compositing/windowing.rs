@@ -13,6 +13,7 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use msg::compositor_msg::{PaintState, ReadyState};
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
+use script_traits::MouseButton;
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::ScreenPx;
@@ -21,9 +22,9 @@ use std::rc::Rc;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
-    Click(uint, TypedPoint2D<DevicePixel, f32>),
-    MouseDown(uint, TypedPoint2D<DevicePixel, f32>),
-    MouseUp(uint, TypedPoint2D<DevicePixel, f32>),
+    Click(MouseButton, TypedPoint2D<DevicePixel, f32>),
+    MouseDown(MouseButton, TypedPoint2D<DevicePixel, f32>),
+    MouseUp(MouseButton, TypedPoint2D<DevicePixel, f32>),
 }
 
 #[derive(Clone)]

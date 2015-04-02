@@ -16,6 +16,7 @@ extern crate time;
 extern crate util;
 
 extern crate compositing;
+extern crate script_traits;
 
 extern crate geom;
 extern crate libc;

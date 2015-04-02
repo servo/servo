@@ -14,6 +14,9 @@ headless = ["glutin/headless"]
 [dependencies.compositing]
 path = "../../components/compositing"
 
+[dependencies.script_traits]
+path = "../../components/script_traits"
+
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 

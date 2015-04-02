@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(int_uint)]
-
 extern crate devtools_traits;
 extern crate geom;
 extern crate libc;
@@ -81,13 +79,21 @@ pub enum ConstellationControlMsg {
 unsafe impl Send for ConstellationControlMsg {
 }
 
+/// The mouse button involved in the event.
+#[derive(Clone, Debug)]
+pub enum MouseButton {
+    Left,
+    Middle,
+    Right,
+}
+
 /// Events from the compositor that the script task needs to know about
 pub enum CompositorEvent {
     ResizeEvent(WindowSizeData),
     ReflowEvent(SmallVec1<UntrustedNodeAddress>),
-    ClickEvent(uint, Point2D<f32>),
-    MouseDownEvent(uint, Point2D<f32>),
-    MouseUpEvent(uint, Point2D<f32>),
+    ClickEvent(MouseButton, Point2D<f32>),
+    MouseDownEvent(MouseButton, Point2D<f32>),
+    MouseUpEvent(MouseButton, Point2D<f32>),
     MouseMoveEvent(Point2D<f32>),
     KeyEvent(Key, KeyState, KeyModifiers),
 }

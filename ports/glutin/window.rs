@@ -224,13 +224,15 @@ impl Window {
 
     /// Helper function to handle a click
     fn handle_mouse(&self, button: glutin::MouseButton, action: glutin::ElementState, x: i32, y: i32) {
+        use script_traits::MouseButton;
+
         // FIXME(tkuehn): max pixel dist should be based on pixel density
         let max_pixel_dist = 10f64;
         let event = match action {
             ElementState::Pressed => {
                 self.mouse_down_point.set(Point2D(x, y));
                 self.mouse_down_button.set(Some(button));
-                MouseWindowEvent::MouseDown(0, TypedPoint2D(x as f32, y as f32))
+                MouseWindowEvent::MouseDown(MouseButton::Left, TypedPoint2D(x as f32, y as f32))
             }
             ElementState::Released => {
                 match self.mouse_down_button.get() {
@@ -241,13 +243,13 @@ impl Window {
                                            pixel_dist.y * pixel_dist.y) as f64).sqrt();
                         if pixel_dist < max_pixel_dist {
                             let click_event = MouseWindowEvent::Click(
-                                0, TypedPoint2D(x as f32, y as f32));
+                                MouseButton::Left, TypedPoint2D(x as f32, y as f32));
                             self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(click_event));
                         }
                     }
                     Some(_) => (),
                 }
-                MouseWindowEvent::MouseUp(0, TypedPoint2D(x as f32, y as f32))
+                MouseWindowEvent::MouseUp(MouseButton::Left, TypedPoint2D(x as f32, y as f32))
             }
         };
         self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(event));
