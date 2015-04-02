@@ -108,10 +108,6 @@ pub enum ReflowQueryType {
 pub struct Reflow {
     /// The goal of reflow: either to render to the screen or to flush layout info for script.
     pub goal: ReflowGoal,
-    /// The URL of the page.
-    pub url: Url,
-    /// Is the current reflow of an iframe, as opposed to a root window?
-    pub iframe: bool,
     ///  A clipping rectangle for the page, an enlarged rectangle containing the viewport.
     pub page_clip_rect: Rect<Au>,
 }

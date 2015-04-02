@@ -567,8 +567,6 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         let reflow = box ScriptReflow {
             reflow_info: Reflow {
                 goal: goal,
-                url: self.get_url(),
-                iframe: self.parent_info.is_some(),
                 page_clip_rect: self.page_clip_rect.get(),
             },
             document_root: root.to_trusted_node_address(),

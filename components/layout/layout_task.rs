@@ -135,6 +135,9 @@ pub struct LayoutTask {
     /// The URL of the pipeline that we belong to.
     pub url: Url,
 
+    /// Is the current reflow of an iframe, as opposed to a root window?
+    pub is_iframe: bool,
+
     /// The port on which we receive messages from the script task.
     pub port: Receiver<Msg>,
 
@@ -206,6 +209,7 @@ impl LayoutTaskFactory for LayoutTask {
     fn create(_phantom: Option<&mut LayoutTask>,
               id: PipelineId,
               url: Url,
+              is_iframe: bool,
               chan: OpaqueScriptLayoutChannel,
               pipeline_port: Receiver<LayoutControlMsg>,
               constellation_chan: ConstellationChan,
@@ -224,6 +228,7 @@ impl LayoutTaskFactory for LayoutTask {
                 let sender = chan.sender();
                 let layout = LayoutTask::new(id,
                                              url,
+                                             is_iframe,
                                              chan.receiver(),
                                              LayoutChan(sender),
                                              pipeline_port,
@@ -276,6 +281,7 @@ impl LayoutTask {
     /// Creates a new `LayoutTask` structure.
     fn new(id: PipelineId,
            url: Url,
+           is_iframe: bool,
            port: Receiver<Msg>,
            chan: LayoutChan,
            pipeline_port: Receiver<LayoutControlMsg>,
@@ -314,6 +320,7 @@ impl LayoutTask {
         LayoutTask {
             id: id,
             url: url,
+            is_iframe: is_iframe,
             port: port,
             pipeline_port: pipeline_port,
             chan: chan,
@@ -470,7 +477,7 @@ impl LayoutTask {
             },
             Msg::Reflow(data) => {
                 profile(time::ProfilerCategory::LayoutPerform,
-                        self.profiler_metadata(&data.reflow_info),
+                        self.profiler_metadata(),
                         self.time_profiler_chan.clone(),
                         || self.handle_reflow(&*data, possibly_locked_rw_data));
             },
@@ -664,7 +671,6 @@ impl LayoutTask {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints_parallel(&self,
-                                  data: &Reflow,
                                   rw_data: &mut LayoutTaskData,
                                   layout_root: &mut FlowRef,
                                   shared_layout_context: &SharedLayoutContext) {
@@ -676,7 +682,7 @@ impl LayoutTask {
                 // NOTE: this currently computes borders, so any pruning should separate that
                 // operation out.
                 parallel::traverse_flow_tree_preorder(layout_root,
-                                                      self.profiler_metadata(data),
+                                                      self.profiler_metadata(),
                                                       self.time_profiler_chan.clone(),
                                                       shared_layout_context,
                                                       traversal);
@@ -728,7 +734,7 @@ impl LayoutTask {
                                          rw_data: &mut LayoutTaskData) {
         let writing_mode = flow::base(&**layout_root).writing_mode;
         profile(time::ProfilerCategory::LayoutDispListBuild,
-                self.profiler_metadata(data),
+                self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || {
             shared_layout_context.dirty =
@@ -747,7 +753,7 @@ impl LayoutTask {
                 }
                 Some(ref mut traversal) => {
                     parallel::build_display_list_for_subtree(layout_root,
-                                                             self.profiler_metadata(data),
+                                                             self.profiler_metadata(),
                                                              self.time_profiler_chan.clone(),
                                                              shared_layout_context,
                                                              traversal);
@@ -805,7 +811,7 @@ impl LayoutTask {
             transmute(&mut node)
         };
 
-        debug!("layout: received layout request for: {}", data.reflow_info.url.serialize());
+        debug!("layout: received layout request for: {}", self.url.serialize());
         if log_enabled!(log::DEBUG) {
             node.dump();
         }
@@ -854,11 +860,11 @@ impl LayoutTask {
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
                                                                          screen_size_changed,
                                                                          Some(&node),
-                                                                         &data.reflow_info.url);
+                                                                         &self.url);
 
         // Recalculate CSS styles and rebuild flows and fragments.
         profile(time::ProfilerCategory::LayoutStyleRecalc,
-                self.profiler_metadata(&data.reflow_info),
+                self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || {
             // Perform CSS selector matching and flow construction.
@@ -913,11 +919,8 @@ impl LayoutTask {
     }
 
     pub fn tick_animation<'a>(&'a self, animation: Animation, rw_data: &mut LayoutTaskData) {
-        // FIXME(#5466, pcwalton): These data are lies.
         let reflow_info = Reflow {
             goal: ReflowGoal::ForDisplay,
-            url: Url::parse("http://animation.com/").unwrap(),
-            iframe: false,
             page_clip_rect: MAX_RECT,
         };
 
@@ -925,10 +928,10 @@ impl LayoutTask {
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   None,
-                                                                  &reflow_info.url);
+                                                                  &self.url);
         let mut root_flow = (*rw_data.root_flow.as_ref().unwrap()).clone();
         profile(time::ProfilerCategory::LayoutStyleRecalc,
-                self.profiler_metadata(&reflow_info),
+                self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || animation::recalc_style_for_animation(root_flow.deref_mut(), &animation));
 
@@ -943,7 +946,7 @@ impl LayoutTask {
                                                    layout_context: &mut SharedLayoutContext) {
         let mut root_flow = (*rw_data.root_flow.as_ref().unwrap()).clone();
         profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
-                self.profiler_metadata(data),
+                self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || {
             if opts::get().nonincremental_layout || root_flow.deref_mut()
@@ -964,14 +967,14 @@ impl LayoutTask {
 
         // Resolve generated content.
         profile(time::ProfilerCategory::LayoutGeneratedContent,
-                self.profiler_metadata(data),
+                self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || sequential::resolve_generated_content(&mut root_flow, &layout_context));
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
         profile(time::ProfilerCategory::LayoutMain,
-                self.profiler_metadata(data),
+                self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || {
             match rw_data.parallel_traversal {
@@ -981,8 +984,7 @@ impl LayoutTask {
                 }
                 Some(_) => {
                     // Parallel mode.
-                    self.solve_constraints_parallel(data,
-                                                    rw_data,
+                    self.solve_constraints_parallel(rw_data,
                                                     &mut root_flow,
                                                     &mut *layout_context);
                 }
@@ -1058,9 +1060,9 @@ impl LayoutTask {
     }
 
     /// Returns profiling information which is passed to the time profiler.
-    fn profiler_metadata<'a>(&self, data: &'a Reflow) -> ProfilerMetadata<'a> {
-        Some((&data.url,
-              if data.iframe {
+    fn profiler_metadata(&self) -> ProfilerMetadata {
+        Some((&self.url,
+              if self.is_iframe {
                 TimerMetadataFrameType::IFrame
               } else {
                 TimerMetadataFrameType::RootWindow
@@ -1234,4 +1236,3 @@ fn get_root_flow_background_color(flow: &mut Flow) -> AzColor {
                   .resolve_color(kid_block_flow.fragment.style.get_background().background_color)
                   .to_gfx_color()
 }
-
