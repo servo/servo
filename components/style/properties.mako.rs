@@ -2703,7 +2703,7 @@ pub mod longhands {
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
         pub mod computed_value {
-            use values::specified::Angle;
+            use values::specified::{Angle, Length};
             use values::CSSFloat;
             use cssparser::ToCss;
             use text_writer::{self, TextWriter};
@@ -2711,7 +2711,7 @@ pub mod longhands {
             // TODO(pcwalton): `drop-shadow`
             #[derive(Clone, PartialEq, Debug)]
             pub enum Filter {
-                Blur(CSSFloat),
+                Blur(Length),
                 Brightness(CSSFloat),
                 Contrast(CSSFloat),
                 Grayscale(CSSFloat),
@@ -2725,7 +2725,7 @@ pub mod longhands {
             impl ToCss for Filter {
                 fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
                     match *self {
-                        Filter::Blur(value) => try!(write!(dest, "blur({})", value)),
+                        Filter::Blur(value) => try!(write!(dest, "blur({:?})", value)),
                         Filter::Brightness(value) => try!(write!(dest, "brightness({})", value)),
                         Filter::Contrast(value) => try!(write!(dest, "contrast({})", value)),
                         Filter::Grayscale(value) => try!(write!(dest, "grayscale({})", value)),
@@ -2814,7 +2814,7 @@ pub mod longhands {
                 if let Ok(function_name) = input.try(|input| input.expect_function()) {
                     filters.push(try!(input.parse_nested_block(|input| {
                         match_ignore_ascii_case! { function_name,
-                            "blur" => parse_factor(input).map(Filter::Blur),
+                            "blur" => specified::Length::parse_non_negative(input).map(Filter::Blur),
                             "brightness" => parse_factor(input).map(Filter::Brightness),
                             "contrast" => parse_factor(input).map(Filter::Contrast),
                             "grayscale" => parse_factor(input).map(Filter::Grayscale),
@@ -2839,7 +2839,6 @@ pub mod longhands {
             match input.next() {
                 Ok(Token::Number(value)) => Ok(value.value),
                 Ok(Token::Percentage(value)) => Ok(value.unit_value),
-                Ok(Token::Dimension(value, _)) => Ok(value.value),
                 _ => Err(())
             }
         }
