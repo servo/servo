@@ -27,6 +27,7 @@ extern crate profile;
 #[macro_use]
 extern crate util;
 extern crate gleam;
+extern crate clipboard;
 
 extern crate libc;
 extern crate time;

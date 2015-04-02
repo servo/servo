@@ -66,12 +66,6 @@ git = "https://github.com/servo/string-cache"
 [dependencies.string_cache_plugin]
 git = "https://github.com/servo/string-cache"
 
-[dependencies.xlib]
-git = "https://github.com/servo/rust-xlib"
-
-[dependencies.clipboard]
-git = "https://github.com/aweinstock314/rust-x11-clipboard"
-
 [dependencies]
 encoding = "0.2"
 url = "0.2.16"

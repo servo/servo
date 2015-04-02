@@ -92,7 +92,7 @@ impl HTMLTextAreaElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTextAreaElement {
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTextAreaElement, localName, prefix, document),
-            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned())),
+            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned(), document)),
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),
             value_changed: Cell::new(false),

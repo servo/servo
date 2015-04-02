@@ -116,7 +116,7 @@ impl HTMLInputElement {
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned())),
+            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned(), document)),
             activation_state: DOMRefCell::new(InputActivationState::new())
         }
     }
