@@ -154,7 +154,7 @@ pub struct Line {
 int_range_index! {
     #[derive(RustcEncodable)]
     #[doc = "The index of a fragment in a flattened vector of DOM elements."]
-    struct FragmentIndex(int)
+    struct FragmentIndex(isize)
 }
 
 bitflags! {
@@ -642,8 +642,8 @@ impl LineBreaker {
     fn push_fragment_to_line(&mut self, layout_context: &LayoutContext, fragment: Fragment) {
         let indentation = self.indentation_for_pending_fragment();
         if self.pending_line_is_empty() {
-            assert!(self.new_fragments.len() <= (u16::MAX as uint));
-            self.pending_line.range.reset(FragmentIndex(self.new_fragments.len() as int),
+            assert!(self.new_fragments.len() <= (u16::MAX as usize));
+            self.pending_line.range.reset(FragmentIndex(self.new_fragments.len() as isize),
                                           FragmentIndex(0));
         }
 
