@@ -311,10 +311,9 @@ impl ImageFragmentInfo {
                -> ImageFragmentInfo {
         fn convert_length(node: &ThreadSafeLayoutNode, name: &Atom) -> Option<Au> {
             let element = node.as_element();
-            element.get_attr(&ns!(""), name).and_then(|string| {
-                let n: Option<int> = FromStr::from_str(string).ok();
-                n
-            }).and_then(|pixels| Some(Au::from_px(pixels)))
+            element.get_attr(&ns!(""), name)
+                   .and_then(|string| string.parse::<isize>().ok())
+                   .map(|pixels| Au::from_px(pixels))
         }
 
         ImageFragmentInfo {
