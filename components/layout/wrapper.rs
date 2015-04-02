@@ -346,9 +346,9 @@ impl<'ln> LayoutNode<'ln> {
         }
     }
 
-    pub fn debug_id(self) -> uint {
+    pub fn debug_id(self) -> usize {
         let opaque: OpaqueNode = OpaqueNodeMethods::from_layout_node(&self);
-        opaque.to_untrusted_node_address().0 as uint
+        opaque.to_untrusted_node_address().0 as usize
     }
 }
 
@@ -807,7 +807,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    pub fn debug_id(self) -> uint {
+    pub fn debug_id(self) -> usize {
         self.node.debug_id()
     }
 
