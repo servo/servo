@@ -274,8 +274,8 @@ impl CanvasFragmentInfo {
     pub fn new(node: &ThreadSafeLayoutNode) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
-                Some(Au::from_px(node.get_canvas_width() as int)),
-                Some(Au::from_px(node.get_canvas_height() as int))),
+                Some(Au::from_px(node.get_canvas_width() as isize)),
+                Some(Au::from_px(node.get_canvas_height() as isize))),
             renderer: node.get_renderer().map(|rec| Arc::new(Mutex::new(rec))),
         }
     }
@@ -341,7 +341,7 @@ impl ImageFragmentInfo {
     /// Tile an image
     pub fn tile_image(position: &mut Au, size: &mut Au,
                         virtual_position: Au, image_size: u32) {
-        let image_size = image_size as int;
+        let image_size = image_size as isize;
         let delta_pixels = geometry::to_px(virtual_position - *position);
         let tile_count = (delta_pixels + image_size - 1) / image_size;
         let offset = Au::from_px(image_size * tile_count);
