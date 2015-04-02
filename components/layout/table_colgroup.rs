@@ -69,7 +69,7 @@ impl Flow for TableColGroupFlow {
         for fragment in self.cols.iter() {
             // Retrieve the specified value from the appropriate CSS property.
             let inline_size = fragment.style().content_inline_size();
-            let span: int = match fragment.specific {
+            let span = match fragment.specific {
                 SpecificFragmentInfo::TableColumn(col_fragment) => max(col_fragment.span, 1),
                 _ => panic!("non-table-column fragment inside table column?!"),
             };

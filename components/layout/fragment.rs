@@ -672,7 +672,7 @@ impl UnscannedTextFragmentInfo {
 #[derive(Copy, Clone)]
 pub struct TableColumnFragmentInfo {
     /// the number of columns a <col> element should span
-    pub span: int,
+    pub span: u32,
 }
 
 impl TableColumnFragmentInfo {
@@ -681,7 +681,7 @@ impl TableColumnFragmentInfo {
         let span = {
             let element = node.as_element();
             element.get_attr(&ns!(""), &atom!("span")).and_then(|string| {
-                let n: Option<int> = FromStr::from_str(string).ok();
+                let n: Option<u32> = FromStr::from_str(string).ok();
                 n
             }).unwrap_or(0)
         };
