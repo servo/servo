@@ -273,14 +273,11 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     fn set_quirks_mode(self, mode: QuirksMode) {
         self.quirks_mode.set(mode);
 
-        match mode {
-            Quirks => {
-                let window = self.window.root();
-                let window = window.r();
-                let LayoutChan(ref layout_chan) = window.layout_chan();
-                layout_chan.send(Msg::SetQuirksMode).unwrap();
-            }
-            NoQuirks | LimitedQuirks => {}
+        if mode == Quirks {
+            let window = self.window.root();
+            let window = window.r();
+            let LayoutChan(ref layout_chan) = window.layout_chan();
+            layout_chan.send(Msg::SetQuirksMode).unwrap();
         }
     }
 
@@ -380,7 +377,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             };
             let doc_node: JSRef<Node> = NodeCast::from_ref(self);
             doc_node.traverse_preorder()
-                    .filter_map(|node| HTMLAnchorElementCast::to_ref(node))
+                    .filter_map(HTMLAnchorElementCast::to_ref)
                     .find(check_anchor)
                     .map(|node| Temporary::from_rooted(ElementCast::from_ref(node)))
         })
@@ -925,7 +922,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
-    fn GetElementsByTagNameNS(self, maybe_ns: Option<DOMString>, tag_name: DOMString) -> Temporary<HTMLCollection> {
+    fn GetElementsByTagNameNS(self, maybe_ns: Option<DOMString>, tag_name: DOMString)
+                              -> Temporary<HTMLCollection> {
         let window = self.window.root();
         HTMLCollection::by_tag_name_ns(window.r(), NodeCast::from_ref(self), tag_name, maybe_ns)
     }
@@ -975,8 +973,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             QName => {}
         }
 
-        let (prefix_from_qname, local_name_from_qname)
-            = get_attribute_parts(&qualified_name);
+        let (prefix_from_qname, local_name_from_qname) = get_attribute_parts(&qualified_name);
         match (&ns, prefix_from_qname, local_name_from_qname) {
             // throw if prefix is not null and namespace is null
             (&ns!(""), Some(_), _) => {
@@ -988,7 +985,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 debug!("Namespace must be the xml namespace if the prefix is 'xml'");
                 return Err(NamespaceError);
             },
-            // throw if namespace is the XMLNS namespace and neither qualifiedName nor prefix is "xmlns"
+            // throw if namespace is the XMLNS namespace and neither qualifiedName nor prefix is
+            // "xmlns"
             (&ns!(XMLNS), Some(ref prefix), _) if "xmlns" == *prefix => {},
             (&ns!(XMLNS), _, "xmlns") => {},
             (&ns!(XMLNS), _, _) => {
@@ -1140,8 +1138,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             }
         }
 
-        let v: Vec<&str> = split_html_space_chars(&title).collect();
-        v.connect(" ")
+        split_html_space_chars(&title).collect::<Vec<_>>().connect(" ")
     }
 
     // TODO: Support root SVG namespace: https://github.com/servo/servo/issues/5315
@@ -1277,6 +1274,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         })
     }
 
+    // https://html.spec.whatwg.org/#dom-document-images
     fn Images(self) -> Temporary<HTMLCollection> {
         self.images.or_init(|| {
             let window = self.window.root();
@@ -1286,6 +1284,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         })
     }
 
+    // https://html.spec.whatwg.org/#dom-document-embeds
     fn Embeds(self) -> Temporary<HTMLCollection> {
         self.embeds.or_init(|| {
             let window = self.window.root();
@@ -1295,10 +1294,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         })
     }
 
+    // https://html.spec.whatwg.org/#dom-document-plugins
     fn Plugins(self) -> Temporary<HTMLCollection> {
         self.Embeds()
     }
 
+    // https://html.spec.whatwg.org/#dom-document-links
     fn Links(self) -> Temporary<HTMLCollection> {
         self.links.or_init(|| {
             let window = self.window.root();
@@ -1308,6 +1309,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         })
     }
 
+    // https://html.spec.whatwg.org/#dom-document-forms
     fn Forms(self) -> Temporary<HTMLCollection> {
         self.forms.or_init(|| {
             let window = self.window.root();
@@ -1317,6 +1319,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         })
     }
 
+    // https://html.spec.whatwg.org/#dom-document-scripts
     fn Scripts(self) -> Temporary<HTMLCollection> {
         self.scripts.or_init(|| {
             let window = self.window.root();
@@ -1326,6 +1329,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         })
     }
 
+    // https://html.spec.whatwg.org/#dom-document-anchors
     fn Anchors(self) -> Temporary<HTMLCollection> {
         self.anchors.or_init(|| {
             let window = self.window.root();
@@ -1335,6 +1339,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         })
     }
 
+    // https://html.spec.whatwg.org/#dom-document-applets
     fn Applets(self) -> Temporary<HTMLCollection> {
         // FIXME: This should be return OBJECT elements containing applets.
         self.applets.or_init(|| {
@@ -1345,6 +1350,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         })
     }
 
+    // https://html.spec.whatwg.org/#dom-document-location
     fn Location(self) -> Temporary<Location> {
         let window = self.window.root();
         let window = window.r();
