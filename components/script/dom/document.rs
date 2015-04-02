@@ -219,9 +219,13 @@ pub trait DocumentHelpers<'a> {
     fn handle_click_event(self, js_runtime: *mut JSRuntime, _button: uint, point: Point2D<f32>);
     fn dispatch_key_event(self, key: Key, state: KeyState,
         modifiers: KeyModifiers, compositor: &mut Box<ScriptListener+'static>);
-    /// Return need force reflow or not
-    fn handle_mouse_move_event(self, js_runtime: *mut JSRuntime, point: Point2D<f32>,
-                               prev_mouse_over_targets: &mut Vec<JS<Node>>) -> bool;
+
+    /// Handles a mouse-move event coming from the compositor.
+    fn handle_mouse_move_event(self,
+                               js_runtime: *mut JSRuntime,
+                               point: Point2D<f32>,
+                               prev_mouse_over_targets: &mut Vec<JS<Node>>);
+
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>);
     fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
 }
@@ -538,10 +542,10 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::MouseEvent);
     }
 
-    /// Return need force reflow or not
-    fn handle_mouse_move_event(self, js_runtime: *mut JSRuntime, point: Point2D<f32>,
-                               prev_mouse_over_targets: &mut Vec<JS<Node>>) -> bool {
-        let mut needs_reflow = false;
+    fn handle_mouse_move_event(self,
+                               js_runtime: *mut JSRuntime,
+                               point: Point2D<f32>,
+                               prev_mouse_over_targets: &mut Vec<JS<Node>>) {
         // Build a list of elements that are currently under the mouse.
         let mouse_over_addresses = self.get_nodes_under_mouse(&point);
         let mouse_over_targets: Vec<JS<Node>> = mouse_over_addresses.iter()
@@ -555,7 +559,6 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         for target in prev_mouse_over_targets.iter() {
             if !mouse_over_targets.contains(target) {
                 target.root().r().set_hover_state(false);
-                needs_reflow = true;
             }
         }
 
@@ -567,7 +570,6 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             let target_ref = target.r();
             if !target_ref.get_hover_state() {
                 target_ref.set_hover_state(true);
-                needs_reflow = true;
             }
         }
 
@@ -598,7 +600,11 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
         // Store the current mouse over targets for next frame
         *prev_mouse_over_targets = mouse_over_targets;
-        needs_reflow
+
+        let window = self.window.root();
+        window.r().reflow(ReflowGoal::ForDisplay,
+                          ReflowQueryType::NoQuery,
+                          ReflowReason::MouseEvent);
     }
 
     /// The entry point for all key processing for web content
