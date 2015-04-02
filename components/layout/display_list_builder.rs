@@ -1534,8 +1534,8 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
 struct StopRun {
     start_offset: f32,
     end_offset: f32,
-    start_index: uint,
-    stop_count: uint,
+    start_index: usize,
+    stop_count: usize,
 }
 
 fn fmin(a: f32, b: f32) -> f32 {
