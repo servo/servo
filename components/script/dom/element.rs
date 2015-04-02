@@ -1194,7 +1194,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             Some(parent) => parent.root()
         };
 
-        let parent: Root<Node> = match context_parent.r().type_id() {
+        let parent = match context_parent.r().type_id() {
             // Step 3.
             NodeTypeId::Document => return Err(NoModificationAllowed),
 
