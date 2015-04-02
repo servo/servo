@@ -29,6 +29,7 @@ use dom::htmlformelement::{SubmittedFrom, ResetFrom};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use dom::window::WindowHelpers;
 use textinput::TextInput;
 use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing};
 use textinput::Lines::Single;
@@ -116,7 +117,7 @@ impl HTMLInputElement {
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned(), document)),
+            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned(), document.window().root().r().constellation_chan())),
             activation_state: DOMRefCell::new(InputActivationState::new())
         }
     }

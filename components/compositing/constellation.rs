@@ -389,7 +389,14 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                  event);
             }
             ConstellationMsg::GetClipboardContents(sender) => {
-                sender.send(self.clipboard_ctx.get_contents().unwrap()).unwrap();
+                let result = match self.clipboard_ctx.get_contents() {
+                    Ok(s) => s,
+                    Err(e) => {
+                        debug!("Error getting clipboard contents ({}), defaulting to empty string", e);
+                        "".to_string()
+                    },
+                };
+                sender.send(result).unwrap();
             }
         }
         true
