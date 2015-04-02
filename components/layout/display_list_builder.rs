@@ -997,9 +997,9 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
                 let width = canvas_fragment_info.replaced_image_fragment_info
-                    .computed_inline_size.map_or(0, |w| to_px(w) as uint);
+                    .computed_inline_size.map_or(0, |w| to_px(w) as usize);
                 let height = canvas_fragment_info.replaced_image_fragment_info
-                    .computed_block_size.map_or(0, |h| to_px(h) as uint);
+                    .computed_block_size.map_or(0, |h| to_px(h) as usize);
 
                 let (sender, receiver) = channel::<Vec<u8>>();
                 let canvas_data = match canvas_fragment_info.renderer {
