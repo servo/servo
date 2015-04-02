@@ -15,8 +15,6 @@
 //!
 //! [glutin]: https://github.com/tomaka/glutin
 
-#![feature(env, os)]
-
 // The Servo engine
 extern crate servo;
 // Window graphics compositing and message dispatch
@@ -38,10 +36,6 @@ use util::opts;
 use net::resource_task;
 use servo::Browser;
 use compositing::windowing::WindowEvent;
-
-struct BrowserWrapper {
-    browser: Browser,
-}
 
 fn main() {
     // Parse the command line options and store them globally
@@ -115,7 +109,7 @@ fn maybe_unregister_glutin_resize_handler(window: &Option<Rc<app::window::Window
 }
 
 struct BrowserWrapper {
-    browser: Browser<app::window::Window>,
+    browser: Browser,
 }
 
 impl app::NestedEventLoopListener for BrowserWrapper {
@@ -154,7 +148,7 @@ fn get_args() -> Vec<String> {
 #[cfg(not(target_os="android"))]
 fn get_args() -> Vec<String> {
     use std::env;
-    env::args().map(|s| s.into_string().unwrap()).collect()
+    env::args().collect()
 }
 
 #[cfg(target_os = "android")]
