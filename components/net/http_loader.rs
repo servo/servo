@@ -3,15 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie_storage::CookieSource;
-use resource_task::{Metadata, TargetedLoadResponse, LoadData, start_sending_opt, ResponseSenders};
+use resource_task::{Metadata, TargetedLoadResponse, LoadData, start_sending_opt, ResponseSenders, ProgressMsg};
 use resource_task::ControlMsg;
 use resource_task::ProgressMsg::{Payload, Done};
 
 use log;
 use std::collections::HashSet;
 use file_loader;
+use flate2::read::{DeflateDecoder, GzDecoder};
 use hyper::client::Request;
-use hyper::header::{ContentLength, ContentType, Host, Location};
+use hyper::header::{AcceptEncoding, ContentLength, ContentType, Host, Location};
 use hyper::HttpError;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -160,11 +161,9 @@ reason: \"certificate verify failed\" }]";
             req.headers_mut().set_raw("Cookie".to_owned(), v);
         }
 
-        // FIXME(seanmonstar): use AcceptEncoding from Hyper once available
-        //if !req.headers.has::<AcceptEncoding>() {
-            // We currently don't support HTTP Compression (FIXME #2587)
-            req.headers_mut().set_raw("Accept-Encoding".to_owned(), vec![b"identity".to_vec()]);
-        //}
+        if !req.headers().has::<AcceptEncoding>() {
+            req.headers_mut().set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
+        }
         if log_enabled!(log::INFO) {
             info!("{}", load_data.method);
             for header in req.headers().iter() {
@@ -296,28 +295,59 @@ reason: \"certificate verify failed\" }]";
             Ok(p) => p,
             _ => return
         };
-        loop {
-            let mut buf = Vec::with_capacity(1024);
 
-            unsafe { buf.set_len(1024); }
-            match response.read(buf.as_mut_slice()) {
-                Ok(len) if len > 0 => {
-                    unsafe { buf.set_len(len); }
-                    if progress_chan.send(Payload(buf)).is_err() {
-                        // The send errors when the receiver is out of scope,
-                        // which will happen if the fetch has timed out (or has been aborted)
-                        // so we don't need to continue with the loading of the file here.
-                        return;
+        let mut encoding_str: Option<String> = None;
+        //FIXME: Implement Content-Encoding Header https://github.com/hyperium/hyper/issues/391
+        if let Some(encodings) = response.headers.get_raw("content-encoding") {
+            for encoding in encodings.iter() {
+                if let Ok(encodings) = String::from_utf8(encoding.clone()) {
+                    if encodings == "gzip" || encodings == "deflate" {
+                        encoding_str = Some(encodings);
+                        break;
                     }
                 }
-                Ok(_) | Err(_) => {
-                    let _ = progress_chan.send(Done(Ok(())));
-                    break;
+            }
+        }
+
+        match encoding_str {
+            Some(encoding) => {
+                if encoding == "gzip" {
+                    let mut response_decoding = GzDecoder::new(response).unwrap();
+                    send_data(&mut response_decoding, progress_chan);
+                } else if encoding == "deflate" {
+                    let mut response_decoding = DeflateDecoder::new(response);
+                    send_data(&mut response_decoding, progress_chan);
                 }
+            },
+            None => {
+                send_data(&mut response, progress_chan);
             }
         }
 
         // We didn't get redirected.
         break;
+    }
+}
+
+fn send_data<R: Read>(reader: &mut R, progress_chan: Sender<ProgressMsg>) {
+    loop {
+        let mut buf = Vec::with_capacity(1024);
+
+        unsafe { buf.set_len(1024); }
+        match reader.read(buf.as_mut_slice()) {
+            Ok(len) if len > 0 => {
+                unsafe { buf.set_len(len); }
+                if progress_chan.send(Payload(buf)).is_err() {
+                    // The send errors when the receiver is out of scope,
+                    // which will happen if the fetch has timed out (or has been aborted)
+                    // so we don't need to continue with the loading of the file here.
+                    return;
+                }
+            }
+            Ok(_) | Err(_) => {
+                let _ = progress_chan.send(Done(Ok(())));
+                break;
+            }
+        }
     }
 }
