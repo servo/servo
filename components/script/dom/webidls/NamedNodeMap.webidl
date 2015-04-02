@@ -5,8 +5,8 @@
 interface NamedNodeMap {
   readonly attribute unsigned long length;
   getter Attr? item(unsigned long index);
-  //getter Attr? getNamedItem(DOMString name);
-  //Attr? getNamedItemNS(DOMString? namespace, DOMString localName);
+  getter Attr? getNamedItem(DOMString name);
+  Attr? getNamedItemNS(DOMString? namespace, DOMString localName);
   //[Throws]
   //Attr? setNamedItem(Attr attr);
   //[Throws]
