@@ -42,6 +42,7 @@ pub trait LayoutTaskFactory {
     fn create(_phantom: Option<&mut Self>,
               id: PipelineId,
               url: Url,
+              is_iframe: bool,
               chan: OpaqueScriptLayoutChannel,
               pipeline_port: Receiver<LayoutControlMsg>,
               constellation_chan: ConstellationChan,

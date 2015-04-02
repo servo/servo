@@ -146,6 +146,7 @@ impl Pipeline {
         LayoutTaskFactory::create(None::<&mut LTF>,
                                   id,
                                   load_data.url.clone(),
+                                  parent_info.is_some(),
                                   layout_pair,
                                   pipeline_port,
                                   constellation_chan,
