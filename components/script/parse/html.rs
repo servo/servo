@@ -201,7 +201,8 @@ impl<'a> Serializable for JSRef<'a, Node> {
                 }
 
                 for handle in node.children() {
-                    try!(handle.serialize(serializer, IncludeNode));
+                    let handle = handle.root();
+                    try!(handle.r().serialize(serializer, IncludeNode));
                 }
 
                 if traversal_scope == IncludeNode {
@@ -212,7 +213,8 @@ impl<'a> Serializable for JSRef<'a, Node> {
 
             (ChildrenOnly, NodeTypeId::Document) => {
                 for handle in node.children() {
-                    try!(handle.serialize(serializer, IncludeNode));
+                    let handle = handle.root();
+                    try!(handle.r().serialize(serializer, IncludeNode));
                 }
                 Ok(())
             },

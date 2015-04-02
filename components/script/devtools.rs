@@ -79,7 +79,10 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
 
 pub fn handle_get_children(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: Sender<Vec<NodeInfo>>) {
     let parent = find_node_by_unique_id(&*page, pipeline, node_id).root();
-    let children = parent.r().children().map(|child| child.summarize()).collect();
+    let children = parent.r().children().map(|child| {
+        let child = child.root();
+        child.r().summarize()
+    }).collect();
     reply.send(children).unwrap();
 }
 
