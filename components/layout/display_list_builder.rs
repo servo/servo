@@ -345,8 +345,8 @@ impl FragmentDisplayListBuilding for Fragment {
         // wide.
         let image_aspect_ratio = (image.width as f64) / (image.height as f64);
         let bounds_aspect_ratio = bounds.size.width.to_subpx() / bounds.size.height.to_subpx();
-        let intrinsic_size = Size2D(Au::from_px(image.width as int),
-                                    Au::from_px(image.height as int));
+        let intrinsic_size = Size2D(Au::from_px(image.width as isize),
+                                    Au::from_px(image.height as isize));
         match (style.get_background().background_size.clone(),
                image_aspect_ratio < bounds_aspect_ratio) {
             (background_size::T::Contain, false) | (background_size::T::Cover, true) => {
@@ -997,9 +997,9 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
                 let width = canvas_fragment_info.replaced_image_fragment_info
-                    .computed_inline_size.map_or(0, |w| to_px(w) as uint);
+                    .computed_inline_size.map_or(0, |w| to_px(w) as usize);
                 let height = canvas_fragment_info.replaced_image_fragment_info
-                    .computed_block_size.map_or(0, |h| to_px(h) as uint);
+                    .computed_block_size.map_or(0, |h| to_px(h) as usize);
 
                 let (sender, receiver) = channel::<Vec<u8>>();
                 let canvas_data = match canvas_fragment_info.renderer {
@@ -1534,8 +1534,8 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
 struct StopRun {
     start_offset: f32,
     end_offset: f32,
-    start_index: uint,
-    stop_count: uint,
+    start_index: usize,
+    stop_count: usize,
 }
 
 fn fmin(a: f32, b: f32) -> f32 {

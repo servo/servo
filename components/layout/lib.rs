@@ -6,7 +6,6 @@
 #![feature(box_syntax)]
 #![feature(collections)]
 #![feature(core)]
-#![feature(int_uint)]
 #![feature(io)]
 #![feature(plugin)]
 #![feature(rustc_private)]

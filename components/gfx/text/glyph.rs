@@ -522,7 +522,7 @@ int_range_index! {
     #[derive(RustcEncodable)]
     #[doc = "An index that refers to a character in a text run. This could \
              point to the middle of a glyph."]
-    struct CharIndex(int)
+    struct CharIndex(isize)
 }
 
 impl<'a> GlyphStore {
@@ -540,7 +540,7 @@ impl<'a> GlyphStore {
     }
 
     pub fn char_len(&self) -> CharIndex {
-        CharIndex(self.entry_buffer.len() as int)
+        CharIndex(self.entry_buffer.len() as isize)
     }
 
     pub fn is_whitespace(&self) -> bool {
@@ -743,8 +743,8 @@ impl<'a> GlyphStore {
 pub struct GlyphIterator<'a> {
     store: &'a GlyphStore,
     char_index: CharIndex,
-    char_range: EachIndex<int, CharIndex>,
-    glyph_range: Option<EachIndex<int, CharIndex>>,
+    char_range: EachIndex<isize, CharIndex>,
+    glyph_range: Option<EachIndex<isize, CharIndex>>,
 }
 
 impl<'a> GlyphIterator<'a> {
@@ -767,7 +767,7 @@ impl<'a> GlyphIterator<'a> {
     fn next_complex_glyph(&mut self, entry: &GlyphEntry, i: CharIndex)
                           -> Option<(CharIndex, GlyphInfo<'a>)> {
         let glyphs = self.store.detail_store.get_detailed_glyphs_for_entry(i, entry.glyph_count());
-        self.glyph_range = Some(range::each_index(CharIndex(0), CharIndex(glyphs.len() as int)));
+        self.glyph_range = Some(range::each_index(CharIndex(0), CharIndex(glyphs.len() as isize)));
         self.next()
     }
 }

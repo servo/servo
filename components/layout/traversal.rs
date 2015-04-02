@@ -104,7 +104,7 @@ fn insert_ancestors_into_bloom_filter(bf: &mut Box<BloomFilter>,
                                       mut n: LayoutNode,
                                       layout_context: &LayoutContext) {
     debug!("[{}] Inserting ancestors.", tid());
-    let mut ancestors = 0u;
+    let mut ancestors = 0;
     loop {
         ancestors += 1;
 
