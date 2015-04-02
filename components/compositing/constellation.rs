@@ -38,6 +38,7 @@ use util::cursor::Cursor;
 use util::geometry::PagePx;
 use util::opts;
 use util::task::spawn_named;
+use clipboard::ClipboardContext;
 
 /// Maintains the pipelines and navigation context and grants permission to composite.
 pub struct Constellation<LTF, STF> {
@@ -102,6 +103,9 @@ pub struct Constellation<LTF, STF> {
     phantom: PhantomData<(LTF, STF)>,
 
     pub window_size: WindowSizeData,
+
+    /// Means of accessing the clipboard
+    clipboard_ctx: ClipboardContext,
 }
 
 /// Stores the navigation context for a single frame in the frame tree.
@@ -212,6 +216,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     device_pixel_ratio: ScaleFactor::new(1.0),
                 },
                 phantom: PhantomData,
+                clipboard_ctx: ClipboardContext::new().unwrap(),
             };
             constellation.run();
         });
@@ -394,6 +399,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             ConstellationMsg::FocusMsg(pipeline_id) => {
                 debug!("constellation got focus message");
                 self.handle_focus_msg(pipeline_id);
+            }
+            ConstellationMsg::GetClipboardContents(sender) => {
+                let result = match self.clipboard_ctx.get_contents() {
+                    Ok(s) => s,
+                    Err(e) => {
+                        debug!("Error getting clipboard contents ({}), defaulting to empty string", e);
+                        "".to_string()
+                    },
+                };
+                sender.send(result).unwrap();
             }
         }
         true
