@@ -16,6 +16,7 @@ use util::vec::byte_swap;
 
 use cssparser::RGBA;
 use std::borrow::ToOwned;
+use std::mem;
 use std::num::Float;
 use std::sync::mpsc::{channel, Sender};
 
@@ -38,6 +39,7 @@ pub enum CanvasMsg {
     ArcTo(Point2D<f32>, Point2D<f32>, f32),
     SetFillStyle(FillOrStrokeStyle),
     SetStrokeStyle(FillOrStrokeStyle),
+    SetStrokeOptions(StrokeLineOptions),
     SetTransform(Matrix2D<f32>),
     Recreate(Size2D<i32>),
     SendPixelContents(Sender<Vec<u8>>),
@@ -237,6 +239,7 @@ impl<'a> CanvasPaintTask<'a> {
                     }
                     CanvasMsg::SetFillStyle(style) => painter.set_fill_style(style),
                     CanvasMsg::SetStrokeStyle(style) => painter.set_stroke_style(style),
+                    CanvasMsg::SetStrokeOptions(options) => painter.set_stroke_options(options),
                     CanvasMsg::SetTransform(ref matrix) => painter.set_transform(matrix),
                     CanvasMsg::Recreate(size) => painter.recreate(size),
                     CanvasMsg::SendPixelContents(chan) => painter.send_pixel_contents(chan),
@@ -410,6 +413,14 @@ impl<'a> CanvasPaintTask<'a> {
 
     fn set_stroke_style(&mut self, style: FillOrStrokeStyle) {
         self.stroke_style = style.to_azure_pattern(&self.drawtarget)
+    }
+
+    fn set_stroke_options(&mut self, opts: StrokeLineOptions) {
+        self.stroke_opts = StrokeOptions::new(opts.line_width as f32,
+                                              unsafe { mem::transmute(opts.join_style) },
+                                              unsafe { mem::transmute(opts.cap_style) },
+                                              opts.miter_limit as f32,
+                                              &[]);
     }
 
     fn set_transform(&mut self, transform: &Matrix2D<f32>) {
@@ -599,6 +610,51 @@ impl FillOrStrokeStyle {
                     drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
                     &Matrix2D::identity()))
             }
+        }
+    }
+}
+
+#[repr(i32)]
+#[derive(Clone, Copy, PartialEq)]
+pub enum LineJoinStyle {
+    Bevel = 0,
+    Round = 1,
+    Miter = 2,
+    MiterOrBevel = 3,
+}
+
+#[repr(i32)]
+#[derive(Clone, Copy, PartialEq)]
+pub enum LineCapStyle {
+    Butt = 0,
+    Round = 1,
+    Square = 2,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub struct StrokeLineOptions {
+    pub line_width: f64,
+    pub join_style: LineJoinStyle,
+    pub cap_style: LineCapStyle,
+    pub miter_limit: f64,
+}
+
+impl StrokeLineOptions {
+    pub fn default() -> StrokeLineOptions {
+        StrokeLineOptions {
+            line_width: 1.0,
+            join_style: LineJoinStyle::MiterOrBevel,
+            cap_style: LineCapStyle::Butt,
+            miter_limit: 1.0,
+        }
+    }
+    pub fn new(line_width: f64, join_style: LineJoinStyle,
+               cap_style: LineCapStyle, miter_limit: f64) -> StrokeLineOptions {
+        StrokeLineOptions {
+            line_width: line_width,
+            join_style: join_style,
+            cap_style: cap_style,
+            miter_limit: miter_limit,
         }
     }
 }
