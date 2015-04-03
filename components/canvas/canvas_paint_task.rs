@@ -239,7 +239,7 @@ impl<'a> CanvasPaintTask<'a> {
                     }
                     CanvasMsg::SetFillStyle(style) => painter.set_fill_style(style),
                     CanvasMsg::SetStrokeStyle(style) => painter.set_stroke_style(style),
-                    CanvasMsg::SetStrokeOptions(ref options) => painter.set_stroke_options(options),
+                    CanvasMsg::SetStrokeOptions(options) => painter.set_stroke_options(options),
                     CanvasMsg::SetTransform(ref matrix) => painter.set_transform(matrix),
                     CanvasMsg::Recreate(size) => painter.recreate(size),
                     CanvasMsg::SendPixelContents(chan) => painter.send_pixel_contents(chan),
@@ -415,8 +415,7 @@ impl<'a> CanvasPaintTask<'a> {
         self.stroke_style = style.to_azure_pattern(&self.drawtarget)
     }
 
-    fn set_stroke_options(&mut self, opts: &StrokeLineOptions) {
-        let opts = *opts;
+    fn set_stroke_options(&mut self, opts: StrokeLineOptions) {
         self.stroke_opts = StrokeOptions::new(opts.line_width as f32,
                                               unsafe { mem::transmute(opts.join_style) },
                                               unsafe { mem::transmute(opts.cap_style) },
