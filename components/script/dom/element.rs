@@ -444,6 +444,7 @@ pub trait ElementHelpers<'a> {
     fn get_important_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
     fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString>;
     fn get_root_element(self) -> Option<Temporary<Element>>;
+    fn lookup_prefix(self, namespace: Option<DOMString>) -> Option<DOMString>;
 }
 
 impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
@@ -602,6 +603,28 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
             Some(n) => n.map(Temporary::from_rooted),
             None => Some(self).map(Temporary::from_rooted),
         }
+    }
+
+    // https://dom.spec.whatwg.org/#locate-a-namespace-prefix
+    fn lookup_prefix(self, namespace: Option<DOMString>) -> Option<DOMString> {
+        // Step 1.
+        if self.GetNamespaceURI() == namespace && self.GetPrefix().is_some() {
+            return self.GetPrefix();
+        }
+
+        // Step 2.
+        let attrs = self.Attributes().root();
+        for i in 0..attrs.r().Length() {
+            let attr = attrs.r().Item(i).unwrap().root();
+            if attr.r().GetPrefix() == Some(String::from_str("xmlns")) && Some(attr.r().Value()) == namespace {
+                return Some(attr.r().LocalName());
+            }
+        }
+
+        // Step 3.
+        NodeCast::from_ref(self).GetParentElement().and_then(|parent| {
+            parent.root().r().lookup_prefix(namespace)
+        })
     }
 }
 
