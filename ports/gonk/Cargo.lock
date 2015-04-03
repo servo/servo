@@ -24,6 +24,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "android_glue"
+version = "0.0.1"
+source = "git+https://github.com/tomaka/android-rs-glue#5a68056599fb498b0cf3715fd359894825e3b856"
+
+[[package]]
 name = "azure"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-azure#3e5daf667a62f702dc16285e923464458bef785f"
@@ -52,6 +57,9 @@ dependencies = [
  "cssparser 0.2.0 (git+https://github.com/servo/rust-cssparser)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "glutin 0.0.7 (git+https://github.com/servo/glutin?branch=servo)",
+ "msg 0.0.1",
  "util 0.0.1",
 ]
 
@@ -67,6 +75,16 @@ dependencies = [
 name = "clock_ticks"
 version = "0.0.4"
 source = "git+https://github.com/tomaka/clock_ticks#6a3005279bedc406b13eea09ff92447f05ca0de6"
+
+[[package]]
+name = "cocoa"
+version = "0.1.1"
+source = "git+https://github.com/servo/rust-cocoa#26d02e3f3606223645dde173a7bb924bce4836de"
+dependencies = [
+ "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "objc 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "compositing"
@@ -279,6 +297,14 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "gdi32-sys"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "winapi 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "geom"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-geom#c47fc0f927b6d6e5543fe3b5445c86810831dce1"
@@ -338,12 +364,31 @@ dependencies = [
 [[package]]
 name = "gleam"
 version = "0.0.1"
-source = "git+https://github.com/servo/gleam#fb17a364f314a35a6d209e875b5e90a920d41e86"
+source = "git+https://github.com/servo/gleam#70c5f2ea3ef3602277b7c380c24b504e42338056"
 dependencies = [
  "gl_common 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.0.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "khronos_api 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "glutin"
+version = "0.0.7"
+source = "git+https://github.com/servo/glutin?branch=servo#0feab4842c5b229bfe88739d2c526d03c198fd33"
+dependencies = [
+ "android_glue 0.0.1 (git+https://github.com/tomaka/android-rs-glue)",
+ "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
+ "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
+ "gdi32-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gl_common 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gl_generator 0.0.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "kernel32-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "khronos_api 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "user32-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -421,6 +466,14 @@ source = "git+https://github.com/servo/rust-mozjs#402b7b2db8816ffeccacfa9a8d316f
 dependencies = [
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozjs_sys 0.0.0 (git+https://github.com/servo/mozjs)",
+]
+
+[[package]]
+name = "kernel32-sys"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "winapi 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -518,6 +571,14 @@ version = "0.0.2"
 source = "git+https://github.com/reem/rust-mac#6316d3f4663756180fd236b126a84e245e978765"
 
 [[package]]
+name = "malloc_buf"
+version = "0.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "matches"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -596,6 +657,15 @@ dependencies = [
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
+]
+
+[[package]]
+name = "objc"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "malloc_buf 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -884,6 +954,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "user32-sys"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "winapi 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "util"
 version = "0.0.1"
 dependencies = [
@@ -944,6 +1022,14 @@ dependencies = [
  "util 0.0.1",
  "uuid 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "webdriver 0.0.1 (git+https://github.com/jgraham/webdriver-rust.git)",
+]
+
+[[package]]
+name = "winapi"
+version = "0.1.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

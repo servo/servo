@@ -6,7 +6,7 @@
 
 #![deny(unsafe_code)]
 
-use canvas::canvas_paint_task::CanvasMsg;
+use canvas::canvas_msg::CanvasMsg;
 use css::node_style::StyledNode;
 use context::LayoutContext;
 use floats::ClearType;
