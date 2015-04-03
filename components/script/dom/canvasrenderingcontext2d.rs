@@ -49,6 +49,7 @@ pub struct CanvasRenderingContext2D {
     global: GlobalField,
     renderer: Sender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
+    global_alpha: Cell<f64>,
     image_smoothing_enabled: Cell<bool>,
     stroke_color: Cell<RGBA>,
     line_width: Cell<f64>,
@@ -70,6 +71,7 @@ impl CanvasRenderingContext2D {
             global: GlobalField::from_rooted(&global),
             renderer: CanvasPaintTask::start(size),
             canvas: JS::from_rooted(canvas),
+            global_alpha: Cell::new(1.0),
             image_smoothing_enabled: Cell::new(true),
             stroke_color: Cell::new(black),
             line_width: Cell::new(1.0),
@@ -340,6 +342,19 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                                          e as f32,
                                          f as f32));
         self.update_transform()
+    }
+
+    fn GlobalAlpha(self) -> f64 {
+        self.global_alpha.get()
+    }
+
+    fn SetGlobalAlpha(self, alpha: f64) {
+        if !alpha.is_finite() || alpha > 1.0 || alpha < 0.0 {
+            return;
+        }
+
+        self.global_alpha.set(alpha);
+        self.renderer.send(CanvasMsg::SetGlobalAlpha(alpha as f32)).unwrap()
     }
 
     fn FillRect(self, x: f64, y: f64, width: f64, height: f64) {
