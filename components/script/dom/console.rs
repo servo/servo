@@ -33,7 +33,7 @@ impl Console {
 impl<'a> ConsoleMethods for JSRef<'a, Console> {
     fn Log(self, messages: Vec<DOMString>) {
         for message in messages {
-	    println!("{}", message);
+            println!("{}", message);
             //TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
             propagate_console_msg(&self, ConsoleMessage::LogMessage(message, String::from_str("test"), 1, 1));
         }
