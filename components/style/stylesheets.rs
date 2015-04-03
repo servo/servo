@@ -18,6 +18,7 @@ use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use media_queries::{Device, MediaQueryList, parse_media_query_list};
 use font_face::{FontFaceRule, parse_font_face_block};
+use util::smallvec::{SmallVec, SmallVec2};
 
 
 #[derive(Clone, PartialEq, Eq, Copy, Debug)]
@@ -129,10 +130,7 @@ impl Stylesheet {
     /// Return an iterator over all the rules within the style-sheet.
     #[inline]
     pub fn rules<'a>(&'a self) -> Rules<'a> {
-        Rules {
-            stack: vec![self.rules.iter()],
-            device: None
-        }
+        Rules::new(self.rules.iter(), None)
     }
 
     /// Return an iterator over the effective rules within the style-sheet, as
@@ -143,10 +141,7 @@ impl Stylesheet {
     /// examined.
     #[inline]
     pub fn effective_rules<'a>(&'a self, device: &'a Device) -> Rules<'a> {
-        Rules {
-            stack: vec![self.rules.iter()],
-            device: Some(device)
-        }
+        Rules::new(self.rules.iter(), Some(device))
     }
 }
 
@@ -155,8 +150,18 @@ impl Stylesheet {
 /// The iteration order is pre-order. Specifically, this implies that a
 /// conditional group rule will come before its nested rules.
 pub struct Rules<'a> {
-    stack: Vec<slice::Iter<'a, CSSRule>>,
+    // 2 because normal case is likely to be just one level of nesting (@media)
+    stack: SmallVec2<slice::Iter<'a, CSSRule>>,
     device: Option<&'a Device>
+}
+
+impl<'a> Rules<'a> {
+    fn new(iter: slice::Iter<'a, CSSRule>, device: Option<&'a Device>) -> Rules<'a> {
+        let mut stack = SmallVec2::new();
+        stack.push(iter);
+
+        Rules { stack: stack, device: device }
+    }
 }
 
 impl<'a> Iterator for Rules<'a> {
@@ -165,7 +170,7 @@ impl<'a> Iterator for Rules<'a> {
     fn next(&mut self) -> Option<&'a CSSRule> {
         while !self.stack.is_empty() {
             let top = self.stack.len() - 1;
-            while let Some(rule) = self.stack[top].next() {
+            while let Some(rule) = self.stack.get_mut(top).next() {
                 // handle conditional group rules
                 match rule {
                     &CSSRule::Media(ref rule) => {
@@ -210,14 +215,14 @@ pub mod rule_filter {
             #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
             pub struct $variant<'a, I> {
                 iter: I,
-                phantom: PhantomData<&'a ()>
+                _lifetime: PhantomData<&'a ()>
             }
 
             impl<'a, I> $variant<'a, I> where I: Iterator<Item=&'a CSSRule> {
                 pub fn new(iter: I) -> $variant<'a, I> {
                     $variant {
                         iter: iter,
-                        phantom: PhantomData
+                        _lifetime: PhantomData
                     }
                 }
             }
