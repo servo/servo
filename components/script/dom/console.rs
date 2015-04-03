@@ -31,26 +31,36 @@ impl Console {
 }
 
 impl<'a> ConsoleMethods for JSRef<'a, Console> {
-    fn Log(self, message: DOMString) {
-        println!("{}", message);
-        //TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
-        propagate_console_msg(&self, ConsoleMessage::LogMessage(message, String::from_str("test"), 1, 1));
+    fn Log(self, messages: Vec<DOMString>) {
+        for message in messages {
+            println!("{}", message);
+            //TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
+            propagate_console_msg(&self, ConsoleMessage::LogMessage(message, String::from_str("test"), 1, 1));
+        }
     }
 
-    fn Debug(self, message: DOMString) {
-        println!("{}", message);
+    fn Debug(self, messages: Vec<DOMString>) {
+        for message in messages {
+            println!("{}", message);
+        }
     }
 
-    fn Info(self, message: DOMString) {
-        println!("{}", message);
+    fn Info(self, messages: Vec<DOMString>) {
+        for message in messages {
+            println!("{}", message);
+        }
     }
 
-    fn Warn(self, message: DOMString) {
-        println!("{}", message);
+    fn Warn(self, messages: Vec<DOMString>) {
+        for message in messages {
+            println!("{}", message);
+        }
     }
 
-    fn Error(self, message: DOMString) {
-        println!("{}", message);
+    fn Error(self, messages: Vec<DOMString>) {
+        for message in messages {
+            println!("{}", message);
+        }
     }
 
     fn Assert(self, condition: bool, message: Option<DOMString>) {
