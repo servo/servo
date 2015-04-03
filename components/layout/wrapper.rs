@@ -32,7 +32,7 @@
 
 #![allow(unsafe_code)]
 
-use canvas::canvas_paint_task::CanvasMsg;
+use canvas::canvas_msg::CanvasMsg;
 use context::SharedLayoutContext;
 use css::node_style::StyledNode;
 use incremental::RestyleDamage;
