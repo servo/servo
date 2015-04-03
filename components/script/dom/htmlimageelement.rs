@@ -25,7 +25,7 @@ use util::str::DOMString;
 use string_cache::Atom;
 
 use net_traits::image::base::Image;
-use net_traits::image_cache_task::ImageResponder;
+use net_traits::image_cache_task::{ImageResponder, ImageResponse};
 use url::{Url, UrlParser};
 
 use std::borrow::ToOwned;
@@ -74,11 +74,16 @@ impl Responder {
 }
 
 impl ImageResponder for Responder {
-    fn respond(&self, image: Option<Arc<Image>>) {
+    fn respond(&self, image: ImageResponse) {
         // Update the image field
         let element = self.element.to_temporary().root();
         let element_ref = element.r();
-        *element_ref.image.borrow_mut() = image;
+        *element_ref.image.borrow_mut() = match image {
+            ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
+                Some(image)
+            }
+            ImageResponse::None => None,
+        };
 
         // Mark the node dirty
         let node = NodeCast::from_ref(element.r());
