@@ -757,12 +757,13 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         });
 
         if let Some(idx) = idx {
+            let attr = (*self.attrs.borrow())[idx].root();
             if namespace == ns!("") {
-                let attr = (*self.attrs.borrow())[idx].root();
                 vtable_for(&NodeCast::from_ref(self)).before_remove_attr(attr.r());
             }
 
             self.attrs.borrow_mut().remove(idx);
+            attr.r().set_owner(None);
 
             let node: JSRef<Node> = NodeCast::from_ref(self);
             if node.is_in_doc() {
