@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(libc, rustc_private, thread_local)]
+#![cfg_attr(not(test), feature(path))]
 
 #[macro_use]
 extern crate log;
@@ -22,8 +23,10 @@ extern crate libc;
 extern crate url;
 
 use compositing::CompositorEventListener;
-use compositing::windowing::{WindowEvent, WindowMethods};
+use compositing::windowing::WindowEvent;
 
+#[cfg(not(test))]
+use compositing::windowing::WindowMethods;
 #[cfg(not(test))]
 use compositing::{CompositorProxy, CompositorTask, Constellation};
 #[cfg(not(test))]
