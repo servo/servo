@@ -32,7 +32,7 @@ use std::ptr;
 #[privatize]
 pub struct BrowserContext {
     history: Vec<SessionHistoryEntry>,
-    active_index: uint,
+    active_index: usize,
     window_proxy: *mut JSObject,
     frame_element: Option<JS<Element>>,
 }

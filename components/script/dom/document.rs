@@ -339,7 +339,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                 let elements = entry.into_mut();
 
                 let new_node: JSRef<Node> = NodeCast::from_ref(element);
-                let mut head: uint = 0u;
+                let mut head: usize = 0;
                 let root: JSRef<Node> = NodeCast::from_ref(root.r());
                 for node in root.traverse_preorder() {
                     let elem: Option<JSRef<Element>> = ElementCast::to_ref(node);

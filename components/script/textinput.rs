@@ -225,9 +225,9 @@ impl TextInput {
             if adjust.abs() as usize > remaining && self.edit_point.line > 0 {
                 self.adjust_vertical(-1, select);
                 self.edit_point.index = self.current_line_length();
-                self.adjust_horizontal(adjust + remaining as int + 1, select);
+                self.adjust_horizontal(adjust + remaining as isize + 1, select);
             } else {
-                self.edit_point.index = max(0, self.edit_point.index as int + adjust) as usize;
+                self.edit_point.index = max(0, self.edit_point.index as isize + adjust) as usize;
             }
         } else {
             let remaining = self.current_line_length() - self.edit_point.index;
@@ -235,7 +235,7 @@ impl TextInput {
                 self.adjust_vertical(1, select);
                 self.edit_point.index = 0;
                 // one shift is consumed by the change of line, hence the -1
-                self.adjust_horizontal(adjust - remaining as int - 1, select);
+                self.adjust_horizontal(adjust - remaining as isize - 1, select);
             } else {
                 self.edit_point.index = min(self.current_line_length(),
                                             self.edit_point.index + adjust as usize);
