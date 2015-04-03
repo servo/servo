@@ -25,7 +25,8 @@ def run_tests(paths=None, **kwargs):
         paths = {}
     set_defaults(paths, kwargs)
     wptrunner.setup_logging(kwargs, {"mach": sys.stdout})
-    return wptrunner.run_tests(**kwargs)
+    success = wptrunner.run_tests(**kwargs)
+    return 0 if success else 1
 
 def set_defaults(paths, kwargs):
     if kwargs["product"] is None:
@@ -52,4 +53,3 @@ def main(paths=None):
     parser = wptcommandline.create_parser()
     kwargs = vars(parser.parse_args())
     return run_tests(paths, **kwargs)
-
