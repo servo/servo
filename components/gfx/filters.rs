@@ -8,6 +8,7 @@ use azure::AzFloat;
 use azure::azure_hl::{ColorMatrixAttribute, ColorMatrixInput, CompositeInput, DrawTarget};
 use azure::azure_hl::{FilterNode, FilterType, LinearTransferAttribute, LinearTransferInput};
 use azure::azure_hl::{Matrix5x4, TableTransferAttribute, TableTransferInput};
+use azure::azure_hl::{GaussianBlurAttribute, GaussianBlurInput};
 
 use std::num::Float;
 use style::computed_values::filter;
@@ -90,6 +91,13 @@ pub fn create_filters(draw_target: &DrawTarget,
                 contrast.set_attribute(LinearTransferAttribute::InterceptB(-0.5 * amount + 0.5));
                 contrast.set_input(LinearTransferInput, &filter);
                 filter = contrast
+            }
+            filter::Filter::Blur(amount) => {
+                let amount = amount.to_frac32_px();
+                let blur = draw_target.create_filter(FilterType::GaussianBlur);
+                blur.set_attribute(GaussianBlurAttribute::StdDeviation(amount));
+                blur.set_input(GaussianBlurInput, &filter);
+                filter = blur
             }
         }
     }
