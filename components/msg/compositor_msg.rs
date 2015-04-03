@@ -108,6 +108,7 @@ pub trait PaintListener {
 /// The interface used by the script task to tell the compositor to update its ready state,
 /// which is used in displaying the appropriate message in the window's title.
 pub trait ScriptListener {
+    fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata>;
     fn set_ready_state(&mut self, PipelineId, ReadyState);
     fn scroll_fragment_point(&mut self,
                              pipeline_id: PipelineId,
