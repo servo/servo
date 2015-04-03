@@ -119,9 +119,6 @@ class MachCommands(CommandBase):
             package = component
 
         self.ensure_bootstrapped()
-        self.ensure_built_tests()
-
-        ret = self.run_test("servo", test_name) != 0
 
         def cargo_test(component):
             return 0 != subprocess.call(
@@ -129,12 +126,13 @@ class MachCommands(CommandBase):
                 + test_name, env=self.build_env(), cwd=self.servo_crate())
 
         if package is not None:
-            ret = ret or cargo_test(package)
-        else:
-            for c in os.listdir("components"):
-                if c != "servo":
-                    ret = ret or cargo_test(c)
+            return cargo_test(package)
 
+        self.ensure_built_tests()
+        ret = self.run_test("servo", test_name) != 0
+        for c in os.listdir("components"):
+            if c != "servo":
+                ret = ret or cargo_test(c)
         return ret
 
     @Command('test-ref',
