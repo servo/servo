@@ -149,6 +149,9 @@ pub struct Line {
     /// FFF float
     /// ~~~
     pub green_zone: LogicalSize<Au>,
+
+    /// The inline metrics for this line.
+    pub inline_metrics: InlineMetrics,
 }
 
 int_range_index! {
@@ -180,23 +183,38 @@ struct LineBreaker {
     cur_b: Au,
     /// The computed value of the indentation for the first line (`text-indent`, CSS 2.1 § 16.1).
     first_line_indentation: Au,
+    /// The minimum block-size above the baseline for each line, as specified by the line height
+    /// and font style.
+    minimum_block_size_above_baseline: Au,
+    /// The minimum depth below the baseline for each line, as specified by the line height and
+    /// font style.
+    minimum_depth_below_baseline: Au,
 }
 
 impl LineBreaker {
     /// Creates a new `LineBreaker` with a set of floats and the indentation of the first line.
-    fn new(float_context: Floats, first_line_indentation: Au) -> LineBreaker {
+    fn new(float_context: Floats,
+           first_line_indentation: Au,
+           minimum_block_size_above_baseline: Au,
+           minimum_depth_below_baseline: Au)
+           -> LineBreaker {
         LineBreaker {
             new_fragments: Vec::new(),
             work_list: VecDeque::new(),
             pending_line: Line {
                 range: Range::empty(),
                 bounds: LogicalRect::zero(float_context.writing_mode),
-                green_zone: LogicalSize::zero(float_context.writing_mode)
+                green_zone: LogicalSize::zero(float_context.writing_mode),
+                inline_metrics: InlineMetrics::new(minimum_block_size_above_baseline,
+                                                   minimum_depth_below_baseline,
+                                                   minimum_block_size_above_baseline),
             },
             floats: float_context,
             lines: Vec::new(),
             cur_b: Au(0),
             first_line_indentation: first_line_indentation,
+            minimum_block_size_above_baseline: minimum_block_size_above_baseline,
+            minimum_depth_below_baseline: minimum_depth_below_baseline,
         }
     }
 
@@ -216,7 +234,11 @@ impl LineBreaker {
                                                     self.cur_b,
                                                     Au(0),
                                                     Au(0));
-        self.pending_line.green_zone = LogicalSize::zero(self.floats.writing_mode)
+        self.pending_line.green_zone = LogicalSize::zero(self.floats.writing_mode);
+        self.pending_line.inline_metrics =
+            InlineMetrics::new(self.minimum_block_size_above_baseline,
+                               self.minimum_depth_below_baseline,
+                               self.minimum_block_size_above_baseline)
     }
 
     /// Reflows fragments for the given inline flow.
@@ -382,16 +404,15 @@ impl LineBreaker {
         self.reset_line();
     }
 
-    // FIXME(eatkinson): this assumes that the tallest fragment in the line determines the line
-    // block-size. This might not be the case with some weird text fonts.
+    fn new_inline_metrics_for_line(&self, new_fragment: &Fragment, layout_context: &LayoutContext)
+                                   -> InlineMetrics {
+        self.pending_line.inline_metrics.max(&new_fragment.inline_metrics(layout_context))
+    }
+
     fn new_block_size_for_line(&self, new_fragment: &Fragment, layout_context: &LayoutContext)
                                -> Au {
-        let fragment_block_size = new_fragment.content_block_size(layout_context);
-        if fragment_block_size > self.pending_line.bounds.size.block {
-            fragment_block_size
-        } else {
-            self.pending_line.bounds.size.block
-        }
+        Au::max(self.pending_line.bounds.size.block,
+                self.new_inline_metrics_for_line(new_fragment, layout_context).block_size())
     }
 
     /// Computes the position of a line that has only the provided fragment. Returns the bounding
@@ -660,7 +681,7 @@ impl LineBreaker {
         }
 
         if !need_ellipsis {
-            self.push_fragment_to_line_ignoring_text_overflow(fragment);
+            self.push_fragment_to_line_ignoring_text_overflow(fragment, layout_context);
             return
         }
 
@@ -670,22 +691,26 @@ impl LineBreaker {
                                                  ellipsis.border_box.size.inline) {
             let fragment = fragment.transform_with_split_info(&truncation_info.split,
                                                               truncation_info.text_run);
-            self.push_fragment_to_line_ignoring_text_overflow(fragment);
+            self.push_fragment_to_line_ignoring_text_overflow(fragment, layout_context);
         }
-        self.push_fragment_to_line_ignoring_text_overflow(ellipsis);
+        self.push_fragment_to_line_ignoring_text_overflow(ellipsis, layout_context);
     }
 
     /// Pushes a fragment to the current line unconditionally, without placing an ellipsis in the
     /// case of `text-overflow: ellipsis`.
-    fn push_fragment_to_line_ignoring_text_overflow(&mut self, fragment: Fragment) {
+    fn push_fragment_to_line_ignoring_text_overflow(&mut self,
+                                                    fragment: Fragment,
+                                                    layout_context: &LayoutContext) {
         let indentation = self.indentation_for_pending_fragment();
 
         self.pending_line.range.extend_by(FragmentIndex(1));
         self.pending_line.bounds.size.inline = self.pending_line.bounds.size.inline +
             fragment.border_box.size.inline +
             indentation;
-        self.pending_line.bounds.size.block = max(self.pending_line.bounds.size.block,
-                                                  fragment.border_box.size.block);
+        self.pending_line.inline_metrics =
+            self.new_inline_metrics_for_line(&fragment, layout_context);
+        self.pending_line.bounds.size.block =
+            self.new_block_size_for_line(&fragment, layout_context);
         self.new_fragments.push(fragment);
     }
 
@@ -772,11 +797,11 @@ pub struct InlineFlow {
     /// lines.
     pub lines: Vec<Line>,
 
-    /// The minimum block-size above the baseline for each line, as specified by the line block-
-    /// size and font style.
+    /// The minimum block-size above the baseline for each line, as specified by the line height
+    /// and font style.
     pub minimum_block_size_above_baseline: Au,
 
-    /// The minimum depth below the baseline for each line, as specified by the line block-size and
+    /// The minimum depth below the baseline for each line, as specified by the line height and
     /// font style.
     pub minimum_depth_below_baseline: Au,
 
@@ -1190,7 +1215,10 @@ impl Flow for InlineFlow {
         };
 
         // Perform line breaking.
-        let mut scanner = LineBreaker::new(self.base.floats.clone(), indentation);
+        let mut scanner = LineBreaker::new(self.base.floats.clone(),
+                                           indentation,
+                                           self.minimum_block_size_above_baseline,
+                                           self.minimum_depth_below_baseline);
         scanner.scan_for_lines(self, layout_context);
 
         // Now, go through each line and lay out the fragments inside.
@@ -1435,6 +1463,7 @@ impl InlineFragmentContext {
 
 /// Block-size above the baseline, depth below the baseline, and ascent for a fragment. See CSS 2.1
 /// § 10.8.1.
+#[derive(Clone, Copy, Debug, RustcEncodable)]
 pub struct InlineMetrics {
     pub block_size_above_baseline: Au,
     pub depth_below_baseline: Au,
@@ -1442,6 +1471,16 @@ pub struct InlineMetrics {
 }
 
 impl InlineMetrics {
+    /// Creates a new set of inline metrics.
+    pub fn new(block_size_above_baseline: Au, depth_below_baseline: Au, ascent: Au)
+               -> InlineMetrics {
+        InlineMetrics {
+            block_size_above_baseline: block_size_above_baseline,
+            depth_below_baseline: depth_below_baseline,
+            ascent: ascent,
+        }
+    }
+
     /// Calculates inline metrics from font metrics and line block-size per CSS 2.1 § 10.8.1.
     #[inline]
     pub fn from_font_metrics(font_metrics: &FontMetrics, line_height: Au) -> InlineMetrics {
@@ -1461,6 +1500,19 @@ impl InlineMetrics {
             block_size_above_baseline: font_metrics.ascent + leading.scale_by(0.5),
             depth_below_baseline: font_metrics.descent + leading.scale_by(0.5),
             ascent: font_metrics.ascent + leading.scale_by(0.5),
+        }
+    }
+
+    pub fn block_size(&self) -> Au {
+        self.block_size_above_baseline + self.depth_below_baseline
+    }
+
+    pub fn max(&self, other: &InlineMetrics) -> InlineMetrics {
+        InlineMetrics {
+            block_size_above_baseline: Au::max(self.block_size_above_baseline,
+                                               other.block_size_above_baseline),
+            depth_below_baseline: Au::max(self.depth_below_baseline, other.depth_below_baseline),
+            ascent: Au::max(self.ascent, other.ascent),
         }
     }
 }
