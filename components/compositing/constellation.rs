@@ -32,7 +32,7 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 use std::marker::PhantomData;
 use std::mem::replace;
-use std::sync::mpsc::{Receiver, channel};
+use std::sync::mpsc::{Sender, Receiver, channel};
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::PagePx;
@@ -383,6 +383,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                  subpage_id,
                                                  event);
             }
+            ConstellationMsg::GetRootPipeline(resp_chan) => {
+                debug!("constellation got get root pipeline message");
+                self.handle_get_root_pipeline(resp_chan);
+            }
         }
         true
     }
@@ -677,6 +681,14 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // and pass the event to that script task.
         let pipeline = self.pipeline(containing_pipeline_id);
         pipeline.trigger_mozbrowser_event(subpage_id, event);
+    }
+
+    fn handle_get_root_pipeline(&mut self, resp_chan: Sender<Option<PipelineId>>) {
+        let pipeline_id = self.root_frame_id.map(|frame_id| {
+            let frame = self.frames.get(&frame_id).unwrap();
+            frame.current
+        });
+        resp_chan.send(pipeline_id).unwrap();
     }
 
     fn add_or_replace_pipeline_in_frame_tree(&mut self, frame_change: FrameChange) {

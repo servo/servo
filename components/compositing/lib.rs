@@ -27,6 +27,7 @@ extern crate net_traits;
 #[macro_use]
 extern crate util;
 extern crate gleam;
+extern crate webdriver_server;
 
 extern crate libc;
 extern crate time;
