@@ -15,6 +15,8 @@ use flow::{Flow, FlowClass};
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedContentInfo};
 use generated_content;
 use incremental::RESOLVE_GENERATED_CONTENT;
+use inline::InlineMetrics;
+use text;
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
@@ -84,30 +86,38 @@ impl Flow for ListItemFlow {
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         self.block_flow.assign_inline_sizes(layout_context);
 
-        match self.marker {
-            None => {}
-            Some(ref mut marker) => {
-                // Do this now. There's no need to do this in bubble-widths, since markers do not
-                // contribute to the inline size of this flow.
-                let intrinsic_inline_sizes = marker.compute_intrinsic_inline_sizes();
+        if let Some(ref mut marker) = self.marker {
+            let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
+            marker.assign_replaced_inline_size_if_necessary(containing_block_inline_size);
 
-                marker.border_box.size.inline =
-                    intrinsic_inline_sizes.content_intrinsic_sizes.preferred_inline_size;
-                marker.border_box.start.i = self.block_flow.fragment.border_box.start.i -
-                    marker.border_box.size.inline;
-            }
+            // Do this now. There's no need to do this in bubble-widths, since markers do not
+            // contribute to the inline size of this flow.
+            let intrinsic_inline_sizes = marker.compute_intrinsic_inline_sizes();
+
+            marker.border_box.size.inline =
+                intrinsic_inline_sizes.content_intrinsic_sizes.preferred_inline_size;
+            marker.border_box.start.i = self.block_flow.fragment.border_box.start.i -
+                marker.border_box.size.inline;
         }
     }
 
     fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         self.block_flow.assign_block_size(layout_context);
 
-        match self.marker {
-            None => {}
-            Some(ref mut marker) => {
-                marker.border_box.start.b = Au(0);
-                marker.border_box.size.block = marker.calculate_line_height(layout_context);
-            }
+        if let Some(ref mut marker) = self.marker {
+            let containing_block_block_size =
+                self.block_flow.base.block_container_explicit_block_size.unwrap_or(Au(0));
+            marker.assign_replaced_block_size_if_necessary(containing_block_block_size);
+
+            let font_metrics =
+                text::font_metrics_for_style(layout_context.font_context(),
+                                             marker.style.get_font_arc());
+            let line_height = text::line_height_from_style(&*marker.style, &font_metrics);
+            let item_inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
+            let marker_inline_metrics = marker.inline_metrics(layout_context);
+            marker.border_box.start.b = item_inline_metrics.block_size_above_baseline -
+                marker_inline_metrics.block_size_above_baseline;
+            marker.border_box.size.block = marker_inline_metrics.block_size_above_baseline;
         }
     }
 
