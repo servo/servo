@@ -172,6 +172,8 @@
 //!   `dom::bindings::codegen::Bindings::FooBindings::FooMethods` trait for
 //!   `JSRef<Foo>`.
 //!
+//! More information is available in the [bindings module](bindings/index.html).
+//!
 //! Accessing DOM objects from layout
 //! =================================
 //!
