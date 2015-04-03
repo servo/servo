@@ -57,9 +57,14 @@ name = "canvas"
 version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
+ "compositing 0.0.1",
  "cssparser 0.2.0 (git+https://github.com/servo/rust-cssparser)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "msg 0.0.1",
+ "skia 0.0.20130412 (git+https://github.com/servo/skia?branch=upstream-2014-06-16)",
  "util 0.0.1",
 ]
 

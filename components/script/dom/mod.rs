@@ -324,6 +324,7 @@ pub mod urlsearchparams;
 pub mod userscripts;
 pub mod validitystate;
 pub mod virtualmethods;
+pub mod webglrenderingcontext;
 pub mod websocket;
 pub mod window;
 pub mod worker;

@@ -1,0 +1,57 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use canvas::webgl_paint_task::{WebGLMsg, WebGLPaintTask};
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
+use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::htmlcanvaselement::{HTMLCanvasElement};
+use dom::node::window_from_node;
+use geom::size::Size2D;
+use std::sync::mpsc::{channel, Sender};
+
+#[dom_struct]
+pub struct WebGLRenderingContext {
+    reflector_: Reflector,
+    global: GlobalField,
+    renderer: Sender<WebGLMsg>,
+    canvas: JS<HTMLCanvasElement>,
+}
+
+impl WebGLRenderingContext {
+    fn new_inherited(global: GlobalRef, canvas: JSRef<HTMLCanvasElement>, size: Size2D<i32>)
+                     -> WebGLRenderingContext {
+        let window = window_from_node(canvas).root();
+        let window = window.r();
+        let graphics_metadata = window.compositor().get_graphics_metadata().unwrap();
+        WebGLRenderingContext {
+            reflector_: Reflector::new(),
+            global: GlobalField::from_rooted(&global),
+            renderer: WebGLPaintTask::start(size, graphics_metadata),
+            canvas: JS::from_rooted(canvas),
+        }
+    }
+
+    pub fn new(global: GlobalRef, canvas: JSRef<HTMLCanvasElement>, size: Size2D<i32>)
+               -> Temporary<WebGLRenderingContext> {
+        reflect_dom_object(box WebGLRenderingContext::new_inherited(global, canvas, size),
+                           global, WebGLRenderingContextBinding::Wrap)
+    }
+
+    pub fn recreate(&self, size: Size2D<i32>) {
+    }
+
+}
+
+impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
+    fn Clear(self, mask: u32) -> () {
+        self.renderer.send(WebGLMsg::Clear(mask)).unwrap()
+    }
+
+    fn ClearColor(self, red: f32, green: f32, blue: f32, alpha: f32) -> (){
+        self.renderer.send(WebGLMsg::ClearColor(red, green, blue, alpha)).unwrap()
+    }
+}

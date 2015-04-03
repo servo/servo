@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // http://www.whatwg.org/html/#htmlcanvaselement
-//typedef (CanvasRenderingContext2D or WebGLRenderingContext) RenderingContext;
+typedef (CanvasRenderingContext2D or WebGLRenderingContext) RenderingContext;
 
 interface HTMLCanvasElement : HTMLElement {
   [Pure]
@@ -12,8 +12,7 @@ interface HTMLCanvasElement : HTMLElement {
   [Pure]
            attribute unsigned long height;
 
-  //RenderingContext? getContext(DOMString contextId, any... arguments);
-  CanvasRenderingContext2D? getContext(DOMString contextId);
+  RenderingContext? getContext(DOMString contextId);
   //boolean probablySupportsContext(DOMString contextId, any... arguments);
 
   //void setContext(RenderingContext context);
