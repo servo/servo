@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use script_traits::MouseButton;
+
 use std::path::Path;
 use std::mem::size_of;
 use std::mem::transmute;
@@ -167,9 +169,12 @@ fn read_input_device(device_path: &Path,
                             if dist < 16 {
                                 let click_pt = TypedPoint2D(slotA.x as f32, slotA.y as f32);
                                 println!("Dispatching click!");
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(0, click_pt))).ok().unwrap();
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(0, click_pt))).ok().unwrap();
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(0, click_pt))).ok().unwrap();
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(MouseButton::Left, click_pt)))
+                                      .ok().unwrap();
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(MouseButton::Left, click_pt)))
+                                      .ok().unwrap();
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(MouseButton::Left, click_pt)))
+                                      .ok().unwrap();
                             }
                         } else {
                             println!("Touch down");

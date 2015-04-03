@@ -1205,10 +1205,10 @@ impl ScriptTask {
                 self.handle_reflow_event(pipeline_id);
             }
 
-            ClickEvent(_button, point) => {
+            ClickEvent(button, point) => {
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document().root();
-                document.r().handle_click_event(self.js_runtime.ptr, _button, point);
+                document.r().handle_click_event(self.js_runtime.ptr, button, point);
             }
 
             MouseDownEvent(..) => {}

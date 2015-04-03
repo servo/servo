@@ -32,6 +32,7 @@ extern crate js;
 extern crate layers;
 extern crate png;
 extern crate script;
+extern crate script_traits;
 extern crate unicode;
 
 extern crate net;

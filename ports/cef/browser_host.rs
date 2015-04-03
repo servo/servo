@@ -13,6 +13,7 @@ use geom::point::TypedPoint2D;
 use geom::size::TypedSize2D;
 use libc::{c_double, c_int};
 use msg::constellation_msg::{self, KeyModifiers, KeyState};
+use script_traits::MouseButton;
 use std::cell::RefCell;
 
 pub struct ServoCefBrowserHost {
@@ -110,7 +111,11 @@ full_cef_class_impl! {
             let event: &cef_mouse_event = event;
             let mouse_button_type: cef_mouse_button_type_t = mouse_button_type;
             let mouse_up: c_int = mouse_up;
-            let button_type = mouse_button_type as uint;
+            let button_type = match mouse_button_type {
+                cef_mouse_button_type_t::MBT_LEFT => MouseButton::Left,
+                cef_mouse_button_type_t::MBT_MIDDLE => MouseButton::Middle,
+                cef_mouse_button_type_t::MBT_RIGHT => MouseButton::Right,
+            };
             let point = TypedPoint2D((*event).x as f32, (*event).y as f32);
             if mouse_up != 0 {
                 this.downcast().send_window_event(WindowEvent::MouseWindowEventClass(

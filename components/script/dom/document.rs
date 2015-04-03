@@ -66,7 +66,7 @@ use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
 use net::resource_task::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
 use net::cookie_storage::CookieSource::NonHTTP;
 use script_task::Runnable;
-use script_traits::UntrustedNodeAddress;
+use script_traits::{MouseButton, UntrustedNodeAddress};
 use util::{opts, namespace};
 use util::str::{DOMString, split_html_space_chars};
 use layout_interface::{ReflowGoal, ReflowQueryType};
@@ -216,7 +216,8 @@ pub trait DocumentHelpers<'a> {
     fn title_changed(self);
     fn send_title_to_compositor(self);
     fn dirty_all_nodes(self);
-    fn handle_click_event(self, js_runtime: *mut JSRuntime, _button: uint, point: Point2D<f32>);
+    fn handle_click_event(self, js_runtime: *mut JSRuntime,
+                          button: MouseButton, point: Point2D<f32>);
     fn dispatch_key_event(self, key: Key, state: KeyState,
         modifiers: KeyModifiers, compositor: &mut Box<ScriptListener+'static>);
 
@@ -480,7 +481,8 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         }
     }
 
-    fn handle_click_event(self, js_runtime: *mut JSRuntime, _button: uint, point: Point2D<f32>) {
+    fn handle_click_event(self, js_runtime: *mut JSRuntime,
+                          _button: MouseButton, point: Point2D<f32>) {
         debug!("ClickEvent: clicked at {:?}", point);
         let node = match self.hit_test(&point) {
             Some(node_address) => {
