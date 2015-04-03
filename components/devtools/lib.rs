@@ -34,6 +34,7 @@ use actors::worker::WorkerActor;
 use actors::inspector::InspectorActor;
 use actors::root::RootActor;
 use actors::tab::TabActor;
+use actors::timeline::TimelineActor;
 use protocol::JsonPacketStream;
 
 use devtools_traits::{ConsoleMessage, DevtoolsControlMsg};
@@ -53,9 +54,12 @@ mod actor;
 /// Corresponds to http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/
 mod actors {
     pub mod console;
+    pub mod framerate;
+    pub mod memory;
     pub mod inspector;
     pub mod root;
     pub mod tab;
+    pub mod timeline;
     pub mod worker;
 }
 mod protocol;
@@ -156,7 +160,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         let mut actor_workers: HashMap<(PipelineId, WorkerId), String> = HashMap::new();
 
         //TODO: move all this actor creation into a constructor method on TabActor
-        let (tab, console, inspector) = {
+        let (tab, console, inspector, timeline) = {
             let console = ConsoleActor {
                 name: actors.new_name("console"),
                 script_chan: scriptSender.clone(),
@@ -168,9 +172,13 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 walker: RefCell::new(None),
                 pageStyle: RefCell::new(None),
                 highlighter: RefCell::new(None),
-                script_chan: scriptSender,
+                script_chan: scriptSender.clone(),
                 pipeline: pipeline,
             };
+
+            let timeline = TimelineActor::new(actors.new_name("timeline"),
+                                              pipeline,
+                                              scriptSender);
 
             let DevtoolsPageInfo { title, url } = page_info;
             let tab = TabActor {
@@ -179,11 +187,12 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 url: url.serialize(),
                 console: console.name(),
                 inspector: inspector.name(),
+                timeline: timeline.name(),
             };
 
             let root = actors.find_mut::<RootActor>("root");
             root.tabs.push(tab.name.clone());
-            (tab, console, inspector)
+            (tab, console, inspector, timeline)
         };
 
         if let Some(id) = worker_id {
@@ -199,6 +208,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         actors.register(box tab);
         actors.register(box console);
         actors.register(box inspector);
+        actors.register(box timeline);
     }
 
     fn handle_console_message(actors: Arc<Mutex<ActorRegistry>>,

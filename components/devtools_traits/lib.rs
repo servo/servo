@@ -84,6 +84,30 @@ pub struct NodeInfo {
     pub incompleteValue: bool,
 }
 
+#[derive(PartialEq, Eq)]
+pub enum TracingMetadata {
+    Default,
+    IntervalStart,
+    IntervalEnd,
+    Event,
+    EventBacktrace,
+}
+
+pub struct TimelineMarker {
+    pub name: String,
+    pub metadata: TracingMetadata,
+    pub time: u64,
+    pub stack: Option<Vec<uint>>,
+}
+
+#[derive(PartialEq, Eq)]
+#[derive(Hash)]
+#[derive(Clone)]
+pub enum TimelineMarkerType {
+    Reflow,
+    DOMEvent,
+}
+
 /// Messages to process in a particular script task, as instructed by a devtools client.
 pub enum DevtoolScriptControlMsg {
     EvaluateJS(PipelineId, String, Sender<EvaluateJSReply>),
@@ -93,6 +117,8 @@ pub enum DevtoolScriptControlMsg {
     GetLayout(PipelineId, String, Sender<(f32, f32)>),
     ModifyAttribute(PipelineId, String, Vec<Modification>),
     WantsLiveNotifications(PipelineId, bool),
+    SetTimelineMarker(PipelineId, TimelineMarkerType, Sender<TimelineMarker>),
+    DropTimelineMarker(PipelineId, TimelineMarkerType),
 }
 
 /// Messages to instruct devtools server to update its state relating to a particular

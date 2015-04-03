@@ -32,9 +32,10 @@ use page::Page;
 use script_task::{TimerSource, ScriptChan};
 use script_task::ScriptMsg;
 use script_traits::ScriptControlChan;
+use time::precise_time_ns;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
-use devtools_traits::DevtoolsControlChan;
+use devtools_traits::{DevtoolsControlChan, TimelineMarker, TimelineMarkerType, TracingMetadata};
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
 use net_traits::ResourceTask;
@@ -54,13 +55,14 @@ use url::{Url, UrlParser};
 
 use libc;
 use rustc_serialize::base64::{FromBase64, ToBase64, STANDARD};
-use std::cell::{Cell, Ref, RefMut};
+use std::cell::{Cell, Ref, RefMut, RefCell};
+use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
 use std::mem;
 use std::num::Float;
 use std::rc::Rc;
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
 use time;
 
@@ -102,6 +104,10 @@ pub struct Window {
 
     /// For providing instructions to an optional devtools server.
     devtools_chan: Option<DevtoolsControlChan>,
+    /// For sending timeline markers. Will be ignored if
+    /// no devtools server
+    devtools_markers: RefCell<HashSet<TimelineMarkerType>>,
+    devtools_marker_sender: RefCell<Option<Sender<TimelineMarker>>>,
 
     /// A flag to indicate whether the developer tools have requested live updates of
     /// page changes.
@@ -477,6 +483,9 @@ pub trait WindowHelpers {
     fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>>;
     fn thaw(self);
     fn freeze(self);
+    fn emit_timeline_marker(&self, timeline_type: TimelineMarkerType, marker: TimelineMarker);
+    fn set_devtools_timeline_marker(&self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>);
+    fn drop_devtools_timeline_markers(&self);
 }
 
 pub trait ScriptHelpers {
@@ -547,6 +556,15 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             None => return,
         };
 
+        self.emit_timeline_marker(
+            TimelineMarkerType::Reflow,
+            TimelineMarker {
+                name: String::from_str("Reflow"),
+                metadata: TracingMetadata::IntervalStart,
+                time: precise_time_ns(),
+                stack: None,
+        });
+
         // Layout will let us know when it's done.
         let (join_chan, join_port) = channel();
 
@@ -583,6 +601,15 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         debug!("script: layout forked");
 
         self.join_layout();
+        // Emit Reflow marker to devtools
+        self.emit_timeline_marker(
+            TimelineMarkerType::Reflow,
+            TimelineMarker {
+                name: String::from_str("Reflow"),
+                metadata: TracingMetadata::IntervalEnd,
+                time: precise_time_ns(),
+                stack: None,
+        });
     }
 
     // FIXME(cgaebel): join_layout is racey. What if the compositor triggers a
@@ -776,6 +803,28 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn freeze(self) {
         self.timers.suspend();
     }
+
+    fn emit_timeline_marker(&self, timeline_type: TimelineMarkerType, marker: TimelineMarker) {
+        if self.devtools_markers.borrow().contains(&timeline_type) {
+            match self.devtools_marker_sender.borrow().clone() {
+                Some(sender) => {
+                    sender.send(marker);
+                }
+                None => panic!("There is no marker sender")
+            }
+        }
+    }
+
+    fn set_devtools_timeline_marker(&self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>) {
+        // Notice, overhead: each time on adding timeline marker Sender is copied and replaced
+        *self.devtools_marker_sender.borrow_mut() = Some(reply);
+        self.devtools_markers.borrow_mut().insert(marker);
+    }
+
+    fn drop_devtools_timeline_markers(&self) {
+        *self.devtools_marker_sender.borrow_mut() = None;
+        *self.devtools_markers.borrow_mut() = HashSet::new();
+    }
 }
 
 impl Window {
@@ -836,11 +885,15 @@ impl Window {
             layout_rpc: layout_rpc,
             layout_join_port: DOMRefCell::new(None),
             window_size: Cell::new(window_size),
+
+            devtools_marker_sender: RefCell::new(None),
+            devtools_markers: RefCell::new(HashSet::new()),
             devtools_wants_updates: Cell::new(false),
         };
 
         WindowBinding::Wrap(js_context.ptr, win)
     }
+
 }
 
 fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool{
