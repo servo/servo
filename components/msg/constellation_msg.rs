@@ -218,6 +218,8 @@ pub enum Msg {
     ChangeRunningAnimationsState(PipelineId, bool),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
     TickAnimation(PipelineId),
+    /// Requests that the constellation retrieve the current contents of the clipboard
+    GetClipboardContents(Sender<String>),
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
