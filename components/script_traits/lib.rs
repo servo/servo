@@ -76,9 +76,6 @@ pub enum ConstellationControlMsg {
     UpdateSubpageId(PipelineId, SubpageId, SubpageId),
 }
 
-unsafe impl Send for ConstellationControlMsg {
-}
-
 /// The mouse button involved in the event.
 #[derive(Clone, Debug)]
 pub enum MouseButton {
