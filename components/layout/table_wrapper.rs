@@ -336,9 +336,11 @@ impl Flow for TableWrapperFlow {
 
     }
 
-    fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
+    fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         debug!("assign_block_size: assigning block_size for table_wrapper");
-        self.block_flow.assign_block_size_block_base(ctx, MarginsMayCollapseFlag::MarginsMayNotCollapse);
+        self.block_flow
+            .assign_block_size_block_base(layout_context,
+                                          MarginsMayCollapseFlag::MarginsMayNotCollapse);
     }
 
     fn compute_absolute_position(&mut self) {
@@ -353,17 +355,8 @@ impl Flow for TableWrapperFlow {
                                                             layout_context: &'a LayoutContext<'a>,
                                                             parent_thread_id: u8)
                                                             -> bool {
-        if self.block_flow.base.flags.is_float() {
-            self.block_flow.place_float();
-            return true
-        }
-
-        let impacted = self.block_flow.base.flags.impacted_by_floats();
-        if impacted {
-            self.block_flow.base.thread_id = parent_thread_id;
-            self.assign_block_size(layout_context);
-        }
-        impacted
+        self.block_flow.assign_block_size_for_inorder_child_if_necessary(layout_context,
+                                                                         parent_thread_id)
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
