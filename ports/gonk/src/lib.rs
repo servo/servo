@@ -15,6 +15,7 @@ extern crate log;
 extern crate compositing;
 extern crate devtools;
 extern crate net;
+extern crate net_traits;
 extern crate msg;
 #[macro_use]
 extern crate util;
@@ -38,9 +39,11 @@ use msg::constellation_msg::ConstellationChan;
 use script::dom::bindings::codegen::RegisterBindings;
 
 #[cfg(not(test))]
-use net::image_cache_task::{ImageCacheTask, LoadPlaceholder};
+use net::image_cache_task::{ImageCacheTaskFactory, LoadPlaceholder};
 #[cfg(not(test))]
 use net::storage_task::StorageTaskFactory;
+#[cfg(not(test))]
+use net_traits::image_cache_task::ImageCacheTask;
 #[cfg(not(test))]
 use net::resource_task::new_resource_task;
 #[cfg(not(test))]
@@ -87,13 +90,14 @@ impl Browser {
         // If we are emitting an output file, then we need to block on
         // image load or we risk emitting an output file missing the
         // image.
-        let image_cache_task = if opts.output_file.is_some() {
-            ImageCacheTask::new_sync(resource_task.clone(), shared_task_pool,
-                                     time_profiler_chan.clone(), LoadPlaceholder::Preload)
+        let image_cache_task: ImageCacheTask = if opts.output_file.is_some() {
+            ImageCacheTaskFactory::new_sync(resource_task.clone(), shared_task_pool,
+                                            time_profiler_chan.clone(), LoadPlaceholder::Preload)
         } else {
-            ImageCacheTask::new(resource_task.clone(), shared_task_pool,
-                                time_profiler_chan.clone(), LoadPlaceholder::Preload)
-        };
+            ImageCacheTaskFactory::new(resource_task.clone(), shared_task_pool,
+                                       time_profiler_chan.clone(), LoadPlaceholder::Preload)
+         };
+
         let font_cache_task = FontCacheTask::new(resource_task.clone());
         let storage_task = StorageTaskFactory::new();
         let constellation_chan = Constellation::<layout::layout_task::LayoutTask,

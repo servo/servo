@@ -20,8 +20,7 @@ use dom::node::{Node, NodeTypeId, NodeHelpers, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
-use net::image_cache_task;
-use net::image_cache_task::ImageCacheTask;
+use net_traits::image_cache_task::{self, ImageCacheTask};
 use util::str::DOMString;
 use string_cache::Atom;
 

@@ -5,18 +5,10 @@
 //! Implementation of cookie storage as specified in
 //! http://tools.ietf.org/html/rfc6265
 
+use net_traits::CookieSource;
 use url::Url;
 use cookie::Cookie;
 use std::cmp::Ordering;
-
-/// The creator of a given cookie
-#[derive(PartialEq, Copy)]
-pub enum CookieSource {
-    /// An HTTP API
-    HTTP,
-    /// A non-HTTP API
-    NonHTTP,
-}
 
 pub struct CookieStorage {
     cookies: Vec<Cookie>

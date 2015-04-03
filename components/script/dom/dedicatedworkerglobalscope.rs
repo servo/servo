@@ -24,7 +24,7 @@ use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
 use script_task::StackRootTLS;
 
-use net::resource_task::{ResourceTask, load_whole_resource};
+use net_traits::{load_whole_resource, ResourceTask};
 use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};

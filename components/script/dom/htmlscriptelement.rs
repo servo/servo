@@ -33,7 +33,7 @@ use script_task::{ScriptMsg, Runnable};
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{Encoding, EncodingRef, DecoderTrap};
-use net::resource_task::{load_whole_resource, Metadata};
+use net_traits::{load_whole_resource, Metadata};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use std::borrow::ToOwned;
 use std::cell::Cell;
