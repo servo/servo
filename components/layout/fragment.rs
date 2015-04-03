@@ -31,6 +31,7 @@ use script_traits::UntrustedNodeAddress;
 use rustc_serialize::{Encodable, Encoder};
 use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net_traits::image::holder::ImageHolder;
+use net_traits::image_cache_task::UsePlaceholder;
 use net_traits::local_image_cache::LocalImageCache;
 use util::geometry::{self, Au, ZERO_POINT};
 use util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin, WritingMode};
@@ -320,7 +321,7 @@ impl ImageFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
                 convert_length(node, &atom!("width")),
                 convert_length(node, &atom!("height"))),
-            image: ImageHolder::new(image_url, local_image_cache)
+            image: ImageHolder::new(image_url, UsePlaceholder::Yes, local_image_cache)
         }
     }
 

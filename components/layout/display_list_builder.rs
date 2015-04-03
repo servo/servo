@@ -37,6 +37,7 @@ use msg::compositor_msg::ScrollPolicy;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::holder::ImageHolder;
+use net_traits::image_cache_task::UsePlaceholder;
 use util::cursor::Cursor;
 use util::geometry::{self, Au, ZERO_POINT, to_px, to_frac_px};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
@@ -399,6 +400,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                image_url: &Url) {
         let background = style.get_background();
         let mut holder = ImageHolder::new(image_url.clone(),
+                                          UsePlaceholder::No,
                                           layout_context.shared.image_cache.clone());
         let image = match holder.get_image(self.node.to_untrusted_node_address()) {
             None => {

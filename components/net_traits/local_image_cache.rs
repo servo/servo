@@ -8,7 +8,7 @@ extra message traffic, it also avoids waiting on the same image
 multiple times and thus triggering reflows multiple times.
 */
 
-use image_cache_task::{ImageResponseMsg, ImageCacheTask, Msg};
+use image_cache_task::{ImageResponseMsg, ImageCacheTask, Msg, UsePlaceholder};
 use url::Url;
 
 use std::borrow::ToOwned;
@@ -81,7 +81,11 @@ impl<NodeAddress: Send + 'static> LocalImageCache<NodeAddress> {
     }
 
     // FIXME: Should return a Future
-    pub fn get_image(&mut self, node_address: NodeAddress, url: &Url) -> Receiver<ImageResponseMsg> {
+    pub fn get_image(&mut self,
+                     node_address: NodeAddress,
+                     url: &Url,
+                     use_placeholder: UsePlaceholder)
+                     -> Receiver<ImageResponseMsg> {
         {
             let round_number = self.round_number;
             let state = self.get_state(url);
@@ -116,7 +120,7 @@ impl<NodeAddress: Send + 'static> LocalImageCache<NodeAddress> {
         }
 
         let (response_chan, response_port) = channel();
-        self.image_cache_task.send(Msg::GetImage((*url).clone(), response_chan));
+        self.image_cache_task.send(Msg::GetImage((*url).clone(), use_placeholder, response_chan));
 
         let response = response_port.recv().unwrap();
         match response {
@@ -133,7 +137,7 @@ impl<NodeAddress: Send + 'static> LocalImageCache<NodeAddress> {
                 let url = (*url).clone();
                 spawn_named("LocalImageCache".to_owned(), move || {
                     let (response_chan, response_port) = channel();
-                    image_cache_task.send(Msg::WaitForImage(url, response_chan));
+                    image_cache_task.send(Msg::WaitForImage(url, use_placeholder, response_chan));
                     on_image_available(response_port.recv().unwrap(), node_address);
                 });
             }

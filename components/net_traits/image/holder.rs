@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use image::base::Image;
-use image_cache_task::ImageResponseMsg;
+use image_cache_task::{ImageResponseMsg, UsePlaceholder};
 use local_image_cache::LocalImageCache;
 
 use geom::size::Size2D;
@@ -22,10 +22,13 @@ pub struct ImageHolder<NodeAddress> {
     image: Option<Arc<Box<Image>>>,
     cached_size: Size2D<int>,
     local_image_cache: Arc<Mutex<LocalImageCache<NodeAddress>>>,
+    use_placeholder: UsePlaceholder,
 }
 
 impl<NodeAddress: Send + 'static> ImageHolder<NodeAddress> {
-    pub fn new(url: Url, local_image_cache: Arc<Mutex<LocalImageCache<NodeAddress>>>)
+    pub fn new(url: Url,
+               use_placeholder: UsePlaceholder,
+               local_image_cache: Arc<Mutex<LocalImageCache<NodeAddress>>>)
                -> ImageHolder<NodeAddress> {
         debug!("ImageHolder::new() {}", url.serialize());
         let holder = ImageHolder {
@@ -33,6 +36,7 @@ impl<NodeAddress: Send + 'static> ImageHolder<NodeAddress> {
             image: None,
             cached_size: Size2D(0,0),
             local_image_cache: local_image_cache.clone(),
+            use_placeholder: use_placeholder,
         };
 
         // Tell the image cache we're going to be interested in this url
@@ -83,7 +87,7 @@ impl<NodeAddress: Send + 'static> ImageHolder<NodeAddress> {
             let port = {
                 let val = self.local_image_cache.lock().unwrap();
                 let mut local_image_cache = val;
-                local_image_cache.get_image(node_address, &self.url)
+                local_image_cache.get_image(node_address, &self.url, self.use_placeholder)
             };
             match port.recv().unwrap() {
                 ImageResponseMsg::ImageReady(image) => self.image = Some(image),
