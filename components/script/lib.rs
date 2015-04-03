@@ -51,6 +51,7 @@ extern crate util;
 extern crate style;
 extern crate url;
 extern crate uuid;
+extern crate webdriver_server;
 extern crate string_cache;
 
 pub mod cors;
