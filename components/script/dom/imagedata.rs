@@ -63,7 +63,7 @@ impl<'a> ImageDataHelpers for JSRef<'a, ImageData> {
             let cx = global.get_cx();
             let data: *const uint8_t = JS_GetUint8ClampedArrayData(self.Data(cx), cx) as *const uint8_t;
             let len = self.Width() * self.Height() * 4;
-            slice::from_raw_parts(data, len as uint).to_vec()
+            slice::from_raw_parts(data, len as usize).to_vec()
         }
     }
 

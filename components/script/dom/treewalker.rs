@@ -330,7 +330,7 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
     fn accept_node(self, node: JSRef<Node>) -> Fallible<u16> {
         // "To filter node run these steps:"
         // "1. Let n be node's nodeType attribute value minus 1."
-        let n: uint = node.NodeType() as uint - 1;
+        let n = node.NodeType() - 1;
         // "2. If the nth bit (where 0 is the least significant bit) of whatToShow is not set,
         //     return FILTER_SKIP."
         if (self.what_to_show & (1 << n)) == 0 {
