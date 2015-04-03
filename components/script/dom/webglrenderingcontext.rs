@@ -80,3 +80,4 @@ impl LayoutCanvasWebGLRenderingContextHelpers for LayoutJS<WebGLRenderingContext
         (*self.unsafe_get()).renderer.clone()
     }
 }
+

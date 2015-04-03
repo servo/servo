@@ -2,12 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-<<<<<<< HEAD
 use canvas_msg::CanvasMsg;
-=======
-use canvas_msg::{CanvasWebGLMsg, CanvasCommonMsg, CanvasMsg};
-use compositing::windowing::{WindowMethods};
->>>>>>> Adressing review comments
 use geom::size::Size2D;
 
 use gleam::gl;
@@ -83,12 +78,6 @@ impl WebGLPaintTask {
                                      self.size.width as gl::GLsizei,
                                      self.size.height as gl::GLsizei,
                                      gl::RGBA, gl::UNSIGNED_BYTE);
-
-        // Fixed by https://github.com/servo/gleam/pull/17
-        unsafe {
-            let len = pixels.len() * 4 / 3;
-            pixels.set_len(len);
-        };
 
         // rgba -> bgra
         byte_swap(pixels.as_mut_slice());
