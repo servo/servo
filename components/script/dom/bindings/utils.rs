@@ -653,7 +653,7 @@ pub fn xml_name_type(name: &str) -> XMLName {
     let mut iter = name.chars();
     let mut non_qname_colons = false;
     let mut seen_colon = false;
-    match iter.next() {
+    let mut last = match iter.next() {
         None => return XMLName::InvalidXMLName,
         Some(c) => {
             if !is_valid_start(c) {
@@ -662,10 +662,11 @@ pub fn xml_name_type(name: &str) -> XMLName {
             if c == ':' {
                 non_qname_colons = true;
             }
+            c
         }
-    }
+    };
 
-    for c in name.chars() {
+    for c in iter {
         if !is_valid_continuation(c) {
             return XMLName::InvalidXMLName;
         }
@@ -675,6 +676,11 @@ pub fn xml_name_type(name: &str) -> XMLName {
                 false => seen_colon = true
             }
         }
+        last = c
+    }
+
+    if last == ':' {
+        non_qname_colons = true
     }
 
     match non_qname_colons {
