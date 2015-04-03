@@ -19,10 +19,10 @@ pub enum Msg {
 
     /// Request an Image object for a URL. If the image is not is not immediately
     /// available then ImageNotReady is returned.
-    GetImage(Url, Sender<ImageResponseMsg>),
+    GetImage(Url, UsePlaceholder, Sender<ImageResponseMsg>),
 
     /// Wait for an image to become available (or fail to load).
-    WaitForImage(Url, Sender<ImageResponseMsg>),
+    WaitForImage(Url, UsePlaceholder, Sender<ImageResponseMsg>),
 
     /// Clients must wait for a response before shutting down the ResourceTask
     Exit(Sender<()>),
@@ -70,7 +70,7 @@ impl ImageCacheTask {
     }
 }
 
-pub fn load_image_data(url: Url, resource_task: ResourceTask, placeholder: &[u8]) -> Result<Vec<u8>, ()> {
+pub fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<Vec<u8>, ()> {
     let (response_chan, response_port) = channel();
     resource_task.send(ControlMsg::Load(LoadData::new(url.clone(), response_chan))).unwrap();
 
@@ -86,21 +86,15 @@ pub fn load_image_data(url: Url, resource_task: ResourceTask, placeholder: &[u8]
                 return Ok(image_data);
             }
             ProgressMsg::Done(Err(..)) => {
-                // Failure to load the requested image will return the
-                // placeholder instead. In case it failed to load at init(),
-                // we still recover and return Err() but nothing will be drawn.
-                if placeholder.len() != 0 {
-                    debug!("image_cache_task: failed to load {:?}, use placeholder instead.", url);
-                    // Clean in case there was an error after started loading the image.
-                    image_data.clear();
-                    image_data.push_all(&placeholder);
-                    return Ok(image_data);
-                } else {
-                    debug!("image_cache_task: invalid placeholder.");
-                    return Err(());
-                }
+                return Err(());
             }
         }
     }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum UsePlaceholder {
+    No,
+    Yes,
 }
 

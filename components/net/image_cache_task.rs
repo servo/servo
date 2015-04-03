@@ -4,7 +4,7 @@
 
 use net_traits::ResourceTask;
 use net_traits::image::base::{Image, load_from_memory};
-use net_traits::image_cache_task::{ImageResponseMsg, ImageCacheTask, Msg};
+use net_traits::image_cache_task::{ImageResponseMsg, ImageCacheTask, Msg, UsePlaceholder};
 use net_traits::image_cache_task::{load_image_data};
 use profile::time::{self, profile};
 use url::Url;
@@ -45,7 +45,7 @@ impl ImageCacheTaskFactory for ImageCacheTask {
                 need_exit: None,
                 task_pool: task_pool,
                 time_profiler_chan: time_profiler_chan,
-                placeholder_data: Arc::new(vec!()),
+                placeholder_image: None,
             };
             cache.run(load_placeholder);
         });
@@ -68,8 +68,8 @@ impl ImageCacheTaskFactory for ImageCacheTask {
                 let msg: Msg = port.recv().unwrap();
 
                 match msg {
-                    Msg::GetImage(url, response) => {
-                        inner_cache.send(Msg::WaitForImage(url, response));
+                    Msg::GetImage(url, use_placeholder, response) => {
+                        inner_cache.send(Msg::WaitForImage(url, use_placeholder, response));
                     }
                     Msg::Exit(response) => {
                         inner_cache.send(Msg::Exit(response));
@@ -101,7 +101,7 @@ struct ImageCache {
     task_pool: TaskPool,
     time_profiler_chan: time::ProfilerChan,
     // Default image used when loading fails.
-    placeholder_data: Arc<Vec<u8>>,
+    placeholder_image: Option<Arc<Box<Image>>>,
 }
 
 #[derive(Clone)]
@@ -127,22 +127,28 @@ pub enum LoadPlaceholder {
 
 impl ImageCache {
     // Used to preload the default placeholder.
-    fn init(&mut self) {
+    fn load_placeholder(&mut self) {
         let mut placeholder_url = resources_dir_path();
         // TODO (Savago): replace for a prettier one.
         placeholder_url.push("rippy.jpg");
-        let image = load_image_data(Url::from_file_path(&*placeholder_url).unwrap(), self.resource_task.clone(), &self.placeholder_data);
+        let image = load_image_data(Url::from_file_path(&*placeholder_url).unwrap(),
+                                    self.resource_task.clone());
 
-        match image {
-            Err(..) => debug!("image_cache_task: failed loading the placeholder."),
-            Ok(image_data) => self.placeholder_data = Arc::new(image_data),
-        }
+        let image_data = match image {
+            Err(..) => {
+                debug!("image_cache_task: failed loading the placeholder.");
+                return
+            }
+            Ok(image_data) => image_data,
+        };
+
+        self.placeholder_image = load_from_memory(&image_data).map(|image| Arc::new(box image))
     }
 
     pub fn run(&mut self, load_placeholder: LoadPlaceholder) {
         // We have to load the placeholder before running.
         match load_placeholder {
-            LoadPlaceholder::Preload => self.init(),
+            LoadPlaceholder::Preload => self.load_placeholder(),
             LoadPlaceholder::Ignore => debug!("image_cache_task: use old behavior."),
         }
 
@@ -171,9 +177,11 @@ impl ImageCache {
 
                     self.store_image(url, image)
                 }
-                Msg::GetImage(url, response) => self.get_image(url, response),
-                Msg::WaitForImage(url, response) => {
-                    self.wait_for_image(url, response)
+                Msg::GetImage(url, use_placeholder, response) => {
+                    self.get_image(url, use_placeholder, response)
+                }
+                Msg::WaitForImage(url, use_placeholder, response) => {
+                    self.wait_for_image(url, use_placeholder, response)
                 }
                 Msg::WaitForStore(chan) => store_chan = Some(chan),
                 Msg::WaitForStorePrefetched(chan) => store_prefetched_chan = Some(chan),
@@ -229,12 +237,11 @@ impl ImageCache {
                 let to_cache = self.chan.clone();
                 let resource_task = self.resource_task.clone();
                 let url_clone = url.clone();
-                let placeholder = self.placeholder_data.clone();
                 spawn_named("ImageCacheTask (prefetch)".to_owned(), move || {
                     let url = url_clone;
                     debug!("image_cache_task: started fetch for {}", url.serialize());
 
-                    let image = load_image_data(url.clone(), resource_task.clone(), &placeholder);
+                    let image = load_image_data(url.clone(), resource_task.clone());
                     to_cache.send(Msg::StorePrefetchedImageData(url.clone(), image)).unwrap();
                     debug!("image_cache_task: ended fetch for {}", url.serialize());
                 });
@@ -355,18 +362,37 @@ impl ImageCache {
         }
     }
 
-    fn get_image(&self, url: Url, response: Sender<ImageResponseMsg>) {
+    fn get_image(&self,
+                 url: Url,
+                 use_placeholder: UsePlaceholder,
+                 response: Sender<ImageResponseMsg>) {
         match self.get_state(&url) {
             ImageState::Init => panic!("request for image before prefetch"),
-            ImageState::Prefetching(AfterPrefetch::DoDecode) => response.send(ImageResponseMsg::ImageNotReady).unwrap(),
-            ImageState::Prefetching(AfterPrefetch::DoNotDecode) | ImageState::Prefetched(..) => panic!("request for image before decode"),
+            ImageState::Prefetching(AfterPrefetch::DoDecode) => {
+                response.send(ImageResponseMsg::ImageNotReady).unwrap()
+            }
+            ImageState::Prefetching(AfterPrefetch::DoNotDecode) | ImageState::Prefetched(..) => {
+                panic!("request for image before decode")
+            }
             ImageState::Decoding => response.send(ImageResponseMsg::ImageNotReady).unwrap(),
-            ImageState::Decoded(image) => response.send(ImageResponseMsg::ImageReady(image)).unwrap(),
-            ImageState::Failed => response.send(ImageResponseMsg::ImageFailed).unwrap(),
+            ImageState::Decoded(image) => {
+                response.send(ImageResponseMsg::ImageReady(image)).unwrap()
+            }
+            ImageState::Failed => {
+                match (use_placeholder, &self.placeholder_image) {
+                    (UsePlaceholder::Yes, &Some(ref image)) => {
+                        response.send(ImageResponseMsg::ImageReady((*image).clone())).unwrap()
+                    }
+                    _ => response.send(ImageResponseMsg::ImageFailed).unwrap(),
+                }
+            }
         }
     }
 
-    fn wait_for_image(&mut self, url: Url, response: Sender<ImageResponseMsg>) {
+    fn wait_for_image(&mut self,
+                      url: Url,
+                      use_placeholder: UsePlaceholder,
+                      response: Sender<ImageResponseMsg>) {
         match self.get_state(&url) {
             ImageState::Init => panic!("request for image before prefetch"),
 
@@ -389,7 +415,12 @@ impl ImageCache {
             }
 
             ImageState::Failed => {
-                response.send(ImageResponseMsg::ImageFailed).unwrap();
+                match (use_placeholder, &self.placeholder_image) {
+                    (UsePlaceholder::Yes, &Some(ref image)) => {
+                        response.send(ImageResponseMsg::ImageReady((*image).clone())).unwrap()
+                    }
+                    _ => response.send(ImageResponseMsg::ImageFailed).unwrap(),
+                }
             }
         }
     }
@@ -1011,3 +1042,4 @@ mod tests {
         mock_resource_task.send(ControlMsg::Exit);
     }
 }
+
