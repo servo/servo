@@ -628,7 +628,14 @@ pub trait AttributeHandlers {
     fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue;
 
-    fn remove_attribute(self, namespace: Namespace, name: &str);
+    /// Removes the first attribute with any given namespace and case-sensitive local
+    /// name, if any.
+    fn remove_attribute(self, namespace: &Namespace, local_name: &Atom);
+    /// Removes the first attribute with any namespace and given case-sensitive name.
+    fn remove_attribute_by_name(self, name: &Atom);
+    /// Removes the first attribute that satisfies `find`.
+    fn do_remove_attribute<F>(self, find: F) where F: Fn(JSRef<Attr>) -> bool;
+
     fn has_class(self, name: &Atom) -> bool;
 
     fn set_atomic_attribute(self, name: &Atom, value: DOMString);
@@ -760,17 +767,24 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
 
-    fn remove_attribute(self, namespace: Namespace, name: &str) {
-        let (_, local_name) = get_attribute_parts(name);
-        let local_name = Atom::from_slice(local_name);
-
-        let idx = self.attrs.borrow().iter().map(|attr| attr.root()).position(|attr| {
-            *attr.r().local_name() == local_name
+    fn remove_attribute(self, namespace: &Namespace, local_name: &Atom) {
+        self.do_remove_attribute(|attr| {
+            attr.namespace() == namespace && attr.local_name() == local_name
         });
+    }
+
+    fn remove_attribute_by_name(self, name: &Atom) {
+        self.do_remove_attribute(|attr| attr.name() == name);
+    }
+
+    fn do_remove_attribute<F>(self, find: F) where F: Fn(JSRef<Attr>) -> bool {
+        let idx = self.attrs.borrow().iter()
+                                     .map(|attr| attr.root())
+                                     .position(|attr| find(attr.r()));
 
         if let Some(idx) = idx {
             let attr = (*self.attrs.borrow())[idx].root();
-            if namespace == ns!("") {
+            if attr.r().namespace() == &ns!("") {
                 vtable_for(&NodeCast::from_ref(self)).before_remove_attr(attr.r());
             }
 
@@ -780,7 +794,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             let node: JSRef<Node> = NodeCast::from_ref(self);
             if node.is_in_doc() {
                 let document = document_from_node(self).root();
-                let damage = if local_name == atom!("style") {
+                let damage = if attr.r().local_name() == &atom!("style") {
                     NodeDamage::NodeStyleDamaged
                 } else {
                     NodeDamage::OtherNodeDamage
@@ -834,7 +848,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         if value {
             self.set_string_attribute(name, String::new());
         } else {
-            self.remove_attribute(ns!(""), &name);
+            self.remove_attribute(&ns!(""), name);
         }
     }
 
@@ -1084,16 +1098,17 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-removeattribute
     fn RemoveAttribute(self, name: DOMString) {
-        let name = self.parsed_name(name);
-        self.remove_attribute(ns!(""), &name)
+        let name = Atom::from_slice(&self.parsed_name(name));
+        self.remove_attribute_by_name(&name);
     }
 
     // http://dom.spec.whatwg.org/#dom-element-removeattributens
     fn RemoveAttributeNS(self,
                          namespace: Option<DOMString>,
-                         localname: DOMString) {
+                         local_name: DOMString) {
         let namespace = namespace::from_domstring(namespace);
-        self.remove_attribute(namespace, &localname)
+        let local_name = Atom::from_slice(&local_name);
+        self.remove_attribute(&namespace, &local_name);
     }
 
     // http://dom.spec.whatwg.org/#dom-element-hasattribute
