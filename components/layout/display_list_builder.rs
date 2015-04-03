@@ -35,6 +35,7 @@ use gfx::paint_task::{PaintLayer, THREAD_TINT_COLORS};
 use msg::compositor_msg::ScrollPolicy;
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
+use net_traits::image_cache_task::UsePlaceholder;
 use png::{self, PixelsByColorType};
 use std::cmp;
 use std::default::Default;
@@ -408,7 +409,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                clip: &ClippingRegion,
                                                image_url: &Url) {
         let background = style.get_background();
-        let image = layout_context.get_or_request_image(image_url.clone());
+        let image = layout_context.get_or_request_image(image_url.clone(), UsePlaceholder::No);
         if let Some(image) = image {
             debug!("(building display list) building background image");
 
