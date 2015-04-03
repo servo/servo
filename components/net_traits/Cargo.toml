@@ -1,0 +1,27 @@
+[package]
+name = "net_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "net_traits"
+path = "lib.rs"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.png]
+git = "https://github.com/servo/rust-png"
+
+[dependencies.profile]
+path = "../profile"
+
+[dependencies.util]
+path = "../util"
+
+[dependencies.stb_image]
+git = "https://github.com/servo/rust-stb-image"
+
+[dependencies]
+url = "0.2.16"
+hyper = "0.3"

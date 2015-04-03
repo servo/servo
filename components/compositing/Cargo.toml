@@ -25,6 +25,9 @@ path = "../net"
 [dependencies.profile]
 path = "../profile"
 
+[dependencies.net_traits]
+path = "../net_traits"
+
 [dependencies.util]
 path = "../util"
 

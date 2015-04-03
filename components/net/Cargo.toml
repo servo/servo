@@ -10,6 +10,9 @@ path = "lib.rs"
 [dependencies.profile]
 path = "../profile"
 
+[dependencies.net_traits]
+path = "../net_traits"
+
 [dependencies.util]
 path = "../util"
 
@@ -18,9 +21,6 @@ git = "https://github.com/servo/rust-geom"
 
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
-
-[dependencies.stb_image]
-git = "https://github.com/servo/rust-stb-image"
 
 [dependencies]
 url = "0.2.16"

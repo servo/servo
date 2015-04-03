@@ -18,6 +18,7 @@
 
 #![plugin(regex_macros)]
 
+extern crate net_traits;
 extern crate "cookie" as cookie_rs;
 extern crate collections;
 extern crate flate2;
@@ -30,21 +31,10 @@ extern crate openssl;
 extern crate profile;
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate util;
-extern crate stb_image;
 extern crate time;
 extern crate url;
 
 extern crate regex;
-
-/// Image handling.
-///
-/// It may be surprising that this goes in the network crate as opposed to the graphics crate.
-/// However, image handling is generally very integrated with the network stack (especially where
-/// caching is involved) and as a result it must live in here.
-pub mod image {
-    pub mod base;
-    pub mod holder;
-}
 
 pub mod about_loader;
 pub mod file_loader;
@@ -53,7 +43,6 @@ pub mod data_loader;
 pub mod cookie;
 pub mod cookie_storage;
 pub mod image_cache_task;
-pub mod local_image_cache;
 pub mod pub_domains;
 pub mod resource_task;
 pub mod storage_task;

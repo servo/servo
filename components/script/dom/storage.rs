@@ -15,10 +15,8 @@ use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
 use dom::window::WindowHelpers;
 use util::str::DOMString;
-use net::storage_task::StorageTask;
-use net::storage_task::StorageType;
-use net::storage_task::StorageTaskMsg;
 use page::IterablePage;
+use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
 use std::sync::mpsc::channel;
 use url::Url;
 

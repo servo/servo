@@ -5,7 +5,7 @@
 //! Implementation of cookie creation and matching as specified by
 //! http://tools.ietf.org/html/rfc6265
 
-use cookie_storage::CookieSource;
+use net_traits::CookieSource;
 use pub_domains::PUB_DOMAINS;
 
 use cookie_rs;
@@ -196,7 +196,7 @@ fn test_default_path() {
 
 #[test]
 fn fn_cookie_constructor() {
-    use cookie_storage::CookieSource;
+    use net_traits::CookieSource;
 
     let url = &Url::parse("http://example.com/foo").unwrap();
 

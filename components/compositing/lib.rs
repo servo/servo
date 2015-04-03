@@ -23,6 +23,7 @@ extern crate script_traits;
 extern crate msg;
 extern crate net;
 extern crate profile;
+extern crate net_traits;
 #[macro_use]
 extern crate util;
 extern crate gleam;

@@ -29,7 +29,7 @@ use geom::rect::Rect;
 use geom::side_offsets::SideOffsets2D;
 use geom::size::Size2D;
 use libc::types::common::c99::{uint16_t, uint32_t};
-use net::image::base::Image;
+use net_traits::image::base::Image;
 use png::PixelsByColorType;
 use std::default::Default;
 use std::f32;

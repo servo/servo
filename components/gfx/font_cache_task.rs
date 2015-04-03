@@ -10,7 +10,7 @@ use platform::font_context::FontContextHandle;
 
 use collections::str::Str;
 use font_template::{FontTemplate, FontTemplateDescriptor};
-use net::resource_task::{ResourceTask, load_whole_resource};
+use net_traits::{ResourceTask, load_whole_resource};
 use platform::font_template::FontTemplateData;
 use std::borrow::ToOwned;
 use std::collections::HashMap;

@@ -2,21 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::iter::range_step;
-use stb_image::image as stb_image;
 use png;
+use stb_image::image as stb_image2;
+use std::iter::range_step;
 use util::vec::byte_swap;
 
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 pub type Image = png::Image;
-
-
-static TEST_IMAGE: &'static [u8] = include_bytes!("test.jpeg");
-
-pub fn test_image_bin() -> Vec<u8> {
-    TEST_IMAGE.iter().map(|&x| x).collect()
-}
 
 // TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
 fn byte_swap_and_premultiply(data: &mut [u8]) {
@@ -56,8 +49,8 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
         // Can't remember why we do this. Maybe it's what cairo wants
         static FORCE_DEPTH: uint = 4;
 
-        match stb_image::load_from_memory_with_depth(buffer, FORCE_DEPTH, true) {
-            stb_image::LoadResult::ImageU8(mut image) => {
+        match stb_image2::load_from_memory_with_depth(buffer, FORCE_DEPTH, true) {
+            stb_image2::LoadResult::ImageU8(mut image) => {
                 assert!(image.depth == 4);
                 // handle gif separately because the alpha-channel has to be premultiplied
                 if is_gif(buffer) {
@@ -71,11 +64,11 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                     pixels: png::PixelsByColorType::RGBA8(image.data)
                 })
             }
-            stb_image::LoadResult::ImageF32(_image) => {
+            stb_image2::LoadResult::ImageF32(_image) => {
                 error!("HDR images not implemented");
                 None
             }
-            stb_image::LoadResult::Error(e) => {
+            stb_image2::LoadResult::Error(e) => {
                 error!("stb_image failed: {}", e);
                 None
             }
@@ -89,3 +82,5 @@ fn is_gif(buffer: &[u8]) -> bool {
         _ => false
     }
 }
+
+

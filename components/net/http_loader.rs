@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cookie_storage::CookieSource;
-use resource_task::{Metadata, TargetedLoadResponse, LoadData, start_sending_opt, ResponseSenders, ProgressMsg};
-use resource_task::ControlMsg;
-use resource_task::ProgressMsg::{Payload, Done};
+use net_traits::{ControlMsg, CookieSource, LoadData, Metadata};
+use net_traits::ProgressMsg;
+use net_traits::ProgressMsg::{Payload, Done};
+use resource_task::{TargetedLoadResponse, start_sending_opt, ResponseSenders};
 
 use log;
 use std::collections::HashSet;
@@ -38,7 +38,7 @@ pub fn factory(cookies_chan: Sender<ControlMsg>)
 }
 
 fn send_error(url: Url, err: String, senders: ResponseSenders) {
-    let mut metadata = Metadata::default(url);
+    let mut metadata: Metadata = Metadata::default(url);
     metadata.status = None;
 
     match start_sending_opt(senders, metadata) {
@@ -283,7 +283,7 @@ reason: \"certificate verify failed\" }]";
         if viewing_source {
             adjusted_headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec![])));
         }
-        let mut metadata = Metadata::default(url);
+        let mut metadata: Metadata = Metadata::default(url);
         metadata.set_content_type(match adjusted_headers.get() {
             Some(&ContentType(ref mime)) => Some(mime),
             None => None

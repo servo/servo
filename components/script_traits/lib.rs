@@ -6,7 +6,7 @@ extern crate devtools_traits;
 extern crate geom;
 extern crate libc;
 extern crate msg;
-extern crate net;
+extern crate net_traits;
 extern crate util;
 extern crate url;
 
@@ -21,9 +21,9 @@ use msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeD
 use msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
 use msg::constellation_msg::{MozBrowserEvent, PipelineExitType};
 use msg::compositor_msg::ScriptListener;
-use net::image_cache_task::ImageCacheTask;
-use net::resource_task::ResourceTask;
-use net::storage_task::StorageTask;
+use net_traits::ResourceTask;
+use net_traits::image_cache_task::ImageCacheTask;
+use net_traits::storage_task::StorageTask;
 use util::smallvec::SmallVec1;
 use std::any::Any;
 use std::sync::mpsc::{Sender, Receiver};
