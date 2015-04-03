@@ -521,6 +521,9 @@ impl Shaper {
         // We elect to only space the two required code points.
         if character == ' ' || character == '\u{a0}' {
             advance = advance + options.word_spacing
+        } else if character == '\t' {
+            let tab_size = 8f64;
+            advance = Au::from_frac_px(tab_size * glyph_space_advance(self.font_and_shaping_options.font));
         }
 
         advance
@@ -561,6 +564,19 @@ extern fn glyph_h_advance_func(_: *mut hb_font_t,
         let advance = (*font).glyph_h_advance(glyph as GlyphId);
         Shaper::float_to_fixed(advance)
     }
+}
+
+fn glyph_space_advance(font: *mut Font) -> f64 {
+    let space_unicode = ' ';
+    let space_glyph: hb_codepoint_t;
+    match unsafe {(*font).glyph_index(space_unicode)} {
+        Some(g) => {
+            space_glyph = g as hb_codepoint_t;
+        }
+        None => panic!("No space info")
+    }
+    let space_advance = unsafe {(*font).glyph_h_advance(space_glyph as GlyphId)};
+    space_advance
 }
 
 extern fn glyph_h_kerning_func(_: *mut hb_font_t,
