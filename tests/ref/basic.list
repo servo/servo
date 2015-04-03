@@ -329,6 +329,9 @@ resolution=600x800 == viewport_percentage_vmin_vmax.html viewport_percentage_vmi
 resolution=800x600 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_a.html
 resolution=600x800 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_b.html
 == visibility_hidden.html visibility_hidden_ref.html
+
+== webgl-context/clearcolor.html webgl-context/clearcolor_ref.html
+
 == whitespace_nowrap_a.html whitespace_nowrap_ref.html
 == whitespace_pre.html whitespace_pre_ref.html
 == width_nonreplaced_block_simple_a.html width_nonreplaced_block_simple_b.html

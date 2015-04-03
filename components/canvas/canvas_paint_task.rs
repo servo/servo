@@ -6,6 +6,7 @@ use azure::azure::AzFloat;
 use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
 use azure::azure_hl::{ColorPattern, PathBuilder, JoinStyle, CapStyle, DrawSurfaceOptions, Filter};
 use azure::azure_hl::{GradientStop, LinearGradientPattern, RadialGradientPattern, ExtendMode};
+use canvas_msg::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -18,38 +19,6 @@ use cssparser::RGBA;
 use std::borrow::ToOwned;
 use std::num::{Float, ToPrimitive};
 use std::sync::mpsc::{channel, Sender};
-
-#[derive(Clone)]
-pub enum CanvasMsg {
-    FillRect(Rect<f32>),
-    ClearRect(Rect<f32>),
-    StrokeRect(Rect<f32>),
-    BeginPath,
-    ClosePath,
-    Fill,
-    Stroke,
-    DrawImage(Vec<u8>, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
-    DrawImageSelf(Size2D<f64>, Rect<f64>, Rect<f64>, bool),
-    MoveTo(Point2D<f32>),
-    LineTo(Point2D<f32>),
-    QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
-    BezierCurveTo(Point2D<f32>, Point2D<f32>, Point2D<f32>),
-    Arc(Point2D<f32>, f32, f32, f32, bool),
-    ArcTo(Point2D<f32>, Point2D<f32>, f32),
-    SetFillStyle(FillOrStrokeStyle),
-    SetStrokeStyle(FillOrStrokeStyle),
-    SetLineWidth(f32),
-    SetLineCap(LineCapStyle),
-    SetLineJoin(LineJoinStyle),
-    SetMiterLimit(f32),
-    SetTransform(Matrix2D<f32>),
-    SetGlobalAlpha(f32),
-    Recreate(Size2D<i32>),
-    SendPixelContents(Sender<Vec<u8>>),
-    GetImageData(Rect<f64>, Size2D<f64>, Sender<Vec<u8>>),
-    PutImageData(Vec<u8>, Rect<f64>, Option<Rect<f64>>),
-    Close,
-}
 
 impl<'a> CanvasPaintTask<'a> {
     /// It reads image data from the canvas
@@ -218,47 +187,57 @@ impl<'a> CanvasPaintTask<'a> {
 
             loop {
                 match port.recv().unwrap() {
-                    CanvasMsg::FillRect(ref rect) => painter.fill_rect(rect),
-                    CanvasMsg::StrokeRect(ref rect) => painter.stroke_rect(rect),
-                    CanvasMsg::ClearRect(ref rect) => painter.clear_rect(rect),
-                    CanvasMsg::BeginPath => painter.begin_path(),
-                    CanvasMsg::ClosePath => painter.close_path(),
-                    CanvasMsg::Fill => painter.fill(),
-                    CanvasMsg::Stroke => painter.stroke(),
-                    CanvasMsg::DrawImage(imagedata, image_size, dest_rect, source_rect, smoothing_enabled) => {
-                        painter.draw_image(imagedata, image_size, dest_rect, source_rect, smoothing_enabled)
-                    }
-                    CanvasMsg::DrawImageSelf(image_size, dest_rect, source_rect, smoothing_enabled) => {
-                        painter.draw_image_self(image_size, dest_rect, source_rect, smoothing_enabled)
-                    }
-                    CanvasMsg::MoveTo(ref point) => painter.move_to(point),
-                    CanvasMsg::LineTo(ref point) => painter.line_to(point),
-                    CanvasMsg::QuadraticCurveTo(ref cp, ref pt) => {
-                        painter.quadratic_curve_to(cp, pt)
-                    }
-                    CanvasMsg::BezierCurveTo(ref cp1, ref cp2, ref pt) => {
-                        painter.bezier_curve_to(cp1, cp2, pt)
-                    }
-                    CanvasMsg::Arc(ref center, radius, start, end, ccw) => {
-                        painter.arc(center, radius, start, end, ccw)
-                    }
-                    CanvasMsg::ArcTo(ref cp1, ref cp2, radius) => {
-                        painter.arc_to(cp1, cp2, radius)
-                    }
-                    CanvasMsg::SetFillStyle(style) => painter.set_fill_style(style),
-                    CanvasMsg::SetStrokeStyle(style) => painter.set_stroke_style(style),
-                    CanvasMsg::SetLineWidth(width) => painter.set_line_width(width),
-                    CanvasMsg::SetLineCap(cap) => painter.set_line_cap(cap),
-                    CanvasMsg::SetLineJoin(join) => painter.set_line_join(join),
-                    CanvasMsg::SetMiterLimit(limit) => painter.set_miter_limit(limit),
-                    CanvasMsg::SetTransform(ref matrix) => painter.set_transform(matrix),
-                    CanvasMsg::SetGlobalAlpha(alpha) => painter.set_global_alpha(alpha),
-                    CanvasMsg::Recreate(size) => painter.recreate(size),
-                    CanvasMsg::SendPixelContents(chan) => painter.send_pixel_contents(chan),
-                    CanvasMsg::GetImageData(dest_rect, canvas_size, chan) => painter.get_image_data(dest_rect, canvas_size, chan),
-                    CanvasMsg::PutImageData(imagedata, image_data_rect, dirty_rect)
-                        => painter.put_image_data(imagedata, image_data_rect, dirty_rect),
-                    CanvasMsg::Close => break,
+                    CanvasMsg::Canvas2d(message) => {
+                        match message {
+                            Canvas2dMsg::FillRect(ref rect) => painter.fill_rect(rect),
+                            Canvas2dMsg::StrokeRect(ref rect) => painter.stroke_rect(rect),
+                            Canvas2dMsg::ClearRect(ref rect) => painter.clear_rect(rect),
+                            Canvas2dMsg::BeginPath => painter.begin_path(),
+                            Canvas2dMsg::ClosePath => painter.close_path(),
+                            Canvas2dMsg::Fill => painter.fill(),
+                            Canvas2dMsg::Stroke => painter.stroke(),
+                            Canvas2dMsg::DrawImage(imagedata, image_size, dest_rect, source_rect, smoothing_enabled) => {
+                                painter.draw_image(imagedata, image_size, dest_rect, source_rect, smoothing_enabled)
+                            }
+                            Canvas2dMsg::DrawImageSelf(image_size, dest_rect, source_rect, smoothing_enabled) => {
+                                painter.draw_image_self(image_size, dest_rect, source_rect, smoothing_enabled)
+                            }
+                            Canvas2dMsg::MoveTo(ref point) => painter.move_to(point),
+                            Canvas2dMsg::LineTo(ref point) => painter.line_to(point),
+                            Canvas2dMsg::QuadraticCurveTo(ref cp, ref pt) => {
+                                painter.quadratic_curve_to(cp, pt)
+                            }
+                            Canvas2dMsg::BezierCurveTo(ref cp1, ref cp2, ref pt) => {
+                                painter.bezier_curve_to(cp1, cp2, pt)
+                            }
+                            Canvas2dMsg::Arc(ref center, radius, start, end, ccw) => {
+                                painter.arc(center, radius, start, end, ccw)
+                            }
+                            Canvas2dMsg::ArcTo(ref cp1, ref cp2, radius) => {
+                                painter.arc_to(cp1, cp2, radius)
+                            }
+                            Canvas2dMsg::SetFillStyle(style) => painter.set_fill_style(style),
+                            Canvas2dMsg::SetStrokeStyle(style) => painter.set_stroke_style(style),
+                            Canvas2dMsg::SetLineWidth(width) => painter.set_line_width(width),
+                            Canvas2dMsg::SetLineCap(cap) => painter.set_line_cap(cap),
+                            Canvas2dMsg::SetLineJoin(join) => painter.set_line_join(join),
+                            Canvas2dMsg::SetMiterLimit(limit) => painter.set_miter_limit(limit),
+                            Canvas2dMsg::SetTransform(ref matrix) => painter.set_transform(matrix),
+                            Canvas2dMsg::SetGlobalAlpha(alpha) => painter.set_global_alpha(alpha),
+                            Canvas2dMsg::GetImageData(dest_rect, canvas_size, chan) => painter.get_image_data(dest_rect, canvas_size, chan),
+                            Canvas2dMsg::PutImageData(imagedata, image_data_rect, dirty_rect)
+                                => painter.put_image_data(imagedata, image_data_rect, dirty_rect),
+                        }
+                    },
+                    CanvasMsg::Common(message) => {
+                        match message {
+                            CanvasCommonMsg::Close => break,
+                            CanvasCommonMsg::Recreate(size) => painter.recreate(size),
+                            CanvasCommonMsg::SendPixelContents(chan) =>
+                                painter.send_pixel_contents(chan),
+                        }
+                    },
+                    CanvasMsg::WebGL(_) => panic!("Wrong message sent to Canvas2D task"),
                 }
             }
         });
