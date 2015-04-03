@@ -137,7 +137,7 @@ impl<'a> HTMLCanvasElementHelpers for JSRef<'a, HTMLCanvasElement> {
         let context = self.GetContext(String::from_str("webgl"));
         match context.unwrap() {
             CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(context) => {
-              return Temporary::new(context.root().r().unrooted());
+                Temporary::new(context.root().r().unrooted())
             }
             _ => panic!("Wrong Context Type: Expected webgl context"),
         }
@@ -169,24 +169,24 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
 
     fn GetContext(self, id: DOMString) -> Option<CanvasRenderingContext2DOrWebGLRenderingContext> {
         match id.as_slice() {
-           "2d" => {
-               let context_2d = self.context_2d.or_init(|| {
-                   let window = window_from_node(self).root();
-                   let size = self.get_size();
-                   CanvasRenderingContext2D::new(GlobalRef::Window(window.r()), self, size)
-               });
-               Some(CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(Unrooted::from_temporary(context_2d)))
-           }
-           "webgl" | "experimental-webgl" => {
-               let context_webgl = self.context_webgl.or_init(|| {
-                   let window = window_from_node(self).root();
-                   let size = self.get_size();
-                   WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, size)
-               });
-               Some(CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(Unrooted::from_temporary(context_webgl)))
-           }
-           _ => return None
-         }
+            "2d" => {
+                let context_2d = self.context_2d.or_init(|| {
+                    let window = window_from_node(self).root();
+                    let size = self.get_size();
+                    CanvasRenderingContext2D::new(GlobalRef::Window(window.r()), self, size)
+                });
+                Some(CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(Unrooted::from_temporary(context_2d)))
+            }
+            "webgl" | "experimental-webgl" => {
+                let context_webgl = self.context_webgl.or_init(|| {
+                    let window = window_from_node(self).root();
+                    let size = self.get_size();
+                    WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, size)
+                });
+                Some(CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(Unrooted::from_temporary(context_webgl)))
+            }
+            _ => return None
+        }
     }
 }
 
@@ -215,6 +215,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
 
         if recreate {
            self.recreate_contexts();
+        }
+        if recreate {
+            let (w, h) = (self.width.get() as i32, self.height.get() as i32);
+            match self.context_3d.get() {
+                Some(context) => context.root().r().recreate(Size2D(w, h)),
+                None => ()
+            }
         }
     }
 

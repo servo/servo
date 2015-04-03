@@ -13,6 +13,9 @@ git = "https://github.com/servo/rust-azure"
 [dependencies.cssparser]
 git = "https://github.com/servo/rust-cssparser"
 
+[dependencies.compositing]
+path = "../compositing"
+
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
@@ -26,6 +29,10 @@ features = ["headless"]
 
 [dependencies.msg]
 path = "../msg"
+
+[dependencies.skia]
+git = "https://github.com/servo/skia"
+branch = "upstream-2014-06-16"
 
 [dependencies.util]
 path = "../util"
