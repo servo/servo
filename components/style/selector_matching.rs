@@ -16,7 +16,7 @@ use legacy::PresentationalHintSynthesis;
 use media_queries::Device;
 use node::TElementAttributes;
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules, Origin};
+use stylesheets::{Stylesheet, CSSRuleIteratorExt, Origin};
 
 
 pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
@@ -120,11 +120,11 @@ impl Stylist {
                     };
                 );
 
-                iter_stylesheet_style_rules(stylesheet, &self.device, |style_rule| {
+                for style_rule in stylesheet.effective_rules(&self.device).style() {
                     append!(style_rule, normal);
                     append!(style_rule, important);
                     rules_source_order += 1;
-                });
+                }
                 self.rules_source_order = rules_source_order;
             }
 
@@ -136,14 +136,9 @@ impl Stylist {
     }
 
     pub fn set_device(&mut self, device: Device) {
-        let is_dirty = self.is_dirty || self.stylesheets.iter().any(|stylesheet| {
-            let mut stylesheet_dirty = false;
-            iter_stylesheet_media_rules(stylesheet, |rule| {
-                stylesheet_dirty |= rule.media_queries.evaluate(&self.device) !=
-                                    rule.media_queries.evaluate(&device);
-            });
-            stylesheet_dirty
-        });
+        let is_dirty = self.is_dirty || self.stylesheets.iter()
+            .flat_map(|stylesheet| stylesheet.rules().media())
+            .any(|media_rule| media_rule.evaluate(&self.device) != media_rule.evaluate(&device));
 
         self.device = device;
         self.is_dirty |= is_dirty;
@@ -280,4 +275,3 @@ impl PerPseudoElementSelectorMap {
         }
     }
 }
-
