@@ -333,7 +333,9 @@ impl Floats {
             let maybe_location = self.available_rect(float_b,
                                                      info.size.block,
                                                      info.max_inline_size);
-            debug!("place_float: Got available rect: {:?} for y-pos: {:?}", maybe_location, float_b);
+            debug!("place_float: got available rect: {:?} for block-pos: {:?}",
+                   maybe_location,
+                   float_b);
             match maybe_location {
                 // If there are no floats blocking us, return the current location
                 // TODO(eatkinson): integrate with overflow
@@ -364,8 +366,8 @@ impl Floats {
                     // Place here if there is enough room
                     if rect.size.inline >= info.size.inline {
                         let block_size = self.max_block_size_for_bounds(rect.start.i,
-                                                                rect.start.b,
-                                                                rect.size.inline);
+                                                                        rect.start.b,
+                                                                        rect.size.inline);
                         let block_size = block_size.unwrap_or(Au(i32::MAX));
                         return match info.kind {
                             FloatKind::Left => {

@@ -188,6 +188,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == letter_spacing_a.html letter_spacing_ref.html
 == line_breaking_whitespace_collapse_a.html line_breaking_whitespace_collapse_ref.html
 == line_height_a.html line_height_ref.html
+== line_height_float_placement_a.html line_height_float_placement_ref.html
 != linear_gradients_corners_a.html linear_gradients_corners_ref.html
 == linear_gradients_lengths_a.html linear_gradients_lengths_ref.html
 == linear_gradients_parsing_a.html linear_gradients_parsing_ref.html
