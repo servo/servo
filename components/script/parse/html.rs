@@ -155,8 +155,12 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         }
     }
 
-    fn remove_from_parent(&mut self, _target: JS<Node>) {
-        error!("remove_from_parent not implemented!");
+    fn remove_from_parent(&mut self, target: JS<Node>) {
+        let node: Root<Node> = target.root();
+        let parent = node.r();
+        while let Some(child) = parent.GetFirstChild() {
+            parent.RemoveChild(child.root().r()).unwrap();
+        }
     }
 
     fn mark_script_already_started(&mut self, node: JS<Node>) {
@@ -171,8 +175,15 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         script.map(|script| script.prepare());
     }
 
-    fn reparent_children(&mut self, _node: JS<Node>, _new_parent: JS<Node>) {
-        panic!("unimplemented")
+    fn reparent_children(&mut self, node: JS<Node>, new_parent: JS<Node>) {
+        let new_parent: Root<Node> = new_parent.root();
+        let new_parent = new_parent.r();
+        let old_parent: Root<Node> = node.root();
+        let old_parent = old_parent.r();
+        while let Some(child) = old_parent.GetFirstChild() {
+           new_parent.AppendChild(child.root().r()).unwrap();
+        }
+
     }
 }
 
