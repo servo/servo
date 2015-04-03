@@ -287,11 +287,16 @@ class MachCommands(CommandBase):
 
         try:
             import wptrunner
+            from wptrunner.browsers import servo
         except ImportError:
             subprocess.check_call(["pip", "install", "-r",
                                    path.join("tests", "wpt", "harness", "requirements.txt")])
             subprocess.check_call(["pip", "install", "-r",
                                    path.join("tests", "wpt", "harness", "requirements_servo.txt")])
+        try:
+            import blessings
+        except ImportError:
+            subprocess.check_call(["pip", "install", "blessings"])
 
         # This is an unfortunate hack. Because mozlog gets imported by wptcommandline
         # before the virtualenv is initalised it doesn't see the blessings module so we don't
