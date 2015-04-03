@@ -4,32 +4,11 @@
 
 use computed_values::font_family::FontFamily;
 use cssparser::{Token, Parser, DeclarationListParser, AtRuleParser, DeclarationParser};
-use media_queries::Device;
 use parser::{ParserContext, log_css_error};
 use properties::longhands::font_family::parse_one_family;
 use std::ascii::AsciiExt;
 use string_cache::Atom;
-use stylesheets::CSSRule;
 use url::{Url, UrlParser};
-
-pub fn iter_font_face_rules_inner<F>(rules: &[CSSRule], device: &Device, callback: &F)
-                                     where F: Fn(&Atom, &Source) {
-    for rule in rules.iter() {
-        match *rule {
-            CSSRule::Style(..) |
-            CSSRule::Charset(..) |
-            CSSRule::Namespace(..) => {},
-            CSSRule::Media(ref rule) => if rule.media_queries.evaluate(device) {
-                iter_font_face_rules_inner(&rule.rules, device, callback)
-            },
-            CSSRule::FontFace(ref rule) => {
-                for source in rule.sources.iter() {
-                    callback(&rule.family, source)
-                }
-            },
-        }
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Source {

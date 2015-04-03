@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::iter::Iterator;
-use std::ascii::AsciiExt;
+use std::slice;
 use url::Url;
 
 use encoding::EncodingRef;
@@ -15,8 +16,9 @@ use string_cache::{Atom, Namespace};
 use selectors::parser::{Selector, parse_selector_list};
 use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
-use media_queries::{self, Device, MediaQueryList, parse_media_query_list};
-use font_face::{FontFaceRule, Source, parse_font_face_block, iter_font_face_rules_inner};
+use media_queries::{Device, MediaQueryList, parse_media_query_list};
+use font_face::{FontFaceRule, parse_font_face_block};
+use util::smallvec::{SmallVec, SmallVec2};
 
 
 #[derive(Clone, PartialEq, Eq, Copy, Debug)]
@@ -51,6 +53,12 @@ pub struct MediaRule {
     pub rules: Vec<CSSRule>,
 }
 
+impl MediaRule {
+    #[inline]
+    pub fn evaluate(&self, device: &Device) -> bool {
+        self.media_queries.evaluate(device)
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub struct StyleRule {
@@ -118,8 +126,161 @@ impl Stylesheet {
             rules: rules,
         }
     }
+
+    /// Return an iterator over all the rules within the style-sheet.
+    #[inline]
+    pub fn rules<'a>(&'a self) -> Rules<'a> {
+        Rules::new(self.rules.iter(), None)
+    }
+
+    /// Return an iterator over the effective rules within the style-sheet, as
+    /// according to the supplied `Device`.
+    ///
+    /// If a condition does not hold, its associated conditional group rule and
+    /// nested rules will be skipped. Use `rules` if all rules need to be
+    /// examined.
+    #[inline]
+    pub fn effective_rules<'a>(&'a self, device: &'a Device) -> Rules<'a> {
+        Rules::new(self.rules.iter(), Some(device))
+    }
 }
 
+/// `CSSRule` iterator.
+///
+/// The iteration order is pre-order. Specifically, this implies that a
+/// conditional group rule will come before its nested rules.
+pub struct Rules<'a> {
+    // 2 because normal case is likely to be just one level of nesting (@media)
+    stack: SmallVec2<slice::Iter<'a, CSSRule>>,
+    device: Option<&'a Device>
+}
+
+impl<'a> Rules<'a> {
+    fn new(iter: slice::Iter<'a, CSSRule>, device: Option<&'a Device>) -> Rules<'a> {
+        let mut stack = SmallVec2::new();
+        stack.push(iter);
+
+        Rules { stack: stack, device: device }
+    }
+}
+
+impl<'a> Iterator for Rules<'a> {
+    type Item = &'a CSSRule;
+
+    fn next(&mut self) -> Option<&'a CSSRule> {
+        while !self.stack.is_empty() {
+            let top = self.stack.len() - 1;
+            while let Some(rule) = self.stack.get_mut(top).next() {
+                // handle conditional group rules
+                match rule {
+                    &CSSRule::Media(ref rule) => {
+                        if let Some(device) = self.device {
+                            if rule.evaluate(device) {
+                                self.stack.push(rule.rules.iter());
+                            } else {
+                                continue
+                            }
+                        } else {
+                            self.stack.push(rule.rules.iter());
+                        }
+                    }
+                    _ => {}
+                }
+
+                return Some(rule)
+            }
+
+            self.stack.pop();
+        }
+        None
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        // TODO: track total number of rules in style-sheet for upper bound?
+        (0, None)
+    }
+}
+
+pub mod rule_filter {
+    //! Specific `CSSRule` variant iterators.
+
+    use std::marker::PhantomData;
+    use super::{CSSRule, MediaRule, StyleRule};
+    use super::super::font_face::FontFaceRule;
+
+    macro_rules! rule_filter {
+        ($variant:ident -> $value:ty) => {
+            /// An iterator that only yields rules that are of the synonymous `CSSRule` variant.
+            #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
+            pub struct $variant<'a, I> {
+                iter: I,
+                _lifetime: PhantomData<&'a ()>
+            }
+
+            impl<'a, I> $variant<'a, I> where I: Iterator<Item=&'a CSSRule> {
+                pub fn new(iter: I) -> $variant<'a, I> {
+                    $variant {
+                        iter: iter,
+                        _lifetime: PhantomData
+                    }
+                }
+            }
+
+            impl<'a, I> Iterator for $variant<'a, I> where I: Iterator<Item=&'a CSSRule> {
+                type Item = &'a $value;
+
+                fn next(&mut self) -> Option<&'a $value> {
+                    while let Some(rule) = self.iter.next() {
+                        match rule {
+                            &CSSRule::$variant(ref value) => return Some(value),
+                            _ => continue
+                        }
+                    }
+                    None
+                }
+
+                #[inline]
+                fn size_hint(&self) -> (usize, Option<usize>) {
+                    (0, self.iter.size_hint().1)
+                }
+            }
+        }
+    }
+
+    rule_filter!(FontFace -> FontFaceRule);
+    rule_filter!(Media -> MediaRule);
+    rule_filter!(Style -> StyleRule);
+}
+
+/// Extension methods for `CSSRule` iterators.
+pub trait CSSRuleIteratorExt<'a>: Iterator<Item=&'a CSSRule> {
+    /// Yield only @font-face rules.
+    fn font_face(self) -> rule_filter::FontFace<'a, Self>;
+
+    /// Yield only @media rules.
+    fn media(self) -> rule_filter::Media<'a, Self>;
+
+    /// Yield only style rules.
+    fn style(self) -> rule_filter::Style<'a, Self>;
+}
+
+impl<'a, I> CSSRuleIteratorExt<'a> for I where I: Iterator<Item=&'a CSSRule> {
+    #[inline]
+    fn font_face(self) -> rule_filter::FontFace<'a, I> {
+        rule_filter::FontFace::new(self)
+    }
+
+    #[inline]
+    fn media(self) -> rule_filter::Media<'a, I> {
+        rule_filter::Media::new(self)
+    }
+
+    #[inline]
+    fn style(self) -> rule_filter::Style<'a, I> {
+        rule_filter::Style::new(self)
+    }
+}
 
 fn parse_nested_rules(context: &ParserContext, input: &mut Parser) -> Vec<CSSRule> {
     let mut iter = RuleListParser::new_for_nested_rule(input, NestedRuleParser { context: context });
@@ -280,45 +441,4 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
             declarations: parse_property_declaration_list(self.context, input)
         }))
     }
-}
-
-
-pub fn iter_style_rules<'a, F>(rules: &[CSSRule], device: &media_queries::Device,
-                               callback: &mut F) where F: FnMut(&StyleRule) {
-    for rule in rules.iter() {
-        match *rule {
-            CSSRule::Style(ref rule) => callback(rule),
-            CSSRule::Media(ref rule) => if rule.media_queries.evaluate(device) {
-                iter_style_rules(&rule.rules, device, callback)
-            },
-            CSSRule::FontFace(..) |
-            CSSRule::Charset(..) |
-            CSSRule::Namespace(..) => {}
-        }
-    }
-}
-
-pub fn iter_stylesheet_media_rules<F>(stylesheet: &Stylesheet, mut callback: F) where F: FnMut(&MediaRule) {
-    for rule in stylesheet.rules.iter() {
-        match *rule {
-            CSSRule::Media(ref rule) => callback(rule),
-            CSSRule::Style(..) |
-            CSSRule::FontFace(..) |
-            CSSRule::Charset(..) |
-            CSSRule::Namespace(..) => {}
-        }
-    }
-}
-
-#[inline]
-pub fn iter_stylesheet_style_rules<F>(stylesheet: &Stylesheet, device: &media_queries::Device,
-                                      mut callback: F) where F: FnMut(&StyleRule) {
-    iter_style_rules(&stylesheet.rules, device, &mut callback)
-}
-
-
-#[inline]
-pub fn iter_font_face_rules<F>(stylesheet: &Stylesheet, device: &Device, callback: &F)
-                               where F: Fn(&Atom, &Source) {
-    iter_font_face_rules_inner(&stylesheet.rules, device, callback)
 }
