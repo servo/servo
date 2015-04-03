@@ -179,6 +179,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 # Fails intermittently (#3636)
 # == link_style_dynamic_addition.html link_style_dynamic_addition_ref.html
 == link_style_order.html link_style_order_ref.html
+== list_style_image_sizing_a.html list_style_image_sizing_ref.html
 == list_style_position_a.html list_style_position_ref.html
 != list_style_type_a.html list_style_type_ref.html
 == many_brs_a.html many_brs_ref.html
