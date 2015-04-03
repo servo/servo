@@ -45,7 +45,7 @@ impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
         let attrs = owner.attrs();
-        attrs.as_slice().get(index as uint).map(|x| Temporary::new(x.clone()))
+        attrs.as_slice().get(index as usize).map(|x| Temporary::new(x.clone()))
     }
 
     fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Temporary<Attr>> {

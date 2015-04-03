@@ -7,7 +7,6 @@
 #![feature(collections)]
 #![feature(core)]
 #![feature(custom_attribute)]
-#![feature(int_uint)]
 #![feature(old_io)]
 #![feature(path)]
 #![feature(plugin)]

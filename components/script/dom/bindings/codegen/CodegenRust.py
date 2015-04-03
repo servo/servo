@@ -1040,7 +1040,7 @@ class CGArgumentConverter(CGThing):
         else:
             assert argument.optional
             variadicConversion = {
-                "val": string.Template("(*${argv}.offset(variadicArg as int))").substitute(replacer),
+                "val": string.Template("(*${argv}.offset(variadicArg as isize))").substitute(replacer),
             }
             innerConverter = instantiateJSToNativeConversionTemplate(
                 template, variadicConversion, declType, "slot",

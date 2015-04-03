@@ -321,7 +321,7 @@ impl RootedCollectionSet {
         ROOTED_COLLECTIONS.with(|ref collections| {
             let type_ = VecRootableType::tag(None::<T>);
             let mut collections = collections.borrow_mut();
-            assert!(collections.set[type_ as uint].remove(&(collection as *const _ as *const _)));
+            assert!(collections.set[type_ as usize].remove(&(collection as *const _ as *const _)));
         });
     }
 
@@ -329,7 +329,7 @@ impl RootedCollectionSet {
         ROOTED_COLLECTIONS.with(|ref collections| {
             let type_ = VecRootableType::tag(None::<T>);
             let mut collections = collections.borrow_mut();
-            collections.set[type_ as uint].insert(collection as *const _ as *const _);
+            collections.set[type_ as usize].insert(collection as *const _ as *const _);
         })
     }
 
@@ -345,15 +345,15 @@ impl RootedCollectionSet {
             }
         }
 
-        let dom_collections = &self.set[CollectionType::DOMObjects as uint] as *const _ as *const HashSet<*const RootedVec<*const Reflector>>;
+        let dom_collections = &self.set[CollectionType::DOMObjects as usize] as *const _ as *const HashSet<*const RootedVec<*const Reflector>>;
         for dom_collection in (*dom_collections).iter() {
             for reflector in (**dom_collection).iter() {
                 trace_reflector(tracer, "", &**reflector);
             }
         }
 
-        trace_collection_type::<JSVal>(tracer, &self.set[CollectionType::JSVals as uint]);
-        trace_collection_type::<*mut JSObject>(tracer, &self.set[CollectionType::JSObjects as uint]);
+        trace_collection_type::<JSVal>(tracer, &self.set[CollectionType::JSVals as usize]);
+        trace_collection_type::<*mut JSObject>(tracer, &self.set[CollectionType::JSObjects as usize]);
     }
 }
 
