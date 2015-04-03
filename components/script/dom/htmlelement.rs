@@ -207,7 +207,8 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
 
     fn delete_custom_attr(self, name: DOMString) {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.remove_attribute(ns!(""), &to_snake_case(name))
+        let name = Atom::from_slice(&to_snake_case(name));
+        element.remove_attribute(&ns!(""), &name);
     }
 }
 
