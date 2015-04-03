@@ -100,13 +100,21 @@ class MachCommands(CommandBase):
     @Command('test-unit',
              description='Run unit tests',
              category='testing')
+    @CommandArgument('--package', '-p', default=None,
+                     help="Specific package to test")
     @CommandArgument('--component', '-c', default=None,
-                     help="Specific component to test")
+                     help="Alias for --package")
     @CommandArgument('test_name', nargs=argparse.REMAINDER,
                      help="Only run tests that match this pattern")
-    def test_unit(self, test_name=None, component=None):
+    def test_unit(self, test_name=None, component=None, package=None):
         if test_name is None:
             test_name = []
+
+        if component is not None:
+            if package is not None:
+                print("Please use either -p or -c, not both.")
+                return 1
+            package = component
 
         self.ensure_bootstrapped()
         self.ensure_built_tests()
@@ -118,8 +126,8 @@ class MachCommands(CommandBase):
                 ["cargo", "test", "-p", component]
                 + test_name, env=self.build_env(), cwd=self.servo_crate())
 
-        if component is not None:
-            ret = ret or cargo_test(component)
+        if package is not None:
+            ret = ret or cargo_test(package)
         else:
             for c in os.listdir("components"):
                 if c != "servo":
