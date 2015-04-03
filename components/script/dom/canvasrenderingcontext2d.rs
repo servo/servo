@@ -32,14 +32,12 @@ use canvas::canvas_paint_task::{CanvasPaintTask, FillOrStrokeStyle};
 use canvas::canvas_paint_task::{LinearGradientStyle, RadialGradientStyle};
 use canvas::canvas_paint_task::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
 
-use net_traits::image::base::Image;
-use net_traits::image_cache_task::ImageCacheChan;
+use net_traits::image_cache_task::{ImageCacheChan, ImageResponse};
 use png::PixelsByColorType;
 
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::num::{Float, ToPrimitive};
-use std::sync::{Arc};
 use std::sync::mpsc::{channel, Sender};
 
 use util::str::DOMString;
@@ -251,8 +249,8 @@ impl CanvasRenderingContext2D {
         };
 
         let img = match self.request_image_from_cache(url) {
-            Some(img) => img,
-            None => return None,
+            ImageResponse::Loaded(img) => img,
+            ImageResponse::PlaceholderLoaded(_) | ImageResponse::None => return None,
         };
 
         let image_size = Size2D(img.width as f64, img.height as f64);
@@ -268,7 +266,7 @@ impl CanvasRenderingContext2D {
         return Some((image_data, image_size));
     }
 
-    fn request_image_from_cache(&self, url: Url) -> Option<Arc<Image>> {
+    fn request_image_from_cache(&self, url: Url) -> ImageResponse {
         let canvas = self.canvas.root();
         let window = window_from_node(canvas.r()).root();
         let window = window.r();
@@ -276,7 +274,7 @@ impl CanvasRenderingContext2D {
         let (response_chan, response_port) = channel();
         image_cache.request_image(url, ImageCacheChan(response_chan), None);
         let result = response_port.recv().unwrap();
-        result.image
+        result.image_response
     }
 
     fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {

@@ -28,6 +28,7 @@ use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net_traits::image::base::Image;
+use net_traits::image_cache_task::UsePlaceholder;
 use rustc_serialize::{Encodable, Encoder};
 use script_traits::UntrustedNodeAddress;
 use std::borrow::ToOwned;
@@ -315,7 +316,9 @@ impl ImageFragmentInfo {
                    .map(|pixels| Au::from_px(pixels))
         }
 
-        let image = url.and_then(|url| layout_context.get_or_request_image(url));
+        let image = url.and_then(|url| {
+            layout_context.get_or_request_image(url, UsePlaceholder::Yes)
+        });
 
         ImageFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
