@@ -2722,7 +2722,7 @@ pub mod longhands {
         pub mod computed_value {
             use util::geometry::Au;
             use values::CSSFloat;
-	    use values::specified::{Angle};
+            use values::specified::{Angle};
 
             #[derive(Clone, PartialEq, Debug)]
             pub enum Filter {
