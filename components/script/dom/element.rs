@@ -608,7 +608,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
 pub trait AttributeHandlers {
     /// Returns the attribute with given namespace and case-sensitive local
     /// name, if any.
-    fn get_attribute(self, namespace: Namespace, local_name: &Atom)
+    fn get_attribute(self, namespace: &Namespace, local_name: &Atom)
                      -> Option<Temporary<Attr>>;
     /// Returns the first attribute with any namespace and given case-sensitive
     /// name, if any.
@@ -655,9 +655,9 @@ pub trait AttributeHandlers {
 }
 
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
-    fn get_attribute(self, namespace: Namespace, local_name: &Atom) -> Option<Temporary<Attr>> {
+    fn get_attribute(self, namespace: &Namespace, local_name: &Atom) -> Option<Temporary<Attr>> {
         self.get_attributes(local_name).into_iter().map(|attr| attr.root())
-            .find(|attr| *attr.r().namespace() == namespace)
+            .find(|attr| attr.r().namespace() == namespace)
             .map(|x| Temporary::from_rooted(x.r()))
     }
 
@@ -814,7 +814,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             NoQuirks | LimitedQuirks => lhs == rhs,
             Quirks => lhs.eq_ignore_ascii_case(&rhs)
         };
-        self.get_attribute(ns!(""), &atom!("class")).root().map(|attr| {
+        self.get_attribute(&ns!(""), &atom!("class")).root().map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let value = attr.value();
@@ -872,7 +872,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn get_string_attribute(self, name: &Atom) -> DOMString {
-        match self.get_attribute(ns!(""), name) {
+        match self.get_attribute(&ns!(""), name) {
             Some(x) => x.root().r().Value(),
             None => "".to_owned()
         }
@@ -883,7 +883,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn get_tokenlist_attribute(self, name: &Atom) -> Vec<Atom> {
-        self.get_attribute(ns!(""), name).root().map(|attr| {
+        self.get_attribute(&ns!(""), name).root().map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let value = attr.value();
@@ -907,7 +907,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         assert!(name.chars().all(|ch| {
             !ch.is_ascii() || ch.to_ascii_lowercase() == ch
         }));
-        let attribute = self.get_attribute(ns!(""), name).root();
+        let attribute = self.get_attribute(&ns!(""), name).root();
         match attribute {
             Some(attribute) => {
                 match *attribute.r().value() {
@@ -1008,7 +1008,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn GetAttributeNS(self,
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> Option<DOMString> {
-        let namespace = namespace::from_domstring(namespace);
+        let namespace = &namespace::from_domstring(namespace);
         self.get_attribute(namespace, &Atom::from_slice(&local_name)).root()
                      .map(|attr| attr.r().Value())
     }
@@ -1406,7 +1406,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         if !tree_in_doc { return; }
 
-        if let Some(attr) = self.get_attribute(ns!(""), &atom!("id")).root() {
+        if let Some(attr) = self.get_attribute(&ns!(""), &atom!("id")).root() {
             let doc = document_from_node(*self).root();
             let value = attr.r().Value();
             if !value.is_empty() {
@@ -1423,7 +1423,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         if !tree_in_doc { return; }
 
-        if let Some(attr) = self.get_attribute(ns!(""), &atom!("id")).root() {
+        if let Some(attr) = self.get_attribute(&ns!(""), &atom!("id")).root() {
             let doc = document_from_node(*self).root();
             let value = attr.r().Value();
             if !value.is_empty() {
@@ -1437,7 +1437,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
     #[allow(unsafe_code)]
     fn get_attr(self, namespace: &Namespace, attr: &Atom) -> Option<&'a str> {
-        self.get_attribute(namespace.clone(), attr).root().map(|attr| {
+        self.get_attribute(namespace, attr).root().map(|attr| {
             // This transmute is used to cheat the lifetime restriction.
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
@@ -1497,7 +1497,7 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
         node.get_focus_state()
     }
     fn get_id(self) -> Option<Atom> {
-        self.get_attribute(ns!(""), &atom!("id")).map(|attr| {
+        self.get_attribute(&ns!(""), &atom!("id")).map(|attr| {
             let attr = attr.root();
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
@@ -1542,7 +1542,7 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
     fn each_class<F>(self, mut callback: F)
         where F: FnMut(&Atom)
     {
-        if let Some(ref attr) = self.get_attribute(ns!(""), &atom!("class")).root() {
+        if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("class")).root() {
             if let Some(tokens) = attr.r().value().tokens() {
                 for token in tokens {
                     callback(token)

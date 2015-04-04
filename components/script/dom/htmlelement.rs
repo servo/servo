@@ -196,7 +196,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
 
     fn get_custom_attr(self, name: DOMString) -> Option<DOMString> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.get_attribute(ns!(""), &Atom::from_slice(&to_snake_case(name))).map(|attr| {
+        element.get_attribute(&ns!(""), &Atom::from_slice(&to_snake_case(name))).map(|attr| {
             let attr = attr.root();
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();

@@ -58,7 +58,7 @@ impl HTMLLinkElement {
 }
 
 fn get_attr(element: JSRef<Element>, name: &Atom) -> Option<String> {
-    let elem = element.get_attribute(ns!(""), name).root();
+    let elem = element.get_attribute(&ns!(""), name).root();
     elem.map(|e| {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let e = e.r();
