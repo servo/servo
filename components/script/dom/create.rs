@@ -18,6 +18,7 @@ use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmldataelement::HTMLDataElement;
 use dom::htmldatalistelement::HTMLDataListElement;
+use dom::htmldialogelement::HTMLDialogElement;
 use dom::htmldirectoryelement::HTMLDirectoryElement;
 use dom::htmldivelement::HTMLDivElement;
 use dom::htmldlistelement::HTMLDListElement;
@@ -134,6 +135,7 @@ pub fn create_element(name: QualName, prefix: Option<DOMString>,
         atom!("del")        => make!(HTMLModElement),
         atom!("details")    => make!(HTMLElement),
         atom!("dfn")        => make!(HTMLElement),
+        atom!("dialog")     => make!(HTMLDialogElement),
         atom!("dir")        => make!(HTMLDirectoryElement),
         atom!("div")        => make!(HTMLDivElement),
         atom!("dl")         => make!(HTMLDListElement),

@@ -236,6 +236,7 @@ pub mod htmlcanvaselement;
 pub mod htmlcollection;
 pub mod htmldataelement;
 pub mod htmldatalistelement;
+pub mod htmldialogelement;
 pub mod htmldirectoryelement;
 pub mod htmldivelement;
 pub mod htmldlistelement;
