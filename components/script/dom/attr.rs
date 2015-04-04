@@ -6,8 +6,9 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::js::{OptionalRootedRootable, RootedReference};
+use dom::bindings::js::{JSRef, MutNullableJS, Temporary};
+use dom::bindings::js::{OptionalRootable, OptionalRootedRootable};
+use dom::bindings::js::RootedReference;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::Node;
@@ -94,7 +95,7 @@ pub struct Attr {
     prefix: Option<DOMString>,
 
     /// the element that owns this attribute.
-    owner: Option<JS<Element>>,
+    owner: MutNullableJS<Element>,
 }
 
 impl Attr {
@@ -107,7 +108,7 @@ impl Attr {
             name: name,
             namespace: namespace,
             prefix: prefix,
-            owner: owner.map(JS::from_rooted),
+            owner: MutNullableJS::new(owner),
         }
     }
 
@@ -149,7 +150,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 
     // https://dom.spec.whatwg.org/#dom-attr-value
     fn SetValue(self, value: DOMString) {
-        match self.owner {
+        match self.owner() {
             None => *self.value.borrow_mut() = AttrValue::String(value),
             Some(o) => {
                 let owner = o.root();
@@ -200,7 +201,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 
     // https://dom.spec.whatwg.org/#dom-attr-ownerelement
     fn GetOwnerElement(self) -> Option<Temporary<Element>> {
-        self.owner.map(|o| Temporary::new(o))
+        self.owner()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-specified
@@ -213,12 +214,14 @@ pub trait AttrHelpers<'a> {
     fn set_value(self, set_type: AttrSettingType, value: AttrValue, owner: JSRef<Element>);
     fn value(self) -> Ref<'a, AttrValue>;
     fn local_name(self) -> &'a Atom;
+    fn set_owner(self, owner: Option<JSRef<Element>>);
+    fn owner(self) -> Option<Temporary<Element>>;
     fn summarize(self) -> AttrInfo;
 }
 
 impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     fn set_value(self, set_type: AttrSettingType, value: AttrValue, owner: JSRef<Element>) {
-        assert!(Some(owner) == self.owner.root().r());
+        assert!(Some(owner) == self.owner().root().r());
 
         let node: JSRef<Node> = NodeCast::from_ref(owner);
         let namespace_is_null = self.namespace == ns!("");
@@ -242,6 +245,28 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
 
     fn local_name(self) -> &'a Atom {
         &self.extended_deref().local_name
+    }
+
+    /// Sets the owner element. Should be called after the attribute is added
+    /// or removed from its older parent.
+    fn set_owner(self, owner: Option<JSRef<Element>>) {
+        let ns = self.namespace.clone();
+        match (self.owner().root().r(), owner) {
+            (None, Some(new)) => {
+                // Already in the list of attributes of new owner.
+                assert!(new.get_attribute(ns, &self.local_name).root().r() == Some(self))
+            }
+            (Some(old), None) => {
+                // Already gone from the list of attributes of old owner.
+                assert!(old.get_attribute(ns, &self.local_name).is_none())
+            }
+            (old, new) => assert!(old == new)
+        }
+        self.owner.assign(owner)
+    }
+
+    fn owner(self) -> Option<Temporary<Element>> {
+        self.owner.get()
     }
 
     fn summarize(self) -> AttrInfo {
