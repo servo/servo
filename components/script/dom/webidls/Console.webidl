@@ -12,10 +12,10 @@
 
 interface Console {
   // These should be DOMString message, DOMString message2, ...
-  void log(DOMString message);
-  void debug(DOMString message);
-  void info(DOMString message);
-  void warn(DOMString message);
-  void error(DOMString message);
+  void log(DOMString... messages);
+  void debug(DOMString... messages);
+  void info(DOMString... messages);
+  void warn(DOMString... messages);
+  void error(DOMString... messages);
   void assert(boolean condition, optional DOMString message);
 };
