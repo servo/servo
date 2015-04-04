@@ -31,7 +31,7 @@ interface HTMLInputElement : HTMLElement {
   //         attribute boolean multiple;
            attribute DOMString name;
   //         attribute DOMString pattern;
-  //         attribute DOMString placeholder;
+           attribute DOMString placeholder;
            attribute boolean readOnly;
   //         attribute boolean required;
            attribute unsigned long size;

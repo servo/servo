@@ -65,6 +65,7 @@ pub struct HTMLInputElement {
     input_type: Cell<InputType>,
     checked: Cell<bool>,
     checked_changed: Cell<bool>,
+    placeholder: DOMRefCell<DOMString>,
     indeterminate: Cell<bool>,
     value_changed: Cell<bool>,
     size: Cell<u32>,
@@ -112,6 +113,7 @@ impl HTMLInputElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLInputElement, localName, prefix, document),
             input_type: Cell::new(InputType::InputText),
             checked: Cell::new(false),
+            placeholder: DOMRefCell::new("".to_owned()),
             indeterminate: Cell::new(false),
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
@@ -150,7 +152,12 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
     unsafe fn get_value_for_layout(self) -> String {
         #[allow(unsafe_code)]
         unsafe fn get_raw_textinput_value(input: LayoutJS<HTMLInputElement>) -> String {
-            (*input.unsafe_get()).textinput.borrow_for_layout().get_content()
+            let textinput = (*input.unsafe_get()).textinput.borrow_for_layout().get_content();
+            if !textinput.is_empty() {
+                textinput
+            } else {
+                (*input.unsafe_get()).placeholder.borrow_for_layout().to_owned()
+            }
         }
 
         #[allow(unsafe_code)]
@@ -273,6 +280,12 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
     make_setter!(SetName, "name");
+
+    // https://html.spec.whatwg.org/multipage/forms.html#attr-input-placeholder
+    make_getter!(Placeholder);
+
+    // https://html.spec.whatwg.org/multipage/forms.html#attr-input-placeholder
+    make_setter!(SetPlaceholder, "placeholder");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formaction
     make_url_or_base_getter!(FormAction);
@@ -490,6 +503,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                     self.radio_group_updated(Some(value.as_slice()));
                 }
             }
+            _ if attr.local_name() == &Atom::from_slice("placeholder") => {
+                let value = attr.value();
+                let stripped = value.as_slice().chars()
+                    .filter(|&c| c != '\n' && c != '\r')
+                    .collect::<String>();
+                *self.placeholder.borrow_mut() = stripped;
+            }
             _ => ()
         }
     }
@@ -533,6 +553,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 if self.input_type.get() == InputType::InputRadio {
                     self.radio_group_updated(None);
                 }
+            }
+            _ if attr.local_name() == &Atom::from_slice("placeholder") => {
+                self.placeholder.borrow_mut().clear();
             }
             _ => ()
         }
