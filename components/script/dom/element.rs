@@ -638,20 +638,20 @@ pub trait AttributeHandlers {
 
     fn has_class(self, name: &Atom) -> bool;
 
-    fn set_atomic_attribute(self, name: &Atom, value: DOMString);
+    fn set_atomic_attribute(self, local_name: &Atom, value: DOMString);
 
     // http://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
-    fn has_attribute(self, name: &Atom) -> bool;
-    fn set_bool_attribute(self, name: &Atom, value: bool);
-    fn get_url_attribute(self, name: &Atom) -> DOMString;
-    fn set_url_attribute(self, name: &Atom, value: DOMString);
-    fn get_string_attribute(self, name: &Atom) -> DOMString;
-    fn set_string_attribute(self, name: &Atom, value: DOMString);
-    fn get_tokenlist_attribute(self, name: &Atom) -> Vec<Atom>;
-    fn set_tokenlist_attribute(self, name: &Atom, value: DOMString);
-    fn set_atomic_tokenlist_attribute(self, name: &Atom, tokens: Vec<Atom>);
-    fn get_uint_attribute(self, name: &Atom) -> u32;
-    fn set_uint_attribute(self, name: &Atom, value: u32);
+    fn has_attribute(self, local_name: &Atom) -> bool;
+    fn set_bool_attribute(self, local_name: &Atom, value: bool);
+    fn get_url_attribute(self, local_name: &Atom) -> DOMString;
+    fn set_url_attribute(self, local_name: &Atom, value: DOMString);
+    fn get_string_attribute(self, local_name: &Atom) -> DOMString;
+    fn set_string_attribute(self, local_name: &Atom, value: DOMString);
+    fn get_tokenlist_attribute(self, local_name: &Atom) -> Vec<Atom>;
+    fn set_tokenlist_attribute(self, local_name: &Atom, value: DOMString);
+    fn set_atomic_tokenlist_attribute(self, local_name: &Atom, tokens: Vec<Atom>);
+    fn get_uint_attribute(self, local_name: &Atom) -> u32;
+    fn set_uint_attribute(self, local_name: &Atom, value: u32);
 }
 
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
@@ -824,40 +824,38 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }).unwrap_or(false)
     }
 
-    fn set_atomic_attribute(self, name: &Atom, value: DOMString) {
-        assert!(name.as_slice() == name.to_ascii_lowercase());
+    fn set_atomic_attribute(self, local_name: &Atom, value: DOMString) {
+        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
         let value = AttrValue::from_atomic(value);
-        self.set_attribute(name, value);
+        self.set_attribute(local_name, value);
     }
 
-    fn has_attribute(self, name: &Atom) -> bool {
-        assert!(name.bytes().all(|b| b.to_ascii_lowercase() == b));
+    fn has_attribute(self, local_name: &Atom) -> bool {
+        assert!(local_name.bytes().all(|b| b.to_ascii_lowercase() == b));
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let attrs = self.attrs.borrow();
         attrs.iter().map(|attr| attr.root()).any(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
-            let local_name = attr.local_name();
-            let namespace = attr.namespace();
-            *local_name == *name && *namespace == ns!("")
+            attr.local_name() == local_name && attr.namespace() == &ns!("")
         })
     }
 
-    fn set_bool_attribute(self, name: &Atom, value: bool) {
-        if self.has_attribute(name) == value { return; }
+    fn set_bool_attribute(self, local_name: &Atom, value: bool) {
+        if self.has_attribute(local_name) == value { return; }
         if value {
-            self.set_string_attribute(name, String::new());
+            self.set_string_attribute(local_name, String::new());
         } else {
-            self.remove_attribute(&ns!(""), name);
+            self.remove_attribute(&ns!(""), local_name);
         }
     }
 
-    fn get_url_attribute(self, name: &Atom) -> DOMString {
-        assert!(name.as_slice() == name.to_ascii_lowercase());
-        if !self.has_attribute(name) {
+    fn get_url_attribute(self, local_name: &Atom) -> DOMString {
+        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        if !self.has_attribute(local_name) {
             return "".to_owned();
         }
-        let url = self.get_string_attribute(name);
+        let url = self.get_string_attribute(local_name);
         let doc = document_from_node(self).root();
         let base = doc.r().url();
         // https://html.spec.whatwg.org/multipage/infrastructure.html#reflect
@@ -867,23 +865,23 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             Err(_) => "".to_owned()
         }
     }
-    fn set_url_attribute(self, name: &Atom, value: DOMString) {
-        self.set_string_attribute(name, value);
+    fn set_url_attribute(self, local_name: &Atom, value: DOMString) {
+        self.set_string_attribute(local_name, value);
     }
 
-    fn get_string_attribute(self, name: &Atom) -> DOMString {
-        match self.get_attribute(&ns!(""), name) {
+    fn get_string_attribute(self, local_name: &Atom) -> DOMString {
+        match self.get_attribute(&ns!(""), local_name) {
             Some(x) => x.root().r().Value(),
             None => "".to_owned()
         }
     }
-    fn set_string_attribute(self, name: &Atom, value: DOMString) {
-        assert!(name.as_slice() == name.to_ascii_lowercase());
-        self.set_attribute(name, AttrValue::String(value));
+    fn set_string_attribute(self, local_name: &Atom, value: DOMString) {
+        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        self.set_attribute(local_name, AttrValue::String(value));
     }
 
-    fn get_tokenlist_attribute(self, name: &Atom) -> Vec<Atom> {
-        self.get_attribute(&ns!(""), name).root().map(|attr| {
+    fn get_tokenlist_attribute(self, local_name: &Atom) -> Vec<Atom> {
+        self.get_attribute(&ns!(""), local_name).root().map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let value = attr.value();
@@ -893,21 +891,21 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }).unwrap_or(vec!())
     }
 
-    fn set_tokenlist_attribute(self, name: &Atom, value: DOMString) {
-        assert!(name.as_slice() == name.to_ascii_lowercase());
-        self.set_attribute(name, AttrValue::from_serialized_tokenlist(value));
+    fn set_tokenlist_attribute(self, local_name: &Atom, value: DOMString) {
+        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        self.set_attribute(local_name, AttrValue::from_serialized_tokenlist(value));
     }
 
-    fn set_atomic_tokenlist_attribute(self, name: &Atom, tokens: Vec<Atom>) {
-        assert!(name.as_slice() == name.to_ascii_lowercase());
-        self.set_attribute(name, AttrValue::from_atomic_tokens(tokens));
+    fn set_atomic_tokenlist_attribute(self, local_name: &Atom, tokens: Vec<Atom>) {
+        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens));
     }
 
-    fn get_uint_attribute(self, name: &Atom) -> u32 {
-        assert!(name.chars().all(|ch| {
+    fn get_uint_attribute(self, local_name: &Atom) -> u32 {
+        assert!(local_name.chars().all(|ch| {
             !ch.is_ascii() || ch.to_ascii_lowercase() == ch
         }));
-        let attribute = self.get_attribute(&ns!(""), name).root();
+        let attribute = self.get_attribute(&ns!(""), local_name).root();
         match attribute {
             Some(attribute) => {
                 match *attribute.r().value() {
@@ -919,9 +917,9 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             None => 0,
         }
     }
-    fn set_uint_attribute(self, name: &Atom, value: u32) {
-        assert!(name.as_slice() == name.to_ascii_lowercase());
-        self.set_attribute(name, AttrValue::UInt(value.to_string(), value));
+    fn set_uint_attribute(self, local_name: &Atom, value: u32) {
+        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        self.set_attribute(local_name, AttrValue::UInt(value.to_string(), value));
     }
 }
 
@@ -1436,8 +1434,8 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
 impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
     #[allow(unsafe_code)]
-    fn get_attr(self, namespace: &Namespace, attr: &Atom) -> Option<&'a str> {
-        self.get_attribute(namespace, attr).root().map(|attr| {
+    fn get_attr(self, namespace: &Namespace, local_name: &Atom) -> Option<&'a str> {
+        self.get_attribute(namespace, local_name).root().map(|attr| {
             // This transmute is used to cheat the lifetime restriction.
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
@@ -1446,8 +1444,8 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
         })
     }
     #[allow(unsafe_code)]
-    fn get_attrs(self, attr: &Atom) -> Vec<&'a str> {
-        self.get_attributes(attr).into_iter().map(|attr| attr.root()).map(|attr| {
+    fn get_attrs(self, local_name: &Atom) -> Vec<&'a str> {
+        self.get_attributes(local_name).into_iter().map(|attr| attr.root()).map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let value = attr.value();
