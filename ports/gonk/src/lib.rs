@@ -113,23 +113,20 @@ impl Browser {
 
         // Send the URL command to the constellation.
         let cwd = env::current_dir().unwrap();
-        for url in opts.urls.iter() {
-            let url = match url::Url::parse(&*url) {
-                Ok(url) => url,
-                Err(url::ParseError::RelativeUrlWithoutBase)
-                => url::Url::from_file_path(&*cwd.join(&*url)).unwrap(),
-                Err(_) => panic!("URL parsing failed"),
-            };
+        let url = match url::Url::parse(&opts.url) {
+            Ok(url) => url,
+            Err(url::ParseError::RelativeUrlWithoutBase)
+            => url::Url::from_file_path(&*cwd.join(&opts.url)).unwrap(),
+            Err(_) => panic!("URL parsing failed"),
+        };
 
-            let ConstellationChan(ref chan) = constellation_chan;
-            chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
-        }
+        let ConstellationChan(ref chan) = constellation_chan;
+        chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
 
-        debug!("preparing to enter main loop");
         let compositor = CompositorTask::create(window,
                                                 compositor_proxy,
                                                 compositor_receiver,
-                                                constellation_chan,
+                                                constellation_chan.clone(),
                                                 time_profiler_chan,
                                                 mem_profiler_chan);
 
