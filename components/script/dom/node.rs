@@ -2343,7 +2343,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
         };
         match attr.namespace {
             NamespaceConstraint::Specific(ref ns) => {
-                self.as_element().get_attribute(ns.clone(), name).root()
+                self.as_element().get_attribute(ns, name).root()
                     .map_or(false, |attr| {
                         // FIXME(https://github.com/rust-lang/rust/issues/23338)
                         let attr = attr.r();

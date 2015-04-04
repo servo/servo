@@ -122,7 +122,7 @@ impl<'a> Activatable for JSRef<'a, HTMLAnchorElement> {
         //TODO: Step 3. Handle <img ismap/>.
         //TODO: Step 4. Download the link is `download` attribute is set.
         let element: JSRef<Element> = ElementCast::from_ref(*self);
-        let attr = element.get_attribute(ns!(""), &atom!("href")).root();
+        let attr = element.get_attribute(&ns!(""), &atom!("href")).root();
         match attr {
             Some(ref href) => {
                 let value = href.r().Value();

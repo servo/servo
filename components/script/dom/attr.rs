@@ -250,15 +250,15 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     /// Sets the owner element. Should be called after the attribute is added
     /// or removed from its older parent.
     fn set_owner(self, owner: Option<JSRef<Element>>) {
-        let ns = self.namespace.clone();
+        let ref ns = self.namespace;
         match (self.owner().root().r(), owner) {
             (None, Some(new)) => {
                 // Already in the list of attributes of new owner.
-                assert!(new.get_attribute(ns, &self.local_name).root().r() == Some(self))
+                assert!(new.get_attribute(&ns, &self.local_name).root().r() == Some(self))
             }
             (Some(old), None) => {
                 // Already gone from the list of attributes of old owner.
-                assert!(old.get_attribute(ns, &self.local_name).is_none())
+                assert!(old.get_attribute(&ns, &self.local_name).is_none())
             }
             (old, new) => assert!(old == new)
         }
