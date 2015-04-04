@@ -13,8 +13,9 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::window::{self, WindowHelpers};
 use script_task::ScriptChan;
+use devtools_traits::DevtoolsControlChan;
 
-use msg::constellation_msg::WorkerId;
+use msg::constellation_msg::{PipelineId, WorkerId};
 use net_traits::ResourceTask;
 
 use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
@@ -79,6 +80,23 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(window) => window,
             GlobalRef::Worker(_) => panic!("expected a Window scope"),
+        }
+    }
+
+    /// Get the `PipelineId` for this global scope.
+    pub fn pipeline(&self) -> PipelineId {
+        match *self {
+            GlobalRef::Window(window) => window.pipeline(),
+            GlobalRef::Worker(worker) => worker.pipeline(),
+        }
+    }
+
+    /// Get `DevtoolsControlChan` to send messages to Devtools
+    /// task when available.
+    pub fn devtools_chan(&self) -> Option<DevtoolsControlChan> {
+        match *self {
+            GlobalRef::Window(window) => window.devtools_chan(),
+            GlobalRef::Worker(worker) => worker.devtools_chan(),
         }
     }
 

@@ -24,6 +24,10 @@ use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
 use script_task::StackRootTLS;
 
+use msg::constellation_msg::PipelineId;
+
+use devtools_traits::DevtoolsControlChan;
+
 use net_traits::{load_whole_resource, ResourceTask};
 use util::task::spawn_named;
 use util::task_state;
@@ -90,6 +94,7 @@ impl<'a> Drop for AutoWorkerReset<'a> {
 #[dom_struct]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
+    id: PipelineId,
     receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>,
     own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
     worker: DOMRefCell<Option<TrustedWorkerAddress>>,
@@ -99,6 +104,8 @@ pub struct DedicatedWorkerGlobalScope {
 
 impl DedicatedWorkerGlobalScope {
     fn new_inherited(worker_url: Url,
+                         id: PipelineId,
+                         devtools_chan: Option<DevtoolsControlChan>,
                          cx: Rc<Cx>,
                          resource_task: ResourceTask,
                          parent_sender: Box<ScriptChan+Send>,
@@ -107,7 +114,8 @@ impl DedicatedWorkerGlobalScope {
                          -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
-                WorkerGlobalScopeTypeId::DedicatedGlobalScope, worker_url, cx, resource_task),
+                WorkerGlobalScopeTypeId::DedicatedGlobalScope, worker_url, cx, resource_task, devtools_chan),
+            id: id,
             receiver: receiver,
             own_sender: own_sender,
             parent_sender: parent_sender,
@@ -116,6 +124,8 @@ impl DedicatedWorkerGlobalScope {
     }
 
     pub fn new(worker_url: Url,
+               id: PipelineId,
+               devtools_chan: Option<DevtoolsControlChan>,
                cx: Rc<Cx>,
                resource_task: ResourceTask,
                parent_sender: Box<ScriptChan+Send>,
@@ -123,7 +133,7 @@ impl DedicatedWorkerGlobalScope {
                receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
                -> Temporary<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
-            worker_url, cx.clone(), resource_task, parent_sender,
+            worker_url, id, devtools_chan, cx.clone(), resource_task, parent_sender,
             own_sender, receiver);
         DedicatedWorkerGlobalScopeBinding::Wrap(cx.ptr, scope)
     }
@@ -131,6 +141,8 @@ impl DedicatedWorkerGlobalScope {
 
 impl DedicatedWorkerGlobalScope {
     pub fn run_worker_scope(worker_url: Url,
+                            id: PipelineId,
+                            devtools_chan: Option<DevtoolsControlChan>,
                             worker: TrustedWorkerAddress,
                             resource_task: ResourceTask,
                             parent_sender: Box<ScriptChan+Send>,
@@ -156,7 +168,7 @@ impl DedicatedWorkerGlobalScope {
 
             let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
             let global = DedicatedWorkerGlobalScope::new(
-                worker_url, js_context.clone(), resource_task,
+                worker_url, id, devtools_chan, js_context.clone(), resource_task,
                 parent_sender, own_sender, receiver).root();
 
             {
@@ -184,6 +196,7 @@ impl DedicatedWorkerGlobalScope {
 
 pub trait DedicatedWorkerGlobalScopeHelpers {
     fn script_chan(self) -> Box<ScriptChan+Send>;
+    fn pipeline(self) -> PipelineId;
 }
 
 impl<'a> DedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
@@ -194,6 +207,10 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalSc
             sender: self.own_sender.clone(),
             worker: worker.as_ref().unwrap().clone(),
         }
+    }
+
+    fn pipeline(self) -> PipelineId {
+        self.id
     }
 }
 
