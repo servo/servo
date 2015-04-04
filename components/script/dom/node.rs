@@ -862,7 +862,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     fn rev_children(self) -> ReverseChildrenIterator {
         ReverseChildrenIterator {
-            current: self.last_child.get().root(),
+            current: self.last_child(),
         }
     }
 
@@ -1132,16 +1132,19 @@ impl Iterator for NodeChildrenIterator {
 }
 
 pub struct ReverseChildrenIterator {
-    current: Option<Root<Node>>,
+    current: Option<Temporary<Node>>,
 }
 
 impl Iterator for ReverseChildrenIterator {
     type Item = Temporary<Node>;
 
     fn next(&mut self) -> Option<Temporary<Node>> {
-        let node = self.current.r().map(Temporary::from_rooted);
-        self.current = self.current.take().and_then(|node| node.r().prev_sibling()).root();
-        node
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        }.root();
+        self.current = current.r().prev_sibling();
+        Some(Temporary::from_rooted(current.r()))
     }
 }
 
