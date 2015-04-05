@@ -2334,7 +2334,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn match_attr<F>(self, attr: &AttrSelector, test: F) -> bool
         where F: Fn(&str) -> bool
     {
-        let name = {
+        let local_name = {
             if self.is_html_element_in_html_document() {
                 &attr.lower_name
             } else {
@@ -2343,7 +2343,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
         };
         match attr.namespace {
             NamespaceConstraint::Specific(ref ns) => {
-                self.as_element().get_attribute(ns.clone(), name).root()
+                self.as_element().get_attribute(ns, local_name).root()
                     .map_or(false, |attr| {
                         // FIXME(https://github.com/rust-lang/rust/issues/23338)
                         let attr = attr.r();
@@ -2352,7 +2352,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
                     })
             },
             NamespaceConstraint::Any => {
-                self.as_element().get_attributes(name).into_iter()
+                self.as_element().get_attributes(local_name).into_iter()
                     .map(|attr| attr.root())
                     .any(|attr| {
                         // FIXME(https://github.com/rust-lang/rust/issues/23338)

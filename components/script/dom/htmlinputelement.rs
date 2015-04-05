@@ -391,7 +391,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
     fn get_radio_group_name(self) -> Option<String> {
         //TODO: determine form owner
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        elem.get_attribute(ns!(""), &atom!("name"))
+        elem.get_attribute(&ns!(""), &atom!("name"))
             .root()
             .map(|name| name.r().Value())
     }
