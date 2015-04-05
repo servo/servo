@@ -25,8 +25,8 @@ interface HTMLElement : Element {
            attribute boolean hidden;
   void click();
   //         attribute long tabIndex;
-  //void focus();
-  //void blur();
+  void focus();
+  void blur();
   //         attribute DOMString accessKey;
   //readonly attribute DOMString accessKeyLabel;
   //         attribute boolean draggable;

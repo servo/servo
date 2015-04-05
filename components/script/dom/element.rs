@@ -1461,6 +1461,13 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.get_hover_state()
     }
+    fn get_focus_state(self) -> bool {
+        // TODO: Also check whether the top-level browsing context has the system focus,
+        // and whether this element is a browsing context container.
+        // https://html.spec.whatwg.org/multipage/scripting.html#selector-focus
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        node.get_focus_state()
+    }
     fn get_id(self) -> Option<Atom> {
         self.get_attribute(ns!(""), &atom!("id")).map(|attr| {
             let attr = attr.root();
