@@ -5409,6 +5409,16 @@ impl ${name}Cast {
     }
 
     #[inline(always)]
+    pub fn to_temporary<T: ${toBound}+Reflectable>(base: Temporary<T>) -> Option<Temporary<${name}>> {
+        let base = base.root();
+        let base = base.r();
+        match base.${checkFn}() {
+            true => Some(Temporary::from_rooted(unsafe { base.transmute() })),
+            false => None
+        }
+    }
+
+    #[inline(always)]
     pub fn from_ref<'a, T: ${fromBound}+Reflectable>(derived: JSRef<'a, T>) -> JSRef<'a, ${name}> {
         unsafe { derived.transmute() }
     }
