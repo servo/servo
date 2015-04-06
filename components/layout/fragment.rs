@@ -327,15 +327,21 @@ impl ImageFragmentInfo {
     /// Returns the original inline-size of the image.
     pub fn image_inline_size(&mut self) -> Au {
         let size = self.image.get_size(self.replaced_image_fragment_info.for_node).unwrap_or(Size2D::zero());
-        Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical { size.height }
-                    else { size.width })
+        Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical {
+            size.height
+        } else {
+            size.width
+        } as isize)
     }
 
     /// Returns the original block-size of the image.
     pub fn image_block_size(&mut self) -> Au {
         let size = self.image.get_size(self.replaced_image_fragment_info.for_node).unwrap_or(Size2D::zero());
-        Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical { size.width }
-                    else { size.height })
+        Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical {
+            size.width
+        } else {
+            size.height
+        } as isize)
     }
 
     /// Tile an image

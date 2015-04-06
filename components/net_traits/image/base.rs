@@ -47,7 +47,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
     } else {
         // For non-png images, we use stb_image
         // Can't remember why we do this. Maybe it's what cairo wants
-        static FORCE_DEPTH: uint = 4;
+        static FORCE_DEPTH: usize = 4;
 
         match stb_image2::load_from_memory_with_depth(buffer, FORCE_DEPTH, true) {
             stb_image2::LoadResult::ImageU8(mut image) => {

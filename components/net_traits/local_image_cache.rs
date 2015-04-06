@@ -23,7 +23,7 @@ pub trait ImageResponder<NodeAddress: Send> {
 
 pub struct LocalImageCache<NodeAddress> {
     image_cache_task: ImageCacheTask,
-    round_number: uint,
+    round_number: u32,
     on_image_available: Option<Box<ImageResponder<NodeAddress>+Send>>,
     state_map: HashMap<Url, ImageState>
 }
@@ -43,7 +43,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
 struct ImageState {
     prefetched: bool,
     decoded: bool,
-    last_request_round: uint,
+    last_request_round: u32,
     last_response: ImageResponseMsg
 }
 
