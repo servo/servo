@@ -147,7 +147,7 @@ impl PresentationalHintSynthesis for Stylist {
                         UnsignedIntegerAttribute::CellSpacing) {
                     None => {}
                     Some(length) => {
-                        let width_value = specified::Length::Absolute(Au::from_px(length as int));
+                        let width_value = specified::Length::Absolute(Au::from_px(length as isize));
                         matching_rules_list.vec_push(from_declaration(
                                 PropertyDeclaration::BorderSpacing(
                                     SpecifiedValue(
@@ -177,7 +177,7 @@ impl PresentationalHintSynthesis for Stylist {
                             Some("text") | Some("password") => {
                                 specified::Length::ServoCharacterWidth(specified::CharacterWidth(value))
                             }
-                            _ => specified::Length::Absolute(Au::from_px(value as int)),
+                            _ => specified::Length::Absolute(Au::from_px(value as isize)),
                         };
                         matching_rules_list.vec_push(from_declaration(
                                 PropertyDeclaration::Width(SpecifiedValue(
@@ -256,7 +256,7 @@ impl PresentationalHintSynthesis for Stylist {
         match element.get_unsigned_integer_attribute(UnsignedIntegerAttribute::Border) {
             None => {}
             Some(length) => {
-                let width_value = specified::Length::Absolute(Au::from_px(length as int));
+                let width_value = specified::Length::Absolute(Au::from_px(length as isize));
                 matching_rules_list.vec_push(from_declaration(
                         PropertyDeclaration::BorderTopWidth(SpecifiedValue(
                             longhands::border_top_width::SpecifiedValue(width_value)))));

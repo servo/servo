@@ -38,7 +38,7 @@ pub struct Stylist {
     element_map: PerPseudoElementSelectorMap,
     before_map: PerPseudoElementSelectorMap,
     after_map: PerPseudoElementSelectorMap,
-    rules_source_order: uint,
+    rules_source_order: usize,
 }
 
 impl Stylist {
@@ -52,7 +52,7 @@ impl Stylist {
             element_map: PerPseudoElementSelectorMap::new(),
             before_map: PerPseudoElementSelectorMap::new(),
             after_map: PerPseudoElementSelectorMap::new(),
-            rules_source_order: 0u,
+            rules_source_order: 0,
         };
         // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
         // FIXME: presentational-hints.css should be at author origin with zero specificity.
