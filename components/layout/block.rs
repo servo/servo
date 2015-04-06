@@ -2175,13 +2175,13 @@ pub trait ISizeAndMarginsComputer {
         // If the tentative used inline-size is greater than 'max-inline-size', inline-size should
         // be recalculated, but this time using the computed value of 'max-inline-size' as the
         // computed value for 'inline-size'.
-        match specified_or_none(block.fragment().style().max_inline_size(),
-                                containing_block_inline_size) {
-            Some(max_inline_size) if max_inline_size < solution.inline_size => {
+        if let Some(max_inline_size) =
+                specified_or_none(block.fragment().style().max_inline_size(),
+                                  containing_block_inline_size) {
+            if max_inline_size < solution.inline_size {
                 input.computed_inline_size = MaybeAuto::Specified(max_inline_size);
                 solution = self.solve_inline_size_constraints(block, &input);
             }
-            _ => {}
         }
 
         // If the resulting inline-size is smaller than 'min-inline-size', inline-size should be
@@ -2245,7 +2245,9 @@ pub trait ISizeAndMarginsComputer {
             match (inline_start_margin, computed_inline_size, inline_end_margin) {
                 // If all have a computed value other than 'auto', the system is
                 // over-constrained so we discard the end margin.
-                (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(inline_size), MaybeAuto::Specified(margin_end)) => {
+                (MaybeAuto::Specified(margin_start),
+                 MaybeAuto::Specified(inline_size),
+                 MaybeAuto::Specified(margin_end)) => {
                     if parent_has_same_direction {
                         (margin_start, inline_size, available_inline_size -
                          (margin_start + inline_size))
@@ -2254,12 +2256,18 @@ pub trait ISizeAndMarginsComputer {
                     }
                 }
                 // If exactly one value is 'auto', solve for it
-                (MaybeAuto::Auto, MaybeAuto::Specified(inline_size), MaybeAuto::Specified(margin_end)) =>
+                (MaybeAuto::Auto,
+                 MaybeAuto::Specified(inline_size),
+                 MaybeAuto::Specified(margin_end)) =>
                     (available_inline_size - (inline_size + margin_end), inline_size, margin_end),
-                (MaybeAuto::Specified(margin_start), MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) =>
+                (MaybeAuto::Specified(margin_start),
+                 MaybeAuto::Auto,
+                 MaybeAuto::Specified(margin_end)) =>
                     (margin_start, available_inline_size - (margin_start + margin_end),
                      margin_end),
-                (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(inline_size), MaybeAuto::Auto) =>
+                (MaybeAuto::Specified(margin_start),
+                 MaybeAuto::Specified(inline_size),
+                 MaybeAuto::Auto) =>
                     (margin_start, inline_size, available_inline_size -
                      (margin_start + inline_size)),
 
@@ -2307,13 +2315,11 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
     /// Constraint equation:
     /// inline-start + inline-end + inline-size + margin-inline-start + margin-inline-end
     /// = absolute containing block inline-size - (horizontal padding and border)
-    /// [aka available_inline-size]
+    /// [aka available inline-size]
     ///
     /// Return the solution for the equation.
-    fn solve_inline_size_constraints(&self,
-                               block: &mut BlockFlow,
-                               input: &ISizeConstraintInput)
-                               -> ISizeConstraintSolution {
+    fn solve_inline_size_constraints(&self, block: &mut BlockFlow, input: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution {
         let &ISizeConstraintInput {
             computed_inline_size,
             inline_start_margin,
@@ -2655,9 +2661,8 @@ impl ISizeAndMarginsComputer for FloatReplaced {
     /// If inline-size is computed as 'auto', the used value is the 'shrink-to-fit' inline-size.
     fn solve_inline_size_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
                                -> ISizeConstraintSolution {
-        let (computed_inline_size, inline_start_margin, inline_end_margin) = (input.computed_inline_size,
-                                                           input.inline_start_margin,
-                                                           input.inline_end_margin);
+        let (computed_inline_size, inline_start_margin, inline_end_margin) =
+            (input.computed_inline_size, input.inline_start_margin, input.inline_end_margin);
         let margin_inline_start = inline_start_margin.specified_or_zero();
         let margin_inline_end = inline_end_margin.specified_or_zero();
         let inline_size = match computed_inline_size {
