@@ -1607,7 +1607,7 @@ pub mod longhands {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     match self {
                         % for weight in range(100, 901, 100):
-                            &T::Weight${weight} => write!(f, "{}", ${weight}i),
+                            &T::Weight${weight} => write!(f, "{}", ${weight}),
                         % endfor
                     }
                 }
@@ -1682,7 +1682,7 @@ pub mod longhands {
             use util::geometry::Au;
             pub type T = Au;
         }
-        const MEDIUM_PX: int = 16;
+        const MEDIUM_PX: isize = 16;
         #[inline] pub fn get_initial_value() -> computed_value::T {
             Au::from_px(MEDIUM_PX)
         }
@@ -4359,11 +4359,11 @@ mod property_bit_field {
         }
 
         #[inline]
-        fn get(&self, bit: uint) -> bool {
+        fn get(&self, bit: usize) -> bool {
             (self.storage[bit / 32] & (1 << (bit % 32))) != 0
         }
         #[inline]
-        fn set(&mut self, bit: uint) {
+        fn set(&mut self, bit: usize) {
             self.storage[bit / 32] |= 1 << (bit % 32)
         }
         % for i, property in enumerate(LONGHANDS):

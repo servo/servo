@@ -4,7 +4,6 @@
 
 #![feature(alloc)]
 #![feature(plugin)]
-#![feature(int_uint)]
 #![feature(box_syntax)]
 #![feature(core)]
 #![feature(collections)]
