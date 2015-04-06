@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::error::{Fallible, ErrorResult};
@@ -76,25 +75,22 @@ impl Worker {
         let worker = Worker::new(global, sender.clone()).root();
         let worker_ref = Trusted::new(global.get_cx(), worker.r(), global.script_chan());
 
-
-        if let GlobalRef::Window(window) = global {
-            if let Some(ref chan) = window.devtools_chan() {
-                let pipeline_id = window.Window().root().r().pipeline();
-                let (devtools_sender, _) = channel();
-                let title = format!("Worker for {}", worker_url);
-                let page_info = DevtoolsPageInfo {
-                    title: title,
-                    url: worker_url.clone(),
-                };
-                let worker_id = global.get_next_worker_id();
-                chan.send(
-                    DevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)), devtools_sender.clone(), page_info)
-                ).unwrap();
-            }
+        if let Some(ref chan) = global.devtools_chan() {
+            let pipeline_id = global.pipeline();
+            let (devtools_sender, _) = channel();
+            let title = format!("Worker for {}", worker_url);
+            let page_info = DevtoolsPageInfo {
+                title: title,
+                url: worker_url.clone(),
+            };
+            let worker_id = global.get_next_worker_id();
+            chan.send(
+                DevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)), devtools_sender.clone(), page_info)
+            ).unwrap();
         }
 
         DedicatedWorkerGlobalScope::run_worker_scope(
-            worker_url, worker_ref, resource_task, global.script_chan(),
+            worker_url, global.pipeline(), global.devtools_chan(), worker_ref, resource_task, global.script_chan(),
             sender, receiver);
 
         Ok(Temporary::from_rooted(worker.r()))

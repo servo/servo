@@ -19,7 +19,9 @@ use dom::window::{base64_atob, base64_btoa};
 use script_task::{ScriptChan, TimerSource};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
-use msg::constellation_msg::WorkerId;
+use devtools_traits::DevtoolsControlChan;
+
+use msg::constellation_msg::{PipelineId, WorkerId};
 use net_traits::{load_whole_resource, ResourceTask};
 use util::str::DOMString;
 
@@ -50,13 +52,15 @@ pub struct WorkerGlobalScope {
     navigator: MutNullableJS<WorkerNavigator>,
     console: MutNullableJS<Console>,
     timers: TimerManager,
+    devtools_chan: Option<DevtoolsControlChan>,
 }
 
 impl WorkerGlobalScope {
     pub fn new_inherited(type_id: WorkerGlobalScopeTypeId,
                          worker_url: Url,
                          cx: Rc<Cx>,
-                         resource_task: ResourceTask) -> WorkerGlobalScope {
+                         resource_task: ResourceTask,
+                         devtools_chan: Option<DevtoolsControlChan>) -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WorkerGlobalScope(type_id)),
             next_worker_id: Cell::new(WorkerId(0)),
@@ -67,7 +71,12 @@ impl WorkerGlobalScope {
             navigator: Default::default(),
             console: Default::default(),
             timers: TimerManager::new(),
+            devtools_chan: devtools_chan,
         }
+    }
+
+    pub fn devtools_chan(&self) -> Option<DevtoolsControlChan> {
+        self.devtools_chan.clone()
     }
 
     #[inline]
@@ -206,6 +215,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
 pub trait WorkerGlobalScopeHelpers {
     fn handle_fire_timer(self, timer_id: TimerId);
     fn script_chan(self) -> Box<ScriptChan+Send>;
+    fn pipeline(self) -> PipelineId;
     fn get_cx(self) -> *mut JSContext;
 }
 
@@ -216,6 +226,15 @@ impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
         match dedicated {
             Some(dedicated) => dedicated.script_chan(),
             None => panic!("need to implement a sender for SharedWorker"),
+        }
+    }
+
+    fn pipeline(self) -> PipelineId {
+        let dedicated: Option<JSRef<DedicatedWorkerGlobalScope>> =
+            DedicatedWorkerGlobalScopeCast::to_ref(self);
+        match dedicated {
+            Some(dedicated) => dedicated.pipeline(),
+            None => panic!("need to add a pipeline for SharedWorker"),
         }
     }
 
