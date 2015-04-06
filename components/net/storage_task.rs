@@ -133,9 +133,9 @@ impl StorageManager {
     fn remove_item(&mut self, sender: Sender<Option<DOMString>>, url: Url, storage_type: StorageType, name: DOMString) {
         let origin = self.get_origin_as_string(url);
         let data = self.select_data_mut(storage_type);
-        let old_value = data.get_mut(&origin).map(|entry| {
+        let old_value = data.get_mut(&origin).and_then(|entry| {
             entry.remove(&name)
-        }).unwrap();
+        });
         sender.send(old_value).unwrap();
     }
 
