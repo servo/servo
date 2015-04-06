@@ -521,6 +521,7 @@ pub struct LayoutElement<'le> {
 
 impl<'le> LayoutElement<'le> {
     pub fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
+        use script::dom::element::ElementHelpers;
         let style: &Option<PropertyDeclarationBlock> = unsafe {
             &*self.element.style_attribute().borrow_for_layout()
         };
@@ -536,6 +537,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
 
     #[inline]
     fn get_namespace(self) -> &'le Namespace {
+        use script::dom::element::ElementHelpers;
         self.element.namespace()
     }
 

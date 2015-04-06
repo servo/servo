@@ -5,7 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom::bindings::codegen::Bindings::WebGLFramebufferBinding;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Temporary, JSRef};
+use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 
@@ -23,17 +23,17 @@ impl WebGLFramebuffer {
         }
     }
 
-    pub fn new(global: GlobalRef, id: u32) -> Temporary<WebGLFramebuffer> {
+    pub fn new(global: GlobalRef, id: u32) -> Root<WebGLFramebuffer> {
         reflect_dom_object(box WebGLFramebuffer::new_inherited(id), global, WebGLFramebufferBinding::Wrap)
     }
 }
 
 pub trait WebGLFramebufferHelpers {
-    fn get_id(&self) -> u32;
+    fn get_id(self) -> u32;
 }
 
-impl<'a> WebGLFramebufferHelpers for JSRef<'a, WebGLFramebuffer> {
-    fn get_id(&self) -> u32 {
+impl<'a> WebGLFramebufferHelpers for &'a WebGLFramebuffer {
+    fn get_id(self) -> u32 {
         self.id
     }
 }

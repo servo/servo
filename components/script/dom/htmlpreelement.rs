@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLPreElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLPreElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -28,7 +28,7 @@ impl HTMLPreElementDerived for EventTarget {
 impl HTMLPreElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLPreElement {
+                     document: &Document) -> HTMLPreElement {
         HTMLPreElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLPreElement, localName, prefix, document)
@@ -38,7 +38,7 @@ impl HTMLPreElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLPreElement> {
+               document: &Document) -> Root<HTMLPreElement> {
         let element = HTMLPreElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLPreElementBinding::Wrap)
     }

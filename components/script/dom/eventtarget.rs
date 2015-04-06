@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::error::{Fallible, report_pending_exception};
 use dom::bindings::error::Error::InvalidState;
-use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::event::{Event, EventHelpers};
 use dom::eventdispatcher::dispatch_event;
@@ -17,8 +16,10 @@ use dom::node::NodeTypeId;
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::virtualmethods::VirtualMethods;
-use js::jsapi::{JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObject};
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::{CompileFunction, JS_GetFunctionObject};
+use js::jsapi::{JSContext, RootedFunction, HandleObject};
+use js::jsapi::{JSAutoCompartment, JSAutoRequest};
+use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use util::str::DOMString;
 
 use fnv::FnvHasher;
@@ -30,6 +31,7 @@ use std::default::Default;
 use std::ffi::CString;
 use std::intrinsics;
 use std::ptr;
+use std::rc::Rc;
 use url::Url;
 
 use std::collections::HashMap;
@@ -88,23 +90,23 @@ impl EventTargetTypeId {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 #[jstraceable]
 pub enum EventListenerType {
-    Additive(EventListener),
-    Inline(EventListener),
+    Additive(Rc<EventListener>),
+    Inline(Rc<EventListener>),
 }
 
 impl EventListenerType {
-    fn get_listener(&self) -> EventListener {
+    fn get_listener(&self) -> Rc<EventListener> {
         match *self {
-            EventListenerType::Additive(listener) |
-            EventListenerType::Inline(listener) => listener
+            EventListenerType::Additive(ref listener) |
+            EventListenerType::Inline(ref listener) => listener.clone(),
         }
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 #[jstraceable]
 #[privatize]
 pub struct EventListenerEntry {
@@ -128,14 +130,14 @@ impl EventTarget {
         }
     }
 
-    pub fn get_listeners(&self, type_: &str) -> Option<Vec<EventListener>> {
+    pub fn get_listeners(&self, type_: &str) -> Option<Vec<Rc<EventListener>>> {
         self.handlers.borrow().get(type_).map(|listeners| {
             listeners.iter().map(|entry| entry.listener.get_listener()).collect()
         })
     }
 
     pub fn get_listeners_for(&self, type_: &str, desired_phase: ListenerPhase)
-        -> Option<Vec<EventListener>> {
+        -> Option<Vec<Rc<EventListener>>> {
         self.handlers.borrow().get(type_).map(|listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
             filtered.map(|entry| entry.listener.get_listener()).collect()
@@ -150,47 +152,47 @@ impl EventTarget {
 
 pub trait EventTargetHelpers {
     fn dispatch_event_with_target(self,
-                                  target: JSRef<EventTarget>,
-                                  event: JSRef<Event>) -> bool;
-    fn dispatch_event(self, event: JSRef<Event>) -> bool;
+                                  target: &EventTarget,
+                                  event: &Event) -> bool;
+    fn dispatch_event(self, event: &Event) -> bool;
     fn set_inline_event_listener(self,
                                  ty: DOMString,
-                                 listener: Option<EventListener>);
-    fn get_inline_event_listener(self, ty: DOMString) -> Option<EventListener>;
+                                 listener: Option<Rc<EventListener>>);
+    fn get_inline_event_listener(self, ty: DOMString) -> Option<Rc<EventListener>>;
     fn set_event_handler_uncompiled(self,
                                     cx: *mut JSContext,
                                     url: Url,
-                                    scope: *mut JSObject,
+                                    scope: HandleObject,
                                     ty: &str,
                                     source: DOMString);
     fn set_event_handler_common<T: CallbackContainer>(self, ty: &str,
-                                                      listener: Option<T>);
-    fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<T>;
+                                                      listener: Option<Rc<T>>);
+    fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<Rc<T>>;
 
     fn has_handlers(self) -> bool;
 }
 
-impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
+impl<'a> EventTargetHelpers for &'a EventTarget {
     fn dispatch_event_with_target(self,
-                                  target: JSRef<EventTarget>,
-                                  event: JSRef<Event>) -> bool {
+                                  target: &EventTarget,
+                                  event: &Event) -> bool {
         dispatch_event(self, Some(target), event)
     }
 
-    fn dispatch_event(self, event: JSRef<Event>) -> bool {
+    fn dispatch_event(self, event: &Event) -> bool {
         dispatch_event(self, None, event)
     }
 
     fn set_inline_event_listener(self,
                                  ty: DOMString,
-                                 listener: Option<EventListener>) {
+                                 listener: Option<Rc<EventListener>>) {
         let mut handlers = self.handlers.borrow_mut();
         let entries = match handlers.entry(ty) {
             Occupied(entry) => entry.into_mut(),
             Vacant(entry) => entry.insert(vec!()),
         };
 
-        let idx = entries.iter().position(|&entry| {
+        let idx = entries.iter().position(|ref entry| {
             match entry.listener {
                 EventListenerType::Inline(_) => true,
                 _ => false,
@@ -217,7 +219,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         }
     }
 
-    fn get_inline_event_listener(self, ty: DOMString) -> Option<EventListener> {
+    fn get_inline_event_listener(self, ty: DOMString) -> Option<Rc<EventListener>> {
         let handlers = self.handlers.borrow();
         let entries = handlers.get(&ty);
         entries.and_then(|entries| entries.iter().find(|entry| {
@@ -232,7 +234,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     fn set_event_handler_uncompiled(self,
                                     cx: *mut JSContext,
                                     url: Url,
-                                    scope: *mut JSObject,
+                                    scope: HandleObject,
                                     ty: &str,
                                     source: DOMString) {
         let url = CString::new(url.serialize()).unwrap();
@@ -243,38 +245,42 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         static mut ARG_NAMES: [*const c_char; 1] = [b"event\0" as *const u8 as *const c_char];
 
         let source: Vec<u16> = source.utf16_units().collect();
-        let handler = unsafe {
-            JS_CompileUCFunction(cx,
-                                 ptr::null_mut(),
-                                 name.as_ptr(),
-                                 nargs,
-                                 ARG_NAMES.as_mut_ptr(),
-                                 source.as_ptr(),
-                                 source.len() as size_t,
-                                 url.as_ptr(),
-                                 lineno)
+        let options = CompileOptionsWrapper::new(cx, url.as_ptr(), lineno);
+        let scopechain = AutoObjectVectorWrapper::new(cx);
+
+        let _ar = JSAutoRequest::new(cx);
+        let _ac = JSAutoCompartment::new(cx, scope.get());
+        let mut handler = RootedFunction::new(cx, ptr::null_mut());
+        let rv = unsafe {
+            CompileFunction(cx,
+                            scopechain.ptr,
+                            options.ptr,
+                            name.as_ptr(),
+                            nargs,
+                            ARG_NAMES.as_mut_ptr(),
+                            source.as_ptr() as *const i16,
+                            source.len() as size_t,
+                            handler.handle_mut())
         };
-        if handler.is_null() {
-            report_pending_exception(cx, self.reflector().get_jsobject());
+        if rv == 0 || handler.ptr.is_null() {
+            report_pending_exception(cx, self.reflector().get_jsobject().get());
             return;
         }
 
-        let funobj = unsafe {
-            JS_CloneFunctionObject(cx, JS_GetFunctionObject(handler), scope)
-        };
+        let funobj = unsafe { JS_GetFunctionObject(handler.ptr) };
         assert!(!funobj.is_null());
         self.set_event_handler_common(ty, Some(EventHandlerNonNull::new(funobj)));
     }
 
     fn set_event_handler_common<T: CallbackContainer>(
-        self, ty: &str, listener: Option<T>)
+        self, ty: &str, listener: Option<Rc<T>>)
     {
         let event_listener = listener.map(|listener|
                                           EventListener::new(listener.callback()));
         self.set_inline_event_listener(ty.to_owned(), event_listener);
     }
 
-    fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<T> {
+    fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<Rc<T>> {
         let listener = self.get_inline_event_listener(ty.to_owned());
         listener.map(|listener| CallbackContainer::new(listener.parent.callback()))
     }
@@ -286,10 +292,10 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     }
 }
 
-impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
+impl<'a> EventTargetMethods for &'a EventTarget {
     fn AddEventListener(self,
                         ty: DOMString,
-                        listener: Option<EventListener>,
+                        listener: Option<Rc<EventListener>>,
                         capture: bool) {
         match listener {
             Some(listener) => {
@@ -314,17 +320,17 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
 
     fn RemoveEventListener(self,
                            ty: DOMString,
-                           listener: Option<EventListener>,
+                           listener: Option<Rc<EventListener>>,
                            capture: bool) {
         match listener {
-            Some(listener) => {
+            Some(ref listener) => {
                 let mut handlers = self.handlers.borrow_mut();
                 let mut entry = handlers.get_mut(&ty);
                 for entry in entry.iter_mut() {
                     let phase = if capture { ListenerPhase::Capturing } else { ListenerPhase::Bubbling };
                     let old_entry = EventListenerEntry {
                         phase: phase,
-                        listener: EventListenerType::Additive(listener)
+                        listener: EventListenerType::Additive(listener.clone())
                     };
                     let position = entry.position_elem(&old_entry);
                     for &position in position.iter() {
@@ -336,7 +342,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
         }
     }
 
-    fn DispatchEvent(self, event: JSRef<Event>) -> Fallible<bool> {
+    fn DispatchEvent(self, event: &Event) -> Fallible<bool> {
         if event.dispatching() || !event.initialized() {
             return Err(InvalidState);
         }
@@ -345,7 +351,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, EventTarget> {
+impl<'a> VirtualMethods for &'a EventTarget {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         None
     }

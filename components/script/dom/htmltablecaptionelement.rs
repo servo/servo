@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLTableCaptionElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableCaptionElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -28,7 +28,7 @@ impl HTMLTableCaptionElementDerived for EventTarget {
 impl HTMLTableCaptionElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLTableCaptionElement {
+                     document: &Document) -> HTMLTableCaptionElement {
         HTMLTableCaptionElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableCaptionElement, localName, prefix, document)
@@ -38,7 +38,7 @@ impl HTMLTableCaptionElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLTableCaptionElement> {
+               document: &Document) -> Root<HTMLTableCaptionElement> {
         let element = HTMLTableCaptionElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableCaptionElementBinding::Wrap)
     }

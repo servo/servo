@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLTableHeaderCellElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableHeaderCellElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::htmlelement::HTMLElementTypeId;
@@ -30,7 +30,7 @@ impl HTMLTableHeaderCellElementDerived for EventTarget {
 impl HTMLTableHeaderCellElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLTableHeaderCellElement {
+                     document: &Document) -> HTMLTableHeaderCellElement {
         HTMLTableHeaderCellElement {
             htmltablecellelement: HTMLTableCellElement::new_inherited(
                 HTMLTableCellElementTypeId::HTMLTableHeaderCellElement, localName, prefix, document)
@@ -40,7 +40,7 @@ impl HTMLTableHeaderCellElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLTableHeaderCellElement> {
+               document: &Document) -> Root<HTMLTableHeaderCellElement> {
         let element = HTMLTableHeaderCellElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableHeaderCellElementBinding::Wrap)
     }

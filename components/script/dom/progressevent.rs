@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::ProgressEventBinding::ProgressEventMethods
 use dom::bindings::codegen::InheritTypes::{EventCast, ProgressEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Rootable, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use util::str::DOMString;
@@ -38,25 +38,27 @@ impl ProgressEvent {
     }
     pub fn new(global: GlobalRef, type_: DOMString,
                can_bubble: bool, cancelable: bool,
-               length_computable: bool, loaded: u64, total: u64) -> Temporary<ProgressEvent> {
+               length_computable: bool, loaded: u64, total: u64) -> Root<ProgressEvent> {
         let ev = reflect_dom_object(box ProgressEvent::new_inherited(length_computable, loaded, total),
                                     global,
-                                    ProgressEventBinding::Wrap).root();
-        let event: JSRef<Event> = EventCast::from_ref(ev.r());
-        event.InitEvent(type_, can_bubble, cancelable);
-        Temporary::from_rooted(ev.r())
+                                    ProgressEventBinding::Wrap);
+        {
+            let event = EventCast::from_ref(ev.r());
+            event.InitEvent(type_, can_bubble, cancelable);
+        }
+        ev
     }
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
-                       -> Fallible<Temporary<ProgressEvent>> {
+                       -> Fallible<Root<ProgressEvent>> {
         let ev = ProgressEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
                                     init.lengthComputable, init.loaded, init.total);
         Ok(ev)
     }
 }
 
-impl<'a> ProgressEventMethods for JSRef<'a, ProgressEvent> {
+impl<'a> ProgressEventMethods for &'a ProgressEvent {
     fn LengthComputable(self) -> bool {
         self.length_computable
     }

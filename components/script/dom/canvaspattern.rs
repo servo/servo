@@ -5,7 +5,7 @@
 use canvas_traits::{FillOrStrokeStyle, SurfaceStyle, RepetitionStyle};
 use dom::bindings::codegen::Bindings::CanvasPatternBinding;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::canvasgradient::ToFillOrStrokeStyle;
 use euclid::size::Size2D;
@@ -41,14 +41,14 @@ impl CanvasPattern {
                surface_data: Vec<u8>,
                surface_size: Size2D<i32>,
                repeat: RepetitionStyle)
-               -> Temporary<CanvasPattern> {
+               -> Root<CanvasPattern> {
         reflect_dom_object(box CanvasPattern::new_inherited(surface_data, surface_size, repeat),
                            global, CanvasPatternBinding::Wrap)
     }
 }
 
-impl<'a> ToFillOrStrokeStyle for JSRef<'a, CanvasPattern> {
-    fn to_fill_or_stroke_style(&self) -> FillOrStrokeStyle {
+impl<'a> ToFillOrStrokeStyle for &'a CanvasPattern {
+    fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle {
         FillOrStrokeStyle::Surface(
             SurfaceStyle::new(self.surface_data.clone(), self.surface_size, self.repeat_x, self.repeat_y))
     }

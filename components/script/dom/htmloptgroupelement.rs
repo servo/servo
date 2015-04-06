@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, HTMLOptionElementDerived};
-use dom::bindings::js::{JSRef, Rootable, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -35,7 +35,7 @@ impl HTMLOptGroupElementDerived for EventTarget {
 impl HTMLOptGroupElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLOptGroupElement {
+                     document: &Document) -> HTMLOptGroupElement {
         HTMLOptGroupElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLOptGroupElement, localName, prefix, document)
@@ -45,13 +45,13 @@ impl HTMLOptGroupElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLOptGroupElement> {
+               document: &Document) -> Root<HTMLOptGroupElement> {
         let element = HTMLOptGroupElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLOptGroupElementBinding::Wrap)
     }
 }
 
-impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
+impl<'a> HTMLOptGroupElementMethods for &'a HTMLOptGroupElement {
     // https://www.whatwg.org/html#dom-optgroup-disabled
     make_bool_getter!(Disabled);
 
@@ -59,24 +59,23 @@ impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
     make_bool_setter!(SetDisabled, "disabled");
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLOptGroupElement> {
+impl<'a> VirtualMethods for &'a HTMLOptGroupElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
                 for child in node.children() {
-                    let child = child.root();
                     if child.r().is_htmloptionelement() {
                         child.r().set_disabled_state(true);
                         child.r().set_enabled_state(false);
@@ -87,18 +86,17 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptGroupElement> {
         }
     }
 
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+    fn before_remove_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.before_remove_attr(attr);
         }
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 for child in node.children() {
-                    let child = child.root();
                     if child.r().is_htmloptionelement() {
                         child.r().check_disabled_attribute();
                     }
