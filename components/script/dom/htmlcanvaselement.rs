@@ -27,7 +27,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{WebGLRenderingContext, LayoutCanvasWebGLRenderingContextHelpers};
 
 use util::str::{DOMString, parse_unsigned_integer};
-use js::jsapi::{JSContext};
+use js::jsapi::{JSContext, HandleValue};
 use js::jsval::JSVal;
 use offscreen_gl_context::GLContextAttributes;
 
@@ -221,7 +221,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
     fn GetContext(self,
                   cx: *mut JSContext,
                   id: DOMString,
-                  attributes: Vec<JSVal>)
+                  attributes: Vec<HandleValue>)
         -> Option<CanvasRenderingContext2DOrWebGLRenderingContext> {
         match &*id {
             "2d" => {
