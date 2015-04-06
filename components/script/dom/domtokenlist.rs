@@ -50,7 +50,7 @@ trait PrivateDOMTokenListHelpers {
 impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
     fn attribute(self) -> Option<Temporary<Attr>> {
         let element = self.element.root();
-        element.r().get_attribute(ns!(""), &self.local_name)
+        element.r().get_attribute(&ns!(""), &self.local_name)
     }
 
     fn check_token_exceptions(self, token: &str) -> Fallible<Atom> {

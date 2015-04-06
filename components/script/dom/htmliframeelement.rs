@@ -83,7 +83,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 
     fn get_url(self) -> Option<Url> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.get_attribute(ns!(""), &atom!("src")).root().and_then(|src| {
+        element.get_attribute(&ns!(""), &atom!("src")).root().and_then(|src| {
             let url = src.r().value();
             if url.as_slice().is_empty() {
                 None

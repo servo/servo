@@ -369,7 +369,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         self.GetElementById(fragid.clone()).or_else(|| {
             let check_anchor = |&node: &JSRef<HTMLAnchorElement>| {
                 let elem: JSRef<Element> = ElementCast::from_ref(node);
-                elem.get_attribute(ns!(""), &atom!("name")).root().map_or(false, |attr| {
+                elem.get_attribute(&ns!(""), &atom!("name")).root().map_or(false, |attr| {
                     // FIXME(https://github.com/rust-lang/rust/issues/23338)
                     let attr = attr.r();
                     let value = attr.value();
@@ -1280,7 +1280,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 Some(element) => element,
                 None => return false,
             };
-            element.get_attribute(ns!(""), &atom!("name")).root().map_or(false, |attr| {
+            element.get_attribute(&ns!(""), &atom!("name")).root().map_or(false, |attr| {
                 // FIXME(https://github.com/rust-lang/rust/issues/23338)
                 let attr = attr.r();
                 let value = attr.value();

@@ -194,9 +194,10 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
         element.set_custom_attribute(to_snake_case(name), value)
     }
 
-    fn get_custom_attr(self, name: DOMString) -> Option<DOMString> {
+    fn get_custom_attr(self, local_name: DOMString) -> Option<DOMString> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.get_attribute(ns!(""), &Atom::from_slice(&to_snake_case(name))).map(|attr| {
+        let local_name = Atom::from_slice(&to_snake_case(local_name));
+        element.get_attribute(&ns!(""), &local_name).map(|attr| {
             let attr = attr.root();
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
@@ -205,9 +206,10 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
         })
     }
 
-    fn delete_custom_attr(self, name: DOMString) {
+    fn delete_custom_attr(self, local_name: DOMString) {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.remove_attribute(ns!(""), &to_snake_case(name))
+        let local_name = Atom::from_slice(&to_snake_case(local_name));
+        element.remove_attribute(&ns!(""), &local_name);
     }
 }
 

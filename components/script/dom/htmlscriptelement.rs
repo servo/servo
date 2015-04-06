@@ -202,8 +202,8 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         }
 
         // Step 12.
-        let for_attribute = element.get_attribute(ns!(""), &atom!("for")).root();
-        let event_attribute = element.get_attribute(ns!(""), &Atom::from_slice("event")).root();
+        let for_attribute = element.get_attribute(&ns!(""), &atom!("for")).root();
+        let event_attribute = element.get_attribute(&ns!(""), &Atom::from_slice("event")).root();
         match (for_attribute.r(), event_attribute.r()) {
             (Some(for_attribute), Some(event_attribute)) => {
                 let for_value = for_attribute.Value()
@@ -223,7 +223,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         }
 
         // Step 13.
-        if let Some(charset) = element.get_attribute(ns!(""), &Atom::from_slice("charset")).root() {
+        if let Some(charset) = element.get_attribute(&ns!(""), &Atom::from_slice("charset")).root() {
             if let Some(encodingRef) = encoding_from_whatwg_label(&charset.r().Value()) {
                 *self.block_character_encoding.borrow_mut() = encodingRef;
             }
@@ -234,7 +234,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         let window = window.r();
         let base_url = window.get_url();
 
-        let load = match element.get_attribute(ns!(""), &atom!("src")).root() {
+        let load = match element.get_attribute(&ns!(""), &atom!("src")).root() {
             // Step 14.
             Some(src) => {
                 // Step 14.1
@@ -406,7 +406,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
 
     fn is_javascript(self) -> bool {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        match element.get_attribute(ns!(""), &atom!("type")).root().map(|s| s.r().Value()) {
+        match element.get_attribute(&ns!(""), &atom!("type")).root().map(|s| s.r().Value()) {
             Some(ref s) if s.is_empty() => {
                 // type attr exists, but empty means js
                 debug!("script type empty, inferring js");
@@ -418,7 +418,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             },
             None => {
                 debug!("no script type");
-                match element.get_attribute(ns!(""), &atom!("language"))
+                match element.get_attribute(&ns!(""), &atom!("language"))
                              .root()
                              .map(|s| s.r().Value()) {
                     Some(ref s) if s.is_empty() => {
