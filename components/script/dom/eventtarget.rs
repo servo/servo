@@ -17,8 +17,10 @@ use dom::node::NodeTypeId;
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::virtualmethods::VirtualMethods;
-use js::jsapi::{JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObject};
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::{CompileFunction, JS_GetFunctionObject};
+use js::jsapi::{JSContext, JSObject, RootedFunction};
+use js::jsapi::{JSAutoCompartment, JSAutoRequest};
+use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use util::fnv::FnvHasher;
 use util::str::DOMString;
 
@@ -208,25 +210,29 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         static mut ARG_NAMES: [*const c_char; 1] = [&ARG_NAME as *const c_char];
 
         let source: Vec<u16> = source.utf16_units().collect();
-        let handler = unsafe {
-            JS_CompileUCFunction(cx,
-                                 ptr::null_mut(),
-                                 name.as_ptr(),
-                                 nargs,
-                                 &ARG_NAMES as *const *const c_char as *mut *const c_char,
-                                 source.as_ptr(),
-                                 source.len() as size_t,
-                                 url.as_ptr(),
-                                 lineno)
+        let options = CompileOptionsWrapper::new(cx, url.as_ptr(), lineno);
+        let scopechain = AutoObjectVectorWrapper::new(cx);
+
+        let _ar = JSAutoRequest::new(cx);
+        let _ac = JSAutoCompartment::new(cx, scope);
+        let mut handler = RootedFunction::new(cx, ptr::null_mut());
+        let rv = unsafe {
+            CompileFunction(cx,
+                            scopechain.ptr,
+                            options.ptr,
+                            name.as_ptr(),
+                            nargs,
+                            &ARG_NAMES as *const *const c_char as *mut *const c_char,
+                            source.as_ptr() as *const i16,
+                            source.len() as size_t,
+                            handler.handle_mut())
         };
-        if handler.is_null() {
+        if rv == 0 || handler.ptr.is_null() {
             report_pending_exception(cx, self.reflector().get_jsobject());
             return;
         }
 
-        let funobj = unsafe {
-            JS_CloneFunctionObject(cx, JS_GetFunctionObject(handler), scope)
-        };
+        let funobj = unsafe { JS_GetFunctionObject(handler.ptr) };
         assert!(!funobj.is_null());
         self.set_event_handler_common(ty, Some(EventHandlerNonNull::new(funobj)));
     }

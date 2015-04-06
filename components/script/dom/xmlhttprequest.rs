@@ -40,7 +40,7 @@ use hyper::http::RawStatus;
 use hyper::mime::{self, Mime};
 use hyper::method::Method;
 
-use js::jsapi::{JS_ParseJSON, JSContext};
+use js::jsapi::{JS_ParseJSON, JSContext, RootedValue};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
@@ -683,14 +683,14 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             Json => {
                 let decoded = UTF_8.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
                 let decoded: Vec<u16> = decoded.utf16_units().collect();
-                let mut vp = UndefinedValue();
+                let mut vp = RootedValue::new(cx, UndefinedValue());
                 unsafe {
-                    if JS_ParseJSON(cx, decoded.as_ptr(), decoded.len() as u32, &mut vp) == 0 {
+                    if JS_ParseJSON(cx, decoded.as_ptr() as *const i16, decoded.len() as u32, vp.handle_mut()) == 0 {
                         JS_ClearPendingException(cx);
                         return NullValue();
                     }
                 }
-                vp
+                vp.ptr
             }
             _ => {
                 // XXXManishearth handle other response types

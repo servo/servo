@@ -11,7 +11,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, MutHeap, Rootable, Temporary};
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
-use js::jsapi::JSContext;
+use js::jsapi::{JSContext, HandleValue};
 use js::jsval::{JSVal, NullValue};
 use util::str::DOMString;
 
@@ -41,7 +41,7 @@ impl CustomEvent {
                            global,
                            CustomEventBinding::Wrap)
     }
-    pub fn new(global: GlobalRef, type_: DOMString, bubbles: bool, cancelable: bool, detail: JSVal) -> Temporary<CustomEvent> {
+    pub fn new(global: GlobalRef, type_: DOMString, bubbles: bool, cancelable: bool, detail: HandleValue) -> Temporary<CustomEvent> {
         let ev = CustomEvent::new_uninitialized(global).root();
         ev.r().InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
         Temporary::from_rooted(ev.r())
@@ -65,13 +65,13 @@ impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
                        type_: DOMString,
                        can_bubble: bool,
                        cancelable: bool,
-                       detail: JSVal) {
+                       detail: HandleValue) {
         let event: JSRef<Event> = EventCast::from_ref(self);
         if event.dispatching() {
             return;
         }
 
-        self.detail.set(detail);
+        self.detail.set(detail.get());
         event.InitEvent(type_, can_bubble, cancelable);
     }
 }

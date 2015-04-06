@@ -17,7 +17,7 @@ use encoding::Encoding;
 use encoding::types::{EncodingRef, DecoderTrap};
 use encoding::label::encoding_from_whatwg_label;
 use js::jsapi::{JSContext, JSObject};
-use js::jsfriendapi::bindgen::JS_GetObjectAsArrayBufferView;
+use js::jsapi::JS_GetObjectAsArrayBufferView;
 
 use std::borrow::ToOwned;
 use std::ptr;
@@ -82,7 +82,7 @@ impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
     }
 
     #[allow(unsafe_code)]
-    fn Decode(self, cx: *mut JSContext, input: Option<*mut JSObject>)
+    fn Decode(self, _cx: *mut JSContext, input: Option<*mut JSObject>)
               -> Fallible<USVString> {
         let input = match input {
             Some(input) => input,
@@ -91,7 +91,7 @@ impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
 
         let mut length = 0;
         let mut data = ptr::null_mut();
-        if unsafe { JS_GetObjectAsArrayBufferView(cx, input, &mut length, &mut data).is_null() } {
+        if unsafe { JS_GetObjectAsArrayBufferView(input, &mut length, &mut data).is_null() } {
             return Err(Error::Type("Argument to TextDecoder.decode is not an ArrayBufferView".to_owned()));
         }
 
