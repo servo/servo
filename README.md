@@ -28,7 +28,7 @@ On Debian-based Linuxes:
 sudo apt-get install curl freeglut3-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     msttcorefonts gperf g++ cmake python-virtualenv \
-    libssl-dev libbz2-dev libosmesa6-dev
+    libssl-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev
 ```
 
 On Fedora:
@@ -37,7 +37,7 @@ On Fedora:
 sudo yum install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv expat-devel \
-    rpm-build openssl-devel cmake bzip2-devel libXcursor-devel
+    rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel
 pushd /tmp
 wget http://corefonts.sourceforge.net/msttcorefonts-2.5-1.spec
 rpmbuild -bb msttcorefonts-2.5-1.spec
@@ -48,7 +48,7 @@ popd
 On Arch Linux:
 
 ``` sh
-sudo pacman -S --needed base-devel git python2 python2-virtualenv mesa ttf-font cmake bzip2
+sudo pacman -S --needed base-devel git python2 python2-virtualenv mesa ttf-font cmake bzip2 libxmu
 ```
 
 Cross-compilation for Android:
