@@ -5,7 +5,6 @@
 //! Common handling of keyboard input and state management for text input controls
 
 use clipboard_provider::ClipboardProvider;
-use dom::bindings::js::JSRef;
 use dom::keyboardevent::{KeyboardEvent, KeyboardEventHelpers, key_value};
 use msg::constellation_msg::{SHIFT, CONTROL, ALT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
@@ -296,7 +295,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
-    pub fn handle_keydown(&mut self, event: JSRef<KeyboardEvent>) -> KeyReaction {
+    pub fn handle_keydown(&mut self, event: &KeyboardEvent) -> KeyReaction {
         if let Some(key) = event.get_key() {
             self.handle_keydown_aux(key, event.get_key_modifiers())
         } else {

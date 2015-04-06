@@ -17,12 +17,12 @@ use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLScriptE
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Rootable};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::js::RootedReference;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{Element, AttributeHandlers, ElementCreator};
+use dom::element::{AttributeHandlers, ElementCreator};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::element::ElementTypeId;
@@ -33,6 +33,8 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::{WindowHelpers, ScriptHelpers};
 use network_listener::{NetworkListener, PreInvoke};
 use script_task::{ScriptChan, ScriptMsg, Runnable};
+use js::jsapi::RootedValue;
+use js::jsval::UndefinedValue;
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
@@ -82,7 +84,7 @@ impl HTMLScriptElementDerived for EventTarget {
 }
 
 impl HTMLScriptElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>,
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document,
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement:
@@ -91,14 +93,14 @@ impl HTMLScriptElement {
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
             ready_to_be_parser_executed: Cell::new(false),
-            parser_document: JS::from_rooted(document),
+            parser_document: JS::from_ref(document),
             block_character_encoding: DOMRefCell::new(UTF_8 as EncodingRef),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>,
-               creator: ElementCreator) -> Temporary<HTMLScriptElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document,
+               creator: ElementCreator) -> Root<HTMLScriptElement> {
         let element = HTMLScriptElement::new_inherited(localName, prefix, document, creator);
         Node::reflect_node(box element, document, HTMLScriptElementBinding::Wrap)
     }
@@ -190,22 +192,22 @@ impl AsyncResponseListener for ScriptContext {
             let metadata = self.metadata.borrow_mut().take().unwrap();
             (metadata, data)
         });
-        let elem = self.elem.to_temporary().root();
+        let elem = self.elem.root();
 
         elem.r().execute(ScriptOrigin::External(load));
 
-        let document = document_from_node(elem.r()).root();
+        let document = document_from_node(elem.r());
         document.r().finish_load(LoadType::Script(self.url.clone()));
 
         if self.resume_on_completion {
-            document.r().get_current_parser().unwrap().root().r().resume();
+            document.r().get_current_parser().unwrap().r().resume();
         }
     }
 }
 
 impl PreInvoke for ScriptContext {}
 
-impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
+impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
     fn prepare(self) -> NextParserState {
         // https://html.spec.whatwg.org/multipage/#prepare-a-script
         // Step 1.
@@ -217,7 +219,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         self.parser_inserted.set(false);
 
         // Step 3.
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         if was_parser_inserted && element.has_attribute(&atom!("async")) {
             self.non_blocking.set(true);
         }
@@ -227,7 +229,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             return NextParserState::Continue;
         }
         // Step 5.
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         if !node.is_in_doc() {
             return NextParserState::Continue;
         }
@@ -244,7 +246,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         self.already_started.set(true);
 
         // Step 10.
-        let document_from_node_ref = document_from_node(self).root();
+        let document_from_node_ref = document_from_node(self);
         let document_from_node_ref = document_from_node_ref.r();
         if self.parser_inserted.get() && self.parser_document.root().r() != document_from_node_ref {
             return NextParserState::Continue;
@@ -256,8 +258,8 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         }
 
         // Step 12.
-        let for_attribute = element.get_attribute(&ns!(""), &atom!("for")).root();
-        let event_attribute = element.get_attribute(&ns!(""), &Atom::from_slice("event")).root();
+        let for_attribute = element.get_attribute(&ns!(""), &atom!("for"));
+        let event_attribute = element.get_attribute(&ns!(""), &Atom::from_slice("event"));
         match (for_attribute.r(), event_attribute.r()) {
             (Some(for_attribute), Some(event_attribute)) => {
                 let for_value = for_attribute.Value()
@@ -277,18 +279,18 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         }
 
         // Step 13.
-        if let Some(ref charset) = element.get_attribute(&ns!(""), &Atom::from_slice("charset")).root() {
+        if let Some(ref charset) = element.get_attribute(&ns!(""), &Atom::from_slice("charset")) {
             if let Some(encodingRef) = encoding_from_whatwg_label(&charset.r().Value()) {
                 *self.block_character_encoding.borrow_mut() = encodingRef;
             }
         }
 
         // Step 14.
-        let window = window_from_node(self).root();
+        let window = window_from_node(self);
         let window = window.r();
         let base_url = window.get_url();
 
-        let load = match element.get_attribute(&ns!(""), &atom!("src")).root() {
+        let load = match element.get_attribute(&ns!(""), &atom!("src")) {
             // Step 14.
             Some(ref src) => {
                 // Step 14.1
@@ -314,7 +316,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                         // state of the element's `crossorigin` content attribute, the origin being
                         // the origin of the script element's node document, and the default origin
                         // behaviour set to taint.
-                        let doc = document_from_node(self).root();
+                        let doc = document_from_node(self);
 
                         let script_chan = window.script_chan();
                         let elem = Trusted::new(window.get_cx(), self, script_chan.clone());
@@ -335,7 +337,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                         doc.r().load_async(LoadType::Script(url), listener);
 
                         if self.parser_inserted.get() {
-                            doc.r().get_current_parser().unwrap().root().r().suspend();
+                            doc.r().get_current_parser().unwrap().r().suspend();
                         }
                         return NextParserState::Suspend;
                     }
@@ -409,18 +411,20 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         // document. Let neutralised doc be that Document.
 
         // Step 2.b.4.
-        let document = document_from_node(self).root();
+        let document = document_from_node(self);
         let document = document.r();
-        let old_script = document.GetCurrentScript().root();
+        let old_script = document.GetCurrentScript();
 
         // Step 2.b.5.
         document.set_current_script(Some(self));
 
         // Step 2.b.6.
         // TODO: Create a script...
-        let window = window_from_node(self).root();
+        let window = window_from_node(self);
+        let mut rval = RootedValue::new(window.r().get_cx(), UndefinedValue());
         window.r().evaluate_script_on_global_with_result(&*source,
-                                                         &*url.serialize());
+                                                         &*url.serialize(),
+                                                         rval.handle_mut());
 
         // Step 2.b.7.
         document.set_current_script(old_script.r());
@@ -447,7 +451,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
     }
 
     fn queue_error_event(self) {
-        let window = window_from_node(self).root();
+        let window = window_from_node(self);
         let window = window.r();
         let chan = window.script_chan();
         let handler = Trusted::new(window.get_cx(), self, chan.clone());
@@ -483,8 +487,8 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
     }
 
     fn is_javascript(self) -> bool {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        match element.get_attribute(&ns!(""), &atom!("type")).root().map(|s| s.r().Value()) {
+        let element = ElementCast::from_ref(self);
+        match element.get_attribute(&ns!(""), &atom!("type")).map(|s| s.r().Value()) {
             Some(ref s) if s.is_empty() => {
                 // type attr exists, but empty means js
                 debug!("script type empty, inferring js");
@@ -497,7 +501,6 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             None => {
                 debug!("no script type");
                 match element.get_attribute(&ns!(""), &atom!("language"))
-                             .root()
                              .map(|s| s.r().Value()) {
                     Some(ref s) if s.is_empty() => {
                         debug!("script language empty, inferring js");
@@ -528,44 +531,44 @@ trait PrivateHTMLScriptElementHelpers {
                       cancelable: EventCancelable) -> bool;
 }
 
-impl<'a> PrivateHTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
+impl<'a> PrivateHTMLScriptElementHelpers for &'a HTMLScriptElement {
     fn dispatch_event(self,
                       type_: DOMString,
                       bubbles: EventBubbles,
                       cancelable: EventCancelable) -> bool {
-        let window = window_from_node(self).root();
+        let window = window_from_node(self);
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window),
                                type_,
                                bubbles,
-                               cancelable).root();
+                               cancelable);
         let event = event.r();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let target = EventTargetCast::from_ref(self);
         event.fire(target)
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
+impl<'a> VirtualMethods for &'a HTMLScriptElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if attr.local_name() == &atom!("src") && !self.parser_inserted.get() && node.is_in_doc() {
             self.prepare();
         }
     }
 
-    fn child_inserted(&self, child: JSRef<Node>) {
+    fn child_inserted(&self, child: &Node) {
         if let Some(ref s) = self.super_type() {
             s.child_inserted(child);
         }
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if !self.parser_inserted.get() && node.is_in_doc() {
             self.prepare();
         }
@@ -581,7 +584,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
         }
     }
 
-    fn cloning_steps(&self, copy: JSRef<Node>, maybe_doc: Option<JSRef<Document>>,
+    fn cloning_steps(&self, copy: &Node, maybe_doc: Option<&Document>,
                      clone_children: CloneChildrenFlag) {
         if let Some(ref s) = self.super_type() {
             s.cloning_steps(copy, maybe_doc, clone_children);
@@ -589,13 +592,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
 
         // https://whatwg.org/html/#already-started
         if self.already_started.get() {
-            let copy_elem: JSRef<HTMLScriptElement> = HTMLScriptElementCast::to_ref(copy).unwrap();
+            let copy_elem = HTMLScriptElementCast::to_ref(copy).unwrap();
             copy_elem.mark_already_started();
         }
     }
 }
 
-impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
+impl<'a> HTMLScriptElementMethods for &'a HTMLScriptElement {
     make_url_getter!(Src);
 
     make_setter!(SetSrc, "src");
@@ -607,7 +610,7 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
 
     // https://www.whatwg.org/html/#dom-script-text
     fn SetText(self, value: DOMString) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }
 }
@@ -619,7 +622,7 @@ struct EventDispatcher {
 
 impl Runnable for EventDispatcher {
     fn handler(self: Box<EventDispatcher>) {
-        let target = self.element.to_temporary().root();
+        let target = self.element.root();
         if self.is_error {
             target.r().dispatch_error_event();
         } else {

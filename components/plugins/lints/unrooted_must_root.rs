@@ -34,8 +34,7 @@ pub struct UnrootedPass;
 // TODO (#3874, sort of): unwrap other types like Vec/Option/HashMap/etc
 fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
     match ty.node {
-        ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) |
-        ast::TyPtr(ast::MutTy { ty: ref t, ..}) | ast::TyRptr(_, ast::MutTy { ty: ref t, ..}) =>
+        ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) =>
             lint_unrooted_ty(cx, &**t, warning),
         ast::TyPath(..) => {
                 match cx.tcx.def_map.borrow()[&ty.id] {
@@ -47,7 +46,7 @@ fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
                     _ => (),
                 }
             }
-            _ => (),
+        _ => (),
     };
 }
 

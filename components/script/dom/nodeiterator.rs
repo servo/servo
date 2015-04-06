@@ -10,12 +10,13 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutHeap, OptionalRootable, Temporary, Rootable, RootedReference};
+use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::{Node, NodeHelpers};
 
 use std::cell::Cell;
+use std::rc::Rc;
 
 #[dom_struct]
 pub struct NodeIterator {
@@ -28,33 +29,33 @@ pub struct NodeIterator {
 }
 
 impl NodeIterator {
-    fn new_inherited(root_node: JSRef<Node>,
+    fn new_inherited(root_node: &Node,
                      what_to_show: u32,
                      filter: Filter) -> NodeIterator {
         NodeIterator {
             reflector_: Reflector::new(),
-            root_node: JS::from_rooted(root_node),
-            reference_node: MutHeap::new(JS::from_rooted(root_node)),
+            root_node: JS::from_ref(root_node),
+            reference_node: MutHeap::new(JS::from_ref(root_node)),
             pointer_before_reference_node: Cell::new(true),
             what_to_show: what_to_show,
             filter: filter
         }
     }
 
-    pub fn new_with_filter(document: JSRef<Document>,
-                           root_node: JSRef<Node>,
+    pub fn new_with_filter(document: &Document,
+                           root_node: &Node,
                            what_to_show: u32,
-                           filter: Filter) -> Temporary<NodeIterator> {
-        let window = document.window().root();
+                           filter: Filter) -> Root<NodeIterator> {
+        let window = document.window();
         reflect_dom_object(box NodeIterator::new_inherited(root_node, what_to_show, filter),
                            GlobalRef::Window(window.r()),
                            NodeIteratorBinding::Wrap)
     }
 
-    pub fn new(document: JSRef<Document>,
-               root_node: JSRef<Node>,
+    pub fn new(document: &Document,
+               root_node: &Node,
                what_to_show: u32,
-               node_filter: Option<NodeFilter>) -> Temporary<NodeIterator> {
+               node_filter: Option<Rc<NodeFilter>>) -> Root<NodeIterator> {
         let filter = match node_filter {
             None => Filter::None,
             Some(jsfilter) => Filter::Callback(jsfilter)
@@ -63,10 +64,10 @@ impl NodeIterator {
     }
 }
 
-impl<'a> NodeIteratorMethods for JSRef<'a, NodeIterator> {
+impl<'a> NodeIteratorMethods for &'a NodeIterator {
     // https://dom.spec.whatwg.org/#dom-nodeiterator-root
-    fn Root(self) -> Temporary<Node> {
-        Temporary::from_rooted(self.root_node)
+    fn Root(self) -> Root<Node> {
+        self.root_node.root()
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-whattoshow
@@ -75,17 +76,17 @@ impl<'a> NodeIteratorMethods for JSRef<'a, NodeIterator> {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-filter
-    fn GetFilter(self) -> Option<NodeFilter> {
+    fn GetFilter(self) -> Option<Rc<NodeFilter>> {
         match self.filter {
             Filter::None => None,
-            Filter::Callback(nf) => Some(nf),
+            Filter::Callback(ref nf) => Some((*nf).clone()),
             Filter::Native(_) => panic!("Cannot convert native node filter to DOM NodeFilter")
         }
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-referencenode
-    fn ReferenceNode(self) -> Temporary<Node> {
-        Temporary::from_rooted(self.reference_node.get())
+    fn ReferenceNode(self) -> Root<Node> {
+        self.reference_node.get().root()
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-pointerbeforereferencenode
@@ -94,7 +95,7 @@ impl<'a> NodeIteratorMethods for JSRef<'a, NodeIterator> {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-nextnode
-    fn NextNode(self) -> Fallible<Option<Temporary<Node>>> {
+    fn NextNode(self) -> Fallible<Option<Root<Node>>> {
         // https://dom.spec.whatwg.org/#concept-NodeIterator-traverse
         // Step 1.
         let node = self.reference_node.get().root();
@@ -112,27 +113,25 @@ impl<'a> NodeIteratorMethods for JSRef<'a, NodeIterator> {
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
                 // Step 4.
-                self.reference_node.set(JS::from_rooted(node.r()));
+                self.reference_node.set(JS::from_ref(node.r()));
                 self.pointer_before_reference_node.set(before_node);
 
-                return Ok(Some(Temporary::from_rooted(node.r())));
+                return Ok(Some(node));
             }
         }
 
         // Step 3-1.
         for following_node in node.r().following_nodes(self.root_node.root().r()) {
-            let following_node = following_node.root();
-
             // Step 3-2.
             let result = try!(self.accept_node(following_node.r()));
 
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
                 // Step 4.
-                self.reference_node.set(JS::from_rooted(following_node.r()));
+                self.reference_node.set(JS::from_ref(following_node.r()));
                 self.pointer_before_reference_node.set(before_node);
 
-                return Ok(Some(Temporary::from_rooted(following_node.r())));
+                return Ok(Some(following_node));
             }
         }
 
@@ -140,7 +139,7 @@ impl<'a> NodeIteratorMethods for JSRef<'a, NodeIterator> {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-previousnode
-    fn PreviousNode(self) -> Fallible<Option<Temporary<Node>>> {
+    fn PreviousNode(self) -> Fallible<Option<Root<Node>>> {
         // https://dom.spec.whatwg.org/#concept-NodeIterator-traverse
         // Step 1.
         let node = self.reference_node.get().root();
@@ -158,16 +157,15 @@ impl<'a> NodeIteratorMethods for JSRef<'a, NodeIterator> {
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
                 // Step 4.
-                self.reference_node.set(JS::from_rooted(node.r()));
+                self.reference_node.set(JS::from_ref(node.r()));
                 self.pointer_before_reference_node.set(before_node);
 
-                return Ok(Some(Temporary::from_rooted(node.r())));
+                return Ok(Some(node));
             }
         }
 
         // Step 3-1.
         for preceding_node in node.r().preceding_nodes(self.root_node.root().r()) {
-            let preceding_node = preceding_node.root();
 
             // Step 3-2.
             let result = try!(self.accept_node(preceding_node.r()));
@@ -175,10 +173,10 @@ impl<'a> NodeIteratorMethods for JSRef<'a, NodeIterator> {
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
                 // Step 4.
-                self.reference_node.set(JS::from_rooted(preceding_node.r()));
+                self.reference_node.set(JS::from_ref(preceding_node.r()));
                 self.pointer_before_reference_node.set(before_node);
 
-                return Ok(Some(Temporary::from_rooted(preceding_node.r())));
+                return Ok(Some(preceding_node));
             }
         }
 
@@ -192,13 +190,13 @@ impl<'a> NodeIteratorMethods for JSRef<'a, NodeIterator> {
 }
 
 trait PrivateNodeIteratorHelpers {
-    fn accept_node(self, node: JSRef<Node>) -> Fallible<u16>;
-    fn is_root_node(self, node: JSRef<Node>) -> bool;
+    fn accept_node(self, node: &Node) -> Fallible<u16>;
+    fn is_root_node(self, node: &Node) -> bool;
 }
 
-impl<'a> PrivateNodeIteratorHelpers for JSRef<'a, NodeIterator> {
+impl<'a> PrivateNodeIteratorHelpers for &'a NodeIterator {
     // https://dom.spec.whatwg.org/#concept-node-filter
-    fn accept_node(self, node: JSRef<Node>) -> Fallible<u16> {
+    fn accept_node(self, node: &Node) -> Fallible<u16> {
         // Step 1.
         let n = node.NodeType() - 1;
         // Step 2.
@@ -209,12 +207,12 @@ impl<'a> PrivateNodeIteratorHelpers for JSRef<'a, NodeIterator> {
         match self.filter {
             Filter::None => Ok(NodeFilterConstants::FILTER_ACCEPT),
             Filter::Native(f) => Ok((f)(node)),
-            Filter::Callback(callback) => callback.AcceptNode_(self, node, Rethrow)
+            Filter::Callback(ref callback) => callback.AcceptNode_(self, node, Rethrow)
         }
     }
 
-    fn is_root_node(self, node: JSRef<Node>) -> bool {
-        JS::from_rooted(node) == self.root_node
+    fn is_root_node(self, node: &Node) -> bool {
+        JS::from_ref(node) == self.root_node
     }
 }
 
@@ -222,6 +220,6 @@ impl<'a> PrivateNodeIteratorHelpers for JSRef<'a, NodeIterator> {
 #[jstraceable]
 pub enum Filter {
     None,
-    Native(fn (node: JSRef<Node>) -> u16),
-    Callback(NodeFilter)
+    Native(fn (node: &Node) -> u16),
+    Callback(Rc<NodeFilter>)
 }

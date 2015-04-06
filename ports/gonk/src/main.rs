@@ -41,6 +41,9 @@ extern crate url;
 extern crate net;
 extern crate env_logger;
 
+#[link(name = "stlport")]
+extern {}
+
 use util::opts;
 use net::resource_task;
 use servo::Browser;

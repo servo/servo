@@ -6,10 +6,10 @@
 macro_rules! make_getter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self) -> DOMString {
-            use dom::element::{Element, AttributeHandlers};
+            use dom::element::AttributeHandlers;
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
-            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let element = ElementCast::from_ref(self);
             element.get_string_attribute(&Atom::from_slice($htmlname))
         }
     );
@@ -22,10 +22,10 @@ macro_rules! make_getter(
 macro_rules! make_bool_getter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self) -> bool {
-            use dom::element::{Element, AttributeHandlers};
+            use dom::element::AttributeHandlers;
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
-            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
             element.has_attribute(&Atom::from_slice($htmlname))
         }
@@ -39,10 +39,10 @@ macro_rules! make_bool_getter(
 macro_rules! make_uint_getter(
     ($attr:ident, $htmlname:expr, $default:expr) => (
         fn $attr(self) -> u32 {
-            use dom::element::{Element, AttributeHandlers};
+            use dom::element::AttributeHandlers;
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
-            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
             element.get_uint_attribute(&Atom::from_slice($htmlname), $default)
         }
@@ -59,10 +59,10 @@ macro_rules! make_uint_getter(
 macro_rules! make_url_getter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self) -> DOMString {
-            use dom::element::{Element, AttributeHandlers};
+            use dom::element::AttributeHandlers;
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
-            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
             element.get_url_attribute(&Atom::from_slice($htmlname))
         }
@@ -77,14 +77,14 @@ macro_rules! make_url_getter(
 macro_rules! make_url_or_base_getter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self) -> DOMString {
-            use dom::element::{Element, AttributeHandlers};
+            use dom::element::AttributeHandlers;
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use dom::window::WindowHelpers;
             use string_cache::Atom;
-            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let element = ElementCast::from_ref(self);
             let url = element.get_url_attribute(&Atom::from_slice($htmlname));
             if url.is_empty() {
-                let window = window_from_node(self).root();
+                let window = window_from_node(self);
                 window.r().get_url().serialize()
             } else {
                 url
@@ -100,11 +100,11 @@ macro_rules! make_url_or_base_getter(
 macro_rules! make_enumerated_getter(
     ( $attr:ident, $htmlname:expr, $default:expr, $(($choices: pat))|+) => (
         fn $attr(self) -> DOMString {
-            use dom::element::{Element, AttributeHandlers};
+            use dom::element::AttributeHandlers;
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             use std::borrow::ToOwned;
-            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let element = ElementCast::from_ref(self);
             let val = element.get_string_attribute(&Atom::from_slice($htmlname))
                              .into_ascii_lowercase();
             // https://html.spec.whatwg.org/multipage/#attr-fs-method
@@ -125,10 +125,10 @@ macro_rules! make_enumerated_getter(
 macro_rules! make_setter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self, value: DOMString) {
-            use dom::element::{Element, AttributeHandlers};
+            use dom::element::AttributeHandlers;
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
-            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not at runtime.
             element.set_string_attribute(&Atom::from_slice($htmlname), value)
         }
@@ -139,10 +139,10 @@ macro_rules! make_setter(
 macro_rules! make_bool_setter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self, value: bool) {
-            use dom::element::{Element, AttributeHandlers};
+            use dom::element::AttributeHandlers;
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
-            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not at runtime.
             element.set_bool_attribute(&Atom::from_slice($htmlname), value)
         }
@@ -153,7 +153,7 @@ macro_rules! make_bool_setter(
 macro_rules! make_uint_setter(
     ($attr:ident, $htmlname:expr, $default:expr) => (
         fn $attr(self, value: u32) {
-            use dom::element::{Element, AttributeHandlers};
+            use dom::element::AttributeHandlers;
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let value = if value > 2147483647 {
@@ -161,7 +161,7 @@ macro_rules! make_uint_setter(
             } else {
                 value
             };
-            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not at runtime.
             element.set_uint_attribute(&Atom::from_slice($htmlname), value)
         }
@@ -203,10 +203,10 @@ macro_rules! make_limited_uint_setter(
 macro_rules! make_atomic_setter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self, value: DOMString) {
-            use dom::element::{Element, AttributeHandlers};
+            use dom::element::AttributeHandlers;
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
-            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not at runtime.
             element.set_atomic_attribute(&Atom::from_slice($htmlname), value)
         }
@@ -239,13 +239,13 @@ macro_rules! no_jsmanaged_fields(
 /// These are used to generate a event handler which has no special case.
 macro_rules! define_event_handler(
     ($handler: ident, $event_type: ident, $getter: ident, $setter: ident) => (
-        fn $getter(self) -> Option<$handler> {
-            let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        fn $getter(self) -> Option<::std::rc::Rc<$handler>> {
+            let eventtarget = EventTargetCast::from_ref(self);
             eventtarget.get_event_handler_common(stringify!($event_type))
         }
 
-        fn $setter(self, listener: Option<$handler>) {
-            let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        fn $setter(self, listener: Option<::std::rc::Rc<$handler>>) {
+            let eventtarget = EventTargetCast::from_ref(self);
             eventtarget.set_event_handler_common(stringify!($event_type), listener)
         }
     )
