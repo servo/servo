@@ -15,11 +15,12 @@ use dom::node::{Node, NodeHelpers};
 use dom::window::{ScriptHelpers, WindowHelpers};
 use dom::document::DocumentHelpers;
 use js::jsapi::JSContext;
-use js::jsval::JSVal;
 use page::Page;
 use msg::constellation_msg::{PipelineId, SubpageId};
 use msg::webdriver_msg::{WebDriverJSValue, WebDriverJSError, WebDriverJSResult, WebDriverFrameId};
 use script_task::get_page;
+use js::jsapi::{RootedValue, HandleValue};
+use js::jsval::UndefinedValue;
 
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
@@ -38,19 +39,19 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     None
 }
 
-pub fn jsval_to_webdriver(cx: *mut JSContext, val: JSVal) -> WebDriverJSResult {
-    if val.is_undefined() {
+pub fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDriverJSResult {
+    if val.get().is_undefined() {
         Ok(WebDriverJSValue::Undefined)
-    } else if val.is_boolean() {
-        Ok(WebDriverJSValue::Boolean(val.to_boolean()))
-    } else if val.is_double() {
+    } else if val.get().is_boolean() {
+        Ok(WebDriverJSValue::Boolean(val.get().to_boolean()))
+    } else if val.get().is_double() {
         Ok(WebDriverJSValue::Number(FromJSValConvertible::from_jsval(cx, val, ()).unwrap()))
-    } else if val.is_string() {
+    } else if val.get().is_string() {
         //FIXME: use jsstring_to_str when jsval grows to_jsstring
         Ok(
             WebDriverJSValue::String(
                 FromJSValConvertible::from_jsval(cx, val, StringificationBehavior::Default).unwrap()))
-    } else if val.is_null() {
+    } else if val.get().is_null() {
         Ok(WebDriverJSValue::Null)
     } else {
         Err(WebDriverJSError::UnknownType)
@@ -61,17 +62,20 @@ pub fn handle_execute_script(page: &Rc<Page>, pipeline: PipelineId, eval: String
     let page = get_page(&*page, pipeline);
     let window = page.window().root();
     let cx = window.r().get_cx();
-    let rval = window.r().evaluate_js_on_global_with_result(&eval);
+    let mut rval = RootedValue::new(cx, UndefinedValue());
+    window.r().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 
-    reply.send(jsval_to_webdriver(cx, rval)).unwrap();
+    reply.send(jsval_to_webdriver(cx, rval.handle())).unwrap();
 }
 
 pub fn handle_execute_async_script(page: &Rc<Page>, pipeline: PipelineId, eval: String,
                                    reply: Sender<WebDriverJSResult>) {
     let page = get_page(&*page, pipeline);
     let window = page.window().root();
+    let cx = window.r().get_cx();
     window.r().set_webdriver_script_chan(Some(reply));
-    window.r().evaluate_js_on_global_with_result(&eval);
+    let mut rval = RootedValue::new(cx, UndefinedValue());
+    window.r().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 }
 
 pub fn handle_get_frame_id(page: &Rc<Page>,
@@ -108,7 +112,7 @@ pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector:
                                reply: Sender<Result<Option<String>, ()>>) {
     reply.send(match page.document().root().r().QuerySelector(selector.clone()) {
         Ok(node) => {
-            let result = node.map(|x| NodeCast::from_ref(x.root().r()).get_unique_id());
+            let result = node.map(|x| NodeCast::from_ref(x.r()).get_unique_id());
             Ok(result)
         }
         Err(_) => Err(())

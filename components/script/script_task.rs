@@ -28,7 +28,7 @@ use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::js::{JS, JSRef, OptionalRootable, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, Rootable, RootedReference};
 use dom::bindings::js::Temporary;
-use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
+use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::{JSTraceable, trace_collections, RootedVec};
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
@@ -80,9 +80,11 @@ use util::task_state;
 use geom::Rect;
 use geom::point::Point2D;
 use hyper::header::{LastModified, Headers};
-use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetExtraGCRootsTracer};
-use js::jsapi::{JSContext, JSRuntime, JSObject, JSTracer};
-use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
+use js::jsapi::{JS_SetWrapObjectCallbacks, JS_AddExtraGCRootsTracer};
+use js::jsapi::{JSContext, JSRuntime, JSTracer, JSWrapObjectCallbacks};
+use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSAutoRequest};
+use js::jsapi::{SetDOMProxyInformation, DOMProxyShadowsResult, HandleObject, HandleId, RootedValue};
+use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use url::Url;
 
@@ -421,12 +423,17 @@ impl ScriptTaskFactory for ScriptTask {
     }
 }
 
-unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus) {
+unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, _data: *mut libc::c_void) {
     match status {
-        JSGC_BEGIN => task_state::enter(task_state::IN_GC),
-        JSGC_END   => task_state::exit(task_state::IN_GC),
-        _ => (),
+        JSGCStatus::JSGC_BEGIN => task_state::enter(task_state::IN_GC),
+        JSGCStatus::JSGC_END   => task_state::exit(task_state::IN_GC),
     }
+}
+
+unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
+    _object: HandleObject, _id: HandleId) -> DOMProxyShadowsResult {
+    // XXX implement me
+    return DOMProxyShadowsResult::ShadowCheckFailed;
 }
 
 impl ScriptTask {
@@ -467,25 +474,15 @@ impl ScriptTask {
                devtools_chan: Option<DevtoolsControlChan>)
                -> ScriptTask {
         let runtime = ScriptTask::new_rt_and_cx();
-        let wrap_for_same_compartment = wrap_for_same_compartment as
-            unsafe extern "C" fn(*mut JSContext, *mut JSObject) -> *mut JSObject;
-        let pre_wrap = pre_wrap as
-            unsafe extern fn(*mut JSContext, *mut JSObject, *mut JSObject,
-                             libc::c_uint) -> *mut JSObject;
+
+        let wrapcb = JSWrapObjectCallbacks {
+            wrap: Some(wrap_for_same_compartment),
+            preWrap: Some(pre_wrap),
+        };
 
         unsafe {
-            // JS_SetWrapObjectCallbacks clobbers the existing wrap callback,
-            // and JSCompartment::wrap crashes if that happens. The only way
-            // to retrieve the default callback is as the result of
-            // JS_SetWrapObjectCallbacks, which is why we call it twice.
-            let callback = JS_SetWrapObjectCallbacks(runtime.rt(),
-                                                     None,
-                                                     Some(wrap_for_same_compartment),
-                                                     None);
             JS_SetWrapObjectCallbacks(runtime.rt(),
-                                      callback,
-                                      Some(wrap_for_same_compartment),
-                                      Some(pre_wrap));
+                                      &wrapcb);
         }
 
         let (devtools_sender, devtools_receiver) = channel();
@@ -525,15 +522,19 @@ impl ScriptTask {
         let runtime = Runtime::new();
 
         unsafe {
-            JS_SetExtraGCRootsTracer(runtime.rt(), Some(trace_rust_roots), ptr::null_mut());
+            JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_rust_roots), ptr::null_mut());
+            JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_refcounted_objects), ptr::null_mut());
         }
 
         // Needed for debug assertions about whether GC is running.
         if cfg!(debug_assertions) {
             unsafe {
-                JS_SetGCCallback(runtime.rt(),
-                    Some(debug_gc_callback as unsafe extern "C" fn(*mut JSRuntime, JSGCStatus)));
+                JS_SetGCCallback(runtime.rt(), Some(debug_gc_callback), ptr::null_mut());
             }
+        }
+
+        unsafe {
+            SetDOMProxyInformation(ptr::null(), 0, Some(shadow_check_callback));
         }
 
         runtime
@@ -1305,9 +1306,11 @@ impl ScriptTask {
 
         let is_javascript = incomplete.url.scheme == "javascript";
         let parse_input = if is_javascript {
+            let _ar = JSAutoRequest::new(self.get_cx());
             let evalstr = incomplete.url.non_relative_scheme_data().unwrap();
-            let jsval = window.r().evaluate_js_on_global_with_result(evalstr);
-            let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval,
+            let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
+            window.r().evaluate_js_on_global_with_result(evalstr, jsval.handle_mut());
+            let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval.handle(),
                                                           StringificationBehavior::Empty);
             strval.unwrap_or("".to_owned())
         } else {

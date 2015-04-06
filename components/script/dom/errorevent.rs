@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::{EventCast, ErrorEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, MutHeap, Rootable, Temporary};
-use js::jsapi::JSContext;
+use js::jsapi::{JSContext, HandleValue};
 use dom::bindings::trace::JSTraceable;
 
 use dom::bindings::utils::reflect_dom_object;
@@ -63,7 +63,7 @@ impl ErrorEvent {
                filename: DOMString,
                lineno: u32,
                colno: u32,
-               error: JSVal) -> Temporary<ErrorEvent> {
+               error: HandleValue) -> Temporary<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global).root();
         let event: JSRef<Event> = EventCast::from_ref(ev.r());
         event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
@@ -74,7 +74,7 @@ impl ErrorEvent {
         *ev.filename.borrow_mut() = filename;
         ev.lineno.set(lineno);
         ev.colno.set(colno);
-        ev.error.set(error);
+        ev.error.set(error.get());
         Temporary::from_rooted(ev)
     }
 
