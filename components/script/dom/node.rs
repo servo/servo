@@ -60,7 +60,6 @@ use style::properties::ComputedValues;
 use style;
 
 use js::jsapi::{JSContext, JSObject, JSRuntime};
-use js::jsfriendapi;
 use core::nonzero::NonZero;
 use libc;
 use libc::{uintptr_t, c_void};
@@ -1049,8 +1048,9 @@ pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: Untrusted
     -> Temporary<Node> {
     unsafe {
         let candidate: uintptr_t = mem::transmute(candidate.0);
-        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
-                                                                                  candidate);
+//        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
+//                                                                                  candidate);
+        let object: *mut JSObject = mem::transmute(candidate);
         if object.is_null() {
             panic!("Attempted to create a `JS<Node>` from an invalid pointer!")
         }

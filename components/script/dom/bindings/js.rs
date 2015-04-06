@@ -569,7 +569,7 @@ impl RootCollection {
         unsafe {
             let roots = self.roots.get();
             (*roots).push(untracked_js_ptr);
-            debug!("  rooting {:?}", untracked_js_ptr);
+//            debug!("  rooting {:?}", untracked_js_ptr);
         }
     }
 
@@ -579,7 +579,7 @@ impl RootCollection {
         unsafe {
             let roots = self.roots.get();
             let unrooted = (*roots).pop().unwrap();
-            debug!("unrooted {:?} (expecting {:?}", unrooted, rooted.js_ptr);
+//            debug!("unrooted {:?} (expecting {:?}", unrooted, rooted.js_ptr);
             assert!(unrooted == rooted.js_ptr);
         }
     }

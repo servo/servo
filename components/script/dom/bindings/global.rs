@@ -21,7 +21,7 @@ use msg::constellation_msg::{PipelineId, WorkerId};
 use net_traits::ResourceTask;
 
 use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
-use js::glue::{GetGlobalForObjectCrossCompartment};
+use js::jsapi::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_GetClass};
 use url::Url;

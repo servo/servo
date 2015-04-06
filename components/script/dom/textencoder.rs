@@ -22,7 +22,7 @@ use encoding::label::encoding_from_whatwg_label;
 
 use libc::uint8_t;
 use js::jsapi::{JSContext, JSObject};
-use js::jsfriendapi::bindgen::{JS_NewUint8Array, JS_GetUint8ArrayData};
+use js::jsapi::{JS_NewUint8Array, JS_GetUint8ArrayData};
 
 #[dom_struct]
 pub struct TextEncoder {
@@ -83,7 +83,7 @@ impl<'a> TextEncoderMethods for JSRef<'a, TextEncoder> {
             let length = encoded.len() as u32;
             let js_object: *mut JSObject = JS_NewUint8Array(cx, length);
 
-            let js_object_data: *mut uint8_t = JS_GetUint8ArrayData(js_object, cx);
+            let js_object_data: *mut uint8_t = JS_GetUint8ArrayData(js_object, ptr::null());
             ptr::copy_nonoverlapping(encoded.as_ptr(), js_object_data, length as usize);
             return js_object;
         }

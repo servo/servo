@@ -31,6 +31,8 @@ use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_n
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{WindowHelpers, ScriptHelpers};
 use script_task::{ScriptMsg, Runnable};
+use js::jsapi::RootedValue;
+use js::jsval::UndefinedValue;
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
@@ -345,8 +347,10 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         // Step 2.b.6.
         // TODO: Create a script...
         let window = window_from_node(self).root();
+        let mut rval = RootedValue::new(window.r().get_cx(), UndefinedValue());
         window.r().evaluate_script_on_global_with_result(&*source,
-                                                         &*url.serialize());
+                                                         &*url.serialize(),
+                                                         rval.handle_mut());
 
         // Step 2.b.7.
         document.set_current_script(old_script.r());

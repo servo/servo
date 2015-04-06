@@ -38,6 +38,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use url::{Url, UrlParser};
 use util::str::{self, LengthOrPercentageOrAuto};
+use js::jsapi::RootedValue;
 
 enum SandboxAllowance {
     AllowNothing = 0x00,
@@ -150,11 +151,12 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         if self.Mozbrowser() {
             let window = window_from_node(self).root();
             let cx = window.r().get_cx();
+            let detail = RootedValue::new(cx, event.detail().to_jsval(cx));
             let custom_event = CustomEvent::new(GlobalRef::Window(window.r()),
                                                 event.name().to_owned(),
                                                 true,
                                                 true,
-                                                event.detail().to_jsval(cx)).root();
+                                                detail.handle()).root();
             let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
             let event: JSRef<Event> = EventCast::from_ref(custom_event.r());
             event.fire(target);

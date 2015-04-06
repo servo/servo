@@ -9,7 +9,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use geom::size::Size2D;
 use js::jsapi::{JSContext, JSObject};
-use js::jsfriendapi::bindgen::{JS_NewUint8ClampedArray, JS_GetUint8ClampedArrayData};
+use js::jsapi::{JS_NewUint8ClampedArray, JS_GetUint8ClampedArrayData};
 use libc::uint8_t;
 use std::vec::Vec;
 use collections::slice;
@@ -32,7 +32,7 @@ impl ImageData {
             let js_object: *mut JSObject = JS_NewUint8ClampedArray(cx, width * height * 4);
 
             if let Some(vec) = data {
-                let js_object_data: *mut uint8_t = JS_GetUint8ClampedArrayData(js_object, cx);
+                let js_object_data: *mut uint8_t = JS_GetUint8ClampedArrayData(js_object, ptr::null());
                 ptr::copy_nonoverlapping(vec.as_ptr(), js_object_data, vec.len())
             }
 
@@ -61,7 +61,7 @@ impl<'a> ImageDataHelpers for JSRef<'a, ImageData> {
     fn get_data_array(self, global: &GlobalRef) -> Vec<u8> {
         unsafe {
             let cx = global.get_cx();
-            let data: *const uint8_t = JS_GetUint8ClampedArrayData(self.Data(cx), cx) as *const uint8_t;
+            let data: *const uint8_t = JS_GetUint8ClampedArrayData(self.Data(cx), ptr::null()) as *const uint8_t;
             let len = self.Width() * self.Height() * 4;
             slice::from_raw_parts(data, len as usize).to_vec()
         }
