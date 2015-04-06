@@ -33,8 +33,7 @@ use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
 
-use js::jsapi::JSContext;
-use js::jsval::JSVal;
+use js::jsapi::{JSContext, HandleValue};
 use js::rust::Runtime;
 use url::Url;
 
@@ -272,7 +271,7 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
-    fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
+    fn PostMessage(self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         self.parent_sender.send(ScriptMsg::RunnableMsg(

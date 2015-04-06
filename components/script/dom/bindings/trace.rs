@@ -43,7 +43,7 @@ use geom::rect::Rect;
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;
-use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSGCTraceKind};
+use js::jsapi::{JSObject, JSTracer, JSGCTraceKind, JS_CallValueTracer, JS_CallObjectTracer, GCTraceKindToAscii, Heap};
 use js::jsval::JSVal;
 use js::rust::Runtime;
 use layout_interface::{LayoutRPC, LayoutChan};
@@ -68,6 +68,7 @@ use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
+use std::mem;
 use string_cache::{Atom, Namespace};
 use style::properties::PropertyDeclarationBlock;
 use url::Url;
@@ -90,36 +91,38 @@ no_jsmanaged_fields!(EncodingRef);
 no_jsmanaged_fields!(Reflector);
 
 /// Trace a `JSVal`.
-pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
-    if !val.is_markable() {
-        return;
-    }
-
+pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: *mut Heap<JSVal>) {
     unsafe {
+        if !(*val).ptr.is_markable() {
+            return;
+        }
+
         let name = CString::new(description).unwrap();
-        (*tracer).debugPrinter = None;
-        (*tracer).debugPrintIndex = !0;
-        (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;
+        (*tracer).debugPrinter_ = None;
+        (*tracer).debugPrintIndex_ = !0;
+        (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing value {}", description);
-        JS_CallTracer(tracer, val.to_gcthing(), val.trace_kind());
+        JS_CallValueTracer(tracer, val, GCTraceKindToAscii((*val).ptr.trace_kind()));
     }
 }
 
 /// Trace the `JSObject` held by `reflector`.
 #[allow(unrooted_must_root)]
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
-    trace_object(tracer, description, reflector.get_jsobject())
+    unsafe {
+        trace_object(tracer, description, reflector.rootable())
+    }
 }
 
 /// Trace a `JSObject`.
-pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut JSObject) {
+pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut Heap<*mut JSObject>) {
     unsafe {
         let name = CString::new(description).unwrap();
-        (*tracer).debugPrinter = None;
-        (*tracer).debugPrintIndex = !0;
-        (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;
+        (*tracer).debugPrinter_ = None;
+        (*tracer).debugPrintIndex_ = !0;
+        (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing {}", description);
-        JS_CallTracer(tracer, obj as *mut libc::c_void, JSGCTraceKind::JSTRACE_OBJECT);
+        JS_CallObjectTracer(tracer, obj, GCTraceKindToAscii(JSGCTraceKind::JSTRACE_OBJECT));
     }
 }
 
@@ -167,15 +170,21 @@ impl<T: JSTraceable+Copy> JSTraceable for Cell<T> {
     }
 }
 
+
 impl JSTraceable for *mut JSObject {
     fn trace(&self, trc: *mut JSTracer) {
-        trace_object(trc, "object", *self);
+        unsafe {
+            trace_object(trc, "object", mem::transmute(&*self));
+        }
     }
 }
 
+
 impl JSTraceable for JSVal {
     fn trace(&self, trc: *mut JSTracer) {
-        trace_jsval(trc, "val", *self);
+        unsafe {
+            trace_jsval(trc, "val", mem::transmute(&*self));
+        }
     }
 }
 

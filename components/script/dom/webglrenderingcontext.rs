@@ -16,7 +16,7 @@ use dom::webglprogram::{WebGLProgram, WebGLProgramHelpers};
 use dom::webgluniformlocation::{WebGLUniformLocation, WebGLUniformLocationHelpers};
 use geom::size::Size2D;
 use js::jsapi::{JSContext, JSObject};
-use js::jsfriendapi::bindgen::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
+use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
 use js::jsval::{JSVal, NullValue, Int32Value};
 use std::mem;
 use std::ptr;
@@ -101,11 +101,11 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
         unsafe {
             let mut length = 0;
             let mut ptr = ptr::null_mut();
-            let buffer_data = JS_GetObjectAsArrayBufferView(cx, data, &mut length, &mut ptr);
+            let buffer_data = JS_GetObjectAsArrayBufferView(data, &mut length, &mut ptr);
             if buffer_data.is_null() {
                 panic!("Argument data to WebGLRenderingContext.bufferdata is not a Float32Array")
             }
-            let data_f32 = JS_GetFloat32ArrayData(buffer_data, cx);
+            let data_f32 = JS_GetFloat32ArrayData(buffer_data, ptr::null());
             let data_vec_length = length / mem::size_of::<f32>() as u32;
             data_vec = Vec::from_raw_buf(data_f32, data_vec_length as usize);
         }
@@ -242,7 +242,7 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
         };
         let data_vec: Vec<f32>;
         unsafe {
-            let data_f32 = JS_GetFloat32ArrayData(data, cx);
+            let data_f32 = JS_GetFloat32ArrayData(data, ptr::null());
             data_vec = Vec::from_raw_buf(data_f32, 4);
         }
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4fv(uniform_id, data_vec))).unwrap()

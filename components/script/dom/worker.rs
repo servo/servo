@@ -26,8 +26,8 @@ use devtools_traits::{DevtoolsControlMsg, DevtoolsPageInfo};
 
 use util::str::DOMString;
 
-use js::jsapi::JSContext;
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsapi::{JSContext, HandleValue, RootedValue};
+use js::jsval::UndefinedValue;
 use url::UrlParser;
 
 use std::borrow::ToOwned;
@@ -122,18 +122,18 @@ impl Worker {
                                 filename: DOMString, lineno: u32, colno: u32) {
         let worker = address.to_temporary().root();
         let global = worker.r().global.root();
-        let error = UndefinedValue();
+        let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
         let errorevent = ErrorEvent::new(global.r(), "error".to_owned(),
                                          EventBubbles::Bubbles, EventCancelable::Cancelable,
-                                         message, filename, lineno, colno, error).root();
+                                         message, filename, lineno, colno, error.handle()).root();
         let event: JSRef<Event> = EventCast::from_ref(errorevent.r());
         event.fire(target);
     }
 }
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
-    fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
+    fn PostMessage(self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
         self.sender.send((address, ScriptMsg::DOMMessage(data))).unwrap();
