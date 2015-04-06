@@ -24,9 +24,10 @@
 
 use dom::bindings::js::{Temporary, JSRef, Unrooted};
 use dom::bindings::utils::{Reflector, Reflectable};
+use dom::bindings::trace::trace_reflector;
 use script_task::{ScriptMsg, ScriptChan};
 
-use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSContext};
+use js::jsapi::{JSContext, JSTracer};
 
 use libc;
 use std::cell::RefCell;
@@ -151,10 +152,6 @@ impl LiveDOMReferences {
                 refcount.clone()
             }
             Vacant(entry) => {
-                unsafe {
-                    let rootable = (*ptr).reflector().rootable();
-                    JS_AddObjectRoot(cx, rootable);
-                }
                 let refcount = Arc::new(Mutex::new(1));
                 entry.insert(refcount.clone());
                 refcount
@@ -168,7 +165,6 @@ impl LiveDOMReferences {
         LIVE_REFERENCES.with(|ref r| {
             let r = r.borrow();
             let live_references = r.as_ref().unwrap();
-            let reflectable = raw_reflectable as *const Reflector;
             let mut table = live_references.table.borrow_mut();
             match table.entry(raw_reflectable) {
                 Occupied(entry) => {
@@ -178,9 +174,6 @@ impl LiveDOMReferences {
                         return;
                     }
 
-                    unsafe {
-                        JS_RemoveObjectRoot(cx, (*reflectable).rootable());
-                    }
                     let _ = entry.remove();
                 }
                 Vacant(_) => {
@@ -193,4 +186,17 @@ impl LiveDOMReferences {
             }
         })
     }
+}
+
+/// A JSTraceDataOp for tracing reflectors held in LIVE_REFERENCES
+pub unsafe extern fn trace_refcounted_objects(tracer: *mut JSTracer, _data: *mut libc::c_void) {
+    LIVE_REFERENCES.with(|ref r| {
+        let r = r.borrow();
+        let live_references = r.as_ref().unwrap();
+        let table = live_references.table.borrow();
+        for obj in table.keys() {
+            let reflectable = &*(*obj as *const Reflector);
+            trace_reflector(tracer, "LIVE_REFERENCES", reflectable);
+        }
+    });
 }

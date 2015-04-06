@@ -49,11 +49,11 @@ use util::opts;
 use util::str::{DOMString,HTML_SPACE_CHARACTERS};
 
 use geom::{Point2D, Rect, Size2D};
-use js::jsapi::JS_EvaluateUCScript;
-use js::jsapi::JSContext;
-use js::jsapi::{JS_GC, JS_GetRuntime};
-use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{Runtime, with_compartment};
+use js::jsapi::{Evaluate2, MutableHandleValue};
+use js::jsapi::{JSContext, HandleValue};
+use js::jsapi::{JS_GC, JS_GetRuntime, JSAutoCompartment, JSAutoRequest};
+use js::rust::Runtime;
+use js::rust::CompileOptionsWrapper;
 use url::{Url, UrlParser};
 
 use libc;
@@ -372,7 +372,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
-    fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
+    fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -382,7 +382,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
-    fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+    fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
@@ -397,7 +397,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
-    fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
+    fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -407,7 +407,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
-    fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+    fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
@@ -501,7 +501,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         doc.r().cancel_animation_frame(ident);
     }
 
-    fn WebdriverCallback(self, cx: *mut JSContext, val: JSVal) {
+    fn WebdriverCallback(self, cx: *mut JSContext, val: HandleValue) {
         let rv = jsval_to_webdriver(cx, val);
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
@@ -560,35 +560,38 @@ pub trait WindowHelpers {
 }
 
 pub trait ScriptHelpers {
-    fn evaluate_js_on_global_with_result(self, code: &str) -> JSVal;
-    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str) -> JSVal;
+    fn evaluate_js_on_global_with_result(self, code: &str,
+                                         rval: MutableHandleValue);
+    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str,
+                                             rval: MutableHandleValue);
 }
 
 impl<'a, T: Reflectable> ScriptHelpers for JSRef<'a, T> {
-    fn evaluate_js_on_global_with_result(self, code: &str) -> JSVal {
-        self.evaluate_script_on_global_with_result(code, "")
+    fn evaluate_js_on_global_with_result(self, code: &str,
+                                         rval: MutableHandleValue) {
+        self.evaluate_script_on_global_with_result(code, "", rval)
     }
 
     #[allow(unsafe_code)]
-    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str) -> JSVal {
+    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str,
+                                             rval: MutableHandleValue) {
         let this = self.reflector().get_jsobject();
         let cx = global_object_for_js_object(this).root().r().get_cx();
+        let _ar = JSAutoRequest::new(cx);
         let global = global_object_for_js_object(this).root().r().reflector().get_jsobject();
         let code: Vec<u16> = code.utf16_units().collect();
-        let mut rval = UndefinedValue();
         let filename = CString::new(filename).unwrap();
 
-        with_compartment(cx, global, || {
-            unsafe {
-                if JS_EvaluateUCScript(cx, global, code.as_ptr(),
-                                       code.len() as libc::c_uint,
-                                       filename.as_ptr(), 1, &mut rval) == 0 {
-                    debug!("error evaluating JS string");
-                    report_pending_exception(cx, global);
-                }
-                rval
+        let _ac = JSAutoCompartment::new(cx, global);
+        let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 0);
+        unsafe {
+            if Evaluate2(cx, options.ptr, code.as_ptr() as *const i16,
+                         code.len() as libc::size_t,
+                         rval) == 0 {
+                debug!("error evaluating JS string");
+                report_pending_exception(cx, global);
             }
-        })
+        }
     }
 }
 
