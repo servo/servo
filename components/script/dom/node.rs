@@ -413,7 +413,7 @@ pub trait NodeHelpers<'a> {
     fn inclusive_ancestors(self) -> AncestorIterator;
     fn children(self) -> NodeChildrenIterator;
     fn rev_children(self) -> ReverseChildrenIterator;
-    fn child_elements(self) -> ChildElementIterator<'a>;
+    fn child_elements(self) -> ChildElementIterator;
     fn following_siblings(self) -> NodeChildrenIterator;
     fn is_in_doc(self) -> bool;
     fn is_inclusive_ancestor_of(self, parent: JSRef<Node>) -> bool;
@@ -870,14 +870,9 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         }
     }
 
-    fn child_elements(self) -> ChildElementIterator<'a> {
-        fn cast<'a>(n: Temporary<Node>) -> Option<JSRef<'a, Element>> {
-            let n = n.root();
-            ElementCast::to_ref(n.get_unsound_ref_forever())
-        }
-
+    fn child_elements(self) -> ChildElementIterator {
         self.children()
-            .filter_map(cast as fn(_) -> _)
+            .filter_map(ElementCast::to_temporary as fn(_) -> _)
             .peekable()
     }
 
@@ -1114,9 +1109,9 @@ impl RawLayoutNodeHelpers for Node {
 // Iteration and traversal
 //
 
-pub type ChildElementIterator<'a> =
+pub type ChildElementIterator =
     Peekable<FilterMap<NodeChildrenIterator,
-                       fn(Temporary<Node>) -> Option<JSRef<'a, Element>>>>;
+                       fn(Temporary<Node>) -> Option<Temporary<Element>>>>;
 
 pub struct NodeChildrenIterator {
     current: Option<Temporary<Node>>,
@@ -1946,7 +1941,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                             0 => (),
                             // Step 6.1.2
                             1 => {
-                                if self.child_elements().any(|c| NodeCast::from_ref(c) != child) {
+                                if self.child_elements()
+                                       .map(|c| c.root())
+                                       .any(|c| NodeCast::from_ref(c.r()) != child) {
                                     return Err(HierarchyRequest);
                                 }
                                 if child.following_siblings()
@@ -1962,8 +1959,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                     // Step 6.2
                     NodeTypeId::Element(..) => {
                         if self.child_elements()
-                               .any(|c| NodeCast::from_ref(c) != child)
-                        {
+                               .map(|c| c.root())
+                               .any(|c| NodeCast::from_ref(c.r()) != child) {
                             return Err(HierarchyRequest);
                         }
                         if child.following_siblings()
