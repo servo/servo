@@ -154,10 +154,10 @@ struct NodeActorMsg {
     actor: String,
     baseURI: String,
     parent: String,
-    nodeType: uint,
+    nodeType: u16,
     namespaceURI: String,
     nodeName: String,
-    numChildren: uint,
+    numChildren: usize,
 
     name: String,
     publicId: String,
@@ -364,7 +364,7 @@ struct GetAppliedReply {
 
 #[derive(RustcEncodable)]
 struct GetComputedReply {
-    computed: Vec<uint>, //XXX all css props
+    computed: Vec<u32>, //XXX all css props
     from: String,
 }
 
@@ -379,11 +379,11 @@ struct AppliedEntry {
 #[derive(RustcEncodable)]
 struct AppliedRule {
     actor: String,
-    __type__: uint,
+    __type__: u32,
     href: String,
     cssText: String,
-    line: uint,
-    column: uint,
+    line: u32,
+    column: u32,
     parentStyleSheet: String,
 }
 
@@ -395,14 +395,14 @@ struct AppliedSheet {
     disabled: bool,
     title: String,
     system: bool,
-    styleSheetIndex: int,
-    ruleCount: uint,
+    styleSheetIndex: isize,
+    ruleCount: usize,
 }
 
 #[derive(RustcEncodable)]
 struct GetLayoutReply {
-    width: int,
-    height: int,
+    width: i32,
+    height: i32,
     autoMargins: Json,
     from: String,
 }
@@ -464,8 +464,8 @@ impl Actor for PageStyleActor {
                 //TODO: the remaining layout properties (margin, border, padding, position)
                 //      as specified in getLayout in http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
                 let msg = GetLayoutReply {
-                    width: width.round() as int,
-                    height: height.round() as int,
+                    width: width.round() as i32,
+                    height: height.round() as i32,
                     autoMargins: if auto_margins {
                         //TODO: real values like processMargins in http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
                         let mut m = BTreeMap::new();

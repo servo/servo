@@ -10,7 +10,7 @@
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 
-#![feature(int_uint, box_syntax, core, rustc_private)]
+#![feature(box_syntax, core, rustc_private)]
 #![feature(collections, std_misc)]
 #![feature(io)]
 #![feature(net)]

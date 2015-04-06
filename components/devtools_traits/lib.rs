@@ -9,7 +9,6 @@
 #![crate_name = "devtools_traits"]
 #![crate_type = "rlib"]
 
-#![feature(int_uint)]
 #![feature(net)]
 
 #![allow(non_snake_case)]
@@ -67,10 +66,10 @@ pub struct NodeInfo {
     pub uniqueId: String,
     pub baseURI: String,
     pub parent: String,
-    pub nodeType: uint,
+    pub nodeType: u16,
     pub namespaceURI: String,
     pub nodeName: String,
-    pub numChildren: uint,
+    pub numChildren: usize,
 
     pub name: String,
     pub publicId: String,
@@ -110,10 +109,10 @@ pub struct Modification{
 
 impl Decodable for Modification {
     fn decode<D: Decoder>(d: &mut D) -> Result<Modification, D::Error> {
-        d.read_struct("Modification", 2u, |d|
+        d.read_struct("Modification", 2, |d|
             Ok(Modification {
-                attributeName: try!(d.read_struct_field("attributeName", 0u, |d| Decodable::decode(d))),
-                newValue: match d.read_struct_field("newValue", 1u, |d| Decodable::decode(d)) {
+                attributeName: try!(d.read_struct_field("attributeName", 0, |d| Decodable::decode(d))),
+                newValue: match d.read_struct_field("newValue", 1, |d| Decodable::decode(d)) {
                     Ok(opt) => opt,
                     Err(_) => None
                 }

@@ -30,7 +30,7 @@ struct ErrorReply {
 #[derive(RustcEncodable)]
 struct ListTabsReply {
     from: String,
-    selected: uint,
+    selected: u32,
     tabs: Vec<TabActorMsg>,
 }
 
