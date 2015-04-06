@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::DOMImplementationBinding::DOMImplementatio
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::error::Fallible;
-use dom::bindings::error::Error::{InvalidCharacter, NamespaceError};
+use dom::bindings::error::Error::{InvalidCharacter, Namespace};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Root, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -57,7 +57,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
             // Step 1.
             InvalidXMLName => Err(InvalidCharacter),
             // Step 2.
-            Name => Err(NamespaceError),
+            Name => Err(Namespace),
             // Step 3.
             QName => {
                 let document = self.document.root();

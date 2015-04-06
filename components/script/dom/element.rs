@@ -26,7 +26,8 @@ use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeC
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
 use dom::bindings::error::{ErrorResult, Fallible};
-use dom::bindings::error::Error::{NamespaceError, InvalidCharacter, Syntax};
+use dom::bindings::error::Error;
+use dom::bindings::error::Error::{InvalidCharacter, Syntax};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::trace::RootedVec;
@@ -1045,7 +1046,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             // Step 2.
             InvalidXMLName => return Err(InvalidCharacter),
             // Step 3.
-            Name => return Err(NamespaceError),
+            Name => return Err(Error::Namespace),
             QName => {}
         }
 
@@ -1055,17 +1056,17 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         if let Some(ref prefix_str) = prefix {
             // Step 5.
             if namespace == ns!("") {
-                return Err(NamespaceError);
+                return Err(Error::Namespace);
             }
 
             // Step 6.
             if "xml" == *prefix_str && namespace != ns!(XML) {
-                return Err(NamespaceError);
+                return Err(Error::Namespace);
             }
 
             // Step 7b.
             if "xmlns" == *prefix_str && namespace != ns!(XMLNS) {
-                return Err(NamespaceError);
+                return Err(Error::Namespace);
             }
         }
 
@@ -1075,12 +1076,12 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
         // Step 7a.
         if xmlns == name && namespace != ns!(XMLNS) {
-            return Err(NamespaceError);
+            return Err(Error::Namespace);
         }
 
         // Step 8.
         if namespace == ns!(XMLNS) && xmlns != name && Some("xmlns") != prefix {
-            return Err(NamespaceError);
+            return Err(Error::Namespace);
         }
 
         // Step 9.

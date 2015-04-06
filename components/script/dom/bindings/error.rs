@@ -39,7 +39,7 @@ pub enum Error {
     /// SyntaxError DOMException
     Syntax,
     /// NamespaceError DOMException
-    NamespaceError,
+    Namespace,
     /// InvalidAccessError DOMException
     InvalidAccess,
     /// SecurityError DOMException
@@ -53,10 +53,10 @@ pub enum Error {
     /// DataCloneError DOMException
     DataClone,
     /// NoModificationAllowedError DOMException
-    NoModificationAllowedError,
+    NoModificationAllowed,
 
     /// TypeError JavaScript Error
-    TypeError(DOMString),
+    Type(DOMString),
 
     /// A JavaScript exception is already pending.
     JSFailed,
@@ -81,15 +81,15 @@ pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
         Error::NotSupported => DOMErrorName::NotSupportedError,
         Error::InvalidState => DOMErrorName::InvalidStateError,
         Error::Syntax => DOMErrorName::SyntaxError,
-        Error::NamespaceError => DOMErrorName::NamespaceError,
+        Error::Namespace => DOMErrorName::NamespaceError,
         Error::InvalidAccess => DOMErrorName::InvalidAccessError,
         Error::Security => DOMErrorName::SecurityError,
         Error::Network => DOMErrorName::NetworkError,
         Error::Abort => DOMErrorName::AbortError,
         Error::Timeout => DOMErrorName::TimeoutError,
         Error::DataClone => DOMErrorName::DataCloneError,
-        Error::NoModificationAllowedError => DOMErrorName::NoModificationAllowedError,
-        Error::TypeError(message) => {
+        Error::NoModificationAllowed => DOMErrorName::NoModificationAllowedError,
+        Error::Type(message) => {
             throw_type_error(cx, &message);
             return;
         }

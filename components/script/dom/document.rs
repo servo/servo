@@ -21,7 +21,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElem
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
-use dom::bindings::error::Error::{HierarchyRequest, NamespaceError};
+use dom::bindings::error::Error::{HierarchyRequest, Namespace};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, RootedReference};
@@ -983,7 +983,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             },
             Name => {
                 debug!("Not a valid qualified element name");
-                return Err(NamespaceError);
+                return Err(Namespace);
             },
             QName => {}
         }
@@ -993,12 +993,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             // throw if prefix is not null and namespace is null
             (&ns!(""), Some(_), _) => {
                 debug!("Namespace can't be null with a non-null prefix");
-                return Err(NamespaceError);
+                return Err(Namespace);
             },
             // throw if prefix is "xml" and namespace is not the XML namespace
             (_, Some(ref prefix), _) if "xml" == *prefix && ns != ns!(XML) => {
                 debug!("Namespace must be the xml namespace if the prefix is 'xml'");
-                return Err(NamespaceError);
+                return Err(Namespace);
             },
             // throw if namespace is the XMLNS namespace and neither qualifiedName nor prefix is
             // "xmlns"
@@ -1006,7 +1006,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             (&ns!(XMLNS), _, "xmlns") => {},
             (&ns!(XMLNS), _, _) => {
                 debug!("The prefix or the qualified name must be 'xmlns' if namespace is the XMLNS namespace ");
-                return Err(NamespaceError);
+                return Err(Namespace);
             },
             _ => {}
         }

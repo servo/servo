@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasWin
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
-use dom::bindings::error::Error::{IndexSize, NotSupported, TypeError};
+use dom::bindings::error::Error::{IndexSize, NotSupported, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};
@@ -628,7 +628,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         let y1 = *y1;
 
         if [x0, y0, x1, y1].iter().any(|x| x.is_nan() || x.is_infinite()) {
-            return Err(TypeError("One of the arguments of createLinearGradient() is not a finite floating-point value.".to_owned()));
+            return Err(Type("One of the arguments of createLinearGradient() is not a finite floating-point value.".to_owned()));
         }
         Ok(CanvasGradient::new(self.global.root().r(),
                                CanvasGradientStyle::Linear(LinearGradientStyle::new(x0, y0, x1, y1, Vec::new()))))
@@ -644,7 +644,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         let r1 = *r1;
 
         if [x0, y0, r0, x1, y1, r1].iter().any(|x| x.is_nan() || x.is_infinite()) {
-            return Err(TypeError("One of the arguments of createRadialGradient() is not a finite floating-point value.".to_owned()));
+            return Err(Type("One of the arguments of createRadialGradient() is not a finite floating-point value.".to_owned()));
         }
         Ok(CanvasGradient::new(self.global.root().r(),
                                CanvasGradientStyle::Radial(RadialGradientStyle::new(x0, y0, r0, x1, y1, r1, Vec::new()))))

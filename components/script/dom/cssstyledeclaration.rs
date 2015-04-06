@@ -187,7 +187,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
                    priority: DOMString) -> ErrorResult {
         // Step 1
         if self.readonly {
-            return Err(Error::NoModificationAllowedError);
+            return Err(Error::NoModificationAllowed);
         }
 
         // Step 2
@@ -247,7 +247,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
     fn SetPropertyPriority(self, property: DOMString, priority: DOMString) -> ErrorResult {
         // Step 1
         if self.readonly {
-            return Err(Error::NoModificationAllowedError);
+            return Err(Error::NoModificationAllowed);
         }
 
         // Step 2
@@ -295,7 +295,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
     fn RemoveProperty(self, property: DOMString) -> Fallible<DOMString> {
         // Step 1
         if self.readonly {
-            return Err(Error::NoModificationAllowedError);
+            return Err(Error::NoModificationAllowed);
         }
 
         // Step 2
