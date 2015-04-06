@@ -13,6 +13,7 @@ use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::JSContext;
 use js::jsapi::{JS_WriteStructuredClone, JS_ClearPendingException};
 use js::jsapi::JS_ReadStructuredClone;
+use js::jsapi::{RootedValue, HandleValue};
 use js::jsval::{JSVal, UndefinedValue};
 
 use libc::size_t;
@@ -26,13 +27,14 @@ pub struct StructuredCloneData {
 
 impl StructuredCloneData {
     /// Writes a structured clone. Returns a `DataClone` error if that fails.
-    pub fn write(cx: *mut JSContext, message: JSVal)
+    pub fn write(cx: *mut JSContext, message: HandleValue)
                  -> Fallible<StructuredCloneData> {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
         let result = unsafe {
             JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                    ptr::null(), ptr::null_mut())
+                                    ptr::null(), ptr::null_mut(),
+                                    HandleValue::undefined())
         };
         if result == 0 {
             unsafe { JS_ClearPendingException(cx); }
@@ -48,14 +50,14 @@ impl StructuredCloneData {
     ///
     /// Panics if `JS_ReadStructuredClone` fails.
     pub fn read(self, global: GlobalRef) -> JSVal {
-        let mut message = UndefinedValue();
+        let mut message = RootedValue::new(global.get_cx(), UndefinedValue());
         unsafe {
             assert!(JS_ReadStructuredClone(
-                global.get_cx(), self.data as *const u64, self.nbytes,
-                JS_STRUCTURED_CLONE_VERSION, &mut message,
+                global.get_cx(), self.data, self.nbytes,
+                JS_STRUCTURED_CLONE_VERSION, message.handle_mut(),
                 ptr::null(), ptr::null_mut()) != 0);
         }
-        message
+        message.ptr
     }
 }
 

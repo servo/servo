@@ -5,6 +5,7 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::Reflectable;
 
@@ -16,7 +17,8 @@ use horribly_inefficient_timers;
 use util::task::spawn_named;
 use util::str::DOMString;
 
-use js::jsval::JSVal;
+use js::jsapi::{RootedValue, HandleValue};
+use js::jsval::{JSVal, UndefinedValue};
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -133,7 +135,7 @@ impl TimerManager {
     #[allow(unsafe_code)]
     pub fn set_timeout_or_interval(&self,
                                   callback: TimerCallback,
-                                  arguments: Vec<JSVal>,
+                                  arguments: Vec<HandleValue>,
                                   timeout: i32,
                                   is_interval: IsInterval,
                                   source: TimerSource,
@@ -205,7 +207,7 @@ impl TimerManager {
             data: TimerData {
                 is_interval: is_interval,
                 callback: callback,
-                args: arguments
+                args: arguments.iter().map(|arg| arg.get()).collect()
             }
         };
         self.active_timers.borrow_mut().insert(timer_id, timer);
@@ -230,10 +232,14 @@ impl TimerManager {
         // TODO: Must handle rooting of funval and args when movable GC is turned on
         match data.callback {
             TimerCallback::FunctionTimerCallback(function) => {
-                let _ = function.Call_(this, data.args, Report);
+                let args = data.args.iter().map(|arg| HandleValue { ptr: arg }).collect();
+                let _ = function.Call_(this, args, Report);
             }
             TimerCallback::StringTimerCallback(code_str) => {
-                this.evaluate_js_on_global_with_result(&code_str);
+                let proxy = this.reflector().get_jsobject();
+                let cx = global_object_for_js_object(proxy).root().r().get_cx();
+                let mut rval = RootedValue::new(cx, UndefinedValue());
+                this.evaluate_js_on_global_with_result(&code_str, rval.handle_mut());
             }
         };
 
