@@ -12,12 +12,14 @@ use azure::azure_hl::{GaussianBlurAttribute, GaussianBlurInput};
 
 use std::num::Float;
 use style::computed_values::filter;
+use util::geometry::Au;
 
 /// Creates a filter pipeline from a set of CSS filters. Returns the destination end of the filter
 /// pipeline and the opacity.
 pub fn create_filters(draw_target: &DrawTarget,
                       temporary_draw_target: &DrawTarget,
-                      style_filters: &filter::T)
+                      style_filters: &filter::T,
+                      accumulated_blur_radius: &mut Au)
                       -> (FilterNode, AzFloat) {
     let mut opacity = 1.0;
     let mut filter = draw_target.create_filter(FilterType::Composite);
@@ -93,6 +95,7 @@ pub fn create_filters(draw_target: &DrawTarget,
                 filter = contrast
             }
             filter::Filter::Blur(amount) => {
+                *accumulated_blur_radius = accumulated_blur_radius.clone() + amount;
                 let amount = amount.to_frac32_px();
                 let blur = draw_target.create_filter(FilterType::GaussianBlur);
                 blur.set_attribute(GaussianBlurAttribute::StdDeviation(amount));

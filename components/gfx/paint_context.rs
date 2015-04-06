@@ -935,12 +935,19 @@ impl<'a> PaintContext<'a> {
         temporary_draw_target.set_transform(&Matrix2D::identity());
 
         // Create the Azure filter pipeline.
+        let mut accum_blur = Au::new(0);
         let (filter_node, opacity) = filters::create_filters(&self.draw_target,
                                                              temporary_draw_target,
-                                                             filters);
+                                                             filters, &mut accum_blur);
 
         // Perform the blit operation.
-        let rect = Rect(Point2D(0.0, 0.0), self.draw_target.get_size().to_azure_size());
+        let mut rect = Rect(Point2D(0.0, 0.0), self.draw_target.get_size().to_azure_size());
+        // Factor in the blur inflation to avoid clipping.
+        if accum_blur > Au::new(0) {
+            let side_inflation = accum_blur * BLUR_INFLATION_FACTOR;
+            // TODO: it will require to create a temporary draw target.
+        }
+
         let mut draw_options = DrawOptions::new(opacity, 0);
         draw_options.set_composition_op(blend_mode.to_azure_composition_op());
         self.draw_target.draw_filter(&filter_node, &rect, &rect.origin, draw_options);
