@@ -389,12 +389,21 @@ impl<T: VecRootableType> RootedVec<T> {
     /// Create a vector of items of type T that is rooted for
     /// the lifetime of this struct
     pub fn new() -> RootedVec<T> {
+        let addr = unsafe {
+            return_address() as *const libc::c_void
+        };
+
+        RootedVec::new_with_destination_address(addr)
+    }
+
+    /// Create a vector of items of type T. This constructor is specific
+    /// for RootCollection.
+    pub fn new_with_destination_address(addr: *const libc::c_void) -> RootedVec<T> {
         unsafe {
-            RootedCollectionSet::add::<T>(&*(return_address() as *const _));
+            RootedCollectionSet::add::<T>(&*(addr as *const _));
         }
         RootedVec::<T> { v: vec!() }
     }
-
 }
 
 #[unsafe_destructor]
