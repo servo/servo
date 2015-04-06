@@ -5,7 +5,6 @@
 #![feature(box_syntax)]
 #![feature(collections)]
 #![feature(core)]
-#![feature(int_uint)]
 #![feature(rustc_private)]
 #![feature(std_misc)]
 
