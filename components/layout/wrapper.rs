@@ -50,7 +50,7 @@ use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
-use script::dom::htmliframeelement::HTMLIFrameElement;
+use script::dom::htmliframeelement::{HTMLIFrameElement, LayoutHTMLIFrameElementHelpers};
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
@@ -141,6 +141,22 @@ pub trait TLayoutNode {
         unsafe {
             let canvas_element: Option<LayoutJS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
             canvas_element.unwrap().get_canvas_height()
+        }
+    }
+
+    fn get_iframe_width(&self) -> Option<u32> {
+        unsafe {
+            let iframe_element: Option<LayoutJS<HTMLIFrameElement>> =
+                HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged());
+            iframe_element.unwrap().get_iframe_width()
+        }
+    }
+
+    fn get_iframe_height(&self) -> Option<u32> {
+        unsafe {
+            let iframe_element: Option<LayoutJS<HTMLIFrameElement>> =
+                HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged());
+            iframe_element.unwrap().get_iframe_height()
         }
     }
 

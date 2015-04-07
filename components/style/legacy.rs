@@ -24,6 +24,8 @@ use util::str::LengthOrPercentageOrAuto;
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum LengthAttribute {
     /// `<td width>`
+    Height,
+    /// `<td width>`
     Width,
 }
 
@@ -186,6 +188,42 @@ impl PresentationalHintSynthesis for Stylist {
                         *shareable = false
                     }
                     Some(_) | None => {}
+                }
+            }
+            name if *name == atom!("iframe") => {
+                match element.get_length_attribute(LengthAttribute::Width) {
+                    LengthOrPercentageOrAuto::Auto => {}
+                    LengthOrPercentageOrAuto::Percentage(percentage) => {
+                        let width_value = specified::LengthOrPercentageOrAuto::Percentage(
+                            percentage);
+                        matching_rules_list.push(from_declaration(
+                                PropertyDeclaration::Width(SpecifiedValue(width_value))));
+                        *shareable = false
+                    }
+                    LengthOrPercentageOrAuto::Length(length) => {
+                        let width_value = specified::LengthOrPercentageOrAuto::Length(
+                            specified::Length::Absolute(length));
+                        matching_rules_list.push(from_declaration(
+                                PropertyDeclaration::Width(SpecifiedValue(width_value))));
+                        *shareable = false
+                    }
+                }
+                match element.get_length_attribute(LengthAttribute::Height) {
+                    LengthOrPercentageOrAuto::Auto => {}
+                    LengthOrPercentageOrAuto::Percentage(percentage) => {
+                        let height_value = specified::LengthOrPercentageOrAuto::Percentage(
+                            percentage);
+                        matching_rules_list.push(from_declaration(
+                                PropertyDeclaration::Height(SpecifiedValue(height_value))));
+                        *shareable = false
+                    }
+                    LengthOrPercentageOrAuto::Length(length) => {
+                        let height_value = specified::LengthOrPercentageOrAuto::Length(
+                            specified::Length::Absolute(length));
+                        matching_rules_list.push(from_declaration(
+                                PropertyDeclaration::Height(SpecifiedValue(height_value))));
+                        *shareable = false
+                    }
                 }
             }
             _ => {}

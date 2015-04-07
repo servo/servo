@@ -12,8 +12,8 @@ interface HTMLIFrameElement : HTMLElement {
            attribute DOMString sandbox;
   //         attribute boolean seamless;
   //         attribute boolean allowFullscreen;
-  //         attribute DOMString width;
-  //         attribute DOMString height;
+           attribute DOMString width;
+           attribute DOMString height;
   readonly attribute Document? contentDocument;
   //readonly attribute WindowProxy? contentWindow;
   readonly attribute Window? contentWindow;
