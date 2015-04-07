@@ -506,20 +506,17 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         }.root();
 
         let el = match ElementCast::to_ref(node.r()) {
-            Some(el) => el,
+            Some(el) => Temporary::from_rooted(el),
             None => {
-                let ancestor = node.r()
-                                   .ancestors()
-                                   .filter_map(ElementCast::to_ref)
-                                   .next();
-                match ancestor {
-                    Some(ancestor) => ancestor,
+                let parent = node.r().parent_node();
+                match parent.and_then(ElementCast::to_temporary) {
+                    Some(parent) => parent,
                     None => return,
                 }
             },
-        };
+        }.root();
 
-        let node: JSRef<Node> = NodeCast::from_ref(el);
+        let node: JSRef<Node> = NodeCast::from_ref(el.r());
         debug!("clicked on {:?}", node.debug_str());
         // Prevent click event if form control element is disabled.
         if node.click_event_filter_by_disabled_state() {
@@ -548,7 +545,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
         event.set_trusted(true);
         // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
-        el.authentic_click_activation(event);
+        el.r().authentic_click_activation(event);
 
         self.commit_focus_transaction();
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::MouseEvent);
@@ -563,7 +560,10 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let mouse_over_targets: Vec<JS<Node>> = mouse_over_addresses.iter()
                                                                     .filter_map(|node_address| {
             let node = node::from_untrusted_node_address(js_runtime, *node_address);
-            node.root().r().inclusive_ancestors().find(|node| node.is_element()).map(JS::from_rooted)
+            node.root().r().inclusive_ancestors()
+                .map(|node| node.root())
+                .find(|node| node.r().is_element())
+                .map(|node| JS::from_rooted(node.r()))
         }).collect();
 
         // Remove hover from any elements in the previous list that are no longer
@@ -927,7 +927,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-documentelement
     fn GetDocumentElement(self) -> Option<Temporary<Element>> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        node.child_elements().next().map(Temporary::from_rooted)
+        node.child_elements().next()
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname

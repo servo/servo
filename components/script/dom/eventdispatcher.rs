@@ -31,7 +31,8 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
     let mut chain: RootedVec<JS<EventTarget>> = RootedVec::new();
     if let Some(target_node) = NodeCast::to_ref(target) {
         for ancestor in target_node.ancestors() {
-            let ancestor_target: JSRef<EventTarget> = EventTargetCast::from_ref(ancestor);
+            let ancestor = ancestor.root();
+            let ancestor_target = EventTargetCast::from_ref(ancestor.r());
             chain.push(JS::from_rooted(ancestor_target))
         }
     }

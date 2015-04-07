@@ -319,7 +319,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
         }
 
         let node: JSRef<Node> = NodeCast::from_ref(*self);
-        if node.ancestors().any(|ancestor| ancestor.is_htmlfieldsetelement()) {
+        if node.ancestors().any(|ancestor| ancestor.root().r().is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {
             node.check_disabled_attribute();

@@ -258,7 +258,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
             if child.get_disabled_state() {
                 return None;
             }
-            if child.ancestors().any(|a| a.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataListElement))) {
+            if child.ancestors().any(|a| a.root().r().type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataListElement))) {
                 return None;
             }
             // XXXManishearth don't include it if it is a button but not the submitter
@@ -531,8 +531,13 @@ pub trait FormControl<'a> : Copy + Sized {
             }
         }
         let node: JSRef<Node> = NodeCast::from_ref(elem);
-        node.ancestors().filter_map(|a| HTMLFormElementCast::to_ref(a)).next()
-            .map(Temporary::from_rooted)
+        for ancestor in node.ancestors() {
+            let ancestor = ancestor.root();
+            if let Some(ancestor) = HTMLFormElementCast::to_ref(ancestor.r()) {
+                return Some(Temporary::from_rooted(ancestor))
+            }
+        }
+        None
     }
 
     fn get_form_attribute<InputFn, OwnerFn>(self,

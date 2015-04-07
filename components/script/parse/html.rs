@@ -12,6 +12,7 @@ use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, TextCast, CommentCa
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
 use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
+use dom::bindings::js::RootedReference;
 use dom::bindings::trace::RootedVec;
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers};
@@ -350,10 +351,11 @@ pub fn parse_html_fragment(context_node: JSRef<Node>,
 
     // Step 11.
     let form = context_node.inclusive_ancestors()
-                           .find(|element| element.is_htmlformelement());
+                           .map(|element| element.root())
+                           .find(|element| element.r().is_htmlformelement());
     let fragment_context = FragmentContext {
         context_elem: context_node,
-        form_elem: form,
+        form_elem: form.r(),
     };
     parse_html(document.r(), HTMLInput::InputString(input), &url, Some(fragment_context));
 

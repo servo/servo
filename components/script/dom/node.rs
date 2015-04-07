@@ -409,11 +409,11 @@ impl<'a> Iterator for QuerySelectorIterator<'a> {
 }
 
 pub trait NodeHelpers<'a> {
-    fn ancestors(self) -> AncestorIterator<'a>;
-    fn inclusive_ancestors(self) -> AncestorIterator<'a>;
+    fn ancestors(self) -> AncestorIterator;
+    fn inclusive_ancestors(self) -> AncestorIterator;
     fn children(self) -> NodeChildrenIterator;
     fn rev_children(self) -> ReverseChildrenIterator;
-    fn child_elements(self) -> ChildElementIterator<'a>;
+    fn child_elements(self) -> ChildElementIterator;
     fn following_siblings(self) -> NodeChildrenIterator;
     fn is_in_doc(self) -> bool;
     fn is_inclusive_ancestor_of(self, parent: JSRef<Node>) -> bool;
@@ -735,8 +735,9 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
         // 4. Dirty ancestors.
         for ancestor in self.ancestors() {
-            if !force_ancestors && ancestor.get_has_dirty_descendants() { break }
-            ancestor.set_has_dirty_descendants(true);
+            let ancestor = ancestor.root();
+            if !force_ancestors && ancestor.r().get_has_dirty_descendants() { break }
+            ancestor.r().set_has_dirty_descendants(true);
         }
     }
 
@@ -752,7 +753,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn is_inclusive_ancestor_of(self, parent: JSRef<Node>) -> bool {
-        self == parent || parent.ancestors().any(|ancestor| ancestor == self)
+        self == parent || parent.ancestors().any(|ancestor| ancestor.root().r() == self)
     }
 
     fn following_siblings(self) -> NodeChildrenIterator {
@@ -788,7 +789,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             Err(()) => return Err(Syntax),
             // Step 3.
             Ok(ref selectors) => {
-                let root = self.ancestors().last().unwrap_or(self.clone());
+                let root = self.ancestors().last().root();
+                let root = root.r().unwrap_or(self.clone());
                 Ok(root.traverse_preorder()
                        .filter_map(ElementCast::to_ref)
                        .find(|element| matches(selectors, &NodeCast::from_ref(*element), &mut None))
@@ -805,7 +807,9 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
                                   -> Fallible<QuerySelectorIterator<'a>> {
         // Step 1.
         let nodes;
-        let root = self.ancestors().last().unwrap_or(self.clone());
+        let root = self.ancestors().last().root()
+                       .map(|node| node.get_unsound_ref_forever())
+                       .unwrap_or(self.clone());
         match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
             Err(()) => return Err(Syntax),
@@ -830,15 +834,15 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
 
-    fn ancestors(self) -> AncestorIterator<'a> {
+    fn ancestors(self) -> AncestorIterator {
         AncestorIterator {
-            current: self.parent_node.get().map(|node| node.root().get_unsound_ref_forever()),
+            current: self.parent_node()
         }
     }
 
-    fn inclusive_ancestors(self) -> AncestorIterator<'a> {
+    fn inclusive_ancestors(self) -> AncestorIterator {
         AncestorIterator {
-            current: Some(self.clone())
+            current: Some(Temporary::from_rooted(self))
         }
     }
 
@@ -862,18 +866,13 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     fn rev_children(self) -> ReverseChildrenIterator {
         ReverseChildrenIterator {
-            current: self.last_child.get().root(),
+            current: self.last_child(),
         }
     }
 
-    fn child_elements(self) -> ChildElementIterator<'a> {
-        fn cast<'a>(n: Temporary<Node>) -> Option<JSRef<'a, Element>> {
-            let n = n.root();
-            ElementCast::to_ref(n.get_unsound_ref_forever())
-        }
-
+    fn child_elements(self) -> ChildElementIterator {
         self.children()
-            .filter_map(cast as fn(_) -> _)
+            .filter_map(ElementCast::to_temporary as fn(_) -> _)
             .peekable()
     }
 
@@ -1110,9 +1109,9 @@ impl RawLayoutNodeHelpers for Node {
 // Iteration and traversal
 //
 
-pub type ChildElementIterator<'a> =
+pub type ChildElementIterator =
     Peekable<FilterMap<NodeChildrenIterator,
-                       fn(Temporary<Node>) -> Option<JSRef<'a, Element>>>>;
+                       fn(Temporary<Node>) -> Option<Temporary<Element>>>>;
 
 pub struct NodeChildrenIterator {
     current: Option<Temporary<Node>>,
@@ -1132,30 +1131,36 @@ impl Iterator for NodeChildrenIterator {
 }
 
 pub struct ReverseChildrenIterator {
-    current: Option<Root<Node>>,
+    current: Option<Temporary<Node>>,
 }
 
 impl Iterator for ReverseChildrenIterator {
     type Item = Temporary<Node>;
 
     fn next(&mut self) -> Option<Temporary<Node>> {
-        let node = self.current.r().map(Temporary::from_rooted);
-        self.current = self.current.take().and_then(|node| node.r().prev_sibling()).root();
-        node
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        }.root();
+        self.current = current.r().prev_sibling();
+        Some(Temporary::from_rooted(current.r()))
     }
 }
 
-pub struct AncestorIterator<'a> {
-    current: Option<JSRef<'a, Node>>,
+pub struct AncestorIterator {
+    current: Option<Temporary<Node>>,
 }
 
-impl<'a> Iterator for AncestorIterator<'a> {
-    type Item = JSRef<'a, Node>;
+impl Iterator for AncestorIterator {
+    type Item = Temporary<Node>;
 
-    fn next(&mut self) -> Option<JSRef<'a, Node>> {
-        let node = self.current;
-        self.current = node.and_then(|node| node.parent_node().map(|node| node.root().get_unsound_ref_forever()));
-        node
+    fn next(&mut self) -> Option<Temporary<Node>> {
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        }.root();
+        self.current = current.r().parent_node();
+        Some(Temporary::from_rooted(current.r()))
     }
 }
 
@@ -1936,7 +1941,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                             0 => (),
                             // Step 6.1.2
                             1 => {
-                                if self.child_elements().any(|c| NodeCast::from_ref(c) != child) {
+                                if self.child_elements()
+                                       .map(|c| c.root())
+                                       .any(|c| NodeCast::from_ref(c.r()) != child) {
                                     return Err(HierarchyRequest);
                                 }
                                 if child.following_siblings()
@@ -1952,8 +1959,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                     // Step 6.2
                     NodeTypeId::Element(..) => {
                         if self.child_elements()
-                               .any(|c| NodeCast::from_ref(c) != child)
-                        {
+                               .map(|c| c.root())
+                               .any(|c| NodeCast::from_ref(c.r()) != child) {
                             return Err(HierarchyRequest);
                         }
                         if child.following_siblings()
@@ -2171,23 +2178,25 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             // step 2.
             0
         } else {
-            let mut lastself = self.clone();
-            let mut lastother = other.clone();
+            let mut lastself = Temporary::from_rooted(self.clone());
+            let mut lastother = Temporary::from_rooted(other.clone());
             for ancestor in self.ancestors() {
-                if ancestor == other {
+                let ancestor = ancestor.root();
+                if ancestor.r() == other {
                     // step 4.
                     return NodeConstants::DOCUMENT_POSITION_CONTAINS +
                            NodeConstants::DOCUMENT_POSITION_PRECEDING;
                 }
-                lastself = ancestor.clone();
+                lastself = Temporary::from_rooted(ancestor.r());
             }
             for ancestor in other.ancestors() {
-                if ancestor == self {
+                let ancestor = ancestor.root();
+                if ancestor.r() == self {
                     // step 5.
                     return NodeConstants::DOCUMENT_POSITION_CONTAINED_BY +
                            NodeConstants::DOCUMENT_POSITION_FOLLOWING;
                 }
-                lastother = ancestor.clone();
+                lastother = Temporary::from_rooted(ancestor.r());
             }
 
             if lastself != lastother {
@@ -2205,7 +2214,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                     NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
             }
 
-            for child in lastself.traverse_preorder() {
+            let lastself = lastself.root();
+            for child in lastself.r().traverse_preorder() {
                 if child == other {
                     // step 6.
                     return NodeConstants::DOCUMENT_POSITION_PRECEDING;
@@ -2415,7 +2425,10 @@ pub trait DisabledStateHelpers {
 impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
     fn check_ancestors_disabled_state_for_form_control(self) {
         if self.get_disabled_state() { return; }
-        for ancestor in self.ancestors().filter(|ancestor| ancestor.is_htmlfieldsetelement()) {
+        for ancestor in self.ancestors() {
+            let ancestor = ancestor.root();
+            let ancestor = ancestor.r();
+            if !ancestor.is_htmlfieldsetelement() { continue; }
             if !ancestor.get_disabled_state() { continue; }
             if ancestor.is_parent_of(self) {
                 self.set_disabled_state(true);
@@ -2428,7 +2441,7 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
             {
                 Some(legend) => {
                     // XXXabinader: should we save previous ancestor to avoid this iteration?
-                    if self.ancestors().any(|ancestor| ancestor == legend.r()) { continue; }
+                    if self.ancestors().any(|ancestor| ancestor.root().r() == legend.r()) { continue; }
                 },
                 None => ()
             }

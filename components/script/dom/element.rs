@@ -28,7 +28,7 @@ use dom::bindings::error::Error;
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
 use dom::bindings::error::Error::NoModificationAllowed;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
-use dom::bindings::js::OptionalRootable;
+use dom::bindings::js::{OptionalRootable, RootedReference};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::xml_name_type;
 use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
@@ -595,8 +595,8 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     // https://html.spec.whatwg.org/multipage/infrastructure.html#root-element
     fn get_root_element(self) -> Option<Temporary<Element>> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        match node.ancestors().last().map(ElementCast::to_ref) {
-            Some(n) => n.map(Temporary::from_rooted),
+        match node.ancestors().last().map(ElementCast::to_temporary) {
+            Some(n) => n,
             None => Some(self).map(Temporary::from_rooted),
         }
     }
@@ -1258,10 +1258,15 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
                 let root: JSRef<Node> = NodeCast::from_ref(self);
-                Ok(root.inclusive_ancestors()
-                       .filter_map(ElementCast::to_ref)
-                       .find(|element| matches(selectors, &NodeCast::from_ref(*element), &mut None))
-                       .map(Temporary::from_rooted))
+                for element in root.inclusive_ancestors() {
+                    let element = element.root();
+                    if let Some(element) = ElementCast::to_ref(element.r()) {
+                        if matches(selectors, &NodeCast::from_ref(element), &mut None) {
+                            return Ok(Some(Temporary::from_rooted(element)));
+                        }
+                    }
+                }
+                Ok(None)
             }
         }
     }
@@ -1599,13 +1604,15 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
             Some(el) => Some(Temporary::from_rooted(el.as_element().root().r())),
             None => {
                 let node: JSRef<Node> = NodeCast::from_ref(self);
-                node.ancestors()
-                    .filter_map(|node| {
-                        let e: Option<JSRef<Element>> = ElementCast::to_ref(node);
-                        e
-                    })
-                    .filter(|e| e.as_maybe_activatable().is_some()).next()
-                    .map(|r| Temporary::from_rooted(r))
+                for node in node.ancestors() {
+                    let node = node.root();
+                    if let Some(node) = ElementCast::to_ref(node.r()) {
+                        if node.as_maybe_activatable().is_some() {
+                            return Some(Temporary::from_rooted(node))
+                        }
+                    }
+                }
+                None
             }
         }
     }
