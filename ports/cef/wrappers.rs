@@ -246,7 +246,7 @@ impl<'a> CefWrap<cef_string_userfree_t> for String {
         let boxed_string;
         unsafe {
             let buffer = libc::malloc((mem::size_of::<c_ushort>() as u64) *
-                                      ((utf16_chars.len() + 1) as u64 + 1)) as *mut u16;
+                                      ((utf16_chars.len() + 1) as u64)) as *mut u16;
             for (i, ch) in utf16_chars.iter().enumerate() {
                 *buffer.offset(i as int) = *ch
             }
