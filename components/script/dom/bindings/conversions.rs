@@ -569,17 +569,6 @@ pub fn native_from_reflector_jsmanaged<T>(mut obj: *mut JSObject) -> Result<Unro
     }
 }
 
-impl<T: Reflectable+IDLInterface> FromJSValConvertible for Unrooted<T> {
-    type Config = ();
-    fn from_jsval(_cx: *mut JSContext, value: JSVal, _option: ())
-                  -> Result<Unrooted<T>, ()> {
-        if !value.is_object() {
-            return Err(());
-        }
-        native_from_reflector_jsmanaged(value.to_object())
-    }
-}
-
 impl<T: Reflectable> ToJSValConvertible for Root<T> {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         self.r().reflector().to_jsval(cx)
