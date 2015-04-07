@@ -435,7 +435,6 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
         &self.extended_deref().local_name
     }
 
-    // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn parsed_name(self, name: DOMString) -> DOMString {
         if self.html_element_in_html_document() {
             name.to_ascii_lowercase()
@@ -664,7 +663,7 @@ pub trait AttributeHandlers {
                      -> Option<Temporary<Attr>>;
     /// Returns the first attribute with any namespace and given case-sensitive
     /// name, if any.
-    fn get_attribute_by_name(self, name: &Atom) -> Option<Temporary<Attr>>;
+    fn get_attribute_by_name(self, name: DOMString) -> Option<Temporary<Attr>>;
     fn get_attributes(self, local_name: &Atom)
                       -> Vec<Temporary<Attr>>;
     fn set_attribute_from_parser(self,
@@ -715,7 +714,9 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             .map(|x| Temporary::from_rooted(x.r()))
     }
 
-    fn get_attribute_by_name(self, name: &Atom) -> Option<Temporary<Attr>> {
+    // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
+    fn get_attribute_by_name(self, name: DOMString) -> Option<Temporary<Attr>> {
+        let name = &Atom::from_slice(&self.parsed_name(name));
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let attrs = self.attrs.borrow();
         attrs.iter().map(|attr| attr.root())
@@ -723,7 +724,6 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
              .map(|x| Temporary::from_rooted(x.r()))
     }
 
-    // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn get_attributes(self, local_name: &Atom) -> Vec<Temporary<Attr>> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let attrs = self.attrs.borrow();
@@ -1056,8 +1056,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // https://dom.spec.whatwg.org/#dom-element-getattribute
     fn GetAttribute(self, name: DOMString) -> Option<DOMString> {
-        let name = self.parsed_name(name);
-        self.get_attribute_by_name(&Atom::from_slice(&name)).root()
+        self.get_attribute_by_name(name).root()
                      .map(|s| s.r().Value())
     }
 
