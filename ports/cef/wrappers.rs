@@ -61,7 +61,7 @@ macro_rules! cef_pointer_wrapper(
                 rust_object
             }
             unsafe fn to_rust(c_object: *const $ty) -> &'a $ty {
-                mem::transmute::<*const $ty,&'a $ty>(c_object)
+                &*c_object
             }
         }
         impl<'a> CefWrap<*mut $ty> for &'a mut $ty {
@@ -69,7 +69,7 @@ macro_rules! cef_pointer_wrapper(
                 rust_object
             }
             unsafe fn to_rust(c_object: *mut $ty) -> &'a mut $ty {
-                mem::transmute::<*mut $ty,&'a mut $ty>(c_object)
+                &mut *c_object
             }
         }
         cef_noop_wrapper!(*const $ty);
@@ -214,8 +214,7 @@ impl<'a> CefWrap<*mut cef_string_t> for &'a mut [u16] {
         panic!("unimplemented CEF type conversion: &'a str")
     }
     unsafe fn to_rust(_: *mut cef_string_t) -> &'a mut [u16] {
-        mem::transmute::<(int,int),_>(panic!("unimplemented CEF type conversion: *mut \
-                                              cef_string_t"))
+        panic!("unimplemented CEF type conversion: *mut cef_string_t")
     }
 }
 
