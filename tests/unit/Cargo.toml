@@ -23,8 +23,23 @@ path = "../../components/net_traits"
 [dependencies.profile]
 path = "../../components/profile"
 
+[dependencies.style]
+path = "../../components/style"
+
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
+
+[dependencies.cssparser]
+git = "https://github.com/servo/rust-cssparser"
+
+[dependencies.selectors]
+git = "https://github.com/servo/rust-selectors"
+
+[dependencies.string_cache]
+git = "https://github.com/servo/string-cache"
+
+[dependencies.string_cache_plugin]
+git = "https://github.com/servo/string-cache"
 
 [dependencies]
 cookie = "*"
