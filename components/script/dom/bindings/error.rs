@@ -34,6 +34,8 @@ pub enum Error {
     InvalidCharacter,
     /// NotSupportedError DOMException
     NotSupported,
+    /// InUseAttributeError DOMException
+    InUseAttribute,
     /// InvalidStateError DOMException
     InvalidState,
     /// SyntaxError DOMException
@@ -79,6 +81,7 @@ pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
         Error::HierarchyRequest => DOMErrorName::HierarchyRequestError,
         Error::InvalidCharacter => DOMErrorName::InvalidCharacterError,
         Error::NotSupported => DOMErrorName::NotSupportedError,
+        Error::InUseAttribute => DOMErrorName::InUseAttributeError,
         Error::InvalidState => DOMErrorName::InvalidStateError,
         Error::Syntax => DOMErrorName::SyntaxError,
         Error::Namespace => DOMErrorName::NamespaceError,
