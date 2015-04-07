@@ -32,6 +32,7 @@ use types::{cef_window_info_t, cef_xml_encoding_type_t, cef_xml_node_type_t};
 use unicode::str::Utf16Encoder;
 
 use libc::{self, c_char, c_int, c_ushort, c_void};
+use std::boxed;
 use std::collections::HashMap;
 use std::mem;
 use std::ptr;
@@ -187,14 +188,11 @@ impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
 
             // FIXME(pcwalton): This leaks!! We should instead have the caller pass some scratch
             // stack space to create the object in. What a botch.
-            let boxed_string = box cef_string_utf16 {
+            boxed::into_raw(box cef_string_utf16 {
                 str: ptr,
                 length: buffer.len() as u64,
                 dtor: Some(free_boxed_utf16_string as extern "C" fn(*mut c_ushort)),
-            };
-            let result: *const cef_string_utf16 = &*boxed_string;
-            mem::forget(boxed_string);
-            result
+            }) as *const _
         }
     }
     unsafe fn to_rust(cef_string: *const cef_string_t) -> &'a [u16] {
