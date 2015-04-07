@@ -64,7 +64,7 @@ first adding the following to the system's hosts file:
     127.0.0.1   xn--n8j6ds53lwwkrqhv28a.web-platform.test
     127.0.0.1   xn--lve-6lad.web-platform.test
 
-and then running `python serve.py` from `tests/wpt/web-platform-tests`.
+and then running `python serve` from `tests/wpt/web-platform-tests`.
 Then navigate Servo to `http://web-platform.test:8000/path/to/test`.
 
 Updating test expectations
