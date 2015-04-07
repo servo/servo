@@ -23,6 +23,7 @@ dictionary TestDictionary {
   TestEnum enumValue;
   Blob interfaceValue;
   any anyValue;
+  object objectValue;
 };
 
 dictionary TestDictionaryDefaults {
@@ -60,6 +61,7 @@ dictionary TestDictionaryDefaults {
   DOMString? nullableStringValue = "foo";
   USVString? nullableUsvstringValue = "foo";
   // TestEnum? nullableEnumValue = "bar";
+  object? nullableObjectValue = null;
 };
 
 interface TestBinding {
@@ -85,6 +87,7 @@ interface TestBinding {
            attribute (Event or DOMString) union2Attribute;
   readonly attribute Uint8ClampedArray arrayAttribute;
            attribute any anyAttribute;
+           attribute object objectAttribute;
 
            attribute boolean? booleanAttributeNullable;
            attribute byte? byteAttributeNullable;
@@ -104,6 +107,7 @@ interface TestBinding {
            attribute ByteString? byteStringAttributeNullable;
   readonly attribute TestEnum? enumAttributeNullable;
            attribute Blob? interfaceAttributeNullable;
+           attribute object? objectAttributeNullable;
            attribute (HTMLElement or long)? unionAttributeNullable;
            attribute (Event or DOMString)? union2AttributeNullable;
   [BinaryName="BinaryRenamedAttribute"] attribute DOMString attrToBinaryRename;
@@ -129,6 +133,7 @@ interface TestBinding {
   TestEnum receiveEnum();
   Blob receiveInterface();
   any receiveAny();
+  object receiveObject();
   (HTMLElement or long) receiveUnion();
   (Event or DOMString) receiveUnion2();
 
@@ -150,6 +155,7 @@ interface TestBinding {
   ByteString? receiveNullableByteString();
   TestEnum? receiveNullableEnum();
   Blob? receiveNullableInterface();
+  object? receiveNullableObject();
   (HTMLElement or long)? receiveNullableUnion();
   (Event or DOMString)? receiveNullableUnion2();
 
@@ -175,6 +181,7 @@ interface TestBinding {
   void passUnion2((Event or DOMString) data);
   void passUnion3((Blob or DOMString) data);
   void passAny(any arg);
+  void passObject(object arg);
   void passCallbackFunction(Function fun);
   void passCallbackInterface(EventListener listener);
 
@@ -196,6 +203,7 @@ interface TestBinding {
   void passNullableByteString(ByteString? arg);
   // void passNullableEnum(TestEnum? arg);
   void passNullableInterface(Blob? arg);
+  void passNullableObject(object? arg);
   void passNullableUnion((HTMLElement or long)? arg);
   void passNullableUnion2((Event or DOMString)? data);
   void passNullableCallbackFunction(Function? fun);
@@ -222,6 +230,7 @@ interface TestBinding {
   void passOptionalUnion(optional (HTMLElement or long) arg);
   void passOptionalUnion2(optional (Event or DOMString) data);
   void passOptionalAny(optional any arg);
+  void passOptionalObject(optional object arg);
   void passOptionalCallbackFunction(optional Function fun);
   void passOptionalCallbackInterface(optional EventListener listener);
 
@@ -243,6 +252,7 @@ interface TestBinding {
   void passOptionalNullableByteString(optional ByteString? arg);
   // void passOptionalNullableEnum(optional TestEnum? arg);
   void passOptionalNullableInterface(optional Blob? arg);
+  void passOptionalNullableObject(optional object? arg);
   void passOptionalNullableUnion(optional (HTMLElement or long)? arg);
   void passOptionalNullableUnion2(optional (Event or DOMString)? data);
   void passOptionalNullableCallbackFunction(optional Function? fun);
@@ -277,6 +287,7 @@ interface TestBinding {
   void passOptionalNullableByteStringWithDefault(optional ByteString? arg = null);
   // void passOptionalNullableEnumWithDefault(optional TestEnum? arg = null);
   void passOptionalNullableInterfaceWithDefault(optional Blob? arg = null);
+  void passOptionalNullableObjectWithDefault(optional object? arg = null);
   void passOptionalNullableUnionWithDefault(optional (HTMLElement or long)? arg = null);
   void passOptionalNullableUnion2WithDefault(optional (Event or DOMString)? data = null);
   // void passOptionalNullableCallbackFunctionWithDefault(optional Function? fun = null);
@@ -324,6 +335,7 @@ interface TestBinding {
   void passVariadicUnion2((Event or DOMString)... args);
   void passVariadicUnion3((Blob or DOMString)... args);
   void passVariadicAny(any... args);
+  void passVariadicObject(object... args);
 
   static attribute boolean booleanAttributeStatic;
   static void receiveVoidStatic();

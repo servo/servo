@@ -582,7 +582,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
     # A helper function for wrapping up the template body for
     # possibly-nullable objecty stuff
-    def wrapObjectTemplate(templateBody, isDefinitelyObject, type,
+    def wrapObjectTemplate(templateBody, nullValue, isDefinitelyObject, type,
                            failureCode=None):
         if not isDefinitelyObject:
             # Handle the non-object cases by wrapping up the whole
@@ -593,7 +593,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             if type.nullable():
                 templateBody += (
                     "} else if (${val}).is_null_or_undefined() {\n"
-                    "    None\n")
+                    "    %s\n") % nullValue
             templateBody += (
                 "} else {\n" +
                 CGIndenter(onFailureNotAnObject(failureCode)).define() +
@@ -632,8 +632,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             template = "%s::new((${val}).to_object())" % name
             if type.nullable():
                 declType = CGWrapper(declType, pre="Option<", post=">")
-                template = wrapObjectTemplate("Some(%s)" % template, isDefinitelyObject, type,
-                                               failureCode)
+                template = wrapObjectTemplate("Some(%s)" % template, "None",
+                                              isDefinitelyObject, type,
+                                              failureCode)
 
             return handleOptional(template, declType, handleDefaultNull("None"))
 
@@ -675,8 +676,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if isMember:
             templateBody += ".root()"
 
-        templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
-                                          type, failureCode)
+        templateBody = wrapObjectTemplate(templateBody, "None",
+                                          isDefinitelyObject, type, failureCode)
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
@@ -821,6 +822,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                                        onFailureNotCallable(failureCode)).define()
             template = wrapObjectTemplate(
                 template,
+                "None",
                 isDefinitelyObject,
                 type,
                 failureCode)
@@ -853,7 +855,15 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         return handleOptional("${val}", declType, default)
 
     if type.isObject():
-        raise TypeError("Can't handle object arguments yet")
+        assert not isEnforceRange and not isClamp
+
+        declType = CGGeneric("*mut JSObject")
+        templateBody = wrapObjectTemplate("${val}.to_object()",
+                                          "ptr::null_mut()",
+                                          isDefinitelyObject, type, failureCode)
+
+        return handleOptional(templateBody, declType,
+                              handleDefaultNull("ptr::null_mut()"))
 
     if type.isDictionary():
         if failureCode is not None:

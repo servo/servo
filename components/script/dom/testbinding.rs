@@ -24,6 +24,7 @@ use js::jsapi::{JSContext, JSObject};
 use js::jsval::{JSVal, NullValue};
 
 use std::borrow::ToOwned;
+use std::ptr;
 
 #[dom_struct]
 pub struct TestBinding {
@@ -78,6 +79,8 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn ArrayAttribute(self, _: *mut JSContext) -> *mut JSObject { NullValue().to_object_or_null() }
     fn AnyAttribute(self, _: *mut JSContext) -> JSVal { NullValue() }
     fn SetAnyAttribute(self, _: *mut JSContext, _: JSVal) {}
+    fn ObjectAttribute(self, _: *mut JSContext) -> *mut JSObject { panic!() }
+    fn SetObjectAttribute(self, _: *mut JSContext, _: *mut JSObject) {}
 
     fn GetBooleanAttributeNullable(self) -> Option<bool> { Some(false) }
     fn SetBooleanAttributeNullable(self, _: Option<bool>) {}
@@ -119,6 +122,8 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
         Some(Blob::new(global.r(), None, ""))
     }
     fn SetInterfaceAttributeNullable(self, _: Option<JSRef<Blob>>) {}
+    fn GetObjectAttributeNullable(self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
+    fn SetObjectAttributeNullable(self, _: *mut JSContext, _: *mut JSObject) {}
     fn GetUnionAttributeNullable(self) -> Option<HTMLElementOrLong> { Some(eLong(0)) }
     fn SetUnionAttributeNullable(self, _: Option<HTMLElementOrLong>) {}
     fn GetUnion2AttributeNullable(self) -> Option<EventOrString> { Some(eString("".to_owned())) }
@@ -147,6 +152,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
         Blob::new(global.r(), None, "")
     }
     fn ReceiveAny(self, _: *mut JSContext) -> JSVal { NullValue() }
+    fn ReceiveObject(self, _: *mut JSContext) -> *mut JSObject { panic!() }
     fn ReceiveUnion(self) -> HTMLElementOrLong { eLong(0) }
     fn ReceiveUnion2(self) -> EventOrString { eString("".to_owned()) }
 
@@ -171,6 +177,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
         let global = self.global.root();
         Some(Blob::new(global.r(), None, ""))
     }
+    fn ReceiveNullableObject(self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
     fn ReceiveNullableUnion(self) -> Option<HTMLElementOrLong> { Some(eLong(0)) }
     fn ReceiveNullableUnion2(self) -> Option<EventOrString> { Some(eString("".to_owned())) }
 
@@ -196,6 +203,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassUnion2(self, _: EventOrString) {}
     fn PassUnion3(self, _: BlobOrString) {}
     fn PassAny(self, _: *mut JSContext, _: JSVal) {}
+    fn PassObject(self, _: *mut JSContext, _: *mut JSObject) {}
     fn PassCallbackFunction(self, _: Function) {}
     fn PassCallbackInterface(self, _: EventListener) {}
 
@@ -217,6 +225,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassNullableByteString(self, _: Option<ByteString>) {}
     // fn PassNullableEnum(self, _: Option<TestEnum>) {}
     fn PassNullableInterface(self, _: Option<JSRef<Blob>>) {}
+    fn PassNullableObject(self, _: *mut JSContext, _: *mut JSObject) {}
     fn PassNullableUnion(self, _: Option<HTMLElementOrLong>) {}
     fn PassNullableUnion2(self, _: Option<EventOrString>) {}
     fn PassNullableCallbackFunction(self, _: Option<Function>) {}
@@ -243,6 +252,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalUnion(self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalUnion2(self, _: Option<EventOrString>) {}
     fn PassOptionalAny(self, _: *mut JSContext, _: JSVal) {}
+    fn PassOptionalObject(self, _: *mut JSContext, _: Option<*mut JSObject>) {}
     fn PassOptionalCallbackFunction(self, _: Option<Function>) {}
     fn PassOptionalCallbackInterface(self, _: Option<EventListener>) {}
 
@@ -264,6 +274,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalNullableByteString(self, _: Option<Option<ByteString>>) {}
     // fn PassOptionalNullableEnum(self, _: Option<Option<TestEnum>>) {}
     fn PassOptionalNullableInterface(self, _: Option<Option<JSRef<Blob>>>) {}
+    fn PassOptionalNullableObject(self, _: *mut JSContext, _: Option<*mut JSObject>) {}
     fn PassOptionalNullableUnion(self, _: Option<Option<HTMLElementOrLong>>) {}
     fn PassOptionalNullableUnion2(self, _: Option<Option<EventOrString>>) {}
     fn PassOptionalNullableCallbackFunction(self, _: Option<Option<Function>>) {}
@@ -300,6 +311,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalNullableByteStringWithDefault(self, _: Option<ByteString>) {}
     // fn PassOptionalNullableEnumWithDefault(self, _: Option<TestEnum>) {}
     fn PassOptionalNullableInterfaceWithDefault(self, _: Option<JSRef<Blob>>) {}
+    fn PassOptionalNullableObjectWithDefault(self, _: *mut JSContext, _: *mut JSObject) {}
     fn PassOptionalNullableUnionWithDefault(self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalNullableUnion2WithDefault(self, _: Option<EventOrString>) {}
     // fn PassOptionalNullableCallbackFunctionWithDefault(self, _: Option<Function>) {}
@@ -345,6 +357,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassVariadicUnion2(self, _: Vec<EventOrString>) {}
     fn PassVariadicUnion3(self, _: Vec<BlobOrString>) {}
     fn PassVariadicAny(self, _: *mut JSContext, _: Vec<JSVal>) {}
+    fn PassVariadicObject(self, _: *mut JSContext, _: Vec<*mut JSObject>) {}
 }
 
 impl TestBinding {
