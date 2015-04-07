@@ -132,6 +132,9 @@ pub struct Opts {
 
     /// A specific path to find required resources (such as user-agent.css).
     pub resources_path: Option<String>,
+
+    /// Whether MIME sniffing should be used
+    pub sniff_mime_types: bool,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -212,6 +215,7 @@ pub fn default_opts() -> Opts {
         validate_display_list_geometry: false,
         profile_tasks: false,
         resources_path: None,
+        sniff_mime_types: false,
     }
 }
 
@@ -244,6 +248,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         getopts::optflag("h", "help", "Print this message"),
         getopts::optopt("r", "render-api", "Set the rendering API to use", "gl|mesa"),
         getopts::optopt("", "resources-path", "Path to find static resources", "/home/servo/resources"),
+        getopts::optflag("", "sniff-mime-types" , "Enable MIME sniffing"),
     );
 
     let opt_match = match getopts::getopts(args, opts.as_slice()) {
@@ -371,6 +376,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         relayout_event: debug_options.contains(&"relayout-event"),
         validate_display_list_geometry: debug_options.contains(&"validate-display-list-geometry"),
         resources_path: opt_match.opt_str("resources-path"),
+        sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
     };
 
     set_opts(opts);

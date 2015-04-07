@@ -428,11 +428,10 @@ mod tests {
     use net_traits::image_cache_task::ImageResponseMsg::*;
     use net_traits::image_cache_task::Msg::*;
 
-    use resource_task::{start_sending, ResponseSenders};
+    use resource_task::start_sending;
     use net_traits::{ControlMsg, Metadata, ProgressMsg, ResourceTask};
     use net_traits::image_cache_task::{ImageCacheTask, ImageResponseMsg, Msg};
     use net_traits::ProgressMsg::{Payload, Done};
-    use sniffer_task;
     use profile::time;
     use std::sync::mpsc::{Sender, channel, Receiver};
     use url::Url;
@@ -534,12 +533,7 @@ mod tests {
             loop {
                 match port.recv().unwrap() {
                     ControlMsg::Load(response) => {
-                        let sniffer_task = sniffer_task::new_sniffer_task();
-                        let senders = ResponseSenders {
-                            immediate_consumer: sniffer_task,
-                            eventual_consumer: response.consumer.clone(),
-                        };
-                        let chan = start_sending(senders, Metadata::default(
+                        let chan = start_sending(response.consumer, Metadata::default(
                             Url::parse("file:///fake").unwrap()));
                         on_load.invoke(chan);
                     }
@@ -709,12 +703,7 @@ mod tests {
             loop {
                 match port.recv().unwrap() {
                     ControlMsg::Load(response) => {
-                        let sniffer_task = sniffer_task::new_sniffer_task();
-                        let senders = ResponseSenders {
-                            immediate_consumer: sniffer_task,
-                            eventual_consumer: response.consumer.clone(),
-                        };
-                        let chan = start_sending(senders, Metadata::default(
+                        let chan = start_sending(response.consumer, Metadata::default(
                             Url::parse("file:///fake").unwrap()));
                         chan.send(Payload(test_image_bin()));
                         chan.send(Done(Ok(())));
@@ -763,12 +752,7 @@ mod tests {
             loop {
                 match port.recv().unwrap() {
                     ControlMsg::Load(response) => {
-                        let sniffer_task = sniffer_task::new_sniffer_task();
-                        let senders = ResponseSenders {
-                            immediate_consumer: sniffer_task,
-                            eventual_consumer: response.consumer.clone(),
-                        };
-                        let chan = start_sending(senders, Metadata::default(
+                        let chan = start_sending(response.consumer, Metadata::default(
                             Url::parse("file:///fake").unwrap()));
                         chan.send(Payload(test_image_bin()));
                         chan.send(Done(Err("".to_string())));

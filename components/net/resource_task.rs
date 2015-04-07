@@ -8,14 +8,14 @@ use about_loader;
 use data_loader;
 use file_loader;
 use http_loader;
-use sniffer_task;
-use sniffer_task::SnifferTask;
 use cookie_storage::CookieStorage;
 use cookie;
+use mime_classifier::MIMEClassifier;
 
 use net_traits::{ControlMsg, LoadData, LoadResponse};
 use net_traits::{Metadata, ProgressMsg, ResourceTask};
 use net_traits::ProgressMsg::Done;
+use util::opts;
 use util::task::spawn_named;
 
 use hyper::header::UserAgent;
@@ -29,6 +29,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
+use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thunk::Invoke;
 
@@ -58,32 +59,41 @@ pub fn global_init() {
     }
 }
 
-/// A LoadResponse directed at a particular consumer
-pub struct TargetedLoadResponse {
-    pub load_response: LoadResponse,
-    pub consumer: Sender<LoadResponse>,
+/// For use by loaders in responding to a Load message.
+pub fn start_sending(start_chan: Sender<LoadResponse>, metadata: Metadata) -> Sender<ProgressMsg> {
+    start_sending_opt(start_chan, metadata).ok().unwrap()
 }
 
-// Data structure containing ports
-pub struct ResponseSenders {
-    pub immediate_consumer: Sender<TargetedLoadResponse>,
-    pub eventual_consumer: Sender<LoadResponse>,
+/// For use by loaders in responding to a Load message that allows content sniffing.
+pub fn start_sending_sniffed(start_chan: Sender<LoadResponse>, metadata: Metadata,
+                             classifier: Arc<MIMEClassifier>, partial_body: &Vec<u8>)
+                             -> Sender<ProgressMsg> {
+    start_sending_sniffed_opt(start_chan, metadata, classifier, partial_body).ok().unwrap()
+}
+
+/// For use by loaders in responding to a Load message that allows content sniffing.
+pub fn start_sending_sniffed_opt(start_chan: Sender<LoadResponse>, mut metadata: Metadata,
+                                 classifier: Arc<MIMEClassifier>, partial_body: &Vec<u8>)
+                                 -> Result<Sender<ProgressMsg>, ()> {
+    if opts::get().sniff_mime_types {
+        // TODO: should be calculated in the resource loader, from pull requeset #4094
+        let nosniff = false;
+        let check_for_apache_bug = false;
+
+        metadata.content_type = classifier.classify(nosniff, check_for_apache_bug,
+                                                    &metadata.content_type, &partial_body);
+
+    }
+
+    start_sending_opt(start_chan, metadata)
 }
 
 /// For use by loaders in responding to a Load message.
-pub fn start_sending(senders: ResponseSenders, metadata: Metadata) -> Sender<ProgressMsg> {
-    start_sending_opt(senders, metadata).ok().unwrap()
-}
-
-/// For use by loaders in responding to a Load message.
-pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata) -> Result<Sender<ProgressMsg>, ()> {
+pub fn start_sending_opt(start_chan: Sender<LoadResponse>, metadata: Metadata) -> Result<Sender<ProgressMsg>, ()> {
     let (progress_chan, progress_port) = channel();
-    let result = senders.immediate_consumer.send(TargetedLoadResponse {
-        load_response: LoadResponse {
-            metadata:      metadata,
-            progress_port: progress_port,
-        },
-        consumer: senders.eventual_consumer
+    let result = start_chan.send(LoadResponse {
+        metadata:      metadata,
+        progress_port: progress_port,
     });
     match result {
         Ok(_) => Ok(progress_chan),
@@ -94,10 +104,9 @@ pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata) -> Result
 /// Create a ResourceTask
 pub fn new_resource_task(user_agent: Option<String>) -> ResourceTask {
     let (setup_chan, setup_port) = channel();
-    let sniffer_task = sniffer_task::new_sniffer_task();
     let setup_chan_clone = setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
-        ResourceManager::new(setup_port, user_agent, sniffer_task, setup_chan_clone).start();
+        ResourceManager::new(setup_port, user_agent, setup_chan_clone).start();
     });
     setup_chan
 }
@@ -139,20 +148,20 @@ pub fn replace_hosts(mut load_data: LoadData, host_table: *mut HashMap<String, S
 struct ResourceManager {
     from_client: Receiver<ControlMsg>,
     user_agent: Option<String>,
-    sniffer_task: SnifferTask,
     cookie_storage: CookieStorage,
     resource_task: Sender<ControlMsg>,
+    mime_classifier: Arc<MIMEClassifier>,
 }
 
 impl ResourceManager {
-    fn new(from_client: Receiver<ControlMsg>, user_agent: Option<String>, sniffer_task: SnifferTask,
+    fn new(from_client: Receiver<ControlMsg>, user_agent: Option<String>,
            resource_task: Sender<ControlMsg>) -> ResourceManager {
         ResourceManager {
             from_client: from_client,
             user_agent: user_agent,
-            sniffer_task: sniffer_task,
             cookie_storage: CookieStorage::new(),
             resource_task: resource_task,
+            mime_classifier: Arc::new(MIMEClassifier::new()),
         }
     }
 }
@@ -193,15 +202,11 @@ impl ResourceManager {
         }
 
         self.user_agent.as_ref().map(|ua| load_data.headers.set(UserAgent(ua.clone())));
-        let senders = ResponseSenders {
-            immediate_consumer: self.sniffer_task.clone(),
-            eventual_consumer: load_data.consumer.clone(),
-        };
 
-        fn from_factory(factory: fn(LoadData, Sender<TargetedLoadResponse>))
-                        -> Box<Invoke<(LoadData, Sender<TargetedLoadResponse>)> + Send> {
-            box move |(load_data, start_chan)| {
-                factory(load_data, start_chan)
+        fn from_factory(factory: fn(LoadData, Arc<MIMEClassifier>))
+                        -> Box<Invoke<(LoadData, Arc<MIMEClassifier>)> + Send> {
+            box move |(load_data, classifier)| {
+                factory(load_data, classifier)
             }
         }
 
@@ -212,14 +217,14 @@ impl ResourceManager {
             "about" => from_factory(about_loader::factory),
             _ => {
                 debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
-                start_sending(senders, Metadata::default(load_data.url))
+                start_sending(load_data.consumer, Metadata::default(load_data.url))
                     .send(ProgressMsg::Done(Err("no loader for scheme".to_string()))).unwrap();
                 return
             }
         };
         debug!("resource_task: loading url: {}", load_data.url.serialize());
 
-        loader.invoke((load_data, self.sniffer_task.clone()));
+        loader.invoke((load_data, self.mime_classifier.clone()));
     }
 }
 

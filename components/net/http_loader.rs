@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{ControlMsg, CookieSource, LoadData, Metadata};
-use net_traits::ProgressMsg;
+use net_traits::{ControlMsg, CookieSource, LoadData, LoadResponse, Metadata};
 use net_traits::ProgressMsg::{Payload, Done};
-use resource_task::{TargetedLoadResponse, start_sending_opt, ResponseSenders};
+use mime_classifier::MIMEClassifier;
+use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 
 use log;
 use std::collections::HashSet;
@@ -21,6 +21,7 @@ use hyper::status::{StatusCode, StatusClass};
 use std::error::Error;
 use openssl::ssl::{SslContext, SslVerifyMode};
 use std::io::{self, Read, Write};
+use std::sync::Arc;
 use std::sync::mpsc::{Sender, channel};
 use std::thunk::Invoke;
 use util::task::spawn_named;
@@ -31,35 +32,49 @@ use url::{Url, UrlParser};
 use std::borrow::ToOwned;
 
 pub fn factory(cookies_chan: Sender<ControlMsg>)
-               -> Box<Invoke<(LoadData, Sender<TargetedLoadResponse>)> + Send> {
-    box move |(load_data, start_chan)| {
-        spawn_named("http_loader".to_owned(), move || load(load_data, start_chan, cookies_chan))
+               -> Box<Invoke<(LoadData, Arc<MIMEClassifier>)> + Send> {
+    box move |(load_data, classifier)| {
+        spawn_named("http_loader".to_owned(), move || load(load_data, classifier, cookies_chan))
     }
 }
 
-fn send_error(url: Url, err: String, senders: ResponseSenders) {
+fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {
     let mut metadata: Metadata = Metadata::default(url);
     metadata.status = None;
 
-    match start_sending_opt(senders, metadata) {
+    match start_sending_opt(start_chan, metadata) {
         Ok(p) => p.send(Done(Err(err))).unwrap(),
         _ => {}
     };
 }
 
-fn load(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cookies_chan: Sender<ControlMsg>) {
+enum ReadResult {
+    Payload(Vec<u8>),
+    EOF,
+}
+
+fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
+    let mut buf = vec![0; 1024];
+
+    match reader.read(buf.as_mut_slice()) {
+        Ok(len) if len > 0 => {
+            unsafe { buf.set_len(len); }
+            Ok(ReadResult::Payload(buf))
+        }
+        Ok(_) => Ok(ReadResult::EOF),
+        Err(_) => Err(()),
+    }
+}
+
+fn load(mut load_data: LoadData, classifier: Arc<MIMEClassifier>, cookies_chan: Sender<ControlMsg>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
     let max_redirects = 50u;
     let mut iters = 0u;
+    let start_chan = load_data.consumer;
     let mut url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
-
-    let senders = ResponseSenders {
-        immediate_consumer: start_chan,
-        eventual_consumer: load_data.consumer
-    };
 
     // If the URL is a view-source scheme then the scheme data contains the
     // real URL that should be used for which the source is to be viewed.
@@ -73,7 +88,7 @@ fn load(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cooki
             "http" | "https" => {}
             _ => {
                 let s = format!("The {} scheme with view-source is not supported", url.scheme);
-                send_error(url, s, senders);
+                send_error(url, s, start_chan);
                 return;
             }
         };
@@ -84,7 +99,7 @@ fn load(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cooki
         iters = iters + 1;
 
         if iters > max_redirects {
-            send_error(url, "too many redirects".to_string(), senders);
+            send_error(url, "too many redirects".to_string(), start_chan);
             return;
         }
 
@@ -92,7 +107,7 @@ fn load(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cooki
             "http" | "https" => {}
             _ => {
                 let s = format!("{} request, but we don't support that scheme", url.scheme);
-                send_error(url, s, senders);
+                send_error(url, s, start_chan);
                 return;
             }
         }
@@ -125,13 +140,13 @@ reason: \"certificate verify failed\" }]";
             ) => {
                 let mut image = resources_dir_path();
                 image.push("badcert.html");
-                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), senders.eventual_consumer);
-                file_loader::factory(load_data, senders.immediate_consumer);
+                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), start_chan);
+                file_loader::factory(load_data, classifier);
                 return;
             },
             Err(e) => {
                 println!("{:?}", e);
-                send_error(url, e.description().to_string(), senders);
+                send_error(url, e.description().to_string(), start_chan);
                 return;
             }
         };
@@ -179,13 +194,13 @@ reason: \"certificate verify failed\" }]";
                 let mut writer = match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        send_error(url, e.description().to_string(), senders);
+                        send_error(url, e.description().to_string(), start_chan);
                         return;
                     }
                 };
                 match writer.write_all(&*data) {
                     Err(e) => {
-                        send_error(url, e.description().to_string(), senders);
+                        send_error(url, e.description().to_string(), start_chan);
                         return;
                     }
                     _ => {}
@@ -200,7 +215,7 @@ reason: \"certificate verify failed\" }]";
                 match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        send_error(url, e.description().to_string(), senders);
+                        send_error(url, e.description().to_string(), start_chan);
                         return;
                     }
                 }
@@ -209,7 +224,7 @@ reason: \"certificate verify failed\" }]";
         let mut response = match writer.send() {
             Ok(r) => r,
             Err(e) => {
-                send_error(url, e.description().to_string(), senders);
+                send_error(url, e.description().to_string(), start_chan);
                 return;
             }
         };
@@ -240,7 +255,7 @@ reason: \"certificate verify failed\" }]";
                         Some(ref c) => {
                             if c.preflight {
                                 // The preflight lied
-                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), senders);
+                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), start_chan);
                                 return;
                             } else {
                                 // XXXManishearth There are some CORS-related steps here,
@@ -252,7 +267,7 @@ reason: \"certificate verify failed\" }]";
                     let new_url = match UrlParser::new().base_url(&url).parse(&new_url) {
                         Ok(u) => u,
                         Err(e) => {
-                            send_error(url, e.to_string(), senders);
+                            send_error(url, e.to_string(), start_chan);
                             return;
                         }
                     };
@@ -268,7 +283,7 @@ reason: \"certificate verify failed\" }]";
                     }
 
                     if redirected_to.contains(&url) {
-                        send_error(url, "redirect loop".to_string(), senders);
+                        send_error(url, "redirect loop".to_string(), start_chan);
                         return;
                     }
 
@@ -291,11 +306,6 @@ reason: \"certificate verify failed\" }]";
         metadata.headers = Some(adjusted_headers);
         metadata.status = Some(response.status_raw().clone());
 
-        let progress_chan = match start_sending_opt(senders, metadata) {
-            Ok(p) => p,
-            _ => return
-        };
-
         let mut encoding_str: Option<String> = None;
         //FIXME: Implement Content-Encoding Header https://github.com/hyperium/hyper/issues/391
         if let Some(encodings) = response.headers.get_raw("content-encoding") {
@@ -313,14 +323,14 @@ reason: \"certificate verify failed\" }]";
             Some(encoding) => {
                 if encoding == "gzip" {
                     let mut response_decoding = GzDecoder::new(response).unwrap();
-                    send_data(&mut response_decoding, progress_chan);
+                    send_data(&mut response_decoding, start_chan, metadata, classifier);
                 } else if encoding == "deflate" {
                     let mut response_decoding = DeflateDecoder::new(response);
-                    send_data(&mut response_decoding, progress_chan);
+                    send_data(&mut response_decoding, start_chan, metadata, classifier);
                 }
             },
             None => {
-                send_data(&mut response, progress_chan);
+                send_data(&mut response, start_chan, metadata, classifier);
             }
         }
 
@@ -329,25 +339,35 @@ reason: \"certificate verify failed\" }]";
     }
 }
 
-fn send_data<R: Read>(reader: &mut R, progress_chan: Sender<ProgressMsg>) {
-    loop {
-        let mut buf = Vec::with_capacity(1024);
+fn send_data<R: Read>(reader: &mut R,
+                      start_chan: Sender<LoadResponse>,
+                      metadata: Metadata,
+                      classifier: Arc<MIMEClassifier>) {
+    let (progress_chan, mut chunk) = {
+        let buf = match read_block(reader) {
+            Ok(ReadResult::Payload(buf)) => buf,
+            _ => vec!(),
+        };
+        let p = match start_sending_sniffed_opt(start_chan, metadata, classifier, &buf) {
+            Ok(p) => p,
+            _ => return
+        };
+        (p, buf)
+    };
 
-        unsafe { buf.set_len(1024); }
-        match reader.read(buf.as_mut_slice()) {
-            Ok(len) if len > 0 => {
-                unsafe { buf.set_len(len); }
-                if progress_chan.send(Payload(buf)).is_err() {
-                    // The send errors when the receiver is out of scope,
-                    // which will happen if the fetch has timed out (or has been aborted)
-                    // so we don't need to continue with the loading of the file here.
-                    return;
-                }
-            }
-            Ok(_) | Err(_) => {
-                let _ = progress_chan.send(Done(Ok(())));
-                break;
-            }
+    loop {
+        if progress_chan.send(Payload(chunk)).is_err() {
+            // The send errors when the receiver is out of scope,
+            // which will happen if the fetch has timed out (or has been aborted)
+            // so we don't need to continue with the loading of the file here.
+            return;
         }
+
+        chunk = match read_block(reader) {
+            Ok(ReadResult::Payload(buf)) => buf,
+            Ok(ReadResult::EOF) | Err(_) => break,
+        };
     }
+
+    let _ = progress_chan.send(Done(Ok(())));
 }

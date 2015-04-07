@@ -4,7 +4,8 @@
 
 use net_traits::{LoadData, Metadata};
 use net_traits::ProgressMsg::Done;
-use resource_task::{TargetedLoadResponse, start_sending, ResponseSenders};
+use mime_classifier::MIMEClassifier;
+use resource_task::start_sending;
 use file_loader;
 
 use url::Url;
@@ -13,16 +14,13 @@ use util::resource_files::resources_dir_path;
 
 use std::borrow::IntoCow;
 use std::fs::PathExt;
-use std::sync::mpsc::Sender;
+use std::sync::Arc;
 
-pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
-    let senders = ResponseSenders {
-        immediate_consumer: start_chan.clone(),
-        eventual_consumer: load_data.consumer.clone(),
-    };
+pub fn factory(mut load_data: LoadData, classifier: Arc<MIMEClassifier>) {
     match load_data.url.non_relative_scheme_data().unwrap() {
         "blank" => {
-            let chan = start_sending(senders, Metadata {
+            let start_chan = load_data.consumer;
+            let chan = start_sending(start_chan, Metadata {
                 final_url: load_data.url,
                 content_type: Some(("text".to_string(), "html".to_string())),
                 charset: Some("utf-8".to_string()),
@@ -40,10 +38,11 @@ pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>
             load_data.url = Url::from_file_path(&*path).unwrap();
         }
         _ => {
-            start_sending(senders, Metadata::default(load_data.url))
+            let start_chan = load_data.consumer;
+            start_sending(start_chan, Metadata::default(load_data.url))
                 .send(Done(Err("Unknown about: URL.".to_string()))).unwrap();
             return
         }
     };
-    file_loader::factory(load_data, start_chan)
+    file_loader::factory(load_data, classifier)
 }
