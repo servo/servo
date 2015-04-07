@@ -18,6 +18,7 @@ dependencies = [
  "time 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
+ "webdriver_server 0.0.1",
 ]
 
 [[package]]
@@ -964,6 +965,34 @@ source = "git+https://github.com/rust-lang/uuid#c7862508f84b114d22bb68ec01202eaf
 dependencies = [
  "rand 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "uuid"
+version = "0.1.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "rand 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "webdriver"
+version = "0.0.1"
+source = "git+https://github.com/jgraham/webdriver-rust.git#906806d51783b5caad89432bf8ce008f2f4968fc"
+dependencies = [
+ "hyper 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uuid 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "webdriver_server"
+version = "0.0.1"
+dependencies = [
+ "webdriver 0.0.1 (git+https://github.com/jgraham/webdriver-rust.git)",
 ]
 
 [[package]]

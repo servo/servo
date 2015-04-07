@@ -1,0 +1,11 @@
+[package]
+name = "webdriver_server"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "webdriver_server"
+path = "lib.rs"
+
+[dependencies.webdriver]
+git = "https://github.com/jgraham/webdriver-rust.git"
