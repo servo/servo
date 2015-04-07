@@ -68,7 +68,7 @@ impl CookieStorage {
         self.cookies.push(cookie);
     }
 
-    fn cookie_comparator(a: &Cookie, b: &Cookie) -> Ordering {
+    pub fn cookie_comparator(a: &Cookie, b: &Cookie) -> Ordering {
         let a_path_len = a.cookie.path.as_ref().map(|p| p.len()).unwrap_or(0);
         let b_path_len = b.cookie.path.as_ref().map(|p| p.len()).unwrap_or(0);
         match a_path_len.cmp(&b_path_len) {
@@ -114,22 +114,4 @@ impl CookieStorage {
             _ => Some(result)
         }
     }
-}
-
-#[test]
-fn test_sort_order() {
-    use cookie_rs;
-    let url = &Url::parse("http://example.com/foo").unwrap();
-    let a_wrapped = cookie_rs::Cookie::parse("baz=bar; Path=/foo/bar/").unwrap();
-    let a = Cookie::new_wrapped(a_wrapped.clone(), url, CookieSource::HTTP).unwrap();
-    let a_prime = Cookie::new_wrapped(a_wrapped, url, CookieSource::HTTP).unwrap();
-    let b = cookie_rs::Cookie::parse("baz=bar;Path=/foo/bar/baz/").unwrap();
-    let b = Cookie::new_wrapped(b, url, CookieSource::HTTP).unwrap();
-
-    assert!(b.cookie.path.as_ref().unwrap().len() > a.cookie.path.as_ref().unwrap().len());
-    assert!(CookieStorage::cookie_comparator(&a, &b) == Ordering::Greater);
-    assert!(CookieStorage::cookie_comparator(&b, &a) == Ordering::Less);
-    assert!(CookieStorage::cookie_comparator(&a, &a_prime) == Ordering::Less);
-    assert!(CookieStorage::cookie_comparator(&a_prime, &a) == Ordering::Greater);
-    assert!(CookieStorage::cookie_comparator(&a, &a) == Ordering::Equal);
 }

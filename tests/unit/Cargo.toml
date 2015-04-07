@@ -14,5 +14,15 @@ path = "../../components/util"
 [dependencies.gfx]
 path = "../../components/gfx"
 
+[dependencies.net]
+path = "../../components/net"
+
+[dependencies.net_traits]
+path = "../../components/net_traits"
+
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
+
+[dependencies]
+cookie = "*"
+url = "*"
