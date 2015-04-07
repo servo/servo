@@ -45,22 +45,24 @@ use table_wrapper::TableWrapperFlow;
 use text::TextRunScanner;
 use wrapper::{PostorderNodeMutTraversal, PseudoElementType, TLayoutNode, ThreadSafeLayoutNode};
 
+use geom::size::Size2D;
 use gfx::display_list::OpaqueNode;
 use script::dom::element::ElementTypeId;
 use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlobjectelement::is_image_data;
 use script::dom::node::NodeTypeId;
-use util::opts;
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::mem;
+use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
 use style::computed_values::{position};
 use style::properties::{self, ComputedValues};
-use std::sync::Arc;
 use url::Url;
+use util::geometry::Au;
+use util::opts;
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]
@@ -273,7 +275,10 @@ impl<'a> FlowConstructor<'a> {
         let specific_fragment_info = match node.type_id() {
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                         HTMLElementTypeId::HTMLIFrameElement))) => {
-                SpecificFragmentInfo::Iframe(box IframeFragmentInfo::new(node))
+                let size =
+                    Size2D(node.get_iframe_width().map(|value| Au::from_px(value as isize)),
+                           node.get_iframe_height().map(|value| Au::from_px(value as isize)));
+                SpecificFragmentInfo::Iframe(box IframeFragmentInfo::new(node, &size))
             }
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                         HTMLElementTypeId::HTMLImageElement))) => {

@@ -14,7 +14,7 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::NotSupported;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
+use dom::bindings::js::{JSRef, LayoutJS, Temporary, OptionalRootable};
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::Element;
@@ -33,7 +33,7 @@ use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan, MozBrowse
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use util::opts;
-use util::str::DOMString;
+use util::str::{self, DOMString};
 use string_cache::Atom;
 
 use std::ascii::AsciiExt;
@@ -57,6 +57,8 @@ pub struct HTMLIFrameElement {
     subpage_id: Cell<Option<SubpageId>>,
     containing_page_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
+    width: Cell<Option<u32>>,
+    height: Cell<Option<u32>>,
 }
 
 impl HTMLIFrameElementDerived for EventTarget {
@@ -170,6 +172,8 @@ impl HTMLIFrameElement {
             subpage_id: Cell::new(None),
             containing_page_pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),
+            width: Cell::new(None),
+            height: Cell::new(None),
         }
     }
 
@@ -317,6 +321,26 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     fn Stop(self) -> Fallible<()> {
         Err(NotSupported)
     }
+
+    fn Width(self) -> DOMString {
+        let element: JSRef<Element> = ElementCast::from_ref(self);
+        element.get_string_attribute(&atom!("width"))
+    }
+
+    fn SetWidth(self, width: DOMString) {
+        let element: JSRef<Element> = ElementCast::from_ref(self);
+        element.set_string_attribute(&atom!("width"), width)
+    }
+
+    fn Height(self) -> DOMString {
+        let element: JSRef<Element> = ElementCast::from_ref(self);
+        element.get_string_attribute(&atom!("height"))
+    }
+
+    fn SetHeight(self, height: DOMString) {
+        let element: JSRef<Element> = ElementCast::from_ref(self);
+        element.set_string_attribute(&atom!("height"), height)
+    }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
@@ -347,7 +371,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                     }
                 }
                 self.sandbox.set(Some(modes));
-            },
+            }
+            &atom!("width") => {
+                self.width.set(str::parse_unsigned_integer(attr.value().as_slice().chars()))
+            }
+            &atom!("height") => {
+                self.height.set(str::parse_unsigned_integer(attr.value().as_slice().chars()))
+            }
             &atom!("src") => {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
                 if node.is_in_doc() {
@@ -384,6 +414,24 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         if tree_in_doc {
             self.process_the_iframe_attributes();
         }
+    }
+}
+
+pub trait LayoutHTMLIFrameElementHelpers {
+    #[allow(unsafe_code)]
+    unsafe fn get_iframe_width(&self) -> Option<u32>;
+    #[allow(unsafe_code)]
+    unsafe fn get_iframe_height(&self) -> Option<u32>;
+}
+
+impl LayoutHTMLIFrameElementHelpers for LayoutJS<HTMLIFrameElement> {
+    #[allow(unsafe_code)]
+    unsafe fn get_iframe_width(&self) -> Option<u32> {
+        (*self.unsafe_get()).width.get()
+    }
+    #[allow(unsafe_code)]
+    unsafe fn get_iframe_height(&self) -> Option<u32> {
+        (*self.unsafe_get()).height.get()
     }
 }
 

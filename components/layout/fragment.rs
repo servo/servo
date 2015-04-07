@@ -520,43 +520,63 @@ pub struct IframeFragmentInfo {
     pub pipeline_id: PipelineId,
     /// The subpage ID of this iframe.
     pub subpage_id: SubpageId,
+    /// The inline-size specified in the DOM, if any.
+    pub dom_inline_size: Option<Au>,
+    /// The block-size specified in the DOM, if any.
+    pub dom_block_size: Option<Au>,
 }
 
 impl IframeFragmentInfo {
     /// Creates the information specific to an iframe fragment.
-    pub fn new(node: &ThreadSafeLayoutNode) -> IframeFragmentInfo {
+    pub fn new(node: &ThreadSafeLayoutNode, dom_size: &Size2D<Option<Au>>) -> IframeFragmentInfo {
         let (pipeline_id, subpage_id) = node.iframe_pipeline_and_subpage_ids();
+        let is_vertical = node.style().writing_mode.is_vertical();
         IframeFragmentInfo {
             pipeline_id: pipeline_id,
             subpage_id: subpage_id,
+            dom_inline_size: if !is_vertical {
+                dom_size.width
+            } else {
+                dom_size.height
+            },
+            dom_block_size: if !is_vertical {
+                dom_size.height
+            } else {
+                dom_size.width
+            },
         }
     }
 
     #[inline]
-    pub fn calculate_replaced_inline_size(style: &ComputedValues, containing_size: Au) -> Au {
+    pub fn calculate_replaced_inline_size(&self, style: &ComputedValues, containing_size: Au)
+                                          -> Au {
         // Calculate the replaced inline size (or default) as per CSS 2.1 § 10.3.2
+        let default_size = self.dom_inline_size.unwrap_or(Au::from_px(300));
         IframeFragmentInfo::calculate_replaced_size(style.content_inline_size(),
                                                     style.min_inline_size(),
                                                     style.max_inline_size(),
                                                     containing_size,
-                                                    Au::from_px(300))
+                                                    default_size)
     }
 
     #[inline]
-    pub fn calculate_replaced_block_size(style: &ComputedValues, containing_size: Au) -> Au {
+    pub fn calculate_replaced_block_size(&self, style: &ComputedValues, containing_size: Au)
+                                         -> Au {
         // Calculate the replaced block size (or default) as per CSS 2.1 § 10.3.2
+        let default_size = self.dom_block_size.unwrap_or(Au::from_px(150));
         IframeFragmentInfo::calculate_replaced_size(style.content_block_size(),
                                                     style.min_block_size(),
                                                     style.max_block_size(),
                                                     containing_size,
-                                                    Au::from_px(150))
+                                                    default_size)
 
     }
 
     fn calculate_replaced_size(content_size: LengthOrPercentageOrAuto,
                                style_min_size: LengthOrPercentage,
                                style_max_size: LengthOrPercentageOrNone,
-                               containing_size: Au, default_size: Au) -> Au {
+                               containing_size: Au,
+                               default_size: Au) -> Au {
         let computed_size = match MaybeAuto::from_style(content_size, containing_size) {
             MaybeAuto::Specified(length) => length,
             MaybeAuto::Auto => default_size,
@@ -1571,9 +1591,10 @@ impl Fragment {
                                                                         fragment_inline_size,
                                                                         fragment_block_size);
             }
-            SpecificFragmentInfo::Iframe(_) => {
-                self.border_box.size.inline = IframeFragmentInfo::calculate_replaced_inline_size(
-                                                style, container_inline_size) +
+            SpecificFragmentInfo::Iframe(ref iframe_fragment_info) => {
+                self.border_box.size.inline =
+                    iframe_fragment_info.calculate_replaced_inline_size(style,
+                                                                        container_inline_size) +
                                               noncontent_inline_size;
             }
             _ => panic!("this case should have been handled above"),
@@ -1648,10 +1669,10 @@ impl Fragment {
                 let block_flow = info.flow_ref.as_block();
                 self.border_box.size.block = block_flow.base.position.size.block;
             }
-            SpecificFragmentInfo::Iframe(_) => {
-                self.border_box.size.block = IframeFragmentInfo::calculate_replaced_block_size(
-                                                style, containing_block_block_size) +
-                                             noncontent_block_size;
+            SpecificFragmentInfo::Iframe(ref iframe_info) => {
+                self.border_box.size.block =
+                    iframe_info.calculate_replaced_block_size(style, containing_block_block_size) +
+                    noncontent_block_size;
             }
             _ => panic!("should have been handled above"),
         }
