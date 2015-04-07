@@ -552,7 +552,7 @@ impl ByteMatcher {
             leading_ignore: &[]
         }
     }
-    // 	The JPEG Start of Image marker followed by the indicator byte of another marker.
+    // The JPEG Start of Image marker followed by the indicator byte of another marker.
     fn image_jpeg()->ByteMatcher {
         ByteMatcher{
             pattern: b"\xFF\xD8\xFF",
@@ -625,7 +625,7 @@ impl ByteMatcher {
             leading_ignore: &[]
         }
     }
-    // 	The string "RIFF" followed by four bytes followed by the string "WAVE", the WAVE signature.
+    // The string "RIFF" followed by four bytes followed by the string "WAVE", the WAVE signature.
     fn audio_wave()->ByteMatcher {
         ByteMatcher{
             pattern: b"RIFF\x00\x00\x00\x00WAVE",
@@ -893,7 +893,7 @@ impl ByteMatcher {
             leading_ignore: &[]
         }
     }
-    // 	The string "ttcf", the TrueType Collection signature.
+    // The string "ttcf", the TrueType Collection signature.
     // TODO: Use this in font context classifier
     #[allow(dead_code)]
     fn true_type_collection()->ByteMatcher {
@@ -904,7 +904,7 @@ impl ByteMatcher {
             leading_ignore: &[]
         }
     }
-    // 	The string "wOFF", the Web Open Font Format signature.
+    // The string "wOFF", the Web Open Font Format signature.
     // TODO: Use this in font context classifier
     #[allow(dead_code)]
     fn application_font_woff()->ByteMatcher {
@@ -942,7 +942,7 @@ impl ByteMatcher {
             leading_ignore: &[]
         }
     }
-    // 	The string "%!PS-Adobe-", the PostScript signature.
+    // The string "%!PS-Adobe-", the PostScript signature.
     fn application_postscript()->ByteMatcher {
         ByteMatcher{
             pattern: b"%!PS-Adobe-",
@@ -951,7 +951,7 @@ impl ByteMatcher {
             leading_ignore: &[]
         }
     }
-    // 	UTF-16BE BOM
+    // UTF-16BE BOM
     fn text_plain_utf_16be_bom()->ByteMatcher {
         ByteMatcher{
             pattern: b"\xFE\xFF\x00\x00",
