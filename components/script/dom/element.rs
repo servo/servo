@@ -627,11 +627,13 @@ pub trait AttributeHandlers {
 
     /// Removes the first attribute with any given namespace and case-sensitive local
     /// name, if any.
-    fn remove_attribute(self, namespace: &Namespace, local_name: &Atom);
+    fn remove_attribute(self, namespace: &Namespace, local_name: &Atom)
+                        -> Option<Temporary<Attr>>;
     /// Removes the first attribute with any namespace and given case-sensitive name.
-    fn remove_attribute_by_name(self, name: &Atom);
+    fn remove_attribute_by_name(self, name: &Atom) -> Option<Temporary<Attr>>;
     /// Removes the first attribute that satisfies `find`.
-    fn do_remove_attribute<F>(self, find: F) where F: Fn(JSRef<Attr>) -> bool;
+    fn do_remove_attribute<F>(self, find: F) -> Option<Temporary<Attr>>
+        where F: Fn(JSRef<Attr>) -> bool;
 
     fn has_class(self, name: &Atom) -> bool;
 
@@ -764,22 +766,25 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
 
-    fn remove_attribute(self, namespace: &Namespace, local_name: &Atom) {
+    fn remove_attribute(self, namespace: &Namespace, local_name: &Atom)
+                        -> Option<Temporary<Attr>> {
         self.do_remove_attribute(|attr| {
             attr.namespace() == namespace && attr.local_name() == local_name
-        });
+        })
     }
 
-    fn remove_attribute_by_name(self, name: &Atom) {
-        self.do_remove_attribute(|attr| attr.name() == name);
+    fn remove_attribute_by_name(self, name: &Atom) -> Option<Temporary<Attr>> {
+        self.do_remove_attribute(|attr| attr.name() == name)
     }
 
-    fn do_remove_attribute<F>(self, find: F) where F: Fn(JSRef<Attr>) -> bool {
+    fn do_remove_attribute<F>(self, find: F) -> Option<Temporary<Attr>>
+        where F: Fn(JSRef<Attr>) -> bool
+    {
         let idx = self.attrs.borrow().iter()
                                      .map(|attr| attr.root())
                                      .position(|attr| find(attr.r()));
 
-        if let Some(idx) = idx {
+        idx.map(|idx| {
             let attr = (*self.attrs.borrow())[idx].root();
             if attr.r().namespace() == &ns!("") {
                 vtable_for(&NodeCast::from_ref(self)).before_remove_attr(attr.r());
@@ -798,7 +803,8 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 };
                 document.r().content_changed(node, damage);
             }
-        };
+            Temporary::from_rooted(attr.r())
+        })
     }
 
     fn has_class(self, name: &Atom) -> bool {
