@@ -118,6 +118,23 @@ pub fn temporary_draw_target_needed_for_style_filters(filters: &filter::T) -> bo
     false
 }
 
+// If there is one or more blur filters, we need to know the blur ammount
+// to expand the draw target size.
+pub fn calculate_accumulated_blur(style_filters: &filter::T) -> Au {
+    let mut accum_blur = Au::new(0);
+    for style_filter in style_filters.filters.iter() {
+        match *style_filter {
+            filter::Filter::Blur(amount) => {
+                accum_blur = accum_blur.clone() + amount;
+            }
+            _ => continue,
+        }
+    }
+
+    accum_blur
+}
+
+
 /// Creates a grayscale 5x4 color matrix per CSS-FILTERS § 12.1.1.
 fn grayscale(amount: AzFloat) -> Matrix5x4 {
     Matrix5x4 {

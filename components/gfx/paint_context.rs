@@ -909,12 +909,40 @@ impl<'a> PaintContext<'a> {
         }
 
         // FIXME(pcwalton): This surface might be bigger than necessary and waste memory.
-        let size = self.draw_target.get_size();
-        let size = Size2D(size.width, size.height);
+        let size = self.draw_target.get_size(); //Az size.
+        let mut size = Size2D(size.width, size.height); //Geom::Size.
 
+        println!("orig size: {:?}", size);
+
+        // Pre-calculate if there is a blur expansion need.
+        let accum_blur = filters::calculate_accumulated_blur(filters);
+        let mut matrix = Matrix2D::identity();
+        if accum_blur > Au::new(0) {
+            // Set the correct size.
+            let rect = Rect(Point2D(0, 0), size);
+            let side_inflation = accum_blur * BLUR_INFLATION_FACTOR;
+            let inflated_size = rect.inflate(side_inflation.to_nearest_px() as i32, side_inflation.to_nearest_px() as i32);
+            size = inflated_size.size;
+
+            // Calculate the transform matrix.
+            let old_transform = self.draw_target.get_transform();
+            let inflated_size = Rect(Point2D(0.0, 0.0), Size2D(inflated_size.size.width as AzFloat,
+                                                               inflated_size.size.height as AzFloat));
+            let temporary_draw_target_bounds = old_transform.transform_rect(&inflated_size);
+            matrix = Matrix2D::identity().translate(-temporary_draw_target_bounds.origin.x as AzFloat,
+                                                    -temporary_draw_target_bounds.origin.y as AzFloat).mul(&old_transform);
+        }
+
+        println!("scaled size: {:?}", size);
         let temporary_draw_target =
             self.draw_target.create_similar_draw_target(&size, self.draw_target.get_format());
-        temporary_draw_target.set_transform(&self.draw_target.get_transform());
+
+        if accum_blur > Au::new(0) {
+            temporary_draw_target.set_transform(&matrix);
+        } else {
+            temporary_draw_target.set_transform(&self.draw_target.get_transform());
+        }
+
         temporary_draw_target
     }
 
@@ -932,7 +960,11 @@ impl<'a> PaintContext<'a> {
         // Set up transforms.
         let old_transform = self.draw_target.get_transform();
         self.draw_target.set_transform(&Matrix2D::identity());
+        let rect = Rect(Point2D(0.0, 0.0), self.draw_target.get_size().to_azure_size());
+
+        let old_transform_temporary = temporary_draw_target.get_transform();
         temporary_draw_target.set_transform(&Matrix2D::identity());
+        let rect_temporary = Rect(Point2D(0.0, 0.0), temporary_draw_target.get_size().to_azure_size());
 
         // Create the Azure filter pipeline.
         let mut accum_blur = Au::new(0);
@@ -941,16 +973,24 @@ impl<'a> PaintContext<'a> {
                                                              filters, &mut accum_blur);
 
         // Perform the blit operation.
-        let mut rect = Rect(Point2D(0.0, 0.0), self.draw_target.get_size().to_azure_size());
-        // Factor in the blur inflation to avoid clipping.
-        if accum_blur > Au::new(0) {
-            let side_inflation = accum_blur * BLUR_INFLATION_FACTOR;
-            // TODO: it will require to create a temporary draw target.
-        }
-
         let mut draw_options = DrawOptions::new(opacity, 0);
         draw_options.set_composition_op(blend_mode.to_azure_composition_op());
-        self.draw_target.draw_filter(&filter_node, &rect, &rect.origin, draw_options);
+
+       // If there is a blur expansion, shift the transform and update the size.
+        if accum_blur > Au::new(0) {
+            // Remove both the transient clip and the stacking context clip, because we may need to
+            // draw outside the stacking context's clip.
+            self.remove_transient_clip_if_applicable();
+            self.pop_clip_if_applicable();
+
+            debug!("######### use expanded Rect.");
+            self.draw_target.draw_filter(&filter_node, &rect_temporary, &rect_temporary.origin, draw_options);
+            self.push_clip_if_applicable();
+        } else {
+            debug!("######### use regular Rect.");
+            self.draw_target.draw_filter(&filter_node, &rect, &rect.origin, draw_options);
+        }
+
         self.draw_target.set_transform(&old_transform);
     }
 
