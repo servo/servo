@@ -16,7 +16,7 @@ pub enum StorageType {
 /// Request operations on the storage data associated with a particular url
 pub enum StorageTaskMsg {
     /// gets the number of key/value pairs present in the associated storage data
-    Length(Sender<u32>, Url, StorageType),
+    Length(Sender<usize>, Url, StorageType),
 
     /// gets the name of the key at the specified index in the associated storage data
     Key(Sender<Option<DOMString>>, Url, StorageType, u32),
