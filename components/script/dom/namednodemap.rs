@@ -64,12 +64,13 @@ impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditemns
-    fn GetNamedItemNS(self, namespace: Option<DOMString>, name: DOMString) -> Option<Temporary<Attr>> {
+    fn GetNamedItemNS(self, namespace: Option<DOMString>, local_name: DOMString)
+                     -> Option<Temporary<Attr>> {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
         let ns = namespace::from_domstring(namespace);
-        owner.get_attribute(&ns, &Atom::from_slice(&name))
+        owner.get_attribute(&ns, &Atom::from_slice(&local_name))
     }
 
     fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Temporary<Attr>> {
