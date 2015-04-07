@@ -46,6 +46,7 @@ use dom::window::{Window, WindowHelpers};
 use geom::rect::Rect;
 use layout_interface::{LayoutChan, Msg};
 use devtools_traits::NodeInfo;
+use parse::html::parse_html_fragment;
 use script_traits::UntrustedNodeAddress;
 use util::geometry::Au;
 use util::str::{DOMString, null_str_as_empty};
@@ -502,6 +503,8 @@ pub trait NodeHelpers<'a> {
     fn summarize(self) -> NodeInfo;
 
     fn teardown(self);
+
+    fn parse_fragment(self, markup: DOMString) -> Fallible<Temporary<DocumentFragment>>;
 }
 
 impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
@@ -929,6 +932,24 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         }
     }
 
+    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#dfn-concept-parse-fragment
+    fn parse_fragment(self, markup: DOMString) -> Fallible<Temporary<DocumentFragment>> {
+        let context_node: JSRef<Node> = NodeCast::from_ref(self);
+        let context_document = document_from_node(self).root();
+        let mut new_children: RootedVec<JS<Node>> = RootedVec::new();
+        if context_document.r().is_html_document() {
+            parse_html_fragment(context_node, markup, &mut new_children);
+        } else {
+            // FIXME: XML case
+            unimplemented!();
+        }
+        let fragment = DocumentFragment::new(context_document.r()).root();
+        let fragment_node: JSRef<Node> = NodeCast::from_ref(fragment.r());
+        for node in new_children.iter() {
+            fragment_node.AppendChild(node.root().r()).unwrap();
+        }
+        Ok(Temporary::from_rooted(fragment.r()))
+    }
 }
 
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
@@ -1456,7 +1477,7 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-replace-all
-    fn replace_all(node: Option<JSRef<Node>>, parent: JSRef<Node>) {
+    pub fn replace_all(node: Option<JSRef<Node>>, parent: JSRef<Node>) {
         // Step 1.
         match node {
             Some(node) => {

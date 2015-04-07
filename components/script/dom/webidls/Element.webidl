@@ -66,7 +66,7 @@ partial interface Element {
   [Throws,TreatNullAs=EmptyString]
   attribute DOMString innerHTML;
   [Throws,TreatNullAs=EmptyString]
-  readonly attribute DOMString outerHTML;
+  attribute DOMString outerHTML;
 };
 
 Element implements ChildNode;

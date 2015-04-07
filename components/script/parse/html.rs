@@ -5,18 +5,23 @@
 #![allow(unsafe_code, unrooted_must_root)]
 
 use dom::attr::AttrHelpers;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLScriptElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, TextCast, CommentCast};
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
+use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
+use dom::bindings::trace::RootedVec;
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers};
+use dom::document::{DocumentSource, IsHTMLDocument};
 use dom::documenttype::DocumentType;
 use dom::element::{Element, AttributeHandlers, ElementHelpers, ElementCreator};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlscriptelement::HTMLScriptElementHelpers;
 use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{document_from_node, window_from_node};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::servohtmlparser;
 use dom::servohtmlparser::{ServoHTMLParser, FragmentContext};
@@ -27,6 +32,7 @@ use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
 
 use net_traits::{ProgressMsg, LoadResponse};
+use util::str::DOMString;
 use util::task_state;
 use util::task_state::IN_HTML_PARSER;
 use std::ascii::AsciiExt;
@@ -323,4 +329,38 @@ pub fn parse_html(document: JSRef<Document>,
     }
 
     debug!("finished parsing");
+}
+
+// https://html.spec.whatwg.org/multipage/syntax.html#parsing-html-fragments
+pub fn parse_html_fragment(context_node: JSRef<Node>,
+                           input: DOMString,
+                           output: &mut RootedVec<JS<Node>>) {
+    let window = window_from_node(context_node).root();
+    let context_document = document_from_node(context_node).root();
+    let url = context_document.r().url();
+
+    // Step 1.
+    let document = Document::new(window.r(), Some(url.clone()),
+                                 IsHTMLDocument::HTMLDocument,
+                                 None, None,
+                                 DocumentSource::FromParser).root();
+
+    // Step 2.
+    document.r().set_quirks_mode(context_document.r().quirks_mode());
+
+    // Step 11.
+    let form = context_node.inclusive_ancestors()
+                           .find(|element| element.is_htmlformelement());
+    let fragment_context = FragmentContext {
+        context_elem: context_node,
+        form_elem: form,
+    };
+    parse_html(document.r(), HTMLInput::InputString(input), &url, Some(fragment_context));
+
+    // Step 14.
+    let root_element = document.r().GetDocumentElement().expect("no document element").root();
+    let root_node: JSRef<Node> = NodeCast::from_ref(root_element.r());
+    for child in root_node.children() {
+        output.push(JS::from_rooted(child));
+    }
 }
