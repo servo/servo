@@ -245,14 +245,14 @@ impl<'a> CefWrap<cef_string_userfree_t> for String {
 
         let boxed_string;
         unsafe {
-            let buffer = libc::malloc((mem::size_of::<c_ushort>() as u64) *
-                                      ((utf16_chars.len() + 1) as u64)) as *mut u16;
+            let buffer = libc::malloc((mem::size_of::<c_ushort>() as libc::size_t) *
+                                      ((utf16_chars.len() + 1) as libc::size_t)) as *mut u16;
             for (i, ch) in utf16_chars.iter().enumerate() {
                 *buffer.offset(i as int) = *ch
             }
             *buffer.offset(utf16_chars.len() as int) = 0;
 
-            boxed_string = libc::malloc(mem::size_of::<cef_string_utf16>() as u64) as
+            boxed_string = libc::malloc(mem::size_of::<cef_string_utf16>() as libc::size_t) as
                 *mut cef_string_utf16;
             ptr::write(&mut (*boxed_string).str, buffer);
             ptr::write(&mut (*boxed_string).length, utf16_chars.len() as u64);
