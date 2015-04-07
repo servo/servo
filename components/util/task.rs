@@ -42,10 +42,3 @@ pub fn spawn_named_with_send_on_failure<F, T>(name: &'static str,
         }
     }).unwrap();
 }
-
-#[test]
-fn spawn_named_test() {
-    spawn_named("Test".to_owned(), move || {
-        debug!("I can run!");
-    });
-}
