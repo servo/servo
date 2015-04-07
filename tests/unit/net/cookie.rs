@@ -1,10 +1,9 @@
 extern crate "cookie" as cookie_rs;
-extern crate url;
 
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net_traits::CookieSource;
-use self::url::Url;
+use url::Url;
 
 
 #[test]

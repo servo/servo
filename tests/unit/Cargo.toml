@@ -20,6 +20,9 @@ path = "../../components/net"
 [dependencies.net_traits]
 path = "../../components/net_traits"
 
+[dependencies.profile]
+path = "../../components/profile"
+
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
