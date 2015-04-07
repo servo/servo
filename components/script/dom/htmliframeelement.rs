@@ -33,7 +33,7 @@ use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan, MozBrowse
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use util::opts;
-use util::str::DOMString;
+use util::str::{self, DOMString};
 use string_cache::Atom;
 
 use std::ascii::AsciiExt;
@@ -57,6 +57,8 @@ pub struct HTMLIFrameElement {
     subpage_id: Cell<Option<SubpageId>>,
     containing_page_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
+    width: Cell<Option<u32>>,
+    height: Cell<Option<u32>>,
 }
 
 impl HTMLIFrameElementDerived for EventTarget {
@@ -163,6 +165,21 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
     }
 }
 
+pub trait RawLayoutHTMLIFrameElementHelpers {
+    fn get_width(&self) -> Option<u32>;
+    fn get_height(&self) -> Option<u32>;
+}
+
+impl RawLayoutHTMLIFrameElementHelpers for HTMLIFrameElement {
+    fn get_width(&self) -> Option<u32> {
+        self.width.get()
+    }
+
+    fn get_height(&self) -> Option<u32> {
+        self.height.get()
+    }
+}
+
 impl HTMLIFrameElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
@@ -170,6 +187,8 @@ impl HTMLIFrameElement {
             subpage_id: Cell::new(None),
             containing_page_pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),
+            width: Cell::new(None),
+            height: Cell::new(None),
         }
     }
 
@@ -317,6 +336,14 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     fn Stop(self) -> Fallible<()> {
         Err(NotSupported)
     }
+
+    make_getter!(Width);
+
+    make_setter!(SetWidth, "width");
+
+    make_getter!(Height);
+
+    make_setter!(SetHeight, "height");
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
@@ -347,7 +374,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                     }
                 }
                 self.sandbox.set(Some(modes));
-            },
+            }
+            &atom!("width") => {
+                self.width.set(str::parse_unsigned_integer(attr.value().chars()))
+            }
+            &atom!("height") => {
+                self.height.set(str::parse_unsigned_integer(attr.value().chars()))
+            }
             &atom!("src") => {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
                 if node.is_in_doc() {

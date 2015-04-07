@@ -18,7 +18,7 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLFontElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCellElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTextAreaElementDerived};
@@ -47,6 +47,7 @@ use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElementTypeId;
 use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementHelpers};
+use dom::htmliframeelement::{HTMLIFrameElement, RawLayoutHTMLIFrameElementHelpers};
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers, HTMLInputElementHelpers};
 use dom::htmltableelement::{HTMLTableElement, HTMLTableElementHelpers};
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
@@ -64,7 +65,7 @@ use style;
 use style::legacy::{UnsignedIntegerAttribute, from_declaration};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
 use style::properties::DeclaredValue::SpecifiedValue;
-use style::properties::longhands::{self, border_spacing};
+use style::properties::longhands::{self, border_spacing, height};
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA};
 use util::geometry::Au;
@@ -331,7 +332,13 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let width = if self.is_htmltableelement() {
+        let width = if self.is_htmliframeelement() {
+            let this: &HTMLIFrameElement = mem::transmute(self);
+            match this.get_width() {
+                None => LengthOrPercentageOrAuto::Auto,
+                Some(width) => LengthOrPercentageOrAuto::Length(Au::from_px(width as i32)),
+            }
+        } else if self.is_htmltableelement() {
             let this: &HTMLTableElement = mem::transmute(self);
             this.get_width()
         } else if self.is_htmltabledatacellelement() {
@@ -349,10 +356,26 @@ impl RawLayoutElementHelpers for Element {
                     PropertyDeclaration::Width(SpecifiedValue(width_value))));
             }
             LengthOrPercentageOrAuto::Length(length) => {
-                let width_value = specified::LengthOrPercentageOrAuto::Length(specified::Length::Absolute(length));
+                let width_value = specified::LengthOrPercentageOrAuto::Length(
+                    specified::Length::Absolute(length));
                 hints.push(from_declaration(
                     PropertyDeclaration::Width(SpecifiedValue(width_value))));
             }
+        }
+
+
+        let height = if self.is_htmliframeelement() {
+            let this: &HTMLIFrameElement = mem::transmute(self);
+            this.get_height()
+        } else {
+            None
+        };
+
+        if let Some(height) = height {
+            let height_value = specified::LengthOrPercentageOrAuto::Length(
+                specified::Length::Absolute(Au::from_px(height as i32)));
+            hints.push(from_declaration(PropertyDeclaration::Height(SpecifiedValue(
+                            height::SpecifiedValue(height_value)))));
         }
 
 
