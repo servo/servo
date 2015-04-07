@@ -227,7 +227,7 @@ impl CompositorLayer for Layer<CompositorData> {
             let _ = pipeline.paint_chan.send(PaintMsg::UnusedBuffer(unused_buffers));
         }
 
-        return true;
+        true
     }
 
     fn clear<Window>(&self, compositor: &IOCompositor<Window>) where Window: WindowMethods {

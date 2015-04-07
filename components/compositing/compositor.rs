@@ -718,12 +718,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                               layer_id: LayerId,
                               new_layer_buffer_set: Box<LayerBufferSet>,
                               epoch: Epoch) {
-        match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
-            Some(layer) => {
-                self.assign_painted_buffers_to_layer(layer, new_layer_buffer_set, epoch);
-                return;
-            }
-            None => {}
+        if let Some(layer) = self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
+            self.assign_painted_buffers_to_layer(layer, new_layer_buffer_set, epoch);
+            return
         }
 
         let pipeline = self.get_pipeline(pipeline_id);
@@ -1021,15 +1018,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             });
         }
 
-        return results;
+        results
     }
 
     fn send_back_unused_buffers(&mut self,
                                 unused_buffers: Vec<(Rc<Layer<CompositorData>>,
                                                      Vec<Box<LayerBuffer>>)>) {
         for (layer, buffers) in unused_buffers.into_iter() {
-            let pipeline = self.get_pipeline(layer.get_pipeline_id());
-            let _ = pipeline.paint_chan.send_opt(PaintMsg::UnusedBuffer(buffers));
+            if !buffers.is_empty() {
+                let pipeline = self.get_pipeline(layer.get_pipeline_id());
+                let _ = pipeline.paint_chan.send_opt(PaintMsg::UnusedBuffer(buffers));
+            }
         }
     }
 
