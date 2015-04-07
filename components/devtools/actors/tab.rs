@@ -46,10 +46,10 @@ struct ListFramesReply {
 
 #[derive(RustcEncodable)]
 struct FrameMsg {
-    id: uint,
+    id: u32,
     url: String,
     title: String,
-    parentID: uint,
+    parentID: u32,
 }
 
 #[derive(RustcEncodable)]
@@ -57,7 +57,7 @@ pub struct TabActorMsg {
     actor: String,
     title: String,
     url: String,
-    outerWindowID: uint,
+    outerWindowID: u32,
     consoleActor: String,
     inspectorActor: String,
 }

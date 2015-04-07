@@ -902,7 +902,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             uniqueId: unique_id.clone(),
             baseURI: self.GetBaseURI().unwrap_or("".to_owned()),
             parent: self.GetParentNode().root().map(|node| node.r().get_unique_id()).unwrap_or("".to_owned()),
-            nodeType: self.NodeType() as usize,
+            nodeType: self.NodeType(),
             namespaceURI: "".to_owned(), //FIXME
             nodeName: self.NodeName(),
             numChildren: self.ChildNodes().root().r().Length() as usize,
