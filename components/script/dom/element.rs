@@ -706,7 +706,9 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             .map(|x| Temporary::from_rooted(x.r()))
     }
 
+    // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn get_attribute_by_name(self, name: &Atom) -> Option<Temporary<Attr>> {
+        let name = &Atom::from_slice(self.parsed_name(DOMString::from_str(name.as_slice())).as_slice());
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let attrs = self.attrs.borrow();
         attrs.iter().map(|attr| attr.root())
@@ -714,7 +716,6 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
              .map(|x| Temporary::from_rooted(x.r()))
     }
 
-    // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn get_attributes(self, local_name: &Atom) -> Vec<Temporary<Attr>> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let attrs = self.attrs.borrow();
