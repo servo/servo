@@ -257,7 +257,6 @@ impl<'a> CefWrap<cef_string_userfree_t> for String {
             ptr::write(&mut (*boxed_string).str, buffer);
             ptr::write(&mut (*boxed_string).length, utf16_chars.len() as u64);
             ptr::write(&mut (*boxed_string).dtor, Some(free_utf16_buffer as extern "C" fn(*mut c_ushort)));
-            mem::forget(utf16_chars);
         }
         boxed_string
     }
