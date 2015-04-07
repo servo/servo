@@ -33,6 +33,7 @@
 //! | union types             | `T`                              |
 
 use dom::bindings::codegen::PrototypeList;
+use dom::bindings::error::throw_type_error;
 use dom::bindings::js::{JSRef, Root, Unrooted};
 use dom::bindings::num::Finite;
 use dom::bindings::str::{ByteString, USVString};
@@ -288,7 +289,10 @@ impl<T: Float + FromJSValConvertible<Config=()>> FromJSValConvertible for Finite
         let result = try!(FromJSValConvertible::from_jsval(cx, value, option));
         match Finite::new(result) {
             Some(v) => Ok(v),
-            None => Err(()),
+            None => {
+                throw_type_error(cx, "this argument is not a finite floating-point value");
+                Err(())
+            },
         }
     }
 }
