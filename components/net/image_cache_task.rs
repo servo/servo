@@ -395,18 +395,6 @@ impl ImageCache {
     }
 }
 
-pub trait ImageCacheTaskClient {
-    fn exit(&self);
-}
-
-impl ImageCacheTaskClient for ImageCacheTask {
-    fn exit(&self) {
-        let (response_chan, response_port) = channel();
-        self.send(Msg::Exit(response_chan));
-        response_port.recv().unwrap();
-    }
-}
-
 pub fn spawn_listener<F, A>(f: F) -> Sender<A>
     where F: FnOnce(Receiver<A>) + Send + 'static,
           A: Send + 'static

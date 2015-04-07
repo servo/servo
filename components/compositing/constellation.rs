@@ -20,9 +20,8 @@ use msg::constellation_msg::{IFrameSandboxState, MozBrowserEvent, NavigationDire
 use msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::constellation_msg::{self, ConstellationChan, Failure};
-use net::image_cache_task::ImageCacheTaskClient;
 use net_traits::{self, ResourceTask};
-use net_traits::image_cache_task::ImageCacheTask;
+use net_traits::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use net_traits::storage_task::{StorageTask, StorageTaskMsg};
 use profile::mem;
 use profile::time;
