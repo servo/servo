@@ -50,6 +50,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == background_style_attr.html background_ref.html
 == basic_width_px.html basic_width_em.html
 == block_formatting_context_a.html block_formatting_context_ref.html
+== block_formatting_context_cleared_float_a.html block_formatting_context_cleared_float_ref.html
 == block_formatting_context_complex_a.html block_formatting_context_complex_ref.html
 == block_formatting_context_containing_floats_a.html block_formatting_context_containing_floats_ref.html
 == block_formatting_context_relative_a.html block_formatting_context_ref.html
