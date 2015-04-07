@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+</head>
+<style>
+  html, body {
+    margin: 0;
+  }
+</style>
+<body>
+<canvas id="dest" height="100" width="100"></canvas>
+<script>
+
+var sourceWidth = 100;
+var sourceHeight = 100;
+var smoothingEnabled = false;
+var destCanvas = document.getElementById('dest');
+var sourceImg = document.createElement('img');
+sourceImg.src = '../rust-0.png'
+sourceImg.width = sourceWidth;
+sourceImg.height = sourceHeight;
+
+var destCtx = destCanvas.getContext('2d');
+destCtx.fillStyle = "#FF0000";
+destCtx.fillRect(0, 0,  destCanvas.width, destCanvas.height);
+destCtx.imageSmoothingEnabled = smoothingEnabled;
+// 2 arguments, the dest origin is 0,0
+// The source canvas will copied to the 0,0 position of the destination canvas
+destCtx.drawImage(sourceImg, 0, 0);
+
+</script>
+</body>
+</html>

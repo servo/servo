@@ -6,8 +6,8 @@
 enum CanvasWindingRule { "nonzero", "evenodd" };
 
 // http://www.whatwg.org/html/#2dcontext
-typedef (/* HTMLImageElement or
-         HTMLVideoElement or */
+typedef (HTMLImageElement or
+         /* HTMLVideoElement or */
          HTMLCanvasElement or
          CanvasRenderingContext2D /* or
          ImageBitmap */) CanvasImageSource;

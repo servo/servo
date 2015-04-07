@@ -9,18 +9,32 @@
 # Should be == with expected failure:
 fragment=top != ../html/acid2.html acid2_ref.html
 
-== 2dcontext/drawimage_1.html 2dcontext/drawimage_1_ref.html
-== 2dcontext/drawimage_10.html 2dcontext/drawimage_10_ref.html
-== 2dcontext/drawimage_11.html 2dcontext/drawimage_11_ref.html
-== 2dcontext/drawimage_12.html 2dcontext/drawimage_12_ref.html
-== 2dcontext/drawimage_2.html 2dcontext/drawimage_2_ref.html
-== 2dcontext/drawimage_3.html 2dcontext/drawimage_3_ref.html
-== 2dcontext/drawimage_4.html 2dcontext/drawimage_4_ref.html
-== 2dcontext/drawimage_5.html 2dcontext/drawimage_5_ref.html
-== 2dcontext/drawimage_6.html 2dcontext/drawimage_6_ref.html
-== 2dcontext/drawimage_7.html 2dcontext/drawimage_7_ref.html
-== 2dcontext/drawimage_8.html 2dcontext/drawimage_8_ref.html
-== 2dcontext/drawimage_9.html 2dcontext/drawimage_9_ref.html
+== 2dcontext/drawimage_canvas_1.html 2dcontext/drawimage_canvas_1_ref.html
+== 2dcontext/drawimage_canvas_10.html 2dcontext/drawimage_canvas_10_ref.html
+== 2dcontext/drawimage_canvas_11.html 2dcontext/drawimage_canvas_11_ref.html
+== 2dcontext/drawimage_canvas_12.html 2dcontext/drawimage_canvas_12_ref.html
+== 2dcontext/drawimage_canvas_2.html 2dcontext/drawimage_canvas_2_ref.html
+== 2dcontext/drawimage_canvas_3.html 2dcontext/drawimage_canvas_3_ref.html
+== 2dcontext/drawimage_canvas_4.html 2dcontext/drawimage_canvas_4_ref.html
+== 2dcontext/drawimage_canvas_5.html 2dcontext/drawimage_canvas_5_ref.html
+== 2dcontext/drawimage_canvas_6.html 2dcontext/drawimage_canvas_6_ref.html
+== 2dcontext/drawimage_canvas_7.html 2dcontext/drawimage_canvas_7_ref.html
+== 2dcontext/drawimage_canvas_8.html 2dcontext/drawimage_canvas_8_ref.html
+== 2dcontext/drawimage_canvas_9.html 2dcontext/drawimage_canvas_9_ref.html
+== 2dcontext/drawimage_html_image_1.html 2dcontext/drawimage_html_image_1_ref.html
+== 2dcontext/drawimage_html_image_10.html 2dcontext/drawimage_html_image_10_ref.html
+== 2dcontext/drawimage_html_image_11.html 2dcontext/drawimage_html_image_11_ref.html
+== 2dcontext/drawimage_html_image_12.html 2dcontext/drawimage_html_image_12_ref.html
+== 2dcontext/drawimage_html_image_2.html 2dcontext/drawimage_html_image_2_ref.html
+== 2dcontext/drawimage_html_image_3.html 2dcontext/drawimage_html_image_3_ref.html
+== 2dcontext/drawimage_html_image_4.html 2dcontext/drawimage_html_image_4_ref.html
+== 2dcontext/drawimage_html_image_5.html 2dcontext/drawimage_html_image_5_ref.html
+== 2dcontext/drawimage_html_image_6.html 2dcontext/drawimage_html_image_6_ref.html
+== 2dcontext/drawimage_html_image_7.html 2dcontext/drawimage_html_image_7_ref.html
+== 2dcontext/drawimage_html_image_8.html 2dcontext/drawimage_html_image_8_ref.html
+== 2dcontext/drawimage_html_image_9.html 2dcontext/drawimage_html_image_9_ref.html
+
+
 == 2dcontext/lineto_a.html 2dcontext/lineto_ref.html
 == 2dcontext/transform_a.html 2dcontext/transform_ref.html
 

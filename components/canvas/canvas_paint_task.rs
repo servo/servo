@@ -16,7 +16,7 @@ use util::vec::byte_swap;
 
 use cssparser::RGBA;
 use std::borrow::ToOwned;
-use std::num::Float;
+use std::num::{Float, ToPrimitive};
 use std::sync::mpsc::{channel, Sender};
 
 #[derive(Clone)]
@@ -28,8 +28,8 @@ pub enum CanvasMsg {
     ClosePath,
     Fill,
     Stroke,
-    DrawImage(Vec<u8>, Rect<i32>, Rect<i32>, bool),
-    DrawImageSelf(Size2D<i32>, Rect<i32>, Rect<i32>, bool),
+    DrawImage(Vec<u8>, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
+    DrawImageSelf(Size2D<f64>, Rect<f64>, Rect<f64>, bool),
     MoveTo(Point2D<f32>),
     LineTo(Point2D<f32>),
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
@@ -41,8 +41,8 @@ pub enum CanvasMsg {
     SetTransform(Matrix2D<f32>),
     Recreate(Size2D<i32>),
     SendPixelContents(Sender<Vec<u8>>),
-    GetImageData(Rect<i32>, Size2D<i32>, Sender<Vec<u8>>),
-    PutImageData(Vec<u8>, Rect<i32>, Option<Rect<i32>>),
+    GetImageData(Rect<f64>, Size2D<f64>, Sender<Vec<u8>>),
+    PutImageData(Vec<u8>, Rect<f64>, Option<Rect<f64>>),
     Close,
 }
 
@@ -50,7 +50,9 @@ impl<'a> CanvasPaintTask<'a> {
     /// It reads image data from the canvas
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
-    fn read_pixels(&self, read_rect: Rect<i32>, canvas_size: Size2D<i32>) -> Vec<u8>{
+    fn read_pixels(&self, read_rect: Rect<f64>, canvas_size: Size2D<f64>) -> Vec<u8>{
+        let read_rect = read_rect.to_i32();
+        let canvas_size = canvas_size.to_i32();
         let canvas_rect = Rect(Point2D(0i32, 0i32), canvas_size);
         let src_read_rect = canvas_rect.intersection(&read_rect).unwrap_or(Rect::zero());
 
@@ -81,9 +83,9 @@ impl<'a> CanvasPaintTask<'a> {
     /// dest_rect: The area of the canvas where the imagedata will be copied
     /// smoothing_enabled: if smoothing is applied to the copied pixels
     fn write_pixels(&self, imagedata: &[u8],
-                    image_size: Size2D<i32>,
-                    source_rect: Rect<i32>,
-                    dest_rect: Rect<i32>,
+                    image_size: Size2D<f64>,
+                    source_rect: Rect<f64>,
+                    dest_rect: Rect<f64>,
                     smoothing_enabled: bool) {
         // From spec https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-drawimage
         // When scaling up, if the imageSmoothingEnabled attribute is set to true, the user agent should attempt
@@ -94,8 +96,11 @@ impl<'a> CanvasPaintTask<'a> {
         } else {
             Filter::Point
         };
+        // azure_hl operates with integers. We need to cast the image size
+        let image_size = image_size.to_i32();
 
-        let source_surface = self.drawtarget.create_source_surface_from_data(imagedata,
+        let source_surface = self.drawtarget.create_source_surface_from_data(
+            &imagedata,
             image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
 
         let draw_surface_options = DrawSurfaceOptions::new(filter, true);
@@ -112,33 +117,33 @@ impl<'a> CanvasPaintTask<'a> {
     /// Result: It retuns the modified dirty_rect by the rules described in
     /// the spec https://html.spec.whatwg.org/#dom-context-2d-putimagedata
     fn calculate_dirty_rect(&self,
-                            mut dirty_rect: Rect<i32>,
-                            image_data_rect: Rect<i32>) -> Rect<i32>{
+                            mut dirty_rect: Rect<f64>,
+                            image_data_rect: Rect<f64>) -> Rect<f64>{
         // 1) If dirtyWidth is negative,
         // let dirtyX be dirtyX+dirtyWidth,
         // and let dirtyWidth be equal to the absolute magnitude of dirtyWidth.
-        if dirty_rect.size.width < 0 {
+        if dirty_rect.size.width < 0.0f64 {
             dirty_rect.origin.x = dirty_rect.origin.x + dirty_rect.size.width;
             dirty_rect.size.width = -dirty_rect.size.width;
         }
 
         // 2) If dirtyHeight is negative, let dirtyY be dirtyY+dirtyHeight,
         // and let dirtyHeight be equal to the absolute magnitude of dirtyHeight.
-        if dirty_rect.size.height < 0 {
+        if dirty_rect.size.height < 0.0f64 {
             dirty_rect.origin.y = dirty_rect.origin.y + dirty_rect.size.height;
             dirty_rect.size.height = -dirty_rect.size.height;
         }
 
         // 3) If dirtyX is negative, let dirtyWidth be dirtyWidth+dirtyX, and let dirtyX be zero.
-        if dirty_rect.origin.x < 0 {
+        if dirty_rect.origin.x < 0.0f64 {
             dirty_rect.size.width += dirty_rect.origin.x;
-            dirty_rect.origin.x = 0;
+            dirty_rect.origin.x = 0.0f64;
         }
 
         // 3) If dirtyY is negative, let dirtyHeight be dirtyHeight+dirtyY, and let dirtyY be zero.
-        if dirty_rect.origin.y < 0 {
+        if dirty_rect.origin.y < 0.0f64 {
             dirty_rect.size.height += dirty_rect.origin.y;
-            dirty_rect.origin.y = 0;
+            dirty_rect.origin.y = 0.0f64;
         }
 
         // 4) If dirtyX+dirtyWidth is greater than the width attribute of the imagedata argument,
@@ -157,21 +162,19 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     /// It writes an image to the destination canvas
-    /// imagedata: Pixel information of the image to be written
-    /// source_rect: Area of the source image to be copied
+    /// imagedata: Pixel information of the image to be written. It takes RGBA8
+    /// image_size: The size of the image to be written
     /// dest_rect: Area of the destination canvas where the pixels will be copied
     /// smoothing_enabled: It determines if smoothing is applied to the image result
     fn write_image(&self, mut imagedata: Vec<u8>,
-                   source_rect: Rect<i32>, dest_rect: Rect<i32>, smoothing_enabled: bool) {
+                   image_size: Size2D<f64>, dest_rect: Rect<f64>, smoothing_enabled: bool) {
         if imagedata.len() == 0 {
             return
         }
-        // Image data already contains the portion of the image we want to draw
-        // so the source rect corresponds to the whole area of the copied imagedata
-        let source_rect = Rect(Point2D(0i32, 0i32), source_rect.size);
+        let image_rect = Rect(Point2D(0f64, 0f64), image_size);
         // rgba -> bgra
         byte_swap(imagedata.as_mut_slice());
-        self.write_pixels(&imagedata, source_rect.size, source_rect, dest_rect, smoothing_enabled);
+        self.write_pixels(&imagedata, image_size, image_rect, dest_rect, smoothing_enabled);
     }
 
 }
@@ -215,8 +218,8 @@ impl<'a> CanvasPaintTask<'a> {
                     CanvasMsg::ClosePath => painter.close_path(),
                     CanvasMsg::Fill => painter.fill(),
                     CanvasMsg::Stroke => painter.stroke(),
-                    CanvasMsg::DrawImage(imagedata, dest_rect, source_rect, smoothing_enabled) => {
-                        painter.draw_image(imagedata, dest_rect, source_rect, smoothing_enabled)
+                    CanvasMsg::DrawImage(imagedata, image_size, dest_rect, source_rect, smoothing_enabled) => {
+                        painter.draw_image(imagedata, image_size, dest_rect, source_rect, smoothing_enabled)
                     }
                     CanvasMsg::DrawImageSelf(image_size, dest_rect, source_rect, smoothing_enabled) => {
                         painter.draw_image_self(image_size, dest_rect, source_rect, smoothing_enabled)
@@ -304,19 +307,23 @@ impl<'a> CanvasPaintTask<'a> {
         };
     }
 
-    fn draw_image(&self, imagedata: Vec<u8>, dest_rect: Rect<i32>,
-                  source_rect: Rect<i32>, smoothing_enabled: bool) {
-        self.write_image(imagedata, source_rect, dest_rect, smoothing_enabled);
+    fn draw_image(&self, image_data: Vec<u8>, image_size: Size2D<f64>,
+                  dest_rect: Rect<f64>, source_rect: Rect<f64>, smoothing_enabled: bool) {
+        // We round up the floating pixel values to draw the pixels
+        let source_rect = source_rect.ceil();
+        // It discards the extra pixels (if any) that won't be painted
+        let image_data = crop_image(image_data, image_size, source_rect);
+        self.write_image(image_data, source_rect.size, dest_rect, smoothing_enabled);
     }
 
-    fn draw_image_self(&self, image_size: Size2D<i32>,
-                       dest_rect: Rect<i32>, source_rect: Rect<i32>,
+    fn draw_image_self(&self, image_size: Size2D<f64>,
+                       dest_rect: Rect<f64>, source_rect: Rect<f64>,
                        smoothing_enabled: bool) {
         // Reads pixels from source image
         // In this case source and target are the same canvas
         let imagedata = self.read_pixels(source_rect, image_size);
         // Writes on target canvas
-        self.write_image(imagedata, source_rect, dest_rect, smoothing_enabled);
+        self.write_image(imagedata, image_size, dest_rect, smoothing_enabled);
     }
 
     fn move_to(&self, point: &Point2D<AzFloat>) {
@@ -431,20 +438,20 @@ impl<'a> CanvasPaintTask<'a> {
         })
     }
 
-    fn get_image_data(&self, mut dest_rect: Rect<i32>, canvas_size: Size2D<i32>, chan: Sender<Vec<u8>>) {
-        if dest_rect.size.width < 0 {
+    fn get_image_data(&self, mut dest_rect: Rect<f64>, canvas_size: Size2D<f64>, chan: Sender<Vec<u8>>) {
+        if dest_rect.size.width < 0.0 {
             dest_rect.size.width = -dest_rect.size.width;
             dest_rect.origin.x -= dest_rect.size.width;
         }
-        if dest_rect.size.height < 0 {
+        if dest_rect.size.height < 0.0 {
             dest_rect.size.height = -dest_rect.size.height;
             dest_rect.origin.y -= dest_rect.size.height;
         }
-        if dest_rect.size.width == 0 {
-            dest_rect.size.width = 1;
+        if dest_rect.size.width == 0.0 {
+            dest_rect.size.width = 1.0;
         }
-        if dest_rect.size.height == 0 {
-            dest_rect.size.height = 1;
+        if dest_rect.size.height == 0.0 {
+            dest_rect.size.height = 1.0;
         }
 
         let mut dest_data = self.read_pixels(dest_rect, canvas_size);
@@ -455,18 +462,18 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn put_image_data(&mut self, mut imagedata: Vec<u8>,
-                      image_data_rect: Rect<i32>,
-                      dirty_rect: Option<Rect<i32>>) {
+                      image_data_rect: Rect<f64>,
+                      dirty_rect: Option<Rect<f64>>) {
 
-        if image_data_rect.size.width <= 0 || image_data_rect.size.height <= 0 {
+        if image_data_rect.size.width <= 0.0 || image_data_rect.size.height <= 0.0 {
             return
         }
 
-        assert!(image_data_rect.size.width * image_data_rect.size.height * 4 == imagedata.len() as i32);
+        assert!(image_data_rect.size.width * image_data_rect.size.height * 4.0 == imagedata.len() as f64);
         // rgba -> bgra
         byte_swap(imagedata.as_mut_slice());
 
-        let image_rect = Rect(Point2D(0i32, 0i32),
+        let image_rect = Rect(Point2D(0f64, 0f64),
                                Size2D(image_data_rect.size.width, image_data_rect.size.height));
 
         // Dirty rectangle defines the area of the source image to be copied
@@ -481,7 +488,7 @@ impl<'a> CanvasPaintTask<'a> {
 
         // 5) If either dirtyWidth or dirtyHeight is negative or zero,
         // stop without affecting any bitmaps
-        if source_rect.size.width <= 0 || source_rect.size.height <= 0 {
+        if source_rect.size.width <= 0.0 || source_rect.size.height <= 0.0 {
             return
         }
 
@@ -603,11 +610,75 @@ impl FillOrStrokeStyle {
     }
 }
 
+/// Used by drawImage to get rid of the extra pixels of the image data that
+/// won't be copied to the canvas
+/// image_data: Color pixel data of the image
+/// image_size: Image dimensions
+/// crop_rect: It determines the area of the image we want to keep
+fn crop_image(image_data: Vec<u8>,
+              image_size: Size2D<f64>,
+              crop_rect: Rect<f64>) -> Vec<u8>{
+    // We're going to iterate over a pixel values array so we need integers
+    let crop_rect = crop_rect.to_i32();
+    let image_size = image_size.to_i32();
+    // Assuming 4 bytes per pixel and row-major order for storage
+    // (consecutive elements in a pixel row of the image are contiguous in memory)
+    let stride = image_size.width * 4;
+    let image_bytes_length = image_size.height * image_size.width * 4;
+    let crop_area_bytes_length = crop_rect.size.height * crop_rect.size.height * 4;
+    // If the image size is less or equal than the crop area we do nothing
+    if image_bytes_length <= crop_area_bytes_length {
+        return image_data;
+    }
+
+    let mut new_image_data = Vec::new();
+    let mut src = (crop_rect.origin.y * stride + crop_rect.origin.x * 4) as usize;
+    for _ in (0..crop_rect.size.height) {
+        let row = &image_data[src .. src + (4 * crop_rect.size.width) as usize];
+        new_image_data.push_all(row);
+        src += stride as usize;
+    }
+    new_image_data
+}
+
+pub trait SizeToi32 {
+    fn to_i32(&self) -> Size2D<i32>;
+}
+
+impl SizeToi32 for Size2D<f64> {
+    fn to_i32(&self) -> Size2D<i32> {
+        Size2D(self.width.to_i32().unwrap(),
+               self.height.to_i32().unwrap())
+    }
+}
+
+pub trait RectToi32 {
+    fn to_i32(&self) -> Rect<i32>;
+    fn ceil(&self) -> Rect<f64>;
+}
+
+impl RectToi32 for Rect<f64> {
+    fn to_i32(&self) -> Rect<i32> {
+        Rect(Point2D(self.origin.x.to_i32().unwrap(),
+                     self.origin.y.to_i32().unwrap()),
+             Size2D(self.size.width.to_i32().unwrap(),
+                    self.size.height.to_i32().unwrap()))
+    }
+
+    fn ceil(&self) -> Rect<f64> {
+        Rect(Point2D(self.origin.x.ceil(),
+                     self.origin.y.ceil()),
+             Size2D(self.size.width.ceil(),
+                    self.size.height.ceil()))
+    }
+
+}
+
 pub trait ToAzFloat {
     fn to_azfloat(&self) -> Rect<AzFloat>;
 }
 
-impl ToAzFloat for Rect<i32> {
+impl ToAzFloat for Rect<f64> {
     fn to_azfloat(&self) -> Rect<AzFloat> {
         Rect(Point2D(self.origin.x as AzFloat, self.origin.y as AzFloat),
              Size2D(self.size.width as AzFloat, self.size.height as AzFloat))

@@ -8,9 +8,9 @@ html {
   font-family: helvetica, sans-serif;
 }
 
-canvas {
-  padding: 15px;
+canvas, img {
   margin: 10px;
+  border: 1px solid grey;
 }
 
 .example {
@@ -62,8 +62,8 @@ var smoothingEnabled = false;
 var examplesNum = 0;
 
 var imageSource = {
-  width: 50,
-  height: 50
+  width: 100,
+  height: 100
 };
 
 var destCanvas = {
@@ -130,7 +130,7 @@ destCanvas = {
   height: 50
 };
 
-drawImage(0, 0);
+//drawImage(0, 0);
 
 function renderExample(title) {
   var container = document.createElement('div');
@@ -144,9 +144,10 @@ function renderExample(title) {
 
   var div1 = document.createElement('div');
   var canvas1 = document.createElement('canvas');
-  var canvas2 = document.createElement('canvas');
+  var img = document.createElement('img');
+  img.src = 'rust-0.png';
+  div1.appendChild(img);
   div1.appendChild(canvas1);
-  div1.appendChild(canvas2);
   container.appendChild(div1);
 
   var div2 = document.createElement('div');
@@ -175,33 +176,22 @@ function drawImage() {
   var args = Array.prototype.slice.call(arguments);
 
   var div = renderExample('drawImage(' + args.toString() + ')');
-  var canvasEls = div.querySelectorAll('canvas');
-  var canvas1 = canvasEls[0];
-  var canvas2 = canvasEls[1];
+  var canvas = div.querySelectorAll('canvas')[0];
+  var img = div.querySelectorAll('img')[0];
+  img.width = imageSource.width;
+  img.height = imageSource.height;
 
-  canvas1.width = imageSource.width;
-  canvas1.height = imageSource.height;
+  canvas.width = destCanvas.width;
+  canvas.height = destCanvas.height;
 
-  var ctx1 = canvas1.getContext('2d');
-  ctx1.fillStyle = "#00FFFF";
-  ctx1.fillRect(0, 0, imageSource.width, imageSource.height);
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = "#FF0000";
+  ctx.fillRect(0, 0,  destCanvas.width, destCanvas.height);
+  ctx.imageSmoothingEnabled = smoothingEnabled;
 
-  ctx1.fillStyle = "#000000";
-  ctx1.fillRect(5,5,40,40);
-  ctx1.clearRect(10,10,30,30);
-  ctx1.strokeRect(15,15,20,20);
-
-  canvas2.width = destCanvas.width;
-  canvas2.height = destCanvas.height;
-
-  var ctx2 = canvas2.getContext('2d');
-  ctx2.fillStyle = "#FF0000";
-  ctx2.fillRect(0, 0,  destCanvas.width, destCanvas.height);
-  ctx2.imageSmoothingEnabled = smoothingEnabled;
-
-  args.unshift(canvas1);
+  args.unshift(img);
   try {
-    ctx2.drawImage.apply(ctx2, args);
+    ctx.drawImage.apply(ctx, args);
   }
   catch(err) {
     var title = div.querySelector('.example-title');
@@ -212,51 +202,7 @@ function drawImage() {
   }
 
   document.body.appendChild(div);
-};
-
-
-function drawImage() {
-  var args = Array.prototype.slice.call(arguments);
-
-  var div = renderExample('drawImage(' + args.toString() + ')');
-  var canvasEls = div.querySelectorAll('canvas');
-  var canvas1 = canvasEls[0];
-  var canvas2 = canvasEls[1];
-
-  canvas1.width = imageSource.width;
-  canvas1.height = imageSource.height;
-
-  var ctx1 = canvas1.getContext('2d');
-  ctx1.fillStyle = "#00FFFF";
-  ctx1.fillRect(0, 0, imageSource.width, imageSource.height);
-
-  ctx1.fillStyle = "#000000";
-  ctx1.fillRect(5,5,40,40);
-  ctx1.clearRect(10,10,30,30);
-  ctx1.strokeRect(15,15,20,20);
-
-  canvas2.width = destCanvas.width;
-  canvas2.height = destCanvas.height;
-
-  var ctx2 = canvas2.getContext('2d');
-  ctx2.fillStyle = "#FF0000";
-  ctx2.fillRect(0, 0,  destCanvas.width, destCanvas.height);
-  ctx2.imageSmoothingEnabled = smoothingEnabled;
-
-  args.unshift(canvas1);
-  try {
-    ctx2.drawImage.apply(ctx2, args);
-  }
-  catch(err) {
-    var title = div.querySelector('.example-title');
-    var error = document.createElement('h2');
-    error.setAttribute('class', 'example-title error');
-    div.insertBefore(error, title);
-    error.textContent += "Call Failed: " + err.message;
-  }
-
-  document.body.appendChild(div);
-};
+}
 
 </script>
 </body>
