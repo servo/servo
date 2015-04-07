@@ -227,8 +227,3 @@ impl MediaQueryList {
         })
     }
 }
-
-#[cfg(test)]
-mod tests {
-
-}
