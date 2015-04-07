@@ -1,3 +1,5 @@
+#![cfg_attr(test, feature(net, alloc))]
+
 extern crate geom;
 extern crate gfx;
 extern crate net;
