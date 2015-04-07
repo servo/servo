@@ -30,8 +30,8 @@ use dom::bindings::error::Error::NoModificationAllowed;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, RootedReference};
 use dom::bindings::trace::RootedVec;
-use dom::bindings::utils::xml_name_type;
-use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
+use dom::bindings::utils::{xml_name_type, validate_qualified_name};
+use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::create::create_element;
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
@@ -1037,14 +1037,8 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         // Step 1.
         let namespace = namespace::from_domstring(namespace_url);
 
-        let name_type = xml_name_type(&name);
-        match name_type {
-            // Step 2.
-            InvalidXMLName => return Err(InvalidCharacter),
-            // Step 3.
-            Name => return Err(Error::Namespace),
-            QName => {}
-        }
+        // Steps 2-3.
+        try!(validate_qualified_name(&name));
 
         // Step 4.
         let (prefix, local_name) = get_attribute_parts(&name);

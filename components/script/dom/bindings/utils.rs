@@ -7,7 +7,7 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::{native_from_reflector_jsmanaged, is_dom_class};
-use dom::bindings::error::throw_type_error;
+use dom::bindings::error::{Error, ErrorResult, throw_type_error};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, Root};
 use dom::browsercontext;
@@ -602,6 +602,21 @@ pub unsafe fn delete_property_by_id(cx: *mut JSContext, object: *mut JSObject,
 
     *bp = value.to_boolean();
     return true;
+}
+
+/// Validate a qualified name. See https://dom.spec.whatwg.org/#validate for details.
+pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
+    match xml_name_type(qualified_name) {
+        XMLName::InvalidXMLName => {
+            // Step 1.
+            return Err(Error::InvalidCharacter);
+        },
+        XMLName::Name => {
+            // Step 2.
+            return Err(Error::Namespace);
+        },
+        XMLName::QName => Ok(())
+    }
 }
 
 /// Results of `xml_name_type`.

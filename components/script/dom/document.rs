@@ -27,8 +27,8 @@ use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, Temporary
 use dom::bindings::js::{OptionalRootable, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::reflect_dom_object;
-use dom::bindings::utils::xml_name_type;
-use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
+use dom::bindings::utils::{xml_name_type, validate_qualified_name};
+use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
@@ -976,17 +976,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                        namespace: Option<DOMString>,
                        qualified_name: DOMString) -> Fallible<Temporary<Element>> {
         let ns = namespace::from_domstring(namespace);
-        match xml_name_type(&qualified_name) {
-            InvalidXMLName => {
-                debug!("Not a valid element name");
-                return Err(InvalidCharacter);
-            },
-            Name => {
-                debug!("Not a valid qualified element name");
-                return Err(Namespace);
-            },
-            QName => {}
-        }
+        try!(validate_qualified_name(&qualified_name));
 
         let (prefix_from_qname, local_name_from_qname) = get_attribute_parts(&qualified_name);
         match (&ns, prefix_from_qname, local_name_from_qname) {
