@@ -24,7 +24,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLIFrameElementCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
-use dom::bindings::js::{JS, JSRef, OptionalRootable, RootedReference};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, RootedReference};
 use dom::bindings::js::{RootCollection, RootCollectionPtr};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
@@ -33,7 +33,7 @@ use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
-use dom::htmliframeelement::HTMLIFrameElementHelpers;
+use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementHelpers};
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
 use dom::node::{self, Node, NodeHelpers, NodeDamage, window_from_node};
@@ -58,7 +58,7 @@ use script_traits::{ConstellationControlMsg, ScriptControlChan};
 use script_traits::ScriptTaskFactory;
 use msg::compositor_msg::ReadyState::{FinishedLoading, Loading, PerformingLayout};
 use msg::compositor_msg::{LayerId, ScriptListener};
-use msg::constellation_msg::{ConstellationChan};
+use msg::constellation_msg::{ConstellationChan, FocusType};
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent, WorkerId};
 use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
@@ -694,6 +694,8 @@ impl ScriptTask {
                                                      old_subpage_id,
                                                      new_subpage_id) =>
                 self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
+            ConstellationControlMsg::FocusIFrameMsg(containing_pipeline_id, subpage_id) =>
+                self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
         }
     }
 
@@ -841,6 +843,23 @@ impl ScriptTask {
         window.r().thaw();
     }
 
+    fn handle_focus_iframe_msg(&self,
+                               parent_pipeline_id: PipelineId,
+                               subpage_id: SubpageId) {
+        let borrowed_page = self.root_page();
+        let page = borrowed_page.find(parent_pipeline_id).unwrap();
+
+        let doc = page.document().root();
+        let frame_element = self.find_iframe(doc.r(), subpage_id).root();
+
+        if let Some(frame_element) = frame_element {
+            let element: JSRef<Element> = ElementCast::from_ref(frame_element.r());
+            doc.r().begin_focus_transaction();
+            doc.r().request_focus(element);
+            doc.r().commit_focus_transaction(FocusType::Parent);
+        }
+    }
+
     /// Handles a mozbrowser event, for example see:
     /// https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
     fn handle_mozbrowser_event_msg(&self,
@@ -851,11 +870,7 @@ impl ScriptTask {
 
         let frame_element = borrowed_page.find(parent_pipeline_id).and_then(|page| {
             let doc = page.document().root();
-            let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
-
-            doc.traverse_preorder()
-               .filter_map(HTMLIFrameElementCast::to_temporary)
-               .find(|node| node.root().r().subpage_id() == Some(subpage_id))
+            self.find_iframe(doc.r(), subpage_id)
         }).root();
 
         if let Some(frame_element) = frame_element {
@@ -871,11 +886,7 @@ impl ScriptTask {
 
         let frame_element = borrowed_page.find(containing_pipeline_id).and_then(|page| {
             let doc = page.document().root();
-            let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
-
-            doc.traverse_preorder()
-               .filter_map(HTMLIFrameElementCast::to_temporary)
-               .find(|node| node.root().r().subpage_id() == Some(old_subpage_id))
+            self.find_iframe(doc.r(), old_subpage_id)
         }).root();
 
         frame_element.unwrap().r().update_subpage_id(new_subpage_id);
@@ -990,12 +1001,7 @@ impl ScriptTask {
             borrowed_page.as_ref().and_then(|borrowed_page| {
                 borrowed_page.find(parent_id).and_then(|page| {
                     let doc = page.document().root();
-                    let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
-
-                    doc.traverse_preorder()
-                       .filter_map(HTMLIFrameElementCast::to_temporary)
-                       .find(|node| node.root().r().subpage_id() == Some(subpage_id))
-                       .map(ElementCast::from_temporary)
+                    self.find_iframe(doc.r(), subpage_id)
                 })
             })
         }).root();
@@ -1094,7 +1100,8 @@ impl ScriptTask {
                                      last_modified,
                                      DocumentSource::FromParser).root();
 
-        window.r().init_browser_context(document.r(), frame_element.r());
+        let frame_element = frame_element.r().map(|elem| ElementCast::from_ref(elem));
+        window.r().init_browser_context(document.r(), frame_element);
 
         // Create the root frame
         page.set_frame(Some(Frame {
@@ -1186,6 +1193,16 @@ impl ScriptTask {
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, reason);
     }
 
+    /// Find an iframe element in a provided document.
+    fn find_iframe(&self, doc: JSRef<Document>, subpage_id: SubpageId)
+                   -> Option<Temporary<HTMLIFrameElement>> {
+        let doc: JSRef<Node> = NodeCast::from_ref(doc);
+
+        doc.traverse_preorder()
+            .filter_map(HTMLIFrameElementCast::to_temporary)
+            .find(|node| node.root().r().subpage_id() == Some(subpage_id))
+    }
+
     /// This is the main entry point for receiving and dispatching DOM events.
     ///
     /// TODO: Actually perform DOM event dispatch.
@@ -1272,11 +1289,7 @@ impl ScriptTask {
                 let borrowed_page = self.root_page();
                 let iframe = borrowed_page.find(pipeline_id).and_then(|page| {
                     let doc = page.document().root();
-                    let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
-
-                    doc.traverse_preorder()
-                       .filter_map(HTMLIFrameElementCast::to_temporary)
-                       .find(|node| node.root().r().subpage_id() == Some(subpage_id))
+                    self.find_iframe(doc.r(), subpage_id)
                 }).root();
                 if let Some(iframe) = iframe.r() {
                     iframe.navigate_child_browsing_context(load_data.url);

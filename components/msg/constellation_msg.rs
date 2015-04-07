@@ -194,6 +194,13 @@ bitflags! {
     }
 }
 
+/// Specifies the type of focus event that is sent to a pipeline
+#[derive(Copy, PartialEq)]
+pub enum FocusType {
+    Element,    // The first focus message - focus the element itself
+    Parent,     // Focusing a parent element (an iframe)
+}
+
 /// Messages from the compositor and script to the constellation.
 pub enum Msg {
     Exit,
@@ -219,7 +226,9 @@ pub enum Msg {
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
     TickAnimation(PipelineId),
     // Request that the constellation send the current root pipeline id over a provided channel
-    GetRootPipeline(Sender<Option<PipelineId>>)
+    GetRootPipeline(Sender<Option<PipelineId>>),
+    /// Notifies the constellation that this frame has received focus.
+    FocusMsg(PipelineId),
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
