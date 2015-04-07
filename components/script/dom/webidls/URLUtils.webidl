@@ -16,6 +16,7 @@ interface URLUtils {
   //         attribute USVString hostname;
   //         attribute USVString port;
   //         attribute USVString pathname;
+  readonly attribute USVString pathname;
   //         attribute USVString search;
   readonly attribute USVString search;
   //         attribute URLSearchParams searchParams;
