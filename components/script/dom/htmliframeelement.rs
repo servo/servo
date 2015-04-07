@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::attr::AttrValue;
-use dom::attr::AttrHelpers;
+use dom::attr::{Attr, AttrHelpers, AttrHelpersForLayout, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -17,8 +15,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary};
 use dom::customevent::CustomEvent;
 use dom::document::Document;
-use dom::element::Element;
-use dom::element::AttributeHandlers;
+use dom::element::{self, AttributeHandlers, Element};
 use dom::event::{Event, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -40,6 +37,7 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use url::{Url, UrlParser};
+use util::str::{self, LengthOrPercentageOrAuto};
 
 enum SandboxAllowance {
     AllowNothing = 0x00,
@@ -74,6 +72,11 @@ pub trait HTMLIFrameElementHelpers {
     fn navigate_child_browsing_context(self, url: Url);
     fn dispatch_mozbrowser_event(self, event: MozBrowserEvent);
     fn update_subpage_id(self, new_subpage_id: SubpageId);
+}
+
+pub trait RawHTMLIFrameElementHelpers {
+    fn get_width(&self) -> LengthOrPercentageOrAuto;
+    fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
@@ -160,6 +163,30 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 
     fn update_subpage_id(self, new_subpage_id: SubpageId) {
         self.subpage_id.set(Some(new_subpage_id));
+    }
+}
+
+impl RawHTMLIFrameElementHelpers for HTMLIFrameElement {
+    #[allow(unsafe_code)]
+    fn get_width(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            element::get_attr_for_layout(ElementCast::from_actual(&*self),
+                                         &ns!(""),
+                                         &atom!("width")).map(|attribute| {
+                str::parse_length(&**(*attribute.unsafe_get()).value())
+            }).unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_height(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            element::get_attr_for_layout(ElementCast::from_actual(&*self),
+                                         &ns!(""),
+                                         &atom!("height")).map(|attribute| {
+                str::parse_length(&**(*attribute.unsafe_get()).value())
+            }).unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
     }
 }
 
@@ -317,6 +344,14 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     fn Stop(self) -> Fallible<()> {
         Err(NotSupported)
     }
+
+    make_getter!(Width);
+
+    make_setter!(SetWidth, "width");
+
+    make_getter!(Height);
+
+    make_setter!(SetHeight, "height");
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
@@ -347,7 +382,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                     }
                 }
                 self.sandbox.set(Some(modes));
-            },
+            }
             &atom!("src") => {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
                 if node.is_in_doc() {

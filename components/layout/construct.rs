@@ -49,17 +49,17 @@ use script::dom::element::ElementTypeId;
 use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlobjectelement::is_image_data;
 use script::dom::node::NodeTypeId;
-use util::opts;
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::mem;
+use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
 use style::computed_values::{position};
 use style::properties::{self, ComputedValues};
-use std::sync::Arc;
 use url::Url;
+use util::opts;
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]
