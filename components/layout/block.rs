@@ -1313,6 +1313,17 @@ impl BlockFlow {
                 kid_base.fixed_static_i_offset = fixed_static_i_offset;
             }
 
+            // Determine float impaction, and update the inline size speculations if necessary.
+            if flow::base(kid).flags.contains(CLEARS_LEFT) {
+                inline_start_floats_impact_child = false;
+                inline_size_of_preceding_left_floats = Au(0);
+            }
+            if flow::base(kid).flags.contains(CLEARS_RIGHT) {
+                inline_end_floats_impact_child = false;
+                inline_size_of_preceding_right_floats = Au(0);
+            }
+
+            // Update the speculated inline size if this child is floated.
             match flow::base(kid).flags.float_kind() {
                 float::T::none => {}
                 float::T::left => {
@@ -1351,16 +1362,6 @@ impl BlockFlow {
                         // The kid's inline 'start' is at the parent's 'end'
                         inline_end_content_edge
                     }
-            }
-
-            // Determine float impaction.
-            if flow::base(kid).flags.contains(CLEARS_LEFT) {
-                inline_start_floats_impact_child = false;
-                inline_size_of_preceding_left_floats = Au(0);
-            }
-            if flow::base(kid).flags.contains(CLEARS_RIGHT) {
-                inline_end_floats_impact_child = false;
-                inline_size_of_preceding_right_floats = Au(0);
             }
 
             {
