@@ -164,30 +164,30 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
         // "1. Let node be the value of the currentNode attribute."
         // "2. Set node to node's first child if type is first, and node's last child if type is last."
         let cur = self.current_node.get().root();
-        let mut node_op: Option<JSRef<Node>> = next_child(cur.r()).map(|node| node.root().get_unsound_ref_forever());
+        let mut node_op = next_child(cur.r()).root();
 
         // 3. Main: While node is not null, run these substeps:
         'main: loop {
-            match node_op {
+            match node_op.take() {
                 None => break,
                 Some(node) => {
                     // "1. Filter node and let result be the return value."
-                    let result = try!(self.accept_node(node));
+                    let result = try!(self.accept_node(node.r()));
                     match result {
                         // "2. If result is FILTER_ACCEPT, then set the currentNode
                         //     attribute to node and return node."
                         NodeFilterConstants::FILTER_ACCEPT => {
-                            self.current_node.set(JS::from_rooted(node));
-                            return Ok(Some(Temporary::from_rooted(node)))
+                            self.current_node.set(JS::from_rooted(node.r()));
+                            return Ok(Some(Temporary::from_rooted(node.r())))
                         },
                         // "3. If result is FILTER_SKIP, run these subsubsteps:"
                         NodeFilterConstants::FILTER_SKIP => {
                             // "1. Let child be node's first child if type is first,
                             //     and node's last child if type is last."
-                            match next_child(node) {
+                            match next_child(node.r()) {
                                 // "2. If child is not null, set node to child and goto Main."
                                 Some(child) => {
-                                    node_op = Some(child.root().get_unsound_ref_forever());
+                                    node_op = Some(child.root());
                                     continue 'main
                                 },
                                 None => {}
@@ -195,32 +195,36 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
                         },
                         _ => {}
                     }
+                    node_op = Some(node);
                     // "4. While node is not null, run these substeps:"
                     loop {
-                        match node_op {
+                        match node_op.take() {
                             None => break,
                             Some(node) => {
                                 // "1. Let sibling be node's next sibling if type is next,
                                 //     and node's previous sibling if type is previous."
-                                match next_sibling(node) {
+                                match next_sibling(node.r()).root()  {
                                     // "2. If sibling is not null,
                                     //     set node to sibling and goto Main."
                                     Some(sibling) => {
-                                        node_op = Some(sibling.root().get_unsound_ref_forever());
+                                        node_op = Some(sibling);
                                         continue 'main
                                     },
                                     None => {
                                         // "3. Let parent be node's parent."
-                                        match node.parent_node().map(|p| p.root().get_unsound_ref_forever()) {
+                                        match node.r().parent_node().root() {
                                             // "4. If parent is null, parent is root,
                                             //     or parent is currentNode attribute's value,
                                             //     return null."
                                             None => return Ok(None),
-                                            Some(parent) if self.is_root_node(parent)
-                                                            || self.is_current_node(parent) =>
-                                                             return Ok(None),
+                                            Some(ref parent) if self.is_root_node(parent.r())
+                                                                || self.is_current_node(parent.r()) => {
+                                                return Ok(None)
+                                            },
                                             // "5. Otherwise, set node to parent."
-                                            Some(parent) => node_op = Some(parent)
+                                            Some(parent) => {
+                                                node_op = Some(parent)
+                                            }
                                         }
                                     }
                                 }
@@ -244,52 +248,52 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
     {
         // "To **traverse siblings** of type *type* run these steps:"
         // "1. Let node be the value of the currentNode attribute."
-        let mut node = self.current_node.get().root().get_unsound_ref_forever();
+        let mut node = self.current_node.get().root();
         // "2. If node is root, return null."
-        if self.is_root_node(node) {
+        if self.is_root_node(node.r()) {
             return Ok(None)
         }
         // "3. Run these substeps:"
         loop {
             // "1. Let sibling be node's next sibling if type is next,
             //  and node's previous sibling if type is previous."
-            let mut sibling_op = next_sibling(node);
+            let mut sibling_op = next_sibling(node.r()).root();
             // "2. While sibling is not null, run these subsubsteps:"
             while sibling_op.is_some() {
                 // "1. Set node to sibling."
-                node = sibling_op.unwrap().root().get_unsound_ref_forever();
+                node = sibling_op.unwrap();
                 // "2. Filter node and let result be the return value."
-                let result = try!(self.accept_node(node));
+                let result = try!(self.accept_node(node.r()));
                 // "3. If result is FILTER_ACCEPT, then set the currentNode
                 //     attribute to node and return node."
                 match result {
                     NodeFilterConstants::FILTER_ACCEPT => {
-                        self.current_node.set(JS::from_rooted(node));
-                        return Ok(Some(Temporary::from_rooted(node)))
+                        self.current_node.set(JS::from_rooted(node.r()));
+                        return Ok(Some(Temporary::from_rooted(node.r())))
                     },
                     _ => {}
                 }
                 // "4. Set sibling to node's first child if type is next,
                 //     and node's last child if type is previous."
-                sibling_op = next_child(node);
+                sibling_op = next_child(node.r()).root();
                 // "5. If result is FILTER_REJECT or sibling is null,
                 //     then set sibling to node's next sibling if type is next,
                 //     and node's previous sibling if type is previous."
                 match (result, &sibling_op) {
                     (NodeFilterConstants::FILTER_REJECT, _)
-                    | (_, &None) => sibling_op = next_sibling(node),
+                    | (_, &None) => sibling_op = next_sibling(node.r()).root(),
                     _ => {}
                 }
             }
             // "3. Set node to its parent."
-            match node.parent_node().map(|p| p.root().get_unsound_ref_forever()) {
+            match node.r().parent_node().root() {
                 // "4. If node is null or is root, return null."
                 None => return Ok(None),
-                Some(n) if self.is_root_node(n) => return Ok(None),
+                Some(ref n) if self.is_root_node(n.r()) => return Ok(None),
                 // "5. Filter node and if the return value is FILTER_ACCEPT, then return null."
                 Some(n) => {
                     node = n;
-                    match try!(self.accept_node(node)) {
+                    match try!(self.accept_node(node.r())) {
                         NodeFilterConstants::FILTER_ACCEPT => return Ok(None),
                         _ => {}
                     }
@@ -306,20 +310,20 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
         //  and A comes after B in tree order."
         match node.next_sibling() {
             None => {
-                let mut candidate = node;
-                while !self.is_root_node(candidate) && candidate.next_sibling().is_none() {
-                    match candidate.parent_node() {
+                let mut candidate = Temporary::from_rooted(node).root();
+                while !self.is_root_node(candidate.r()) && candidate.r().next_sibling().is_none() {
+                    match candidate.r().parent_node().root() {
                         None =>
                             // This can happen if the user set the current node to somewhere
                             // outside of the tree rooted at the original root.
                             return None,
-                        Some(n) => candidate = n.root().get_unsound_ref_forever()
+                        Some(n) => candidate = n
                     }
                 }
-                if self.is_root_node(candidate) {
+                if self.is_root_node(candidate.r()) {
                     None
                 } else {
-                    candidate.next_sibling()
+                    candidate.r().next_sibling()
                 }
             },
             it => it
@@ -370,19 +374,19 @@ impl<'a> TreeWalkerHelpers for JSRef<'a, TreeWalker> {
     // http://dom.spec.whatwg.org/#dom-treewalker-parentnode
     fn parent_node(self) -> Fallible<Option<Temporary<Node>>> {
         // "1. Let node be the value of the currentNode attribute."
-        let mut node = self.current_node.get().root().get_unsound_ref_forever();
+        let mut node = self.current_node.get().root();
         // "2. While node is not null and is not root, run these substeps:"
-        while !self.is_root_node(node) {
+        while !self.is_root_node(node.r()) {
             // "1. Let node be node's parent."
-            match node.parent_node() {
+            match node.r().parent_node().root() {
                 Some(n) => {
-                    node = n.root().get_unsound_ref_forever();
+                    node = n;
                     // "2. If node is not null and filtering node returns FILTER_ACCEPT,
                     //     then set the currentNode attribute to node, return node."
-                    match try!(self.accept_node(node)) {
+                    match try!(self.accept_node(node.r())) {
                         NodeFilterConstants::FILTER_ACCEPT => {
-                            self.current_node.set(JS::from_rooted(node));
-                            return Ok(Some(Temporary::from_rooted(node)))
+                            self.current_node.set(JS::from_rooted(node.r()));
+                            return Ok(Some(Temporary::from_rooted(node.r())))
                         },
                         _ => {}
                     }
@@ -425,15 +429,15 @@ impl<'a> TreeWalkerHelpers for JSRef<'a, TreeWalker> {
     // http://dom.spec.whatwg.org/#dom-treewalker-previousnode
     fn prev_node(self) -> Fallible<Option<Temporary<Node>>> {
         // "1. Let node be the value of the currentNode attribute."
-        let mut node = self.current_node.get().root().get_unsound_ref_forever();
+        let mut node = self.current_node.get().root();
         // "2. While node is not root, run these substeps:"
-        while !self.is_root_node(node) {
+        while !self.is_root_node(node.r()) {
             // "1. Let sibling be the previous sibling of node."
-            let mut sibling_op = node.prev_sibling();
+            let mut sibling_op = node.r().prev_sibling().root();
             // "2. While sibling is not null, run these subsubsteps:"
             while sibling_op.is_some() {
                 // "1. Set node to sibling."
-                node = sibling_op.unwrap().root().get_unsound_ref_forever();
+                node = sibling_op.unwrap();
                 // "2. Filter node and let result be the return value."
                 // "3. While result is not FILTER_REJECT and node has a child,
                 //     set node to its last child and then filter node and
@@ -441,39 +445,39 @@ impl<'a> TreeWalkerHelpers for JSRef<'a, TreeWalker> {
                 // "4. If result is FILTER_ACCEPT, then
                 //     set the currentNode attribute to node and return node."
                 loop {
-                    let result = try!(self.accept_node(node));
+                    let result = try!(self.accept_node(node.r()));
                     match result {
                         NodeFilterConstants::FILTER_REJECT => break,
-                        _ if node.first_child().is_some() =>
-                            node = node.last_child().unwrap().root().get_unsound_ref_forever(),
+                        _ if node.r().first_child().is_some() =>
+                            node = node.r().last_child().unwrap().root(),
                         NodeFilterConstants::FILTER_ACCEPT => {
-                            self.current_node.set(JS::from_rooted(node));
-                            return Ok(Some(Temporary::from_rooted(node)))
+                            self.current_node.set(JS::from_rooted(node.r()));
+                            return Ok(Some(Temporary::from_rooted(node.r())))
                         },
                         _ => break
                     }
                 }
                 // "5. Set sibling to the previous sibling of node."
-                sibling_op = node.prev_sibling()
+                sibling_op = node.r().prev_sibling().root()
             }
             // "3. If node is root or node's parent is null, return null."
-            if self.is_root_node(node) || node.parent_node() == None {
+            if self.is_root_node(node.r()) || node.r().parent_node().is_none() {
                 return Ok(None)
             }
             // "4. Set node to its parent."
-            match node.parent_node() {
+            match node.r().parent_node().root() {
                 None =>
                     // This can happen if the user set the current node to somewhere
                     // outside of the tree rooted at the original root.
                     return Ok(None),
-                Some(n) => node = n.root().get_unsound_ref_forever()
+                Some(n) => node = n
             }
             // "5. Filter node and if the return value is FILTER_ACCEPT, then
             //     set the currentNode attribute to node and return node."
-            match try!(self.accept_node(node)) {
+            match try!(self.accept_node(node.r())) {
                 NodeFilterConstants::FILTER_ACCEPT => {
-                    self.current_node.set(JS::from_rooted(node));
-                    return Ok(Some(Temporary::from_rooted(node)))
+                    self.current_node.set(JS::from_rooted(node.r()));
+                    return Ok(Some(Temporary::from_rooted(node.r())))
                 },
                 _ => {}
             }
@@ -485,7 +489,7 @@ impl<'a> TreeWalkerHelpers for JSRef<'a, TreeWalker> {
     // http://dom.spec.whatwg.org/#dom-treewalker-nextnode
     fn next_node(self) -> Fallible<Option<Temporary<Node>>> {
         // "1. Let node be the value of the currentNode attribute."
-        let mut node = self.current_node.get().root().get_unsound_ref_forever();
+        let mut node = self.current_node.get().root();
         // "2. Let result be FILTER_ACCEPT."
         let mut result = NodeFilterConstants::FILTER_ACCEPT;
         // "3. Run these substeps:"
@@ -496,19 +500,19 @@ impl<'a> TreeWalkerHelpers for JSRef<'a, TreeWalker> {
                     NodeFilterConstants::FILTER_REJECT => break,
                     _ => {}
                 }
-                match node.first_child() {
+                match node.r().first_child().root() {
                     None => break,
-                    Some (child) => {
+                    Some(child) => {
                         // "1. Set node to its first child."
-                        node = child.root().get_unsound_ref_forever();
+                        node = child;
                         // "2. Filter node and set result to the return value."
-                        result = try!(self.accept_node(node));
+                        result = try!(self.accept_node(node.r()));
                         // "3. If result is FILTER_ACCEPT, then
                         //     set the currentNode attribute to node and return node."
                         match result {
                             NodeFilterConstants::FILTER_ACCEPT => {
-                                self.current_node.set(JS::from_rooted(node));
-                                return Ok(Some(Temporary::from_rooted(node)))
+                                self.current_node.set(JS::from_rooted(node.r()));
+                                return Ok(Some(Temporary::from_rooted(node.r())))
                             },
                             _ => {}
                         }
@@ -518,18 +522,18 @@ impl<'a> TreeWalkerHelpers for JSRef<'a, TreeWalker> {
             // "2. If a node is following node and is not following root,
             //     set node to the first such node."
             // "Otherwise, return null."
-            match self.first_following_node_not_following_root(node) {
+            match self.first_following_node_not_following_root(node.r()).root() {
                 None => return Ok(None),
                 Some(n) => {
-                    node = n.root().get_unsound_ref_forever();
+                    node = n;
                     // "3. Filter node and set result to the return value."
-                    result = try!(self.accept_node(node));
+                    result = try!(self.accept_node(node.r()));
                     // "4. If result is FILTER_ACCEPT, then
                     //     set the currentNode attribute to node and return node."
                     match result {
                         NodeFilterConstants::FILTER_ACCEPT => {
-                            self.current_node.set(JS::from_rooted(node));
-                            return Ok(Some(Temporary::from_rooted(node)))
+                            self.current_node.set(JS::from_rooted(node.r()));
+                            return Ok(Some(Temporary::from_rooted(node.r())))
                         },
                         _ => {}
                     }
@@ -541,11 +545,11 @@ impl<'a> TreeWalkerHelpers for JSRef<'a, TreeWalker> {
 }
 
 impl<'a> Iterator for JSRef<'a, TreeWalker> {
-    type Item = JSRef<'a, Node>;
+    type Item = Temporary<Node>;
 
-   fn next(&mut self) -> Option<JSRef<'a, Node>> {
+   fn next(&mut self) -> Option<Temporary<Node>> {
        match self.next_node() {
-           Ok(node) => node.map(|n| n.root().get_unsound_ref_forever()),
+           Ok(node) => node,
            Err(_) =>
                // The Err path happens only when a JavaScript
                // NodeFilter throws an exception. This iterator
