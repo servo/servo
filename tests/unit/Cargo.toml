@@ -26,6 +26,9 @@ path = "../../components/profile"
 [dependencies.style]
 path = "../../components/style"
 
+[dependencies.script]
+path = "../../components/script"
+
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
