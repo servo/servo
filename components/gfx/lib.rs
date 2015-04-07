@@ -6,7 +6,6 @@
 #![feature(box_syntax)]
 #![feature(collections)]
 #![feature(core)]
-#![feature(int_uint)]
 #![cfg_attr(any(target_os="linux", target_os = "android"), feature(io))]
 #![feature(plugin)]
 #![feature(rustc_private)]

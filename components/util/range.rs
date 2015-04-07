@@ -25,6 +25,15 @@ impl RangeIndex for isize {
     fn get(self) -> isize { self }
 }
 
+impl RangeIndex for usize {
+    type Index = usize;
+    #[inline]
+    fn new(x: usize) -> usize { x }
+
+    #[inline]
+    fn get(self) -> usize { self }
+}
+
 /// Implements a range index type with operator overloads
 #[macro_export]
 macro_rules! int_range_index {

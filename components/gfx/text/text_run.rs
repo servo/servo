@@ -201,7 +201,7 @@ impl<'a> TextRun {
                            -> Vec<GlyphRun> {
         // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
         let mut glyphs = vec!();
-        let (mut byte_i, mut char_i) = (0u, CharIndex(0));
+        let (mut byte_i, mut char_i) = (0, CharIndex(0));
         let mut cur_slice_is_whitespace = false;
         let (mut byte_last_boundary, mut char_last_boundary) = (0, CharIndex(0));
         while byte_i < text.len() {
@@ -330,7 +330,7 @@ impl<'a> TextRun {
     }
 
     /// Returns the index of the first glyph run containing the given character index.
-    fn index_of_first_glyph_run_containing(&self, index: CharIndex) -> Option<uint> {
+    fn index_of_first_glyph_run_containing(&self, index: CharIndex) -> Option<usize> {
         (&**self.glyphs).binary_search_index_by(&index, CharIndexComparator)
     }
 

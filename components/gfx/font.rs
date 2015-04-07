@@ -66,7 +66,7 @@ impl FontTableTagConversions for FontTableTag {
 }
 
 pub trait FontTableMethods {
-    fn with_buffer<F>(&self, F) where F: FnOnce(*const u8, uint);
+    fn with_buffer<F>(&self, F) where F: FnOnce(*const u8, usize);
 }
 
 #[derive(Clone, Debug)]
@@ -145,7 +145,7 @@ impl Font {
             Some(glyphs) => return glyphs.clone(),
         }
 
-        let mut glyphs = GlyphStore::new(text.chars().count() as int,
+        let mut glyphs = GlyphStore::new(text.chars().count(),
                                          options.flags.contains(IS_WHITESPACE_SHAPING_FLAG));
         shaper.as_ref().unwrap().shape_text(text, options, &mut glyphs);
 

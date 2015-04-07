@@ -61,7 +61,7 @@ static KERN: u32 = hb_tag!('k', 'e', 'r', 'n');
 static LIGA: u32 = hb_tag!('l', 'i', 'g', 'a');
 
 pub struct ShapedGlyphData {
-    count: int,
+    count: usize,
     glyph_infos: *mut hb_glyph_info_t,
     pos_infos: *mut hb_glyph_position_t,
 }
@@ -77,16 +77,14 @@ impl ShapedGlyphData {
         unsafe {
             let mut glyph_count = 0;
             let glyph_infos = RUST_hb_buffer_get_glyph_infos(buffer, &mut glyph_count);
-            let glyph_count = glyph_count as int;
             assert!(!glyph_infos.is_null());
             let mut pos_count = 0;
             let pos_infos = RUST_hb_buffer_get_glyph_positions(buffer, &mut pos_count);
-            let pos_count = pos_count as int;
             assert!(!pos_infos.is_null());
             assert!(glyph_count == pos_count);
 
             ShapedGlyphData {
-                count: glyph_count,
+                count: glyph_count as usize,
                 glyph_infos: glyph_infos,
                 pos_infos: pos_infos,
             }
@@ -94,26 +92,26 @@ impl ShapedGlyphData {
     }
 
     #[inline(always)]
-    fn byte_offset_of_glyph(&self, i: int) -> int {
+    fn byte_offset_of_glyph(&self, i: usize) -> u32 {
         assert!(i < self.count);
 
         unsafe {
-            let glyph_info_i = self.glyph_infos.offset(i);
-            (*glyph_info_i).cluster as int
+            let glyph_info_i = self.glyph_infos.offset(i as isize);
+            (*glyph_info_i).cluster
         }
     }
 
-    pub fn len(&self) -> int {
+    pub fn len(&self) -> usize {
         self.count
     }
 
     /// Returns shaped glyph data for one glyph, and updates the y-position of the pen.
-    pub fn get_entry_for_glyph(&self, i: int, y_pos: &mut Au) -> ShapedGlyphEntry {
+    pub fn get_entry_for_glyph(&self, i: usize, y_pos: &mut Au) -> ShapedGlyphEntry {
         assert!(i < self.count);
 
         unsafe {
-            let glyph_info_i = self.glyph_infos.offset(i);
-            let pos_info_i = self.pos_infos.offset(i);
+            let glyph_info_i = self.glyph_infos.offset(i as isize);
+            let pos_info_i = self.pos_infos.offset(i as isize);
             let x_offset = Shaper::fixed_to_float((*pos_info_i).x_offset);
             let y_offset = Shaper::fixed_to_float((*pos_info_i).y_offset);
             let x_advance = Shaper::fixed_to_float((*pos_info_i).x_advance);
@@ -273,8 +271,8 @@ impl Shaper {
                           buffer: *mut hb_buffer_t) {
         let glyph_data = ShapedGlyphData::new(buffer);
         let glyph_count = glyph_data.len();
-        let byte_max = text.len() as int;
-        let char_max = text.chars().count() as int;
+        let byte_max = text.len();
+        let char_max = text.chars().count();
 
         // GlyphStore records are indexed by character, not byte offset.
         // so, we must be careful to increment this when saving glyph entries.
@@ -296,9 +294,9 @@ impl Shaper {
 
         // fast path: all chars are single-byte.
         if byte_max == char_max {
-            byte_to_glyph = repeat(NO_GLYPH).take(byte_max as uint).collect();
+            byte_to_glyph = repeat(NO_GLYPH).take(byte_max).collect();
         } else {
-            byte_to_glyph = repeat(CONTINUATION_BYTE).take(byte_max as uint)
+            byte_to_glyph = repeat(CONTINUATION_BYTE).take(byte_max)
                                                      .collect();
             for (i, _) in text.char_indices() {
                 byte_to_glyph[i] = NO_GLYPH;
@@ -308,10 +306,10 @@ impl Shaper {
         debug!("(glyph idx) -> (text byte offset)");
         for i in 0..glyph_data.len() {
             // loc refers to a *byte* offset within the utf8 string.
-            let loc = glyph_data.byte_offset_of_glyph(i);
+            let loc = glyph_data.byte_offset_of_glyph(i) as usize;
             if loc < byte_max {
-                assert!(byte_to_glyph[loc as uint] != CONTINUATION_BYTE);
-                byte_to_glyph[loc as uint] = i as i32;
+                assert!(byte_to_glyph[loc] != CONTINUATION_BYTE);
+                byte_to_glyph[loc] = i as i32;
             } else {
                 debug!("ERROR: tried to set out of range byte_to_glyph: idx={}, glyph idx={}",
                        loc,
@@ -327,10 +325,10 @@ impl Shaper {
         }
 
         // some helpers
-        let mut glyph_span: Range<int> = Range::empty();
+        let mut glyph_span: Range<usize> = Range::empty();
         // this span contains first byte of first char, to last byte of last char in range.
         // so, end() points to first byte of last+1 char, if it's less than byte_max.
-        let mut char_byte_span: Range<int> = Range::empty();
+        let mut char_byte_span: Range<usize> = Range::empty();
         let mut y_pos = Au(0);
 
         // main loop over each glyph. each iteration usually processes 1 glyph and 1+ chars.
@@ -342,33 +340,33 @@ impl Shaper {
             debug!("Processing glyph at idx={}", glyph_span.begin());
 
             let char_byte_start = glyph_data.byte_offset_of_glyph(glyph_span.begin());
-            char_byte_span.reset(char_byte_start, 0);
+            char_byte_span.reset(char_byte_start as usize, 0);
 
             // find a range of chars corresponding to this glyph, plus
             // any trailing chars that do not have associated glyphs.
             while char_byte_span.end() < byte_max {
-                let range = text.char_range_at(char_byte_span.end() as uint);
+                let range = text.char_range_at(char_byte_span.end());
                 drop(range.ch);
-                char_byte_span.extend_to(range.next as int);
+                char_byte_span.extend_to(range.next);
 
                 debug!("Processing char byte span: off={}, len={} for glyph idx={}",
                        char_byte_span.begin(), char_byte_span.length(), glyph_span.begin());
 
                 while char_byte_span.end() != byte_max &&
-                        byte_to_glyph[char_byte_span.end() as uint] == NO_GLYPH {
+                        byte_to_glyph[char_byte_span.end()] == NO_GLYPH {
                     debug!("Extending char byte span to include byte offset={} with no associated \
                             glyph", char_byte_span.end());
-                    let range = text.char_range_at(char_byte_span.end() as uint);
+                    let range = text.char_range_at(char_byte_span.end());
                     drop(range.ch);
-                    char_byte_span.extend_to(range.next as int);
+                    char_byte_span.extend_to(range.next);
                 }
 
                 // extend glyph range to max glyph index covered by char_span,
                 // in cases where one char made several glyphs and left some unassociated chars.
                 let mut max_glyph_idx = glyph_span.end();
                 for i in char_byte_span.each_index() {
-                    if byte_to_glyph[i as uint] > NO_GLYPH {
-                        max_glyph_idx = cmp::max(byte_to_glyph[i as uint] as int + 1, max_glyph_idx);
+                    if byte_to_glyph[i] > NO_GLYPH {
+                        max_glyph_idx = cmp::max(byte_to_glyph[i] as usize + 1, max_glyph_idx);
                     }
                 }
 
@@ -392,7 +390,7 @@ impl Shaper {
                 let mut all_glyphs_are_within_cluster: bool = true;
                 for j in glyph_span.each_index() {
                     let loc = glyph_data.byte_offset_of_glyph(j);
-                    if !char_byte_span.contains(loc) {
+                    if !char_byte_span.contains(loc as usize) {
                         all_glyphs_are_within_cluster = false;
                         break
                     }
@@ -427,10 +425,10 @@ impl Shaper {
             let mut covered_byte_span = char_byte_span.clone();
             // extend, clipping at end of text range.
             while covered_byte_span.end() < byte_max
-                    && byte_to_glyph[covered_byte_span.end() as uint] == NO_GLYPH {
-                let range = text.char_range_at(covered_byte_span.end() as uint);
+                    && byte_to_glyph[covered_byte_span.end()] == NO_GLYPH {
+                let range = text.char_range_at(covered_byte_span.end());
                 drop(range.ch);
-                covered_byte_span.extend_to(range.next as int);
+                covered_byte_span.extend_to(range.next);
             }
 
             if covered_byte_span.begin() >= byte_max {
@@ -456,7 +454,7 @@ impl Shaper {
                 // NB: When we acquire the ability to handle ligatures that cross word boundaries,
                 // we'll need to do something special to handle `word-spacing` properly.
                 let shape = glyph_data.get_entry_for_glyph(glyph_span.begin(), &mut y_pos);
-                let character = text.char_at(char_byte_span.begin() as uint);
+                let character = text.char_at(char_byte_span.begin());
                 let advance = self.advance_for_shaped_glyph(shape.advance, character, options);
                 let data = GlyphData::new(shape.codepoint,
                                           advance,
@@ -486,9 +484,9 @@ impl Shaper {
                 // set the other chars, who have no glyphs
                 let mut i = covered_byte_span.begin();
                 loop {
-                    let range = text.char_range_at(i as uint);
+                    let range = text.char_range_at(i);
                     drop(range.ch);
-                    i = range.next as int;
+                    i = range.next;
                     if i >= covered_byte_span.end() { break; }
                     char_idx = char_idx + CharIndex(1);
                     glyphs.add_nonglyph_for_char_index(char_idx, false, false);
@@ -613,7 +611,7 @@ extern fn get_font_table_func(_: *mut hb_face_t,
                 let skinny_font_table_ptr: *const FontTable = font_table;   // private context
 
                 let mut blob: *mut hb_blob_t = ptr::null_mut();
-                (*skinny_font_table_ptr).with_buffer(|buf: *const u8, len: uint| {
+                (*skinny_font_table_ptr).with_buffer(|buf: *const u8, len: usize| {
                     // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
                     blob = RUST_hb_blob_create(buf as *const c_char,
                                                len as c_uint,

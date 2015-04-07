@@ -48,7 +48,7 @@ pub struct PaintContext<'a> {
     /// The rectangle that this context encompasses in page coordinates.
     pub page_rect: Rect<f32>,
     /// The rectangle that this context encompasses in screen coordinates (pixels).
-    pub screen_rect: Rect<uint>,
+    pub screen_rect: Rect<usize>,
     /// The clipping rect for the stacking context as a whole.
     pub clip_rect: Option<Rect<Au>>,
     /// The current transient clipping region, if any. A "transient clipping region" is the
@@ -622,19 +622,19 @@ impl<'a> PaintContext<'a> {
                                   color: Color,
                                   dash_size: DashSize) {
         let rect = bounds.to_azure_rect();
-        let draw_opts = DrawOptions::new(1u as AzFloat, 0 as uint16_t);
+        let draw_opts = DrawOptions::new(1 as AzFloat, 0 as uint16_t);
         let border_width = match direction {
             Direction::Top => border.top,
             Direction::Left => border.left,
             Direction::Right => border.right,
             Direction::Bottom => border.bottom
         };
-        let dash_pattern = [border_width * (dash_size as int) as AzFloat,
-                            border_width * (dash_size as int) as AzFloat];
+        let dash_pattern = [border_width * (dash_size as i32) as AzFloat,
+                            border_width * (dash_size as i32) as AzFloat];
         let stroke_opts = StrokeOptions::new(border_width as AzFloat,
                                              JoinStyle::MiterOrBevel,
                                              CapStyle::Butt,
-                                             10u as AzFloat,
+                                             10 as AzFloat,
                                              &dash_pattern);
         let (start, end)  = match direction {
             Direction::Top => {
