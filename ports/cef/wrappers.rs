@@ -32,9 +32,11 @@ use types::{cef_window_info_t, cef_xml_encoding_type_t, cef_xml_node_type_t};
 use unicode::str::Utf16Encoder;
 
 use libc::{self, c_char, c_int, c_ushort, c_void};
+use std::boxed;
 use std::collections::HashMap;
 use std::mem;
 use std::ptr;
+use std::raw;
 
 pub trait CefWrap<CObject> {
     fn to_c(rust_object: Self) -> CObject;
@@ -61,7 +63,7 @@ macro_rules! cef_pointer_wrapper(
                 rust_object
             }
             unsafe fn to_rust(c_object: *const $ty) -> &'a $ty {
-                mem::transmute::<*const $ty,&'a $ty>(c_object)
+                &*c_object
             }
         }
         impl<'a> CefWrap<*mut $ty> for &'a mut $ty {
@@ -69,7 +71,7 @@ macro_rules! cef_pointer_wrapper(
                 rust_object
             }
             unsafe fn to_rust(c_object: *mut $ty) -> &'a mut $ty {
-                mem::transmute::<*mut $ty,&'a mut $ty>(c_object)
+                &mut *c_object
             }
         }
         cef_noop_wrapper!(*const $ty);
@@ -187,19 +189,18 @@ impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
 
             // FIXME(pcwalton): This leaks!! We should instead have the caller pass some scratch
             // stack space to create the object in. What a botch.
-            let boxed_string = box cef_string_utf16 {
+            boxed::into_raw(box cef_string_utf16 {
                 str: ptr,
                 length: buffer.len() as u64,
                 dtor: Some(free_boxed_utf16_string as extern "C" fn(*mut c_ushort)),
-            };
-            let result: *const cef_string_utf16 = &*boxed_string;
-            mem::forget(boxed_string);
-            result
+            }) as *const _
         }
     }
     unsafe fn to_rust(cef_string: *const cef_string_t) -> &'a [u16] {
-        let (ptr, len): (*mut c_ushort, uint) = ((*cef_string).str, (*cef_string).length as uint);
-        mem::transmute((ptr, len))
+        mem::transmute(raw::Slice {
+            data: (*cef_string).str,
+            len: (*cef_string).length as usize,
+        })
     }
 }
 
@@ -214,8 +215,7 @@ impl<'a> CefWrap<*mut cef_string_t> for &'a mut [u16] {
         panic!("unimplemented CEF type conversion: &'a str")
     }
     unsafe fn to_rust(_: *mut cef_string_t) -> &'a mut [u16] {
-        mem::transmute::<(int,int),_>(panic!("unimplemented CEF type conversion: *mut \
-                                              cef_string_t"))
+        panic!("unimplemented CEF type conversion: *mut cef_string_t")
     }
 }
 
@@ -245,19 +245,18 @@ impl<'a> CefWrap<cef_string_userfree_t> for String {
 
         let boxed_string;
         unsafe {
-            let buffer = libc::malloc((mem::size_of::<c_ushort>() as u64) *
-                                      ((utf16_chars.len() + 1) as u64 + 1)) as *mut u16;
+            let buffer = libc::malloc((mem::size_of::<c_ushort>() as libc::size_t) *
+                                      ((utf16_chars.len() + 1) as libc::size_t)) as *mut u16;
             for (i, ch) in utf16_chars.iter().enumerate() {
                 *buffer.offset(i as int) = *ch
             }
             *buffer.offset(utf16_chars.len() as int) = 0;
 
-            boxed_string = libc::malloc(mem::size_of::<cef_string_utf16>() as u64) as
+            boxed_string = libc::malloc(mem::size_of::<cef_string_utf16>() as libc::size_t) as
                 *mut cef_string_utf16;
             ptr::write(&mut (*boxed_string).str, buffer);
             ptr::write(&mut (*boxed_string).length, utf16_chars.len() as u64);
             ptr::write(&mut (*boxed_string).dtor, Some(free_utf16_buffer as extern "C" fn(*mut c_ushort)));
-            mem::forget(utf16_chars);
         }
         boxed_string
     }
