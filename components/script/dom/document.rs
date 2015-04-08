@@ -997,6 +997,18 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Ok(Attr::new(window.r(), name, value, l_name, ns!(""), None, None))
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-createattributens
+    fn CreateAttributeNS(self, namespace: Option<DOMString>, qualified_name: DOMString)
+                         -> Fallible<Temporary<Attr>> {
+        let (namespace, prefix, local_name) =
+            try!(validate_and_extract(namespace, &qualified_name));
+        let window = self.window.root();
+        let value = AttrValue::String("".to_owned());
+        let qualified_name = Atom::from_slice(&qualified_name);
+        Ok(Attr::new(window.r(), local_name, value, qualified_name,
+                     namespace, prefix, None))
+    }
+
     // http://dom.spec.whatwg.org/#dom-document-createdocumentfragment
     fn CreateDocumentFragment(self) -> Temporary<DocumentFragment> {
         DocumentFragment::new(self)

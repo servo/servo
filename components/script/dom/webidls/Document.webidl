@@ -41,12 +41,14 @@ interface Document : Node {
   ProcessingInstruction createProcessingInstruction(DOMString target, DOMString data);
 
   [NewObject, Throws]
-  Attr createAttribute(DOMString localName);
-
-  [NewObject, Throws]
   Node importNode(Node node, optional boolean deep = false);
   [Throws]
   Node adoptNode(Node node);
+
+  [NewObject, Throws]
+  Attr createAttribute(DOMString localName);
+  [NewObject, Throws]
+  Attr createAttributeNS(DOMString? namespace, DOMString localName);
 
   [NewObject, Throws]
   Event createEvent(DOMString interface_);
