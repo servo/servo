@@ -601,6 +601,53 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     }
 }
 
+pub trait FocusElementHelpers {
+    /// https://html.spec.whatwg.org/multipage/interaction.html#focusable-area
+    fn is_focusable_area(self) -> bool;
+
+    /// https://html.spec.whatwg.org/multipage/scripting.html#concept-element-disabled
+    fn is_actually_disabled(self) -> bool;
+}
+
+impl<'a> FocusElementHelpers for JSRef<'a, Element> {
+    fn is_focusable_area(self) -> bool {
+        if self.is_actually_disabled() {
+            return false;
+        }
+        // TODO: Check whether the element is being rendered (i.e. not hidden).
+        // TODO: Check the tabindex focus flag.
+        // https://html.spec.whatwg.org/multipage/interaction.html#specially-focusable
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        match node.type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
+                true
+            }
+            _ => false
+        }
+    }
+
+    fn is_actually_disabled(self) -> bool {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        match node.type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) => {
+                node.get_disabled_state()
+            }
+            // TODO:
+            // an optgroup element that has a disabled attribute
+            // a menuitem element that has a disabled attribute
+            // a fieldset element that is a disabled fieldset
+            _ => false
+        }
+    }
+}
+
 pub trait AttributeHandlers {
     /// Returns the attribute with given namespace and case-sensitive local
     /// name, if any.
