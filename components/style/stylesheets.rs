@@ -429,7 +429,11 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace))
             },
             "viewport" => {
-                Ok(AtRuleType::WithBlock(AtRulePrelude::Viewport))
+                if ::util::opts::experimental_enabled() {
+                    Ok(AtRuleType::WithBlock(AtRulePrelude::Viewport))
+                } else {
+                    Err(())
+                }
             }
             _ => Err(())
         }
