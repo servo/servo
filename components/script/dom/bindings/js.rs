@@ -174,7 +174,7 @@ impl<T: Reflectable> Temporary<T> {
     }
 
     /// Create a stack-bounded root for this value.
-    pub fn root(self) -> Root<T> {
+    pub fn root(&self) -> Root<T> {
         STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
             unsafe {
