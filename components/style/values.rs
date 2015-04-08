@@ -310,21 +310,21 @@ pub mod specified {
     const AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
     impl Length {
         #[inline]
-        fn parse_internal(input: &mut Parser, negative_ok: bool) -> Result<Length, ()> {
+        fn parse_internal(input: &mut Parser, context: &AllowedNumericType) -> Result<Length, ()> {
             match try!(input.next()) {
-                Token::Dimension(ref value, ref unit) if negative_ok || value.value >= 0. => {
-                    Length::parse_dimension(value.value, unit)
-                }
-                Token::Number(ref value) if value.value == 0. => Ok(Length::Absolute(Au(0))),
+                Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
+                    Length::parse_dimension(value.value, unit),
+                Token::Number(ref value) if value.value == 0. =>
+                    Ok(Length::Absolute(Au(0))),
                 _ => Err(())
             }
         }
         #[allow(dead_code)]
         pub fn parse(input: &mut Parser) -> Result<Length, ()> {
-            Length::parse_internal(input, /* negative_ok = */ true)
+            Length::parse_internal(input, &AllowedNumericType::All)
         }
         pub fn parse_non_negative(input: &mut Parser) -> Result<Length, ()> {
-            Length::parse_internal(input, /* negative_ok = */ false)
+            Length::parse_internal(input, &AllowedNumericType::NonNegative)
         }
         pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Length, ()> {
             match_ignore_ascii_case! { unit,
@@ -369,30 +369,27 @@ pub mod specified {
         }
     }
     impl LengthOrPercentage {
-        fn parse_internal(input: &mut Parser, negative_ok: bool)
-                          -> Result<LengthOrPercentage, ()> {
+        fn parse_internal(input: &mut Parser, context: &AllowedNumericType)
+                          -> Result<LengthOrPercentage, ()>
+        {
             match try!(input.next()) {
-                Token::Dimension(ref value, ref unit) if negative_ok || value.value >= 0. => {
-                    Length::parse_dimension(value.value, unit)
-                    .map(LengthOrPercentage::Length)
-                }
-                Token::Percentage(ref value) if negative_ok || value.unit_value >= 0. => {
-                    Ok(LengthOrPercentage::Percentage(value.unit_value))
-                }
-                Token::Number(ref value) if value.value == 0. => {
-                    Ok(LengthOrPercentage::Length(Length::Absolute(Au(0))))
-                }
+                Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
+                    Length::parse_dimension(value.value, unit).map(LengthOrPercentage::Length),
+                Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
+                    Ok(LengthOrPercentage::Percentage(value.unit_value)),
+                Token::Number(ref value) if value.value == 0. =>
+                    Ok(LengthOrPercentage::Length(Length::Absolute(Au(0)))),
                 _ => Err(())
             }
         }
         #[allow(dead_code)]
         #[inline]
         pub fn parse(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-            LengthOrPercentage::parse_internal(input, /* negative_ok = */ true)
+            LengthOrPercentage::parse_internal(input, &AllowedNumericType::All)
         }
         #[inline]
         pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-            LengthOrPercentage::parse_internal(input, /* negative_ok = */ false)
+            LengthOrPercentage::parse_internal(input, &AllowedNumericType::NonNegative)
         }
     }
 
@@ -419,13 +416,11 @@ pub mod specified {
                           -> Result<LengthOrPercentageOrAuto, ()>
         {
             match try!(input.next()) {
-                Token::Dimension(ref value, ref unit) if context.is_ok(value.value) => {
-                    Length::parse_dimension(value.value, unit)
-                        .map(LengthOrPercentageOrAuto::Length)
-                }
+                Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
+                    Length::parse_dimension(value.value, unit).map(LengthOrPercentageOrAuto::Length),
                 Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
                     Ok(LengthOrPercentageOrAuto::Percentage(value.unit_value)),
-                Token::Number(ref value) if context.is_ok(value.value) =>
+                Token::Number(ref value) if value.value == 0. =>
                     Ok(LengthOrPercentageOrAuto::Length(Length::Absolute(Au(0)))),
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                     Ok(LengthOrPercentageOrAuto::Auto),
@@ -453,40 +448,36 @@ pub mod specified {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match self {
                 &LengthOrPercentageOrNone::Length(length) => length.to_css(dest),
-                &LengthOrPercentageOrNone::Percentage(percentage)
-                => write!(dest, "{}%", percentage * 100.),
+                &LengthOrPercentageOrNone::Percentage(percentage) =>
+                    write!(dest, "{}%", percentage * 100.),
                 &LengthOrPercentageOrNone::None => dest.write_str("none"),
             }
         }
     }
     impl LengthOrPercentageOrNone {
-        fn parse_internal(input: &mut Parser, negative_ok: bool)
-                     -> Result<LengthOrPercentageOrNone, ()> {
+        fn parse_internal(input: &mut Parser, context: &AllowedNumericType)
+                          -> Result<LengthOrPercentageOrNone, ()>
+        {
             match try!(input.next()) {
-                Token::Dimension(ref value, ref unit) if negative_ok || value.value >= 0. => {
-                    Length::parse_dimension(value.value, unit)
-                    .map(LengthOrPercentageOrNone::Length)
-                }
-                Token::Percentage(ref value) if negative_ok || value.unit_value >= 0. => {
-                    Ok(LengthOrPercentageOrNone::Percentage(value.unit_value))
-                }
-                Token::Number(ref value) if value.value == 0. => {
-                    Ok(LengthOrPercentageOrNone::Length(Length::Absolute(Au(0))))
-                }
-                Token::Ident(ref value) if value.eq_ignore_ascii_case("none") => {
-                    Ok(LengthOrPercentageOrNone::None)
-                }
+                Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
+                    Length::parse_dimension(value.value, unit).map(LengthOrPercentageOrNone::Length),
+                Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
+                    Ok(LengthOrPercentageOrNone::Percentage(value.unit_value)),
+                Token::Number(ref value) if value.value == 0. =>
+                    Ok(LengthOrPercentageOrNone::Length(Length::Absolute(Au(0)))),
+                Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
+                    Ok(LengthOrPercentageOrNone::None),
                 _ => Err(())
             }
         }
         #[allow(dead_code)]
         #[inline]
         pub fn parse(input: &mut Parser) -> Result<LengthOrPercentageOrNone, ()> {
-            LengthOrPercentageOrNone::parse_internal(input, /* negative_ok = */ true)
+            LengthOrPercentageOrNone::parse_internal(input, &AllowedNumericType::All)
         }
         #[inline]
         pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentageOrNone, ()> {
-            LengthOrPercentageOrNone::parse_internal(input, /* negative_ok = */ false)
+            LengthOrPercentageOrNone::parse_internal(input, &AllowedNumericType::NonNegative)
         }
     }
 
