@@ -183,6 +183,7 @@ impl Font {
         return result;
     }
 
+    #[inline]
     pub fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
         let codepoint = match self.variant {
             font_variant::T::small_caps => codepoint.to_uppercase(),
@@ -216,13 +217,6 @@ impl FontGroup {
         FontGroup {
             fonts: fonts,
         }
-    }
-
-    pub fn create_textrun(&self, text: String, options: &ShapingOptions) -> TextRun {
-        assert!(self.fonts.len() > 0);
-
-        // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
-        TextRun::new(&mut *self.fonts.get(0).borrow_mut(), text.clone(), options)
     }
 }
 
