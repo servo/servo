@@ -70,42 +70,50 @@ impl CharacterData {
 }
 
 impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
+    // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn Data(self) -> DOMString {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let data = self.data.borrow();
         data.clone()
     }
 
+    // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn SetData(self, arg: DOMString) -> ErrorResult {
         *self.data.borrow_mut() = arg;
         Ok(())
     }
 
+    // https://dom.spec.whatwg.org/#dom-characterdata-length
     fn Length(self) -> u32 {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let data = self.data.borrow();
         data.chars().count() as u32
     }
 
+    // https://dom.spec.whatwg.org/#dom-characterdata-substringdata
     fn SubstringData(self, offset: u32, count: u32) -> Fallible<DOMString> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let data = self.data.borrow();
         Ok(data.slice_chars(offset as usize, (offset + count) as usize).to_owned())
     }
 
+    // https://dom.spec.whatwg.org/#dom-characterdata-appenddata
     fn AppendData(self, arg: DOMString) -> ErrorResult {
         self.data.borrow_mut().push_str(arg.as_slice());
         Ok(())
     }
 
+    // https://dom.spec.whatwg.org/#dom-characterdata-insertdata
     fn InsertData(self, offset: u32, arg: DOMString) -> ErrorResult {
         self.ReplaceData(offset, 0, arg)
     }
 
+    // https://dom.spec.whatwg.org/#dom-characterdata-deletedata
     fn DeleteData(self, offset: u32, count: u32) -> ErrorResult {
         self.ReplaceData(offset, count, "".to_owned())
     }
 
+    // https://dom.spec.whatwg.org/#dom-characterdata-replacedata
     fn ReplaceData(self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
         let length = self.data.borrow().chars().count() as u32;
         if offset > length {
