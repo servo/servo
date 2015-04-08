@@ -78,9 +78,8 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-data
-    fn SetData(self, arg: DOMString) -> ErrorResult {
-        *self.data.borrow_mut() = arg;
-        Ok(())
+    fn SetData(self, data: DOMString) {
+        *self.data.borrow_mut() = data;
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-length
@@ -98,9 +97,8 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-appenddata
-    fn AppendData(self, arg: DOMString) -> ErrorResult {
-        self.data.borrow_mut().push_str(arg.as_slice());
-        Ok(())
+    fn AppendData(self, data: DOMString) {
+        self.data.borrow_mut().push_str(&data);
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-insertdata
