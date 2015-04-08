@@ -16,4 +16,6 @@ interface TextDecoder {
   readonly attribute boolean fatal;
   //readonly attribute boolean ignoreBOM;
   //USVString decode(optional BufferSource input, optional TextDecodeOptions options);
+  [Throws]
+  USVString decode(optional object input);
 };
