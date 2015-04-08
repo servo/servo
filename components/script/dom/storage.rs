@@ -63,7 +63,7 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
         let (sender, receiver) = channel();
 
         self.get_storage_task().send(StorageTaskMsg::Length(sender, self.get_url(), self.storage_type)).unwrap();
-        receiver.recv().unwrap()
+        receiver.recv().unwrap() as u32
     }
 
     fn Key(self, index: u32) -> Option<DOMString> {

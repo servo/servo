@@ -46,14 +46,14 @@ impl HeaderOrMethod {
 pub struct CORSCacheEntry {
     pub origin: Url,
     pub url: Url,
-    pub max_age: uint,
+    pub max_age: u32,
     pub credentials: bool,
     pub header_or_method: HeaderOrMethod,
     created: Timespec
 }
 
 impl CORSCacheEntry {
-    fn new (origin:Url, url: Url, max_age: uint, credentials: bool, header_or_method: HeaderOrMethod) -> CORSCacheEntry {
+    fn new (origin:Url, url: Url, max_age: u32, credentials: bool, header_or_method: HeaderOrMethod) -> CORSCacheEntry {
         CORSCacheEntry {
             origin: origin,
             url: url,
@@ -86,7 +86,7 @@ pub trait CORSCache {
     /// Updates max age if an entry for a [matching header](http://fetch.spec.whatwg.org/#concept-cache-match-header) is found.
     ///
     /// If not, it will insert an equivalent entry
-    fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: uint) -> bool;
+    fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: u32) -> bool;
 
     /// Returns true if an entry with a [matching method](http://fetch.spec.whatwg.org/#concept-cache-match-method) is found
     fn match_method(&mut self, request: CacheRequestDetails, method: Method) -> bool;
@@ -94,7 +94,7 @@ pub trait CORSCache {
     /// Updates max age if an entry for [a matching method](http://fetch.spec.whatwg.org/#concept-cache-match-method) is found.
     ///
     /// If not, it will insert an equivalent entry
-    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: uint) -> bool;
+    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: u32) -> bool;
     /// Insert an entry
     fn insert(&mut self, entry: CORSCacheEntry);
 }
@@ -152,7 +152,7 @@ impl CORSCache for BasicCORSCache {
         self.find_entry_by_header(&request, header_name).is_some()
     }
 
-    fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: uint) -> bool {
+    fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: u32) -> bool {
         match self.find_entry_by_header(&request, header_name).map(|e| e.max_age = new_max_age) {
             Some(_) => true,
             None => {
@@ -167,7 +167,7 @@ impl CORSCache for BasicCORSCache {
         self.find_entry_by_method(&request, method).is_some()
     }
 
-    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: uint) -> bool {
+    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: u32) -> bool {
         match self.find_entry_by_method(&request, method.clone()).map(|e| e.max_age = new_max_age) {
             Some(_) => true,
             None => {
@@ -190,9 +190,9 @@ pub enum CORSCacheTaskMsg {
     Clear(CacheRequestDetails, Sender<()>),
     Cleanup(Sender<()>),
     MatchHeader(CacheRequestDetails, String, Sender<bool>),
-    MatchHeaderUpdate(CacheRequestDetails, String, uint, Sender<bool>),
+    MatchHeaderUpdate(CacheRequestDetails, String, u32, Sender<bool>),
     MatchMethod(CacheRequestDetails, Method, Sender<bool>),
-    MatchMethodUpdate(CacheRequestDetails, Method, uint, Sender<bool>),
+    MatchMethodUpdate(CacheRequestDetails, Method, u32, Sender<bool>),
     Insert(CORSCacheEntry, Sender<()>),
     ExitMsg
 }
@@ -222,7 +222,7 @@ impl CORSCache for CORSCacheSender {
         rx.recv().unwrap_or(false)
     }
 
-    fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: uint) -> bool {
+    fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: u32) -> bool {
         let (tx, rx) = channel();
         self.send(CORSCacheTaskMsg::MatchHeaderUpdate(request, header_name.to_string(), new_max_age, tx));
         rx.recv().unwrap_or(false)
@@ -234,7 +234,7 @@ impl CORSCache for CORSCacheSender {
         rx.recv().unwrap_or(false)
     }
 
-    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: uint) -> bool {
+    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: u32) -> bool {
         let (tx, rx) = channel();
         self.send(CORSCacheTaskMsg::MatchMethodUpdate(request, method, new_max_age, tx));
         rx.recv().unwrap_or(false)

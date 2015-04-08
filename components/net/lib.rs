@@ -6,7 +6,6 @@
 #![feature(box_syntax)]
 #![feature(collections)]
 #![feature(core)]
-#![feature(int_uint)]
 #![feature(io)]
 #![cfg_attr(test, feature(net))]
 #![feature(path)]

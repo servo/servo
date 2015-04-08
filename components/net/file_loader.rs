@@ -15,7 +15,7 @@ use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use util::task::spawn_named;
 
-static READ_SIZE: uint = 8192;
+static READ_SIZE: usize = 8192;
 
 enum ReadStatus {
     Partial(Vec<u8>),
