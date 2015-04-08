@@ -15,18 +15,18 @@ use std::default::Default;
 use std::num::SignedInt;
 
 #[derive(Copy, PartialEq)]
-enum Selection {
+pub enum Selection {
     Selected,
     NotSelected
 }
 
 #[jstraceable]
 #[derive(Copy)]
-struct TextPoint {
+pub struct TextPoint {
     /// 0-based line number
-    line: usize,
+    pub line: usize,
     /// 0-based column number
-    index: usize,
+    pub index: usize,
 }
 
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
@@ -35,7 +35,7 @@ pub struct TextInput {
     /// Current text input content, split across lines without trailing '\n'
     lines: Vec<DOMString>,
     /// Current cursor input point
-    edit_point: TextPoint,
+    pub edit_point: TextPoint,
     /// Beginning of selection range with edit_point as end that can span multiple lines.
     selection_begin: Option<TextPoint>,
     /// Is this a multiline input?
@@ -67,7 +67,7 @@ pub enum Lines {
 
 /// The direction in which to delete a character.
 #[derive(PartialEq)]
-enum DeleteDir {
+pub enum DeleteDir {
     Forward,
     Backward
 }
@@ -99,7 +99,7 @@ impl TextInput {
     }
 
     /// Remove a character at the current editing point
-    fn delete_char(&mut self, dir: DeleteDir) {
+    pub fn delete_char(&mut self, dir: DeleteDir) {
         if self.selection_begin.is_none() {
             self.adjust_horizontal(if dir == DeleteDir::Forward {
                 1
@@ -111,14 +111,14 @@ impl TextInput {
     }
 
     /// Insert a character at the current editing point
-    fn insert_char(&mut self, ch: char) {
+    pub fn insert_char(&mut self, ch: char) {
         if self.selection_begin.is_none() {
             self.selection_begin = Some(self.edit_point);
         }
         self.replace_selection(ch.to_string());
     }
 
-    fn get_sorted_selection(&self) -> (TextPoint, TextPoint) {
+    pub fn get_sorted_selection(&self) -> (TextPoint, TextPoint) {
         let begin = self.selection_begin.unwrap();
         let end = self.edit_point;
 
@@ -129,7 +129,7 @@ impl TextInput {
         }
     }
 
-    fn replace_selection(&mut self, insert: String) {
+    pub fn replace_selection(&mut self, insert: String) {
         let (begin, end) = self.get_sorted_selection();
         self.clear_selection();
 
@@ -166,13 +166,13 @@ impl TextInput {
     }
 
     /// Return the length of the current line under the editing point.
-    fn current_line_length(&self) -> usize {
+    pub fn current_line_length(&self) -> usize {
         self.lines[self.edit_point.line].chars().count()
     }
 
     /// Adjust the editing point position by a given of lines. The resulting column is
     /// as close to the original column position as possible.
-    fn adjust_vertical(&mut self, adjust: isize, select: Selection) {
+    pub fn adjust_vertical(&mut self, adjust: isize, select: Selection) {
         if !self.multiline {
             return;
         }
@@ -206,7 +206,7 @@ impl TextInput {
     /// Adjust the editing point position by a given number of columns. If the adjustment
     /// requested is larger than is available in the current line, the editing point is
     /// adjusted vertically and the process repeats with the remaining adjustment requested.
-    fn adjust_horizontal(&mut self, adjust: isize, select: Selection) {
+    pub fn adjust_horizontal(&mut self, adjust: isize, select: Selection) {
         if select == Selection::Selected {
             if self.selection_begin.is_none() {
                 self.selection_begin = Some(self.edit_point);
@@ -244,7 +244,7 @@ impl TextInput {
     }
 
     /// Deal with a newline input.
-    fn handle_return(&mut self) -> KeyReaction {
+    pub fn handle_return(&mut self) -> KeyReaction {
         if !self.multiline {
             return KeyReaction::TriggerDefaultAction;
         }
@@ -253,7 +253,7 @@ impl TextInput {
     }
 
     /// Select all text in the input control.
-    fn select_all(&mut self) {
+    pub fn select_all(&mut self) {
         self.selection_begin = Some(TextPoint {
             line: 0,
             index: 0,
@@ -264,7 +264,7 @@ impl TextInput {
     }
 
     /// Remove the current selection.
-    fn clear_selection(&mut self) {
+    pub fn clear_selection(&mut self) {
         self.selection_begin = None;
     }
 
@@ -361,159 +361,3 @@ impl TextInput {
         self.edit_point.index = min(self.edit_point.index, self.current_line_length());
     }
 }
-
-#[test]
-fn test_textinput_delete_char() {
-    let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned());
-    textinput.adjust_horizontal(2, Selection::NotSelected);
-    textinput.delete_char(DeleteDir::Backward);
-    assert_eq!(textinput.get_content(), "acdefg");
-
-    textinput.delete_char(DeleteDir::Forward);
-    assert_eq!(textinput.get_content(), "adefg");
-
-    textinput.adjust_horizontal(2, Selection::Selected);
-    textinput.delete_char(DeleteDir::Forward);
-    assert_eq!(textinput.get_content(), "afg");
-}
-
-#[test]
-fn test_textinput_insert_char() {
-    let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned());
-    textinput.adjust_horizontal(2, Selection::NotSelected);
-    textinput.insert_char('a');
-    assert_eq!(textinput.get_content(), "abacdefg");
-
-    textinput.adjust_horizontal(2, Selection::Selected);
-    textinput.insert_char('b');
-    assert_eq!(textinput.get_content(), "ababefg");
-}
-
-#[test]
-fn test_textinput_get_sorted_selection() {
-    let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned());
-    textinput.adjust_horizontal(2, Selection::NotSelected);
-    textinput.adjust_horizontal(2, Selection::Selected);
-    let (begin, end) = textinput.get_sorted_selection();
-    assert_eq!(begin.index, 2);
-    assert_eq!(end.index, 4);
-
-    textinput.clear_selection();
-
-    textinput.adjust_horizontal(-2, Selection::Selected);
-    let (begin, end) = textinput.get_sorted_selection();
-    assert_eq!(begin.index, 2);
-    assert_eq!(end.index, 4);
-}
-
-#[test]
-fn test_textinput_replace_selection() {
-    let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned());
-    textinput.adjust_horizontal(2, Selection::NotSelected);
-    textinput.adjust_horizontal(2, Selection::Selected);
-
-    textinput.replace_selection("xyz".to_owned());
-    assert_eq!(textinput.get_content(), "abxyzefg");
-}
-
-#[test]
-fn test_textinput_current_line_length() {
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned());
-    assert_eq!(textinput.current_line_length(), 3);
-
-    textinput.adjust_vertical(1, Selection::NotSelected);
-    assert_eq!(textinput.current_line_length(), 2);
-
-    textinput.adjust_vertical(1, Selection::NotSelected);
-    assert_eq!(textinput.current_line_length(), 1);
-}
-
-#[test]
-fn test_textinput_adjust_vertical() {
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned());
-    textinput.adjust_horizontal(3, Selection::NotSelected);
-    textinput.adjust_vertical(1, Selection::NotSelected);
-    assert_eq!(textinput.edit_point.line, 1);
-    assert_eq!(textinput.edit_point.index, 2);
-
-    textinput.adjust_vertical(-1, Selection::NotSelected);
-    assert_eq!(textinput.edit_point.line, 0);
-    assert_eq!(textinput.edit_point.index, 2);
-
-    textinput.adjust_vertical(2, Selection::NotSelected);
-    assert_eq!(textinput.edit_point.line, 2);
-    assert_eq!(textinput.edit_point.index, 1);
-}
-
-#[test]
-fn test_textinput_adjust_horizontal() {
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned());
-    textinput.adjust_horizontal(4, Selection::NotSelected);
-    assert_eq!(textinput.edit_point.line, 1);
-    assert_eq!(textinput.edit_point.index, 0);
-
-    textinput.adjust_horizontal(1, Selection::NotSelected);
-    assert_eq!(textinput.edit_point.line, 1);
-    assert_eq!(textinput.edit_point.index, 1);
-
-    textinput.adjust_horizontal(2, Selection::NotSelected);
-    assert_eq!(textinput.edit_point.line, 2);
-    assert_eq!(textinput.edit_point.index, 0);
-
-    textinput.adjust_horizontal(-1, Selection::NotSelected);
-    assert_eq!(textinput.edit_point.line, 1);
-    assert_eq!(textinput.edit_point.index, 2);
-}
-
-#[test]
-fn test_textinput_handle_return() {
-    let mut single_line_textinput = TextInput::new(Lines::Single, "abcdef".to_owned());
-    single_line_textinput.adjust_horizontal(3, Selection::NotSelected);
-    single_line_textinput.handle_return();
-    assert_eq!(single_line_textinput.get_content(), "abcdef");
-
-    let mut multi_line_textinput = TextInput::new(Lines::Multiple, "abcdef".to_owned());
-    multi_line_textinput.adjust_horizontal(3, Selection::NotSelected);
-    multi_line_textinput.handle_return();
-    assert_eq!(multi_line_textinput.get_content(), "abc\ndef");
-}
-
-#[test]
-fn test_textinput_select_all() {
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned());
-    assert_eq!(textinput.edit_point.line, 0);
-    assert_eq!(textinput.edit_point.index, 0);
-
-    textinput.select_all();
-    assert_eq!(textinput.edit_point.line, 2);
-    assert_eq!(textinput.edit_point.index, 1);
-}
-
-#[test]
-fn test_textinput_get_content() {
-    let single_line_textinput = TextInput::new(Lines::Single, "abcdefg".to_owned());
-    assert_eq!(single_line_textinput.get_content(), "abcdefg");
-
-    let multi_line_textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned());
-    assert_eq!(multi_line_textinput.get_content(), "abc\nde\nf");
-}
-
-#[test]
-fn test_textinput_set_content() {
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned());
-    assert_eq!(textinput.get_content(), "abc\nde\nf");
-
-    textinput.set_content("abc\nf".to_owned());
-    assert_eq!(textinput.get_content(), "abc\nf");
-
-    assert_eq!(textinput.edit_point.line, 0);
-    assert_eq!(textinput.edit_point.index, 0);
-    textinput.adjust_horizontal(3, Selection::Selected);
-    assert_eq!(textinput.edit_point.line, 0);
-    assert_eq!(textinput.edit_point.index, 3);
-    textinput.set_content("de".to_owned());
-    assert_eq!(textinput.get_content(), "de");
-    assert_eq!(textinput.edit_point.line, 0);
-    assert_eq!(textinput.edit_point.index, 2);
-}
-

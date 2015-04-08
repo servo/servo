@@ -102,38 +102,17 @@ class MachCommands(CommandBase):
     @Command('test-unit',
              description='Run unit tests',
              category='testing')
-    @CommandArgument('--package', '-p', default=None,
-                     help="Specific package to test")
-    @CommandArgument('--component', '-c', default=None,
-                     help="Alias for --package")
     @CommandArgument('test_name', nargs=argparse.REMAINDER,
                      help="Only run tests that match this pattern")
     def test_unit(self, test_name=None, component=None, package=None):
         if test_name is None:
             test_name = []
 
-        if component is not None:
-            if package is not None:
-                print("Please use either -p or -c, not both.")
-                return 1
-            package = component
-
         self.ensure_bootstrapped()
 
-        def cargo_test(component):
-            return 0 != subprocess.call(
-                ["cargo", "test", "-p", component]
-                + test_name, env=self.build_env(), cwd=self.servo_crate())
-
-        if package is not None:
-            return cargo_test(package)
-
-        self.ensure_built_tests()
-        ret = self.run_test("servo", test_name) != 0
-        for c in os.listdir("components"):
-            if c != "servo":
-                ret = ret or cargo_test(c)
-        return ret
+        return 0 != subprocess.call(
+            ["cargo", "test", "-p", "unit_tests"]
+            + test_name, env=self.build_env(), cwd=self.servo_crate())
 
     @Command('test-ref',
              description='Run the reference tests',

@@ -14,7 +14,7 @@ import fnmatch
 import itertools
 from licenseck import licenses
 
-directories_to_check = ["ports", "components"]
+directories_to_check = ["ports", "components", "tests"]
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py"]
 reftest_directories = ["tests/ref"]
 reftest_filetype = ".list"
@@ -22,7 +22,7 @@ reftest_filetype = ".list"
 ignored_files = [
     # Upstream
     "support/*",
-    "tests/wpt/web-platform-tests/*",
+    "tests/wpt/*",
 
     # Generated and upstream code combined with our own. Could use cleanup
     "components/script/dom/bindings/codegen/*",

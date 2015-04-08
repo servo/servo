@@ -16,6 +16,9 @@ test = false
 doc = false
 bench = false
 
+[dev-dependencies.unit_tests]
+path = "../../tests/unit"
+
 [[test]]
 name = "reftest"
 path = "../../tests/reftest.rs"

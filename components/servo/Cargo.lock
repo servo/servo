@@ -16,6 +16,7 @@ dependencies = [
  "profile 0.0.1",
  "script 0.0.1",
  "time 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unit_tests 0.0.1",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "webdriver_server 0.0.1",
@@ -920,6 +921,26 @@ dependencies = [
 name = "unicase"
 version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "unit_tests"
+version = "0.0.1"
+dependencies = [
+ "cookie 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.2.0 (git+https://github.com/servo/rust-cssparser)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gfx 0.0.1",
+ "net 0.0.1",
+ "net_traits 0.0.1",
+ "profile 0.0.1",
+ "script 0.0.1",
+ "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
+ "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
+ "string_cache_plugin 0.0.0 (git+https://github.com/servo/string-cache)",
+ "style 0.0.1",
+ "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
+ "util 0.0.1",
+]
 
 [[package]]
 name = "url"

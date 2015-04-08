@@ -4803,7 +4803,7 @@ impl ComputedValues {
 
 
 /// Return a WritingMode bitflags from the relevant CSS properties.
-fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> WritingMode {
+pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> WritingMode {
     use util::logical_geometry;
     let mut flags = WritingMode::empty();
     match inheritedbox_style.direction {
@@ -4839,7 +4839,7 @@ fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Writing
 
 /// The initial values for all style structs as defined by the specification.
 lazy_static! {
-    static ref INITIAL_VALUES: ComputedValues = ComputedValues {
+    pub static ref INITIAL_VALUES: ComputedValues = ComputedValues {
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.ident}: Arc::new(style_structs::${style_struct.name} {
                 % for longhand in style_struct.longhands:
@@ -4856,11 +4856,6 @@ lazy_static! {
     };
 }
 
-
-#[test]
-fn initial_writing_mode_is_empty() {
-    assert_eq!(get_writing_mode(INITIAL_VALUES.get_inheritedbox()), WritingMode::empty())
-}
 
 /// Fast path for the function below. Only computes new inherited styles.
 #[allow(unused_mut)]

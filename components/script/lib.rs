@@ -66,6 +66,3 @@ pub mod script_task;
 mod timers;
 pub mod textinput;
 mod devtools;
-
-#[cfg(all(test, target_pointer_width = "64"))]
-mod tests;

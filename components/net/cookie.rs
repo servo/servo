@@ -96,7 +96,7 @@ impl Cookie {
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.1.4
-    fn default_path(request_path: &str) -> &str {
+    pub fn default_path(request_path: &str) -> &str {
         // Step 2
         if request_path.is_empty() || !request_path.starts_with("/") {
             return "/";
@@ -165,78 +165,4 @@ impl Cookie {
 
         return true;
     }
-}
-
-#[test]
-fn test_domain_match() {
-    assert!(Cookie::domain_match("foo.com", "foo.com"));
-    assert!(Cookie::domain_match("bar.foo.com", "foo.com"));
-    assert!(Cookie::domain_match("baz.bar.foo.com", "foo.com"));
-
-    assert!(!Cookie::domain_match("bar.foo.com", "bar.com"));
-    assert!(!Cookie::domain_match("bar.com", "baz.bar.com"));
-    assert!(!Cookie::domain_match("foo.com", "bar.com"));
-
-    assert!(!Cookie::domain_match("bar.com", "bbar.com"));
-    assert!(Cookie::domain_match("235.132.2.3", "235.132.2.3"));
-    assert!(!Cookie::domain_match("235.132.2.3", "1.1.1.1"));
-    assert!(!Cookie::domain_match("235.132.2.3", ".2.3"));
-}
-
-#[test]
-fn test_default_path() {
-    assert!(&*Cookie::default_path("/foo/bar/baz/") == "/foo/bar/baz");
-    assert!(&*Cookie::default_path("/foo/bar/baz") == "/foo/bar");
-    assert!(&*Cookie::default_path("/foo/") == "/foo");
-    assert!(&*Cookie::default_path("/foo") == "/");
-    assert!(&*Cookie::default_path("/") == "/");
-    assert!(&*Cookie::default_path("") == "/");
-    assert!(&*Cookie::default_path("foo") == "/");
-}
-
-#[test]
-fn fn_cookie_constructor() {
-    use net_traits::CookieSource;
-
-    let url = &Url::parse("http://example.com/foo").unwrap();
-
-    let gov_url = &Url::parse("http://gov.ac/foo").unwrap();
-    // cookie name/value test
-    assert!(cookie_rs::Cookie::parse(" baz ").is_err());
-    assert!(cookie_rs::Cookie::parse(" = bar  ").is_err());
-    assert!(cookie_rs::Cookie::parse(" baz = ").is_ok());
-
-    // cookie domains test
-    let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  ").unwrap();
-    assert!(Cookie::new_wrapped(cookie.clone(), url, CookieSource::HTTP).is_some());
-    let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP).unwrap();
-    assert!(&**cookie.cookie.domain.as_ref().unwrap() == "example.com");
-
-    // cookie public domains test
-    let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  gov.ac").unwrap();
-    assert!(Cookie::new_wrapped(cookie.clone(), url, CookieSource::HTTP).is_none());
-    assert!(Cookie::new_wrapped(cookie, gov_url, CookieSource::HTTP).is_some());
-
-    // cookie domain matching test
-    let cookie = cookie_rs::Cookie::parse(" baz = bar ; Secure; Domain = bazample.com").unwrap();
-    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
-
-    let cookie = cookie_rs::Cookie::parse(" baz = bar ; Secure; Path = /foo/bar/").unwrap();
-    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_some());
-
-    let cookie = cookie_rs::Cookie::parse(" baz = bar ; HttpOnly").unwrap();
-    assert!(Cookie::new_wrapped(cookie, url, CookieSource::NonHTTP).is_none());
-
-    let cookie = cookie_rs::Cookie::parse(" baz = bar ; Secure; Path = /foo/bar/").unwrap();
-    let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP).unwrap();
-    assert!(cookie.cookie.value.as_slice() == "bar");
-    assert!(cookie.cookie.name.as_slice() == "baz");
-    assert!(cookie.cookie.secure);
-    assert!(cookie.cookie.path.as_ref().unwrap().as_slice() == "/foo/bar/");
-    assert!(cookie.cookie.domain.as_ref().unwrap().as_slice() == "example.com");
-    assert!(cookie.host_only);
-
-    let u = &Url::parse("http://example.com/foobar").unwrap();
-    let cookie = cookie_rs::Cookie::parse("foobar=value;path=/").unwrap();
-    assert!(Cookie::new_wrapped(cookie, u, CookieSource::HTTP).is_some());
 }
