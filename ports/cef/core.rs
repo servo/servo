@@ -70,7 +70,7 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
     };
 
     let mut temp_opts = opts::default_opts();
-    temp_opts.urls = vec![HOME_URL.to_owned()];
+    temp_opts.url = HOME_URL.to_owned();
     temp_opts.paint_threads = rendering_threads;
     temp_opts.layout_threads = rendering_threads;
     temp_opts.headless = false;
@@ -137,4 +137,3 @@ pub extern "C" fn cef_log(_file: *const c_char,
 pub extern "C" fn cef_get_min_log_level() -> c_int {
     0
 }
-

@@ -22,8 +22,8 @@ use std::rt;
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone)]
 pub struct Opts {
-    /// The initial URLs to load.
-    pub urls: Vec<String>,
+    /// The initial URL to load.
+    pub url: String,
 
     /// How many threads to use for CPU painting (`-t`).
     ///
@@ -183,7 +183,7 @@ static FORCE_CPU_PAINTING: bool = false;
 
 pub fn default_opts() -> Opts {
     Opts {
-        urls: vec!(),
+        url: String::new(),
         paint_threads: 1,
         gpu_painting: false,
         tile_size: 512,
@@ -277,12 +277,12 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         return false;
     }
 
-    let urls = if opt_match.free.is_empty() {
+    let url = if opt_match.free.is_empty() {
         print_usage(app_name.as_slice(), opts.as_slice());
-        args_fail("servo asks that you provide 1 or more URLs");
+        args_fail("servo asks that you provide a URL");
         return false;
     } else {
-        opt_match.free.clone()
+        opt_match.free[0].clone()
     };
 
     let tile_size: usize = match opt_match.opt_str("s") {
@@ -344,7 +344,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     };
 
     let opts = Opts {
-        urls: urls,
+        url: url,
         paint_threads: paint_threads,
         gpu_painting: gpu_painting,
         tile_size: tile_size,
