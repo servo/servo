@@ -19,7 +19,7 @@ use platform::font::{FontHandle, FontTable};
 use util::geometry::Au;
 use text::glyph::{GlyphStore, GlyphId};
 use text::shaping::ShaperMethods;
-use text::{Shaper, TextRun};
+use text::Shaper;
 use font_template::FontTemplateDescriptor;
 use platform::font_template::FontTemplateData;
 
@@ -183,6 +183,7 @@ impl Font {
         return result;
     }
 
+    #[inline]
     pub fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
         let codepoint = match self.variant {
             font_variant::T::small_caps => codepoint.to_uppercase().next().unwrap(), //FIXME: #5938
@@ -216,14 +217,6 @@ impl FontGroup {
         FontGroup {
             fonts: fonts,
         }
-    }
-
-    pub fn create_textrun(&self, text: String, options: &ShapingOptions) -> TextRun {
-        assert!(self.fonts.len() > 0);
-
-        // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
-        let mut font_borrow = self.fonts[0].borrow_mut();
-        TextRun::new(&mut *font_borrow, text.clone(), options)
     }
 }
 
