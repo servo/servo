@@ -1994,7 +1994,8 @@ pub struct ISizeConstraintSolution {
 }
 
 impl ISizeConstraintSolution {
-    pub fn new(inline_size: Au, margin_inline_start: Au, margin_inline_end: Au) -> ISizeConstraintSolution {
+    pub fn new(inline_size: Au, margin_inline_start: Au, margin_inline_end: Au)
+               -> ISizeConstraintSolution {
         ISizeConstraintSolution {
             inline_start: Au(0),
             inline_end: Au(0),
