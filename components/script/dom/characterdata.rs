@@ -6,11 +6,13 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, ElementCast};
+use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::error::Error::IndexSize;
-use dom::bindings::js::JSRef;
+use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
+use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
 
@@ -126,6 +128,18 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     fn Remove(self) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.remove_self();
+    }
+
+    // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
+    fn GetPreviousElementSibling(self) -> Option<Temporary<Element>> {
+        NodeCast::from_ref(self).preceding_siblings()
+                                .filter_map(ElementCast::to_temporary).next()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
+    fn GetNextElementSibling(self) -> Option<Temporary<Element>> {
+        NodeCast::from_ref(self).following_siblings()
+                                .filter_map(ElementCast::to_temporary).next()
     }
 }
 

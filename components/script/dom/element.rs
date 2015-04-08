@@ -1178,6 +1178,18 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         Ok(())
     }
 
+    // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
+    fn GetPreviousElementSibling(self) -> Option<Temporary<Element>> {
+        NodeCast::from_ref(self).preceding_siblings()
+                                .filter_map(ElementCast::to_temporary).next()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
+    fn GetNextElementSibling(self) -> Option<Temporary<Element>> {
+        NodeCast::from_ref(self).following_siblings()
+                                .filter_map(ElementCast::to_temporary).next()
+    }
+
     // http://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(self) -> Temporary<HTMLCollection> {
         let window = window_from_node(self).root();

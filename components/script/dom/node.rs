@@ -415,6 +415,7 @@ pub trait NodeHelpers<'a> {
     fn rev_children(self) -> ReverseChildrenIterator;
     fn child_elements(self) -> ChildElementIterator;
     fn following_siblings(self) -> NodeChildrenIterator;
+    fn preceding_siblings(self) -> ReverseChildrenIterator;
     fn is_in_doc(self) -> bool;
     fn is_inclusive_ancestor_of(self, parent: JSRef<Node>) -> bool;
     fn is_parent_of(self, child: JSRef<Node>) -> bool;
@@ -761,6 +762,12 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     fn following_siblings(self) -> NodeChildrenIterator {
         NodeChildrenIterator {
             current: self.next_sibling(),
+        }
+    }
+
+    fn preceding_siblings(self) -> ReverseChildrenIterator {
+        ReverseChildrenIterator {
+            current: self.prev_sibling(),
         }
     }
 

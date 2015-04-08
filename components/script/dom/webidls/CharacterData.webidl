@@ -26,3 +26,4 @@ interface CharacterData : Node {
 };
 
 CharacterData implements ChildNode;
+CharacterData implements NonDocumentTypeChildNode;
