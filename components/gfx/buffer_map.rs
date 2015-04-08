@@ -17,17 +17,17 @@ pub struct BufferMap {
     /// A HashMap that stores the Buffers.
     map: HashMap<BufferKey, BufferValue>,
     /// The current amount of memory stored by the BufferMap's buffers.
-    mem: uint,
+    mem: usize,
     /// The maximum allowed memory. Unused buffers will be deleted
     /// when this threshold is exceeded.
-    max_mem: uint,
+    max_mem: usize,
     /// A monotonically increasing counter to track how recently tile sizes were used.
-    counter: uint,
+    counter: usize,
 }
 
 /// A key with which to store buffers. It is based on the size of the buffer.
 #[derive(Eq, Copy)]
-struct BufferKey([uint; 2]);
+struct BufferKey([usize; 2]);
 
 impl Hash for BufferKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -46,7 +46,7 @@ impl PartialEq for BufferKey {
 
 /// Create a key from a given size
 impl BufferKey {
-    fn get(input: Size2D<uint>) -> BufferKey {
+    fn get(input: Size2D<usize>) -> BufferKey {
         BufferKey([input.width, input.height])
     }
 }
@@ -56,17 +56,17 @@ struct BufferValue {
     /// An array of buffers, all the same size
     buffers: Vec<Box<LayerBuffer>>,
     /// The counter when this size was last requested
-    last_action: uint,
+    last_action: usize,
 }
 
 impl BufferMap {
     // Creates a new BufferMap with a given buffer limit.
-    pub fn new(max_mem: uint) -> BufferMap {
+    pub fn new(max_mem: usize) -> BufferMap {
         BufferMap {
             map: HashMap::new(),
-            mem: 0u,
+            mem: 0,
             max_mem: max_mem,
-            counter: 0u,
+            counter: 0,
         }
     }
 
@@ -125,7 +125,7 @@ impl BufferMap {
     }
 
     // Try to find a buffer for the given size.
-    pub fn find(&mut self, size: Size2D<uint>) -> Option<Box<LayerBuffer>> {
+    pub fn find(&mut self, size: Size2D<usize>) -> Option<Box<LayerBuffer>> {
         let mut flag = false; // True if key needs to be popped after retrieval.
         let key = BufferKey::get(size);
         let ret = match self.map.get_mut(&key) {

@@ -43,7 +43,7 @@ fn fixed_to_float_ft(f: i32) -> f64 {
 pub struct FontTable;
 
 impl FontTableMethods for FontTable {
-    fn with_buffer<F>(&self, _blk: F) where F: FnOnce(*const u8, uint) {
+    fn with_buffer<F>(&self, _blk: F) where F: FnOnce(*const u8, usize) {
         panic!()
     }
 }
