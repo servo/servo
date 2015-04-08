@@ -1880,7 +1880,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             NodeTypeId::Text |
             NodeTypeId::ProcessingInstruction => {
                 let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
-                characterdata.set_data(value);
+                characterdata.SetData(value);
 
                 // Notify the document that the content of this node is different
                 let document = self.owner_doc().root();

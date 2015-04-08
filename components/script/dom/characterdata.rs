@@ -57,11 +57,6 @@ impl CharacterData {
     }
 
     #[inline]
-    pub fn set_data(&self, data: DOMString) {
-        *self.data.borrow_mut() = data;
-    }
-
-    #[inline]
     #[allow(unsafe_code)]
     pub unsafe fn data_for_layout<'a>(&'a self) -> &'a str {
         self.data.borrow_for_layout().as_slice()
