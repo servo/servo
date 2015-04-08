@@ -38,6 +38,7 @@ pub enum CanvasMsg {
     ArcTo(Point2D<f32>, Point2D<f32>, f32),
     SetFillStyle(FillOrStrokeStyle),
     SetStrokeStyle(FillOrStrokeStyle),
+    SetLineWidth(f32),
     SetTransform(Matrix2D<f32>),
     Recreate(Size2D<i32>),
     SendPixelContents(Sender<Vec<u8>>),
@@ -240,6 +241,7 @@ impl<'a> CanvasPaintTask<'a> {
                     }
                     CanvasMsg::SetFillStyle(style) => painter.set_fill_style(style),
                     CanvasMsg::SetStrokeStyle(style) => painter.set_stroke_style(style),
+                    CanvasMsg::SetLineWidth(width) => painter.set_line_width(width),
                     CanvasMsg::SetTransform(ref matrix) => painter.set_transform(matrix),
                     CanvasMsg::Recreate(size) => painter.recreate(size),
                     CanvasMsg::SendPixelContents(chan) => painter.send_pixel_contents(chan),
@@ -417,6 +419,10 @@ impl<'a> CanvasPaintTask<'a> {
 
     fn set_stroke_style(&mut self, style: FillOrStrokeStyle) {
         self.stroke_style = style.to_azure_pattern(&self.drawtarget)
+    }
+
+    fn set_line_width(&mut self, width: f32) {
+        self.stroke_opts.line_width = width;
     }
 
     fn set_transform(&mut self, transform: &Matrix2D<f32>) {
