@@ -11,8 +11,8 @@ interface NamedNodeMap {
   //Attr? setNamedItem(Attr attr);
   //[Throws]
   //Attr? setNamedItemNS(Attr attr);
-  //[Throws]
-  //Attr removeNamedItem(DOMString name);
-  //[Throws]
-  //Attr removeNamedItemNS(DOMString? namespace, DOMString name);
+  [Throws]
+  Attr removeNamedItem(DOMString name);
+  [Throws]
+  Attr removeNamedItemNS(DOMString? namespace, DOMString name);
 };

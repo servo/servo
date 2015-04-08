@@ -5,6 +5,7 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -64,12 +65,32 @@ impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditemns
-    fn GetNamedItemNS(self, namespace: Option<DOMString>, name: DOMString) -> Option<Temporary<Attr>> {
+    fn GetNamedItemNS(self, namespace: Option<DOMString>, local_name: DOMString)
+                     -> Option<Temporary<Attr>> {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
         let ns = namespace::from_domstring(namespace);
-        owner.get_attribute(&ns, &Atom::from_slice(&name))
+        owner.get_attribute(&ns, &Atom::from_slice(&local_name))
+    }
+
+    // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditem
+    fn RemoveNamedItem(self, name: DOMString) -> Fallible<Temporary<Attr>> {
+        let owner = self.owner.root();
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let owner = owner.r();
+        let name = owner.parsed_name(name);
+        owner.remove_attribute_by_name(&Atom::from_slice(&name)).ok_or(Error::NotFound)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditemns
+    fn RemoveNamedItemNS(self, namespace: Option<DOMString>, local_name: DOMString)
+                      -> Fallible<Temporary<Attr>> {
+        let owner = self.owner.root();
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let owner = owner.r();
+        let ns = namespace::from_domstring(namespace);
+        owner.remove_attribute(&ns, &Atom::from_slice(&local_name)).ok_or(Error::NotFound)
     }
 
     fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Temporary<Attr>> {
