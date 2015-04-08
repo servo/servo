@@ -49,7 +49,7 @@ interface CanvasRenderingContext2D {
   //void resetTransform();
 
   // compositing
-  //         attribute unrestricted double globalAlpha; // (default 1.0)
+  attribute unrestricted double globalAlpha; // (default 1.0)
   //         attribute DOMString globalCompositeOperation; // (default source-over)
 
   // image smoothing

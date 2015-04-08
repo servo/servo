@@ -40,6 +40,7 @@ pub enum CanvasMsg {
     SetStrokeStyle(FillOrStrokeStyle),
     SetLineWidth(f32),
     SetTransform(Matrix2D<f32>),
+    SetGlobalAlpha(f32),
     Recreate(Size2D<i32>),
     SendPixelContents(Sender<Vec<u8>>),
     GetImageData(Rect<f64>, Size2D<f64>, Sender<Vec<u8>>),
@@ -105,7 +106,7 @@ impl<'a> CanvasPaintTask<'a> {
             image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
 
         let draw_surface_options = DrawSurfaceOptions::new(filter, true);
-        let draw_options = DrawOptions::new(1.0f64 as AzFloat, 0);
+        let draw_options = DrawOptions::new(self.draw_options.alpha, 0);
 
         self.drawtarget.draw_surface(source_surface,
                                      dest_rect.to_azfloat(),
@@ -182,6 +183,7 @@ impl<'a> CanvasPaintTask<'a> {
 
 pub struct CanvasPaintTask<'a> {
     drawtarget: DrawTarget,
+    draw_options: DrawOptions,
     fill_style: Pattern,
     stroke_style: Pattern,
     stroke_opts: StrokeOptions<'a>,
@@ -197,6 +199,7 @@ impl<'a> CanvasPaintTask<'a> {
         let path_builder = draw_target.create_path_builder();
         CanvasPaintTask {
             drawtarget: draw_target,
+            draw_options: DrawOptions::new(1.0, 0),
             fill_style: Pattern::Color(ColorPattern::new(color::black())),
             stroke_style: Pattern::Color(ColorPattern::new(color::black())),
             stroke_opts: StrokeOptions::new(1.0, JoinStyle::MiterOrBevel, CapStyle::Butt, 1.0, &[]),
@@ -243,6 +246,7 @@ impl<'a> CanvasPaintTask<'a> {
                     CanvasMsg::SetStrokeStyle(style) => painter.set_stroke_style(style),
                     CanvasMsg::SetLineWidth(width) => painter.set_line_width(width),
                     CanvasMsg::SetTransform(ref matrix) => painter.set_transform(matrix),
+                    CanvasMsg::SetGlobalAlpha(alpha) => painter.set_global_alpha(alpha),
                     CanvasMsg::Recreate(size) => painter.recreate(size),
                     CanvasMsg::SendPixelContents(chan) => painter.send_pixel_contents(chan),
                     CanvasMsg::GetImageData(dest_rect, canvas_size, chan) => painter.get_image_data(dest_rect, canvas_size, chan),
@@ -256,8 +260,7 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn fill_rect(&self, rect: &Rect<f32>) {
-        let drawopts = DrawOptions::new(1.0, 0);
-        self.drawtarget.fill_rect(rect, self.fill_style.to_pattern_ref(), Some(&drawopts));
+        self.drawtarget.fill_rect(rect, self.fill_style.to_pattern_ref(), Some(&self.draw_options));
     }
 
     fn clear_rect(&self, rect: &Rect<f32>) {
@@ -265,10 +268,9 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn stroke_rect(&self, rect: &Rect<f32>) {
-        let drawopts = DrawOptions::new(1.0, 0);
         match self.stroke_style {
             Pattern::Color(ref color) => {
-                self.drawtarget.stroke_rect(rect, color, &self.stroke_opts, &drawopts)
+                self.drawtarget.stroke_rect(rect, color, &self.stroke_opts, &self.draw_options)
             }
             _ => {
                 // TODO(pcwalton)
@@ -285,10 +287,9 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn fill(&self) {
-        let draw_options = DrawOptions::new(1.0, 0);
         match self.fill_style {
             Pattern::Color(ref color) => {
-                self.drawtarget.fill(&self.path_builder.finish(), color, &draw_options);
+                self.drawtarget.fill(&self.path_builder.finish(), color, &self.draw_options);
             }
             _ => {
                 // TODO(pcwalton)
@@ -297,11 +298,10 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn stroke(&self) {
-        let draw_options = DrawOptions::new(1.0, 0);
         match self.stroke_style {
             Pattern::Color(ref color) => {
                 self.drawtarget.stroke(&self.path_builder.finish(),
-                                       color, &self.stroke_opts, &draw_options);
+                                       color, &self.stroke_opts, &self.draw_options);
             }
             _ => {
                 // TODO
@@ -428,6 +428,10 @@ impl<'a> CanvasPaintTask<'a> {
     fn set_transform(&mut self, transform: &Matrix2D<f32>) {
         self.transform = *transform;
         self.drawtarget.set_transform(transform)
+    }
+
+    fn set_global_alpha(&mut self, alpha: f32) {
+        self.draw_options.alpha = alpha;
     }
 
     fn create(size: Size2D<i32>) -> DrawTarget {
