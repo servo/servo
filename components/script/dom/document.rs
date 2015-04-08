@@ -21,20 +21,20 @@ use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElem
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
-use dom::bindings::error::Error::{HierarchyRequest, Namespace};
+use dom::bindings::error::Error::HierarchyRequest;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::reflect_dom_object;
-use dom::bindings::utils::xml_name_type;
-use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
+use dom::bindings::utils::{xml_name_type, validate_and_extract};
+use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
-use dom::element::{Element, ElementCreator, AttributeHandlers, get_attribute_parts};
+use dom::element::{Element, ElementCreator, AttributeHandlers};
 use dom::element::{ElementTypeId, ActivationElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
@@ -67,7 +67,7 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
 use script_task::Runnable;
 use script_traits::{MouseButton, UntrustedNodeAddress};
-use util::{opts, namespace};
+use util::opts;
 use util::str::{DOMString, split_html_space_chars};
 use layout_interface::{ReflowGoal, ReflowQueryType};
 
@@ -975,45 +975,10 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn CreateElementNS(self,
                        namespace: Option<DOMString>,
                        qualified_name: DOMString) -> Fallible<Temporary<Element>> {
-        let ns = namespace::from_domstring(namespace);
-        match xml_name_type(&qualified_name) {
-            InvalidXMLName => {
-                debug!("Not a valid element name");
-                return Err(InvalidCharacter);
-            },
-            Name => {
-                debug!("Not a valid qualified element name");
-                return Err(Namespace);
-            },
-            QName => {}
-        }
-
-        let (prefix_from_qname, local_name_from_qname) = get_attribute_parts(&qualified_name);
-        match (&ns, prefix_from_qname, local_name_from_qname) {
-            // throw if prefix is not null and namespace is null
-            (&ns!(""), Some(_), _) => {
-                debug!("Namespace can't be null with a non-null prefix");
-                return Err(Namespace);
-            },
-            // throw if prefix is "xml" and namespace is not the XML namespace
-            (_, Some(ref prefix), _) if "xml" == *prefix && ns != ns!(XML) => {
-                debug!("Namespace must be the xml namespace if the prefix is 'xml'");
-                return Err(Namespace);
-            },
-            // throw if namespace is the XMLNS namespace and neither qualifiedName nor prefix is
-            // "xmlns"
-            (&ns!(XMLNS), Some(ref prefix), _) if "xmlns" == *prefix => {},
-            (&ns!(XMLNS), _, "xmlns") => {},
-            (&ns!(XMLNS), _, _) => {
-                debug!("The prefix or the qualified name must be 'xmlns' if namespace is the XMLNS namespace ");
-                return Err(Namespace);
-            },
-            _ => {}
-        }
-
-        let name = QualName::new(ns, Atom::from_slice(local_name_from_qname));
-        Ok(Element::create(name, prefix_from_qname.map(|s| s.to_owned()), self,
-                           ElementCreator::ScriptCreated))
+        let (namespace, prefix, local_name) =
+            try!(validate_and_extract(namespace, &qualified_name));
+        let name = QualName::new(namespace, local_name);
+        Ok(Element::create(name, prefix, self, ElementCreator::ScriptCreated))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createattribute
@@ -1030,6 +995,18 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         let value = AttrValue::String("".to_owned());
 
         Ok(Attr::new(window.r(), name, value, l_name, ns!(""), None, None))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-createattributens
+    fn CreateAttributeNS(self, namespace: Option<DOMString>, qualified_name: DOMString)
+                         -> Fallible<Temporary<Attr>> {
+        let (namespace, prefix, local_name) =
+            try!(validate_and_extract(namespace, &qualified_name));
+        let window = self.window.root();
+        let value = AttrValue::String("".to_owned());
+        let qualified_name = Atom::from_slice(&qualified_name);
+        Ok(Attr::new(window.r(), local_name, value, qualified_name,
+                     namespace, prefix, None))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createdocumentfragment

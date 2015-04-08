@@ -24,14 +24,13 @@ use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTextA
 use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::error::{ErrorResult, Fallible};
-use dom::bindings::error::Error;
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
 use dom::bindings::error::Error::NoModificationAllowed;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, RootedReference};
 use dom::bindings::trace::RootedVec;
-use dom::bindings::utils::xml_name_type;
-use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
+use dom::bindings::utils::{xml_name_type, validate_and_extract};
+use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::create::create_element;
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
@@ -1037,58 +1036,14 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-setattributens
     fn SetAttributeNS(self,
-                      namespace_url: Option<DOMString>,
-                      name: DOMString,
+                      namespace: Option<DOMString>,
+                      qualified_name: DOMString,
                       value: DOMString) -> ErrorResult {
-        // Step 1.
-        let namespace = namespace::from_domstring(namespace_url);
-
-        let name_type = xml_name_type(&name);
-        match name_type {
-            // Step 2.
-            InvalidXMLName => return Err(InvalidCharacter),
-            // Step 3.
-            Name => return Err(Error::Namespace),
-            QName => {}
-        }
-
-        // Step 4.
-        let (prefix, local_name) = get_attribute_parts(&name);
-
-        if let Some(ref prefix_str) = prefix {
-            // Step 5.
-            if namespace == ns!("") {
-                return Err(Error::Namespace);
-            }
-
-            // Step 6.
-            if "xml" == *prefix_str && namespace != ns!(XML) {
-                return Err(Error::Namespace);
-            }
-
-            // Step 7b.
-            if "xmlns" == *prefix_str && namespace != ns!(XMLNS) {
-                return Err(Error::Namespace);
-            }
-        }
-
-        let name = Atom::from_slice(&name);
-        let local_name = Atom::from_slice(local_name);
-        let xmlns = atom!("xmlns");
-
-        // Step 7a.
-        if xmlns == name && namespace != ns!(XMLNS) {
-            return Err(Error::Namespace);
-        }
-
-        // Step 8.
-        if namespace == ns!(XMLNS) && xmlns != name && Some("xmlns") != prefix {
-            return Err(Error::Namespace);
-        }
-
-        // Step 9.
+        let (namespace, prefix, local_name) =
+            try!(validate_and_extract(namespace, &qualified_name));
+        let qualified_name = Atom::from_slice(&qualified_name);
         let value = self.parse_attribute(&namespace, &local_name, value);
-        self.do_set_attribute(local_name.clone(), value, name,
+        self.do_set_attribute(local_name.clone(), value, qualified_name,
                               namespace.clone(), prefix.map(|s| s.to_owned()),
                               |attr| {
             *attr.local_name() == local_name &&
@@ -1290,17 +1245,6 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                 Ok(None)
             }
         }
-    }
-}
-
-pub fn get_attribute_parts<'a>(name: &'a str) -> (Option<&'a str>, &'a str) {
-    //FIXME: Throw for XML-invalid names
-    //FIXME: Throw for XMLNS-invalid names
-    if name.contains(":")  {
-        let mut parts = name.splitn(1, ':');
-        (Some(parts.next().unwrap()), parts.next().unwrap())
-    } else {
-        (None, name)
     }
 }
 

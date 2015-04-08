@@ -8,12 +8,10 @@ use dom::bindings::codegen::Bindings::DOMImplementationBinding::DOMImplementatio
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::error::Fallible;
-use dom::bindings::error::Error::{InvalidCharacter, Namespace};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Root, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::bindings::utils::xml_name_type;
-use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
+use dom::bindings::utils::validate_qualified_name;
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::documenttype::DocumentType;
@@ -52,18 +50,11 @@ impl DOMImplementation {
 // http://dom.spec.whatwg.org/#domimplementation
 impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
-    fn CreateDocumentType(self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<Temporary<DocumentType>> {
-        match xml_name_type(&qname) {
-            // Step 1.
-            InvalidXMLName => Err(InvalidCharacter),
-            // Step 2.
-            Name => Err(Namespace),
-            // Step 3.
-            QName => {
-                let document = self.document.root();
-                Ok(DocumentType::new(qname, Some(pubid), Some(sysid), document.r()))
-            }
-        }
+    fn CreateDocumentType(self, qualified_name: DOMString, pubid: DOMString, sysid: DOMString)
+                          -> Fallible<Temporary<DocumentType>> {
+        try!(validate_qualified_name(&qualified_name));
+        let document = self.document.root();
+        Ok(DocumentType::new(qualified_name, Some(pubid), Some(sysid), document.r()))
     }
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocument
