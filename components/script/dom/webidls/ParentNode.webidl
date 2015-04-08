@@ -11,14 +11,13 @@
 interface ParentNode {
   [Constant]
   readonly attribute HTMLCollection children;
-  /*
   [Pure]
   readonly attribute Element? firstElementChild;
   [Pure]
   readonly attribute Element? lastElementChild;
   [Pure]
   readonly attribute unsigned long childElementCount;
-  */
+
   // Not implemented yet
   // void prepend((Node or DOMString)... nodes);
   // void append((Node or DOMString)... nodes);

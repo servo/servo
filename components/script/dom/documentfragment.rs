@@ -5,7 +5,8 @@
 use dom::bindings::codegen::Bindings::DocumentFragmentBinding;
 use dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::DocumentFragmentDerived;
+use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
@@ -54,6 +55,21 @@ impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
     fn Children(self) -> Temporary<HTMLCollection> {
         let window = window_from_node(self).root();
         HTMLCollection::children(window.r(), NodeCast::from_ref(self))
+    }
+
+    // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
+    fn GetFirstElementChild(self) -> Option<Temporary<Element>> {
+        NodeCast::from_ref(self).child_elements().next()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
+    fn GetLastElementChild(self) -> Option<Temporary<Element>> {
+        NodeCast::from_ref(self).rev_children().filter_map(ElementCast::to_temporary).next()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
+    fn ChildElementCount(self) -> u32 {
+        NodeCast::from_ref(self).child_elements().count() as u32
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector

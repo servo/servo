@@ -1378,6 +1378,21 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         HTMLCollection::children(window.r(), NodeCast::from_ref(self))
     }
 
+    // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
+    fn GetFirstElementChild(self) -> Option<Temporary<Element>> {
+        NodeCast::from_ref(self).child_elements().next()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
+    fn GetLastElementChild(self) -> Option<Temporary<Element>> {
+        NodeCast::from_ref(self).rev_children().filter_map(ElementCast::to_temporary).next()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
+    fn ChildElementCount(self) -> u32 {
+        NodeCast::from_ref(self).child_elements().count() as u32
+    }
+
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn QuerySelector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         let root: JSRef<Node> = NodeCast::from_ref(self);
