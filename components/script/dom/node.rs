@@ -1683,10 +1683,11 @@ impl Node {
         Temporary::from_rooted(copy.r())
     }
 
-    pub fn collect_text_contents<'a, T: Iterator<Item=JSRef<'a, Node>>>(iterator: T) -> String {
+    pub fn collect_text_contents<T: Iterator<Item=Temporary<Node>>>(iterator: T) -> String {
         let mut content = String::new();
         for node in iterator {
-            let text: Option<JSRef<Text>> = TextCast::to_ref(node);
+            let node = node.root();
+            let text = TextCast::to_ref(node.r());
             match text {
                 Some(text) => content.push_str(text.characterdata().data().as_slice()),
                 None => (),
@@ -1834,7 +1835,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         match self.type_id {
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => {
-                let content = Node::collect_text_contents(self.traverse_preorder());
+                let content = Node::collect_text_contents(
+                    self.traverse_preorder().map(Temporary::from_rooted));
                 Some(content)
             }
             NodeTypeId::Comment |
