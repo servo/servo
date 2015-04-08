@@ -1417,6 +1417,8 @@ impl BlockFlow {
         match style.get_box().display {
             display::T::table_cell |
             display::T::table_caption |
+            display::T::table_row_group |
+            display::T::table |
             display::T::inline_block => {
                 FormattingContextType::Other
             }
@@ -1693,7 +1695,7 @@ impl Flow for BlockFlow {
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
         if self.is_replaced_content() {
             let _scope = layout_debug_scope!("assign_replaced_block_size_if_necessary {:x}",
-                                                self.base.debug_id());
+                                             self.base.debug_id());
 
             // Assign block-size for fragment if it is an image fragment.
             let containing_block_block_size =
@@ -1704,10 +1706,12 @@ impl Flow for BlockFlow {
             }
         } else if self.is_root() || self.base.flags.is_float() || self.is_inline_block() {
             // Root element margins should never be collapsed according to CSS § 8.3.1.
-            debug!("assign_block_size: assigning block_size for root flow {:?}", flow::base(self).debug_id());
+            debug!("assign_block_size: assigning block_size for root flow {:?}",
+                   flow::base(self).debug_id());
             self.assign_block_size_block_base(ctx, MarginsMayCollapseFlag::MarginsMayNotCollapse);
         } else {
-            debug!("assign_block_size: assigning block_size for block {:?}", flow::base(self).debug_id());
+            debug!("assign_block_size: assigning block_size for block {:?}",
+                   flow::base(self).debug_id());
             self.assign_block_size_block_base(ctx, MarginsMayCollapseFlag::MarginsMayCollapse);
         }
     }
