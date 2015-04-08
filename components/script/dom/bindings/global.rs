@@ -7,7 +7,7 @@
 //! This module contains smart pointers to global scopes, to simplify writing
 //! code that works in workers as well as window scopes.
 
-use dom::bindings::conversions::FromJSValConvertible;
+use dom::bindings::conversions::native_from_reflector_jsmanaged;
 use dom::bindings::js::{JS, JSRef, Root, Unrooted};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
@@ -22,10 +22,7 @@ use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::glue::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_GetClass};
-use js::jsval::ObjectOrNullValue;
 use url::Url;
-
-use std::ptr;
 
 /// A freely-copyable reference to a rooted global object.
 #[derive(Copy)]
@@ -189,12 +186,12 @@ pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalUnrooted {
         let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
-        match FromJSValConvertible::from_jsval(ptr::null_mut(), ObjectOrNullValue(global), ()) {
+        match native_from_reflector_jsmanaged(global) {
             Ok(window) => return GlobalUnrooted::Window(window),
             Err(_) => (),
         }
 
-        match FromJSValConvertible::from_jsval(ptr::null_mut(), ObjectOrNullValue(global), ()) {
+        match native_from_reflector_jsmanaged(global) {
             Ok(worker) => return GlobalUnrooted::Worker(worker),
             Err(_) => (),
         }

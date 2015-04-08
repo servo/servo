@@ -897,23 +897,12 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.nullable():
         declType = CGWrapper(declType, pre="Option<", post=">")
 
-    template = ""
-    if type.isFloat() and not type.isUnrestricted():
-        template = (
-            "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
-            "    Ok(v) => v,\n"
-            "    Err(_) => {\n"
-            "       throw_type_error(cx, \"this argument is not a finite floating-point value\");\n"
-            "       %s\n"
-            "    }\n"
-            "}" % exceptionCode)
-    else:
-        #XXXjdm support conversionBehavior here
-        template = (
-            "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
-            "    Ok(v) => v,\n"
-            "    Err(_) => { %s }\n"
-            "}" % exceptionCode)
+    #XXXjdm support conversionBehavior here
+    template = (
+        "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+        "    Ok(v) => v,\n"
+        "    Err(_) => { %s }\n"
+        "}" % exceptionCode)
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):

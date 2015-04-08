@@ -33,6 +33,7 @@
 //! | union types             | `T`                              |
 
 use dom::bindings::codegen::PrototypeList;
+use dom::bindings::error::throw_type_error;
 use dom::bindings::js::{JSRef, Root, Unrooted};
 use dom::bindings::num::Finite;
 use dom::bindings::str::{ByteString, USVString};
@@ -58,6 +59,7 @@ use libc;
 use std::borrow::ToOwned;
 use std::default;
 use std::marker::MarkerTrait;
+use std::num::Float;
 use std::slice;
 
 /// A trait to retrieve the constants necessary to check if a `JSObject`
@@ -257,24 +259,6 @@ impl FromJSValConvertible for f32 {
     }
 }
 
-impl ToJSValConvertible for Finite<f32> {
-    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-        let value = **self;
-        value.to_jsval(cx)
-    }
-}
-
-impl FromJSValConvertible for Finite<f32> {
-    type Config = ();
-    fn from_jsval(cx: *mut JSContext, val: JSVal, option: ()) -> Result<Finite<f32>, ()> {
-        let result = FromJSValConvertible::from_jsval(cx, val, option);
-        let result = result.and_then(|v| {
-            Finite::<f32>::new(v).ok_or(())
-        });
-        result
-    }
-}
-
 impl ToJSValConvertible for f64 {
     fn to_jsval(&self, _cx: *mut JSContext) -> JSVal {
         unsafe {
@@ -290,7 +274,7 @@ impl FromJSValConvertible for f64 {
     }
 }
 
-impl ToJSValConvertible for Finite<f64> {
+impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
     #[inline]
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         let value = **self;
@@ -298,14 +282,18 @@ impl ToJSValConvertible for Finite<f64> {
     }
 }
 
-impl FromJSValConvertible for Finite<f64> {
+impl<T: Float + FromJSValConvertible<Config=()>> FromJSValConvertible for Finite<T> {
     type Config = ();
-    fn from_jsval(cx: *mut JSContext, val: JSVal, option: ()) -> Result<Finite<f64>, ()> {
-        let result = FromJSValConvertible::from_jsval(cx, val, option);
-        let result = result.and_then(|v| {
-            Finite::<f64>::new(v).ok_or(())
-        });
-        result
+
+    fn from_jsval(cx: *mut JSContext, value: JSVal, option: ()) -> Result<Finite<T>, ()> {
+        let result = try!(FromJSValConvertible::from_jsval(cx, value, option));
+        match Finite::new(result) {
+            Some(v) => Ok(v),
+            None => {
+                throw_type_error(cx, "this argument is not a finite floating-point value");
+                Err(())
+            },
+        }
     }
 }
 
@@ -566,17 +554,6 @@ pub fn native_from_reflector_jsmanaged<T>(mut obj: *mut JSObject) -> Result<Unro
             debug!("bad prototype");
             Err(())
         }
-    }
-}
-
-impl<T: Reflectable+IDLInterface> FromJSValConvertible for Unrooted<T> {
-    type Config = ();
-    fn from_jsval(_cx: *mut JSContext, value: JSVal, _option: ())
-                  -> Result<Unrooted<T>, ()> {
-        if !value.is_object() {
-            return Err(());
-        }
-        native_from_reflector_jsmanaged(value.to_object())
     }
 }
 
