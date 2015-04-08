@@ -18,9 +18,8 @@ fn test_transform_compress_none() {
 
     let mode = CompressionMode::CompressNone;
     for &test in test_strs.iter() {
-        let mut new_line_pos = vec![];
         let mut trimmed_str = String::new();
-        transform_text(test, mode, true, &mut trimmed_str, &mut new_line_pos);
+        transform_text(test, mode, true, &mut trimmed_str);
         assert_eq!(trimmed_str, test)
     }
 }
@@ -52,9 +51,8 @@ fn test_transform_discard_newline() {
 
     let mode = CompressionMode::DiscardNewline;
     for &(test, oracle) in test_strs.iter() {
-        let mut new_line_pos = vec![];
         let mut trimmed_str = String::new();
-        transform_text(test, mode, true, &mut trimmed_str, &mut new_line_pos);
+        transform_text(test, mode, true, &mut trimmed_str);
         assert_eq!(trimmed_str, oracle)
     }
 }
@@ -86,9 +84,8 @@ fn test_transform_compress_whitespace() {
 
     let mode = CompressionMode::CompressWhitespace;
     for &(test, oracle) in test_strs.iter() {
-        let mut new_line_pos = vec![];
         let mut trimmed_str = String::new();
-        transform_text(test, mode, true, &mut trimmed_str, &mut new_line_pos);
+        transform_text(test, mode, true, &mut trimmed_str);
         assert_eq!(&*trimmed_str, oracle)
     }
 }
@@ -120,9 +117,8 @@ fn test_transform_compress_whitespace_newline() {
 
     let mode = CompressionMode::CompressWhitespaceNewline;
     for &(test, oracle) in test_strs.iter() {
-        let mut new_line_pos = vec![];
         let mut trimmed_str = String::new();
-        transform_text(test, mode, true, &mut trimmed_str, &mut new_line_pos);
+        transform_text(test, mode, true, &mut trimmed_str);
         assert_eq!(&*trimmed_str, oracle)
     }
 }
@@ -157,9 +153,8 @@ fn test_transform_compress_whitespace_newline_no_incoming() {
 
     let mode = CompressionMode::CompressWhitespaceNewline;
     for &(test, oracle) in test_strs.iter() {
-        let mut new_line_pos = vec![];
         let mut trimmed_str = String::new();
-        transform_text(test, mode, false, &mut trimmed_str, &mut new_line_pos);
+        transform_text(test, mode, false, &mut trimmed_str);
         assert_eq!(trimmed_str, oracle)
     }
 }
