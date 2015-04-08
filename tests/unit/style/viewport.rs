@@ -25,6 +25,8 @@ fn test_viewport_rule<F>(css: &str,
                          callback: F)
     where F: Fn(&Vec<ViewportDescriptorDeclaration>, &str)
 {
+    ::util::opts::set_experimental_enabled(true);
+
     let stylesheet = stylesheet!(css, Author);
     let mut rule_count = 0;
     for rule in stylesheet.effective_rules(&device).viewport() {
