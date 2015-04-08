@@ -623,7 +623,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn set_hover_state(self, state: bool) {
-        self.set_flag(IN_HOVER_STATE, state)
+        self.set_flag(IN_HOVER_STATE, state);
+        self.dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn get_focus_state(self) -> bool {
@@ -631,7 +632,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn set_focus_state(self, state: bool) {
-        self.set_flag(IN_FOCUS_STATE, state)
+        self.set_flag(IN_FOCUS_STATE, state);
+        self.dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn get_disabled_state(self) -> bool {
