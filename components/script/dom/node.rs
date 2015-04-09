@@ -158,6 +158,9 @@ bitflags! {
         const CLICK_IN_PROGRESS = 0x100,
         #[doc = "Specifies whether this node has the focus."]
         const IN_FOCUS_STATE = 0x200,
+        #[doc = "Specifies whether this node is focusable and whether it is supposed \
+                 to be reachable with using sequential focus navigation."]
+        const SEQUENTIALLY_FOCUSABLE = 0x400,
     }
 }
 
