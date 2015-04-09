@@ -385,4 +385,13 @@ test(function() {
   el.removeAttributeNS(null, "pre:fix")
   assert_equals(el.attributes[0], unprefixed)
 }, "Attribute with prefix in local name")
+
+test(function() {
+  var el = document.createElement("div")
+  el.setAttribute("foo", "bar")
+  var attr = el.attributes[0]
+  assert_equals(attr.ownerElement, el)
+  el.removeAttribute("foo")
+  assert_equals(attr.ownerElement, null)
+}, "Attribute loses its owner when removed")
 </script>

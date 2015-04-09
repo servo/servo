@@ -8956,10 +8956,6 @@
         "url": "/IndexedDB/key_invalid.htm"
       },
       {
-        "path": "IndexedDB/key_valid.html",
-        "url": "/IndexedDB/key_valid.html"
-      },
-      {
         "path": "IndexedDB/keygenerator-constrainterror.htm",
         "url": "/IndexedDB/keygenerator-constrainterror.htm"
       },
@@ -9820,38 +9816,6 @@
         "url": "/content-security-policy/img-src/img-src-4_1.html"
       },
       {
-        "path": "content-security-policy/media-src/media-src-7_1.html",
-        "url": "/content-security-policy/media-src/media-src-7_1.html"
-      },
-      {
-        "path": "content-security-policy/media-src/media-src-7_1_2.html",
-        "url": "/content-security-policy/media-src/media-src-7_1_2.html"
-      },
-      {
-        "path": "content-security-policy/media-src/media-src-7_2.html",
-        "url": "/content-security-policy/media-src/media-src-7_2.html"
-      },
-      {
-        "path": "content-security-policy/media-src/media-src-7_2_2.html",
-        "url": "/content-security-policy/media-src/media-src-7_2_2.html"
-      },
-      {
-        "path": "content-security-policy/media-src/media-src-7_3.html",
-        "url": "/content-security-policy/media-src/media-src-7_3.html"
-      },
-      {
-        "path": "content-security-policy/media-src/media-src-7_3_2.html",
-        "url": "/content-security-policy/media-src/media-src-7_3_2.html"
-      },
-      {
-        "path": "content-security-policy/object-src/object-src-2_1.html",
-        "url": "/content-security-policy/object-src/object-src-2_1.html"
-      },
-      {
-        "path": "content-security-policy/object-src/object-src-2_2.html",
-        "url": "/content-security-policy/object-src/object-src-2_2.html"
-      },
-      {
         "path": "content-security-policy/script-src/script-src-1_1.html",
         "url": "/content-security-policy/script-src/script-src-1_1.html"
       },
@@ -10310,6 +10274,10 @@
       {
         "path": "dom/nodes/CharacterData-replaceData.html",
         "url": "/dom/nodes/CharacterData-replaceData.html"
+      },
+      {
+        "path": "dom/nodes/CharacterData-substringData.html",
+        "url": "/dom/nodes/CharacterData-substringData.html"
       },
       {
         "path": "dom/nodes/Comment-constructor.html",
@@ -11270,6 +11238,30 @@
       {
         "path": "ext-xhtml-pubid/the-xhtml-syntax/parsing-xhtml-documents/xhtml-pubid-1.html",
         "url": "/ext-xhtml-pubid/the-xhtml-syntax/parsing-xhtml-documents/xhtml-pubid-1.html"
+      },
+      {
+        "path": "fetch/nosniff/image.html",
+        "url": "/fetch/nosniff/image.html"
+      },
+      {
+        "path": "fetch/nosniff/importscripts.html",
+        "url": "/fetch/nosniff/importscripts.html"
+      },
+      {
+        "path": "fetch/nosniff/parsing-nosniff.html",
+        "url": "/fetch/nosniff/parsing-nosniff.html"
+      },
+      {
+        "path": "fetch/nosniff/script.html",
+        "url": "/fetch/nosniff/script.html"
+      },
+      {
+        "path": "fetch/nosniff/stylesheet.html",
+        "url": "/fetch/nosniff/stylesheet.html"
+      },
+      {
+        "path": "fetch/nosniff/worker.html",
+        "url": "/fetch/nosniff/worker.html"
       },
       {
         "path": "gamepad/idlharness.html",
@@ -18799,6 +18791,11 @@
         "url": "/IndexedDB/idbobjectstore_createIndex8-valid_keys.htm"
       },
       {
+        "path": "IndexedDB/key_valid.html",
+        "timeout": "long",
+        "url": "/IndexedDB/key_valid.html"
+      },
+      {
         "path": "IndexedDB/keypath_maxsize.htm",
         "timeout": "long",
         "url": "/IndexedDB/keypath_maxsize.htm"
@@ -18822,6 +18819,46 @@
         "path": "ambient-light/AmbientLight_tests.html",
         "timeout": "long",
         "url": "/ambient-light/AmbientLight_tests.html"
+      },
+      {
+        "path": "content-security-policy/media-src/media-src-7_1.html",
+        "timeout": "long",
+        "url": "/content-security-policy/media-src/media-src-7_1.html"
+      },
+      {
+        "path": "content-security-policy/media-src/media-src-7_1_2.html",
+        "timeout": "long",
+        "url": "/content-security-policy/media-src/media-src-7_1_2.html"
+      },
+      {
+        "path": "content-security-policy/media-src/media-src-7_2.html",
+        "timeout": "long",
+        "url": "/content-security-policy/media-src/media-src-7_2.html"
+      },
+      {
+        "path": "content-security-policy/media-src/media-src-7_2_2.html",
+        "timeout": "long",
+        "url": "/content-security-policy/media-src/media-src-7_2_2.html"
+      },
+      {
+        "path": "content-security-policy/media-src/media-src-7_3.html",
+        "timeout": "long",
+        "url": "/content-security-policy/media-src/media-src-7_3.html"
+      },
+      {
+        "path": "content-security-policy/media-src/media-src-7_3_2.html",
+        "timeout": "long",
+        "url": "/content-security-policy/media-src/media-src-7_3_2.html"
+      },
+      {
+        "path": "content-security-policy/object-src/object-src-2_1.html",
+        "timeout": "long",
+        "url": "/content-security-policy/object-src/object-src-2_1.html"
+      },
+      {
+        "path": "content-security-policy/object-src/object-src-2_2.html",
+        "timeout": "long",
+        "url": "/content-security-policy/object-src/object-src-2_2.html"
       },
       {
         "path": "cors/status-async.htm",
@@ -25034,7 +25071,7 @@
       }
     ]
   },
-  "rev": "0d318188757a9c996e20b82db201fd04de5aa255",
+  "rev": "2a9fd810bb18610b422dbc3998ab74aa1bffae95",
   "url_base": "/",
   "version": 2
 }

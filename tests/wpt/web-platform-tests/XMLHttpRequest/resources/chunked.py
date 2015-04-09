@@ -10,7 +10,7 @@ def main(request, response):
     response.write_status_headers()
 
     for value in chunks:
-        response.writer.write("%d\r\n" % len(value))
+        response.writer.write("%x\r\n" % len(value))
         response.writer.write(value)
         response.writer.write("\r\n")
     response.writer.write("0\r\n")

@@ -1,0 +1,34 @@
+<!-- quirks mode is important, text/css is already required otherwise -->
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+  var fails = ["", "?type=", "?type=x", "?type=x/x"],
+      passes = ["?type=text/css", "?type=text/css;blah"]
+
+  fails.forEach(function(urlpart) {
+    async_test(function(t) {
+      var link = document.createElement("link")
+      link.rel = "stylesheet"
+      link.onerror = t.step_func_done(function(){})
+      link.onload = t.unreached_func("Unexpected load event")
+      link.href = "resources/css.py" + urlpart
+      document.body.appendChild(link)
+    }, "URL query: " + urlpart)
+  })
+
+  passes.forEach(function(urlpart) {
+    async_test(function(t) {
+      var link = document.createElement("link")
+      link.rel = "stylesheet"
+      link.onerror = t.unreached_func("Unexpected error event")
+      link.onload = t.step_func_done(function(){
+        if(passes[passes.length-1] == urlpart) {
+          assert_equals(document.styleSheets.length, passes.length)
+        }
+      })
+      link.href = "resources/css.py" + urlpart
+      document.body.appendChild(link)
+    }, "URL query: " + urlpart)
+  })
+</script>

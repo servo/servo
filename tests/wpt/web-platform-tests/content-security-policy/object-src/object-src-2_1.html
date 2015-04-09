@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Objects loaded using data attribute of &lt;object&gt; tag are blocked unless their host is listed as an allowed source in the object-src directive</title>
+    <meta name=timeout content=long>
     <script src='/resources/testharness.js'></script>
     <script src='/resources/testharnessreport.js'></script>
 </head>
@@ -34,19 +35,19 @@
 
       function object_loaded() {
         var elem = document.getElementById("flashObject");
-	var is_loaded = false;
-	try {
-	  <!-- The Flash Player exposes values to JavaScript if a SWF has successfully been loaded. -->
-	  var pct_loaded = elem.PercentLoaded();
-	  is_loaded = true;
-	} catch (e) {}
+        var is_loaded = false;
+        try {
+          <!-- The Flash Player exposes values to JavaScript if a SWF has successfully been loaded. -->
+          var pct_loaded = elem.PercentLoaded();
+          is_loaded = true;
+        } catch (e) {}
 
-	if (hasMimeType) {
-	  test1.step(function() {assert_false(is_loaded, "External object loaded.")});
-	} else {
-	  test1.step(function() {assert_true(hasMimeType, "No Flash Player, cannot run test.")});
-	}
-	test1.done();
+        if (hasMimeType) {
+          test1.step(function() {assert_false(is_loaded, "External object loaded.")});
+        } else {
+          test1.step(function() {assert_true(hasMimeType, "No Flash Player, cannot run test.")});
+        }
+        test1.done();
       }
     </script>
 

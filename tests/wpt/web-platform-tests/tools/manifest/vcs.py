@@ -13,9 +13,13 @@ def is_git_repo(tests_root):
 
 
 _repo_root = None
-def get_repo_root():
+def get_repo_root(initial_dir=None):
     global _repo_root
+
+    if initial_dir is None:
+        initial_dir = os.path.dirname(__file__)
+
     if _repo_root is None:
-        git = get_git_func(os.path.dirname(__file__))
+        git = get_git_func(initial_dir)
         _repo_root = git("rev-parse", "--show-toplevel").rstrip()
     return _repo_root

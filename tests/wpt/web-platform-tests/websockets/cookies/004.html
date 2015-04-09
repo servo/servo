@@ -10,6 +10,11 @@ var cookie_id = ((new Date())-0) + '.' + Math.random();
 
 var t = async_test(function(t) {
   var iframe = document.createElement('iframe');
+  t.add_cleanup(function() {
+    // remove cookie
+    iframe.src = 'support/set-cookie.py?'+encodeURIComponent('ws_test_'+cookie_id+'=; Path=/; HttpOnly; Expires=Sun, 06 Nov 1994 08:49:37 GMT');
+    iframe.onload = done;
+  });
   var url = SCHEME_DOMAIN_PORT+'/set-cookie_http?'+cookie_id;
   var ws = new WebSocket(url);
   ws.onopen = t.step_func(function(e) {
@@ -17,13 +22,7 @@ var t = async_test(function(t) {
     assert_false(new RegExp('ws_test_'+cookie_id+'=test').test(document.cookie));
     t.done();
   });
-  ws.onclose = t.step_func(function(e) {assert_unreached()});
-
-
-  add_result_callback(function() {
-    iframe.src = 'support/set-cookie.py?'+encodeURIComponent('ws_test_'+cookie_id+'=; Path=/; HttpOnly; Expires=Sun, 06 Nov 1994 08:49:37 GMT');
-    iframe.onload = done;
-  });
+  ws.onerror = ws.onclose = t.step_func(function(e) {assert_unreached(e.type)});
   document.body.appendChild(iframe);
 }, null, {timeout:9900})
 </script>

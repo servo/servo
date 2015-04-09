@@ -58,12 +58,13 @@
 <img srcset='data:,a 1w 1w' data-expect=''>
 <img srcset='data:,a 1w 1x' data-expect=''>
 <img srcset='data:,a 1x 1w' data-expect=''>
-<img srcset='data:,a 1w 1h' data-expect='data:,a'>
-<img srcset='data:,a 1h 1w' data-expect='data:,a'>
+<img srcset='data:,a 1w 1h' data-expect='data:,a'><!-- should fail for x-only impl -->
+<img srcset='data:,a 1h 1w' data-expect='data:,a'><!-- should fail for x-only impl -->
 <img srcset='data:,a 1h 1h' data-expect=''>
 <img srcset='data:,a 1h 1x' data-expect=''>
 <img srcset='data:,a 1h 1w 1x' data-expect=''>
 <img srcset='data:,a 1x 1w 1h' data-expect=''>
+<img srcset='data:,a 1w' data-expect='data:,a'><!-- should fail for x-only impl -->
 <img srcset='data:,a 1h' data-expect=''>
 <img srcset='data:,a 1h foo' data-expect=''>
 <img srcset='data:,a foo 1h' data-expect=''>
