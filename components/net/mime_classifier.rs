@@ -111,7 +111,7 @@ impl MIMEClassifier {
         self.binary_or_plaintext.classify(data)
     }
     fn is_xml(tp: &str, sub_tp: &str) -> bool {
-        let suffix = &sub_tp[(max((sub_tp.len() as int) - ("+xml".len() as int), 0i) as uint)..];
+        let suffix = &sub_tp[(max(sub_tp.len() as isize - "+xml".len() as isize, 0) as usize)..];
         match (tp, sub_tp, suffix) {
             (_, _, "+xml") | ("application", "xml",_) | ("text", "xml",_) => {true}
             _ => {false}
@@ -170,13 +170,13 @@ struct ByteMatcher {
 }
 
 impl ByteMatcher {
-    fn matches(&self, data: &Vec<u8>) -> Option<uint> {
+    fn matches(&self, data: &Vec<u8>) -> Option<usize> {
 
         if data.len() < self.pattern.len() {
             return None;
         }
         //TODO replace with iterators if I ever figure them out...
-        let mut i = 0u;
+        let mut i: usize = 0;
         let max_i = data.len()-self.pattern.len();
 
         loop {
@@ -184,12 +184,12 @@ impl ByteMatcher {
                 break;
             }
 
-            i=i + 1;
+            i = i + 1;
             if i > max_i {
                 return None;
             }
         }
-        for j in range(0u,self.pattern.len()) {
+        for j in 0..self.pattern.len() {
             if (data[i] & self.mask[j]) != (self.pattern[j] & self.mask[j]) {
                 return None;
             }
@@ -231,7 +231,7 @@ impl Mp4Matcher {
             return false;
         }
         let box_size = ((data[0] as u32) << 3 | (data[1] as u32) << 2 |
-                        (data[2] as u32) << 1 | (data[3] as u32)) as uint;
+                        (data[2] as u32) << 1 | (data[3] as u32)) as usize;
         if (data.len() < box_size) || (box_size % 4 != 0) {
             return false;
         }
@@ -239,14 +239,14 @@ impl Mp4Matcher {
         let ftyp = [0x66, 0x74, 0x79, 0x70];
         let mp4 =  [0x6D, 0x70, 0x34];
 
-        for i in range(4u,8u) {
+        for i in 4..8 {
             if data[i] != ftyp[i - 4] {
                 return false;
             }
         }
         let mut all_match = true;
-        for i in range(8u,11u) {
-            if data[i]!=mp4[i - 8u] {
+        for i in 8..11 {
+            if data[i]!=mp4[i - 8] {
                 all_match = false;
                 break;
             }
@@ -255,11 +255,11 @@ impl Mp4Matcher {
             return true;
         }
 
-        let mut bytes_read = 16u;
+        let mut bytes_read: usize = 16;
 
         while bytes_read < box_size {
             all_match = true;
-            for i in range(0u,3u) {
+            for i in 0..3 {
                 if mp4[i] != data[i + bytes_read] {
                     all_match = false;
                     break;
