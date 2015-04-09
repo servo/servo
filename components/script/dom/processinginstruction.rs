@@ -37,13 +37,20 @@ impl ProcessingInstruction {
         Node::reflect_node(box ProcessingInstruction::new_inherited(target, data, document),
                            document, ProcessingInstructionBinding::Wrap)
     }
+}
 
-    pub fn target<'a>(&'a self) -> &'a DOMString {
-        &self.target
+pub trait ProcessingInstructionHelpers<'a> {
+    fn target(self) -> &'a DOMString;
+}
+
+impl<'a> ProcessingInstructionHelpers<'a> for JSRef<'a, ProcessingInstruction> {
+    fn target(self) -> &'a DOMString {
+        &self.extended_deref().target
     }
 }
 
 impl<'a> ProcessingInstructionMethods for JSRef<'a, ProcessingInstruction> {
+    // https://dom.spec.whatwg.org/#dom-processinginstruction-target
     fn Target(self) -> DOMString {
         self.target.clone()
     }

@@ -25,6 +25,7 @@ use dom::htmlscriptelement::HTMLScriptElementHelpers;
 use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
 use dom::processinginstruction::ProcessingInstruction;
+use dom::processinginstruction::ProcessingInstructionHelpers;
 use dom::servohtmlparser;
 use dom::servohtmlparser::{ServoHTMLParser, FragmentContext};
 use dom::text::Text;
