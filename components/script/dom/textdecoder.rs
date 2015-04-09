@@ -29,6 +29,7 @@ pub struct TextDecoder {
     encoding: EncodingRef,
     fatal: bool,
     ignoreBOM: bool,
+    BOMseen: bool,
 }
 
 impl TextDecoder {
@@ -38,6 +39,7 @@ impl TextDecoder {
             encoding: encoding,
             fatal: fatal,
             ignoreBOM: ignoreBOM,
+            BOMseen: false,
         }
     }
 
