@@ -15,6 +15,60 @@ impl UrlHelper {
         USVString(url.serialize())
     }
 
+    pub fn Protocol(url: &Url) -> USVString {
+        // https://url.spec.whatwg.org/#dom-urlutils-protocol
+        // FIXME: Url null check is skipped for now
+        USVString(format!("{}:", url.scheme))
+    }
+
+    pub fn Username(url: &Url) -> USVString {
+        // https://url.spec.whatwg.org/#dom-urlutils-username
+        // FIXME: Url null check is skipped for now
+        USVString(match url.username() {
+            None => "".to_owned(),
+            Some(username) => username.to_owned()
+        })
+    }
+
+    pub fn Password(url: &Url) -> USVString {
+        // https://url.spec.whatwg.org/#dom-urlutils-password
+        USVString(match url.password() {
+            None => "".to_owned(),
+            Some(password) => password.to_owned()
+        })
+    }
+
+    pub fn Host(url: &Url) -> USVString {
+        // https://url.spec.whatwg.org/#dom-urlutils-host
+        // FIXME: Url null check is skipped for now
+        let host = match url.host() {
+            None => "".to_owned(),
+            Some(host) => format!("{}", host)
+        };
+        USVString(match url.port() {
+            None => host,
+            Some(port) => format!("{}:{}", host, port)
+        })
+    }
+
+    pub fn Hostname(url: &Url) -> USVString {
+        // https://url.spec.whatwg.org/#dom-urlutils-hostname
+        // FIXME: Url null check is skipped for now
+        USVString(match url.host() {
+            None => "".to_owned(),
+            Some(host) => host.serialize()
+        })
+    }
+
+    pub fn Port(url: &Url) -> USVString {
+        // https://url.spec.whatwg.org/#dom-urlutils-port
+        // FIXME: Url null check is skipped for now
+        USVString(match url.port() {
+            None => "".to_owned(),
+            Some(port) => format!("{}", port)
+        })
+    }
+
     pub fn Search(url: &Url) -> USVString {
         USVString(match url.query {
             None => "".to_owned(),

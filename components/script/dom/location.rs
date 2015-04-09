@@ -46,6 +46,30 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
         UrlHelper::Href(&self.get_url())
     }
 
+    fn Protocol(self) -> USVString {
+        UrlHelper::Protocol(&self.get_url())
+    }
+
+    fn Username(self) -> USVString {
+        UrlHelper::Username(&self.get_url())
+    }
+
+    fn Password(self) -> USVString {
+        UrlHelper::Password(&self.get_url())
+    }
+
+    fn Host(self) -> USVString {
+        UrlHelper::Host(&self.get_url())
+    }
+
+    fn Hostname(self) -> USVString {
+        UrlHelper::Hostname(&self.get_url())
+    }
+
+    fn Port(self) -> USVString {
+        UrlHelper::Port(&self.get_url())
+    }
+
     fn Pathname(self) -> USVString {
         UrlHelper::Pathname(&self.get_url())
     }
