@@ -70,4 +70,5 @@ partial interface Element {
 };
 
 Element implements ChildNode;
+Element implements NonDocumentTypeChildNode;
 Element implements ParentNode;
