@@ -1268,37 +1268,6 @@ impl Fragment {
         }
     }
 
-    /// Returns, and computes, the block-size of this fragment.
-    pub fn content_block_size(&self, layout_context: &LayoutContext) -> Au {
-        match self.specific {
-            SpecificFragmentInfo::Generic |
-            SpecificFragmentInfo::GeneratedContent(_) |
-            SpecificFragmentInfo::Iframe(_) |
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper |
-            SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => Au(0),
-            SpecificFragmentInfo::Image(ref image_fragment_info) => {
-                image_fragment_info.replaced_image_fragment_info.computed_block_size()
-            }
-            SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
-                canvas_fragment_info.replaced_image_fragment_info.computed_block_size()
-            }
-            SpecificFragmentInfo::ScannedText(_) => {
-                // Compute the block-size based on the line-block-size and font size.
-                self.calculate_line_height(layout_context)
-            }
-            SpecificFragmentInfo::TableColumn(_) => {
-                panic!("Table column fragments do not have block size")
-            }
-            SpecificFragmentInfo::UnscannedText(_) => {
-                panic!("Unscanned text fragments should have been scanned by now!")
-            }
-        }
-    }
-
     /// Returns the dimensions of the content box.
     ///
     /// This is marked `#[inline]` because it is frequently called when only one or two of the
