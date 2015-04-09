@@ -5239,13 +5239,27 @@ pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
     result
 }
 
-/// Sets `display` to `inline` and `position` to `static`.
+/// Alters the given style to accommodate replaced content. This is called in flow construction. It
+/// handles cases like `<div style="position: absolute">foo bar baz</div>` (in which `foo`, `bar`,
+/// and `baz` must not be absolutely-positioned) and cases like `<sup>Foo</sup>` (in which the
+/// `vertical-align: top` style of `sup` must not propagate down into `Foo`).
+///
+/// FIXME(#5625, pcwalton): It would probably be cleaner and faster to do this in the cascade.
 #[inline]
-pub fn make_inline(style: &ComputedValues) -> ComputedValues {
-    let mut style = (*style).clone();
-    style.box_.make_unique().display = longhands::display::computed_value::T::inline;
-    style.box_.make_unique().position = longhands::position::computed_value::T::static_;
-    style
+pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValues>) {
+    // Reset `position` to handle cases like `<div style="position: absolute">foo bar baz</div>`.
+    if style.box_.display != longhands::display::computed_value::T::inline {
+        let mut style = style.make_unique();
+        style.box_.make_unique().display = longhands::display::computed_value::T::inline;
+        style.box_.make_unique().position = longhands::position::computed_value::T::static_;
+    }
+
+    // Reset `vertical-align` to handle cases like `<sup>foo</sup>`.
+    if style.box_.vertical_align != longhands::vertical_align::computed_value::T::baseline {
+        let mut style = style.make_unique();
+        style.box_.make_unique().vertical_align =
+            longhands::vertical_align::computed_value::T::baseline
+    }
 }
 
 /// Sets `border_${side}_width` to the passed in values.

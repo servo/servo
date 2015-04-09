@@ -651,7 +651,7 @@ impl<'a> FlowConstructor<'a> {
     /// `InlineFragmentsConstructionResult` if this node consisted entirely of ignorable
     /// whitespace.
     fn build_fragments_for_nonreplaced_inline_content(&mut self, node: &ThreadSafeLayoutNode)
-                                                  -> ConstructionResult {
+                                                      -> ConstructionResult {
         let mut opt_inline_block_splits: LinkedList<InlineBlockSplit> = LinkedList::new();
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
         let mut abs_descendants = Descendants::new();
@@ -760,13 +760,10 @@ impl<'a> FlowConstructor<'a> {
                 node.restyle_damage()))
         }
 
-        // If the value of `display` property is not `inline`, then we have a situation like
-        // `<div style="position:absolute">foo bar baz</div>`. The fragments for `foo`, `bar`, and
-        // `baz` had better not be absolutely positioned!
+        // Modify the style as necessary. (See the comment in
+        // `properties::modify_style_for_replaced_content()`.)
         let mut style = (*node.style()).clone();
-        if style.get_box().display != display::T::inline {
-            style = Arc::new(properties::make_inline(&*style))
-        }
+        properties::modify_style_for_replaced_content(&mut style);
 
         // If this is generated content, then we need to initialize the accumulator with the
         // fragment corresponding to that content. Otherwise, just initialize with the ordinary
