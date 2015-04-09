@@ -1166,7 +1166,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // https://dom.spec.whatwg.org/#dom-document-createrange
     fn CreateRange(self) -> Temporary<Range> {
-        Range::new(self)
+        Range::new_with_doc(self)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
