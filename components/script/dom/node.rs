@@ -411,10 +411,10 @@ pub trait NodeHelpers<'a> {
     fn ancestors(self) -> AncestorIterator;
     fn inclusive_ancestors(self) -> AncestorIterator;
     fn children(self) -> NodeSiblingIterator;
-    fn rev_children(self) -> ReverseChildrenIterator;
+    fn rev_children(self) -> ReverseSiblingIterator;
     fn child_elements(self) -> ChildElementIterator;
     fn following_siblings(self) -> NodeSiblingIterator;
-    fn preceding_siblings(self) -> ReverseChildrenIterator;
+    fn preceding_siblings(self) -> ReverseSiblingIterator;
     fn is_in_doc(self) -> bool;
     fn is_inclusive_ancestor_of(self, parent: JSRef<Node>) -> bool;
     fn is_parent_of(self, child: JSRef<Node>) -> bool;
@@ -764,8 +764,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         }
     }
 
-    fn preceding_siblings(self) -> ReverseChildrenIterator {
-        ReverseChildrenIterator {
+    fn preceding_siblings(self) -> ReverseSiblingIterator {
+        ReverseSiblingIterator {
             current: self.prev_sibling(),
         }
     }
@@ -872,8 +872,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         }
     }
 
-    fn rev_children(self) -> ReverseChildrenIterator {
-        ReverseChildrenIterator {
+    fn rev_children(self) -> ReverseSiblingIterator {
+        ReverseSiblingIterator {
             current: self.last_child(),
         }
     }
@@ -1138,11 +1138,11 @@ impl Iterator for NodeSiblingIterator {
     }
 }
 
-pub struct ReverseChildrenIterator {
+pub struct ReverseSiblingIterator {
     current: Option<Temporary<Node>>,
 }
 
-impl Iterator for ReverseChildrenIterator {
+impl Iterator for ReverseSiblingIterator {
     type Item = Temporary<Node>;
 
     fn next(&mut self) -> Option<Temporary<Node>> {
