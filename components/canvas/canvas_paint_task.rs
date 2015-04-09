@@ -39,6 +39,7 @@ pub enum CanvasMsg {
     SetFillStyle(FillOrStrokeStyle),
     SetStrokeStyle(FillOrStrokeStyle),
     SetLineWidth(f32),
+    SetMiterLimit(f32),
     SetTransform(Matrix2D<f32>),
     SetGlobalAlpha(f32),
     Recreate(Size2D<i32>),
@@ -202,7 +203,7 @@ impl<'a> CanvasPaintTask<'a> {
             draw_options: DrawOptions::new(1.0, 0),
             fill_style: Pattern::Color(ColorPattern::new(color::black())),
             stroke_style: Pattern::Color(ColorPattern::new(color::black())),
-            stroke_opts: StrokeOptions::new(1.0, JoinStyle::MiterOrBevel, CapStyle::Butt, 1.0, &[]),
+            stroke_opts: StrokeOptions::new(1.0, JoinStyle::MiterOrBevel, CapStyle::Butt, 10.0, &[]),
             path_builder: path_builder,
             transform: Matrix2D::identity(),
         }
@@ -245,6 +246,7 @@ impl<'a> CanvasPaintTask<'a> {
                     CanvasMsg::SetFillStyle(style) => painter.set_fill_style(style),
                     CanvasMsg::SetStrokeStyle(style) => painter.set_stroke_style(style),
                     CanvasMsg::SetLineWidth(width) => painter.set_line_width(width),
+                    CanvasMsg::SetMiterLimit(limit) => painter.set_miter_limit(limit),
                     CanvasMsg::SetTransform(ref matrix) => painter.set_transform(matrix),
                     CanvasMsg::SetGlobalAlpha(alpha) => painter.set_global_alpha(alpha),
                     CanvasMsg::Recreate(size) => painter.recreate(size),
@@ -423,6 +425,10 @@ impl<'a> CanvasPaintTask<'a> {
 
     fn set_line_width(&mut self, width: f32) {
         self.stroke_opts.line_width = width;
+    }
+
+    fn set_miter_limit(&mut self, limit: f32) {
+        self.stroke_opts.miter_limit = limit;
     }
 
     fn set_transform(&mut self, transform: &Matrix2D<f32>) {
