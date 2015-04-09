@@ -278,8 +278,6 @@ impl Shaper {
         // so, we must be careful to increment this when saving glyph entries.
         let mut char_idx = CharIndex(0);
 
-        assert!(glyph_count <= char_max);
-
         debug!("Shaped text[char count={}], got back {} glyph info records.",
                char_max,
                glyph_count);

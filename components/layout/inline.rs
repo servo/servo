@@ -24,7 +24,6 @@ use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
 use std::cmp::max;
 use std::fmt;
-use std::iter;
 use std::mem;
 use std::num::ToPrimitive;
 use std::ops::{Add, Sub, Mul, Div, Rem, Neg, Shl, Shr, Not, BitOr, BitAnd, BitXor};
