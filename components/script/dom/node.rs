@@ -486,6 +486,7 @@ pub trait NodeHelpers<'a> {
 
     fn traverse_preorder(self) -> TreeIterator<'a>;
     fn inclusively_following_siblings(self) -> NodeSiblingIterator;
+    fn inclusively_preceding_siblings(self) -> ReverseSiblingIterator;
 
     fn to_trusted_node_address(self) -> TrustedNodeAddress;
 
@@ -750,6 +751,12 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     fn inclusively_following_siblings(self) -> NodeSiblingIterator {
         NodeSiblingIterator {
+            current: Some(Temporary::from_rooted(self)),
+        }
+    }
+
+    fn inclusively_preceding_siblings(self) -> ReverseSiblingIterator {
+        ReverseSiblingIterator {
             current: Some(Temporary::from_rooted(self)),
         }
     }
