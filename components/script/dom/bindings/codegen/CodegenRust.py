@@ -5428,6 +5428,12 @@ impl ${name}Cast {
     }
 
     #[inline(always)]
+    #[allow(unrooted_must_root)]
+    pub fn from_layout_js<T: ${fromBound}+Reflectable>(derived: &LayoutJS<T>) -> LayoutJS<${name}> {
+        unsafe { derived.transmute_copy() }
+    }
+
+    #[inline(always)]
     pub fn from_temporary<T: ${fromBound}+Reflectable>(derived: Temporary<T>) -> Temporary<${name}> {
         unsafe { derived.transmute() }
     }

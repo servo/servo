@@ -11,11 +11,10 @@
  */
 
 interface CharacterData : Node {
-  [TreatNullAs=EmptyString,SetterThrows] attribute DOMString data;
+  [TreatNullAs=EmptyString] attribute DOMString data;
   readonly attribute unsigned long length;
   [Throws]
   DOMString substringData(unsigned long offset, unsigned long count);
-  [Throws]
   void appendData(DOMString data);
   [Throws]
   void insertData(unsigned long offset, DOMString data);
@@ -26,3 +25,4 @@ interface CharacterData : Node {
 };
 
 CharacterData implements ChildNode;
+CharacterData implements NonDocumentTypeChildNode;

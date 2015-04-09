@@ -174,7 +174,12 @@ impl MarginCollapseInfo {
 
     pub fn current_float_ceiling(&mut self) -> Au {
         match self.state {
-            MarginCollapseState::AccumulatingCollapsibleTopMargin => self.block_start_margin.collapse(),
+            MarginCollapseState::AccumulatingCollapsibleTopMargin => {
+                // We do not include the top margin in the float ceiling, because the float flow
+                // needs to be positioned relative to our *border box*, not our margin box. See
+                // `tests/ref/float_under_top_margin_a.html`.
+                Au(0)
+            }
             MarginCollapseState::AccumulatingMarginIn => self.margin_in.collapse(),
         }
     }
@@ -182,18 +187,22 @@ impl MarginCollapseInfo {
     /// Adds the child's potentially collapsible block-start margin to the current margin state and
     /// advances the Y offset by the appropriate amount to handle that margin. Returns the amount
     /// that should be added to the Y offset during block layout.
-    pub fn advance_block_start_margin(&mut self, child_collapsible_margins: &CollapsibleMargins) -> Au {
+    pub fn advance_block_start_margin(&mut self, child_collapsible_margins: &CollapsibleMargins)
+                                      -> Au {
         match (self.state, *child_collapsible_margins) {
-            (MarginCollapseState::AccumulatingCollapsibleTopMargin, CollapsibleMargins::None(block_start, _)) => {
+            (MarginCollapseState::AccumulatingCollapsibleTopMargin,
+             CollapsibleMargins::None(block_start, _)) => {
                 self.state = MarginCollapseState::AccumulatingMarginIn;
                 block_start
             }
-            (MarginCollapseState::AccumulatingCollapsibleTopMargin, CollapsibleMargins::Collapse(block_start, _)) => {
+            (MarginCollapseState::AccumulatingCollapsibleTopMargin,
+             CollapsibleMargins::Collapse(block_start, _)) => {
                 self.block_start_margin.union(block_start);
                 self.state = MarginCollapseState::AccumulatingMarginIn;
                 Au(0)
             }
-            (MarginCollapseState::AccumulatingMarginIn, CollapsibleMargins::None(block_start, _)) => {
+            (MarginCollapseState::AccumulatingMarginIn,
+             CollapsibleMargins::None(block_start, _)) => {
                 let previous_margin_value = self.margin_in.collapse();
                 self.margin_in = AdjoiningMargins::new();
                 previous_margin_value + block_start

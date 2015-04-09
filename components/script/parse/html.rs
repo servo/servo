@@ -7,13 +7,14 @@
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLScriptElementCast};
-use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, TextCast, CommentCast};
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentTypeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLScriptElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
-use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
 use dom::bindings::js::RootedReference;
 use dom::bindings::trace::RootedVec;
+use dom::characterdata::CharacterDataHelpers;
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers};
 use dom::document::{DocumentSource, IsHTMLDocument};
@@ -234,22 +235,19 @@ impl<'a> Serializable for JSRef<'a, Node> {
             },
 
             (IncludeNode, NodeTypeId::Text) => {
-                let text: JSRef<Text> = TextCast::to_ref(node).unwrap();
-                let data = text.characterdata().data();
-                serializer.write_text(data.as_slice())
+                let cdata = CharacterDataCast::to_ref(node).unwrap();
+                serializer.write_text(&cdata.data())
             },
 
             (IncludeNode, NodeTypeId::Comment) => {
-                let comment: JSRef<Comment> = CommentCast::to_ref(node).unwrap();
-                let data = comment.characterdata().data();
-                serializer.write_comment(data.as_slice())
+                let cdata = CharacterDataCast::to_ref(node).unwrap();
+                serializer.write_comment(&cdata.data())
             },
 
             (IncludeNode, NodeTypeId::ProcessingInstruction) => {
                 let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
-                let data = pi.characterdata().data();
-                serializer.write_processing_instruction(pi.target().as_slice(),
-                                                        data.as_slice())
+                let data = CharacterDataCast::from_ref(pi).data();
+                serializer.write_processing_instruction(&pi.target(), &data)
             },
 
             (IncludeNode, NodeTypeId::DocumentFragment) => Ok(()),

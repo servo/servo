@@ -38,10 +38,6 @@ impl ProcessingInstruction {
                            document, ProcessingInstructionBinding::Wrap)
     }
 
-    pub fn characterdata<'a>(&'a self) -> &'a CharacterData {
-        &self.characterdata
-    }
-
     pub fn target<'a>(&'a self) -> &'a DOMString {
         &self.target
     }

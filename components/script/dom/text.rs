@@ -42,10 +42,5 @@ impl Text {
         let document = global.as_window().Document().root();
         Ok(Text::new(text, document.r()))
     }
-
-    #[inline]
-    pub fn characterdata<'a>(&'a self) -> &'a CharacterData {
-        &self.characterdata
-    }
 }
 

@@ -76,8 +76,7 @@ impl FontHandleMethods for FontHandle {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
 
-        let bytes = &template.bytes;
-        let face_result = create_face_from_buffer(ft_ctx, bytes.as_ptr(), bytes.len(), pt_size);
+        let face_result = create_face_from_buffer(ft_ctx, &template.bytes, pt_size);
 
         // TODO: this could be more simply written as result::chain
         // and moving buf into the struct ctor, but cant' move out of
@@ -94,12 +93,12 @@ impl FontHandleMethods for FontHandle {
             Err(()) => Err(())
         };
 
-        fn create_face_from_buffer(lib: FT_Library, cbuf: *const u8, cbuflen: uint, pt_size: Option<Au>)
+        fn create_face_from_buffer(lib: FT_Library, buffer: &[u8], pt_size: Option<Au>)
                                    -> Result<FT_Face, ()> {
             unsafe {
                 let mut face: FT_Face = ptr::null_mut();
                 let face_index = 0 as FT_Long;
-                let result = FT_New_Memory_Face(lib, cbuf, cbuflen as FT_Long,
+                let result = FT_New_Memory_Face(lib, buffer.as_ptr(), buffer.len() as FT_Long,
                                                 face_index, &mut face);
 
                 if !result.succeeded() || face.is_null() {

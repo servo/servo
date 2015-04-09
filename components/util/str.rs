@@ -39,7 +39,12 @@ pub fn null_str_as_empty_ref<'a>(s: &'a Option<DOMString>) -> &'a str {
 const WHITESPACE: &'static [char] = &[' ', '\t', '\x0a', '\x0c', '\x0d'];
 
 pub fn is_whitespace(s: &str) -> bool {
-    s.chars().all(|c| WHITESPACE.contains(&c))
+    s.chars().all(char_is_whitespace)
+}
+
+#[inline]
+pub fn char_is_whitespace(c: char) -> bool {
+    WHITESPACE.contains(&c)
 }
 
 /// A "space character" according to:

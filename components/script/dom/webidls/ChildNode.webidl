@@ -16,10 +16,10 @@ interface ChildNode {
   void remove();
 };
 
-// [NoInterfaceObject]
-// interface NonDocumentTypeChildNode {
-//   [Pure]
-//   readonly attribute Element? previousElementSibling;
-//   [Pure]
-//   readonly attribute Element? nextElementSibling;
-// };
+[NoInterfaceObject]
+interface NonDocumentTypeChildNode {
+  [Pure]
+  readonly attribute Element? previousElementSibling;
+  [Pure]
+  readonly attribute Element? nextElementSibling;
+};

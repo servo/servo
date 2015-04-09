@@ -27,27 +27,33 @@ interface Document : Node {
   HTMLCollection getElementsByClassName(DOMString classNames);
   Element? getElementById(DOMString elementId);
 
-  [Throws]
+  [NewObject, Throws]
   Element createElement(DOMString localName);
-  [Throws]
+  [NewObject, Throws]
   Element createElementNS(DOMString? namespace, DOMString qualifiedName);
+  [NewObject]
   DocumentFragment createDocumentFragment();
+  [NewObject]
   Text createTextNode(DOMString data);
+  [NewObject]
   Comment createComment(DOMString data);
-  [Throws]
+  [NewObject, Throws]
   ProcessingInstruction createProcessingInstruction(DOMString target, DOMString data);
 
-  [Throws]
-  Attr createAttribute(DOMString localName);
-
-  [Throws]
+  [NewObject, Throws]
   Node importNode(Node node, optional boolean deep = false);
   [Throws]
   Node adoptNode(Node node);
 
-  [Throws]
+  [NewObject, Throws]
+  Attr createAttribute(DOMString localName);
+  [NewObject, Throws]
+  Attr createAttributeNS(DOMString? namespace, DOMString localName);
+
+  [NewObject, Throws]
   Event createEvent(DOMString interface_);
 
+  [NewObject]
   Range createRange();
 
   // NodeFilter.SHOW_ALL = 0xFFFFFFFF
