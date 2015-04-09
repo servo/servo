@@ -24,13 +24,14 @@ use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
 use std::cmp::max;
 use std::fmt;
+use std::iter;
 use std::mem;
 use std::num::ToPrimitive;
 use std::ops::{Add, Sub, Mul, Div, Rem, Neg, Shl, Shr, Not, BitOr, BitAnd, BitXor};
 use std::sync::Arc;
 use std::u16;
-use style::computed_values::{overflow_x, text_align, text_justify, text_overflow, vertical_align};
-use style::computed_values::{white_space};
+use style::computed_values::{display, overflow_x, text_align, text_justify, text_overflow};
+use style::computed_values::{vertical_align, white_space};
 use style::properties::ComputedValues;
 use util::geometry::{Au, MAX_AU, ZERO_RECT};
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
@@ -809,59 +810,80 @@ impl InlineFlow {
                               largest_block_size_for_bottom_fragments: &mut Au,
                               layout_context: &LayoutContext)
                               -> (Au, bool) {
-        match fragment.vertical_align() {
-            vertical_align::T::baseline => (-ascent, false),
-            vertical_align::T::middle => {
-                // TODO: x-height value should be used from font info.
-                // TODO: The code below passes our current reftests but doesn't work in all
-                // situations. Add vertical align reftests and fix this.
-                (-ascent, false)
-            },
-            vertical_align::T::sub => {
-                let sub_offset = (parent_text_block_start + parent_text_block_end)
-                                    .scale_by(FONT_SUBSCRIPT_OFFSET_RATIO);
-                (sub_offset - ascent, false)
-            },
-            vertical_align::T::super_ => {
-                let super_offset = (parent_text_block_start + parent_text_block_end)
-                                    .scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO);
-                (-super_offset - ascent, false)
-            },
-            vertical_align::T::text_top => {
-                let fragment_block_size = *block_size_above_baseline + *depth_below_baseline;
-                let prev_depth_below_baseline = *depth_below_baseline;
-                *block_size_above_baseline = parent_text_block_start;
-                *depth_below_baseline = fragment_block_size - *block_size_above_baseline;
-                (*depth_below_baseline - prev_depth_below_baseline - ascent, false)
-            },
-            vertical_align::T::text_bottom => {
-                let fragment_block_size = *block_size_above_baseline + *depth_below_baseline;
-                let prev_depth_below_baseline = *depth_below_baseline;
-                *depth_below_baseline = parent_text_block_end;
-                *block_size_above_baseline = fragment_block_size - *depth_below_baseline;
-                (*depth_below_baseline - prev_depth_below_baseline - ascent, false)
-            },
-            vertical_align::T::top => {
-                *largest_block_size_for_top_fragments =
-                    max(*largest_block_size_for_top_fragments,
-                        *block_size_above_baseline + *depth_below_baseline);
-                let offset_top = *block_size_above_baseline - ascent;
-                (offset_top, true)
-            },
-            vertical_align::T::bottom => {
-                *largest_block_size_for_bottom_fragments =
-                    max(*largest_block_size_for_bottom_fragments,
-                        *block_size_above_baseline + *depth_below_baseline);
-                let offset_bottom = -(*depth_below_baseline + ascent);
-                (offset_bottom, true)
-            },
-            vertical_align::T::Length(length) => (-(length + ascent), false),
-            vertical_align::T::Percentage(p) => {
-                let line_height = fragment.calculate_line_height(layout_context);
-                let percent_offset = line_height.scale_by(p);
-                (-(percent_offset + ascent), false)
+        let (mut offset_from_baseline, mut largest_size_updated) = (Au(0), false);
+        for style in fragment.inline_styles() {
+            // Ignore `vertical-align` values for table cells.
+            let box_style = style.get_box();
+            if box_style.display != display::T::inline &&
+                    box_style.display != display::T::block {
+                continue
+            }
+
+            match box_style.vertical_align {
+                vertical_align::T::baseline => {}
+                vertical_align::T::middle => {
+                    // TODO: x-height value should be used from font info.
+                    // TODO: Doing nothing here passes our current reftests but doesn't work in
+                    // all situations. Add vertical align reftests and fix this.
+                },
+                vertical_align::T::sub => {
+                    let sub_offset = (parent_text_block_start + parent_text_block_end)
+                                        .scale_by(FONT_SUBSCRIPT_OFFSET_RATIO);
+                    offset_from_baseline = offset_from_baseline + sub_offset
+                },
+                vertical_align::T::super_ => {
+                    let super_offset = (parent_text_block_start + parent_text_block_end)
+                                        .scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO);
+                    offset_from_baseline = offset_from_baseline - super_offset
+                },
+                vertical_align::T::text_top => {
+                    let fragment_block_size = *block_size_above_baseline +
+                        *depth_below_baseline;
+                    let prev_depth_below_baseline = *depth_below_baseline;
+                    *block_size_above_baseline = parent_text_block_start;
+                    *depth_below_baseline = fragment_block_size - *block_size_above_baseline;
+                    offset_from_baseline = offset_from_baseline + *depth_below_baseline -
+                        prev_depth_below_baseline
+                },
+                vertical_align::T::text_bottom => {
+                    let fragment_block_size = *block_size_above_baseline +
+                        *depth_below_baseline;
+                    let prev_depth_below_baseline = *depth_below_baseline;
+                    *depth_below_baseline = parent_text_block_end;
+                    *block_size_above_baseline = fragment_block_size - *depth_below_baseline;
+                    offset_from_baseline = offset_from_baseline + *depth_below_baseline -
+                        prev_depth_below_baseline
+                },
+                vertical_align::T::top => {
+                    if !largest_size_updated {
+                        largest_size_updated = true;
+                        *largest_block_size_for_top_fragments =
+                            max(*largest_block_size_for_top_fragments,
+                                *block_size_above_baseline + *depth_below_baseline);
+                        offset_from_baseline = offset_from_baseline +
+                            *block_size_above_baseline
+                    }
+                },
+                vertical_align::T::bottom => {
+                    if !largest_size_updated {
+                        largest_size_updated = true;
+                        *largest_block_size_for_bottom_fragments =
+                            max(*largest_block_size_for_bottom_fragments,
+                                *block_size_above_baseline + *depth_below_baseline);
+                        offset_from_baseline = offset_from_baseline - *depth_below_baseline
+                    }
+                },
+                vertical_align::T::Length(length) => {
+                    offset_from_baseline = offset_from_baseline - length
+                }
+                vertical_align::T::Percentage(p) => {
+                    let line_height = fragment.calculate_line_height(layout_context);
+                    let percent_offset = line_height.scale_by(p);
+                    offset_from_baseline = offset_from_baseline - percent_offset
+                }
             }
         }
+        (offset_from_baseline - ascent, largest_size_updated)
     }
 
     /// Sets fragment positions in the inline direction based on alignment for one line. This
@@ -989,22 +1011,46 @@ impl InlineFlow {
                                     baseline_distance_from_block_start: Au,
                                     largest_depth_below_baseline: Au) {
         for fragment_index in range(line.range.begin(), line.range.end()) {
+            // If any of the inline styles say `top` or `bottom`, adjust the vertical align
+            // appropriately.
+            //
+            // FIXME(#5624, pcwalton): This passes our current reftests but isn't the right thing
+            // to do.
             let fragment = fragments.get_mut(fragment_index.to_usize());
-            match fragment.vertical_align() {
+            let mut vertical_align = vertical_align::T::baseline;
+            for style in fragment.inline_styles() {
+                match (style.get_box().display, style.get_box().vertical_align) {
+                    (display::T::inline, vertical_align::T::top) |
+                    (display::T::block, vertical_align::T::top) => {
+                        vertical_align = vertical_align::T::top;
+                        break
+                    }
+                    (display::T::inline, vertical_align::T::bottom) |
+                    (display::T::block, vertical_align::T::bottom) => {
+                        vertical_align = vertical_align::T::bottom;
+                        break
+                    }
+                    _ => {}
+                }
+            }
+
+            match vertical_align {
                 vertical_align::T::top => {
                     fragment.border_box.start.b = fragment.border_box.start.b +
                         line_distance_from_flow_block_start
                 }
                 vertical_align::T::bottom => {
                     fragment.border_box.start.b = fragment.border_box.start.b +
-                        line_distance_from_flow_block_start + baseline_distance_from_block_start +
-                        largest_depth_below_baseline
+                        line_distance_from_flow_block_start +
+                        baseline_distance_from_block_start +
+                        largest_depth_below_baseline;
                 }
                 _ => {
                     fragment.border_box.start.b = fragment.border_box.start.b +
                         line_distance_from_flow_block_start + baseline_distance_from_block_start
                 }
             }
+
             fragment.update_late_computed_block_position_if_necessary();
         }
     }

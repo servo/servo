@@ -42,9 +42,8 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::computed_values::content::ContentItem;
-use style::computed_values::{clear, mix_blend_mode, overflow_wrap};
-use style::computed_values::{position, text_align, text_decoration, vertical_align, white_space};
-use style::computed_values::{word_break};
+use style::computed_values::{clear, mix_blend_mode, overflow_wrap, position, text_align};
+use style::computed_values::{text_decoration, white_space, word_break};
 use style::node::{TElement, TNode};
 use style::properties::{ComputedValues, cascade_anonymous, make_border};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
@@ -108,8 +107,8 @@ pub struct Fragment {
     /// Info specific to the kind of fragment. Keep this enum small.
     pub specific: SpecificFragmentInfo,
 
-    /// Holds the style context information for fragments
-    /// that are part of an inline formatting context.
+    /// Holds the style context information for fragments that are part of an inline formatting
+    /// context.
     pub inline_context: Option<InlineFragmentContext>,
 
     /// How damaged this fragment is since last reflow.
@@ -815,8 +814,8 @@ impl Fragment {
         self.restyle_damage | self.specific.restyle_damage()
     }
 
-    /// Adds a style to the inline context for this fragment. If the inline
-    /// context doesn't exist yet, it will be created.
+    /// Adds a style to the inline context for this fragment. If the inline context doesn't exist
+    /// yet, it will be created.
     pub fn add_inline_context_style(&mut self,
                                     style: Arc<ComputedValues>,
                                     first_frag: bool,
@@ -1070,16 +1069,14 @@ impl Fragment {
             LogicalSize::zero(self.style.writing_mode)
         };
 
-        match self.inline_context {
-            None => {}
-            Some(ref inline_fragment_context) => {
-                for style in inline_fragment_context.styles.iter() {
-                    if style.get_box().position == position::T::relative {
-                        rel_pos = rel_pos + from_style(&**style, containing_block_size);
-                    }
+        if let Some(ref inline_fragment_context) = self.inline_context {
+            for style in inline_fragment_context.styles.iter() {
+                if style.get_box().position == position::T::relative {
+                    rel_pos = rel_pos + from_style(&**style, containing_block_size);
                 }
-            },
+            }
         }
+
         rel_pos
     }
 
@@ -1106,10 +1103,6 @@ impl Fragment {
     /// node.
     pub fn text_align(&self) -> text_align::T {
         self.style().get_inheritedtext().text_align
-    }
-
-    pub fn vertical_align(&self) -> vertical_align::T {
-        self.style().get_box().vertical_align
     }
 
     pub fn white_space(&self) -> white_space::T {
@@ -1218,16 +1211,13 @@ impl Fragment {
 
         // Take borders and padding for parent inline fragments into account, if necessary.
         if self.is_primary_fragment() {
-            match self.inline_context {
-                None => {}
-                Some(ref context) => {
-                    for style in context.styles.iter() {
-                        let border_width = style.logical_border_width().inline_start_end();
-                        let padding_inline_size =
-                            model::padding_from_style(&**style, Au(0)).inline_start_end();
-                        result.surrounding_size = result.surrounding_size + border_width +
-                            padding_inline_size;
-                    }
+            if let Some(ref context) = self.inline_context {
+                for style in context.styles.iter() {
+                    let border_width = style.logical_border_width().inline_start_end();
+                    let padding_inline_size =
+                        model::padding_from_style(&**style, Au(0)).inline_start_end();
+                    result.surrounding_size = result.surrounding_size + border_width +
+                        padding_inline_size;
                 }
             }
         }
@@ -1955,6 +1945,10 @@ impl Fragment {
         scanned_text_fragment_info.range.adjust_by(CharIndex(leading_whitespace_character_count),
                                                    -CharIndex(leading_whitespace_character_count));
     }
+
+    pub fn inline_styles<'a>(&'a self) -> InlineStyleIterator<'a> {
+        InlineStyleIterator::new(self)
+    }
 }
 
 impl fmt::Debug for Fragment {
@@ -2007,5 +2001,42 @@ pub enum CoordinateSystem {
     Parent,
     /// The border box returned is relative to the fragment's own stacking context, if applicable.
     Own,
+}
+
+pub struct InlineStyleIterator<'a> {
+    fragment: &'a Fragment,
+    inline_style_index: usize,
+    primary_style_yielded: bool,
+}
+
+impl<'a> Iterator for InlineStyleIterator<'a> {
+    type Item = &'a ComputedValues;
+
+    fn next(&mut self) -> Option<&'a ComputedValues> {
+        if !self.primary_style_yielded {
+            self.primary_style_yielded = true;
+            return Some(&*self.fragment.style)
+        }
+        let inline_context = match self.fragment.inline_context {
+            None => return None,
+            Some(ref inline_context) => inline_context,
+        };
+        let inline_style_index = self.inline_style_index;
+        if inline_style_index == inline_context.styles.len() {
+            return None
+        }
+        self.inline_style_index += 1;
+        Some(&*inline_context.styles[inline_style_index])
+    }
+}
+
+impl<'a> InlineStyleIterator<'a> {
+    fn new<'b>(fragment: &'b Fragment) -> InlineStyleIterator<'b> {
+        InlineStyleIterator {
+            fragment: fragment,
+            inline_style_index: 0,
+            primary_style_yielded: false,
+        }
+    }
 }
 
