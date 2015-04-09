@@ -258,6 +258,18 @@ impl CanvasRenderingContext2D {
            _ => panic!("Image Cache: Unknown Result")
          }
     }
+
+    fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
+        if !([x, y, w, h].iter().all(|val| val.is_finite())) {
+            return None;
+        }
+
+        if w == 0.0 && h == 0.0 {
+            return None;
+        }
+
+        Some(Rect(Point2D(x as f32, y as f32), Size2D(w as f32, h as f32)))
+    }
 }
 
 pub trait CanvasRenderingContext2DHelpers {
@@ -358,33 +370,21 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
     }
 
     fn FillRect(self, x: f64, y: f64, width: f64, height: f64) {
-        if !(x.is_finite() && y.is_finite() &&
-             width.is_finite() && height.is_finite()) {
-            return;
+        if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
+            self.renderer.send(CanvasMsg::FillRect(rect)).unwrap();
         }
-
-        let rect = Rect(Point2D(x as f32, y as f32), Size2D(width as f32, height as f32));
-        self.renderer.send(CanvasMsg::FillRect(rect)).unwrap();
     }
 
     fn ClearRect(self, x: f64, y: f64, width: f64, height: f64) {
-        if !(x.is_finite() && y.is_finite() &&
-             width.is_finite() && height.is_finite()) {
-            return;
+        if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
+            self.renderer.send(CanvasMsg::ClearRect(rect)).unwrap();
         }
-
-        let rect = Rect(Point2D(x as f32, y as f32), Size2D(width as f32, height as f32));
-        self.renderer.send(CanvasMsg::ClearRect(rect)).unwrap();
     }
 
     fn StrokeRect(self, x: f64, y: f64, width: f64, height: f64) {
-        if !(x.is_finite() && y.is_finite() &&
-             width.is_finite() && height.is_finite()) {
-            return;
+        if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
+            self.renderer.send(CanvasMsg::StrokeRect(rect)).unwrap();
         }
-
-        let rect = Rect(Point2D(x as f32, y as f32), Size2D(width as f32, height as f32));
-        self.renderer.send(CanvasMsg::StrokeRect(rect)).unwrap();
     }
 
     fn BeginPath(self) {
