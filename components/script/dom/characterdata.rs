@@ -20,6 +20,7 @@ use util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::cell::Ref;
+use std::cmp;
 
 #[dom_struct]
 pub struct CharacterData {
@@ -69,9 +70,17 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
 
     // https://dom.spec.whatwg.org/#dom-characterdata-substringdata
     fn SubstringData(self, offset: u32, count: u32) -> Fallible<DOMString> {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let data = self.data.borrow();
-        Ok(data.slice_chars(offset as usize, (offset + count) as usize).to_owned())
+        // Step 1.
+        let len = data.chars().count();
+        if len > offset as usize {
+            // Step 2.
+            return Err(IndexSize);
+        }
+        // Step 3.
+        let end = cmp::min((offset + count) as usize, len);
+        // Step 4.
+        Ok(data.slice_chars(offset as usize, end).to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-appenddata
