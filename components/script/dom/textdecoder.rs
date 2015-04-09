@@ -28,19 +28,21 @@ pub struct TextDecoder {
     reflector_: Reflector,
     encoding: EncodingRef,
     fatal: bool,
+    ignoreBOM: bool,
 }
 
 impl TextDecoder {
-    fn new_inherited(encoding: EncodingRef, fatal: bool) -> TextDecoder {
+    fn new_inherited(encoding: EncodingRef, fatal: bool, ignoreBOM: bool) -> TextDecoder {
         TextDecoder {
             reflector_: Reflector::new(),
             encoding: encoding,
             fatal: fatal,
+            ignoreBOM: ignoreBOM,
         }
     }
 
-    pub fn new(global: GlobalRef, encoding: EncodingRef, fatal: bool) -> Temporary<TextDecoder> {
-        reflect_dom_object(box TextDecoder::new_inherited(encoding, fatal),
+    pub fn new(global: GlobalRef, encoding: EncodingRef, fatal: bool, ignoreBOM: bool) -> Temporary<TextDecoder> {
+        reflect_dom_object(box TextDecoder::new_inherited(encoding, fatal, ignoreBOM),
                            global,
                            TextDecoderBinding::Wrap)
     }
@@ -55,7 +57,7 @@ impl TextDecoder {
             // FIXME: Should throw a RangeError as per spec
             None => return Err(Error::Syntax),
         };
-        Ok(TextDecoder::new(global, encoding, options.fatal))
+        Ok(TextDecoder::new(global, encoding, options.fatal, options.ignoreBOM))
     }
 }
 
@@ -66,6 +68,10 @@ impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
 
     fn Fatal(self) -> bool {
         self.fatal
+    }
+
+    fn IgnoreBOM(self) -> bool {
+        self.ignoreBOM
     }
 
     #[allow(unsafe_code)]
