@@ -41,11 +41,12 @@ use opaque_node::OpaqueNodeMethods;
 
 use cssparser::RGBA;
 use gfx::display_list::OpaqueNode;
-use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast};
-use script::dom::bindings::codegen::InheritTypes::{HTMLCanvasElementCast, HTMLImageElementCast};
-use script::dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast};
-use script::dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
+use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
+use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLCanvasElementCast};
+use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
+use script::dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast, TextCast};
 use script::dom::bindings::js::LayoutJS;
+use script::dom::characterdata::LayoutCharacterDataHelpers;
 use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlelement::HTMLElementTypeId;
@@ -222,9 +223,8 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
             let text: Option<LayoutJS<Text>> = TextCast::to_layout_js(self.get_jsmanaged());
             if let Some(text) = text {
                 return vec![
-                    ContentItem::String((*text.unsafe_get()).characterdata()
-                                                            .data_for_layout()
-                                                            .to_owned())
+                    ContentItem::String(
+                        CharacterDataCast::from_layout_js(&text).data_for_layout().to_owned())
                 ];
             }
             let input: Option<LayoutJS<HTMLInputElement>> =
@@ -961,7 +961,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
                 None => return false
             };
 
-            if !is_whitespace((*text.unsafe_get()).characterdata().data_for_layout()) {
+            if !is_whitespace(CharacterDataCast::from_layout_js(&text).data_for_layout()) {
                 return false
             }
 

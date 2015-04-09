@@ -18,7 +18,7 @@ use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLAnchorElementCas
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, CharacterDataCast};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
 use dom::bindings::error::Error::HierarchyRequest;
@@ -29,6 +29,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::reflect_dom_object;
 use dom::bindings::utils::{xml_name_type, validate_and_extract};
 use dom::bindings::utils::XMLName::InvalidXMLName;
+use dom::characterdata::CharacterDataHelpers;
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
@@ -1125,7 +1126,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             for child in title_element.children() {
                 let child = child.root();
                 if let Some(text) = TextCast::to_ref(child.r()) {
-                    title.push_str(&text.characterdata().data());
+                    title.push_str(&CharacterDataCast::from_ref(text).data());
                 }
             }
         }

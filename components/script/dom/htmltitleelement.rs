@@ -6,8 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTitleElementDerived, NodeCast};
-use dom::bindings::codegen::InheritTypes::{TextCast};
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, TextCast};
 use dom::bindings::js::{JSRef, Temporary};
+use dom::characterdata::CharacterDataHelpers;
 use dom::document::{Document, DocumentHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -51,7 +52,7 @@ impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
             let child = child.root();
             let text: Option<JSRef<Text>> = TextCast::to_ref(child.r());
             match text {
-                Some(text) => content.push_str(text.characterdata().data().as_slice()),
+                Some(text) => content.push_str(&CharacterDataCast::from_ref(text).data()),
                 None => (),
             }
         }

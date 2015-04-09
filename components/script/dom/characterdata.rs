@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, ElementCast};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::error::Error::IndexSize;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, LayoutJS, Temporary};
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -45,23 +45,6 @@ impl CharacterData {
             data: DOMRefCell::new(data),
         }
     }
-
-    #[inline]
-    pub fn node<'a>(&'a self) -> &'a Node {
-        &self.node
-    }
-
-    #[inline]
-    pub fn data(&self) -> Ref<DOMString> {
-        self.data.borrow()
-    }
-
-    #[inline]
-    #[allow(unsafe_code)]
-    pub unsafe fn data_for_layout<'a>(&'a self) -> &'a str {
-        self.data.borrow_for_layout().as_slice()
-    }
-
 }
 
 impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
@@ -144,3 +127,26 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 }
 
+pub trait CharacterDataHelpers<'a> {
+    fn data(self) -> Ref<'a, DOMString>;
+}
+
+impl<'a> CharacterDataHelpers<'a> for JSRef<'a, CharacterData> {
+    #[inline]
+    fn data(self) -> Ref<'a, DOMString> {
+        self.extended_deref().data.borrow()
+    }
+}
+
+#[allow(unsafe_code)]
+pub trait LayoutCharacterDataHelpers {
+    unsafe fn data_for_layout<'a>(&'a self) -> &'a str;
+}
+
+#[allow(unsafe_code)]
+impl LayoutCharacterDataHelpers for LayoutJS<CharacterData> {
+    #[inline]
+    unsafe fn data_for_layout<'a>(&'a self) -> &'a str {
+        &(*self.unsafe_get()).data.borrow_for_layout()
+    }
+}
