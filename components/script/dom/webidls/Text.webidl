@@ -14,5 +14,5 @@
 [Constructor(optional DOMString data = "")]
 interface Text : CharacterData {
   //[NewObject] Text splitText(unsigned long offset);
-  //readonly attribute DOMString wholeText;
+  readonly attribute DOMString wholeText;
 };
