@@ -53,6 +53,7 @@ pub struct CanvasRenderingContext2D {
     image_smoothing_enabled: Cell<bool>,
     stroke_color: Cell<RGBA>,
     line_width: Cell<f64>,
+    miter_limit: Cell<f64>,
     fill_color: Cell<RGBA>,
     transform: Cell<Matrix2D<f32>>,
 }
@@ -75,6 +76,7 @@ impl CanvasRenderingContext2D {
             image_smoothing_enabled: Cell::new(true),
             stroke_color: Cell::new(black),
             line_width: Cell::new(1.0),
+            miter_limit: Cell::new(10.0),
             fill_color: Cell::new(black),
             transform: Cell::new(Matrix2D::identity()),
         }
@@ -815,6 +817,19 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
         self.line_width.set(width);
         self.renderer.send(CanvasMsg::SetLineWidth(width as f32)).unwrap()
+    }
+
+    fn MiterLimit(self) -> f64 {
+        self.miter_limit.get()
+    }
+
+    fn SetMiterLimit(self, limit: f64) {
+        if !limit.is_finite() || limit <= 0.0 {
+            return;
+        }
+
+        self.miter_limit.set(limit);
+        self.renderer.send(CanvasMsg::SetMiterLimit(limit as f32)).unwrap()
     }
 }
 
