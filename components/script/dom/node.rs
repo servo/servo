@@ -13,12 +13,11 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
-use dom::bindings::codegen::InheritTypes::{CommentCast, DocumentCast, DocumentTypeCast};
-use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast, ElementDerived};
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
-use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentCast, DocumentTypeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast, ElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLFieldSetElementDerived};
-use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementDerived;
+use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, NodeBase, NodeDerived};
+use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, TextCast};
 use dom::bindings::conversions;
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::{NotFound, HierarchyRequest, Syntax};
@@ -29,7 +28,7 @@ use dom::bindings::js::{ResultRootable, OptionalRootable, MutNullableJS};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
-use dom::characterdata::CharacterData;
+use dom::characterdata::{CharacterData, CharacterDataHelpers};
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument, DocumentSource};
 use dom::documentfragment::DocumentFragment;
@@ -1601,8 +1600,8 @@ impl Node {
                 NodeCast::from_temporary(doc_fragment)
             },
             NodeTypeId::Comment => {
-                let comment: JSRef<Comment> = CommentCast::to_ref(node).unwrap();
-                let comment = Comment::new(comment.characterdata().data().clone(), document.r());
+                let cdata = CharacterDataCast::to_ref(node).unwrap();
+                let comment = Comment::new(cdata.Data(), document.r());
                 NodeCast::from_temporary(comment)
             },
             NodeTypeId::Document => {
@@ -1629,14 +1628,14 @@ impl Node {
                 NodeCast::from_temporary(element)
             },
             NodeTypeId::Text => {
-                let text: JSRef<Text> = TextCast::to_ref(node).unwrap();
-                let text = Text::new(text.characterdata().data().clone(), document.r());
+                let cdata = CharacterDataCast::to_ref(node).unwrap();
+                let text = Text::new(cdata.Data(), document.r());
                 NodeCast::from_temporary(text)
             },
             NodeTypeId::ProcessingInstruction => {
                 let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
                 let pi = ProcessingInstruction::new(pi.target().clone(),
-                                                    pi.characterdata().data().clone(), document.r());
+                                                    CharacterDataCast::from_ref(pi).Data(), document.r());
                 NodeCast::from_temporary(pi)
             },
         }.root();
@@ -1696,7 +1695,7 @@ impl Node {
             let node = node.root();
             let text = TextCast::to_ref(node.r());
             match text {
-                Some(text) => content.push_str(text.characterdata().data().as_slice()),
+                Some(text) => content.push_str(&CharacterDataCast::from_ref(text).Data()),
                 None => (),
             }
         }
@@ -1880,7 +1879,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             NodeTypeId::Text |
             NodeTypeId::ProcessingInstruction => {
                 let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
-                characterdata.set_data(value);
+                characterdata.SetData(value);
 
                 // Notify the document that the content of this node is different
                 let document = self.owner_doc().root();
@@ -2123,7 +2122,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
             let other_pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(other).unwrap();
             (*pi.target() == *other_pi.target()) &&
-            (*pi.characterdata().data() == *other_pi.characterdata().data())
+            (*CharacterDataCast::from_ref(pi).data() == *CharacterDataCast::from_ref(other_pi).data())
         }
         fn is_equal_characterdata(node: JSRef<Node>, other: JSRef<Node>) -> bool {
             let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(node).unwrap();

@@ -42,10 +42,5 @@ impl Comment {
         let document = global.as_window().Document().root();
         Ok(Comment::new(data, document.r()))
     }
-
-    #[inline]
-    pub fn characterdata<'a>(&'a self) -> &'a CharacterData {
-        &self.characterdata
-    }
 }
 

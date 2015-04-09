@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, ElementCast};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::error::Error::IndexSize;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, LayoutJS, Temporary};
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -20,6 +20,7 @@ use util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::cell::Ref;
+use std::cmp;
 
 #[dom_struct]
 pub struct CharacterData {
@@ -45,67 +46,59 @@ impl CharacterData {
             data: DOMRefCell::new(data),
         }
     }
-
-    #[inline]
-    pub fn node<'a>(&'a self) -> &'a Node {
-        &self.node
-    }
-
-    #[inline]
-    pub fn data(&self) -> Ref<DOMString> {
-        self.data.borrow()
-    }
-
-    #[inline]
-    pub fn set_data(&self, data: DOMString) {
-        *self.data.borrow_mut() = data;
-    }
-
-    #[inline]
-    #[allow(unsafe_code)]
-    pub unsafe fn data_for_layout<'a>(&'a self) -> &'a str {
-        self.data.borrow_for_layout().as_slice()
-    }
-
 }
 
 impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
+    // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn Data(self) -> DOMString {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let data = self.data.borrow();
         data.clone()
     }
 
-    fn SetData(self, arg: DOMString) -> ErrorResult {
-        *self.data.borrow_mut() = arg;
-        Ok(())
+    // https://dom.spec.whatwg.org/#dom-characterdata-data
+    fn SetData(self, data: DOMString) {
+        *self.data.borrow_mut() = data;
     }
 
+    // https://dom.spec.whatwg.org/#dom-characterdata-length
     fn Length(self) -> u32 {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let data = self.data.borrow();
         data.chars().count() as u32
     }
 
+    // https://dom.spec.whatwg.org/#dom-characterdata-substringdata
     fn SubstringData(self, offset: u32, count: u32) -> Fallible<DOMString> {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let data = self.data.borrow();
-        Ok(data.slice_chars(offset as usize, (offset + count) as usize).to_owned())
+        // Step 1.
+        let len = data.chars().count();
+        if len > offset as usize {
+            // Step 2.
+            return Err(IndexSize);
+        }
+        // Step 3.
+        let end = cmp::min((offset + count) as usize, len);
+        // Step 4.
+        Ok(data.slice_chars(offset as usize, end).to_owned())
     }
 
-    fn AppendData(self, arg: DOMString) -> ErrorResult {
-        self.data.borrow_mut().push_str(arg.as_slice());
-        Ok(())
+    // https://dom.spec.whatwg.org/#dom-characterdata-appenddata
+    fn AppendData(self, data: DOMString) {
+        self.data.borrow_mut().push_str(&data);
     }
 
+    // https://dom.spec.whatwg.org/#dom-characterdata-insertdata
     fn InsertData(self, offset: u32, arg: DOMString) -> ErrorResult {
         self.ReplaceData(offset, 0, arg)
     }
 
+    // https://dom.spec.whatwg.org/#dom-characterdata-deletedata
     fn DeleteData(self, offset: u32, count: u32) -> ErrorResult {
         self.ReplaceData(offset, count, "".to_owned())
     }
 
+    // https://dom.spec.whatwg.org/#dom-characterdata-replacedata
     fn ReplaceData(self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
         let length = self.data.borrow().chars().count() as u32;
         if offset > length {
@@ -143,3 +136,26 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 }
 
+pub trait CharacterDataHelpers<'a> {
+    fn data(self) -> Ref<'a, DOMString>;
+}
+
+impl<'a> CharacterDataHelpers<'a> for JSRef<'a, CharacterData> {
+    #[inline]
+    fn data(self) -> Ref<'a, DOMString> {
+        self.extended_deref().data.borrow()
+    }
+}
+
+#[allow(unsafe_code)]
+pub trait LayoutCharacterDataHelpers {
+    unsafe fn data_for_layout<'a>(&'a self) -> &'a str;
+}
+
+#[allow(unsafe_code)]
+impl LayoutCharacterDataHelpers for LayoutJS<CharacterData> {
+    #[inline]
+    unsafe fn data_for_layout<'a>(&'a self) -> &'a str {
+        &(*self.unsafe_get()).data.borrow_for_layout()
+    }
+}
