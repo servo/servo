@@ -24,7 +24,7 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmlmediaelement::HTMLMediaElementTypeId;
 use dom::htmltablecellelement::HTMLTableCellElementTypeId;
-use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
+use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node, TABINDEX};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
@@ -236,9 +236,45 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
                                                   &name[2..],
                                                   attr.value().as_slice().to_owned());
         }
+        if name.starts_with("tabindex") {
+            let node: JSRef<Node> = NodeCast::from_ref(*self);
+            node.set_flag(TABINDEX, true);
+        }
+    }
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
+        }
+        let element: &JSRef<Element> = ElementCast::from_borrowed_ref(self);
+        if element.get_attribute(&ns!(""), &atom!("tabindex")).is_none() {
+            let node: &JSRef<Node> = NodeCast::from_borrowed_ref(self);
+            match node.type_id() {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)) |
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => node.set_flag(TABINDEX, true),
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) |
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
+                    if element.get_attribute(&ns!(""), &atom!("href")).is_some() {
+                        node.set_flag(TABINDEX, true);
+                    }
+                },
+                _ => {
+                    element.get_attribute(&ns!(""), &atom!("draggable")).map(|attr| {
+                        let attr = attr.root();
+                        let attr = attr.r();
+                        let value = attr.value();
+                        if value.as_slice() == "true".to_owned() {
+                            node.set_flag(TABINDEX, true);
+                        }
+                    });
+                    //TODO set TABINDEX flag if editing host
+                    //TODO set TABINDEX flag if "sorting interface th elements"
+                },
+            }
+        }
     }
 }
-
 #[derive(Copy, PartialEq, Debug)]
 #[jstraceable]
 pub enum HTMLElementTypeId {
