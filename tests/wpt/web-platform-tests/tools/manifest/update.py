@@ -2,6 +2,7 @@
 import argparse
 import imp
 import os
+import sys
 
 import manifest
 import vcs
@@ -82,11 +83,32 @@ def create_parser():
     return parser
 
 
-def main():
+def find_top_repo():
+    path = here
+    rv = None
+    while path != "/":
+        if vcs.is_git_repo(path):
+            rv = path
+        path = os.path.abspath(os.path.join(path, os.pardir))
+
+    return rv
+
+def main(default_tests_root=None):
     opts = create_parser().parse_args()
 
     if opts.tests_root is None:
-        opts.tests_root = vcs.get_repo_root()
+        tests_root = None
+        if default_tests_root is not None:
+            tests_root = default_tests_root
+        else:
+            tests_root = find_top_repo()
+
+        if tests_root is None:
+            print >> sys.stderr, """No git repo found; could not determine test root.
+Run again with --test-root"""
+            sys.exit(1)
+
+        opts.tests_root = tests_root
 
     if opts.path is None:
         opts.path = os.path.join(opts.tests_root, "MANIFEST.json")

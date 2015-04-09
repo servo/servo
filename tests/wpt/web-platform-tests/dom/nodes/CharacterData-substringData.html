@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CharacterData.substringData</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-characterdata-substringdata">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-characterdata-data">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+// TODO: non-ASCII strings
+function testNode(create, type) {
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    assert_throws(new TypeError(), function() { node.substringData() })
+    assert_throws(new TypeError(), function() { node.substringData(0) })
+  }, type + ".substringData() with too few arguments")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    assert_equals(node.substringData(0, 1, "test"), "t")
+  }, type + ".substringData() with too many arguments")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    assert_throws("IndexSizeError", function() { node.substringData(5, 0) })
+    assert_throws("IndexSizeError", function() { node.substringData(6, 0) })
+    assert_throws("IndexSizeError", function() { node.substringData(-1, 0) })
+  }, type + ".substringData() with invalid offset")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    assert_equals(node.substringData(0, 1), "t")
+    assert_equals(node.substringData(1, 1), "e")
+    assert_equals(node.substringData(2, 1), "s")
+    assert_equals(node.substringData(3, 1), "t")
+    assert_equals(node.substringData(4, 1), "")
+  }, type + ".substringData() with in-bounds offset")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    assert_equals(node.substringData(0x100000000 + 0, 1), "t")
+    assert_equals(node.substringData(0x100000000 + 1, 1), "e")
+    assert_equals(node.substringData(0x100000000 + 2, 1), "s")
+    assert_equals(node.substringData(0x100000000 + 3, 1), "t")
+    assert_equals(node.substringData(0x100000000 + 4, 1), "")
+  }, type + ".substringData() with very large offset")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    assert_equals(node.substringData(-0x100000000 + 2, 1), "s")
+  }, type + ".substringData() with negative offset")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    assert_equals(node.substringData("test", 3), "tes")
+  }, type + ".substringData() with string offset")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    assert_equals(node.substringData(0, 1), "t")
+    assert_equals(node.substringData(0, 2), "te")
+    assert_equals(node.substringData(0, 3), "tes")
+    assert_equals(node.substringData(0, 4), "test")
+  }, type + ".substringData() with in-bounds count")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    assert_equals(node.substringData(0, 5), "test")
+    assert_equals(node.substringData(2, 20), "st")
+  }, type + ".substringData() with large count")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    assert_equals(node.substringData(2, 0x100000000 + 1), "s")
+  }, type + ".substringData() with very large count")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    assert_equals(node.substringData(0, -1), "test")
+    assert_equals(node.substringData(0, -0x100000000 + 2), "te")
+  }, type + ".substringData() with negative count")
+}
+
+testNode(function() { return document.createTextNode("test") }, "Text")
+testNode(function() { return document.createComment("test") }, "Comment")
+</script>

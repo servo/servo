@@ -147,6 +147,42 @@ with a TypeError:
       return promise_rejects(t, new TypeError(), bar);
     }, "Another example");
 
+`EventWatcher` is a constructor function that allows DOM events to be handled
+using Promises, which can make it a lot easier to test a very specific series
+of events, including ensuring that unexpected events are not fired at any point.
+
+Here's an example of how to use `EventWatcher`:
+
+    var t = async_test("Event order on animation start");
+
+    var animation = watchedNode.getAnimations()[0];
+    var eventWatcher = new EventWatcher(watchedNode, ['animationstart',
+                                                      'animationiteration',
+                                                      'animationend']);
+
+    eventWatcher.wait_for(t, 'animationstart').then(t.step_func(function() {
+      assertExpectedStateAtStartOfAnimation();
+      animation.currentTime = END_TIME; // skip to end
+      // We expect two animationiteration events then an animationend event on
+      // skipping to the end of the animation.
+      return eventWatcher.wait_for(['animationiteration',
+                                    'animationiteration',
+                                    'animationend']);
+    })).then(t.step_func(function() {
+      assertExpectedStateAtEndOfAnimation();
+      test.done();
+    }));
+
+`wait_for` either takes the name of a single event and returns a Promise that
+will resolve after that event is fired at the watched node, or else it takes an
+array of the names of a series of events and returns a Promise that will
+resolve after that specific series of events has been fired at the watched node.
+
+`EventWatcher` will assert if an event occurs while there is no `wait_for`()
+created Promise waiting to be fulfilled, or if the event is of a different type
+to the type currently expected. This ensures that only the events that are
+expected occur, in the correct order, and with the correct timing.
+
 ## Single Page Tests ##
 
 Sometimes, particularly when dealing with asynchronous behaviour,

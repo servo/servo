@@ -1,0 +1,28 @@
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+  var fails = ["first", "uppercase"],
+      passes = ["last", "quoted", "quoted-single", "no-x"]
+
+  fails.forEach(function(urlpart) {
+    async_test(function(t) {
+      var script = document.createElement("script")
+      script.onerror = t.step_func_done(function(){})
+      script.onload = t.unreached_func("Unexpected load event")
+      script.src = "resources/nosniff-" + urlpart + ".asis"
+      document.body.appendChild(script)
+    }, "URL query: " + urlpart)
+  })
+
+  passes.forEach(function(urlpart) {
+    async_test(function(t) {
+      var script = document.createElement("script")
+      script.onerror = t.unreached_func("Unexpected error event")
+      script.onload = t.step_func_done(function(){})
+      script.src = "resources/nosniff-" + urlpart + ".asis"
+      document.body.appendChild(script)
+    }, "URL query: " + urlpart)
+  })
+
+</script>
