@@ -26,7 +26,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#c71473d94ae24fb195987660698207d5088a4042"
+source = "git+https://github.com/servo/rust-azure#358fc5da081cf7d0618fae2d9d5582951beb791f"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -156,6 +156,7 @@ version = "0.0.1"
 dependencies = [
  "msg 0.0.1",
  "rustc-serialize 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
