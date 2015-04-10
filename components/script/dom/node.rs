@@ -38,7 +38,7 @@ use dom::element::ElementHelpers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElementTypeId;
 use dom::nodelist::NodeList;
-use dom::processinginstruction::ProcessingInstruction;
+use dom::processinginstruction::{ProcessingInstruction, ProcessingInstructionHelpers};
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::{Window, WindowHelpers};
@@ -1634,7 +1634,7 @@ impl Node {
             },
             NodeTypeId::ProcessingInstruction => {
                 let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
-                let pi = ProcessingInstruction::new(pi.target().clone(),
+                let pi = ProcessingInstruction::new(pi.Target(),
                                                     CharacterDataCast::from_ref(pi).Data(), document.r());
                 NodeCast::from_temporary(pi)
             },
