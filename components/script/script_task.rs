@@ -99,12 +99,14 @@ use time::Tm;
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 thread_local!(static SCRIPT_TASK_ROOT: RefCell<Option<*const ScriptTask>> = RefCell::new(None));
 
-unsafe extern fn trace_script_tasks(tr: *mut JSTracer, _data: *mut libc::c_void) {
+unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut libc::c_void) {
     SCRIPT_TASK_ROOT.with(|root| {
         if let Some(script_task) = *root.borrow() {
             (*script_task).trace(tr);
         }
     });
+
+    trace_collections(tr);
 }
 
 /// A document load that is in the process of fetching the requested resource. Contains
@@ -463,7 +465,7 @@ impl ScriptTask {
 
 
         unsafe {
-            JS_SetExtraGCRootsTracer((*js_runtime).ptr, Some(trace_collections), ptr::null_mut());
+            JS_SetExtraGCRootsTracer((*js_runtime).ptr, Some(trace_rust_roots), ptr::null_mut());
         }
         // Unconstrain the runtime's threshold on nominal heap size, to avoid
         // triggering GC too often if operating continuously near an arbitrary
@@ -483,7 +485,6 @@ impl ScriptTask {
         js_context.set_logging_error_reporter();
         unsafe {
             JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
-            JS_SetExtraGCRootsTracer((*js_runtime).ptr, Some(trace_script_tasks), ptr::null_mut());
         }
 
         // Needed for debug assertions about whether GC is running.

@@ -428,7 +428,7 @@ impl<T> DerefMut for RootedVec<T> {
 
 
 /// SM Callback that traces the rooted collections
-pub unsafe extern fn trace_collections(tracer: *mut JSTracer, _data: *mut libc::c_void) {
+pub unsafe fn trace_collections(tracer: *mut JSTracer) {
     ROOTED_COLLECTIONS.with(|ref collections| {
         let collections = collections.borrow();
         collections.trace(tracer);
