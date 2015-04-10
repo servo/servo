@@ -29,6 +29,7 @@ use geom::size::Size2D;
 
 use canvas::canvas_paint_task::{CanvasMsg, CanvasPaintTask, FillOrStrokeStyle};
 use canvas::canvas_paint_task::{LinearGradientStyle, RadialGradientStyle};
+use canvas::canvas_paint_task::{LineCapStyle, LineJoinStyle};
 
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageResponseMsg, Msg};
@@ -40,6 +41,7 @@ use std::num::{Float, ToPrimitive};
 use std::sync::{Arc};
 use std::sync::mpsc::{channel, Sender};
 
+use util::str::DOMString;
 use url::Url;
 use util::vec::byte_swap;
 
@@ -53,6 +55,8 @@ pub struct CanvasRenderingContext2D {
     image_smoothing_enabled: Cell<bool>,
     stroke_color: Cell<RGBA>,
     line_width: Cell<f64>,
+    line_cap: Cell<LineCapStyle>,
+    line_join: Cell<LineJoinStyle>,
     miter_limit: Cell<f64>,
     fill_color: Cell<RGBA>,
     transform: Cell<Matrix2D<f32>>,
@@ -76,6 +80,8 @@ impl CanvasRenderingContext2D {
             image_smoothing_enabled: Cell::new(true),
             stroke_color: Cell::new(black),
             line_width: Cell::new(1.0),
+            line_cap: Cell::new(LineCapStyle::Butt),
+            line_join: Cell::new(LineJoinStyle::Miter),
             miter_limit: Cell::new(10.0),
             fill_color: Cell::new(black),
             transform: Cell::new(Matrix2D::identity()),
@@ -817,6 +823,36 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
         self.line_width.set(width);
         self.renderer.send(CanvasMsg::SetLineWidth(width as f32)).unwrap()
+    }
+
+    fn LineCap(self) -> DOMString {
+        match self.line_cap.get() {
+            LineCapStyle::Butt => "butt".to_owned(),
+            LineCapStyle::Round => "round".to_owned(),
+            LineCapStyle::Square => "square".to_owned(),
+        }
+    }
+
+    fn SetLineCap(self, cap_str: DOMString) {
+        if let Some(cap) = LineCapStyle::from_str(&cap_str) {
+            self.line_cap.set(cap);
+            self.renderer.send(CanvasMsg::SetLineCap(cap)).unwrap()
+        }
+    }
+
+    fn LineJoin(self) -> DOMString {
+        match self.line_join.get() {
+            LineJoinStyle::Round => "round".to_owned(),
+            LineJoinStyle::Bevel => "bevel".to_owned(),
+            LineJoinStyle::Miter => "miter".to_owned(),
+        }
+    }
+
+    fn SetLineJoin(self, join_str: DOMString) {
+        if let Some(join) = LineJoinStyle::from_str(&join_str) {
+            self.line_join.set(join);
+            self.renderer.send(CanvasMsg::SetLineJoin(join)).unwrap()
+        }
     }
 
     fn MiterLimit(self) -> f64 {

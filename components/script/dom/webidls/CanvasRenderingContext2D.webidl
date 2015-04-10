@@ -134,8 +134,8 @@ interface CanvasRenderingContext2D {
 interface CanvasDrawingStyles {
   // line caps/joins
   attribute unrestricted double lineWidth; // (default 1)
-  //attribute DOMString lineCap; // "butt", "round", "square" (default "butt")
-  //attribute DOMString lineJoin; // "round", "bevel", "miter" (default "miter")
+  attribute DOMString lineCap; // "butt", "round", "square" (default "butt")
+  attribute DOMString lineJoin; // "round", "bevel", "miter" (default "miter")
   attribute unrestricted double miterLimit; // (default 10)
 
   // dashed lines
