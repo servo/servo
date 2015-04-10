@@ -74,11 +74,10 @@ use util::task_state;
 use geom::Rect;
 use geom::point::Point2D;
 use hyper::header::{LastModified, Headers};
-use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_SetExtraGCRootsTracer, JS_DEFAULT_ZEAL_FREQ};
+use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetExtraGCRootsTracer};
 use js::jsapi::{JSContext, JSRuntime, JSObject, JSTracer};
-use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
-use js::rust::{Cx, RtUtils};
+use js::rust::{Runtime, Cx, RtUtils};
 use js;
 use url::Url;
 
@@ -93,7 +92,6 @@ use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
-use std::u32;
 use time::Tm;
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
@@ -239,58 +237,6 @@ impl Drop for StackRootTLS {
     }
 }
 
-
-/// A wrapper for the `JSRuntime` and `JSContext` structures in SpiderMonkey.
-pub struct Runtime {
-    rt: js::rust::rt,
-    cx: Rc<Cx>,
-}
-
-impl Runtime {
-    /// Creates a new `JSRuntime` and `JSContext`.
-    pub fn new() -> Runtime {
-        let js_runtime = js::rust::rt();
-        assert!({
-            let ptr: *mut JSRuntime = (*js_runtime).ptr;
-            !ptr.is_null()
-        });
-
-        // Unconstrain the runtime's threshold on nominal heap size, to avoid
-        // triggering GC too often if operating continuously near an arbitrary
-        // finite threshold. This leaves the maximum-JS_malloc-bytes threshold
-        // still in effect to cause periodical, and we hope hygienic,
-        // last-ditch GCs from within the GC's allocator.
-        unsafe {
-            JS_SetGCParameter(js_runtime.ptr, JSGC_MAX_BYTES, u32::MAX);
-        }
-
-        let js_context = js_runtime.cx();
-        assert!({
-            let ptr: *mut JSContext = (*js_context).ptr;
-            !ptr.is_null()
-        });
-        js_context.set_default_options_and_version();
-        js_context.set_logging_error_reporter();
-        unsafe {
-            JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
-        }
-
-        Runtime {
-            rt: js_runtime,
-            cx: js_context,
-        }
-    }
-
-    /// Returns the `JSRuntime` object.
-    pub fn rt(&self) -> *mut JSRuntime {
-        self.rt.ptr
-    }
-
-    /// Returns the `JSContext` object.
-    pub fn cx(&self) -> *mut JSContext {
-        self.cx.ptr
-    }
-}
 
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
 /// frames.
