@@ -28,7 +28,7 @@ use dom::bindings::js::{JS, JSRef, OptionalRootable, RootedReference};
 use dom::bindings::js::{RootCollection, RootCollectionPtr};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::bindings::trace::{JSTraceable, trace_collections};
+use dom::bindings::trace::{JSTraceable, trace_collections, RootedVec};
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource};
 use dom::element::{Element, AttributeHandlers};
@@ -313,7 +313,7 @@ pub struct ScriptTask {
     /// The JSContext.
     js_context: DOMRefCell<Option<Rc<Cx>>>,
 
-    mouse_over_targets: DOMRefCell<Vec<JS<Node>>>
+    mouse_over_targets: DOMRefCell<RootedVec<JS<Node>>>
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
@@ -489,7 +489,7 @@ impl ScriptTask {
 
             js_runtime: js_runtime,
             js_context: DOMRefCell::new(Some(js_context)),
-            mouse_over_targets: DOMRefCell::new(vec!())
+            mouse_over_targets: DOMRefCell::new(RootedVec::new())
         }
     }
 

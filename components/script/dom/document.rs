@@ -231,7 +231,7 @@ pub trait DocumentHelpers<'a> {
     fn handle_mouse_move_event(self,
                                js_runtime: *mut JSRuntime,
                                point: Point2D<f32>,
-                               prev_mouse_over_targets: &mut Vec<JS<Node>>);
+                               prev_mouse_over_targets: &mut RootedVec<JS<Node>>);
 
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>);
     fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
@@ -562,22 +562,23 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     fn handle_mouse_move_event(self,
                                js_runtime: *mut JSRuntime,
                                point: Point2D<f32>,
-                               prev_mouse_over_targets: &mut Vec<JS<Node>>) {
+                               prev_mouse_over_targets: &mut RootedVec<JS<Node>>) {
         // Build a list of elements that are currently under the mouse.
         let mouse_over_addresses = self.get_nodes_under_mouse(&point);
-        let mouse_over_targets: Vec<JS<Node>> = mouse_over_addresses.iter()
-                                                                    .filter_map(|node_address| {
+        let mut mouse_over_targets: RootedVec<JS<Node>> = RootedVec::new();
+        for node_address in mouse_over_addresses.iter() {
             let node = node::from_untrusted_node_address(js_runtime, *node_address);
-            node.root().r().inclusive_ancestors()
-                .map(|node| node.root())
-                .find(|node| node.r().is_element())
-                .map(|node| JS::from_rooted(node.r()))
-        }).collect();
+            (*mouse_over_targets).push(node.root().r().inclusive_ancestors()
+                                                      .map(|node| node.root())
+                                                      .find(|node| node.r()
+                                                      .is_element())
+                                                      .map(|node| JS::from_rooted(node.r())).unwrap());
+        };
 
         // Remove hover from any elements in the previous list that are no longer
         // under the mouse.
-        for target in prev_mouse_over_targets.iter() {
-            if !mouse_over_targets.contains(target) {
+        for target in (*prev_mouse_over_targets).iter() {
+            if !(*mouse_over_targets).contains(target) {
                 target.root().r().set_hover_state(false);
             }
         }
@@ -585,7 +586,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         // Set hover state for any elements in the current mouse over list.
         // Check if any of them changed state to determine whether to
         // force a reflow below.
-        for target in mouse_over_targets.iter() {
+        for target in (*mouse_over_targets).iter() {
             let target = target.root();
             let target_ref = target.r();
             if !target_ref.get_hover_state() {
