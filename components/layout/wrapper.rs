@@ -145,16 +145,14 @@ pub trait TLayoutNode {
 
     fn get_iframe_width(&self) -> Option<u32> {
         unsafe {
-            let iframe_element: Option<LayoutJS<HTMLIFrameElement>> =
-                HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged());
+            let iframe_element = HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged());
             iframe_element.unwrap().get_iframe_width()
         }
     }
 
     fn get_iframe_height(&self) -> Option<u32> {
         unsafe {
-            let iframe_element: Option<LayoutJS<HTMLIFrameElement>> =
-                HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged());
+            let iframe_element = HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged());
             iframe_element.unwrap().get_iframe_height()
         }
     }
