@@ -135,6 +135,9 @@ pub struct Opts {
 
     /// Whether MIME sniffing should be used
     pub sniff_mime_types: bool,
+
+    /// Whether Style Sharing Cache is used
+    pub disable_share_style_cache: bool,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -162,6 +165,8 @@ pub fn print_debug_usage(app: &str)  {
     print_option("trace-layout", "Write layout trace to an external file for debugging.");
     print_option("validate-display-list-geometry",
                  "Display an error when display list geometry escapes overflow region.");
+    print_option("disable-share-style-cache",
+                 "Disable the style sharing cache.");
 
     println!("");
 }
@@ -216,6 +221,7 @@ pub fn default_opts() -> Opts {
         profile_tasks: false,
         resources_path: None,
         sniff_mime_types: false,
+        disable_share_style_cache: false,
     }
 }
 
@@ -377,6 +383,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         validate_display_list_geometry: debug_options.contains(&"validate-display-list-geometry"),
         resources_path: opt_match.opt_str("resources-path"),
         sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
+        disable_share_style_cache: debug_options.contains(&"disable-share-style-cache"),
     };
 
     set_opts(opts);

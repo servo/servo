@@ -32,6 +32,7 @@ use style::properties::{ComputedValues, cascade};
 use style::selector_matching::{Stylist, DeclarationBlock};
 use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
+use util::opts;
 use util::smallvec::{SmallVec, SmallVec16};
 
 pub struct ApplicableDeclarations {
@@ -564,6 +565,9 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                                         &mut StyleSharingCandidateCache,
                                       parent: Option<LayoutNode>)
                                       -> StyleSharingResult {
+        if opts::get().disable_share_style_cache {
+            return StyleSharingResult::CannotShare(false)
+        }
         if !self.is_element() {
             return StyleSharingResult::CannotShare(false)
         }
