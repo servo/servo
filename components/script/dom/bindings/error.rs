@@ -12,7 +12,7 @@ use util::str::DOMString;
 
 use js::jsapi::{JSContext, JSBool, JSObject};
 use js::jsapi::{JS_IsExceptionPending, JS_SetPendingException, JS_ReportPendingException};
-use js::jsapi::{JS_ReportErrorNumber, JSErrorFormatString, JSEXN_TYPEERR};
+use js::jsapi::{JS_ReportErrorNumber, JSErrorFormatString, JSEXN_TYPEERR, JSEXN_RANGEERR};
 use js::jsapi::{JS_SaveFrameChain, JS_RestoreFrameChain};
 use js::glue::{ReportError};
 use js::rust::with_compartment;
@@ -59,6 +59,8 @@ pub enum Error {
 
     /// TypeError JavaScript Error
     Type(DOMString),
+    /// RangeError JavaScript Error
+    Range(DOMString),
 
     /// A JavaScript exception is already pending.
     JSFailed,
@@ -95,7 +97,12 @@ pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
             assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
             throw_type_error(cx, &message);
             return;
-        }
+        },
+        Error::Range(message) => {
+            assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
+            throw_range_error(cx, &message);
+            return;
+        },
         Error::JSFailed => {
             assert!(unsafe { JS_IsExceptionPending(cx) } == 1);
             return;
@@ -135,7 +142,7 @@ pub fn throw_not_in_union(cx: *mut JSContext, names: &'static str) -> JSBool {
     return 0;
 }
 
-/// Format string used to throw `TypeError`s.
+/// Format string used to throw javascript errors.
 static ERROR_FORMAT_STRING_STRING: [libc::c_char; 4] = [
     '{' as libc::c_char,
     '0' as libc::c_char,
@@ -144,29 +151,53 @@ static ERROR_FORMAT_STRING_STRING: [libc::c_char; 4] = [
 ];
 
 /// Format string struct used to throw `TypeError`s.
-static mut ERROR_FORMAT_STRING: JSErrorFormatString = JSErrorFormatString {
+static mut TYPE_ERROR_FORMAT_STRING: JSErrorFormatString = JSErrorFormatString {
     format: &ERROR_FORMAT_STRING_STRING as *const libc::c_char,
     argCount: 1,
     exnType: JSEXN_TYPEERR as i16,
 };
 
-/// Callback used to throw `TypeError`s.
+/// Format string struct used to throw `RangeError`s.
+static mut RANGE_ERROR_FORMAT_STRING: JSErrorFormatString = JSErrorFormatString {
+    format: &ERROR_FORMAT_STRING_STRING as *const libc::c_char,
+    argCount: 1,
+    exnType: JSEXN_RANGEERR as i16,
+};
+
+/// Callback used to throw javascript errors.
+/// See throw_js_error for info about error_number.
 unsafe extern fn get_error_message(_user_ref: *mut libc::c_void,
                             _locale: *const libc::c_char,
                             error_number: libc::c_uint) -> *const JSErrorFormatString
 {
-    assert_eq!(error_number, 0);
-    &ERROR_FORMAT_STRING as *const JSErrorFormatString
+    match error_number as i32 {
+      JSEXN_TYPEERR => &TYPE_ERROR_FORMAT_STRING as *const JSErrorFormatString,
+      JSEXN_RANGEERR => &RANGE_ERROR_FORMAT_STRING as *const JSErrorFormatString,
+      _ => panic!("Bad js error number given to get_error_message: {}", error_number)
+    }
 }
 
-/// Throw a `TypeError` with the given message.
-pub fn throw_type_error(cx: *mut JSContext, error: &str) {
+/// Helper fn to throw a javascript error with the given message and number.
+/// Reuse the jsapi error codes to distinguish the error_number
+/// passed back to the get_error_message callback.
+/// c_uint is u32, so this cast is safe, as is casting to/from i32 from there.
+fn throw_js_error(cx: *mut JSContext, error: &str, error_number: u32) {
     let error = CString::new(error).unwrap();
     unsafe {
         JS_ReportErrorNumber(cx,
             Some(get_error_message as
                 unsafe extern "C" fn(*mut libc::c_void, *const libc::c_char,
                                      libc::c_uint) -> *const JSErrorFormatString),
-            ptr::null_mut(), 0, error.as_ptr());
+            ptr::null_mut(), error_number, error.as_ptr());
     }
+}
+
+/// Throw a `TypeError` with the given message.
+pub fn throw_type_error(cx: *mut JSContext, error: &str) {
+    throw_js_error(cx, error, JSEXN_TYPEERR as u32);
+}
+
+/// Throw a `RangeError` with the given message.
+pub fn throw_range_error(cx: *mut JSContext, error: &str) {
+    throw_js_error(cx, error, JSEXN_RANGEERR as u32);
 }
