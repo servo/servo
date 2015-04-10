@@ -1440,7 +1440,7 @@ class CGImports(CGWrapper):
     """
     Generates the appropriate import/use statements.
     """
-    def __init__(self, child, descriptors, imports):
+    def __init__(self, child, descriptors, callbacks, imports):
         """
         Adds a set of imports.
         """
@@ -1460,8 +1460,45 @@ class CGImports(CGWrapper):
             'dead_code',
         ]
 
+        def componentTypes(type):
+            if type.nullable():
+                type = type.unroll()
+            if type.isUnion():
+                return type.flatMemberTypes
+            return [type]
+
+        def isImportable(type):
+            return type.isNonCallbackInterface() and not type.builtin
+
+        types = []
+        for d in descriptors:
+            if not d.interface.isCallback():
+                imports += ['dom::types::%s' % d.interface.identifier.name]
+
+            methods = d.interface.members + d.interface.namedConstructors
+            constructor = d.interface.ctor()
+            if constructor:
+                methods += [constructor]
+
+            for m in methods:
+                if m.isMethod():
+                    for (returnType, arguments) in m.signatures():
+                        types += componentTypes(returnType)
+                        for arg in arguments:
+                            types += componentTypes(arg.type)
+                elif m.isAttr():
+                    types += componentTypes(m.type)
+
+        for c in callbacks:
+            for (returnType, arguments) in c.signatures():
+                types += componentTypes(returnType)
+                for arg in arguments:
+                    types += componentTypes(arg.type)
+
+        imports += ['dom::types::%s' % t.inner.identifier.name for t in types if isImportable(t)]
+
         statements = ['#![allow(%s)]' % ','.join(ignored_warnings)]
-        statements.extend('use %s;' % i for i in sorted(imports))
+        statements.extend('use %s;' % i for i in sorted(set(imports)))
 
         CGWrapper.__init__(self, child,
                            pre='\n'.join(statements) + '\n\n')
@@ -1783,7 +1820,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
                 CGUnionConversionStruct(t, provider)
             ])
 
-    return CGImports(CGList(SortedDictValues(unionStructs), "\n\n"), [], imports)
+    return CGImports(CGList(SortedDictValues(unionStructs), "\n\n"), [], [], imports)
 
 
 class Argument():
@@ -4627,9 +4664,7 @@ class CGBindingRoot(CGThing):
         #                         CGWrapper(curr, pre="\n"))
 
         # Add imports
-        #XXXjdm This should only import the namespace for the current binding,
-        #       not every binding ever.
-        curr = CGImports(curr, descriptors, [
+        curr = CGImports(curr, descriptors + callbackDescriptors, mainCallbacks, [
             'js',
             'js::{JS_ARGV, JS_CALLEE, JS_THIS_OBJECT}',
             'js::{JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS}',
@@ -4657,7 +4692,6 @@ class CGBindingRoot(CGThing):
             'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
             'js::rust::with_compartment',
-            'dom::types::*',
             'dom::bindings',
             'dom::bindings::global::GlobalRef',
             'dom::bindings::global::global_object_for_js_object',
@@ -5316,7 +5350,7 @@ class GlobalGenRoots():
             CGRegisterProxyHandlers(config),
         ], "\n")
 
-        return CGImports(code, [], [
+        return CGImports(code, [], [], [
             'dom::bindings::codegen',
             'dom::bindings::codegen::PrototypeList::Proxies',
             'js::jsapi::JSContext',
