@@ -140,7 +140,7 @@ pub struct ScrollEvent {
 enum CompositionRequest {
     NoCompositingNecessary,
     CompositeOnScrollTimeout(u64),
-    CompositeNow,
+    CompositeNow(CompositingReason),
 }
 
 #[derive(Copy, PartialEq, Debug)]
@@ -338,7 +338,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
                 // If we're painting in headless mode, schedule a recomposite.
                 if opts::get().output_file.is_some() {
-                    self.composite_if_necessary();
+                    self.composite_if_necessary(CompositingReason::Headless);
                 }
 
                 // Inform the embedder that the load has finished.
@@ -352,7 +352,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 match self.composition_request {
                     CompositionRequest::CompositeOnScrollTimeout(this_timestamp) => {
                         if timestamp == this_timestamp {
-                            self.composition_request = CompositionRequest::CompositeNow
+                            self.composition_request = CompositionRequest::CompositeNow(
+                                CompositingReason::HitScrollTimeout)
                         }
                     }
                     _ => {}
@@ -390,7 +391,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         // If we're painting in headless mode, schedule a recomposite.
         if opts::get().output_file.is_some() {
-            self.composite_if_necessary()
+            self.composite_if_necessary(CompositingReason::Headless)
         }
     }
 
@@ -417,7 +418,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.get_or_create_pipeline_details(pipeline_id).animations_running = animations_running;
 
         if animations_running {
-            self.composite_if_necessary();
+            self.composite_if_necessary(CompositingReason::Animation);
         }
     }
 
@@ -526,7 +527,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.send_window_size();
 
         self.got_set_frame_tree_message = true;
-        self.composite_if_necessary();
+        self.composite_if_necessary(CompositingReason::NewFrameTree);
     }
 
     fn create_root_layer_for_pipeline_and_rect(&mut self,
@@ -746,7 +747,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // FIXME(pcwalton): This is going to cause problems with inconsistent frames since
         // we only composite one layer at a time.
         assert!(layer.add_buffers(self, new_layer_buffer_set, epoch));
-        self.composite_if_necessary();
+        self.composite_if_necessary(CompositingReason::NewPaintedBuffers);
     }
 
     fn scroll_fragment_to_point(&mut self,
@@ -884,7 +885,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             cursor: cursor,
         });
 
-        self.composite_if_necessary();
+        self.composite_if_necessary(CompositingReason::Scroll);
     }
 
     fn process_pending_scroll_events(&mut self) {
@@ -972,7 +973,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         self.send_viewport_rects_for_all_layers();
-        self.composite_if_necessary();
+        self.composite_if_necessary(CompositingReason::Zoom);
     }
 
     fn on_navigation_window_event(&self, direction: WindowNavigateMsg) {
@@ -1206,9 +1207,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.process_animations();
     }
 
-    fn composite_if_necessary(&mut self) {
+    fn composite_if_necessary(&mut self, reason: CompositingReason) {
         if self.composition_request == CompositionRequest::NoCompositingNecessary {
-            self.composition_request = CompositionRequest::CompositeNow
+            self.composition_request = CompositionRequest::CompositeNow(reason)
         }
     }
 
@@ -1343,8 +1344,11 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         }
 
         match self.composition_request {
-            CompositionRequest::NoCompositingNecessary | CompositionRequest::CompositeOnScrollTimeout(_) => {}
-            CompositionRequest::CompositeNow => self.composite(),
+            CompositionRequest::NoCompositingNecessary |
+            CompositionRequest::CompositeOnScrollTimeout(_) => {}
+            CompositionRequest::CompositeNow(_) => {
+                self.composite()
+            }
         }
 
         self.shutdown_state != ShutdownState::FinishedShuttingDown
@@ -1402,3 +1406,25 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         chan.send(ConstellationMsg::GetPipelineTitle(root_pipeline_id)).unwrap();
     }
 }
+
+/// Why we performed a composite. This is used for debugging.
+#[derive(Copy, Clone, PartialEq)]
+pub enum CompositingReason {
+    /// We hit the scroll timeout and are therefore drawing unrendered content.
+    HitScrollTimeout,
+    /// The window has been scrolled and we're starting the first recomposite.
+    Scroll,
+    /// A scroll has continued and we need to recomposite again.
+    ContinueScroll,
+    /// We're performing the single composite in headless mode.
+    Headless,
+    /// We're performing a composite to run an animation.
+    Animation,
+    /// A new frame tree has been loaded.
+    NewFrameTree,
+    /// New painted buffers have been received.
+    NewPaintedBuffers,
+    /// The window has been zoomed.
+    Zoom,
+}
+
