@@ -245,7 +245,7 @@ impl CanvasRenderingContext2D {
         return Some((image_data, image_size));
     }
 
-    fn request_image_from_cache(&self, url: Url) -> Option<Arc<Box<Image>>> {
+    fn request_image_from_cache(&self, url: Url) -> Option<Arc<Image>> {
         let canvas = self.canvas.root();
         let window = window_from_node(canvas.r()).root();
         let window = window.r();

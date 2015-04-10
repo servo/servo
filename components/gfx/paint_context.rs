@@ -129,7 +129,7 @@ impl<'a> PaintContext<'a> {
 
     pub fn draw_image(&self,
                       bounds: &Rect<Au>,
-                      image: Arc<Box<Image>>,
+                      image: Arc<Image>,
                       image_rendering: image_rendering::T) {
         let size = Size2D(image.width as i32, image.height as i32);
         let (pixel_width, pixels, source_format) = match image.pixels {

@@ -19,7 +19,7 @@ use url::Url;
 #[derive(Clone)]
 pub struct ImageHolder<NodeAddress> {
     url: Url,
-    image: Option<Arc<Box<Image>>>,
+    image: Option<Arc<Image>>,
     cached_size: Size2D<u32>,
     local_image_cache: Arc<Mutex<LocalImageCache<NodeAddress>>>,
 }
@@ -68,12 +68,12 @@ impl<NodeAddress: Send + 'static> ImageHolder<NodeAddress> {
         })
     }
 
-    pub fn get_image_if_present(&self) -> Option<Arc<Box<Image>>> {
+    pub fn get_image_if_present(&self) -> Option<Arc<Image>> {
         debug!("get_image_if_present() {}", self.url.serialize());
         self.image.clone()
     }
 
-    pub fn get_image(&mut self, node_address: NodeAddress) -> Option<Arc<Box<Image>>> {
+    pub fn get_image(&mut self, node_address: NodeAddress) -> Option<Arc<Image>> {
         debug!("get_image() {}", self.url.serialize());
 
         // If this is the first time we've called this function, load

@@ -833,7 +833,7 @@ pub enum TextOrientation {
 #[derive(Clone)]
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
-    pub image: Arc<Box<Image>>,
+    pub image: Arc<Image>,
 
     /// The dimensions to which the image display item should be stretched. If this is smaller than
     /// the bounds of this display item, then the image will be repeated in the appropriate
