@@ -70,6 +70,18 @@ impl ImageCacheTask {
     }
 }
 
+pub trait ImageCacheTaskClient {
+    fn exit(&self);
+}
+
+impl ImageCacheTaskClient for ImageCacheTask {
+    fn exit(&self) {
+        let (response_chan, response_port) = channel();
+        self.send(Msg::Exit(response_chan));
+        response_port.recv().unwrap();
+    }
+}
+
 pub fn load_image_data(url: Url, resource_task: ResourceTask, placeholder: &[u8]) -> Result<Vec<u8>, ()> {
     let (response_chan, response_port) = channel();
     resource_task.send(ControlMsg::Load(LoadData::new(url.clone(), response_chan))).unwrap();
