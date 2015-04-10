@@ -28,7 +28,7 @@ use dom::bindings::js::{JS, JSRef, OptionalRootable, RootedReference};
 use dom::bindings::js::{RootCollection, RootCollectionPtr};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::bindings::trace::{JSTraceable, trace_collections};
+use dom::bindings::trace::{JSTraceable, trace_collections, RootedVec};
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource};
 use dom::element::{Element, AttributeHandlers};
@@ -1243,9 +1243,11 @@ impl ScriptTask {
                 }
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document().root();
-                let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();
+                let mut mouse_over_targets = RootedVec::new();
+                mouse_over_targets.append(&mut *self.mouse_over_targets.borrow_mut());
 
-                document.r().handle_mouse_move_event(self.js_runtime.ptr, point, mouse_over_targets);
+                document.r().handle_mouse_move_event(self.js_runtime.ptr, point, &mut mouse_over_targets);
+                *self.mouse_over_targets.borrow_mut() = mouse_over_targets.clone();
             }
 
             KeyEvent(key, state, modifiers) => {
