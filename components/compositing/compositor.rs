@@ -298,9 +298,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::SetFrameTree(frame_tree, response_chan, new_constellation_chan),
              ShutdownState::NotShuttingDown) => {
-                self.set_frame_tree(&frame_tree,
-                                    response_chan,
-                                    new_constellation_chan);
+                self.set_frame_tree(&frame_tree, response_chan, new_constellation_chan);
                 self.send_viewport_rects_for_all_layers();
                 self.get_title_for_main_frame();
             }
@@ -326,7 +324,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies),
              ShutdownState::NotShuttingDown) => {
                 for (layer_id, new_layer_buffer_set) in replies.into_iter() {
-                    self.assign_painted_buffers(pipeline_id, layer_id, new_layer_buffer_set, epoch);
+                    self.assign_painted_buffers(pipeline_id,
+                                                layer_id,
+                                                new_layer_buffer_set,
+                                                epoch);
                 }
                 self.remove_outstanding_paint_msg();
             }
@@ -580,7 +581,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         return root_layer;
     }
 
-    fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Option<Rc<Layer<CompositorData>>> {
+    fn find_pipeline_root_layer(&self, pipeline_id: PipelineId)
+                                -> Option<Rc<Layer<CompositorData>>> {
         if !self.pipeline_details.contains_key(&pipeline_id) {
             panic!("Tried to create or update layer for unknown pipeline")
         }
@@ -683,22 +685,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn scroll_layer_to_fragment_point_if_necessary(&mut self,
                                                    pipeline_id: PipelineId,
                                                    layer_id: LayerId) {
-        match self.fragment_point.take() {
-            Some(point) => {
-                if !self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&point)) {
-                    panic!("Compositor: Tried to scroll to fragment with unknown layer.");
-                }
-
-                self.start_scrolling_timer_if_necessary();
+        if let Some(point) = self.fragment_point.take() {
+            if !self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&point)) {
+                panic!("Compositor: Tried to scroll to fragment with unknown layer.");
             }
-            None => {}
+
+            self.start_scrolling_timer_if_necessary();
         }
     }
 
     fn start_scrolling_timer_if_necessary(&mut self) {
         match self.composition_request {
-            CompositionRequest::CompositeNow | CompositionRequest::CompositeOnScrollTimeout(_) =>
-                return,
+            CompositionRequest::CompositeNow(_) |
+            CompositionRequest::CompositeOnScrollTimeout(_) => return,
             CompositionRequest::NoCompositingNecessary => {}
         }
 
@@ -1160,19 +1159,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 origin: Point2D::zero(),
                 size: self.window_size.as_f32(),
             };
-            // paint the scene.
-            match self.scene.root {
-                Some(ref layer) => {
-                    match self.context {
-                        None => {
-                            debug!("compositor: not compositing because context not yet set up")
-                        }
-                        Some(context) => {
-                            rendergl::render_scene(layer.clone(), context, &self.scene);
-                        }
+
+            // Paint the scene.
+            if let Some(ref layer) = self.scene.root {
+                match self.context {
+                    Some(context) => rendergl::render_scene(layer.clone(), context, &self.scene),
+                    None => {
+                        debug!("compositor: not compositing because context not yet set up")
                     }
                 }
-                None => {}
             }
         });
 
