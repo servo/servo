@@ -73,7 +73,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
         let data = self.data.borrow();
         // Step 1.
         let len = data.chars().count();
-        if len > offset as usize {
+        if offset as usize > len {
             // Step 2.
             return Err(IndexSize);
         }
