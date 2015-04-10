@@ -190,7 +190,7 @@ impl Window {
                     }
                 } else {
                     let dx = 0.0;
-                    let dy = (delta as f32) * 30.0;
+                    let dy = delta as f32;
                     self.scroll_window(dx, dy);
                 }
             },
