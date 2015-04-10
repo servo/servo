@@ -410,11 +410,11 @@ impl<'a> Iterator for QuerySelectorIterator<'a> {
 pub trait NodeHelpers<'a> {
     fn ancestors(self) -> AncestorIterator;
     fn inclusive_ancestors(self) -> AncestorIterator;
-    fn children(self) -> NodeChildrenIterator;
-    fn rev_children(self) -> ReverseChildrenIterator;
+    fn children(self) -> NodeSiblingIterator;
+    fn rev_children(self) -> ReverseSiblingIterator;
     fn child_elements(self) -> ChildElementIterator;
-    fn following_siblings(self) -> NodeChildrenIterator;
-    fn preceding_siblings(self) -> ReverseChildrenIterator;
+    fn following_siblings(self) -> NodeSiblingIterator;
+    fn preceding_siblings(self) -> ReverseSiblingIterator;
     fn is_in_doc(self) -> bool;
     fn is_inclusive_ancestor_of(self, parent: JSRef<Node>) -> bool;
     fn is_parent_of(self, child: JSRef<Node>) -> bool;
@@ -485,7 +485,7 @@ pub trait NodeHelpers<'a> {
     fn debug_str(self) -> String;
 
     fn traverse_preorder(self) -> TreeIterator<'a>;
-    fn inclusively_following_siblings(self) -> NodeChildrenIterator;
+    fn inclusively_following_siblings(self) -> NodeSiblingIterator;
 
     fn to_trusted_node_address(self) -> TrustedNodeAddress;
 
@@ -748,8 +748,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         TreeIterator::new(self)
     }
 
-    fn inclusively_following_siblings(self) -> NodeChildrenIterator {
-        NodeChildrenIterator {
+    fn inclusively_following_siblings(self) -> NodeSiblingIterator {
+        NodeSiblingIterator {
             current: Some(Temporary::from_rooted(self)),
         }
     }
@@ -758,14 +758,14 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         self == parent || parent.ancestors().any(|ancestor| ancestor.root().r() == self)
     }
 
-    fn following_siblings(self) -> NodeChildrenIterator {
-        NodeChildrenIterator {
+    fn following_siblings(self) -> NodeSiblingIterator {
+        NodeSiblingIterator {
             current: self.next_sibling(),
         }
     }
 
-    fn preceding_siblings(self) -> ReverseChildrenIterator {
-        ReverseChildrenIterator {
+    fn preceding_siblings(self) -> ReverseSiblingIterator {
+        ReverseSiblingIterator {
             current: self.prev_sibling(),
         }
     }
@@ -866,14 +866,14 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         self.owner_doc().root().r().is_html_document()
     }
 
-    fn children(self) -> NodeChildrenIterator {
-        NodeChildrenIterator {
+    fn children(self) -> NodeSiblingIterator {
+        NodeSiblingIterator {
             current: self.first_child.get(),
         }
     }
 
-    fn rev_children(self) -> ReverseChildrenIterator {
-        ReverseChildrenIterator {
+    fn rev_children(self) -> ReverseSiblingIterator {
+        ReverseSiblingIterator {
             current: self.last_child(),
         }
     }
@@ -1118,14 +1118,14 @@ impl RawLayoutNodeHelpers for Node {
 //
 
 pub type ChildElementIterator =
-    Peekable<FilterMap<NodeChildrenIterator,
+    Peekable<FilterMap<NodeSiblingIterator,
                        fn(Temporary<Node>) -> Option<Temporary<Element>>>>;
 
-pub struct NodeChildrenIterator {
+pub struct NodeSiblingIterator {
     current: Option<Temporary<Node>>,
 }
 
-impl Iterator for NodeChildrenIterator {
+impl Iterator for NodeSiblingIterator {
     type Item = Temporary<Node>;
 
     fn next(&mut self) -> Option<Temporary<Node>> {
@@ -1138,11 +1138,11 @@ impl Iterator for NodeChildrenIterator {
     }
 }
 
-pub struct ReverseChildrenIterator {
+pub struct ReverseSiblingIterator {
     current: Option<Temporary<Node>>,
 }
 
-impl Iterator for ReverseChildrenIterator {
+impl Iterator for ReverseSiblingIterator {
     type Item = Temporary<Node>;
 
     fn next(&mut self) -> Option<Temporary<Node>> {
