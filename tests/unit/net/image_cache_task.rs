@@ -8,7 +8,7 @@ use net_traits::image_cache_task::Msg::*;
 
 use net::resource_task::start_sending;
 use net_traits::{ControlMsg, Metadata, ProgressMsg, ResourceTask};
-use net_traits::image_cache_task::{ImageCacheTask, ImageResponseMsg, Msg};
+use net_traits::image_cache_task::{ImageCacheTask, ImageCacheTaskClient, ImageResponseMsg, Msg};
 use net_traits::ProgressMsg::{Payload, Done};
 use profile::time;
 use std::sync::mpsc::{Sender, channel, Receiver};
