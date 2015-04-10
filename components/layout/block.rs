@@ -97,7 +97,11 @@ struct BSizeConstraintSolution {
 }
 
 impl BSizeConstraintSolution {
-    fn new(block_start: Au, block_end: Au, block_size: Au, margin_block_start: Au, margin_block_end: Au)
+    fn new(block_start: Au,
+           block_end: Au,
+           block_size: Au,
+           margin_block_start: Au,
+           margin_block_end: Au)
            -> BSizeConstraintSolution {
         BSizeConstraintSolution {
             block_start: block_start,
@@ -131,90 +135,147 @@ impl BSizeConstraintSolution {
         // first box of the element.
         let static_position_block_start = static_b_offset;
 
-        let (block_start, block_end, block_size, margin_block_start, margin_block_end) = match (block_start, block_end, block_size) {
-            (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Auto) => {
-                let margin_block_start = block_start_margin.specified_or_zero();
-                let margin_block_end = block_end_margin.specified_or_zero();
-                let block_start = static_position_block_start;
-                // Now it is the same situation as block-start Specified and block-end
-                // and block-size Auto.
+        let (block_start, block_end, block_size, margin_block_start, margin_block_end) =
+            match (block_start, block_end, block_size) {
+                (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Auto) => {
+                    let margin_block_start = block_start_margin.specified_or_zero();
+                    let margin_block_end = block_end_margin.specified_or_zero();
+                    let block_start = static_position_block_start;
+                    // Now it is the same situation as block-start Specified and block-end
+                    // and block-size Auto.
 
-                let block_size = content_block_size;
-                let sum = block_start + block_size + margin_block_start + margin_block_end;
-                (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
-            }
-            (MaybeAuto::Specified(block_start), MaybeAuto::Specified(block_end), MaybeAuto::Specified(block_size)) => {
-                match (block_start_margin, block_end_margin) {
-                    (MaybeAuto::Auto, MaybeAuto::Auto) => {
-                        let total_margin_val = available_block_size - block_start - block_end - block_size;
-                        (block_start, block_end, block_size,
-                         total_margin_val.scale_by(0.5),
-                         total_margin_val.scale_by(0.5))
-                    }
-                    (MaybeAuto::Specified(margin_block_start), MaybeAuto::Auto) => {
-                        let sum = block_start + block_end + block_size + margin_block_start;
-                        (block_start, block_end, block_size, margin_block_start, available_block_size - sum)
-                    }
-                    (MaybeAuto::Auto, MaybeAuto::Specified(margin_block_end)) => {
-                        let sum = block_start + block_end + block_size + margin_block_end;
-                        (block_start, block_end, block_size, available_block_size - sum, margin_block_end)
-                    }
-                    (MaybeAuto::Specified(margin_block_start), MaybeAuto::Specified(margin_block_end)) => {
-                        // Values are over-constrained. Ignore value for 'block-end'.
-                        let sum = block_start + block_size + margin_block_start + margin_block_end;
-                        (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
+                    let block_size = content_block_size;
+                    let sum = block_start + block_size + margin_block_start + margin_block_end;
+                    (block_start,
+                     available_block_size - sum,
+                     block_size,
+                     margin_block_start,
+                     margin_block_end)
+                }
+                (MaybeAuto::Specified(block_start),
+                 MaybeAuto::Specified(block_end),
+                 MaybeAuto::Specified(block_size)) => {
+                    match (block_start_margin, block_end_margin) {
+                        (MaybeAuto::Auto, MaybeAuto::Auto) => {
+                            let total_margin_val =
+                                available_block_size - block_start - block_end - block_size;
+                            (block_start, block_end, block_size,
+                             total_margin_val.scale_by(0.5),
+                             total_margin_val.scale_by(0.5))
+                        }
+                        (MaybeAuto::Specified(margin_block_start), MaybeAuto::Auto) => {
+                            let sum = block_start + block_end + block_size + margin_block_start;
+                            (block_start,
+                             block_end,
+                             block_size,
+                             margin_block_start,
+                             available_block_size - sum)
+                        }
+                        (MaybeAuto::Auto, MaybeAuto::Specified(margin_block_end)) => {
+                            let sum = block_start + block_end + block_size + margin_block_end;
+                            (block_start,
+                             block_end,
+                             block_size,
+                             available_block_size - sum,
+                             margin_block_end)
+                        }
+                        (MaybeAuto::Specified(margin_block_start),
+                         MaybeAuto::Specified(margin_block_end)) => {
+                            // Values are over-constrained. Ignore value for 'block-end'.
+                            let sum = block_start + block_size + margin_block_start +
+                                margin_block_end;
+                            (block_start,
+                             available_block_size - sum,
+                             block_size,
+                             margin_block_start,
+                             margin_block_end)
+                        }
                     }
                 }
-            }
 
-            // For the rest of the cases, auto values for margin are set to 0
+                // For the rest of the cases, auto values for margin are set to 0
 
-            // If only one is Auto, solve for it
-            (MaybeAuto::Auto, MaybeAuto::Specified(block_end), MaybeAuto::Specified(block_size)) => {
-                let margin_block_start = block_start_margin.specified_or_zero();
-                let margin_block_end = block_end_margin.specified_or_zero();
-                let sum = block_end + block_size + margin_block_start + margin_block_end;
-                (available_block_size - sum, block_end, block_size, margin_block_start, margin_block_end)
-            }
-            (MaybeAuto::Specified(block_start), MaybeAuto::Auto, MaybeAuto::Specified(block_size)) => {
-                let margin_block_start = block_start_margin.specified_or_zero();
-                let margin_block_end = block_end_margin.specified_or_zero();
-                let sum = block_start + block_size + margin_block_start + margin_block_end;
-                (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
-            }
-            (MaybeAuto::Specified(block_start), MaybeAuto::Specified(block_end), MaybeAuto::Auto) => {
-                let margin_block_start = block_start_margin.specified_or_zero();
-                let margin_block_end = block_end_margin.specified_or_zero();
-                let sum = block_start + block_end + margin_block_start + margin_block_end;
-                (block_start, block_end, available_block_size - sum, margin_block_start, margin_block_end)
-            }
+                // If only one is Auto, solve for it
+                (MaybeAuto::Auto,
+                 MaybeAuto::Specified(block_end),
+                 MaybeAuto::Specified(block_size)) => {
+                    let margin_block_start = block_start_margin.specified_or_zero();
+                    let margin_block_end = block_end_margin.specified_or_zero();
+                    let sum = block_end + block_size + margin_block_start + margin_block_end;
+                    (available_block_size - sum,
+                     block_end,
+                     block_size,
+                     margin_block_start,
+                     margin_block_end)
+                }
+                (MaybeAuto::Specified(block_start),
+                 MaybeAuto::Auto,
+                 MaybeAuto::Specified(block_size)) => {
+                    let margin_block_start = block_start_margin.specified_or_zero();
+                    let margin_block_end = block_end_margin.specified_or_zero();
+                    let sum = block_start + block_size + margin_block_start + margin_block_end;
+                    (block_start,
+                     available_block_size - sum,
+                     block_size,
+                     margin_block_start,
+                     margin_block_end)
+                }
+                (MaybeAuto::Specified(block_start),
+                 MaybeAuto::Specified(block_end),
+                 MaybeAuto::Auto) => {
+                    let margin_block_start = block_start_margin.specified_or_zero();
+                    let margin_block_end = block_end_margin.specified_or_zero();
+                    let sum = block_start + block_end + margin_block_start + margin_block_end;
+                    (block_start,
+                     block_end,
+                     available_block_size - sum,
+                     margin_block_start,
+                     margin_block_end)
+                }
 
-            // If block-size is auto, then block-size is content block-size. Solve for the
-            // non-auto value.
-            (MaybeAuto::Specified(block_start), MaybeAuto::Auto, MaybeAuto::Auto) => {
-                let margin_block_start = block_start_margin.specified_or_zero();
-                let margin_block_end = block_end_margin.specified_or_zero();
-                let block_size = content_block_size;
-                let sum = block_start + block_size + margin_block_start + margin_block_end;
-                (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
-            }
-            (MaybeAuto::Auto, MaybeAuto::Specified(block_end), MaybeAuto::Auto) => {
-                let margin_block_start = block_start_margin.specified_or_zero();
-                let margin_block_end = block_end_margin.specified_or_zero();
-                let block_size = content_block_size;
-                let sum = block_end + block_size + margin_block_start + margin_block_end;
-                (available_block_size - sum, block_end, block_size, margin_block_start, margin_block_end)
-            }
+                // If block-size is auto, then block-size is content block-size. Solve for the
+                // non-auto value.
+                (MaybeAuto::Specified(block_start), MaybeAuto::Auto, MaybeAuto::Auto) => {
+                    let margin_block_start = block_start_margin.specified_or_zero();
+                    let margin_block_end = block_end_margin.specified_or_zero();
+                    let block_size = content_block_size;
+                    let sum = block_start + block_size + margin_block_start + margin_block_end;
+                    (block_start,
+                     available_block_size - sum,
+                     block_size,
+                     margin_block_start,
+                     margin_block_end)
+                }
+                (MaybeAuto::Auto, MaybeAuto::Specified(block_end), MaybeAuto::Auto) => {
+                    let margin_block_start = block_start_margin.specified_or_zero();
+                    let margin_block_end = block_end_margin.specified_or_zero();
+                    let block_size = content_block_size;
+                    let sum = block_end + block_size + margin_block_start + margin_block_end;
+                    (available_block_size - sum,
+                     block_end,
+                     block_size,
+                     margin_block_start,
+                     margin_block_end)
+                }
 
-            (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Specified(block_size)) => {
-                let margin_block_start = block_start_margin.specified_or_zero();
-                let margin_block_end = block_end_margin.specified_or_zero();
-                let block_start = static_position_block_start;
-                let sum = block_start + block_size + margin_block_start + margin_block_end;
-                (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
-            }
-        };
-        BSizeConstraintSolution::new(block_start, block_end, block_size, margin_block_start, margin_block_end)
+                (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Specified(block_size)) => {
+                    let margin_block_start = block_start_margin.specified_or_zero();
+                    let margin_block_end = block_end_margin.specified_or_zero();
+                    let block_start = static_position_block_start;
+                    let sum = block_start + block_size + margin_block_start + margin_block_end;
+                    (block_start,
+                     available_block_size - sum,
+                     block_size,
+                     margin_block_start,
+                     margin_block_end)
+                }
+            };
+
+        BSizeConstraintSolution::new(block_start,
+                                     block_end,
+                                     block_size,
+                                     margin_block_start,
+                                     margin_block_end)
     }
 
     /// Solve the vertical constraint equation for absolute replaced elements.
@@ -447,8 +508,8 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
             return
         }
 
-        let AbsoluteAssignBSizesTraversal(ref ctx) = *self;
-        block_flow.calculate_absolute_block_size_and_margins(*ctx);
+        let AbsoluteAssignBSizesTraversal(ref layout_context) = *self;
+        block_flow.calculate_absolute_block_size_and_margins(*layout_context);
     }
 }
 
@@ -1112,7 +1173,7 @@ impl BlockFlow {
         let static_b_offset = self.static_b_offset;
 
         // This is the stored content block-size value from assign-block-size
-        let content_block_size = self.fragment.content_box().size.block;
+        let content_block_size = self.fragment.border_box.size.block;
 
         let mut solution = None;
         {
@@ -1166,9 +1227,8 @@ impl BlockFlow {
                 loop {
                     match candidate_block_size_iterator.next() {
                         Some(block_size_used_val) => {
-                            solution =
-                                Some(BSizeConstraintSolution::
-                                     solve_vertical_constraints_abs_nonreplaced(
+                            solution = Some(
+                            BSizeConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
                                     block_size_used_val,
                                     margin_block_start,
                                     margin_block_end,
