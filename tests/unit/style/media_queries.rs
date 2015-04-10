@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use geom::size::TypedSize2D;
-use style::stylesheets::{iter_stylesheet_media_rules, iter_stylesheet_style_rules, Stylesheet};
+use style::stylesheets::{Stylesheet, CSSRuleIteratorExt};
 use style::stylesheets::Origin;
 use style::media_queries::*;
 use style::values::specified;
@@ -16,18 +16,17 @@ fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str)
     let url = Url::parse("http://localhost").unwrap();
     let stylesheet = Stylesheet::from_str(css, url, Origin::Author);
     let mut rule_count = 0;
-    iter_stylesheet_media_rules(&stylesheet, |rule| {
+    for rule in stylesheet.rules().media() {
         rule_count += 1;
         callback(&rule.media_queries, css);
-    });
+    }
     assert!(rule_count > 0);
 }
 
-fn media_query_test(device: &Device, css: &str, expected_rule_count: u32) {
+fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
     let url = Url::parse("http://localhost").unwrap();
     let ss = Stylesheet::from_str(css, url, Origin::Author);
-    let mut rule_count: u32 = 0;
-    iter_stylesheet_style_rules(&ss, device, |_| rule_count += 1);
+    let rule_count = ss.effective_rules(device).style().count();
     assert!(rule_count == expected_rule_count, css.to_owned());
 }
 
