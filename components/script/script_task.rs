@@ -280,6 +280,16 @@ impl Runtime {
             cx: js_context,
         }
     }
+
+    /// Returns the `JSRuntime` object.
+    pub fn rt(&self) -> *mut JSRuntime {
+        self.rt.ptr
+    }
+
+    /// Returns the `JSContext` object.
+    pub fn cx(&self) -> *mut JSContext {
+        self.cx.ptr
+    }
 }
 
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
@@ -500,21 +510,21 @@ impl ScriptTask {
 
     pub fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
         LiveDOMReferences::initialize();
-        let Runtime { rt: js_runtime, cx: js_context } = Runtime::new();
+        let runtime = Runtime::new();
 
         unsafe {
-            JS_SetExtraGCRootsTracer((*js_runtime).ptr, Some(trace_rust_roots), ptr::null_mut());
+            JS_SetExtraGCRootsTracer(runtime.rt(), Some(trace_rust_roots), ptr::null_mut());
         }
 
         // Needed for debug assertions about whether GC is running.
         if !cfg!(ndebug) {
             unsafe {
-                JS_SetGCCallback(js_runtime.ptr,
+                JS_SetGCCallback(runtime.rt(),
                     Some(debug_gc_callback as unsafe extern "C" fn(*mut JSRuntime, JSGCStatus)));
             }
         }
 
-        (js_runtime, js_context)
+        (runtime.rt, runtime.cx)
     }
 
     // Return the root page in the frame tree. Panics if it doesn't exist.
