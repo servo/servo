@@ -82,6 +82,8 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The device pixel ratio for this window.
     hidpi_factor: ScaleFactor<ScreenPx, DevicePixel, f32>,
 
+    channel_to_self: Box<CompositorProxy + Send>,
+
     /// A handle to the scrolling timer.
     scrolling_timer: ScrollingTimerProxy,
 
@@ -206,6 +208,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }),
             window_size: window_size,
             hidpi_factor: hidpi_factor,
+            channel_to_self: sender.clone_compositor_proxy(),
             scrolling_timer: ScrollingTimerProxy::new(sender),
             composition_request: CompositionRequest::NoCompositingNecessary,
             pending_scroll_events: Vec::new(),
@@ -358,6 +361,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     }
                     _ => {}
                 }
+            }
+
+            (Msg::RecompositeAfterScroll, ShutdownState::NotShuttingDown) => {
+                self.composition_request =
+                    CompositionRequest::CompositeNow(CompositingReason::ContinueScroll)
             }
 
             (Msg::KeyEvent(key, state, modified), ShutdownState::NotShuttingDown) => {
@@ -755,11 +763,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                 layer_id: LayerId,
                                 point: Point2D<f32>) {
         if self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&point)) {
-            if self.send_buffer_requests_for_all_layers() {
-                self.start_scrolling_timer_if_necessary();
-            }
+            self.perform_updates_after_scroll()
         } else {
-            self.fragment_point = Some(point);
+            self.fragment_point = Some(point)
         }
     }
 
@@ -899,12 +905,21 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 layer.handle_scroll_event(delta, cursor);
             }
 
-            self.start_scrolling_timer_if_necessary();
-            self.send_buffer_requests_for_all_layers();
+            self.perform_updates_after_scroll();
         }
 
         if had_scroll_events {
             self.send_viewport_rects_for_all_layers();
+        }
+    }
+
+    /// Performs buffer requests and starts the scrolling timer or schedules a recomposite as
+    /// necessary.
+    fn perform_updates_after_scroll(&mut self) {
+        if self.send_buffer_requests_for_all_layers() {
+            self.start_scrolling_timer_if_necessary();
+        } else {
+            self.channel_to_self.send(Msg::RecompositeAfterScroll);
         }
     }
 
