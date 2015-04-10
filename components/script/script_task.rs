@@ -239,6 +239,49 @@ impl Drop for StackRootTLS {
     }
 }
 
+
+/// A wrapper for the `JSRuntime` and `JSContext` structures in SpiderMonkey.
+pub struct Runtime {
+    rt: js::rust::rt,
+    cx: Rc<Cx>,
+}
+
+impl Runtime {
+    /// Creates a new `JSRuntime` and `JSContext`.
+    pub fn new() -> Runtime {
+        let js_runtime = js::rust::rt();
+        assert!({
+            let ptr: *mut JSRuntime = (*js_runtime).ptr;
+            !ptr.is_null()
+        });
+
+        // Unconstrain the runtime's threshold on nominal heap size, to avoid
+        // triggering GC too often if operating continuously near an arbitrary
+        // finite threshold. This leaves the maximum-JS_malloc-bytes threshold
+        // still in effect to cause periodical, and we hope hygienic,
+        // last-ditch GCs from within the GC's allocator.
+        unsafe {
+            JS_SetGCParameter(js_runtime.ptr, JSGC_MAX_BYTES, u32::MAX);
+        }
+
+        let js_context = js_runtime.cx();
+        assert!({
+            let ptr: *mut JSContext = (*js_context).ptr;
+            !ptr.is_null()
+        });
+        js_context.set_default_options_and_version();
+        js_context.set_logging_error_reporter();
+        unsafe {
+            JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
+        }
+
+        Runtime {
+            rt: js_runtime,
+            cx: js_context,
+        }
+    }
+}
+
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
 /// frames.
 ///
@@ -457,34 +500,10 @@ impl ScriptTask {
 
     pub fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
         LiveDOMReferences::initialize();
-        let js_runtime = js::rust::rt();
-        assert!({
-            let ptr: *mut JSRuntime = (*js_runtime).ptr;
-            !ptr.is_null()
-        });
-
+        let Runtime { rt: js_runtime, cx: js_context } = Runtime::new();
 
         unsafe {
             JS_SetExtraGCRootsTracer((*js_runtime).ptr, Some(trace_rust_roots), ptr::null_mut());
-        }
-        // Unconstrain the runtime's threshold on nominal heap size, to avoid
-        // triggering GC too often if operating continuously near an arbitrary
-        // finite threshold. This leaves the maximum-JS_malloc-bytes threshold
-        // still in effect to cause periodical, and we hope hygienic,
-        // last-ditch GCs from within the GC's allocator.
-        unsafe {
-            JS_SetGCParameter(js_runtime.ptr, JSGC_MAX_BYTES, u32::MAX);
-        }
-
-        let js_context = js_runtime.cx();
-        assert!({
-            let ptr: *mut JSContext = (*js_context).ptr;
-            !ptr.is_null()
-        });
-        js_context.set_default_options_and_version();
-        js_context.set_logging_error_reporter();
-        unsafe {
-            JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
         }
 
         // Needed for debug assertions about whether GC is running.
