@@ -313,7 +313,7 @@ pub struct ScriptTask {
     /// The JSContext.
     js_context: DOMRefCell<Option<Rc<Cx>>>,
 
-    mouse_over_targets: DOMRefCell<RootedVec<JS<Node>>>
+    mouse_over_targets: DOMRefCell<Vec<JS<Node>>>
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
@@ -489,7 +489,7 @@ impl ScriptTask {
 
             js_runtime: js_runtime,
             js_context: DOMRefCell::new(Some(js_context)),
-            mouse_over_targets: DOMRefCell::new(RootedVec::new())
+            mouse_over_targets: DOMRefCell::new(vec!())
         }
     }
 
@@ -1243,9 +1243,10 @@ impl ScriptTask {
                 }
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document().root();
-                let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();
+                let mut mouse_over_targets = RootedVec::new();
+                (*mouse_over_targets).append(&mut *self.mouse_over_targets.borrow_mut());
 
-                document.r().handle_mouse_move_event(self.js_runtime.ptr, point, mouse_over_targets);
+                document.r().handle_mouse_move_event(self.js_runtime.ptr, point, &mut mouse_over_targets);
             }
 
             KeyEvent(key, state, modifiers) => {
