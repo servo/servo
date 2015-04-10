@@ -74,11 +74,10 @@ use util::task_state;
 use geom::Rect;
 use geom::point::Point2D;
 use hyper::header::{LastModified, Headers};
-use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_SetExtraGCRootsTracer, JS_DEFAULT_ZEAL_FREQ};
+use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetExtraGCRootsTracer};
 use js::jsapi::{JSContext, JSRuntime, JSObject, JSTracer};
-use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
-use js::rust::{Cx, RtUtils};
+use js::rust::{Runtime, Cx, RtUtils};
 use js;
 use url::Url;
 
@@ -93,18 +92,19 @@ use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
-use std::u32;
 use time::Tm;
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 thread_local!(static SCRIPT_TASK_ROOT: RefCell<Option<*const ScriptTask>> = RefCell::new(None));
 
-unsafe extern fn trace_script_tasks(tr: *mut JSTracer, _data: *mut libc::c_void) {
+unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut libc::c_void) {
     SCRIPT_TASK_ROOT.with(|root| {
         if let Some(script_task) = *root.borrow() {
             (*script_task).trace(tr);
         }
     });
+
+    trace_collections(tr);
 }
 
 /// A document load that is in the process of fetching the requested resource. Contains
@@ -236,6 +236,7 @@ impl Drop for StackRootTLS {
         STACK_ROOTS.with(|ref r| r.set(None));
     }
 }
+
 
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
 /// frames.
@@ -455,46 +456,21 @@ impl ScriptTask {
 
     pub fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
         LiveDOMReferences::initialize();
-        let js_runtime = js::rust::rt();
-        assert!({
-            let ptr: *mut JSRuntime = (*js_runtime).ptr;
-            !ptr.is_null()
-        });
-
+        let runtime = Runtime::new();
 
         unsafe {
-            JS_SetExtraGCRootsTracer((*js_runtime).ptr, Some(trace_collections), ptr::null_mut());
-        }
-        // Unconstrain the runtime's threshold on nominal heap size, to avoid
-        // triggering GC too often if operating continuously near an arbitrary
-        // finite threshold. This leaves the maximum-JS_malloc-bytes threshold
-        // still in effect to cause periodical, and we hope hygienic,
-        // last-ditch GCs from within the GC's allocator.
-        unsafe {
-            JS_SetGCParameter(js_runtime.ptr, JSGC_MAX_BYTES, u32::MAX);
-        }
-
-        let js_context = js_runtime.cx();
-        assert!({
-            let ptr: *mut JSContext = (*js_context).ptr;
-            !ptr.is_null()
-        });
-        js_context.set_default_options_and_version();
-        js_context.set_logging_error_reporter();
-        unsafe {
-            JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
-            JS_SetExtraGCRootsTracer((*js_runtime).ptr, Some(trace_script_tasks), ptr::null_mut());
+            JS_SetExtraGCRootsTracer(runtime.rt(), Some(trace_rust_roots), ptr::null_mut());
         }
 
         // Needed for debug assertions about whether GC is running.
         if !cfg!(ndebug) {
             unsafe {
-                JS_SetGCCallback(js_runtime.ptr,
+                JS_SetGCCallback(runtime.rt(),
                     Some(debug_gc_callback as unsafe extern "C" fn(*mut JSRuntime, JSGCStatus)));
             }
         }
 
-        (js_runtime, js_context)
+        (runtime.rt, runtime.cx)
     }
 
     // Return the root page in the frame tree. Panics if it doesn't exist.
