@@ -557,9 +557,8 @@ impl LayoutTask {
 
         {
             let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-            match (&mut *rw_data).parallel_traversal {
-                None => {}
-                Some(ref mut traversal) => traversal.shutdown(),
+            if let Some(ref mut traversal) = (&mut *rw_data).parallel_traversal {
+                traversal.shutdown()
             }
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
