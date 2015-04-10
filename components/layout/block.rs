@@ -1112,7 +1112,7 @@ impl BlockFlow {
         let static_b_offset = self.static_b_offset;
 
         // This is the stored content block-size value from assign-block-size
-        let content_block_size = self.fragment.content_box().size.block;
+        let content_block_size = self.fragment.border_box.size.block;
 
         let mut solution = None;
         {
