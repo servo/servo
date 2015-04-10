@@ -39,6 +39,10 @@ impl TextDecoder {
         }
     }
 
+    fn make_range_error() -> Fallible<Temporary<TextDecoder>> {
+        Err(Error::Range("The given encoding is not supported.".to_owned()))
+    }
+
     pub fn new(global: GlobalRef, encoding: EncodingRef, fatal: bool) -> Temporary<TextDecoder> {
         reflect_dom_object(box TextDecoder::new_inherited(encoding, fatal),
                            global,
@@ -51,13 +55,22 @@ impl TextDecoder {
                        options: &TextDecoderBinding::TextDecoderOptions)
                             -> Fallible<Temporary<TextDecoder>> {
         let encoding = match encoding_from_whatwg_label(&label) {
-            Some(enc) => enc,
-            // FIXME: Should throw a RangeError as per spec
-            None => return Err(Error::Syntax),
+            None => return TextDecoder::make_range_error(),
+            Some(enc) => enc
+        };
+        // The rust-encoding crate has WHATWG compatibility, so we are
+        // guaranteed to have a whatwg_name because we successfully got
+        // the encoding from encoding_from_whatwg_label.
+        // Use match + panic! instead of unwrap for better error message
+        match encoding.whatwg_name() {
+            None => panic!("Label {} fits valid encoding without valid name", label),
+            Some("replacement") => return TextDecoder::make_range_error(),
+            _ => ()
         };
         Ok(TextDecoder::new(global, encoding, options.fatal))
     }
 }
+
 
 impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
     fn Encoding(self) -> DOMString {

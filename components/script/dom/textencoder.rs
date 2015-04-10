@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::TextEncoderBinding;
 use dom::bindings::codegen::Bindings::TextEncoderBinding::TextEncoderMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::error::Fallible;
-use dom::bindings::error::Error::IndexSize;
+use dom::bindings::error::Error::Range;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::str::USVString;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -54,8 +54,7 @@ impl TextEncoder {
             Some(enc) => enc,
             None => {
                 debug!("Encoding Label Not Supported");
-                // TODO: should throw RangeError
-                return Err(IndexSize)
+                return Err(Range("The given encoding is not supported.".to_owned()))
             }
         };
 
@@ -65,8 +64,7 @@ impl TextEncoder {
             }
             _ => {
                 debug!("Encoding Not UTF");
-                // TODO: should throw RangeError
-                Err(IndexSize)
+                return Err(Range("The encoding must be utf-8, utf-16le, or utf-16be.".to_owned()))
             }
         }
     }

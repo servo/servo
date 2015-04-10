@@ -10952,6 +10952,10 @@
         "url": "/encoding/api-basics.html"
       },
       {
+        "path": "encoding/api-invalid-label.html",
+        "url": "/encoding/api-invalid-label.html"
+      },
+      {
         "path": "encoding/api-replacement-encodings.html",
         "url": "/encoding/api-replacement-encodings.html"
       },
