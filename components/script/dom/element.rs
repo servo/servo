@@ -934,6 +934,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-element-localname
     fn LocalName(self) -> DOMString {
         self.local_name.as_slice().to_owned()
     }
@@ -1079,17 +1080,20 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         self.GetAttributeNS(namespace, local_name).is_some()
     }
 
+    // https://dom.spec.whatwg.org/#dom-element-getelementsbytagname
     fn GetElementsByTagName(self, localname: DOMString) -> Temporary<HTMLCollection> {
         let window = window_from_node(self).root();
         HTMLCollection::by_tag_name(window.r(), NodeCast::from_ref(self), localname)
     }
 
+    // https://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens
     fn GetElementsByTagNameNS(self, maybe_ns: Option<DOMString>,
                               localname: DOMString) -> Temporary<HTMLCollection> {
         let window = window_from_node(self).root();
         HTMLCollection::by_tag_name_ns(window.r(), NodeCast::from_ref(self), localname, maybe_ns)
     }
 
+    // https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
     fn GetElementsByClassName(self, classes: DOMString) -> Temporary<HTMLCollection> {
         let window = window_from_node(self).root();
         HTMLCollection::by_class_name(window.r(), NodeCast::from_ref(self), classes)
@@ -1126,12 +1130,13 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             rect.origin.x + rect.size.width)
     }
 
-    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#extensions-to-the-element-interface
+    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-innerHTML
     fn GetInnerHTML(self) -> Fallible<DOMString> {
         //XXX TODO: XML case
         self.serialize(ChildrenOnly)
     }
 
+    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-innerHTML
     fn SetInnerHTML(self, value: DOMString) -> Fallible<()> {
         let context_node: JSRef<Node> = NodeCast::from_ref(self);
         // Step 1.
@@ -1141,10 +1146,12 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         Ok(())
     }
 
+    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-outerHTML
     fn GetOuterHTML(self) -> Fallible<DOMString> {
         self.serialize(IncludeNode)
     }
 
+    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-outerHTML
     fn SetOuterHTML(self, value: DOMString) -> Fallible<()> {
         let context_document = document_from_node(self).root();
         let context_node: JSRef<Node> = NodeCast::from_ref(self);
