@@ -170,6 +170,13 @@ class MachCommands(CommandBase):
              description='Update submodules',
              category='bootstrap')
     def update_submodules(self):
+        # Ensure that the installed git version is >= 1.8.1 
+        gitversion = subprocess.check_output(["git", "--version"])
+        gitversion = gitversion.split(" ")[-1]
+        majv, minv, patchv, = [int(i) for i in gitversion.split(".")]
+        if not (majv >=1 and minv >= 8 and patchv >= 1):
+            print("Git version 1.8.1 or above required. Current version is", gitversion)
+            sys.exit(1)
         submodules = subprocess.check_output(["git", "submodule", "status"])
         for line in submodules.split('\n'):
             components = line.strip().split(' ')
