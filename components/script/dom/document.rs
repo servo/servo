@@ -26,6 +26,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, RootedReference};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::reflect_dom_object;
 use dom::bindings::utils::{xml_name_type, validate_and_extract};
 use dom::bindings::utils::XMLName::InvalidXMLName;
@@ -817,22 +818,23 @@ impl Document {
 }
 
 trait PrivateDocumentHelpers {
-    fn createNodeList<F: Fn(JSRef<Node>) -> bool>(self, callback: F) -> Temporary<NodeList>;
+    fn create_node_list<F: Fn(JSRef<Node>) -> bool>(self, callback: F) -> Temporary<NodeList>;
     fn get_html_element(self) -> Option<Temporary<HTMLHtmlElement>>;
 }
 
 impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
-    fn createNodeList<F: Fn(JSRef<Node>) -> bool>(self, callback: F) -> Temporary<NodeList> {
+    fn create_node_list<F: Fn(JSRef<Node>) -> bool>(self, callback: F) -> Temporary<NodeList> {
         let window = self.window.root();
         let document_element = self.GetDocumentElement().root();
-        let nodes = match document_element {
-            None => vec!(),
-            Some(ref root) => {
-                let root: JSRef<Node> = NodeCast::from_ref(root.r());
-                root.traverse_preorder().filter(|&node| callback(node)).collect()
+        let mut nodes = RootedVec::new();
+        if let Some(ref root) = document_element {
+            for node in NodeCast::from_ref(root.r()).traverse_preorder() {
+                if callback(node) {
+                    nodes.push(node.unrooted());
+                }
             }
         };
-        NodeList::new_simple_list(window.r(), nodes)
+        NodeList::new_simple_list(window.r(), &nodes)
     }
 
     fn get_html_element(self) -> Option<Temporary<HTMLHtmlElement>> {
@@ -1255,7 +1257,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-getelementsbyname
     fn GetElementsByName(self, name: DOMString) -> Temporary<NodeList> {
-        self.createNodeList(|node| {
+        self.create_node_list(|node| {
             let element: JSRef<Element> = match ElementCast::to_ref(node) {
                 Some(element) => element,
                 None => return false,
