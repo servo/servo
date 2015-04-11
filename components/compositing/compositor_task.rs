@@ -212,6 +212,7 @@ pub enum Msg {
     /// Indicates that the scrolling timeout with the given starting timestamp has happened and a
     /// composite should happen. (See the `scrolling` module.)
     ScrollTimeout(u64),
+    RecompositeAfterScroll,
     /// Sends an unconsumed key event back to the compositor.
     KeyEvent(Key, KeyState, KeyModifiers),
     /// Changes the cursor.
@@ -240,6 +241,7 @@ impl Debug for Msg {
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
             Msg::LoadComplete => write!(f, "LoadComplete"),
             Msg::ScrollTimeout(..) => write!(f, "ScrollTimeout"),
+            Msg::RecompositeAfterScroll => write!(f, "RecompositeAfterScroll"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),
             Msg::SetCursor(..) => write!(f, "SetCursor"),
             Msg::PaintTaskExited(..) => write!(f, "PaintTaskExited"),

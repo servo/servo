@@ -82,6 +82,8 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The device pixel ratio for this window.
     hidpi_factor: ScaleFactor<ScreenPx, DevicePixel, f32>,
 
+    channel_to_self: Box<CompositorProxy + Send>,
+
     /// A handle to the scrolling timer.
     scrolling_timer: ScrollingTimerProxy,
 
@@ -140,7 +142,7 @@ pub struct ScrollEvent {
 enum CompositionRequest {
     NoCompositingNecessary,
     CompositeOnScrollTimeout(u64),
-    CompositeNow,
+    CompositeNow(CompositingReason),
 }
 
 #[derive(Copy, PartialEq, Debug)]
@@ -206,6 +208,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }),
             window_size: window_size,
             hidpi_factor: hidpi_factor,
+            channel_to_self: sender.clone_compositor_proxy(),
             scrolling_timer: ScrollingTimerProxy::new(sender),
             composition_request: CompositionRequest::NoCompositingNecessary,
             pending_scroll_events: Vec::new(),
@@ -295,9 +298,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::SetFrameTree(frame_tree, response_chan, new_constellation_chan),
              ShutdownState::NotShuttingDown) => {
-                self.set_frame_tree(&frame_tree,
-                                    response_chan,
-                                    new_constellation_chan);
+                self.set_frame_tree(&frame_tree, response_chan, new_constellation_chan);
                 self.send_viewport_rects_for_all_layers();
                 self.get_title_for_main_frame();
             }
@@ -323,7 +324,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies),
              ShutdownState::NotShuttingDown) => {
                 for (layer_id, new_layer_buffer_set) in replies.into_iter() {
-                    self.assign_painted_buffers(pipeline_id, layer_id, new_layer_buffer_set, epoch);
+                    self.assign_painted_buffers(pipeline_id,
+                                                layer_id,
+                                                new_layer_buffer_set,
+                                                epoch);
                 }
                 self.remove_outstanding_paint_msg();
             }
@@ -338,7 +342,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
                 // If we're painting in headless mode, schedule a recomposite.
                 if opts::get().output_file.is_some() {
-                    self.composite_if_necessary();
+                    self.composite_if_necessary(CompositingReason::Headless);
                 }
 
                 // Inform the embedder that the load has finished.
@@ -352,11 +356,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 match self.composition_request {
                     CompositionRequest::CompositeOnScrollTimeout(this_timestamp) => {
                         if timestamp == this_timestamp {
-                            self.composition_request = CompositionRequest::CompositeNow
+                            self.composition_request = CompositionRequest::CompositeNow(
+                                CompositingReason::HitScrollTimeout)
                         }
                     }
                     _ => {}
                 }
+            }
+
+            (Msg::RecompositeAfterScroll, ShutdownState::NotShuttingDown) => {
+                self.composition_request =
+                    CompositionRequest::CompositeNow(CompositingReason::ContinueScroll)
             }
 
             (Msg::KeyEvent(key, state, modified), ShutdownState::NotShuttingDown) => {
@@ -390,7 +400,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         // If we're painting in headless mode, schedule a recomposite.
         if opts::get().output_file.is_some() {
-            self.composite_if_necessary()
+            self.composite_if_necessary(CompositingReason::Headless)
         }
     }
 
@@ -417,7 +427,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.get_or_create_pipeline_details(pipeline_id).animations_running = animations_running;
 
         if animations_running {
-            self.composite_if_necessary();
+            self.composite_if_necessary(CompositingReason::Animation);
         }
     }
 
@@ -526,7 +536,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.send_window_size();
 
         self.got_set_frame_tree_message = true;
-        self.composite_if_necessary();
+        self.composite_if_necessary(CompositingReason::NewFrameTree);
     }
 
     fn create_root_layer_for_pipeline_and_rect(&mut self,
@@ -571,7 +581,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         return root_layer;
     }
 
-    fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Option<Rc<Layer<CompositorData>>> {
+    fn find_pipeline_root_layer(&self, pipeline_id: PipelineId)
+                                -> Option<Rc<Layer<CompositorData>>> {
         if !self.pipeline_details.contains_key(&pipeline_id) {
             panic!("Tried to create or update layer for unknown pipeline")
         }
@@ -674,22 +685,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn scroll_layer_to_fragment_point_if_necessary(&mut self,
                                                    pipeline_id: PipelineId,
                                                    layer_id: LayerId) {
-        match self.fragment_point.take() {
-            Some(point) => {
-                if !self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&point)) {
-                    panic!("Compositor: Tried to scroll to fragment with unknown layer.");
-                }
-
-                self.start_scrolling_timer_if_necessary();
+        if let Some(point) = self.fragment_point.take() {
+            if !self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&point)) {
+                panic!("Compositor: Tried to scroll to fragment with unknown layer.");
             }
-            None => {}
+
+            self.start_scrolling_timer_if_necessary();
         }
     }
 
     fn start_scrolling_timer_if_necessary(&mut self) {
         match self.composition_request {
-            CompositionRequest::CompositeNow | CompositionRequest::CompositeOnScrollTimeout(_) =>
-                return,
+            CompositionRequest::CompositeNow(_) |
+            CompositionRequest::CompositeOnScrollTimeout(_) => return,
             CompositionRequest::NoCompositingNecessary => {}
         }
 
@@ -743,7 +751,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // FIXME(pcwalton): This is going to cause problems with inconsistent frames since
         // we only composite one layer at a time.
         assert!(layer.add_buffers(self, new_layer_buffer_set, epoch));
-        self.composite_if_necessary();
+        self.composite_if_necessary(CompositingReason::NewPaintedBuffers);
     }
 
     fn scroll_fragment_to_point(&mut self,
@@ -751,11 +759,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                 layer_id: LayerId,
                                 point: Point2D<f32>) {
         if self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&point)) {
-            if self.send_buffer_requests_for_all_layers() {
-                self.start_scrolling_timer_if_necessary();
-            }
+            self.perform_updates_after_scroll()
         } else {
-            self.fragment_point = Some(point);
+            self.fragment_point = Some(point)
         }
     }
 
@@ -881,7 +887,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             cursor: cursor,
         });
 
-        self.composite_if_necessary();
+        self.composite_if_necessary(CompositingReason::Scroll);
     }
 
     fn process_pending_scroll_events(&mut self) {
@@ -895,12 +901,21 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 layer.handle_scroll_event(delta, cursor);
             }
 
-            self.start_scrolling_timer_if_necessary();
-            self.send_buffer_requests_for_all_layers();
+            self.perform_updates_after_scroll();
         }
 
         if had_scroll_events {
             self.send_viewport_rects_for_all_layers();
+        }
+    }
+
+    /// Performs buffer requests and starts the scrolling timer or schedules a recomposite as
+    /// necessary.
+    fn perform_updates_after_scroll(&mut self) {
+        if self.send_buffer_requests_for_all_layers() {
+            self.start_scrolling_timer_if_necessary();
+        } else {
+            self.channel_to_self.send(Msg::RecompositeAfterScroll);
         }
     }
 
@@ -969,7 +984,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         self.send_viewport_rects_for_all_layers();
-        self.composite_if_necessary();
+        self.composite_if_necessary(CompositingReason::Zoom);
     }
 
     fn on_navigation_window_event(&self, direction: WindowNavigateMsg) {
@@ -1143,19 +1158,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 origin: Point2D::zero(),
                 size: self.window_size.as_f32(),
             };
-            // paint the scene.
-            match self.scene.root {
-                Some(ref layer) => {
-                    match self.context {
-                        None => {
-                            debug!("compositor: not compositing because context not yet set up")
-                        }
-                        Some(context) => {
-                            rendergl::render_scene(layer.clone(), context, &self.scene);
-                        }
+
+            // Paint the scene.
+            if let Some(ref layer) = self.scene.root {
+                match self.context {
+                    Some(context) => rendergl::render_scene(layer.clone(), context, &self.scene),
+                    None => {
+                        debug!("compositor: not compositing because context not yet set up")
                     }
                 }
-                None => {}
             }
         });
 
@@ -1205,9 +1216,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.process_animations();
     }
 
-    fn composite_if_necessary(&mut self) {
+    fn composite_if_necessary(&mut self, reason: CompositingReason) {
         if self.composition_request == CompositionRequest::NoCompositingNecessary {
-            self.composition_request = CompositionRequest::CompositeNow
+            self.composition_request = CompositionRequest::CompositeNow(reason)
         }
     }
 
@@ -1342,8 +1353,11 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         }
 
         match self.composition_request {
-            CompositionRequest::NoCompositingNecessary | CompositionRequest::CompositeOnScrollTimeout(_) => {}
-            CompositionRequest::CompositeNow => self.composite(),
+            CompositionRequest::NoCompositingNecessary |
+            CompositionRequest::CompositeOnScrollTimeout(_) => {}
+            CompositionRequest::CompositeNow(_) => {
+                self.composite()
+            }
         }
 
         self.shutdown_state != ShutdownState::FinishedShuttingDown
@@ -1401,3 +1415,25 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         chan.send(ConstellationMsg::GetPipelineTitle(root_pipeline_id)).unwrap();
     }
 }
+
+/// Why we performed a composite. This is used for debugging.
+#[derive(Copy, Clone, PartialEq)]
+pub enum CompositingReason {
+    /// We hit the scroll timeout and are therefore drawing unrendered content.
+    HitScrollTimeout,
+    /// The window has been scrolled and we're starting the first recomposite.
+    Scroll,
+    /// A scroll has continued and we need to recomposite again.
+    ContinueScroll,
+    /// We're performing the single composite in headless mode.
+    Headless,
+    /// We're performing a composite to run an animation.
+    Animation,
+    /// A new frame tree has been loaded.
+    NewFrameTree,
+    /// New painted buffers have been received.
+    NewPaintedBuffers,
+    /// The window has been zoomed.
+    Zoom,
+}
+

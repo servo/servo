@@ -190,11 +190,11 @@ impl Window {
                     }
                 } else {
                     let dx = 0.0;
-                    let dy = (delta as f32) * 30.0;
+                    let dy = delta as f32;
                     self.scroll_window(dx, dy);
                 }
             },
-            Event::Refresh | Event::Awakened => {
+            Event::Refresh => {
                 self.event_queue.borrow_mut().push(WindowEvent::Refresh);
             }
             _ => {}
@@ -218,7 +218,7 @@ impl Window {
     fn scroll_window(&self, dx: f32, dy: f32) {
         let mouse_pos = self.mouse_pos.get();
         let event = WindowEvent::Scroll(TypedPoint2D(dx as f32, dy as f32),
-                                 TypedPoint2D(mouse_pos.x as i32, mouse_pos.y as i32));
+                                        TypedPoint2D(mouse_pos.x as i32, mouse_pos.y as i32));
         self.event_queue.borrow_mut().push(event);
     }
 
@@ -683,9 +683,8 @@ impl CompositorProxy for GlutinCompositorProxy {
     fn send(&mut self, msg: compositor_task::Msg) {
         // Send a message and kick the OS event loop awake.
         self.sender.send(msg).unwrap();
-        match self.window_proxy {
-            Some(ref window_proxy) => window_proxy.wakeup_event_loop(),
-            None => {}
+        if let Some(ref window_proxy) = self.window_proxy {
+            window_proxy.wakeup_event_loop()
         }
     }
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
