@@ -42,22 +42,27 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
         self.window.root().r().load_url(url);
     }
 
+    // https://url.spec.whatwg.org/#dom-urlutils-href
     fn Href(self) -> USVString {
         UrlHelper::Href(&self.get_url())
     }
 
+    // https://url.spec.whatwg.org/#dom-urlutils-pathname
     fn Pathname(self) -> USVString {
         UrlHelper::Pathname(&self.get_url())
     }
 
+    // https://url.spec.whatwg.org/#URLUtils-stringification-behavior
     fn Stringify(self) -> DOMString {
         self.Href().0
     }
 
+    // https://url.spec.whatwg.org/#dom-urlutils-search
     fn Search(self) -> USVString {
         UrlHelper::Search(&self.get_url())
     }
 
+    // https://url.spec.whatwg.org/#dom-urlutils-hash
     fn Hash(self) -> USVString {
         UrlHelper::Hash(&self.get_url())
     }

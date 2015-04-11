@@ -73,14 +73,17 @@ impl<'a> ImageDataHelpers for JSRef<'a, ImageData> {
 }
 
 impl<'a> ImageDataMethods for JSRef<'a, ImageData> {
+    // https://html.spec.whatwg.org/multipage/#dom-imagedata-width
     fn Width(self) -> u32 {
         self.width
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-imagedata-height
     fn Height(self) -> u32 {
         self.height
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
     fn Data(self, _: *mut JSContext) -> *mut JSObject {
         self.data
     }

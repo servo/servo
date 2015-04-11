@@ -25,6 +25,7 @@ use util::str::DOMString;
 
 use std::borrow::ToOwned;
 
+// https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]
 pub struct DOMImplementation {
     reflector_: Reflector,

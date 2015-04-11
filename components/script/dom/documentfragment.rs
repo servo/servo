@@ -18,6 +18,7 @@ use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::nodelist::NodeList;
 use util::str::DOMString;
 
+// https://dom.spec.whatwg.org/#documentfragment
 #[dom_struct]
 pub struct DocumentFragment {
     node: Node,

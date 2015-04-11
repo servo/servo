@@ -11,10 +11,12 @@ use std::borrow::ToOwned;
 pub struct UrlHelper;
 
 impl UrlHelper {
+    // https://url.spec.whatwg.org/#dom-urlutils-href
     pub fn Href(url: &Url) -> USVString {
         USVString(url.serialize())
     }
 
+    // https://url.spec.whatwg.org/#dom-urlutils-search
     pub fn Search(url: &Url) -> USVString {
         USVString(match url.query {
             None => "".to_owned(),
@@ -23,6 +25,7 @@ impl UrlHelper {
         })
     }
 
+    // https://url.spec.whatwg.org/#dom-urlutils-hash
     pub fn Hash(url: &Url) -> USVString {
         USVString(match url.fragment {
             None => "".to_owned(),
@@ -31,8 +34,8 @@ impl UrlHelper {
         })
     }
 
+    // https://url.spec.whatwg.org/#dom-urlutils-pathname
     pub fn Pathname(url: &Url) -> USVString {
-        // https://url.spec.whatwg.org/#dom-urlutils-pathname
         // FIXME: Url null check is skipped for now
         USVString(match url.scheme_data {
             SchemeData::NonRelative(ref scheme_data) => scheme_data.clone(),
@@ -40,7 +43,7 @@ impl UrlHelper {
         })
     }
 
-    /// https://html.spec.whatwg.org/multipage/#same-origin
+    // https://html.spec.whatwg.org/multipage/#same-origin
     pub fn SameOrigin(urlA: &Url, urlB: &Url) -> bool {
         if urlA.host() != urlB.host() {
             return false
