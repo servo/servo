@@ -6,7 +6,7 @@
  * The origin of this IDL file is
  * http://dom.spec.whatwg.org/#interface-nodefilter
  */
-// Import form http://hg.mozilla.org/mozilla-central/file/a5a720259d79/dom/webidl/NodeFilter.webidl
+// Import from http://hg.mozilla.org/mozilla-central/file/a5a720259d79/dom/webidl/NodeFilter.webidl
 
 callback interface NodeFilter {
   // Constants for acceptNode()
