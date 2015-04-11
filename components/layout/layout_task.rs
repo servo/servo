@@ -66,7 +66,7 @@ use style::computed_values::{filter, mix_blend_mode};
 use style::media_queries::{MediaType, MediaQueryList, Device};
 use style::node::TNode;
 use style::selector_matching::Stylist;
-use style::stylesheets::{Origin, Stylesheet, iter_font_face_rules};
+use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::{Au, MAX_RECT};
@@ -602,9 +602,11 @@ impl LayoutTask {
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
 
         if mq.evaluate(&rw_data.stylist.device) {
-            iter_font_face_rules(&sheet, &rw_data.stylist.device, &|family, src| {
-                self.font_cache_task.add_web_font((*family).clone(), (*src).clone());
-            });
+            for font_face in sheet.effective_rules(&rw_data.stylist.device).font_face() {
+                for source in font_face.sources.iter() {
+                    self.font_cache_task.add_web_font(font_face.family.clone(), source.clone());
+                }
+            }
             rw_data.stylist.add_stylesheet(sheet);
         }
 
