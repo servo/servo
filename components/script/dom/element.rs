@@ -507,7 +507,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
 
     fn remove_inline_style_property(self, property: DOMString) {
         let mut inline_declarations = self.style_attribute.borrow_mut();
-        inline_declarations.as_mut().map(|declarations| {
+        if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let index = declarations.normal
                                     .iter()
                                     .position(|decl| decl.name() == property);
@@ -523,7 +523,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
                 declarations.important.make_unique().remove(index);
                 return;
             }
-        });
+        }
     }
 
     fn update_inline_style(self, property_decl: PropertyDeclaration, style_priority: StylePriority) {
