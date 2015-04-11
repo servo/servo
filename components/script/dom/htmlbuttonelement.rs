@@ -224,12 +224,10 @@ impl<'a> Activatable for JSRef<'a, HTMLButtonElement> {
         // and only then performing actions which may modify the DOM tree
         unsafe {
             node.query_selector_iter("button[type=submit]".to_owned()).unwrap()
-                .filter_map(|t| {
-                    let h: Option<JSRef<HTMLButtonElement>> = HTMLButtonElementCast::to_ref(t);
-                    h
-                })
-                .find(|r| r.form_owner() == owner)
-                .map(|s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
+                .filter_map(HTMLButtonElementCast::to_temporary)
+                .map(|t| t.root())
+                .find(|r| r.r().form_owner() == owner)
+                .map(|s| s.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
         }
     }
 }

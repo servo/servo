@@ -69,8 +69,8 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     let node: JSRef<Node> = NodeCast::from_ref(document.r());
 
     for candidate in node.traverse_preorder() {
-        if candidate.get_unique_id() == node_id {
-            return Temporary::from_rooted(candidate);
+        if candidate.root().r().get_unique_id() == node_id {
+            return candidate;
         }
     }
 

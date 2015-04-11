@@ -20,7 +20,7 @@ use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlinputelement::{HTMLInputElement, HTMLInputElementHelpers};
 use dom::htmlbuttonelement::{HTMLButtonElement};
-use dom::htmltextareaelement::{HTMLTextAreaElement, HTMLTextAreaElementHelpers};
+use dom::htmltextareaelement::HTMLTextAreaElementHelpers;
 use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use hyper::method::Method;
 use hyper::header::ContentType;
@@ -255,16 +255,18 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
         let data_set = node.traverse_preorder().filter_map(|child| {
-            if child.get_disabled_state() {
+            let child = child.root();
+            if child.r().get_disabled_state() {
                 return None;
             }
-            if child.ancestors().any(|a| a.root().r().type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataListElement))) {
+            if child.r().ancestors()
+                        .any(|a| a.root().r().type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataListElement))) {
                 return None;
             }
             // XXXManishearth don't include it if it is a button but not the submitter
-            match child.type_id() {
+            match child.r().type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
-                    let input: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(child).unwrap();
+                    let input = HTMLInputElementCast::to_ref(child.r()).unwrap();
                     let ty = input.Type();
                     let name = input.Name();
                     match ty.as_slice() {
@@ -368,10 +370,10 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
         for child in node.traverse_preorder() {
-            match child.type_id() {
+            let child = child.root();
+            match child.r().type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
-                    let input: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(child)
-                                                                               .unwrap();
+                    let input = HTMLInputElementCast::to_ref(child.r()).unwrap();
                     input.reset()
                 }
                 // TODO HTMLKeygenElement unimplemented
@@ -384,8 +386,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                     {}
                 }
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-                    let textarea: JSRef<HTMLTextAreaElement> = HTMLTextAreaElementCast::to_ref(child)
-                                                                                        .unwrap();
+                    let textarea = HTMLTextAreaElementCast::to_ref(child.r()).unwrap();
                     textarea.reset()
                 }
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {

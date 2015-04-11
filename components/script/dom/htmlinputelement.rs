@@ -346,12 +346,13 @@ fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&
         // There is no DOM tree manipulation here, so this is safe
         let iter = unsafe {
             doc_node.query_selector_iter("input[type=radio]".to_owned()).unwrap()
-                .filter_map(|t| HTMLInputElementCast::to_ref(t))
-                .filter(|&r| in_same_group(r, owner, group) && broadcaster != r)
+                .filter_map(HTMLInputElementCast::to_temporary)
+                .map(|t| t.root())
+                .filter(|r| in_same_group(r.r(), owner, group) && broadcaster != r.r())
         };
         for r in iter {
-            if r.Checked() {
-                r.SetChecked(false);
+            if r.r().Checked() {
+                r.r().SetChecked(false);
             }
         }
     }
@@ -684,12 +685,14 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                     // Safe since we only manipulate the DOM tree after finding an element
                     let checked_member = unsafe {
                         doc_node.query_selector_iter("input[type=radio]".to_owned()).unwrap()
-                                .filter_map(|t| HTMLInputElementCast::to_ref(t))
-                                .filter(|&r| in_same_group(r, owner.r(),
-                                                           group.as_ref().map(|gr| gr.as_slice())))
-                                .find(|r| r.Checked())
+                                .filter_map(HTMLInputElementCast::to_temporary)
+                                .map(|t| t.root())
+                                .find(|r| {
+                                    in_same_group(r.r(), owner.r(), group.as_ref().map(|gr| gr.as_slice())) &&
+                                    r.r().Checked()
+                                })
                     };
-                    cache.checked_radio.assign(checked_member);
+                    cache.checked_radio.assign(checked_member.r());
                     cache.checked_changed = self.checked_changed.get();
                     self.SetChecked(true);
                 }
@@ -815,12 +818,10 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         // and only then performing actions which may modify the DOM tree
         unsafe {
             node.query_selector_iter("input[type=submit]".to_owned()).unwrap()
-                .filter_map(|t| {
-                    let h: Option<JSRef<HTMLInputElement>> = HTMLInputElementCast::to_ref(t);
-                    h
-                })
-                .find(|r| r.form_owner() == owner)
-                .map(|s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
+                .filter_map(HTMLInputElementCast::to_temporary)
+                .map(|t| t.root())
+                .find(|r| r.r().form_owner() == owner)
+                .map(|s| s.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
         }
     }
 }

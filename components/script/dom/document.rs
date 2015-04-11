@@ -344,12 +344,12 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                 let mut head: usize = 0;
                 let root: JSRef<Node> = NodeCast::from_ref(root.r());
                 for node in root.traverse_preorder() {
-                    let elem: Option<JSRef<Element>> = ElementCast::to_ref(node);
-                    if let Some(elem) = elem {
+                    let node = node.root();
+                    if let Some(elem) = ElementCast::to_ref(node.r()) {
                         if (*elements)[head].root().r() == elem {
                             head += 1;
                         }
-                        if new_node == node || head == elements.len() {
+                        if new_node == node.r() || head == elements.len() {
                             break;
                         }
                     }
@@ -380,9 +380,9 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             };
             let doc_node: JSRef<Node> = NodeCast::from_ref(self);
             doc_node.traverse_preorder()
-                    .filter_map(HTMLAnchorElementCast::to_ref)
-                    .find(check_anchor)
-                    .map(|node| Temporary::from_rooted(ElementCast::from_ref(node)))
+                    .filter_map(HTMLAnchorElementCast::to_temporary)
+                    .find(|node| check_anchor(&node.root().r()))
+                    .map(ElementCast::from_temporary)
         })
     }
 
@@ -494,7 +494,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     fn dirty_all_nodes(self) {
         let root: JSRef<Node> = NodeCast::from_ref(self);
         for node in root.traverse_preorder() {
-            node.dirty(NodeDamage::OtherNodeDamage)
+            node.root().r().dirty(NodeDamage::OtherNodeDamage)
         }
     }
 
@@ -829,8 +829,9 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
         let mut nodes = RootedVec::new();
         if let Some(ref root) = document_element {
             for node in NodeCast::from_ref(root.r()).traverse_preorder() {
-                if callback(node) {
-                    nodes.push(node.unrooted());
+                let node = node.root();
+                if callback(node.r()) {
+                    nodes.push(node.r().unrooted());
                 }
             }
         };
@@ -1120,14 +1121,14 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     fn Title(self) -> DOMString {
         let title_element = self.GetDocumentElement().root().and_then(|root| {
-            NodeCast::from_ref(root.get_unsound_ref_forever())
-                .traverse_preorder()
-                .find(|node| node.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)))
-        });
+            NodeCast::from_ref(root.r()).traverse_preorder().find(|node| {
+                node.root().r().type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement))
+            })
+        }).root();
 
         let mut title = String::new();
         if let Some(title_element) = title_element {
-            for child in title_element.children() {
+            for child in title_element.r().children() {
                 let child = child.root();
                 if let Some(text) = TextCast::to_ref(child.r()) {
                     title.push_str(&CharacterDataCast::from_ref(text).data());
@@ -1144,9 +1145,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         self.GetDocumentElement().root().map(|root| {
             let root: JSRef<Node> = NodeCast::from_ref(root.r());
             let head_node = root.traverse_preorder().find(|child| {
-                child.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement))
-            });
-            head_node.map(|head| {
+                child.root().r().type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement))
+            }).root();
+            head_node.r().map(|head| {
                 let title_node = head.children().map(|c| c.root()).find(|child| {
                     child.r().type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement))
                 });
