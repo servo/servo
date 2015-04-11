@@ -4,8 +4,8 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://dom.spec.whatwg.org/#range
- * http://domparsing.spec.whatwg.org/#dom-range-createcontextualfragment
+ * https://dom.spec.whatwg.org/#range
+ * https://domparsing.spec.whatwg.org/#dom-range-createcontextualfragment
  * http://dvcs.w3.org/hg/csswg/raw-file/tip/cssom-view/Overview.html#extensions-to-the-range-interface
  */
 
@@ -72,7 +72,7 @@ interface Range {
   // stringifier;
 };
 
-// http://domparsing.spec.whatwg.org/#dom-range-createcontextualfragment
+// https://domparsing.spec.whatwg.org/#dom-range-createcontextualfragment
 partial interface Range {
   // [Throws]
   // DocumentFragment createContextualFragment(DOMString fragment);

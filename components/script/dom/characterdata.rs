@@ -22,6 +22,7 @@ use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::cmp;
 
+// https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]
 pub struct CharacterData {
     node: Node,
@@ -117,7 +118,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
         Ok(())
     }
 
-    // http://dom.spec.whatwg.org/#dom-childnode-remove
+    // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(self) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.remove_self();

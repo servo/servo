@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://url.spec.whatwg.org/#interface-urlsearchparams
+ * https://url.spec.whatwg.org/#interface-urlsearchparams
  */
 
 [Constructor(optional (DOMString or URLSearchParams) init)]

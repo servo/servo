@@ -4,7 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://xhr.spec.whatwg.org/#interface-xmlhttprequest
+ * https://xhr.spec.whatwg.org/#interface-xmlhttprequest
  *
  * To the extent possible under law, the editor has waived all copyright
  * and related or neighboring rights to this work. In addition, as of 1 May 2014,
@@ -13,7 +13,7 @@
  * http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
  */
 
-// http://fetch.spec.whatwg.org/#fetchbodyinit
+// https://fetch.spec.whatwg.org/#fetchbodyinit
 typedef (/*ArrayBuffer or ArrayBufferView or Blob or FormData or */DOMString or URLSearchParams) FetchBodyInit;
 
 enum XMLHttpRequestResponseType {

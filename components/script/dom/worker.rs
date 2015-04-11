@@ -60,7 +60,7 @@ impl Worker {
                            WorkerBinding::Wrap)
     }
 
-    // http://www.whatwg.org/html/#dom-worker
+    // https://www.whatwg.org/html/#dom-worker
     pub fn Constructor(global: GlobalRef, script_url: DOMString) -> Fallible<Temporary<Worker>> {
         // Step 2-4.
         let worker_url = match UrlParser::new().base_url(&global.get_url())

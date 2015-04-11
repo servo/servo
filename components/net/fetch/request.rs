@@ -10,7 +10,7 @@ use hyper::header::ContentType;
 use fetch::cors_cache::CORSCache;
 use fetch::response::Response;
 
-/// A [request context](http://fetch.spec.whatwg.org/#concept-request-context)
+/// A [request context](https://fetch.spec.whatwg.org/#concept-request-context)
 #[derive(Copy)]
 pub enum Context {
     Audio, Beacon, CSPreport, Download, Embed, Eventsource,
@@ -20,7 +20,7 @@ pub enum Context {
     Style, Track, Video, Worker, XMLHttpRequest, XSLT
 }
 
-/// A [request context frame type](http://fetch.spec.whatwg.org/#concept-request-context-frame-type)
+/// A [request context frame type](https://fetch.spec.whatwg.org/#concept-request-context-frame-type)
 #[derive(Copy)]
 pub enum ContextFrameType {
     Auxiliary,
@@ -29,14 +29,14 @@ pub enum ContextFrameType {
     ContextNone
 }
 
-/// A [referer](http://fetch.spec.whatwg.org/#concept-request-referrer)
+/// A [referer](https://fetch.spec.whatwg.org/#concept-request-referrer)
 pub enum Referer {
     RefererNone,
     Client,
     RefererUrl(Url)
 }
 
-/// A [request mode](http://fetch.spec.whatwg.org/#concept-request-mode)
+/// A [request mode](https://fetch.spec.whatwg.org/#concept-request-mode)
 #[derive(Copy)]
 pub enum RequestMode {
     SameOrigin,
@@ -45,7 +45,7 @@ pub enum RequestMode {
     ForcedPreflightMode
 }
 
-/// Request [credentials mode](http://fetch.spec.whatwg.org/#concept-request-credentials-mode)
+/// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
 #[derive(Copy)]
 pub enum CredentialsMode {
     Omit,
@@ -53,7 +53,7 @@ pub enum CredentialsMode {
     Include
 }
 
-/// [Response tainting](http://fetch.spec.whatwg.org/#concept-request-response-tainting)
+/// [Response tainting](https://fetch.spec.whatwg.org/#concept-request-response-tainting)
 #[derive(Copy)]
 pub enum ResponseTainting {
     Basic,
@@ -61,7 +61,7 @@ pub enum ResponseTainting {
     Opaque
 }
 
-/// A [Request](http://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
+/// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
 pub struct Request {
     pub method: Method,
     pub url: Url,
@@ -117,7 +117,7 @@ impl Request {
         }
     }
 
-    /// [Basic fetch](http://fetch.spec.whatwg.org#basic-fetch)
+    /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
     pub fn basic_fetch(&mut self) -> Response {
         match &*self.url.scheme {
             "about" => match self.url.non_relative_scheme_data() {
@@ -142,7 +142,7 @@ impl Request {
         }
     }
 
-    // [HTTP fetch](http://fetch.spec.whatwg.org#http-fetch)
+    // [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
     pub fn http_fetch(&mut self, _cors_flag: bool, cors_preflight_flag: bool, _authentication_fetch_flag: bool) -> Response {
         let response = Response::new();
         // TODO: Service worker fetch

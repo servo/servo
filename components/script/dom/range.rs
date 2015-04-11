@@ -37,7 +37,7 @@ impl Range {
 }
 
 impl<'a> RangeMethods for JSRef<'a, Range> {
-    /// http://dom.spec.whatwg.org/#dom-range-detach
+    /// https://dom.spec.whatwg.org/#dom-range-detach
     fn Detach(self) {
         // This method intentionally left blank.
     }

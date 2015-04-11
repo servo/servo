@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://www.whatwg.org/html/#workerglobalscope
+// https://www.whatwg.org/html/#workerglobalscope
 //[Exposed=Worker]
 interface WorkerGlobalScope : EventTarget {
   [BinaryName="Self_"] readonly attribute WorkerGlobalScope self;
@@ -15,7 +15,7 @@ interface WorkerGlobalScope : EventTarget {
   //         attribute EventHandler ononline;
 };
 
-// http://www.whatwg.org/html/#WorkerGlobalScope-partial
+// https://www.whatwg.org/html/#WorkerGlobalScope-partial
 //[Exposed=Worker]
 partial interface WorkerGlobalScope { // not obsolete
   [Throws]

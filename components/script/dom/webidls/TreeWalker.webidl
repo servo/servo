@@ -4,7 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://dom.spec.whatwg.org/#interface-treewalker
+ * https://dom.spec.whatwg.org/#interface-treewalker
  */
 
 interface TreeWalker {

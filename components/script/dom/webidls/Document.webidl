@@ -4,11 +4,11 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is:
- * http://dom.spec.whatwg.org/#interface-document
- * http://www.whatwg.org/specs/web-apps/current-work/#the-document-object
+ * https://dom.spec.whatwg.org/#interface-document
+ * https://www.whatwg.org/specs/web-apps/current-work/#the-document-object
  */
 
-/* http://dom.spec.whatwg.org/#interface-document */
+/* https://dom.spec.whatwg.org/#interface-document */
 [Constructor]
 interface Document : Node {
   readonly attribute DOMImplementation implementation;
@@ -66,7 +66,7 @@ Document implements ParentNode;
 
 enum DocumentReadyState { "loading", "interactive", "complete" };
 
-/* http://www.whatwg.org/specs/web-apps/current-work/#the-document-object */
+/* https://www.whatwg.org/specs/web-apps/current-work/#the-document-object */
 partial interface Document {
   // resource metadata management
   readonly attribute DocumentReadyState readyState;

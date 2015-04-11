@@ -48,7 +48,7 @@ impl HTMLFieldSetElement {
 }
 
 impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
-    // http://www.whatwg.org/html/#dom-fieldset-elements
+    // https://www.whatwg.org/html/#dom-fieldset-elements
     fn Elements(self) -> Temporary<HTMLCollection> {
         #[jstraceable]
         struct ElementsFilter;
@@ -70,10 +70,10 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
         ValidityState::new(window.r())
     }
 
-    // http://www.whatwg.org/html/#dom-fieldset-disabled
+    // https://www.whatwg.org/html/#dom-fieldset-disabled
     make_bool_getter!(Disabled);
 
-    // http://www.whatwg.org/html/#dom-fieldset-disabled
+    // https://www.whatwg.org/html/#dom-fieldset-disabled
     make_bool_setter!(SetDisabled, "disabled");
 }
 

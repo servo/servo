@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://www.whatwg.org/html/#htmltablecellelement
+// https://www.whatwg.org/html/#htmltablecellelement
 interface HTMLTableCellElement : HTMLElement {
   //         attribute unsigned long colSpan;
   //         attribute unsigned long rowSpan;
@@ -13,7 +13,7 @@ interface HTMLTableCellElement : HTMLElement {
   // also has obsolete members
 };
 
-// http://www.whatwg.org/html/#HTMLTableCellElement-partial
+// https://www.whatwg.org/html/#HTMLTableCellElement-partial
 partial interface HTMLTableCellElement {
   //         attribute DOMString align;
   //         attribute DOMString axis;

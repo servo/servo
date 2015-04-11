@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://www.whatwg.org/html/#htmlinputelement
+// https://www.whatwg.org/html/#htmlinputelement
 interface HTMLInputElement : HTMLElement {
   //         attribute DOMString accept;
   //         attribute DOMString alt;
@@ -69,7 +69,7 @@ interface HTMLInputElement : HTMLElement {
   // also has obsolete members
 };
 
-// http://www.whatwg.org/html/#HTMLInputElement-partial
+// https://www.whatwg.org/html/#HTMLInputElement-partial
 partial interface HTMLInputElement {
   //         attribute DOMString align;
   //         attribute DOMString useMap;

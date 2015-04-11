@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://dom.spec.whatwg.org/#domtokenlist
+// https://dom.spec.whatwg.org/#domtokenlist
 interface DOMTokenList {
   readonly attribute unsigned long length;
   getter DOMString? item(unsigned long index);

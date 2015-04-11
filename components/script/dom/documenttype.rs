@@ -13,6 +13,7 @@ use util::str::DOMString;
 
 use std::borrow::ToOwned;
 
+// https://dom.spec.whatwg.org/#documenttype
 /// The `DOCTYPE` tag.
 #[dom_struct]
 pub struct DocumentType {
@@ -71,19 +72,22 @@ impl DocumentType {
 }
 
 impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
+    // https://dom.spec.whatwg.org/#dom-documenttype-name
     fn Name(self) -> DOMString {
         self.name.clone()
     }
 
+    // https://dom.spec.whatwg.org/#dom-documenttype-publicid
     fn PublicId(self) -> DOMString {
         self.public_id.clone()
     }
 
+    // https://dom.spec.whatwg.org/#dom-documenttype-systemid
     fn SystemId(self) -> DOMString {
         self.system_id.clone()
     }
 
-    // http://dom.spec.whatwg.org/#dom-childnode-remove
+    // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(self) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.remove_self();
