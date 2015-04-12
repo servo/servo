@@ -12,7 +12,7 @@
 
 use azure::azure_hl::Color;
 use block::BlockFlow;
-use canvas::canvas_paint_task::CanvasMsg::SendPixelContents;
+use canvas::canvas_msg::CanvasMsg::SendPixelContents;
 use context::LayoutContext;
 use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
 use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo};

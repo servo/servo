@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas::canvas_paint_task::CanvasMsg;
+use canvas::canvas_msg::CanvasMsg;
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
@@ -12,6 +12,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRenderingContext;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, LayoutJS, Temporary, Unrooted};
+use dom::bindings::utils::{Reflectable};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
 use dom::element::{Element, AttributeHandlers};
@@ -20,7 +21,7 @@ use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::webglrenderingcontext::WebGLRenderingContext;
+use dom::webglrenderingcontext::{WebGLRenderingContext, LayoutCanvasWebGLRenderingContextHelpers};
 
 use util::str::{DOMString, parse_unsigned_integer};
 
@@ -36,8 +37,8 @@ const DEFAULT_HEIGHT: u32 = 150;
 #[dom_struct]
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
-    context: MutNullableJS<CanvasRenderingContext2D>,
-    context_3d: MutNullableJS<WebGLRenderingContext>,
+    context_2d: MutNullableJS<CanvasRenderingContext2D>,
+    context_webgl: MutNullableJS<WebGLRenderingContext>,
     width: Cell<u32>,
     height: Cell<u32>,
 }
@@ -52,8 +53,8 @@ impl HTMLCanvasElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLCanvasElement, localName, prefix, document),
-            context: Default::default(),
-            context_3d: Default::default(),
+            context_2d: Default::default(),
+            context_webgl: Default::default(),
             width: Cell::new(DEFAULT_WIDTH),
             height: Cell::new(DEFAULT_HEIGHT),
         }
@@ -63,6 +64,18 @@ impl HTMLCanvasElement {
     pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLCanvasElement> {
         let element = HTMLCanvasElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLCanvasElementBinding::Wrap)
+    }
+
+    fn recreate_contexts(&self) {
+        let (w, h) = (self.width.get() as i32, self.height.get() as i32);
+        match self.context_2d.get() {
+            Some(context) => context.root().r().recreate(Size2D(w, h)),
+            None => ()
+        }
+        match self.context_webgl.get() {
+            Some(context) => context.root().r().recreate(Size2D(w, h)),
+            None => ()
+        }
     }
 }
 
@@ -78,8 +91,22 @@ pub trait LayoutHTMLCanvasElementHelpers {
 impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
     #[allow(unsafe_code)]
     unsafe fn get_renderer(&self) -> Option<Sender<CanvasMsg>> {
-        let context = (*self.unsafe_get()).context.get_inner_as_layout();
-        context.map(|cx| cx.get_renderer())
+        let ref canvas = *self.unsafe_get();
+        match canvas.context_2d.get() {
+            Some(_) => {
+              let context = canvas.context_2d.get_inner_as_layout();
+              context.map(|cx| cx.get_renderer())
+            },
+            None => {
+                match canvas.context_webgl.get() {
+                    Some(_) => {
+                      let context = canvas.context_webgl.get_inner_as_layout();
+                      context.map(|cx| cx.get_renderer())
+                    },
+                    None => return None,
+                }
+            }
+        }
     }
 
     #[allow(unsafe_code)]
@@ -106,22 +133,22 @@ impl<'a> HTMLCanvasElementHelpers for JSRef<'a, HTMLCanvasElement> {
     }
 
     fn get_2d_context(self) -> Temporary<CanvasRenderingContext2D> {
-        let context = self.GetContext(String::from_str("2d")).unwrap();
-        match context {
-           CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(context) => {
-              return Temporary::from_unrooted(context);
-           },
-           _ => panic!("Get Context returned the wrong type"),
+        let context = self.GetContext(String::from_str("2d"));
+        match context.unwrap() {
+          CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(context) => {
+              return Temporary::new(context.root().r().unrooted());
+          }
+          _ => panic!("Wrong Context Type: Expected 2d context"),
         }
     }
 
     fn get_webgl_context(self) -> Temporary<WebGLRenderingContext> {
-        let context = self.GetContext(String::from_str("webgl")).unwrap();
-        match context {
-           CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(context) => {
-              return Temporary::from_unrooted(context);
-           },
-           _ => panic!("Get Context returned the wrong type"),
+        let context = self.GetContext(String::from_str("webgl"));
+        match context.unwrap() {
+          CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(context) => {
+              return Temporary::new(context.root().r().unrooted());
+          }
+          _ => panic!("Wrong Context Type: Expected webgl context"),
         }
     }
 
@@ -151,26 +178,27 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
 
     fn GetContext(self, id: DOMString) -> Option<CanvasRenderingContext2DOrWebGLRenderingContext> {
         match id.as_slice() {
-          "2d" => {
-              let context_2d = self.context.or_init(|| {
-                  let window = window_from_node(self).root();
-                  let (w, h) = (self.width.get() as i32, self.height.get() as i32);
-                  CanvasRenderingContext2D::new(GlobalRef::Window(window.r()), self, Size2D(w, h))
-              });
-              return Some(CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(Unrooted::from_temporary(context_2d)));
-          }
-          "webgl" => {
-              let context_3d = self.context_3d.or_init(|| {
-                  let window = window_from_node(self).root();
-                  let (w, h) = (self.width.get() as i32, self.height.get() as i32);
-                  WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, Size2D(w, h))
-              });
-              return Some(CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(Unrooted::from_temporary(context_3d)));
-          }
-          _ => return None
+           "2d" => {
+               let context_2d = self.context_2d.or_init(|| {
+                   let window = window_from_node(self).root();
+                   let (w, h) = (self.width.get() as i32, self.height.get() as i32);
+                   CanvasRenderingContext2D::new(GlobalRef::Window(window.r()), self, Size2D(w, h))
+               });
+               return Some(CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(Unrooted::from_temporary(context_2d)));
+           }
+           "webgl" => {
+               let context_webgl = self.context_webgl.or_init(|| {
+                   let window = window_from_node(self).root();
+                   let (w, h) = (self.width.get() as i32, self.height.get() as i32);
+                   WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, Size2D(w, h))
+               });
+               return Some(CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(Unrooted::from_temporary(context_webgl)));
+           }
+           _ => return None
 
-        }
-     }
+         }
+    }
+
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
@@ -197,18 +225,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
         };
 
         if recreate {
-            let (w, h) = (self.width.get() as i32, self.height.get() as i32);
-            match self.context.get() {
-                Some(context) => context.root().r().recreate(Size2D(w, h)),
-                None => ()
-            }
-        }
-        if recreate {
-            let (w, h) = (self.width.get() as i32, self.height.get() as i32);
-            match self.context_3d.get() {
-                Some(context) => context.root().r().recreate(Size2D(w, h)),
-                None => ()
-            }
+           self.recreate_contexts();
         }
     }
 
@@ -231,16 +248,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
         };
 
         if recreate {
-            let (w, h) = (self.width.get() as i32, self.height.get() as i32);
-            match self.context.get() {
-                Some(context) => context.root().r().recreate(Size2D(w, h)),
-                None => ()
-            }
-            match self.context_3d.get() {
-                Some(context) => context.root().r().recreate(Size2D(w, h)),
-                None => ()
-            }
+            self.recreate_contexts();
         }
     }
+
 }
 
