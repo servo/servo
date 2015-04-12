@@ -58,7 +58,7 @@ Pre-installed Android tools are needed. See wiki for
 
 Using Virtualbox:
 
-If you're running servo on a guest machine, make sure 3D Acceleration is switched off (#5643)
+If you're running servo on a guest machine, make sure 3D Acceleration is switched off ([#5643](https://github.com/servo/servo/issues/5643))
 
 ## The Rust compiler
 
