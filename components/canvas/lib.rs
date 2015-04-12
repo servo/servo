@@ -19,3 +19,4 @@ extern crate skia;
 
 pub mod canvas_paint_task;
 pub mod webgl_paint_task;
+pub mod canvas_msg;

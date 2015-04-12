@@ -6,6 +6,7 @@ use azure::azure::AzFloat;
 use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
 use azure::azure_hl::{ColorPattern, PathBuilder, JoinStyle, CapStyle, DrawSurfaceOptions, Filter};
 use azure::azure_hl::{GradientStop, LinearGradientPattern, RadialGradientPattern, ExtendMode};
+use canvas_msg::CanvasMsg;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -18,36 +19,6 @@ use cssparser::RGBA;
 use std::borrow::ToOwned;
 use std::num::{Float, ToPrimitive};
 use std::sync::mpsc::{channel, Sender};
-
-#[derive(Clone)]
-pub enum CanvasMsg {
-    FillRect(Rect<f32>),
-    ClearRect(Rect<f32>),
-    StrokeRect(Rect<f32>),
-    BeginPath,
-    ClosePath,
-    Fill,
-    Stroke,
-    DrawImage(Vec<u8>, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
-    DrawImageSelf(Size2D<f64>, Rect<f64>, Rect<f64>, bool),
-    MoveTo(Point2D<f32>),
-    LineTo(Point2D<f32>),
-    QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
-    BezierCurveTo(Point2D<f32>, Point2D<f32>, Point2D<f32>),
-    Arc(Point2D<f32>, f32, f32, f32, bool),
-    ArcTo(Point2D<f32>, Point2D<f32>, f32),
-    SetFillStyle(FillOrStrokeStyle),
-    SetStrokeStyle(FillOrStrokeStyle),
-    SetLineWidth(f32),
-    SetMiterLimit(f32),
-    SetTransform(Matrix2D<f32>),
-    SetGlobalAlpha(f32),
-    Recreate(Size2D<i32>),
-    SendPixelContents(Sender<Vec<u8>>),
-    GetImageData(Rect<f64>, Size2D<f64>, Sender<Vec<u8>>),
-    PutImageData(Vec<u8>, Rect<f64>, Option<Rect<f64>>),
-    Close,
-}
 
 impl<'a> CanvasPaintTask<'a> {
     /// It reads image data from the canvas
@@ -255,6 +226,7 @@ impl<'a> CanvasPaintTask<'a> {
                     CanvasMsg::PutImageData(imagedata, image_data_rect, dirty_rect)
                         => painter.put_image_data(imagedata, image_data_rect, dirty_rect),
                     CanvasMsg::Close => break,
+                    _ => panic!("Wrong message sent to Canvas2D task"),
                 }
             }
         });

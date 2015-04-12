@@ -2,22 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas::webgl_paint_task::{WebGLMsg, WebGLPaintTask};
+use canvas::webgl_paint_task::WebGLPaintTask;
+use canvas::canvas_msg::CanvasMsg;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::htmlcanvaselement::{HTMLCanvasElement};
 use dom::node::window_from_node;
 use geom::size::Size2D;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{Sender};
 
 #[dom_struct]
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
     global: GlobalField,
-    renderer: Sender<WebGLMsg>,
+    renderer: Sender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
 }
 
@@ -42,16 +43,37 @@ impl WebGLRenderingContext {
     }
 
     pub fn recreate(&self, size: Size2D<i32>) {
+        self.renderer.send(CanvasMsg::Recreate(size)).unwrap();
     }
 
+}
+
+#[unsafe_destructor]
+impl Drop for WebGLRenderingContext {
+    fn drop(&mut self) {
+        self.renderer.send(CanvasMsg::Close).unwrap();
+    }
 }
 
 impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
     fn Clear(self, mask: u32) -> () {
-        self.renderer.send(WebGLMsg::Clear(mask)).unwrap()
+        self.renderer.send(CanvasMsg::Clear(mask)).unwrap()
     }
 
     fn ClearColor(self, red: f32, green: f32, blue: f32, alpha: f32) -> (){
-        self.renderer.send(WebGLMsg::ClearColor(red, green, blue, alpha)).unwrap()
+        self.renderer.send(CanvasMsg::ClearColor(red, green, blue, alpha)).unwrap()
     }
 }
+
+pub trait LayoutCanvasWebGLRenderingContextHelpers {
+    #[allow(unsafe_code)]
+    unsafe fn get_renderer(&self) -> Sender<CanvasMsg>;
+}
+
+impl LayoutCanvasWebGLRenderingContextHelpers for LayoutJS<WebGLRenderingContext> {
+    #[allow(unsafe_code)]
+    unsafe fn get_renderer(&self) -> Sender<CanvasMsg> {
+        (*self.unsafe_get()).renderer.clone()
+    }
+}
+

@@ -8,15 +8,27 @@
 html, body {
   margin: 0;
 }
+
 </style>
 <body>
 <canvas id="canvas" width="640" height="480"></canvas>
 <script type="text/javascript">
 
 var gl = document.getElementById("canvas").getContext("webgl");
-gl.clearColor(1.0, 0.0, 0.0, 1);
+
+gl.clearColor(0.0, 1.0, 0.0, 1.0);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
+gl.clearColor(1.0, 0.0, 0.0, 1.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+
+gl.clearColor(0.0, 1.0, 1.0, 1.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+
+// var pixels = new Uint8Array(640 * 480 * 4);
+//gl.flush();
+// gl.readPixels(0, 0, 640, 480, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+//console.log(pixels[0]);
 </script>
 </body>
 </html>
