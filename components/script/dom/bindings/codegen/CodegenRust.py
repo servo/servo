@@ -1468,34 +1468,44 @@ class CGImports(CGWrapper):
             return [type]
 
         def isImportable(type):
+            if not type.isType():
+                assert type.isInterface()
+                return not type.isCallback()
             return type.isNonCallbackInterface() and not type.builtin
+
+        def relatedTypesForSignatures(method):
+            types = []
+            for (returnType, arguments) in method.signatures():
+                types += componentTypes(returnType)
+                for arg in arguments:
+                    types += componentTypes(arg.type)
+            return types
+
+        def getIdentifier(t):
+            if t.isType():
+                return t.inner.identifier
+            assert t.isInterface()
+            return t.identifier
 
         types = []
         for d in descriptors:
-            if not d.interface.isCallback():
-                imports += ['dom::types::%s' % d.interface.identifier.name]
+            types += [d.interface]
 
-            methods = d.interface.members + d.interface.namedConstructors
+            members = d.interface.members + d.interface.namedConstructors
             constructor = d.interface.ctor()
             if constructor:
-                methods += [constructor]
+                members += [constructor]
 
-            for m in methods:
+            for m in members:
                 if m.isMethod():
-                    for (returnType, arguments) in m.signatures():
-                        types += componentTypes(returnType)
-                        for arg in arguments:
-                            types += componentTypes(arg.type)
+                    types += relatedTypesForSignatures(m)
                 elif m.isAttr():
                     types += componentTypes(m.type)
 
         for c in callbacks:
-            for (returnType, arguments) in c.signatures():
-                types += componentTypes(returnType)
-                for arg in arguments:
-                    types += componentTypes(arg.type)
+            types += relatedTypesForSignatures(c)
 
-        imports += ['dom::types::%s' % t.inner.identifier.name for t in types if isImportable(t)]
+        imports += ['dom::types::%s' % getIdentifier(t).name for t in types if isImportable(t)]
 
         statements = ['#![allow(%s)]' % ','.join(ignored_warnings)]
         statements.extend('use %s;' % i for i in sorted(set(imports)))
