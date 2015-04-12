@@ -311,7 +311,7 @@ pub struct ScriptTask {
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
     /// The JSContext.
-    js_context: DOMRefCell<Option<Rc<Cx>>>,
+    js_context: Rc<Cx>,
 
     mouse_over_targets: DOMRefCell<Vec<JS<Node>>>
 }
@@ -348,7 +348,6 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
                         let window = page.window_for_script_deallocation();
                         (*window.unsafe_get()).clear_js_context_for_script_deallocation();
                     }
-                    *owner.js_context.borrow_for_script_deallocation() = None;
                 }
             }
             None => (),
@@ -488,7 +487,7 @@ impl ScriptTask {
             devtools_marker_sender: RefCell::new(None),
 
             js_runtime: js_runtime,
-            js_context: DOMRefCell::new(Some(js_context)),
+            js_context: js_context,
             mouse_over_targets: DOMRefCell::new(vec!())
         }
     }
@@ -518,7 +517,7 @@ impl ScriptTask {
     }
 
     pub fn get_cx(&self) -> *mut JSContext {
-        (**self.js_context.borrow().as_ref().unwrap()).ptr
+        self.js_context.ptr
     }
 
     /// Starts the script task. After calling this method, the script task will loop receiving
@@ -965,7 +964,6 @@ impl ScriptTask {
             // To ensure the elements of the DOM tree remain usable (such as the window global),
             // don't free the JS context until all interactions with it are finished.
             shut_down_layout(&page, exit_type);
-            *self.js_context.borrow_mut() = None;
             return true
         }
 
@@ -1008,8 +1006,7 @@ impl ScriptTask {
 
         self.compositor.borrow_mut().set_ready_state(incomplete.pipeline_id, Loading);
 
-        let cx = self.js_context.borrow();
-        let cx = cx.as_ref().unwrap();
+        let cx = &self.js_context;
 
         // Create a new frame tree entry.
         let page = Rc::new(Page::new(incomplete.pipeline_id, final_url.clone()));
