@@ -14,8 +14,6 @@ use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
 
 use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsContext};
-use layers::platform::surface::NativeCompositingGraphicsContext;
-use layers::rendergl;
 use util::task::spawn_named;
 
 use skia::SkiaGrGLNativeContextRef;
@@ -26,32 +24,27 @@ use util::vec::byte_swap;
 pub struct WebGLPaintTask {
     size: Size2D<i32>,
     drawtarget: DrawTarget,
-    native_graphics_context: NativePaintingGraphicsContext,
-    native_compositing_context: NativeCompositingGraphicsContext
+    native_graphics_context: NativePaintingGraphicsContext
 }
 
 impl WebGLPaintTask {
     fn new(size: Size2D<i32>, native_graphics_metadata: &NativeGraphicsMetadata) -> WebGLPaintTask {
         let native_graphics_context = NativePaintingGraphicsContext::from_metadata(&native_graphics_metadata);
-        let native_compositing_context = create_graphics_context(native_graphics_metadata);
-        let draw_target = WebGLPaintTask::create(size, &native_graphics_context, &native_compositing_context);
+        let draw_target = WebGLPaintTask::create(size, &native_graphics_context);
         WebGLPaintTask {
             size: size,
             drawtarget: draw_target,
             native_graphics_context: native_graphics_context,
-            native_compositing_context: native_compositing_context
         }
     }
 
     fn create(size: Size2D<i32>,
-              native_graphics_context: &NativePaintingGraphicsContext,
-              native_compositing_context: &NativeCompositingGraphicsContext) -> DrawTarget {
+              native_graphics_context: &NativePaintingGraphicsContext) -> DrawTarget {
         let graphics_context = native_graphics_context as *const _ as SkiaGrGLNativeContextRef;
         let draw_target = DrawTarget::new_with_fbo(BackendType::Skia,
                                                    graphics_context,
                                                    size,
                                                    SurfaceFormat::B8G8R8A8);
-        Some(rendergl::RenderContext::new(*native_compositing_context, false));
         draw_target
     }
 
@@ -122,8 +115,7 @@ impl WebGLPaintTask {
 
     fn recreate(&mut self, size: Size2D<i32>) {
         self.drawtarget = WebGLPaintTask::create(size,
-                                                 &self.native_graphics_context,
-                                                 &self.native_compositing_context);
+                                                 &self.native_graphics_context);
     }
 
     fn render(&self) {
@@ -149,17 +141,6 @@ impl WebGLPaintTask {
 
     }
 
-}
-
-#[cfg(target_os="linux")]
-pub fn create_graphics_context(native_metadata: &NativeGraphicsMetadata)
-                                -> NativeCompositingGraphicsContext {
-    NativeCompositingGraphicsContext::from_display(native_metadata.display)
-}
-#[cfg(not(target_os="linux"))]
-pub fn create_graphics_context(_: &NativeGraphicsMetadata)
-                                -> NativeCompositingGraphicsContext {
-    NativeCompositingGraphicsContext::new()
 }
 
 pub trait ToAzFloat {
