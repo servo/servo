@@ -79,33 +79,14 @@ pub fn start_sending_sniffed_opt(start_chan: Sender<LoadResponse>, mut metadata:
         let nosniff = false;
         let check_for_apache_bug = false;
 
-        metadata.content_type = match metadata.content_type {
-            Some(ContentType(Mime(toplevel, sublevel, _))) => {
-                let content_type = classifier.classify(nosniff, check_for_apache_bug,
-                                                       &Some((format!("{}", toplevel), format!("{}", sublevel))), &partial_body);
-                match content_type {
-                    Some((tp, sb)) => {
-                        let mime_tp: TopLevel = FromStr::from_str(&tp).unwrap();
-                        let mime_sb: SubLevel = FromStr::from_str(&sb).unwrap();
-                        Some(ContentType(Mime(mime_tp, mime_sb, vec!())))
-                    }
-                    None => None
-                }
-            }
-            None => {
-                let content_type = classifier.classify(nosniff, check_for_apache_bug,
-                                                       &None, &partial_body);
-
-                match content_type {
-                    Some((tp, sb)) => {
-                        let mime_tp: TopLevel = FromStr::from_str(&tp).unwrap();
-                        let mime_sb: SubLevel = FromStr::from_str(&sb).unwrap();
-                        Some(ContentType(Mime(mime_tp, mime_sb, vec!())))
-                    }
-                    None => None
-                }
-            }
-        }
+        let supplied_type = metadata.content_type.map(|ContentType(Mime(toplevel, sublevel, _))| {
+            (format!("{}", toplevel), format!("{}", sublevel))
+        });
+        metadata.content_type = classifier.classify(nosniff, check_for_apache_bug, &supplied_type, &partial_body).map(|(toplevel, sublevel)| {
+            let mime_tp: TopLevel = FromStr::from_str(&toplevel).unwrap();
+            let mime_sb: SubLevel = FromStr::from_str(&sublevel).unwrap();
+            ContentType(Mime(mime_tp, mime_sb, vec!()))
+        });
 
     }
 
