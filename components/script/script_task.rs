@@ -83,7 +83,6 @@ use js;
 use url::Url;
 
 use libc;
-use std::ascii::AsciiExt;
 use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -95,6 +94,9 @@ use std::rc::Rc;
 use std::result::Result;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use time::Tm;
+
+use hyper::header::ContentType;
+use hyper::mime::{Mime, TopLevel, SubLevel};
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 thread_local!(static SCRIPT_TASK_ROOT: RefCell<Option<*const ScriptTask>> = RefCell::new(None));
@@ -1052,10 +1054,7 @@ impl ScriptTask {
         });
 
         let content_type = match response.metadata.content_type {
-            Some((ref t, ref st)) if t.as_slice().eq_ignore_ascii_case("text") &&
-                                    st.as_slice().eq_ignore_ascii_case("plain") => {
-                Some("text/plain".to_owned())
-            }
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => Some("text/plain".to_owned()),
             _ => None
         };
 

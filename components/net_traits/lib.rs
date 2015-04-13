@@ -18,7 +18,7 @@ extern crate stb_image;
 extern crate url;
 extern crate util;
 
-use hyper::header::Headers;
+use hyper::header::{ContentType, Headers};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, Attr};
@@ -108,7 +108,7 @@ pub struct Metadata {
     pub final_url: Url,
 
     /// MIME type / subtype.
-    pub content_type: Option<(String, String)>,
+    pub content_type: Option<(ContentType)>,
 
     /// Character set.
     pub charset: Option<String>,
@@ -137,8 +137,9 @@ impl Metadata {
     pub fn set_content_type(&mut self, content_type: Option<&Mime>) {
         match content_type {
             None => (),
-            Some(&Mime(ref type_, ref subtype, ref parameters)) => {
-                self.content_type = Some((type_.to_string(), subtype.to_string()));
+            Some(mime) => {
+                self.content_type = Some(ContentType(mime.clone()));
+                let &Mime(_, _, ref parameters) = mime;
                 for &(ref k, ref v) in parameters.iter() {
                     if &Attr::Charset == k {
                         self.charset = Some(v.to_string());
