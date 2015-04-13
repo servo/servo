@@ -214,7 +214,7 @@ impl Actor for TimelineActor {
                 **self.is_recording.lock().as_mut().unwrap() = true;
 
                 let (tx, rx) = channel::<TimelineMarker>();
-                let _ = self.script_sender.send(SetTimelineMarkers(self.pipeline, self.marker_types.clone(), tx));
+                self.script_sender.send(SetTimelineMarkers(self.pipeline, self.marker_types.clone(), tx)).unwrap();
 
                 *self.stream.borrow_mut() = stream.try_clone().ok();
 
@@ -254,7 +254,7 @@ impl Actor for TimelineActor {
                 };
 
                 stream.write_json_packet(&msg);
-                let _ = self.script_sender.send(DropTimelineMarkers(self.pipeline, self.marker_types.clone()));
+                self.script_sender.send(DropTimelineMarkers(self.pipeline, self.marker_types.clone())).unwrap();
 
                 if let Some(ref actor_name) = *self.framerate_actor.borrow() {
                     registry.drop_actor_later(actor_name.clone());
