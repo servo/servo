@@ -47,8 +47,8 @@ pub extern "C" fn cef_string_list_value(lt: *mut cef_string_list_t, index: c_int
     unsafe {
         if index < 0 || lt.is_null() { return 0; }
         let v = string_list_to_vec(lt);
-        if index as uint > (*v).len() - 1 { return 0; }
-        let cs = (*v)[index as uint];
+        if index as usize > (*v).len() - 1 { return 0; }
+        let cs = (*v)[index as usize];
         cef_string_utf16_set(mem::transmute((*cs).str), (*cs).length, value, 1)
     }
 }

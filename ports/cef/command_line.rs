@@ -33,8 +33,8 @@ fn command_line_new() -> *mut command_line_t {
 pub fn command_line_init(argc: c_int, argv: *const *const u8) {
     unsafe {
         let mut a: Vec<String> = vec!();
-        for i in 0u..(argc as uint) {
-            let slice = ffi::CStr::from_ptr(*argv.offset(i as int) as *const c_char);
+        for i in 0..(argc as usize) {
+            let slice = ffi::CStr::from_ptr(*argv.offset(i as isize) as *const c_char);
             let s = str::from_utf8(slice.to_bytes()).unwrap();
             a.push(String::from_str(s));
         }

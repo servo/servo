@@ -167,7 +167,7 @@ pub struct _cef_request_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: uint,
+  pub ref_count: usize,
 
   //
   // Extra data. This will only be present for Rust instances!
@@ -581,7 +581,7 @@ pub struct _cef_post_data_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: uint,
+  pub ref_count: usize,
 
   //
   // Extra data. This will only be present for Rust instances!
@@ -853,7 +853,7 @@ pub struct _cef_post_data_element_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: uint,
+  pub ref_count: usize,
 
   //
   // Extra data. This will only be present for Rust instances!

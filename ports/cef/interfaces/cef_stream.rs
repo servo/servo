@@ -90,7 +90,7 @@ pub struct _cef_read_handler_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: uint,
+  pub ref_count: usize,
 
   //
   // Extra data. This will only be present for Rust instances!
@@ -318,7 +318,7 @@ pub struct _cef_stream_reader_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: uint,
+  pub ref_count: usize,
 
   //
   // Extra data. This will only be present for Rust instances!
@@ -583,7 +583,7 @@ pub struct _cef_write_handler_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: uint,
+  pub ref_count: usize,
 
   //
   // Extra data. This will only be present for Rust instances!
@@ -812,7 +812,7 @@ pub struct _cef_stream_writer_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: uint,
+  pub ref_count: usize,
 
   //
   // Extra data. This will only be present for Rust instances!
