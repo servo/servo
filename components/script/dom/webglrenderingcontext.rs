@@ -10,7 +10,6 @@ use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::htmlcanvaselement::{HTMLCanvasElement};
-use dom::node::window_from_node;
 use geom::size::Size2D;
 use std::sync::mpsc::{Sender};
 
@@ -25,13 +24,10 @@ pub struct WebGLRenderingContext {
 impl WebGLRenderingContext {
     fn new_inherited(global: GlobalRef, canvas: JSRef<HTMLCanvasElement>, size: Size2D<i32>)
                      -> WebGLRenderingContext {
-        let window = window_from_node(canvas).root();
-        let window = window.r();
-        let graphics_metadata = window.compositor().get_graphics_metadata().unwrap();
         WebGLRenderingContext {
             reflector_: Reflector::new(),
             global: GlobalField::from_rooted(&global),
-            renderer: WebGLPaintTask::start(size, graphics_metadata),
+            renderer: WebGLPaintTask::start(size),
             canvas: JS::from_rooted(canvas),
         }
     }
