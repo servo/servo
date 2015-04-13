@@ -61,9 +61,9 @@ pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, na
         let opt = String::from_utf16(slice).unwrap();
             //debug!("opt: {}", opt);
         for s in (*cl).argv.iter() {
-            let o = s.as_slice().trim_left_matches('-');
+            let o = s.trim_left_matches('-');
             //debug!("arg: {}", o);
-            if o.as_slice().starts_with(opt.as_slice()) {
+            if o.starts_with(&opt) {
                 let mut string = mem::uninitialized();
                 let arg = o[opt.len() + 1..].as_bytes();
                 let c_str = ffi::CString::new(arg).unwrap();
