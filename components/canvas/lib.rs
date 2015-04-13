@@ -13,7 +13,7 @@ extern crate gfx;
 extern crate util;
 extern crate gleam;
 extern crate msg;
-extern crate glutin;
+extern crate offscreen_gl_context;
 
 pub mod canvas_paint_task;
 pub mod webgl_paint_task;
