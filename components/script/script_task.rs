@@ -24,7 +24,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLIFrameElementCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, RootedReference};
+use dom::bindings::js::{JS, JSRef, OptionalRootable, RootedReference};
 use dom::bindings::js::{RootCollection, RootCollectionPtr};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
@@ -811,9 +811,8 @@ impl ScriptTask {
             let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
 
             doc.traverse_preorder()
-               .filter_map(HTMLIFrameElementCast::to_ref)
-               .find(|node| node.subpage_id() == Some(subpage_id))
-               .map(Temporary::from_rooted)
+               .filter_map(HTMLIFrameElementCast::to_temporary)
+               .find(|node| node.root().r().subpage_id() == Some(subpage_id))
         }).root();
 
         if let Some(frame_element) = frame_element {
@@ -832,9 +831,8 @@ impl ScriptTask {
             let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
 
             doc.traverse_preorder()
-               .filter_map(HTMLIFrameElementCast::to_ref)
-               .find(|node| node.subpage_id() == Some(old_subpage_id))
-               .map(Temporary::from_rooted)
+               .filter_map(HTMLIFrameElementCast::to_temporary)
+               .find(|node| node.root().r().subpage_id() == Some(old_subpage_id))
         }).root();
 
         frame_element.unwrap().r().update_subpage_id(new_subpage_id);
@@ -952,10 +950,9 @@ impl ScriptTask {
                     let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
 
                     doc.traverse_preorder()
-                       .filter_map(HTMLIFrameElementCast::to_ref)
-                       .find(|node| node.subpage_id() == Some(subpage_id))
-                       .map(ElementCast::from_ref)
-                       .map(Temporary::from_rooted)
+                       .filter_map(HTMLIFrameElementCast::to_temporary)
+                       .find(|node| node.root().r().subpage_id() == Some(subpage_id))
+                       .map(ElementCast::from_temporary)
                 })
             })
         }).root();
@@ -1218,9 +1215,8 @@ impl ScriptTask {
                     let doc: JSRef<Node> = NodeCast::from_ref(doc.r());
 
                     doc.traverse_preorder()
-                       .filter_map(HTMLIFrameElementCast::to_ref)
-                       .find(|node| node.subpage_id() == Some(subpage_id))
-                       .map(Temporary::from_rooted)
+                       .filter_map(HTMLIFrameElementCast::to_temporary)
+                       .find(|node| node.root().r().subpage_id() == Some(subpage_id))
                 }).root();
                 if let Some(iframe) = iframe.r() {
                     iframe.navigate_child_browsing_context(load_data.url);

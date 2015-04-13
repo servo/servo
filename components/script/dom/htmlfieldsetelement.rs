@@ -104,13 +104,14 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
                     }
 
                     for descendant in child.r().traverse_preorder() {
-                        match descendant.type_id() {
+                        let descendant = descendant.root();
+                        match descendant.r().type_id() {
                             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
                             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
                             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
                             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-                                descendant.set_disabled_state(true);
-                                descendant.set_enabled_state(false);
+                                descendant.r().set_disabled_state(true);
+                                descendant.r().set_enabled_state(false);
                             },
                             _ => ()
                         }
@@ -142,13 +143,14 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
                     }
 
                     for descendant in child.r().traverse_preorder() {
-                        match descendant.type_id() {
+                        let descendant = descendant.root();
+                        match descendant.r().type_id() {
                             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
                             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
                             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
                             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-                                descendant.check_disabled_attribute();
-                                descendant.check_ancestors_disabled_state_for_form_control();
+                                descendant.r().check_disabled_attribute();
+                                descendant.r().check_ancestors_disabled_state_for_form_control();
                             },
                             _ => ()
                         }

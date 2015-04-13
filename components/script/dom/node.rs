@@ -290,7 +290,8 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         let is_in_doc = self.is_in_doc();
 
         for node in self.traverse_preorder() {
-            vtable_for(&node).bind_to_tree(is_in_doc);
+            let node = node.root();
+            vtable_for(&node.r()).bind_to_tree(is_in_doc);
         }
 
         let parent = self.parent_node().root();
@@ -302,7 +303,8 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     fn node_removed(self, parent_in_doc: bool) {
         assert!(self.parent_node().is_none());
         for node in self.traverse_preorder() {
-            vtable_for(&node).unbind_from_tree(parent_in_doc);
+            let node = node.root();
+            vtable_for(&node.r()).unbind_from_tree(parent_in_doc);
         }
         self.layout_data.dispose();
     }
@@ -381,14 +383,15 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     }
 }
 
-pub struct QuerySelectorIterator<'a> {
+pub struct QuerySelectorIterator {
     selectors: Vec<Selector>,
-    iterator: TreeIterator<'a>,
+    iterator: TreeIterator,
 }
 
-impl<'a> QuerySelectorIterator<'a> {
+impl<'a> QuerySelectorIterator {
     #[allow(unsafe_code)]
-    unsafe fn new(iter: TreeIterator<'a>, selectors: Vec<Selector>) -> QuerySelectorIterator<'a> {
+    unsafe fn new(iter: TreeIterator, selectors: Vec<Selector>)
+                  -> QuerySelectorIterator {
         QuerySelectorIterator {
             selectors: selectors,
             iterator: iter,
@@ -396,18 +399,21 @@ impl<'a> QuerySelectorIterator<'a> {
     }
 }
 
-impl<'a> Iterator for QuerySelectorIterator<'a> {
-    type Item = JSRef<'a, Node>;
+impl<'a> Iterator for QuerySelectorIterator {
+    type Item = Temporary<Node>;
 
-    fn next(&mut self) -> Option<JSRef<'a, Node>> {
+    fn next(&mut self) -> Option<Temporary<Node>> {
         let selectors = &self.selectors;
         // TODO(cgaebel): Is it worth it to build a bloom filter here
         // (instead of passing `None`)? Probably.
-        self.iterator.find(|node| node.is_element() && matches(selectors, node, &mut None))
+        self.iterator.find(|node| {
+            let node = node.root();
+            node.r().is_element() && matches(selectors, &node.r(), &mut None)
+        })
     }
 }
 
-pub trait NodeHelpers<'a> {
+pub trait NodeHelpers {
     fn ancestors(self) -> AncestorIterator;
     fn inclusive_ancestors(self) -> AncestorIterator;
     fn children(self) -> NodeSiblingIterator;
@@ -484,7 +490,7 @@ pub trait NodeHelpers<'a> {
     fn dump_indent(self, indent: u32);
     fn debug_str(self) -> String;
 
-    fn traverse_preorder(self) -> TreeIterator<'a>;
+    fn traverse_preorder(self) -> TreeIterator;
     fn inclusively_following_siblings(self) -> NodeSiblingIterator;
     fn inclusively_preceding_siblings(self) -> ReverseSiblingIterator;
 
@@ -495,7 +501,7 @@ pub trait NodeHelpers<'a> {
 
     fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
     #[allow(unsafe_code)]
-    unsafe fn query_selector_iter(self, selectors: DOMString) -> Fallible<QuerySelectorIterator<'a>>;
+    unsafe fn query_selector_iter(self, selectors: DOMString) -> Fallible<QuerySelectorIterator>;
     fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
 
     fn remove_self(self);
@@ -508,7 +514,7 @@ pub trait NodeHelpers<'a> {
     fn parse_fragment(self, markup: DOMString) -> Fallible<Temporary<DocumentFragment>>;
 }
 
-impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
+impl<'a> NodeHelpers for JSRef<'a, Node> {
     fn teardown(self) {
         self.layout_data.dispose();
         for kid in self.children() {
@@ -745,7 +751,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     /// Iterates over this node and all its descendants, in preorder.
-    fn traverse_preorder(self) -> TreeIterator<'a> {
+    fn traverse_preorder(self) -> TreeIterator {
         TreeIterator::new(self)
     }
 
@@ -806,10 +812,9 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             Ok(ref selectors) => {
                 let root = self.ancestors().last().root();
                 let root = root.r().unwrap_or(self.clone());
-                Ok(root.traverse_preorder()
-                       .filter_map(ElementCast::to_ref)
-                       .find(|element| matches(selectors, &NodeCast::from_ref(*element), &mut None))
-                       .map(Temporary::from_rooted))
+                Ok(root.traverse_preorder().filter_map(ElementCast::to_temporary).find(|element| {
+                    matches(selectors, &NodeCast::from_ref(element.root().r()), &mut None)
+                }))
             }
         }
     }
@@ -819,7 +824,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     /// the iterator may be invalidated
     #[allow(unsafe_code)]
     unsafe fn query_selector_iter(self, selectors: DOMString)
-                                  -> Fallible<QuerySelectorIterator<'a>> {
+                                  -> Fallible<QuerySelectorIterator> {
         // Step 1.
         let nodes;
         let root = self.ancestors().last().root()
@@ -839,13 +844,12 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     #[allow(unsafe_code)]
     fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
-        // Step 1.
-        unsafe {
-            self.query_selector_iter(selectors).map(|iter| {
-                let window = window_from_node(self).root();
-                NodeList::new_simple_list(window.r(), iter.collect())
-            })
+        let mut nodes = RootedVec::new();
+        for node in try!(unsafe { self.query_selector_iter(selectors) }) {
+            nodes.push(JS::from_rooted(node));
         }
+        let window = window_from_node(self).root();
+        Ok(NodeList::new_simple_list(window.r(), &nodes))
     }
 
 
@@ -1179,30 +1183,48 @@ impl Iterator for AncestorIterator {
     }
 }
 
-pub struct TreeIterator<'a> {
-    stack: Vec<JSRef<'a, Node>>,
+pub struct TreeIterator {
+    current: Option<Temporary<Node>>,
+    depth: usize,
 }
 
-impl<'a> TreeIterator<'a> {
-    fn new(root: JSRef<'a, Node>) -> TreeIterator<'a> {
-        let mut stack = vec!();
-        stack.push(root);
-
+impl<'a> TreeIterator {
+    fn new(root: JSRef<'a, Node>) -> TreeIterator {
         TreeIterator {
-            stack: stack,
+            current: Some(Temporary::from_rooted(root)),
+            depth: 0,
         }
     }
 }
 
-impl<'a> Iterator for TreeIterator<'a> {
-    type Item = JSRef<'a, Node>;
+impl Iterator for TreeIterator {
+    type Item = Temporary<Node>;
 
-    fn next(&mut self) -> Option<JSRef<'a, Node>> {
-        let ret = self.stack.pop();
-        ret.map(|node| {
-            self.stack.extend(node.rev_children().map(|c| c.root().get_unsound_ref_forever()))
-        });
-        ret
+    // https://dom.spec.whatwg.org/#concept-tree-order
+    fn next(&mut self) -> Option<Temporary<Node>> {
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        };
+        let node = current.root();
+        if let Some(first_child) = node.r().first_child() {
+            self.current = Some(first_child);
+            self.depth += 1;
+            return Some(current);
+        };
+        for ancestor in node.r().inclusive_ancestors() {
+            if self.depth == 0 {
+                break;
+            }
+            if let Some(next_sibling) = ancestor.root().r().next_sibling() {
+                self.current = Some(next_sibling);
+                return Some(current);
+            }
+            self.depth -= 1;
+        }
+        debug_assert!(self.depth == 0);
+        self.current = None;
+        Some(current)
     }
 }
 
@@ -1284,7 +1306,7 @@ impl Node {
         let node_doc = document_from_node(node).root();
         if node_doc.r() != document {
             for descendant in node.traverse_preorder() {
-                descendant.set_owner_doc(document);
+                descendant.root().r().set_owner_doc(document);
             }
         }
 
@@ -1439,13 +1461,14 @@ impl Node {
             parent.add_child(node, child);
             let is_in_doc = parent.is_in_doc();
             for kid in node.traverse_preorder() {
-                let mut flags = kid.flags.get();
+                let kid = kid.root();
+                let mut flags = kid.r().flags.get();
                 if is_in_doc {
                     flags.insert(IS_IN_DOC);
                 } else {
                     flags.remove(IS_IN_DOC);
                 }
-                kid.flags.set(flags);
+                kid.r().flags.set(flags);
             }
         }
 
@@ -1848,8 +1871,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         match self.type_id {
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => {
-                let content = Node::collect_text_contents(
-                    self.traverse_preorder().map(Temporary::from_rooted));
+                let content = Node::collect_text_contents(self.traverse_preorder());
                 Some(content)
             }
             NodeTypeId::Comment |
@@ -2233,11 +2255,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
             let lastself = lastself.root();
             for child in lastself.r().traverse_preorder() {
-                if child == other {
+                let child = child.root();
+                if child.r() == other {
                     // step 6.
                     return NodeConstants::DOCUMENT_POSITION_PRECEDING;
                 }
-                if child == self {
+                if child.r() == self {
                     // step 7.
                     return NodeConstants::DOCUMENT_POSITION_FOLLOWING;
                 }
@@ -2308,7 +2331,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn parent_node(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn parent_node<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
+        fn parent_node<'a, T: NodeHelpers>(this: T) -> Option<Temporary<Node>> {
             this.parent_node()
         }
 
@@ -2318,7 +2341,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn first_child(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn first_child<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
+        fn first_child<'a, T: NodeHelpers>(this: T) -> Option<Temporary<Node>> {
             this.first_child()
         }
 
@@ -2328,7 +2351,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn last_child(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn last_child<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
+        fn last_child<'a, T: NodeHelpers>(this: T) -> Option<Temporary<Node>> {
             this.last_child()
         }
 
@@ -2338,7 +2361,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn prev_sibling(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn prev_sibling<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
+        fn prev_sibling<'a, T: NodeHelpers>(this: T) -> Option<Temporary<Node>> {
             this.prev_sibling()
         }
 
@@ -2348,7 +2371,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn next_sibling(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn next_sibling<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
+        fn next_sibling<'a, T: NodeHelpers>(this: T) -> Option<Temporary<Node>> {
             this.next_sibling()
         }
 
@@ -2358,7 +2381,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn is_document(self) -> bool {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn is_document<'a, T: NodeHelpers<'a>>(this: T) -> bool {
+        fn is_document<'a, T: NodeHelpers>(this: T) -> bool {
             this.is_document()
         }
 
@@ -2368,7 +2391,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn is_element(self) -> bool {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn is_element<'a, T: NodeHelpers<'a>>(this: T) -> bool {
+        fn is_element<'a, T: NodeHelpers>(this: T) -> bool {
             this.is_element()
         }
 
