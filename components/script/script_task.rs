@@ -1349,7 +1349,7 @@ impl ScriptTask {
     fn emit_timeline_marker(&self, marker: TimelineMarker) {
         let sender = self.devtools_marker_sender.borrow();
         let sender = sender.as_ref().expect("There is no marker sender");
-        sender.send(marker);
+        let _ = sender.send(marker);
     }
 
     pub fn set_devtools_timeline_marker(&self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>) {
