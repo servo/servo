@@ -17,13 +17,13 @@
 //            //
 //            // Note that if the method returns unit, you must write `-> ()` explicitly. This is
 //            // due to limitations of Rust's macro system.
-//            fn foo(&this, a: int, b: *mut cef_other_thing_t) -> () {
-//                // Inside here, `a` will have type `int`, and `b` will have the type
+//            fn foo(&this, a: isize, b: *mut cef_other_thing_t) -> () {
+//                // Inside here, `a` will have type `isize`, and `b` will have the type
 //                // `CefOtherThing` -- i.e. the Rust-wrapped version of `cef_other_thing_t`.
 //                ...
 //            }
 //
-//            fn bar(&this, a: int) -> *mut cef_other_thing_t {
+//            fn bar(&this, a: isize) -> *mut cef_other_thing_t {
 //                // Return types are automatically unwrapped from the Rust types (e.g.
 //                // `CefOtherThing`) into the corresponding C types (e.g. `*mut
 //                // cef_other_thing_t`).
@@ -66,7 +66,7 @@ macro_rules! full_cef_class_impl(
                     // Calculate the offset of the reference count. This is the size of the
                     // structure.
                     let null: *const $c_interface_name = ::std::ptr::null();
-                    let offset: *const uint = &(*null).ref_count;
+                    let offset: *const usize = &(*null).ref_count;
                     let size = (offset as ::libc::size_t) - (null as ::libc::size_t);
                     $interface_name::from_c_object_addref(
                         ::eutil::create_cef_object::<$c_interface_name,$class_name>(size))

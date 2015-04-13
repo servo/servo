@@ -185,7 +185,7 @@ impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
         unsafe {
             let ptr: *mut c_ushort = mem::transmute(libc::malloc(((buffer.len() + 1) * 2) as u64));
             ptr::copy(ptr, mem::transmute(buffer.as_ptr()), buffer.len());
-            *ptr.offset(buffer.len() as int) = 0;
+            *ptr.offset(buffer.len() as isize) = 0;
 
             // FIXME(pcwalton): This leaks!! We should instead have the caller pass some scratch
             // stack space to create the object in. What a botch.
@@ -248,9 +248,9 @@ impl<'a> CefWrap<cef_string_userfree_t> for String {
             let buffer = libc::malloc((mem::size_of::<c_ushort>() as libc::size_t) *
                                       ((utf16_chars.len() + 1) as libc::size_t)) as *mut u16;
             for (i, ch) in utf16_chars.iter().enumerate() {
-                *buffer.offset(i as int) = *ch
+                *buffer.offset(i as isize) = *ch
             }
-            *buffer.offset(utf16_chars.len() as int) = 0;
+            *buffer.offset(utf16_chars.len() as isize) = 0;
 
             boxed_string = libc::malloc(mem::size_of::<cef_string_utf16>() as libc::size_t) as
                 *mut cef_string_utf16;

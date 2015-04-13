@@ -40,7 +40,7 @@ pub extern "C" fn cef_string_multimap_find_count(smm: *mut cef_string_multimap_t
     unsafe {
         if smm.is_null() { return 0; }
         let v = string_multimap_to_treemap(smm);
-        slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
+        slice_to_str((*key).str as *const u8, (*key).length as usize, |result| {
             match (*v).get(&String::from_str(result)) {
                 Some(s) =>  s.len() as c_int,
                 None => 0
@@ -54,7 +54,7 @@ pub extern "C" fn cef_string_multimap_append(smm: *mut cef_string_multimap_t, ke
     unsafe {
         if smm.is_null() { return 0; }
         let v = string_multimap_to_treemap(smm);
-        slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
+        slice_to_str((*key).str as *const u8, (*key).length as usize, |result| {
             let s = String::from_str(result);
             let csv = cef_string_userfree_utf16_alloc();
             cef_string_utf16_set((*value).str as *const u16, (*value).length, csv, 1);
@@ -72,13 +72,13 @@ pub extern "C" fn cef_string_multimap_enumerate(smm: *mut cef_string_multimap_t,
     unsafe {
         if smm.is_null() { return 0; }
         let v = string_multimap_to_treemap(smm);
-        slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
+        slice_to_str((*key).str as *const u8, (*key).length as usize, |result| {
             match (*v).get(&String::from_str(result)) {
                 Some(s) => {
-                    if (*s).len() <= index as uint {
+                    if (*s).len() <= index as usize {
                         return 0;
                     }
-                    let cs = (*s)[index as uint];
+                    let cs = (*s)[index as usize];
                     cef_string_utf16_set((*cs).str as *const u16, (*cs).length, value, 1)
                 }
                 None => 0
@@ -92,7 +92,7 @@ pub extern "C" fn cef_string_multimap_key(smm: *mut cef_string_multimap_t, index
     unsafe {
         if index < 0 || smm.is_null() { return 0; }
         let v = string_multimap_to_treemap(smm);
-        let mut rem = index as uint;
+        let mut rem = index as usize;
 
         for (key, val) in (*v).iter() {
             if rem < (*val).len() {
@@ -113,11 +113,11 @@ pub extern "C" fn cef_string_multimap_value(smm: *mut cef_string_multimap_t, ind
     unsafe {
         if index < 0 || smm.is_null() { return 0; }
         let v = string_multimap_to_treemap(smm);
-        let mut rem = index as uint;
+        let mut rem = index as usize;
 
         for val in (*v).values() {
             if rem < (*val).len() {
-                let cs = (*val)[rem as uint];
+                let cs = (*val)[rem as usize];
                 return cef_string_utf16_set((*cs).str as *const u16, (*cs).length, value, 1);
             } else {
                 rem -= (*val).len();

@@ -65,7 +65,7 @@ pub struct _cef_request_context_handler_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: uint,
+  pub ref_count: usize,
 
   //
   // Extra data. This will only be present for Rust instances!

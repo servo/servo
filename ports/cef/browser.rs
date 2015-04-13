@@ -86,7 +86,7 @@ pub struct ServoCefBrowser {
     /// Whether the on-created callback has fired yet.
     pub callback_executed: Cell<bool>,
 
-    id: int,
+    id: isize,
     servo_browser: RefCell<ServoBrowser>,
     message_queue: RefCell<Vec<WindowEvent>>,
 }
