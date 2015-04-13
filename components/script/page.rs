@@ -76,7 +76,7 @@ impl Page {
         Temporary::new(self.frame.borrow().as_ref().unwrap().window.clone())
     }
 
-    pub fn window_for_script_dealloation(&self) -> Unrooted<Window> {
+    pub fn window_for_script_deallocation(&self) -> Unrooted<Window> {
         Unrooted::from_js(self.frame.borrow().as_ref().unwrap().window)
     }
 
