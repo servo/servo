@@ -1017,7 +1017,7 @@ impl ScriptTask {
                     match self.page {
                         PageToRemove::Root => *self.script_task.page.borrow_mut() = None,
                         PageToRemove::Child(id) => {
-                            let _ = self.script_task.root_page().remove(id);
+                            self.script_task.root_page().remove(id).unwrap();
                         }
                     }
                 }
@@ -1349,7 +1349,7 @@ impl ScriptTask {
     fn emit_timeline_marker(&self, marker: TimelineMarker) {
         let sender = self.devtools_marker_sender.borrow();
         let sender = sender.as_ref().expect("There is no marker sender");
-        sender.send(marker);
+        sender.send(marker).unwrap();
     }
 
     pub fn set_devtools_timeline_marker(&self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>) {
