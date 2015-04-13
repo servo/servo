@@ -303,7 +303,7 @@ impl ImageCache {
                         load_from_memory(&data)
                     });
 
-                    let image = image.map(|image| Arc::new(image));
+                    let image = image.map(Arc::new);
                     to_cache.send(Msg::StoreImage(url.clone(), image)).unwrap();
                     debug!("image_cache_task: ended image decode for {}", url.serialize());
                 });
