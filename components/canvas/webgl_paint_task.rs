@@ -22,21 +22,25 @@ pub struct WebGLPaintTask {
     gl_context: GLContext
 }
 
+// This allows trying to create the PaintTask
+// before creating the thread
+unsafe impl Send for WebGLPaintTask {}
+
 impl WebGLPaintTask {
-    fn new(size: Size2D<i32>) -> WebGLPaintTask {
+    fn new(size: Size2D<i32>) -> Result<WebGLPaintTask, &'static str> {
         // TODO(ecoal95): Handle error nicely instead of `unwrap` (make getContext return null)
         //   Maybe allowing Send on WebGLPaintTask?
-        let context = GLContext::create_offscreen(size).unwrap();
-        WebGLPaintTask {
+        let context = try!(GLContext::create_offscreen(size));
+        Ok(WebGLPaintTask {
             size: size,
             gl_context: context
-        }
+        })
     }
 
-    pub fn start(size: Size2D<i32>) -> Sender<CanvasMsg> {
+    pub fn start(size: Size2D<i32>) -> Result<Sender<CanvasMsg>, &'static str> {
         let (chan, port) = channel::<CanvasMsg>();
+        let mut painter = try!(WebGLPaintTask::new(size));
         spawn_named("WebGLTask".to_owned(), move || {
-            let mut painter = WebGLPaintTask::new(size);
             painter.init();
             loop {
                 match port.recv().unwrap() {
@@ -57,7 +61,8 @@ impl WebGLPaintTask {
                 }
             }
         });
-        chan
+
+        Ok(chan)
     }
 
     fn clear(&self, mask: u32) {
