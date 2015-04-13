@@ -279,7 +279,7 @@ impl WindowMethods for Window {
                     None => visitor.visit(&[]),
                     Some(string) => {
                         let utf16_chars: Vec<u16> = Utf16Encoder::new(string.chars()).collect();
-                        visitor.visit(utf16_chars.as_slice())
+                        visitor.visit(&utf16_chars)
                     }
                 }
             }
