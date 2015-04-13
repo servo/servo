@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{EvaluateJSReply, NodeInfo, Modification};
+use devtools_traits::{EvaluateJSReply, NodeInfo, Modification, TimelineMarker, TimelineMarkerType};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
@@ -16,7 +16,7 @@ use dom::element::Element;
 use dom::document::DocumentHelpers;
 use page::Page;
 use msg::constellation_msg::PipelineId;
-use script_task::get_page;
+use script_task::{get_page, ScriptTask};
 
 use std::sync::mpsc::Sender;
 use std::rc::Rc;
@@ -113,4 +113,37 @@ pub fn handle_wants_live_notifications(page: &Rc<Page>, pipeline_id: PipelineId,
     let page = get_page(&*page, pipeline_id);
     let window = page.window().root();
     window.r().set_devtools_wants_updates(send_notifications);
+}
+
+pub fn handle_set_timeline_markers(page: &Rc<Page>,
+                                   script_task: &ScriptTask,
+                                   marker_types: Vec<TimelineMarkerType>,
+                                   reply: Sender<TimelineMarker>) {
+    for marker_type in &marker_types {
+        match *marker_type {
+            TimelineMarkerType::Reflow => {
+                let window = page.window().root();
+                window.r().set_devtools_timeline_marker(TimelineMarkerType::Reflow, reply.clone());
+            }
+            TimelineMarkerType::DOMEvent => {
+                script_task.set_devtools_timeline_marker(TimelineMarkerType::DOMEvent, reply.clone());
+            }
+        }
+    }
+}
+
+pub fn handle_drop_timeline_markers(page: &Rc<Page>,
+                                    script_task: &ScriptTask,
+                                    marker_types: Vec<TimelineMarkerType>) {
+    let window = page.window().root();
+    for marker_type in &marker_types {
+        match *marker_type {
+            TimelineMarkerType::Reflow => {
+                window.r().drop_devtools_timeline_markers();
+            }
+            TimelineMarkerType::DOMEvent => {
+                script_task.drop_devtools_timeline_markers();
+            }
+        }
+    }
 }

@@ -34,7 +34,7 @@ use script_task::ScriptMsg;
 use script_traits::ScriptControlChan;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
-use devtools_traits::DevtoolsControlChan;
+use devtools_traits::{DevtoolsControlChan, TimelineMarker, TimelineMarkerType, TracingMetadata};
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
 use net_traits::ResourceTask;
@@ -54,13 +54,15 @@ use url::{Url, UrlParser};
 
 use libc;
 use rustc_serialize::base64::{FromBase64, ToBase64, STANDARD};
-use std::cell::{Cell, Ref, RefMut};
+use std::borrow::ToOwned;
+use std::cell::{Cell, Ref, RefMut, RefCell};
+use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
 use std::mem;
 use std::num::Float;
 use std::rc::Rc;
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
 use time;
 
@@ -102,6 +104,10 @@ pub struct Window {
 
     /// For providing instructions to an optional devtools server.
     devtools_chan: Option<DevtoolsControlChan>,
+    /// For sending timeline markers. Will be ignored if
+    /// no devtools server
+    devtools_markers: RefCell<HashSet<TimelineMarkerType>>,
+    devtools_marker_sender: RefCell<Option<Sender<TimelineMarker>>>,
 
     /// A flag to indicate whether the developer tools have requested live updates of
     /// page changes.
@@ -477,6 +483,10 @@ pub trait WindowHelpers {
     fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>>;
     fn thaw(self);
     fn freeze(self);
+    fn need_emit_timeline_marker(self, timeline_type: TimelineMarkerType) -> bool;
+    fn emit_timeline_marker(self, marker: TimelineMarker);
+    fn set_devtools_timeline_marker(self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>);
+    fn drop_devtools_timeline_markers(self);
 }
 
 pub trait ScriptHelpers {
@@ -547,6 +557,11 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             None => return,
         };
 
+        if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
+            let marker = TimelineMarker::new("Reflow".to_owned(), TracingMetadata::IntervalStart);
+            self.emit_timeline_marker(marker);
+        }
+
         // Layout will let us know when it's done.
         let (join_chan, join_port) = channel();
 
@@ -583,6 +598,11 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         debug!("script: layout forked");
 
         self.join_layout();
+
+        if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
+            let marker = TimelineMarker::new("Reflow".to_owned(), TracingMetadata::IntervalEnd);
+            self.emit_timeline_marker(marker);
+        }
     }
 
     // FIXME(cgaebel): join_layout is racey. What if the compositor triggers a
@@ -776,6 +796,27 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn freeze(self) {
         self.timers.suspend();
     }
+
+    fn need_emit_timeline_marker(self, timeline_type: TimelineMarkerType) -> bool {
+        let markers = self.devtools_markers.borrow();
+        markers.contains(&timeline_type)
+    }
+
+    fn emit_timeline_marker(self, marker: TimelineMarker) {
+        let sender = self.devtools_marker_sender.borrow();
+        let sender = sender.as_ref().expect("There is no marker sender");
+        sender.send(marker);
+    }
+
+    fn set_devtools_timeline_marker(self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>) {
+        *self.devtools_marker_sender.borrow_mut() = Some(reply);
+        self.devtools_markers.borrow_mut().insert(marker);
+    }
+
+    fn drop_devtools_timeline_markers(self) {
+        self.devtools_markers.borrow_mut().clear();
+        *self.devtools_marker_sender.borrow_mut() = None;
+    }
 }
 
 impl Window {
@@ -836,6 +877,9 @@ impl Window {
             layout_rpc: layout_rpc,
             layout_join_port: DOMRefCell::new(None),
             window_size: Cell::new(window_size),
+
+            devtools_marker_sender: RefCell::new(None),
+            devtools_markers: RefCell::new(HashSet::new()),
             devtools_wants_updates: Cell::new(false),
         };
 
