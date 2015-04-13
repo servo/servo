@@ -114,9 +114,8 @@ impl Browser  {
                                                       mem_profiler_chan.clone(),
                                                       shared_task_pool);
 
-        match opts.webdriver_port {
-            None => None,
-            Some(port) => Some(webdriver_server::start_server(port, constellation_chan.clone()))
+        if let Some(port) = opts.webdriver_port {
+            webdriver_server::start_server(port, constellation_chan.clone());
         };
 
         // The compositor coordinates with the client window to create the final

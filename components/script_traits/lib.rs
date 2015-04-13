@@ -9,7 +9,6 @@ extern crate msg;
 extern crate net_traits;
 extern crate util;
 extern crate url;
-extern crate webdriver_server;
 
 // This module contains traits in script used generically
 //   in the rest of Servo.

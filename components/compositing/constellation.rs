@@ -684,12 +684,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_get_root_pipeline(&mut self, resp_chan: Sender<Option<PipelineId>>) {
-        let pipeline_id = if let Some(frame_id) = self.root_frame_id {
+        let pipeline_id = self.root_frame_id.map(|frame_id| {
             let frame = self.frames.get(&frame_id).unwrap();
-            Some(frame.current)
-        } else {
-            None
-        };
+            frame.current
+        });
         resp_chan.send(pipeline_id).unwrap();
     }
 

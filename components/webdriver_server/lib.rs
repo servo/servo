@@ -19,19 +19,13 @@ extern crate uuid;
 
 use msg::constellation_msg::{ConstellationChan, LoadData};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use std::sync::mpsc::{channel, Sender, Receiver};
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc::channel;
 
 use url::Url;
 use webdriver::command::{WebDriverMessage, WebDriverCommand};
-use webdriver::command::{
-    GetParameters, WindowSizeParameters, SwitchToWindowParameters,
-    SwitchToFrameParameters, LocatorParameters, JavascriptCommandParameters,
-    GetCookieParameters, AddCookieParameters, TimeoutsParameters,
-    TakeScreenshotParameters};
+use webdriver::command::GetParameters;
 use webdriver::response::{
-    WebDriverResponse, NewSessionResponse, ValueResponse, WindowSizeResponse,
-    ElementRectResponse, CookieResponse, Cookie};
+    WebDriverResponse, NewSessionResponse, ValueResponse};
 use webdriver::server::{self, WebDriverHandler, Session};
 use webdriver::error::{WebDriverResult, WebDriverError, ErrorStatus};
 use util::task::spawn_named;
@@ -41,10 +35,6 @@ use std::borrow::ToOwned;
 use std::net::IpAddr;
 use rustc_serialize::json::{Json, ToJson};
 use std::collections::BTreeMap;
-
-// pub enum WebdriverScriptControlMsg {
-//     EvaluateJS(PipelineId, String, Sender<EvaluateJSReply>),
-// }
 
 pub fn start_server(port: u16, constellation_chan: ConstellationChan) {
     let handler = Handler::new(constellation_chan);
@@ -78,54 +68,58 @@ impl Handler {
             constellation_chan: constellation_chan
         }
     }
+
+    fn handle_new_session(&mut self) -> WebDriverResult<WebDriverResponse> {
+        if self.session.is_none() {
+            let session = WebdriverSession::new();
+            let rv = Ok(WebDriverResponse::NewSession(
+                NewSessionResponse::new(
+                    session.id.to_string(),
+                    Json::Object(BTreeMap::new()))));
+            self.session = Some(session);
+            rv
+        } else {
+            Err(WebDriverError::new(ErrorStatus::UnknownError,
+                                    "Session already created"))
+        }
+    }
+
+    fn handle_get(&self, parameters: &GetParameters) -> WebDriverResult<WebDriverResponse> {
+        let url = match Url::parse(&parameters.url[..]) {
+            Ok(url) => url,
+            Err(_) => return Err(WebDriverError::new(ErrorStatus::InvalidArgument,
+                                               "Invalid URL"))
+        };
+
+        let (sender, reciever) = channel();
+        let ConstellationChan(ref const_chan) = self.constellation_chan;
+        const_chan.send(ConstellationMsg::GetRootPipeline(sender)).unwrap();
+
+        let pipeline_id = reciever.recv().unwrap().unwrap();
+
+        let load_data = LoadData::new(url);
+        const_chan.send(ConstellationMsg::LoadUrl(pipeline_id, load_data)).unwrap();
+        //TODO: Now we ought to wait until we get a load event
+        Ok(WebDriverResponse::Void)
+    }
+
+    fn handle_get_window_handle(&self) -> WebDriverResult<WebDriverResponse> {
+        // For now we assume there's only one window so just use the session
+        // id as the window id
+        let handle = self.session.as_ref().unwrap().id.to_string();
+        Ok(WebDriverResponse::Generic(ValueResponse::new(handle.to_json())))
+    }
 }
 
 impl WebDriverHandler for Handler {
     fn handle_command(&mut self, _session: &Option<Session>, msg: &WebDriverMessage) -> WebDriverResult<WebDriverResponse> {
 
         match msg.command {
-            WebDriverCommand::NewSession => {
-                if self.session.is_none() {
-                    let session = WebdriverSession::new();
-                    let rv = Ok(WebDriverResponse::NewSession(
-                        NewSessionResponse::new(
-                            session.id.to_string(),
-                            Json::Object(BTreeMap::new()))));
-                    self.session = Some(session);
-                    rv
-                } else {
-                    Err(WebDriverError::new(ErrorStatus::UnknownError,
-                                            "Session already created"))
-                }
-            },
-            WebDriverCommand::Get(ref parameters) => {
-                let url = match Url::parse(&parameters.url[..]) {
-                    Ok(url) => url,
-                    Err(_) => {
-                        return Err(WebDriverError::new(ErrorStatus::InvalidArgument,
-                                                       "Invalid URL"));
-                    }
-                };
-
-                let (sender, reciever) = channel();
-                let ConstellationChan(ref const_chan) = self.constellation_chan;
-                const_chan.send(ConstellationMsg::GetRootPipeline(sender));
-
-                let pipeline_id = reciever.recv().unwrap().unwrap();
-
-                let load_data = LoadData::new(url);
-                const_chan.send(ConstellationMsg::LoadUrl(pipeline_id, load_data));
-                //Now we ought to wait until we get a load event
-                Ok(WebDriverResponse::Void)
-            },
-            WebDriverCommand::GetWindowHandle => {
-                // For now we assume there's only one window so just use the session
-                // id as the window id
-                let handle = self.session.as_ref().unwrap().id.to_string();
-                Ok(WebDriverResponse::Generic(ValueResponse::new(handle.to_json())))
-            },
-            _ => {Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
-                                          "Command not implemented"))}
+            WebDriverCommand::NewSession => self.handle_new_session(),
+            WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
+            WebDriverCommand::GetWindowHandle => self.handle_get_window_handle(),
+            _ => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
+                                         "Command not implemented"))
         }
     }
 

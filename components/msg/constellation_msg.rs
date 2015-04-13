@@ -218,6 +218,7 @@ pub enum Msg {
     ChangeRunningAnimationsState(PipelineId, bool),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
     TickAnimation(PipelineId),
+    // Request that the constellation send the current root pipeline id over a provided channel
     GetRootPipeline(Sender<Option<PipelineId>>)
 }
 

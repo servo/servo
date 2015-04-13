@@ -1117,8 +1117,7 @@ impl ScriptTask {
         chan.send(ConstellationMsg::LoadComplete).unwrap();
 
         // Notify devtools that a new script global exists.
-        self.notify_devtools(document.r().Title(), final_url.clone(),
-                             (incomplete.pipeline_id, None));
+        self.notify_devtools(document.r().Title(), final_url.clone(), (incomplete.pipeline_id, None));
 
         page_remover.neuter();
     }
