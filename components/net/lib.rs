@@ -45,7 +45,7 @@ pub mod image_cache_task;
 pub mod pub_domains;
 pub mod resource_task;
 pub mod storage_task;
-mod mime_classifier;
+pub mod mime_classifier;
 
 /// An implementation of the [Fetch spec](http://fetch.spec.whatwg.org/)
 pub mod fetch {
