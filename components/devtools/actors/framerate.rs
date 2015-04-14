@@ -48,6 +48,7 @@ impl FramerateActor {
     }
 
     // callback on request animation frame
+    #[allow(dead_code)]
     pub fn on_refresh_driver_tick(&mut self) {
         if !self.is_recording {
             return;
@@ -67,7 +68,7 @@ impl FramerateActor {
         self.is_recording = true;
         self.start_time = Some(precise_time_ns());
 
-        // TODO: Need implement requesting animation frame
+        // TODO(#5681): Need implement requesting animation frame
         // http://hg.mozilla.org/mozilla-central/file/0a46652bd992/dom/base/nsGlobalWindow.cpp#l5314
     }
 
