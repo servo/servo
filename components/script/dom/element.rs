@@ -591,7 +591,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/infrastructure.html#root-element
+    // https://html.spec.whatwg.org/multipage/#root-element
     fn get_root_element(self) -> Option<Temporary<Element>> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         match node.ancestors().last().map(ElementCast::to_temporary) {
@@ -759,7 +759,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             ns!(""), None, |attr| attr.local_name() == name);
     }
 
-    // https://html.spec.whatwg.org/multipage/dom.html#attr-data-*
+    // https://html.spec.whatwg.org/multipage/#attr-data-*
     fn set_custom_attribute(self, name: DOMString, value: DOMString) -> ErrorResult {
         // Step 1.
         match xml_name_type(&name) {
@@ -907,7 +907,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let url = self.get_string_attribute(local_name);
         let doc = document_from_node(self).root();
         let base = doc.r().url();
-        // https://html.spec.whatwg.org/multipage/infrastructure.html#reflect
+        // https://html.spec.whatwg.org/multipage/#reflect
         // XXXManishearth this doesn't handle `javascript:` urls properly
         match UrlParser::new().base_url(&base).parse(&url) {
             Ok(parsed) => parsed.serialize(),

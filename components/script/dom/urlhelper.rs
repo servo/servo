@@ -40,7 +40,7 @@ impl UrlHelper {
         })
     }
 
-    /// https://html.spec.whatwg.org/multipage/browsers.html#same-origin
+    /// https://html.spec.whatwg.org/multipage/#same-origin
     pub fn SameOrigin(urlA: &Url, urlB: &Url) -> bool {
         if urlA.host() != urlB.host() {
             return false

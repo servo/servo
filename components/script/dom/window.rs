@@ -402,7 +402,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.Window()
     }
 
-    // https://html.spec.whatwg.org/multipage/browsers.html#dom-parent
+    // https://html.spec.whatwg.org/multipage/#dom-parent
     fn Parent(self) -> Temporary<Window> {
         let browser_context = self.browser_context();
         let browser_context = browser_context.as_ref().unwrap();
@@ -779,7 +779,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
        self.devtools_wants_updates.set(value);
    }
 
-    // https://html.spec.whatwg.org/multipage/browsers.html#accessing-other-browsing-contexts
+    // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
     fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>> {
         None
     }

@@ -93,7 +93,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
         node.SetTextContent(Some(value))
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#attr-option-value
+    // https://html.spec.whatwg.org/multipage/#attr-option-value
     fn Value(self) -> DOMString {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         let attr = &atom!("value");
@@ -104,10 +104,10 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#attr-option-value
+    // https://html.spec.whatwg.org/multipage/#attr-option-value
     make_setter!(SetValue, "value");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#attr-option-label
+    // https://html.spec.whatwg.org/multipage/#attr-option-label
     fn Label(self) -> DOMString {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         let attr = &atom!("label");
@@ -118,7 +118,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#attr-option-label
+    // https://html.spec.whatwg.org/multipage/#attr-option-label
     make_setter!(SetLabel, "label");
 
 }

@@ -310,7 +310,7 @@ pub fn parse_html(document: JSRef<Document>,
                     // This is done by using a <plaintext> element as the html5ever tokenizer
                     // provides no other way to change to that state.
                     // Spec for text/plain handling is:
-                    // https://html.spec.whatwg.org/multipage/browsers.html#read-text
+                    // https://html.spec.whatwg.org/multipage/#read-text
                     let page = format!("<pre>\u{000A}<plaintext>");
                     parser.parse_chunk(page);
                     parse_progress(&parser, url, &load_response);
@@ -331,7 +331,7 @@ pub fn parse_html(document: JSRef<Document>,
     debug!("finished parsing");
 }
 
-// https://html.spec.whatwg.org/multipage/syntax.html#parsing-html-fragments
+// https://html.spec.whatwg.org/multipage/#parsing-html-fragments
 pub fn parse_html_fragment(context_node: JSRef<Node>,
                            input: DOMString,
                            output: &mut RootedVec<JS<Node>>) {

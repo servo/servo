@@ -215,35 +215,35 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-defaultchecked
+    // https://html.spec.whatwg.org/multipage/#dom-input-defaultchecked
     make_bool_getter!(DefaultChecked, "checked");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-defaultchecked
+    // https://html.spec.whatwg.org/multipage/#dom-input-defaultchecked
     make_bool_setter!(SetDefaultChecked, "checked");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-checked
+    // https://html.spec.whatwg.org/multipage/#dom-input-checked
     fn Checked(self) -> bool {
         self.checked.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-checked
+    // https://html.spec.whatwg.org/multipage/#dom-input-checked
     fn SetChecked(self, checked: bool) {
         self.update_checked_state(checked, true);
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-readonly
+    // https://html.spec.whatwg.org/multipage/#dom-input-readonly
     make_bool_getter!(ReadOnly);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-readonly
+    // https://html.spec.whatwg.org/multipage/#dom-input-readonly
     make_bool_setter!(SetReadOnly, "readonly");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-size
+    // https://html.spec.whatwg.org/multipage/#dom-input-size
     make_uint_getter!(Size);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-size
+    // https://html.spec.whatwg.org/multipage/#dom-input-size
     make_uint_setter!(SetSize, "size");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-type
+    // https://html.spec.whatwg.org/multipage/#dom-input-type
     make_enumerated_getter!(Type, "text", ("hidden") | ("search") | ("tel") |
                                   ("url") | ("email") | ("password") |
                                   ("datetime") | ("date") | ("month") |
@@ -252,71 +252,71 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
                                   ("checkbox") | ("radio") | ("file") |
                                   ("submit") | ("image") | ("reset") | ("button"));
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-type
+    // https://html.spec.whatwg.org/multipage/#dom-input-type
     make_setter!(SetType, "type");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
+    // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn Value(self) -> DOMString {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let textinput = self.textinput.borrow();
         textinput.get_content()
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
+    // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn SetValue(self, value: DOMString) {
         self.textinput.borrow_mut().set_content(value);
         self.value_changed.set(true);
         self.force_relayout();
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-defaultvalue
+    // https://html.spec.whatwg.org/multipage/#dom-input-defaultvalue
     make_getter!(DefaultValue, "value");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-defaultvalue
+    // https://html.spec.whatwg.org/multipage/#dom-input-defaultvalue
     make_setter!(SetDefaultValue, "value");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
+    // https://html.spec.whatwg.org/multipage/#attr-fe-name
     make_getter!(Name);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
+    // https://html.spec.whatwg.org/multipage/#attr-fe-name
     make_setter!(SetName, "name");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#attr-input-placeholder
+    // https://html.spec.whatwg.org/multipage/#attr-input-placeholder
     make_getter!(Placeholder);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#attr-input-placeholder
+    // https://html.spec.whatwg.org/multipage/#attr-input-placeholder
     make_setter!(SetPlaceholder, "placeholder");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formaction
+    // https://html.spec.whatwg.org/multipage/#dom-input-formaction
     make_url_or_base_getter!(FormAction);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formaction
+    // https://html.spec.whatwg.org/multipage/#dom-input-formaction
     make_setter!(SetFormAction, "formaction");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formenctype
+    // https://html.spec.whatwg.org/multipage/#dom-input-formenctype
     make_enumerated_getter!(FormEnctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formenctype
+    // https://html.spec.whatwg.org/multipage/#dom-input-formenctype
     make_setter!(SetFormEnctype, "formenctype");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
+    // https://html.spec.whatwg.org/multipage/#dom-input-formmethod
     make_enumerated_getter!(FormMethod, "get", ("post") | ("dialog"));
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
+    // https://html.spec.whatwg.org/multipage/#dom-input-formmethod
     make_setter!(SetFormMethod, "formmethod");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formtarget
+    // https://html.spec.whatwg.org/multipage/#dom-input-formtarget
     make_getter!(FormTarget);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formtarget
+    // https://html.spec.whatwg.org/multipage/#dom-input-formtarget
     make_setter!(SetFormTarget, "formtarget");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-indeterminate
+    // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn Indeterminate(self) -> bool {
         self.indeterminate.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-indeterminate
+    // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn SetIndeterminate(self, val: bool) {
         self.indeterminate.set(val)
     }
@@ -421,15 +421,15 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
         self.indeterminate.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
+    // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
     fn mutable(self) -> bool {
-        // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-fe-mutable
-        // https://html.spec.whatwg.org/multipage/forms.html#the-readonly-attribute:concept-fe-mutable
+        // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
+        // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
         let node: JSRef<Node> = NodeCast::from_ref(self);
         !(node.get_disabled_state() || self.ReadOnly())
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-form-reset-control
+    // https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control
     fn reset(self) {
         match self.input_type.get() {
             InputType::InputRadio | InputType::InputCheckbox => {
@@ -464,7 +464,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 node.set_enabled_state(false);
             }
             &atom!("checked") => {
-                // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-input-checked-dirty
+                // https://html.spec.whatwg.org/multipage/#the-input-element:concept-input-checked-dirty
                 if !self.checked_changed.get() {
                     self.update_checked_state(true, false);
                 }
@@ -528,7 +528,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 node.check_ancestors_disabled_state_for_form_control();
             }
             &atom!("checked") => {
-                // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-input-checked-dirty
+                // https://html.spec.whatwg.org/multipage/#the-input-element:concept-input-checked-dirty
                 if !self.checked_changed.get() {
                     self.update_checked_state(false, false);
                 }
@@ -603,7 +603,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             }
 
             // TODO: Dispatch events for non activatable inputs
-            // https://html.spec.whatwg.org/multipage/forms.html#common-input-element-events
+            // https://html.spec.whatwg.org/multipage/#common-input-element-events
 
             //TODO: set the editing position for text inputs
 
@@ -641,10 +641,10 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
 
     fn is_instance_activatable(&self) -> bool {
         match self.input_type.get() {
-            // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-%28type=submit%29:activation-behaviour-2
-            // https://html.spec.whatwg.org/multipage/forms.html#reset-button-state-%28type=reset%29:activation-behaviour-2
-            // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-%28type=checkbox%29:activation-behaviour-2
-            // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-%28type=radio%29:activation-behaviour-2
+            // https://html.spec.whatwg.org/multipage/#submit-button-state-%28type=submit%29:activation-behaviour-2
+            // https://html.spec.whatwg.org/multipage/#reset-button-state-%28type=reset%29:activation-behaviour-2
+            // https://html.spec.whatwg.org/multipage/#checkbox-state-%28type=checkbox%29:activation-behaviour-2
+            // https://html.spec.whatwg.org/multipage/#radio-button-state-%28type=radio%29:activation-behaviour-2
             InputType::InputSubmit | InputType::InputReset
             | InputType::InputCheckbox | InputType::InputRadio => self.mutable(),
             _ => false
@@ -660,12 +660,12 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         cache.was_mutable = self.mutable();
         if cache.was_mutable {
             match ty {
-                // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-(type=submit):activation-behavior
+                // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
                 // InputType::InputSubmit => (), // No behavior defined
-                // https://html.spec.whatwg.org/multipage/forms.html#reset-button-state-(type=reset):activation-behavior
+                // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
                 // InputType::InputSubmit => (), // No behavior defined
                 InputType::InputCheckbox => {
-                    // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-(type=checkbox):pre-click-activation-steps
+                    // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):pre-click-activation-steps
                     // cache current values of `checked` and `indeterminate`
                     // we may need to restore them later
                     cache.indeterminate = self.Indeterminate();
@@ -674,7 +674,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                     self.SetIndeterminate(false);
                     self.SetChecked(!cache.checked);
                 },
-                // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):pre-click-activation-steps
+                // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):pre-click-activation-steps
                 InputType::InputRadio => {
                     //TODO: if not in document, use root ancestor instead of document
                     let owner = self.form_owner().root();
@@ -711,11 +711,11 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
             return;
         }
         match ty {
-            // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-(type=submit):activation-behavior
+            // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
             // InputType::InputSubmit => (), // No behavior defined
-            // https://html.spec.whatwg.org/multipage/forms.html#reset-button-state-(type=reset):activation-behavior
+            // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
             // InputType::InputReset => (), // No behavior defined
-            // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-(type=checkbox):canceled-activation-steps
+            // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):canceled-activation-steps
             InputType::InputCheckbox => {
                 // We want to restore state only if the element had been changed in the first place
                 if cache.was_mutable {
@@ -724,7 +724,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                     self.checked_changed.set(cache.checked_changed);
                 }
             },
-            // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):canceled-activation-steps
+            // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):canceled-activation-steps
             InputType::InputRadio => {
                 // We want to restore state only if the element had been changed in the first place
                 if cache.was_mutable {
@@ -762,7 +762,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         }
         match ty {
             InputType::InputSubmit => {
-                // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-(type=submit):activation-behavior
+                // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 if self.mutable() /* and document owner is fully active */ {
                     self.form_owner().map(|o| {
@@ -772,7 +772,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 }
             },
             InputType::InputReset => {
-                // https://html.spec.whatwg.org/multipage/forms.html#reset-button-state-(type=reset):activation-behavior
+                // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 if self.mutable() /* and document owner is fully active */ {
                     self.form_owner().map(|o| {
@@ -781,8 +781,8 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 }
             },
             InputType::InputCheckbox | InputType::InputRadio => {
-                // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-(type=checkbox):activation-behavior
-                // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):activation-behavior
+                // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
+                // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
                 if self.mutable() {
                     let win = window_from_node(*self).root();
                     let event = Event::new(GlobalRef::Window(win.r()),
@@ -804,7 +804,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#implicit-submission
+    // https://html.spec.whatwg.org/multipage/#implicit-submission
     #[allow(unsafe_code)]
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
         let doc = document_from_node(*self).root();

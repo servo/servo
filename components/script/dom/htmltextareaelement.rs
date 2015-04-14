@@ -41,7 +41,7 @@ pub struct HTMLTextAreaElement {
     textinput: DOMRefCell<TextInput>,
     cols: Cell<u32>,
     rows: Cell<u32>,
-    // https://html.spec.whatwg.org/multipage/forms.html#concept-textarea-dirty
+    // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_changed: Cell<bool>,
 }
 
@@ -110,10 +110,10 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     // TODO A few of these attributes have default values and additional
     // constraints
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-cols
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-cols
     make_uint_getter!(Cols);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-cols
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-cols
     make_uint_setter!(SetCols, "cols");
 
     // https://www.whatwg.org/html/#dom-fe-disabled
@@ -122,54 +122,54 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
+    // https://html.spec.whatwg.org/multipage/#attr-fe-name
     make_getter!(Name);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
+    // https://html.spec.whatwg.org/multipage/#attr-fe-name
     make_setter!(SetName, "name");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-placeholder
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-placeholder
     make_getter!(Placeholder);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-placeholder
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-placeholder
     make_setter!(SetPlaceholder, "placeholder");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#attr-textarea-readonly
+    // https://html.spec.whatwg.org/multipage/#attr-textarea-readonly
     make_bool_getter!(ReadOnly);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#attr-textarea-readonly
+    // https://html.spec.whatwg.org/multipage/#attr-textarea-readonly
     make_bool_setter!(SetReadOnly, "readonly");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-required
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-required
     make_bool_getter!(Required);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-required
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-required
     make_bool_setter!(SetRequired, "required");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-rows
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-rows
     make_uint_getter!(Rows);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-rows
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-rows
     make_uint_setter!(SetRows, "rows");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-wrap
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-wrap
     make_getter!(Wrap);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-wrap
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-wrap
     make_setter!(SetWrap, "wrap");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-type
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-type
     fn Type(self) -> DOMString {
         "textarea".to_owned()
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-defaultvalue
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
     fn DefaultValue(self) -> DOMString {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.GetTextContent().unwrap()
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-defaultvalue
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
     fn SetDefaultValue(self, value: DOMString) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.SetTextContent(Some(value));
@@ -181,14 +181,14 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-value
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-value
     fn Value(self) -> DOMString {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let textinput = self.textinput.borrow();
         textinput.get_content()
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-value
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-value
     fn SetValue(self, value: DOMString) {
         // TODO move the cursor to the end of the field
         self.textinput.borrow_mut().set_content(value);
@@ -204,13 +204,13 @@ pub trait HTMLTextAreaElementHelpers {
 }
 
 impl<'a> HTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
-    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
+    // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
     fn mutable(self) -> bool {
-        // https://html.spec.whatwg.org/multipage/forms.html#the-textarea-element:concept-fe-mutable
+        // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-fe-mutable
         !(self.Disabled() || self.ReadOnly())
     }
     fn reset(self) {
-        // https://html.spec.whatwg.org/multipage/forms.html#the-textarea-element:concept-form-reset-control
+        // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         self.SetValue(self.DefaultValue());
         self.value_changed.set(false);
     }

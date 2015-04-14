@@ -78,21 +78,21 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-button-type
+    // https://html.spec.whatwg.org/multipage/#dom-button-type
     fn Type(self) -> DOMString {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
         let ty = elem.get_string_attribute(&atom!("type")).into_ascii_lowercase();
-        // https://html.spec.whatwg.org/multipage/forms.html#attr-button-type
+        // https://html.spec.whatwg.org/multipage/#attr-button-type
         match ty.as_slice() {
             "reset" | "button" | "menu" => ty,
             _ => "submit".to_owned()
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-button-type
+    // https://html.spec.whatwg.org/multipage/#dom-button-type
     make_setter!(SetType, "type");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#htmlbuttonelement
+    // https://html.spec.whatwg.org/multipage/#htmlbuttonelement
     make_url_or_base_getter!(FormAction);
 
     make_setter!(SetFormAction, "formaction");
@@ -182,13 +182,13 @@ impl<'a> Activatable for JSRef<'a, HTMLButtonElement> {
     }
 
     fn is_instance_activatable(&self) -> bool {
-        //https://html.spec.whatwg.org/multipage/forms.html#the-button-element
+        //https://html.spec.whatwg.org/multipage/#the-button-element
         let node: JSRef<Node> = NodeCast::from_ref(*self);
         !(node.get_disabled_state())
     }
 
     // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
-    // https://html.spec.whatwg.org/multipage/forms.html#the-button-element:activation-behavior
+    // https://html.spec.whatwg.org/multipage/#the-button-element:activation-behavior
     fn pre_click_activation(&self) {
     }
 
@@ -200,7 +200,7 @@ impl<'a> Activatable for JSRef<'a, HTMLButtonElement> {
     fn activation_behavior(&self, _event: JSRef<Event>, _target: JSRef<EventTarget>) {
         let ty = self.button_type.get();
         match ty {
-            //https://html.spec.whatwg.org/multipage/forms.html#attr-button-type-submit-state
+            //https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
             ButtonType::ButtonSubmit => {
                 self.form_owner().map(|o| {
                     o.root().r().submit(SubmittedFrom::NotFromFormSubmitMethod,
@@ -211,7 +211,7 @@ impl<'a> Activatable for JSRef<'a, HTMLButtonElement> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#implicit-submission
+    // https://html.spec.whatwg.org/multipage/#implicit-submission
     #[allow(unsafe_code)]
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
         let doc = document_from_node(*self).root();

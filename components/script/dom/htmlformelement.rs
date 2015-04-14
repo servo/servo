@@ -64,70 +64,70 @@ impl HTMLFormElement {
 }
 
 impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-acceptcharset
+    // https://html.spec.whatwg.org/multipage/#dom-form-acceptcharset
     make_getter!(AcceptCharset, "accept-charset");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-acceptcharset
+    // https://html.spec.whatwg.org/multipage/#dom-form-acceptcharset
     make_setter!(SetAcceptCharset, "accept-charset");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-action
+    // https://html.spec.whatwg.org/multipage/#dom-fs-action
     make_url_or_base_getter!(Action);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-action
+    // https://html.spec.whatwg.org/multipage/#dom-fs-action
     make_setter!(SetAction, "action");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-autocomplete
+    // https://html.spec.whatwg.org/multipage/#dom-form-autocomplete
     make_enumerated_getter!(Autocomplete, "on", ("off"));
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-autocomplete
+    // https://html.spec.whatwg.org/multipage/#dom-form-autocomplete
     make_setter!(SetAutocomplete, "autocomplete");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-enctype
+    // https://html.spec.whatwg.org/multipage/#dom-fs-enctype
     make_enumerated_getter!(Enctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-enctype
+    // https://html.spec.whatwg.org/multipage/#dom-fs-enctype
     make_setter!(SetEnctype, "enctype");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-encoding
+    // https://html.spec.whatwg.org/multipage/#dom-fs-encoding
     fn Encoding(self) -> DOMString {
         self.Enctype()
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-encoding
+    // https://html.spec.whatwg.org/multipage/#dom-fs-encoding
     fn SetEncoding(self, value: DOMString) {
         self.SetEnctype(value)
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-method
+    // https://html.spec.whatwg.org/multipage/#dom-fs-method
     make_enumerated_getter!(Method, "get", ("post") | ("dialog"));
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-method
+    // https://html.spec.whatwg.org/multipage/#dom-fs-method
     make_setter!(SetMethod, "method");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-name
+    // https://html.spec.whatwg.org/multipage/#dom-form-name
     make_getter!(Name);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-name
+    // https://html.spec.whatwg.org/multipage/#dom-form-name
     make_setter!(SetName, "name");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-novalidate
+    // https://html.spec.whatwg.org/multipage/#dom-fs-novalidate
     make_bool_getter!(NoValidate);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-novalidate
+    // https://html.spec.whatwg.org/multipage/#dom-fs-novalidate
     make_bool_setter!(SetNoValidate, "novalidate");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-target
+    // https://html.spec.whatwg.org/multipage/#dom-fs-target
     make_getter!(Target);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-target
+    // https://html.spec.whatwg.org/multipage/#dom-fs-target
     make_setter!(SetTarget, "target");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#the-form-element:concept-form-submit
+    // https://html.spec.whatwg.org/multipage/#the-form-element:concept-form-submit
     fn Submit(self) {
         self.submit(SubmittedFrom::FromFormSubmitMethod, FormSubmitter::FormElement(self));
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-reset
+    // https://html.spec.whatwg.org/multipage/#dom-form-reset
     fn Reset(self) {
         self.reset(ResetFrom::FromFormResetMethod);
     }
@@ -146,11 +146,11 @@ pub enum ResetFrom {
 }
 
 pub trait HTMLFormElementHelpers {
-    // https://html.spec.whatwg.org/multipage/forms.html#concept-form-submit
+    // https://html.spec.whatwg.org/multipage/#concept-form-submit
     fn submit(self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter);
-    // https://html.spec.whatwg.org/multipage/forms.html#constructing-the-form-data-set
+    // https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
     fn get_form_dataset(self, submitter: Option<FormSubmitter>) -> Vec<FormDatum>;
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-reset
+    // https://html.spec.whatwg.org/multipage/#dom-form-reset
     fn reset(self, submit_method_flag: ResetFrom);
 }
 
@@ -209,18 +209,18 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                 load_data.method = Method::Post;
                 load_data.data = Some(parsed_data.into_bytes());
             },
-            // https://html.spec.whatwg.org/multipage/forms.html#submit-get-action
+            // https://html.spec.whatwg.org/multipage/#submit-get-action
             ("ftp", _) | ("javascript", _) | ("data", FormMethod::FormGet) => (),
             _ => return // Unimplemented (data and mailto)
         }
 
-        // This is wrong. https://html.spec.whatwg.org/multipage/forms.html#planned-navigation
+        // This is wrong. https://html.spec.whatwg.org/multipage/#planned-navigation
         win.r().script_chan().send(ScriptMsg::Navigate(win.r().pipeline(), load_data)).unwrap();
     }
 
     fn get_form_dataset<'b>(self, submitter: Option<FormSubmitter<'b>>) -> Vec<FormDatum> {
         fn clean_crlf(s: &str) -> DOMString {
-            // https://html.spec.whatwg.org/multipage/forms.html#constructing-the-form-data-set
+            // https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
             // Step 4
             let mut buf = "".to_owned();
             let mut prev = ' ';
@@ -332,7 +332,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
             }
         });
         // TODO: Handle `dirnames` (needs directionality support)
-        //       https://html.spec.whatwg.org/multipage/dom.html#the-directionality
+        //       https://html.spec.whatwg.org/multipage/#the-directionality
         let mut ret: Vec<FormDatum> = data_set.collect();
         for datum in ret.iter_mut() {
             match datum.ty.as_slice() {
@@ -347,7 +347,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
     }
 
     fn reset(self, _reset_method_flag: ResetFrom) {
-        // https://html.spec.whatwg.org/multipage/forms.html#locked-for-reset
+        // https://html.spec.whatwg.org/multipage/#locked-for-reset
         if self.marked_for_reset.get() {
             return;
         } else {
@@ -465,7 +465,7 @@ impl<'a> FormSubmitter<'a> {
         match attr.as_slice() {
             "multipart/form-data" => FormEncType::FormDataEncoded,
             "text/plain" => FormEncType::TextPlainEncoded,
-            // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-enctype
+            // https://html.spec.whatwg.org/multipage/#attr-fs-enctype
             // urlencoded is the default
             _ => FormEncType::UrlEncoded
         }
@@ -515,7 +515,7 @@ pub trait FormControl<'a> : Copy + Sized {
     // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
     //        but we need html5ever to do it correctly
     fn form_owner(self) -> Option<Temporary<HTMLFormElement>> {
-        // https://html.spec.whatwg.org/multipage/forms.html#reset-the-form-owner
+        // https://html.spec.whatwg.org/multipage/#reset-the-form-owner
         let elem = self.to_element();
         let owner = elem.get_string_attribute(&atom!("form"));
         if !owner.is_empty() {
