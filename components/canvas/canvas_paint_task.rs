@@ -39,6 +39,8 @@ pub enum CanvasMsg {
     SetFillStyle(FillOrStrokeStyle),
     SetStrokeStyle(FillOrStrokeStyle),
     SetLineWidth(f32),
+    SetLineCap(LineCapStyle),
+    SetLineJoin(LineJoinStyle),
     SetMiterLimit(f32),
     SetTransform(Matrix2D<f32>),
     SetGlobalAlpha(f32),
@@ -246,6 +248,8 @@ impl<'a> CanvasPaintTask<'a> {
                     CanvasMsg::SetFillStyle(style) => painter.set_fill_style(style),
                     CanvasMsg::SetStrokeStyle(style) => painter.set_stroke_style(style),
                     CanvasMsg::SetLineWidth(width) => painter.set_line_width(width),
+                    CanvasMsg::SetLineCap(cap) => painter.set_line_cap(cap),
+                    CanvasMsg::SetLineJoin(join) => painter.set_line_join(join),
                     CanvasMsg::SetMiterLimit(limit) => painter.set_miter_limit(limit),
                     CanvasMsg::SetTransform(ref matrix) => painter.set_transform(matrix),
                     CanvasMsg::SetGlobalAlpha(alpha) => painter.set_global_alpha(alpha),
@@ -425,6 +429,14 @@ impl<'a> CanvasPaintTask<'a> {
 
     fn set_line_width(&mut self, width: f32) {
         self.stroke_opts.line_width = width;
+    }
+
+    fn set_line_cap(&mut self, cap: LineCapStyle) {
+        self.stroke_opts.line_cap = cap.to_azure_style();
+    }
+
+    fn set_line_join(&mut self, join: LineJoinStyle) {
+        self.stroke_opts.line_join = join.to_azure_style();
     }
 
     fn set_miter_limit(&mut self, limit: f32) {
@@ -622,6 +634,58 @@ impl FillOrStrokeStyle {
                     drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
                     &Matrix2D::identity()))
             }
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum LineCapStyle {
+    Butt = 0,
+    Round = 1,
+    Square = 2,
+}
+
+impl LineCapStyle {
+    fn to_azure_style(&self) -> CapStyle {
+        match *self {
+            LineCapStyle::Butt => CapStyle::Butt,
+            LineCapStyle::Round => CapStyle::Round,
+            LineCapStyle::Square => CapStyle::Square,
+        }
+    }
+
+    pub fn from_str(string: &str) -> Option<LineCapStyle> {
+        match string {
+            "butt" => Some(LineCapStyle::Butt),
+            "round" => Some(LineCapStyle::Round),
+            "square" => Some(LineCapStyle::Square),
+            _ => None
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum LineJoinStyle {
+    Round = 0,
+    Bevel = 1,
+    Miter = 2,
+}
+
+impl LineJoinStyle {
+    fn to_azure_style(&self) -> JoinStyle {
+        match *self {
+            LineJoinStyle::Round => JoinStyle::Round,
+            LineJoinStyle::Bevel => JoinStyle::Bevel,
+            LineJoinStyle::Miter => JoinStyle::Miter,
+        }
+    }
+
+    pub fn from_str(string: &str) -> Option<LineJoinStyle> {
+        match string {
+            "round" => Some(LineJoinStyle::Round),
+            "bevel" => Some(LineJoinStyle::Bevel),
+            "miter" => Some(LineJoinStyle::Miter),
+            _ => None
         }
     }
 }

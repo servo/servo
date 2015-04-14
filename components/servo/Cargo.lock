@@ -35,7 +35,7 @@ source = "git+https://github.com/tomaka/android-rs-glue#5a68056599fb498b0cf3715f
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#c71473d94ae24fb195987660698207d5088a4042"
+source = "git+https://github.com/servo/rust-azure#358fc5da081cf7d0618fae2d9d5582951beb791f"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
