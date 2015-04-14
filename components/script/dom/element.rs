@@ -656,8 +656,7 @@ pub trait AttributeHandlers {
     /// Returns the first attribute with any namespace and given case-sensitive
     /// name, if any.
     fn get_attribute_by_name(self, name: &Atom) -> Option<Temporary<Attr>>;
-    fn get_attributes(self, local_name: &Atom)
-                      -> Vec<Temporary<Attr>>;
+    fn get_attributes(self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>);
     fn set_attribute_from_parser(self,
                                  name: QualName,
                                  value: DOMString,
@@ -701,7 +700,9 @@ pub trait AttributeHandlers {
 
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_attribute(self, namespace: &Namespace, local_name: &Atom) -> Option<Temporary<Attr>> {
-        self.get_attributes(local_name).into_iter().map(|attr| attr.root())
+        let mut attributes: RootedVec<JS<Attr>> = RootedVec::new();
+        self.get_attributes(local_name, &mut attributes);
+        attributes.iter().map(|attr| attr.root())
             .find(|attr| attr.r().namespace() == namespace)
             .map(|x| Temporary::from_rooted(x.r()))
     }
@@ -715,19 +716,17 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
-    fn get_attributes(self, local_name: &Atom) -> Vec<Temporary<Attr>> {
+    fn get_attributes(self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>) {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let attrs = self.attrs.borrow();
-        attrs.iter().map(|attr| attr.root()).filter_map(|attr| {
+        for attr in attrs.iter().map(|attr| attr.root()) {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let attr_local_name = attr.local_name();
             if attr_local_name == local_name {
-                Some(Temporary::from_rooted(attr))
-            } else {
-                None
+                attributes.push(JS::from_rooted(attr));
             }
-        }).collect()
+        }
     }
 
     fn set_attribute_from_parser(self,
@@ -954,7 +953,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         assert!(local_name.chars().all(|ch| {
             !ch.is_ascii() || ch.to_ascii_lowercase() == ch
         }));
-        let attribute = self.get_attribute(&ns!(""), local_name).root();
+        let mut attribute = self.get_attribute(&ns!(""), local_name).root();
         match attribute {
             Some(attribute) => {
                 match *attribute.r().value() {
@@ -1469,7 +1468,9 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
     }
     #[allow(unsafe_code)]
     fn get_attrs(self, local_name: &Atom) -> Vec<&'a str> {
-        self.get_attributes(local_name).into_iter().map(|attr| attr.root()).map(|attr| {
+        let mut attributes: RootedVec<JS<Attr>> = RootedVec::new();
+        self.get_attributes(local_name, &mut attributes);
+        attributes.iter().map(|attr| attr.root()).map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let value = attr.value();
