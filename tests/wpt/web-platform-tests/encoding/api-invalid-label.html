@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Encoding API: invalid label</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+var invalidLabel = "invalid-invalidLabel"
+
+test(function() {
+    assert_throws({name: 'RangeError'}, function() { new TextEncoder(invalidLabel); });
+    assert_throws({name: 'RangeError'}, function() { new TextDecoder(invalidLabel); });
+}, 'Invalid label "' + invalidLabel + '" should be rejected by API.');
+
+</script>
