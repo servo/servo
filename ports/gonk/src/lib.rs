@@ -66,16 +66,37 @@ pub struct Browser {
     compositor: Box<CompositorEventListener + 'static>,
 }
 
+/// The in-process interface to Servo.
+///
+/// It does everything necessary to render the web, primarily
+/// orchestrating the interaction between JavaScript, CSS layout,
+/// rendering, and the client window.
+///
+/// Clients create a `Browser` for a given reference-counted type
+/// implementing `WindowMethods`, which is the bridge to whatever
+/// application Servo is embedded in. Clients then create an event
+/// loop to pump messages between the embedding application and
+/// various browser components.
 impl Browser {
     #[cfg(not(test))]
     pub fn new<Window>(window: Option<Rc<Window>>) -> Browser
         where Window: WindowMethods + 'static {
         ::util::opts::set_experimental_enabled(opts::get().enable_experimental);
+        // Global configuration options, parsed from the command line.
         let opts = opts::get();
+
+        // Create the global vtables used by the (generated) DOM
+        // bindings to implement JS proxies.
         RegisterBindings::RegisterProxyHandlers();
 
+        // Use this thread pool to load-balance simple tasks, such as
+        // image decoding.
         let shared_task_pool = TaskPool::new(8);
 
+        // Get both endpoints of a special channel for communication between
+        // the client window and the compositor. This channel is unique because
+        // messages to client may need to pump a platform-specific event loop
+        // to deliver the message.
         let (compositor_proxy, compositor_receiver) =
             WindowMethods::create_compositor_channel(&window);
         let time_profiler_chan = time::Profiler::create(opts.time_profiler_period);
@@ -100,6 +121,10 @@ impl Browser {
 
         let font_cache_task = FontCacheTask::new(resource_task.clone());
         let storage_task = StorageTaskFactory::new();
+
+        // Create the constellation, which maintains the engine
+        // pipelines, including the script and layout threads, as well
+        // as the navigation context.
         let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
                                                  script::script_task::ScriptTask>::start(
                                                       compositor_proxy.clone_compositor_proxy(),
@@ -123,6 +148,8 @@ impl Browser {
         let ConstellationChan(ref chan) = constellation_chan;
         chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
 
+        // The compositor coordinates with the client window to create the final
+        // rendered page and display it somewhere.
         let compositor = CompositorTask::create(window,
                                                 compositor_proxy,
                                                 compositor_receiver,

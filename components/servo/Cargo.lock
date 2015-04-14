@@ -6,6 +6,7 @@ dependencies = [
  "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "compositing 0.0.1",
  "devtools 0.0.1",
+ "devtools_traits 0.0.1",
  "gfx 0.0.1",
  "glutin_app 0.0.1",
  "layout 0.0.1",
