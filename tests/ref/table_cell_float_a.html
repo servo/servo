@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that an element with `display: table-cell` is correctly positioned next to a float. -->
+<style>
+body, html {
+    margin: 0;
+}
+section {
+    float: left;
+    display: block;
+    width: 32px;
+    height: 32px;
+    background: firebrick;
+}
+.a {
+    display: table-cell;
+    width: 128px;
+    height: 64px;
+    background: green;
+}
+</style>
+</head>
+<body>
+<section></section>
+<div class=a></div>
+</body>
+</html>
+
