@@ -10,6 +10,7 @@ use std::cell::{Cell, RefCell};
 use std::mem::{replace, transmute};
 use std::net::TcpStream;
 use std::raw::TraitObject;
+use std::sync::{Arc, Mutex};
 use rustc_serialize::json;
 
 /// A common trait for all devtools actors that encompasses an immutable name
@@ -77,7 +78,9 @@ impl Actor {
 pub struct ActorRegistry {
     actors: HashMap<String, Box<Actor+Send>>,
     new_actors: RefCell<Vec<Box<Actor+Send>>>,
+    old_actors: RefCell<Vec<String>>,
     script_actors: RefCell<HashMap<String, String>>,
+    shareable: Option<Arc<Mutex<ActorRegistry>>>,
     next: Cell<u32>,
 }
 
@@ -87,9 +90,29 @@ impl ActorRegistry {
         ActorRegistry {
             actors: HashMap::new(),
             new_actors: RefCell::new(vec!()),
+            old_actors: RefCell::new(vec!()),
             script_actors: RefCell::new(HashMap::new()),
+            shareable: None,
             next: Cell::new(0),
         }
+    }
+
+    /// Creating shareable registry
+    pub fn create_shareable(self) -> Arc<Mutex<ActorRegistry>>{
+        if self.shareable.is_some() {
+            return self.shareable.unwrap();
+        }
+
+        let shareable = Arc::new(Mutex::new(self));
+        let mut lock = shareable.lock();
+        let registry = lock.as_mut().unwrap();
+        registry.shareable = Some(shareable.clone());
+        shareable.clone()
+    }
+
+    /// Get shareable registry through threads
+    pub fn get_shareable(&self) -> Arc<Mutex<ActorRegistry>> {
+        self.shareable.as_ref().unwrap().clone()
     }
 
     pub fn register_script_actor(&self, script_id: String, actor: String) {
@@ -155,6 +178,7 @@ impl ActorRegistry {
                           stream: &mut TcpStream)
                           -> Result<(), ()> {
         let to = msg.get("to").unwrap().as_string().unwrap();
+
         match self.actors.get(&to.to_string()) {
             None => println!("message received for unknown actor \"{}\"", to),
             Some(actor) => {
@@ -169,6 +193,20 @@ impl ActorRegistry {
         for actor in new_actors.into_iter() {
             self.actors.insert(actor.name().to_string(), actor);
         }
+
+        let old_actors = replace(&mut *self.old_actors.borrow_mut(), vec!());
+        for name in old_actors.into_iter() {
+            self.drop_actor(name);
+        }
         Ok(())
+    }
+
+    pub fn drop_actor(&mut self, name: String) {
+        self.actors.remove(&name);
+    }
+
+    pub fn drop_actor_later(&self, name: String) {
+        let mut actors = self.old_actors.borrow_mut();
+        actors.push(name);
     }
 }

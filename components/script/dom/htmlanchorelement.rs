@@ -2,14 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+
 use dom::activation::Activatable;
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
+use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::HTMLAnchorElementDerived;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLImageElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{MouseEventCast, NodeCast};
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable};
 use dom::document::{Document, DocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
@@ -17,10 +20,12 @@ use dom::element::{Element, AttributeHandlers, ElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node};
+use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use dom::window::WindowHelpers;
 
 use std::default::Default;
+use std::num::ToPrimitive;
 use string_cache::Atom;
 use util::str::DOMString;
 
@@ -112,20 +117,35 @@ impl<'a> Activatable for JSRef<'a, HTMLAnchorElement> {
     }
 
     //https://html.spec.whatwg.org/multipage/semantics.html#the-a-element:activation-behaviour
-    fn activation_behavior(&self) {
+    fn activation_behavior(&self, event: JSRef<Event>, target: JSRef<EventTarget>) {
         //Step 1. If the node document is not fully active, abort.
         let doc = document_from_node(*self).root();
         if !doc.r().is_fully_active() {
             return;
         }
         //TODO: Step 2. Check if browsing context is specified and act accordingly.
-        //TODO: Step 3. Handle <img ismap/>.
-        //TODO: Step 4. Download the link is `download` attribute is set.
+        //Step 3. Handle <img ismap/>.
         let element: JSRef<Element> = ElementCast::from_ref(*self);
+        let mouse_event = MouseEventCast::to_ref(event).unwrap();
+        let mut ismap_suffix = None;
+        if let Some(element) = ElementCast::to_ref(target) {
+            if target.is_htmlimageelement() && element.has_attribute(&atom!("ismap")) {
+
+                let target_node = NodeCast::to_ref(target).unwrap();
+                let rect = window_from_node(target_node).root().r().content_box_query(target_node.to_trusted_node_address());
+                ismap_suffix = Some(
+                    format!("?{},{}", mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_frac32_px(),
+                                      mouse_event.ClientY().to_f32().unwrap() - rect.origin.y.to_frac32_px())
+                )
+            }
+        }
+
+        //TODO: Step 4. Download the link is `download` attribute is set.
+
         let attr = element.get_attribute(&ns!(""), &atom!("href")).root();
         match attr {
             Some(ref href) => {
-                let value = href.r().Value();
+                let value = href.r().Value() + ismap_suffix.as_ref().map(|s| &**s).unwrap_or("");
                 debug!("clicked on link to {}", value);
                 doc.r().load_anchor_href(value);
             }

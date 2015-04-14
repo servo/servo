@@ -60,6 +60,7 @@ pub struct TabActorMsg {
     outerWindowID: u32,
     consoleActor: String,
     inspectorActor: String,
+    timelineActor: String,
 }
 
 pub struct TabActor {
@@ -68,6 +69,7 @@ pub struct TabActor {
     pub url: String,
     pub console: String,
     pub inspector: String,
+    pub timeline: String,
 }
 
 impl Actor for TabActor {
@@ -143,6 +145,7 @@ impl TabActor {
             outerWindowID: 0, //FIXME: this should probably be the pipeline id
             consoleActor: self.console.clone(),
             inspectorActor: self.inspector.clone(),
+            timelineActor: self.timeline.clone(),
         }
     }
 }

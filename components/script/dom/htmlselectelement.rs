@@ -60,13 +60,13 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     fn Add(self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) {
     }
 
-    // http://www.whatwg.org/html/#dom-fe-disabled
+    // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_getter!(Disabled);
 
-    // http://www.whatwg.org/html/#dom-fe-disabled
+    // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-select-type
+    // https://html.spec.whatwg.org/multipage/#dom-select-type
     fn Type(self) -> DOMString {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
         if elem.has_attribute(&atom!("multiple")) {

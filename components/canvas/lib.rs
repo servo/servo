@@ -15,7 +15,6 @@ extern crate gleam;
 extern crate layers;
 extern crate compositing;
 extern crate msg;
-extern crate skia;
 extern crate offscreen_gl_context;
 
 pub mod canvas_paint_task;

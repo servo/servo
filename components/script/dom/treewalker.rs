@@ -7,10 +7,7 @@ use dom::bindings::codegen::Bindings::TreeWalkerBinding;
 use dom::bindings::codegen::Bindings::TreeWalkerBinding::TreeWalkerMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
-// FIXME: Uncomment when codegen fix allows NodeFilterConstants
-// to move to the NodeFilter binding file (#3149).
-// For now, it is defined in this file.
-// use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
+use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, OptionalRootable, Temporary, MutHeap};
@@ -18,7 +15,7 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::{Node, NodeHelpers};
 
-// http://dom.spec.whatwg.org/#interface-treewalker
+// https://dom.spec.whatwg.org/#interface-treewalker
 #[dom_struct]
 pub struct TreeWalker {
     reflector_: Reflector,
@@ -152,7 +149,7 @@ trait PrivateTreeWalkerHelpers {
 }
 
 impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
-    // http://dom.spec.whatwg.org/#concept-traverse-children
+    // https://dom.spec.whatwg.org/#concept-traverse-children
     fn traverse_children<F, G>(self,
                                next_child: F,
                                next_sibling: G)
@@ -234,7 +231,7 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
         Ok(None)
     }
 
-    // http://dom.spec.whatwg.org/#concept-traverse-siblings
+    // https://dom.spec.whatwg.org/#concept-traverse-siblings
     fn traverse_siblings<F, G>(self,
                                next_child: F,
                                next_sibling: G)
@@ -299,7 +296,7 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#concept-tree-following
+    // https://dom.spec.whatwg.org/#concept-tree-following
     fn first_following_node_not_following_root(self, node: JSRef<Node>)
                                                -> Option<Temporary<Node>> {
         // "An object A is following an object B if A and B are in the same tree
@@ -326,7 +323,7 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-filter
+    // https://dom.spec.whatwg.org/#concept-node-filter
     fn accept_node(self, node: JSRef<Node>) -> Fallible<u16> {
         // "To filter node run these steps:"
         // "1. Let n be node's nodeType attribute value minus 1."
@@ -367,7 +364,7 @@ pub trait TreeWalkerHelpers {
 }
 
 impl<'a> TreeWalkerHelpers for JSRef<'a, TreeWalker> {
-    // http://dom.spec.whatwg.org/#dom-treewalker-parentnode
+    // https://dom.spec.whatwg.org/#dom-treewalker-parentnode
     fn parent_node(self) -> Fallible<Option<Temporary<Node>>> {
         // "1. Let node be the value of the currentNode attribute."
         let mut node = self.current_node.get().root().get_unsound_ref_forever();
@@ -394,35 +391,35 @@ impl<'a> TreeWalkerHelpers for JSRef<'a, TreeWalker> {
         Ok(None)
     }
 
-    // http://dom.spec.whatwg.org/#dom-treewalker-firstchild
+    // https://dom.spec.whatwg.org/#dom-treewalker-firstchild
     fn first_child(self) -> Fallible<Option<Temporary<Node>>> {
         // "The firstChild() method must traverse children of type first."
         self.traverse_children(|node| node.first_child(),
                                |node| node.next_sibling())
     }
 
-    // http://dom.spec.whatwg.org/#dom-treewalker-lastchild
+    // https://dom.spec.whatwg.org/#dom-treewalker-lastchild
     fn last_child(self) -> Fallible<Option<Temporary<Node>>> {
         // "The lastChild() method must traverse children of type last."
         self.traverse_children(|node| node.last_child(),
                                |node| node.prev_sibling())
     }
 
-    // http://dom.spec.whatwg.org/#dom-treewalker-nextsibling
+    // https://dom.spec.whatwg.org/#dom-treewalker-nextsibling
     fn next_sibling(self) -> Fallible<Option<Temporary<Node>>> {
         // "The nextSibling() method must traverse siblings of type next."
         self.traverse_siblings(|node| node.first_child(),
                                |node| node.next_sibling())
     }
 
-    // http://dom.spec.whatwg.org/#dom-treewalker-previoussibling
+    // https://dom.spec.whatwg.org/#dom-treewalker-previoussibling
     fn prev_sibling(self) -> Fallible<Option<Temporary<Node>>> {
         // "The previousSibling() method must traverse siblings of type previous."
         self.traverse_siblings(|node| node.last_child(),
                                |node| node.prev_sibling())
     }
 
-    // http://dom.spec.whatwg.org/#dom-treewalker-previousnode
+    // https://dom.spec.whatwg.org/#dom-treewalker-previousnode
     fn prev_node(self) -> Fallible<Option<Temporary<Node>>> {
         // "1. Let node be the value of the currentNode attribute."
         let mut node = self.current_node.get().root().get_unsound_ref_forever();
@@ -482,7 +479,7 @@ impl<'a> TreeWalkerHelpers for JSRef<'a, TreeWalker> {
         Ok(None)
     }
 
-    // http://dom.spec.whatwg.org/#dom-treewalker-nextnode
+    // https://dom.spec.whatwg.org/#dom-treewalker-nextnode
     fn next_node(self) -> Fallible<Option<Temporary<Node>>> {
         // "1. Let node be the value of the currentNode attribute."
         let mut node = self.current_node.get().root().get_unsound_ref_forever();
@@ -563,24 +560,3 @@ pub enum Filter {
     Native(fn (node: JSRef<Node>) -> u16),
     JS(NodeFilter)
 }
-
-// FIXME: NodeFilterConstants will be defined in NodeFilterBindings.rs
-// when codegen supports a callback interface with constants (#3149).
-pub mod NodeFilterConstants {
-  pub const FILTER_ACCEPT: u16 = 1;
-  pub const FILTER_REJECT: u16 = 2;
-  pub const FILTER_SKIP: u16 = 3;
-  pub const SHOW_ALL: u32 = 4294967295;
-  pub const SHOW_ELEMENT: u32 = 1;
-  pub const SHOW_ATTRIBUTE: u32 = 2;
-  pub const SHOW_TEXT: u32 = 4;
-  pub const SHOW_CDATA_SECTION: u32 = 8;
-  pub const SHOW_ENTITY_REFERENCE: u32 = 16;
-  pub const SHOW_ENTITY: u32 = 32;
-  pub const SHOW_PROCESSING_INSTRUCTION: u32 = 64;
-  pub const SHOW_COMMENT: u32 = 128;
-  pub const SHOW_DOCUMENT: u32 = 256;
-  pub const SHOW_DOCUMENT_TYPE: u32 = 512;
-  pub const SHOW_DOCUMENT_FRAGMENT: u32 = 1024;
-  pub const SHOW_NOTATION: u32 = 2048;
-} // mod NodeFilterConstants

@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use actor::{Actor, ActorRegistry};
+use msg::constellation_msg::WorkerId;
 use rustc_serialize::json;
 use std::net::TcpStream;
-use msg::constellation_msg::WorkerId;
 
 pub struct WorkerActor {
     pub name: String,

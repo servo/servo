@@ -43,7 +43,7 @@ impl DOMParser {
 }
 
 impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
-    // http://domparsing.spec.whatwg.org/#the-domparser-interface
+    // https://domparsing.spec.whatwg.org/#the-domparser-interface
     fn ParseFromString(self,
                        s: DOMString,
                        ty: DOMParserBinding::SupportedType)

@@ -111,7 +111,7 @@ macro_rules! make_enumerated_getter(
             let element: JSRef<Element> = ElementCast::from_ref(self);
             let val = element.get_string_attribute(&Atom::from_slice($htmlname))
                              .into_ascii_lowercase();
-            // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-method
+            // https://html.spec.whatwg.org/multipage/#attr-fs-method
             match val.as_slice() {
                 $($choices)|+ => val,
                 _ => $default.to_owned()
@@ -214,7 +214,7 @@ macro_rules! error_event_handler(
     )
 );
 
-// https://html.spec.whatwg.org/multipage/webappapis.html#globaleventhandlers
+// https://html.spec.whatwg.org/multipage/#globaleventhandlers
 // see webidls/EventHandler.webidl
 // As more methods get added, just update them here.
 macro_rules! global_event_handlers(

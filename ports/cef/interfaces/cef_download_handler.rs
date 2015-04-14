@@ -68,7 +68,7 @@ pub struct _cef_before_download_callback_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: uint,
+  pub ref_count: usize,
 
   //
   // Extra data. This will only be present for Rust instances!
@@ -209,7 +209,7 @@ pub struct _cef_download_item_callback_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: uint,
+  pub ref_count: usize,
 
   //
   // Extra data. This will only be present for Rust instances!
@@ -367,7 +367,7 @@ pub struct _cef_download_handler_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: uint,
+  pub ref_count: usize,
 
   //
   // Extra data. This will only be present for Rust instances!

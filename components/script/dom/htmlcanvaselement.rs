@@ -117,17 +117,12 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
 }
 
 pub trait HTMLCanvasElementHelpers {
-    //fn get_size(&self) -> Size2D<i32>;
     fn get_2d_context(self) -> Temporary<CanvasRenderingContext2D>;
     fn get_webgl_context(self) -> Temporary<WebGLRenderingContext>;
     fn is_valid(self) -> bool;
 }
 
 impl<'a> HTMLCanvasElementHelpers for JSRef<'a, HTMLCanvasElement> {
-    // fn get_size(&self) -> Size2D<i32> {
-    //     Size2D(self.Width() as i32, self.Height() as i32)
-    // }
-
     fn get_2d_context(self) -> Temporary<CanvasRenderingContext2D> {
         let context = self.GetContext(String::from_str("2d"));
         match context.unwrap() {
@@ -174,33 +169,37 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
 
     fn GetContext(self, id: DOMString) -> Option<CanvasRenderingContext2DOrWebGLRenderingContext> {
         match id.as_slice() {
-           "2d" => {
-               let context_2d = self.context_2d.or_init(|| {
-                   let window = window_from_node(self).root();
-                   let size = self.get_size();
-                   CanvasRenderingContext2D::new(GlobalRef::Window(window.r()), self, size)
-               });
-               Some(CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(Unrooted::from_temporary(context_2d)))
-           }
-           "webgl" | "experimental-webgl" => {
-               if self.context_2d.get().is_some() {
-                   println!("Trying to get a WebGL context for a canvas with an already initialized 2d context");
-                   return None;
-               }
+            "2d" => {
+                if self.context_webgl.get().is_some() {
+                    println!("Trying to get a 2d context for a canvas with an already initialized WebGL context");
+                    return None;
+                }
+                let context_2d = self.context_2d.or_init(|| {
+                    let window = window_from_node(self).root();
+                    let size = self.get_size();
+                    CanvasRenderingContext2D::new(GlobalRef::Window(window.r()), self, size)
+                });
+                Some(CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(Unrooted::from_temporary(context_2d)))
+            }
+            "webgl" | "experimental-webgl" => {
+                if self.context_2d.get().is_some() {
+                    println!("Trying to get a WebGL context for a canvas with an already initialized 2d context");
+                    return None;
+                }
 
-               if !self.context_webgl.get().is_some() {
-                   let window = window_from_node(self).root();
-                   let (w, h) = (self.width.get() as i32, self.height.get() as i32);
-                   self.context_webgl.assign(WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, Size2D(w, h)))
-               }
+                if !self.context_webgl.get().is_some() {
+                    let window = window_from_node(self).root();
+                    let (w, h) = (self.width.get() as i32, self.height.get() as i32);
+                    self.context_webgl.assign(WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, Size2D(w, h)))
+                }
 
-               match self.context_webgl.get() {
-                   Some(ctx) => Some(CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(Unrooted::from_temporary(ctx))),
-                   None => None
-               }
-           }
-           _ => return None
-         }
+                match self.context_webgl.get() {
+                    Some(ctx) => Some(CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(Unrooted::from_temporary(ctx))),
+                    None => None
+                }
+            }
+            _ => return None
+        }
     }
 }
 

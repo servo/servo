@@ -68,7 +68,7 @@ impl HTMLIFrameElementDerived for EventTarget {
 pub trait HTMLIFrameElementHelpers {
     fn is_sandboxed(self) -> bool;
     fn get_url(self) -> Option<Url>;
-    /// http://www.whatwg.org/html/#process-the-iframe-attributes
+    /// https://www.whatwg.org/html/#process-the-iframe-attributes
     fn process_the_iframe_attributes(self);
     fn generate_new_subpage_id(self) -> (SubpageId, Option<SubpageId>);
     fn navigate_child_browsing_context(self, url: Url);

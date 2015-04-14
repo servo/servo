@@ -164,30 +164,31 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, box ElementChildFilter)
     }
 
-    fn traverse<'a>(root: JSRef<'a, Node>)
-                    -> FilterMap<Skip<TreeIterator<'a>>,
-                                 fn(JSRef<Node>) -> Option<JSRef<Element>>> {
+    fn traverse(root: JSRef<Node>)
+                -> FilterMap<Skip<TreeIterator>,
+                             fn(Temporary<Node>) -> Option<Temporary<Element>>> {
         root.traverse_preorder()
             .skip(1)
-            .filter_map(ElementCast::to_ref as fn(JSRef<Node>) -> Option<JSRef<Element>>)
+            .filter_map(ElementCast::to_temporary as
+                        fn(Temporary<Node>) -> Option<Temporary<Element>>)
     }
 }
 
 impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
-    // http://dom.spec.whatwg.org/#dom-htmlcollection-length
+    // https://dom.spec.whatwg.org/#dom-htmlcollection-length
     fn Length(self) -> u32 {
         match self.collection {
             CollectionTypeId::Static(ref elems) => elems.len() as u32,
             CollectionTypeId::Live(ref root, ref filter) => {
                 let root = root.root();
                 HTMLCollection::traverse(root.r())
-                    .filter(|element| filter.filter(*element, root.r()))
+                    .filter(|element| filter.filter(element.root().r(), root.r()))
                     .count() as u32
             }
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-htmlcollection-item
+    // https://dom.spec.whatwg.org/#dom-htmlcollection-item
     fn Item(self, index: u32) -> Option<Temporary<Element>> {
         let index = index as usize;
         match self.collection {
@@ -198,15 +199,13 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
             CollectionTypeId::Live(ref root, ref filter) => {
                 let root = root.root();
                 HTMLCollection::traverse(root.r())
-                    .filter(|element| filter.filter(*element, root.r()))
+                    .filter(|element| filter.filter(element.root().r(), root.r()))
                     .nth(index)
-                    .clone()
-                    .map(Temporary::from_rooted)
             }
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
+    // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
     fn NamedItem(self, key: DOMString) -> Option<Temporary<Element>> {
         // Step 1.
         if key.is_empty() {
@@ -224,11 +223,12 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
             CollectionTypeId::Live(ref root, ref filter) => {
                 let root = root.root();
                 HTMLCollection::traverse(root.r())
-                    .filter(|element| filter.filter(*element, root.r()))
+                    .map(|element| element.root())
+                    .filter(|element| filter.filter(element.r(), root.r()))
                     .find(|elem| {
-                        elem.get_string_attribute(&atom!("name")) == key ||
-                        elem.get_string_attribute(&atom!("id")) == key })
-                    .map(Temporary::from_rooted)
+                        elem.r().get_string_attribute(&atom!("name")) == key ||
+                        elem.r().get_string_attribute(&atom!("id")) == key })
+                    .map(|elem| Temporary::from_rooted(elem.r()))
             }
         }
     }

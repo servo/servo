@@ -185,8 +185,8 @@ impl Drop for Node {
 }
 
 /// suppress observers flag
-/// http://dom.spec.whatwg.org/#concept-node-insert
-/// http://dom.spec.whatwg.org/#concept-node-remove
+/// https://dom.spec.whatwg.org/#concept-node-insert
+/// https://dom.spec.whatwg.org/#concept-node-remove
 #[derive(Copy)]
 enum SuppressObserver {
     Suppressed,
@@ -283,14 +283,15 @@ trait PrivateNodeHelpers {
 }
 
 impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
-    // http://dom.spec.whatwg.org/#node-is-inserted
+    // https://dom.spec.whatwg.org/#node-is-inserted
     fn node_inserted(self) {
         assert!(self.parent_node().is_some());
         let document = document_from_node(self).root();
         let is_in_doc = self.is_in_doc();
 
         for node in self.traverse_preorder() {
-            vtable_for(&node).bind_to_tree(is_in_doc);
+            let node = node.root();
+            vtable_for(&node.r()).bind_to_tree(is_in_doc);
         }
 
         let parent = self.parent_node().root();
@@ -298,11 +299,12 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         document.r().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
     }
 
-    // http://dom.spec.whatwg.org/#node-is-removed
+    // https://dom.spec.whatwg.org/#node-is-removed
     fn node_removed(self, parent_in_doc: bool) {
         assert!(self.parent_node().is_none());
         for node in self.traverse_preorder() {
-            vtable_for(&node).unbind_from_tree(parent_in_doc);
+            let node = node.root();
+            vtable_for(&node.r()).unbind_from_tree(parent_in_doc);
         }
         self.layout_data.dispose();
     }
@@ -381,14 +383,15 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     }
 }
 
-pub struct QuerySelectorIterator<'a> {
+pub struct QuerySelectorIterator {
     selectors: Vec<Selector>,
-    iterator: TreeIterator<'a>,
+    iterator: TreeIterator,
 }
 
-impl<'a> QuerySelectorIterator<'a> {
+impl<'a> QuerySelectorIterator {
     #[allow(unsafe_code)]
-    unsafe fn new(iter: TreeIterator<'a>, selectors: Vec<Selector>) -> QuerySelectorIterator<'a> {
+    unsafe fn new(iter: TreeIterator, selectors: Vec<Selector>)
+                  -> QuerySelectorIterator {
         QuerySelectorIterator {
             selectors: selectors,
             iterator: iter,
@@ -396,18 +399,21 @@ impl<'a> QuerySelectorIterator<'a> {
     }
 }
 
-impl<'a> Iterator for QuerySelectorIterator<'a> {
-    type Item = JSRef<'a, Node>;
+impl<'a> Iterator for QuerySelectorIterator {
+    type Item = Temporary<Node>;
 
-    fn next(&mut self) -> Option<JSRef<'a, Node>> {
+    fn next(&mut self) -> Option<Temporary<Node>> {
         let selectors = &self.selectors;
         // TODO(cgaebel): Is it worth it to build a bloom filter here
         // (instead of passing `None`)? Probably.
-        self.iterator.find(|node| node.is_element() && matches(selectors, node, &mut None))
+        self.iterator.find(|node| {
+            let node = node.root();
+            node.r().is_element() && matches(selectors, &node.r(), &mut None)
+        })
     }
 }
 
-pub trait NodeHelpers<'a> {
+pub trait NodeHelpers {
     fn ancestors(self) -> AncestorIterator;
     fn inclusive_ancestors(self) -> AncestorIterator;
     fn children(self) -> NodeSiblingIterator;
@@ -484,7 +490,7 @@ pub trait NodeHelpers<'a> {
     fn dump_indent(self, indent: u32);
     fn debug_str(self) -> String;
 
-    fn traverse_preorder(self) -> TreeIterator<'a>;
+    fn traverse_preorder(self) -> TreeIterator;
     fn inclusively_following_siblings(self) -> NodeSiblingIterator;
     fn inclusively_preceding_siblings(self) -> ReverseSiblingIterator;
 
@@ -495,7 +501,7 @@ pub trait NodeHelpers<'a> {
 
     fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
     #[allow(unsafe_code)]
-    unsafe fn query_selector_iter(self, selectors: DOMString) -> Fallible<QuerySelectorIterator<'a>>;
+    unsafe fn query_selector_iter(self, selectors: DOMString) -> Fallible<QuerySelectorIterator>;
     fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
 
     fn remove_self(self);
@@ -508,7 +514,7 @@ pub trait NodeHelpers<'a> {
     fn parse_fragment(self, markup: DOMString) -> Fallible<Temporary<DocumentFragment>>;
 }
 
-impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
+impl<'a> NodeHelpers for JSRef<'a, Node> {
     fn teardown(self) {
         self.layout_data.dispose();
         for kid in self.children() {
@@ -745,7 +751,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     /// Iterates over this node and all its descendants, in preorder.
-    fn traverse_preorder(self) -> TreeIterator<'a> {
+    fn traverse_preorder(self) -> TreeIterator {
         TreeIterator::new(self)
     }
 
@@ -796,7 +802,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         window_from_node(self).root().r().content_boxes_query(self.to_trusted_node_address())
     }
 
-    // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
+    // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         // Step 1.
         match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
@@ -806,10 +812,9 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             Ok(ref selectors) => {
                 let root = self.ancestors().last().root();
                 let root = root.r().unwrap_or(self.clone());
-                Ok(root.traverse_preorder()
-                       .filter_map(ElementCast::to_ref)
-                       .find(|element| matches(selectors, &NodeCast::from_ref(*element), &mut None))
-                       .map(Temporary::from_rooted))
+                Ok(root.traverse_preorder().filter_map(ElementCast::to_temporary).find(|element| {
+                    matches(selectors, &NodeCast::from_ref(element.root().r()), &mut None)
+                }))
             }
         }
     }
@@ -819,33 +824,29 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     /// the iterator may be invalidated
     #[allow(unsafe_code)]
     unsafe fn query_selector_iter(self, selectors: DOMString)
-                                  -> Fallible<QuerySelectorIterator<'a>> {
+                                  -> Fallible<QuerySelectorIterator> {
         // Step 1.
-        let nodes;
-        let root = self.ancestors().last().root()
-                       .map(|node| node.get_unsound_ref_forever())
-                       .unwrap_or(self.clone());
         match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
-            Err(()) => return Err(Syntax),
+            Err(()) => Err(Syntax),
             // Step 3.
             Ok(selectors) => {
-                nodes = QuerySelectorIterator::new(root.traverse_preorder(), selectors);
+                let root = self.ancestors().last().root();
+                let root = root.r().unwrap_or(self);
+                Ok(QuerySelectorIterator::new(root.traverse_preorder(), selectors))
             }
-        };
-        Ok(nodes)
+        }
     }
 
-    // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
+    // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     #[allow(unsafe_code)]
     fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
-        // Step 1.
-        unsafe {
-            self.query_selector_iter(selectors).map(|iter| {
-                let window = window_from_node(self).root();
-                NodeList::new_simple_list(window.r(), iter.collect())
-            })
+        let mut nodes = RootedVec::new();
+        for node in try!(unsafe { self.query_selector_iter(selectors) }) {
+            nodes.push(JS::from_rooted(node));
         }
+        let window = window_from_node(self).root();
+        Ok(NodeList::new_simple_list(window.r(), &nodes))
     }
 
 
@@ -1179,30 +1180,48 @@ impl Iterator for AncestorIterator {
     }
 }
 
-pub struct TreeIterator<'a> {
-    stack: Vec<JSRef<'a, Node>>,
+pub struct TreeIterator {
+    current: Option<Temporary<Node>>,
+    depth: usize,
 }
 
-impl<'a> TreeIterator<'a> {
-    fn new(root: JSRef<'a, Node>) -> TreeIterator<'a> {
-        let mut stack = vec!();
-        stack.push(root);
-
+impl<'a> TreeIterator {
+    fn new(root: JSRef<'a, Node>) -> TreeIterator {
         TreeIterator {
-            stack: stack,
+            current: Some(Temporary::from_rooted(root)),
+            depth: 0,
         }
     }
 }
 
-impl<'a> Iterator for TreeIterator<'a> {
-    type Item = JSRef<'a, Node>;
+impl Iterator for TreeIterator {
+    type Item = Temporary<Node>;
 
-    fn next(&mut self) -> Option<JSRef<'a, Node>> {
-        let ret = self.stack.pop();
-        ret.map(|node| {
-            self.stack.extend(node.rev_children().map(|c| c.root().get_unsound_ref_forever()))
-        });
-        ret
+    // https://dom.spec.whatwg.org/#concept-tree-order
+    fn next(&mut self) -> Option<Temporary<Node>> {
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        };
+        let node = current.root();
+        if let Some(first_child) = node.r().first_child() {
+            self.current = Some(first_child);
+            self.depth += 1;
+            return Some(current);
+        };
+        for ancestor in node.r().inclusive_ancestors() {
+            if self.depth == 0 {
+                break;
+            }
+            if let Some(next_sibling) = ancestor.root().r().next_sibling() {
+                self.current = Some(next_sibling);
+                return Some(current);
+            }
+            self.depth -= 1;
+        }
+        debug_assert!(self.depth == 0);
+        self.current = None;
+        Some(current)
     }
 }
 
@@ -1270,7 +1289,7 @@ impl Node {
         self.layout_data.borrow_unchecked()
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-adopt
+    // https://dom.spec.whatwg.org/#concept-node-adopt
     pub fn adopt(node: JSRef<Node>, document: JSRef<Document>) {
         // Step 1.
         match node.parent_node().root() {
@@ -1284,7 +1303,7 @@ impl Node {
         let node_doc = document_from_node(node).root();
         if node_doc.r() != document {
             for descendant in node.traverse_preorder() {
-                descendant.set_owner_doc(document);
+                descendant.root().r().set_owner_doc(document);
             }
         }
 
@@ -1292,7 +1311,7 @@ impl Node {
         // If node is an element, it is _affected by a base URL change_.
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-pre-insert
+    // https://dom.spec.whatwg.org/#concept-node-pre-insert
     fn pre_insert(node: JSRef<Node>, parent: JSRef<Node>, child: Option<JSRef<Node>>)
                   -> Fallible<Temporary<Node>> {
         // Step 1.
@@ -1415,9 +1434,10 @@ impl Node {
 
         // Step 7-8.
         let reference_child = match child {
-            Some(child) if child == node => node.next_sibling().map(|node| node.root().get_unsound_ref_forever()),
-            _ => child
-        };
+            Some(child) if child == node => node.next_sibling(),
+            _ => None
+        }.root();
+        let reference_child = reference_child.r().or(child);
 
         // Step 9.
         let document = document_from_node(parent).root();
@@ -1430,7 +1450,7 @@ impl Node {
         return Ok(Temporary::from_rooted(node))
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-insert
+    // https://dom.spec.whatwg.org/#concept-node-insert
     fn insert(node: JSRef<Node>,
               parent: JSRef<Node>,
               child: Option<JSRef<Node>>,
@@ -1439,13 +1459,14 @@ impl Node {
             parent.add_child(node, child);
             let is_in_doc = parent.is_in_doc();
             for kid in node.traverse_preorder() {
-                let mut flags = kid.flags.get();
+                let kid = kid.root();
+                let mut flags = kid.r().flags.get();
                 if is_in_doc {
                     flags.insert(IS_IN_DOC);
                 } else {
                     flags.remove(IS_IN_DOC);
                 }
-                kid.flags.set(flags);
+                kid.r().flags.set(flags);
             }
         }
 
@@ -1496,7 +1517,7 @@ impl Node {
         }
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-replace-all
+    // https://dom.spec.whatwg.org/#concept-node-replace-all
     pub fn replace_all(node: Option<JSRef<Node>>, parent: JSRef<Node>) {
         // Step 1.
         match node {
@@ -1548,7 +1569,7 @@ impl Node {
         }
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-pre-remove
+    // https://dom.spec.whatwg.org/#concept-node-pre-remove
     fn pre_remove(child: JSRef<Node>, parent: JSRef<Node>) -> Fallible<Temporary<Node>> {
         // Step 1.
         match child.parent_node() {
@@ -1564,7 +1585,7 @@ impl Node {
         Ok(Temporary::from_rooted(child))
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-remove
+    // https://dom.spec.whatwg.org/#concept-node-remove
     fn remove(node: JSRef<Node>, parent: JSRef<Node>, suppress_observers: SuppressObserver) {
         assert!(node.parent_node().map_or(false, |node_parent| node_parent == Temporary::from_rooted(parent)));
 
@@ -1582,7 +1603,7 @@ impl Node {
         }
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-clone
+    // https://dom.spec.whatwg.org/#concept-node-clone
     pub fn clone(node: JSRef<Node>, maybe_doc: Option<JSRef<Document>>,
                  clone_children: CloneChildrenFlag) -> Temporary<Node> {
 
@@ -1711,7 +1732,7 @@ impl Node {
 }
 
 impl<'a> NodeMethods for JSRef<'a, Node> {
-    // http://dom.spec.whatwg.org/#dom-node-nodetype
+    // https://dom.spec.whatwg.org/#dom-node-nodetype
     fn NodeType(self) -> u16 {
         match self.type_id {
             NodeTypeId::Element(_)            => NodeConstants::ELEMENT_NODE,
@@ -1724,7 +1745,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-nodename
+    // https://dom.spec.whatwg.org/#dom-node-nodename
     fn NodeName(self) -> DOMString {
         match self.type_id {
             NodeTypeId::Element(..) => {
@@ -1747,13 +1768,13 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-baseuri
+    // https://dom.spec.whatwg.org/#dom-node-baseuri
     fn GetBaseURI(self) -> Option<DOMString> {
         // FIXME (#1824) implement.
         None
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-ownerdocument
+    // https://dom.spec.whatwg.org/#dom-node-ownerdocument
     fn GetOwnerDocument(self) -> Option<Temporary<Document>> {
         match self.type_id {
             NodeTypeId::Element(..) |
@@ -1766,12 +1787,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-parentnode
+    // https://dom.spec.whatwg.org/#dom-node-parentnode
     fn GetParentNode(self) -> Option<Temporary<Node>> {
         self.parent_node.get()
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-parentelement
+    // https://dom.spec.whatwg.org/#dom-node-parentelement
     fn GetParentElement(self) -> Option<Temporary<Element>> {
         self.parent_node.get()
                         .and_then(|parent| {
@@ -1782,12 +1803,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                         })
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-haschildnodes
+    // https://dom.spec.whatwg.org/#dom-node-haschildnodes
     fn HasChildNodes(self) -> bool {
         self.first_child.get().is_some()
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-childnodes
+    // https://dom.spec.whatwg.org/#dom-node-childnodes
     fn ChildNodes(self) -> Temporary<NodeList> {
         self.child_list.or_init(|| {
             let doc = self.owner_doc().root();
@@ -1796,27 +1817,27 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         })
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-firstchild
+    // https://dom.spec.whatwg.org/#dom-node-firstchild
     fn GetFirstChild(self) -> Option<Temporary<Node>> {
         self.first_child.get()
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-lastchild
+    // https://dom.spec.whatwg.org/#dom-node-lastchild
     fn GetLastChild(self) -> Option<Temporary<Node>> {
         self.last_child.get()
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-previoussibling
+    // https://dom.spec.whatwg.org/#dom-node-previoussibling
     fn GetPreviousSibling(self) -> Option<Temporary<Node>> {
         self.prev_sibling.get()
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-nextsibling
+    // https://dom.spec.whatwg.org/#dom-node-nextsibling
     fn GetNextSibling(self) -> Option<Temporary<Node>> {
         self.next_sibling.get()
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-nodevalue
+    // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn GetNodeValue(self) -> Option<DOMString> {
         match self.type_id {
             NodeTypeId::Comment |
@@ -1831,7 +1852,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-nodevalue
+    // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn SetNodeValue(self, val: Option<DOMString>) {
         match self.type_id {
             NodeTypeId::Comment |
@@ -1843,13 +1864,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-textcontent
+    // https://dom.spec.whatwg.org/#dom-node-textcontent
     fn GetTextContent(self) -> Option<DOMString> {
         match self.type_id {
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => {
-                let content = Node::collect_text_contents(
-                    self.traverse_preorder().map(Temporary::from_rooted));
+                let content = Node::collect_text_contents(self.traverse_preorder());
                 Some(content)
             }
             NodeTypeId::Comment |
@@ -1865,7 +1885,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-textcontent
+    // https://dom.spec.whatwg.org/#dom-node-textcontent
     fn SetTextContent(self, value: Option<DOMString>) {
         let value = null_str_as_empty(&value);
         match self.type_id {
@@ -1897,17 +1917,17 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-insertbefore
+    // https://dom.spec.whatwg.org/#dom-node-insertbefore
     fn InsertBefore(self, node: JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Temporary<Node>> {
         Node::pre_insert(node, self, child)
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-appendchild
+    // https://dom.spec.whatwg.org/#dom-node-appendchild
     fn AppendChild(self, node: JSRef<Node>) -> Fallible<Temporary<Node>> {
         Node::pre_insert(node, self, None)
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-replace
+    // https://dom.spec.whatwg.org/#concept-node-replace
     fn ReplaceChild(self, node: JSRef<Node>, child: JSRef<Node>) -> Fallible<Temporary<Node>> {
 
         // Step 1.
@@ -2018,10 +2038,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Step 7-8.
-        let next_sibling = child.next_sibling().map(|node| node.root().get_unsound_ref_forever());
-        let reference_child = match next_sibling {
-            Some(sibling) if sibling == node => node.next_sibling().map(|node| node.root().get_unsound_ref_forever()),
-            _ => next_sibling
+        let child_next_sibling = child.next_sibling().root();
+        let node_next_sibling = node.next_sibling().root();
+        let reference_child = if child_next_sibling.r() == Some(node) {
+            node_next_sibling.r()
+        } else {
+            child_next_sibling.r()
         };
 
         // Step 9.
@@ -2063,13 +2085,13 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         Ok(Temporary::from_rooted(child))
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-removechild
+    // https://dom.spec.whatwg.org/#dom-node-removechild
     fn RemoveChild(self, node: JSRef<Node>)
                        -> Fallible<Temporary<Node>> {
         Node::pre_remove(node, self)
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-normalize
+    // https://dom.spec.whatwg.org/#dom-node-normalize
     fn Normalize(self) {
         let mut prev_text: Option<Temporary<Text>> = None;
         for child in self.children() {
@@ -2099,7 +2121,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-clonenode
+    // https://dom.spec.whatwg.org/#dom-node-clonenode
     fn CloneNode(self, deep: bool) -> Temporary<Node> {
         Node::clone(self, None, if deep {
             CloneChildrenFlag::CloneChildren
@@ -2108,7 +2130,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         })
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-isequalnode
+    // https://dom.spec.whatwg.org/#dom-node-isequalnode
     fn IsEqualNode(self, maybe_node: Option<JSRef<Node>>) -> bool {
         fn is_equal_doctype(node: JSRef<Node>, other: JSRef<Node>) -> bool {
             let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
@@ -2189,7 +2211,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-comparedocumentposition
+    // https://dom.spec.whatwg.org/#dom-node-comparedocumentposition
     fn CompareDocumentPosition(self, other: JSRef<Node>) -> u16 {
         if self == other {
             // step 2.
@@ -2233,11 +2255,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
             let lastself = lastself.root();
             for child in lastself.r().traverse_preorder() {
-                if child == other {
+                let child = child.root();
+                if child.r() == other {
                     // step 6.
                     return NodeConstants::DOCUMENT_POSITION_PRECEDING;
                 }
-                if child == self {
+                if child.r() == self {
                     // step 7.
                     return NodeConstants::DOCUMENT_POSITION_FOLLOWING;
                 }
@@ -2246,7 +2269,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-contains
+    // https://dom.spec.whatwg.org/#dom-node-contains
     fn Contains(self, maybe_other: Option<JSRef<Node>>) -> bool {
         match maybe_other {
             None => false,
@@ -2254,19 +2277,19 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-lookupprefix
+    // https://dom.spec.whatwg.org/#dom-node-lookupprefix
     fn LookupPrefix(self, _prefix: Option<DOMString>) -> Option<DOMString> {
         // FIXME (#1826) implement.
         None
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
+    // https://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
     fn LookupNamespaceURI(self, _namespace: Option<DOMString>) -> Option<DOMString> {
         // FIXME (#1826) implement.
         None
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
+    // https://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
     fn IsDefaultNamespace(self, _namespace: Option<DOMString>) -> bool {
         // FIXME (#1826) implement.
         false
@@ -2308,7 +2331,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn parent_node(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn parent_node<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
+        fn parent_node<'a, T: NodeHelpers>(this: T) -> Option<Temporary<Node>> {
             this.parent_node()
         }
 
@@ -2318,7 +2341,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn first_child(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn first_child<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
+        fn first_child<'a, T: NodeHelpers>(this: T) -> Option<Temporary<Node>> {
             this.first_child()
         }
 
@@ -2328,7 +2351,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn last_child(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn last_child<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
+        fn last_child<'a, T: NodeHelpers>(this: T) -> Option<Temporary<Node>> {
             this.last_child()
         }
 
@@ -2338,7 +2361,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn prev_sibling(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn prev_sibling<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
+        fn prev_sibling<'a, T: NodeHelpers>(this: T) -> Option<Temporary<Node>> {
             this.prev_sibling()
         }
 
@@ -2348,7 +2371,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn next_sibling(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn next_sibling<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
+        fn next_sibling<'a, T: NodeHelpers>(this: T) -> Option<Temporary<Node>> {
             this.next_sibling()
         }
 
@@ -2358,7 +2381,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn is_document(self) -> bool {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn is_document<'a, T: NodeHelpers<'a>>(this: T) -> bool {
+        fn is_document<'a, T: NodeHelpers>(this: T) -> bool {
             this.is_document()
         }
 
@@ -2368,7 +2391,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
     fn is_element(self) -> bool {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn is_element<'a, T: NodeHelpers<'a>>(this: T) -> bool {
+        fn is_element<'a, T: NodeHelpers>(this: T) -> bool {
             this.is_element()
         }
 

@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://xhr.spec.whatwg.org
+ * https://xhr.spec.whatwg.org
  */
 
 typedef (File or DOMString) FormDataEntryValue;

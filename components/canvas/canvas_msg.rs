@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-use canvas_paint_task::FillOrStrokeStyle;
+use canvas_paint_task::{FillOrStrokeStyle, LineCapStyle, LineJoinStyle};
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -38,6 +37,8 @@ pub enum Canvas2dMsg {
     SetFillStyle(FillOrStrokeStyle),
     SetStrokeStyle(FillOrStrokeStyle),
     SetLineWidth(f32),
+    SetLineCap(LineCapStyle),
+    SetLineJoin(LineJoinStyle),
     SetMiterLimit(f32),
     SetGlobalAlpha(f32),
     SetTransform(Matrix2D<f32>),

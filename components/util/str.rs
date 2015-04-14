@@ -49,7 +49,7 @@ pub fn char_is_whitespace(c: char) -> bool {
 
 /// A "space character" according to:
 ///
-/// http://www.whatwg.org/specs/web-apps/current-work/multipage/common-microsyntaxes.html#space-character
+/// https://www.whatwg.org/specs/web-apps/current-work/multipage/common-microsyntaxes.html#space-character
 pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
     '\u{0020}',
     '\u{0009}',
@@ -65,8 +65,8 @@ pub fn split_html_space_chars<'a>(s: &'a str) ->
 }
 
 /// Shared implementation to parse an integer according to
-/// <http://www.whatwg.org/html/#rules-for-parsing-integers> or
-/// <http://www.whatwg.org/html/#rules-for-parsing-non-negative-integers>.
+/// <https://www.whatwg.org/html/#rules-for-parsing-integers> or
+/// <https://www.whatwg.org/html/#rules-for-parsing-non-negative-integers>.
 fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
     fn is_ascii_digit(c: &char) -> bool {
         match *c {
@@ -111,7 +111,7 @@ fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
 }
 
 /// Parse an integer according to
-/// <http://www.whatwg.org/html/#rules-for-parsing-integers>.
+/// <https://www.whatwg.org/html/#rules-for-parsing-integers>.
 pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i32> {
     do_parse_integer(input).and_then(|result| {
         result.to_i32()
@@ -119,7 +119,7 @@ pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i32> {
 }
 
 /// Parse an integer according to
-/// <http://www.whatwg.org/html/#rules-for-parsing-non-negative-integers>.
+/// <https://www.whatwg.org/html/#rules-for-parsing-non-negative-integers>.
 pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
     do_parse_integer(input).and_then(|result| {
         result.to_u32()

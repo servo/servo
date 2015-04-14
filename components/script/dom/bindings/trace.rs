@@ -35,6 +35,7 @@ use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
 use script_task::ScriptChan;
 
 use canvas::canvas_paint_task::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
+use canvas::canvas_paint_task::{LineCapStyle, LineJoinStyle};
 use cssparser::RGBA;
 use encoding::types::EncodingRef;
 use geom::matrix2d::Matrix2D;
@@ -241,6 +242,7 @@ no_jsmanaged_fields!(ImageCacheTask, ScriptControlChan);
 no_jsmanaged_fields!(Atom, Namespace, Timer);
 no_jsmanaged_fields!(Trusted<T>);
 no_jsmanaged_fields!(PropertyDeclarationBlock);
+no_jsmanaged_fields!(HashSet<T>);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
 no_jsmanaged_fields!(SubpageId, WindowSizeData, PipelineId);
@@ -258,6 +260,7 @@ no_jsmanaged_fields!(RGBA);
 no_jsmanaged_fields!(Matrix2D<T>);
 no_jsmanaged_fields!(StorageType);
 no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
+no_jsmanaged_fields!(LineCapStyle, LineJoinStyle);
 
 impl JSTraceable for Box<ScriptChan+Send> {
     #[inline]

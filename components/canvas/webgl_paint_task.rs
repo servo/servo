@@ -74,22 +74,21 @@ impl WebGLPaintTask {
     }
 
     fn send_pixel_contents(&mut self, chan: Sender<Vec<u8>>) {
-        // FIXME: Instead of a readback strategy we have
+        // FIXME(#5652, dmarcos): Instead of a readback strategy we have
         // to layerize the canvas
         let mut pixels = gl::read_pixels(0, 0,
                                      self.size.width as gl::GLsizei,
                                      self.size.height as gl::GLsizei,
                                      gl::RGBA, gl::UNSIGNED_BYTE);
 
-        // Fixed by https://github.com/servo/gleam/pull/17
+        // FIXME(ecoal95): This is a workaround,
+        //   fixed by https://github.com/servo/gleam/pull/17
         unsafe {
-            let len = pixels.len() * 4 / 3;
-            pixels.set_len(len);
-        };
+            pixels.set_len((4 * self.size.width * self.size.height) as usize);
+        }
 
         // rgba -> bgra
         byte_swap(pixels.as_mut_slice());
-
         chan.send(pixels).unwrap();
     }
 
@@ -109,5 +108,4 @@ impl WebGLPaintTask {
     fn init(&mut self) {
         self.gl_context.make_current().unwrap();
     }
-
 }

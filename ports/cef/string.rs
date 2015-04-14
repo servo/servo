@@ -94,7 +94,7 @@ pub extern "C" fn cef_string_utf8_set(src: *const u8, src_len: size_t, output: *
                  return 0;
              }
 
-             ptr::copy((*output).str, src, src_len as uint);
+             ptr::copy((*output).str, src, src_len as usize);
              (*output).length = src_len;
              (*output).dtor = Some(string_utf8_dtor as extern "C" fn(*mut u8));
            }
@@ -112,8 +112,8 @@ pub extern "C" fn cef_string_utf8_cmp(a: *const cef_string_utf8_t, b: *const cef
     unsafe {
         let astr = (*a).str as *const u8;
         let bstr = (*b).str as *const u8;
-        let astr = slice::from_raw_parts(astr, (*a).length as uint);
-        let bstr = slice::from_raw_parts(bstr, (*b).length as uint);
+        let astr = slice::from_raw_parts(astr, (*a).length as usize);
+        let bstr = slice::from_raw_parts(bstr, (*b).length as usize);
         match astr.cmp(bstr) {
             Ordering::Less => -1,
             Ordering::Equal => 0,
@@ -124,7 +124,7 @@ pub extern "C" fn cef_string_utf8_cmp(a: *const cef_string_utf8_t, b: *const cef
 
 #[no_mangle]
 pub extern "C" fn cef_string_utf8_to_utf16(src: *const u8, src_len: size_t, output: *mut cef_string_utf16_t) -> c_int {
-    slice_to_str(src, src_len as uint, |result| {
+    slice_to_str(src, src_len as usize, |result| {
         let conv = result.utf16_units().collect::<Vec<u16>>();
         cef_string_utf16_set(conv.as_ptr(), conv.len() as size_t, output, 1);
         1
@@ -134,7 +134,7 @@ pub extern "C" fn cef_string_utf8_to_utf16(src: *const u8, src_len: size_t, outp
 #[no_mangle]
 pub extern "C" fn cef_string_utf16_to_utf8(src: *const u16, src_len: size_t, output: *mut cef_string_utf8_t) -> c_int {
     unsafe {
-        let ustr = slice::from_raw_parts(src, src_len as uint);
+        let ustr = slice::from_raw_parts(src, src_len as usize);
         match string::String::from_utf16(ustr) {
             Ok(str) => {
                 cef_string_utf8_set(str.as_bytes().as_ptr(), str.len() as size_t, output, 1);
@@ -175,7 +175,7 @@ pub extern "C" fn cef_string_utf16_set(src: *const c_ushort, src_len: size_t, ou
                  return 0;
              }
 
-             ptr::copy((*output).str, src, src_len as uint);
+             ptr::copy((*output).str, src, src_len as usize);
              (*output).length = src_len;
              (*output).dtor = Some(string_utf16_dtor as extern "C" fn(*mut c_ushort));
            }
@@ -193,8 +193,8 @@ pub extern "C" fn cef_string_utf16_cmp(a: *const cef_string_utf16_t, b: *const c
     unsafe {
         let astr = (*a).str as *const _;
         let bstr = (*b).str as *const _;
-        let astr: &[u16] = slice::from_raw_parts(astr, (*a).length as uint);
-        let bstr: &[u16] = slice::from_raw_parts(bstr, (*b).length as uint);
+        let astr: &[u16] = slice::from_raw_parts(astr, (*a).length as usize);
+        let bstr: &[u16] = slice::from_raw_parts(bstr, (*b).length as usize);
         match astr.cmp(bstr) {
             Ordering::Less => -1,
             Ordering::Equal => 0,
@@ -233,7 +233,7 @@ pub extern "C" fn cef_string_wide_set(src: *const wchar_t, src_len: size_t, outp
                  return 0;
              }
 
-             ptr::copy((*output).str, src, src_len as uint);
+             ptr::copy((*output).str, src, src_len as usize);
              (*output).length = src_len;
              (*output).dtor = Some(string_wide_dtor as extern "C" fn(*mut wchar_t));
            }
@@ -251,8 +251,8 @@ pub extern "C" fn cef_string_wide_cmp(a: *const cef_string_wide_t, b: *const cef
     unsafe {
         let astr = (*a).str as *const wchar_t;
         let bstr = (*b).str as *const wchar_t;
-        let astr = slice::from_raw_parts(astr, (*a).length as uint);
-        let bstr = slice::from_raw_parts(bstr, (*b).length as uint);
+        let astr = slice::from_raw_parts(astr, (*a).length as usize);
+        let bstr = slice::from_raw_parts(bstr, (*b).length as usize);
         match astr.cmp(bstr) {
             Ordering::Less => -1,
             Ordering::Equal => 0,
@@ -266,7 +266,7 @@ pub extern "C" fn cef_string_utf8_to_wide(src: *const u8, src_len: size_t, outpu
     if mem::size_of::<wchar_t>() == mem::size_of::<u16>() {
          return cef_string_utf8_to_utf16(src, src_len, output as *mut cef_string_utf16_t);
     }
-    slice_to_str(src, src_len as uint, |result| {
+    slice_to_str(src, src_len as usize, |result| {
         let conv = result.chars().map(|c| c as u32).collect::<Vec<u32>>();
         cef_string_wide_set(conv.as_ptr() as *const wchar_t, conv.len() as size_t, output, 1)
     })
@@ -278,7 +278,7 @@ pub extern "C" fn cef_string_wide_to_utf8(src: *const wchar_t, src_len: size_t, 
          return cef_string_utf16_to_utf8(src as *const u16, src_len, output);
     }
     unsafe {
-        let ustr = slice::from_raw_parts(src, src_len as uint);
+        let ustr = slice::from_raw_parts(src, src_len as usize);
         let conv = ustr.iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>();
         cef_string_utf8_set(conv.as_bytes().as_ptr(), conv.len() as size_t, output, 1)
     }
@@ -286,7 +286,7 @@ pub extern "C" fn cef_string_wide_to_utf8(src: *const wchar_t, src_len: size_t, 
 
 #[no_mangle]
 pub extern "C" fn cef_string_ascii_to_utf16(src: *const u8, src_len: size_t, output: *mut cef_string_utf16_t) -> c_int {
-    slice_to_str(src, src_len as uint, |result| {
+    slice_to_str(src, src_len as usize, |result| {
         let conv = result.utf16_units().collect::<Vec<u16>>();
         cef_string_utf16_set(conv.as_ptr(), conv.len() as size_t, output, 1)
     })
@@ -295,7 +295,7 @@ pub extern "C" fn cef_string_ascii_to_utf16(src: *const u8, src_len: size_t, out
 #[no_mangle]
 pub extern "C" fn cef_string_ascii_to_wide(src: *const u8, src_len: size_t, output: *mut cef_string_wide_t) -> c_int {
     unsafe {
-        let ustr = slice::from_raw_parts(src, src_len as uint);
+        let ustr = slice::from_raw_parts(src, src_len as usize);
         let conv = ustr.iter().map(|&c| c as u8).collect::<Vec<u8>>();
         cef_string_wide_set(conv.as_ptr() as *const wchar_t, conv.len() as size_t, output, 1)
     }

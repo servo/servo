@@ -68,7 +68,7 @@ pub struct _cef_task_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: uint,
+  pub ref_count: usize,
 
   //
   // Extra data. This will only be present for Rust instances!
@@ -244,7 +244,7 @@ pub struct _cef_task_runner_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: uint,
+  pub ref_count: usize,
 
   //
   // Extra data. This will only be present for Rust instances!

@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://www.whatwg.org/html/#htmlimageelement
+// https://www.whatwg.org/html/#htmlimageelement
 //[NamedConstructor=Image(optional unsigned long width, optional unsigned long height)]
 interface HTMLImageElement : HTMLElement {
            attribute DOMString alt;
@@ -21,7 +21,7 @@ interface HTMLImageElement : HTMLElement {
   // also has obsolete members
 };
 
-// http://www.whatwg.org/html/#HTMLImageElement-partial
+// https://www.whatwg.org/html/#HTMLImageElement-partial
 partial interface HTMLImageElement {
            attribute DOMString name;
   //         attribute DOMString lowsrc;

@@ -13,7 +13,7 @@ use std::ffi;
 use std::str;
 use browser;
 
-const MAX_RENDERING_THREADS: uint = 128;
+const MAX_RENDERING_THREADS: usize = 128;
 
 // TODO(pcwalton): Get the home page via the CEF API.
 static HOME_URL: &'static str = "http://s27.postimg.org/vqbtrolyr/servo.jpg";
@@ -60,12 +60,12 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
     }
 
     let rendering_threads = unsafe {
-        if ((*settings).rendering_threads as uint) < 1 {
+        if ((*settings).rendering_threads as usize) < 1 {
             1
-        } else if (*settings).rendering_threads as uint > MAX_RENDERING_THREADS {
+        } else if (*settings).rendering_threads as usize > MAX_RENDERING_THREADS {
             MAX_RENDERING_THREADS
         } else {
-            (*settings).rendering_threads as uint
+            (*settings).rendering_threads as usize
         }
     };
 

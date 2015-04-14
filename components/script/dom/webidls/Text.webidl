@@ -4,13 +4,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://dom.spec.whatwg.org/
+ * https://dom.spec.whatwg.org/
  *
  * To the extent possible under law, the editors have waived all copyright
  * and related or neighboring rights to this work.
  */
 
-// http://dom.spec.whatwg.org/#text
+// https://dom.spec.whatwg.org/#text
 [Constructor(optional DOMString data = "")]
 interface Text : CharacterData {
   //[NewObject] Text splitText(unsigned long offset);
