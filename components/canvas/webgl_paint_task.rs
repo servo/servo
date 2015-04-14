@@ -61,6 +61,9 @@ impl WebGLPaintTask {
 
     fn create(size: Size2D<i32>,
               native_graphics_context: &NativePaintingGraphicsContext) {
+        // FIXME(dmarcos): Using SKIA here is pretty ugly. A clean cross platform
+        // way to create a GL Context should be implemented somewhere else. glutin
+        // could be a good place to have such logic.
         let graphics_context = native_graphics_context as *const _ as SkiaGrGLNativeContextRef;
         // It creates an OpenGL context
         unsafe {
@@ -69,12 +72,10 @@ impl WebGLPaintTask {
     }
 
     fn init(&self) {
-        let mut framebuffer_ids = vec!();
-        let mut texture_ids = vec!();
-        framebuffer_ids = gl::gen_framebuffers(1);
+        let framebuffer_ids = gl::gen_framebuffers(1);
         gl::bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
 
-        texture_ids = gl::gen_textures(1);
+        let texture_ids = gl::gen_textures(1);
         gl::bind_texture(gl::TEXTURE_2D, texture_ids[0]);
 
         gl::tex_image_2d(gl::TEXTURE_2D, 0, gl::RGB as GLint, self.size.width as GLsizei,
@@ -99,7 +100,7 @@ impl WebGLPaintTask {
     }
 
     fn send_pixel_contents(&mut self, chan: Sender<Vec<u8>>) {
-        // FIXME: Instead of a readback strategy we have
+        // FIXME(#5652, dmarcos) Instead of a readback strategy we have
         // to layerize the canvas
         let mut pixels = gl::read_pixels(0, 0,
                                     self.size.width as gl::GLsizei,
@@ -108,7 +109,7 @@ impl WebGLPaintTask {
 
         // rgba -> bgra
         byte_swap(pixels.as_mut_slice());
-        chan.send(pixels);
+        chan.send(pixels).unwrap();
     }
 
     fn recreate(&mut self, size: Size2D<i32>) {
