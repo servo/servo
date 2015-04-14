@@ -2797,7 +2797,11 @@ pub mod longhands {
         impl ToCss for SpecifiedFilter {
             fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
                 match *self {
-                    SpecifiedFilter::Blur(value) => try!(write!(dest, "blur({:?})", value)),
+                    SpecifiedFilter::Blur(value) => {
+                        try!(dest.write_str("blur("));
+                        try!(value.to_css(dest));
+                        try!(dest.write_str(")"));
+                    }
                     SpecifiedFilter::Brightness(value) => try!(write!(dest, "brightness({})", value)),
                     SpecifiedFilter::Contrast(value) => try!(write!(dest, "contrast({})", value)),
                     SpecifiedFilter::Grayscale(value) => try!(write!(dest, "grayscale({})", value)),
