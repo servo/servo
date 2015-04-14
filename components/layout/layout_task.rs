@@ -10,6 +10,7 @@
 use animation;
 use construct::ConstructionResult;
 use context::{SharedLayoutContext, SharedLayoutContextWrapper};
+use css::node_style::StyledNode;
 use display_list_builder::ToGfxColor;
 use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
@@ -713,7 +714,10 @@ impl LayoutTask {
         let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
         let mut iterator = UnioningFragmentBorderBoxIterator::new(requested_node);
         sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-        rw_data.content_box_response = iterator.rect;
+        rw_data.content_box_response = match iterator.rect {
+            Some(rect) => rect,
+            None       => Rect::zero()
+        };
     }
 
     fn process_content_boxes_request<'a>(&'a self,
@@ -1158,25 +1162,28 @@ impl LayoutRPC for LayoutRPCImpl {
 
 struct UnioningFragmentBorderBoxIterator {
     node_address: OpaqueNode,
-    rect: Rect<Au>,
+    rect: Option<Rect<Au>>,
 }
 
 impl UnioningFragmentBorderBoxIterator {
     fn new(node_address: OpaqueNode) -> UnioningFragmentBorderBoxIterator {
         UnioningFragmentBorderBoxIterator {
             node_address: node_address,
-            rect: Rect::zero(),
+            rect: None
         }
     }
 }
 
 impl FragmentBorderBoxIterator for UnioningFragmentBorderBoxIterator {
     fn process(&mut self, _: &Fragment, border_box: &Rect<Au>) {
-        self.rect = if self.rect.is_empty() {
-            *border_box
-        } else {
-            self.rect.union(border_box)
-        }
+        self.rect = match self.rect {
+            Some(rect) => {
+                Some(rect.union(border_box))
+            }
+            None => {
+                Some(*border_box)
+            }
+        };
     }
 
     fn should_process(&mut self, fragment: &Fragment) -> bool {

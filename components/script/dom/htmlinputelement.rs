@@ -753,7 +753,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
-    fn activation_behavior(&self) {
+    fn activation_behavior(&self, _event: JSRef<Event>, _target: JSRef<EventTarget>) {
         let ty = self.input_type.get();
         if self.activation_state.borrow().old_type != ty {
             // Type changed, abandon ship

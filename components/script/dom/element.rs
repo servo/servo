@@ -1675,7 +1675,7 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
                     event.fire(target);
                     if !event.DefaultPrevented() {
                         // post click activation
-                        elem.activation_behavior();
+                        elem.activation_behavior(event, target);
                     } else {
                         elem.canceled_activation();
                     }
