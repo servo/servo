@@ -38,7 +38,6 @@ use net_traits::{ProgressMsg, LoadResponse};
 use util::str::DOMString;
 use util::task_state;
 use util::task_state::IN_HTML_PARSER;
-use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::old_io::{Writer, IoResult};
 use url::Url;
@@ -48,6 +47,9 @@ use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
 use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText};
 use string_cache::QualName;
+
+use hyper::header::ContentType;
+use hyper::mime::{Mime, TopLevel, SubLevel};
 
 pub enum HTMLInput {
     InputString(String),
@@ -297,12 +299,11 @@ pub fn parse_html(document: JSRef<Document>,
         }
         HTMLInput::InputUrl(load_response) => {
             match load_response.metadata.content_type {
-                Some((ref t, _)) if t.as_slice().eq_ignore_ascii_case("image") => {
+                Some(ContentType(Mime(TopLevel::Image, _, _))) => {
                     let page = format!("<html><body><img src='{}' /></body></html>", url.serialize());
                     parser.parse_chunk(page);
                 },
-                Some((ref t, ref st)) if t.as_slice().eq_ignore_ascii_case("text") &&
-                                         st.as_slice().eq_ignore_ascii_case("plain") => {
+                Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                     // FIXME: When servo/html5ever#109 is fixed remove <plaintext> usage and
                     // replace with fix from that issue.
 

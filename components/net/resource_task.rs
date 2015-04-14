@@ -18,8 +18,8 @@ use net_traits::ProgressMsg::Done;
 use util::opts;
 use util::task::spawn_named;
 
-use hyper::header::UserAgent;
-use hyper::header::{Header, SetCookie};
+use hyper::header::{ContentType, Header, SetCookie, UserAgent};
+use hyper::mime::{Mime, TopLevel, SubLevel};
 
 use std::borrow::ToOwned;
 use std::boxed;
@@ -27,6 +27,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
+use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thunk::Invoke;
@@ -78,8 +79,14 @@ pub fn start_sending_sniffed_opt(start_chan: Sender<LoadResponse>, mut metadata:
         let nosniff = false;
         let check_for_apache_bug = false;
 
-        metadata.content_type = classifier.classify(nosniff, check_for_apache_bug,
-                                                    &metadata.content_type, &partial_body);
+        let supplied_type = metadata.content_type.map(|ContentType(Mime(toplevel, sublevel, _))| {
+            (format!("{}", toplevel), format!("{}", sublevel))
+        });
+        metadata.content_type = classifier.classify(nosniff, check_for_apache_bug, &supplied_type, &partial_body).map(|(toplevel, sublevel)| {
+            let mime_tp: TopLevel = FromStr::from_str(&toplevel).unwrap();
+            let mime_sb: SubLevel = FromStr::from_str(&sublevel).unwrap();
+            ContentType(Mime(mime_tp, mime_sb, vec!()))
+        });
 
     }
 

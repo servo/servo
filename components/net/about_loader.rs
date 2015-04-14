@@ -9,7 +9,9 @@ use resource_task::start_sending;
 use file_loader;
 
 use url::Url;
+use hyper::header::ContentType;
 use hyper::http::RawStatus;
+use hyper::mime::{Mime, TopLevel, SubLevel};
 use util::resource_files::resources_dir_path;
 
 use std::borrow::IntoCow;
@@ -22,7 +24,7 @@ pub fn factory(mut load_data: LoadData, classifier: Arc<MIMEClassifier>) {
             let start_chan = load_data.consumer;
             let chan = start_sending(start_chan, Metadata {
                 final_url: load_data.url,
-                content_type: Some(("text".to_string(), "html".to_string())),
+                content_type: Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![]))),
                 charset: Some("utf-8".to_string()),
                 headers: None,
                 status: Some(RawStatus(200, "OK".into_cow())),
