@@ -27,7 +27,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 
-use canvas::canvas_msg::CanvasMsg;
+use canvas::canvas_msg::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
 use canvas::canvas_paint_task::{CanvasPaintTask, FillOrStrokeStyle};
 use canvas::canvas_paint_task::{LinearGradientStyle, RadialGradientStyle};
 
@@ -90,11 +90,11 @@ impl CanvasRenderingContext2D {
     }
 
     pub fn recreate(&self, size: Size2D<i32>) {
-        self.renderer.send(CanvasMsg::Recreate(size)).unwrap();
+        self.renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
     }
 
     fn update_transform(&self) {
-        self.renderer.send(CanvasMsg::SetTransform(self.transform.get())).unwrap()
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetTransform(self.transform.get()))).unwrap()
     }
 
     // It is used by DrawImage to calculate the size of the source and destination rectangles based
@@ -182,16 +182,16 @@ impl CanvasRenderingContext2D {
 
         // If the source and target canvas are the same
         let msg = if self.canvas.root().r() == canvas {
-            CanvasMsg::DrawImageSelf(image_size, dest_rect, source_rect, smoothing_enabled)
+            CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageSelf(image_size, dest_rect, source_rect, smoothing_enabled))
         } else { // Source and target canvases are different
             let context = canvas.get_2d_context().root();
             let renderer = context.r().get_renderer();
             let (sender, receiver) = channel::<Vec<u8>>();
             // Reads pixels from source image
-            renderer.send(CanvasMsg::GetImageData(source_rect, image_size, sender)).unwrap();
+            renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(source_rect, image_size, sender))).unwrap();
             let imagedata = receiver.recv().unwrap();
             // Writes pixels to destination canvas
-            CanvasMsg::DrawImage(imagedata, source_rect.size, dest_rect, source_rect, smoothing_enabled)
+            CanvasMsg::Canvas2d(Canvas2dMsg::DrawImage(imagedata, source_rect.size, dest_rect, source_rect, smoothing_enabled))
         };
 
         self.renderer.send(msg).unwrap();
@@ -211,9 +211,9 @@ impl CanvasRenderingContext2D {
         }
 
         let smoothing_enabled = self.image_smoothing_enabled.get();
-        self.renderer.send(CanvasMsg::DrawImage(
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::DrawImage(
                            image_data, image_size, dest_rect,
-                           source_rect, smoothing_enabled)).unwrap();
+                           source_rect, smoothing_enabled))).unwrap();
         Ok(())
     }
 
@@ -369,41 +369,41 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         }
 
         self.global_alpha.set(alpha);
-        self.renderer.send(CanvasMsg::SetGlobalAlpha(alpha as f32)).unwrap()
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetGlobalAlpha(alpha as f32))).unwrap()
     }
 
     fn FillRect(self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
-            self.renderer.send(CanvasMsg::FillRect(rect)).unwrap();
+            self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::FillRect(rect))).unwrap();
         }
     }
 
     fn ClearRect(self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
-            self.renderer.send(CanvasMsg::ClearRect(rect)).unwrap();
+            self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::ClearRect(rect))).unwrap();
         }
     }
 
     fn StrokeRect(self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
-            self.renderer.send(CanvasMsg::StrokeRect(rect)).unwrap();
+            self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::StrokeRect(rect))).unwrap();
         }
     }
 
     fn BeginPath(self) {
-        self.renderer.send(CanvasMsg::BeginPath).unwrap();
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::BeginPath)).unwrap();
     }
 
     fn ClosePath(self) {
-        self.renderer.send(CanvasMsg::ClosePath).unwrap();
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::ClosePath)).unwrap();
     }
 
     fn Fill(self, _: CanvasWindingRule) {
-        self.renderer.send(CanvasMsg::Fill).unwrap();
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Fill)).unwrap();
     }
 
     fn Stroke(self) {
-        self.renderer.send(CanvasMsg::Stroke).unwrap();
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Stroke)).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-drawimage
@@ -571,7 +571,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
             return;
         }
 
-        self.renderer.send(CanvasMsg::MoveTo(Point2D(x as f32, y as f32))).unwrap();
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::MoveTo(Point2D(x as f32, y as f32)))).unwrap();
     }
 
     fn LineTo(self, x: f64, y: f64) {
@@ -579,7 +579,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
             return;
         }
 
-        self.renderer.send(CanvasMsg::LineTo(Point2D(x as f32, y as f32))).unwrap();
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::LineTo(Point2D(x as f32, y as f32)))).unwrap();
     }
 
     fn QuadraticCurveTo(self, cpx: f64, cpy: f64, x: f64, y: f64) {
@@ -588,8 +588,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
             return;
         }
 
-        self.renderer.send(CanvasMsg::QuadraticCurveTo(Point2D(cpx as f32, cpy as f32),
-                                                       Point2D(x as f32, y as f32))).unwrap();
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::QuadraticCurveTo(Point2D(cpx as f32, cpy as f32),
+                                                            Point2D(x as f32, y as f32)))).unwrap();
     }
 
     fn BezierCurveTo(self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, x: f64, y: f64) {
@@ -598,9 +598,9 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
             return;
         }
 
-        self.renderer.send(CanvasMsg::BezierCurveTo(Point2D(cp1x as f32, cp1y as f32),
-                                                    Point2D(cp2x as f32, cp2y as f32),
-                                                    Point2D(x as f32, y as f32))).unwrap();
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::BezierCurveTo(Point2D(cp1x as f32, cp1y as f32),
+                                                            Point2D(cp2x as f32, cp2y as f32),
+                                                            Point2D(x as f32, y as f32)))).unwrap();
     }
 
     fn Arc(self, x: Finite<f64>, y: Finite<f64>, r: Finite<f64>,
@@ -615,8 +615,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
             return Err(IndexSize);
         }
 
-        self.renderer.send(CanvasMsg::Arc(Point2D(x as f32, y as f32), r as f32,
-                                          start as f32, end as f32, ccw)).unwrap();
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Arc(Point2D(x as f32, y as f32), r as f32,
+                                                                start as f32, end as f32, ccw))).unwrap();
         Ok(())
     }
 
@@ -627,9 +627,9 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         if r < 0.0 {
             return Err(IndexSize);
         }
-        self.renderer.send(CanvasMsg::ArcTo(Point2D(cp1x as f32, cp1y as f32),
-                                            Point2D(cp2x as f32, cp2y as f32),
-                                            r as f32)).unwrap();
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::ArcTo(Point2D(cp1x as f32, cp1y as f32),
+                                                                  Point2D(cp2x as f32, cp2y as f32),
+                                                                  r as f32))).unwrap();
         Ok(())
     }
 
@@ -659,7 +659,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                     Ok(rgba) => {
                         self.stroke_color.set(rgba);
                         self.renderer
-                            .send(CanvasMsg::SetStrokeStyle(FillOrStrokeStyle::Color(rgba)))
+                            .send(CanvasMsg::Canvas2d(Canvas2dMsg::SetStrokeStyle(FillOrStrokeStyle::Color(rgba))))
                             .unwrap();
                     }
                     _ => {}
@@ -687,14 +687,14 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                     Ok(rgba) => {
                         self.fill_color.set(rgba);
                         self.renderer
-                            .send(CanvasMsg::SetFillStyle(FillOrStrokeStyle::Color(rgba)))
+                            .send(CanvasMsg::Canvas2d(Canvas2dMsg::SetFillStyle(FillOrStrokeStyle::Color(rgba))))
                             .unwrap()
                     }
                     _ => {}
                 }
             }
             StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient) => {
-                self.renderer.send(CanvasMsg::SetFillStyle(gradient.root().r().to_fill_or_stroke_style())).unwrap();
+                self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetFillStyle(gradient.root().r().to_fill_or_stroke_style()))).unwrap();
             }
             _ => {}
         }
@@ -730,7 +730,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         let dest_rect = Rect(Point2D(sx as f64, sy as f64), Size2D(sw as f64, sh as f64));
         let canvas_size = self.canvas.root().r().get_size();
         let canvas_size = Size2D(canvas_size.width as f64, canvas_size.height as f64);
-        self.renderer.send(CanvasMsg::GetImageData(dest_rect, canvas_size, sender)).unwrap();
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender))).unwrap();
         let data = receiver.recv().unwrap();
         Ok(ImageData::new(self.global.root().r(), sw.abs().to_u32().unwrap(), sh.abs().to_u32().unwrap(), Some(data)))
     }
@@ -750,7 +750,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         let image_data_size = Size2D(image_data_size.width as f64, image_data_size.height as f64);
         let image_data_rect = Rect(Point2D(dx, dy), image_data_size);
         let dirty_rect = None;
-        self.renderer.send(CanvasMsg::PutImageData(data, image_data_rect, dirty_rect)).unwrap()
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect))).unwrap()
     }
 
     fn PutImageData_(self, imagedata: JSRef<ImageData>, dx: Finite<f64>, dy: Finite<f64>,
@@ -774,7 +774,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                                           imagedata.Height() as f64));
         let dirty_rect = Some(Rect(Point2D(dirtyX, dirtyY),
                                    Size2D(dirtyWidth, dirtyHeight)));
-        self.renderer.send(CanvasMsg::PutImageData(data, image_data_rect, dirty_rect)).unwrap()
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect))).unwrap()
     }
 
     fn CreateLinearGradient(self, x0: Finite<f64>, y0: Finite<f64>,
@@ -817,7 +817,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         }
 
         self.line_width.set(width);
-        self.renderer.send(CanvasMsg::SetLineWidth(width as f32)).unwrap()
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetLineWidth(width as f32))).unwrap()
     }
 
     fn MiterLimit(self) -> f64 {
@@ -830,14 +830,14 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         }
 
         self.miter_limit.set(limit);
-        self.renderer.send(CanvasMsg::SetMiterLimit(limit as f32)).unwrap()
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetMiterLimit(limit as f32))).unwrap()
     }
 }
 
 #[unsafe_destructor]
 impl Drop for CanvasRenderingContext2D {
     fn drop(&mut self) {
-        self.renderer.send(CanvasMsg::Close).unwrap();
+        self.renderer.send(CanvasMsg::Common(CanvasCommonMsg::Close)).unwrap();
     }
 }
 
