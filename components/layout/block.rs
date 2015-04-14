@@ -230,7 +230,7 @@ impl BSizeConstraintSolution {
     /// Constraint equation:
     /// block-start + block-end + block-size + margin-block-start + margin-block-end
     /// = absolute containing block block-size - (vertical padding and border)
-    /// [aka available_block-size]
+    /// [aka available block-size]
     ///
     /// Return the solution for the equation.
     fn solve_vertical_constraints_abs_replaced(block_size: Au,
@@ -564,7 +564,9 @@ impl BlockFlow {
     pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment) -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::ForceNonfloated),
+            base: BaseFlow::new(Some((*node).clone()),
+                                writing_mode,
+                                ForceNonfloatedFlag::ForceNonfloated),
             fragment: fragment,
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
@@ -579,7 +581,9 @@ impl BlockFlow {
                                         -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::FloatIfNecessary),
+            base: BaseFlow::new(Some((*node).clone()),
+                                writing_mode,
+                                ForceNonfloatedFlag::FloatIfNecessary),
             fragment: fragment,
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
@@ -616,33 +620,45 @@ impl BlockFlow {
 
     /// Compute the actual inline size and position for this block.
     pub fn compute_used_inline_size(&mut self,
-                                    ctx: &LayoutContext,
+                                    layout_context: &LayoutContext,
                                     containing_block_inline_size: Au) {
         let block_type = self.block_type();
         match block_type {
             BlockType::AbsoluteReplaced => {
                 let inline_size_computer = AbsoluteReplaced;
-                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
+                inline_size_computer.compute_used_inline_size(self,
+                                                              layout_context,
+                                                              containing_block_inline_size);
             }
             BlockType::AbsoluteNonReplaced => {
                 let inline_size_computer = AbsoluteNonReplaced;
-                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
+                inline_size_computer.compute_used_inline_size(self,
+                                                              layout_context,
+                                                              containing_block_inline_size);
             }
             BlockType::FloatReplaced => {
                 let inline_size_computer = FloatReplaced;
-                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
+                inline_size_computer.compute_used_inline_size(self,
+                                                              layout_context,
+                                                              containing_block_inline_size);
             }
             BlockType::FloatNonReplaced => {
                 let inline_size_computer = FloatNonReplaced;
-                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
+                inline_size_computer.compute_used_inline_size(self,
+                                                              layout_context,
+                                                              containing_block_inline_size);
             }
             BlockType::Replaced => {
                 let inline_size_computer = BlockReplaced;
-                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
+                inline_size_computer.compute_used_inline_size(self,
+                                                              layout_context,
+                                                              containing_block_inline_size);
             }
             BlockType::NonReplaced => {
                 let inline_size_computer = BlockNonReplaced;
-                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
+                inline_size_computer.compute_used_inline_size(self,
+                                                              layout_context,
+                                                              containing_block_inline_size);
             }
         }
     }
@@ -675,8 +691,8 @@ impl BlockFlow {
     /// their direct absolute descendants.
     ///
     /// Return true if the traversal is to continue or false to stop.
-    fn traverse_preorder_absolute_flows<T:PreorderFlowTraversal>(&mut self,
-                                                                 traversal: &mut T) {
+    fn traverse_preorder_absolute_flows<T>(&mut self, traversal: &mut T)
+                                           where T: PreorderFlowTraversal {
         let flow = self as &mut Flow;
 
         traversal.process(flow);
@@ -690,8 +706,8 @@ impl BlockFlow {
     /// Traverse the Absolute flow tree in postorder.
     ///
     /// Return true if the traversal is to continue or false to stop.
-    fn traverse_postorder_absolute_flows<T:PostorderFlowTraversal>(&mut self,
-                                                                   traversal: &mut T) {
+    fn traverse_postorder_absolute_flows<T>(&mut self, traversal: &mut T)
+                                            where T: PostorderFlowTraversal {
         let flow = self as &mut Flow;
 
         for descendant_link in mut_base(flow).abs_descendants.iter() {
@@ -1478,7 +1494,8 @@ impl Flow for BlockFlow {
         let mut left_float_width = Au(0);
         let mut right_float_width = Au(0);
         for kid in self.base.child_iter() {
-            let is_absolutely_positioned = flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
+            let is_absolutely_positioned =
+                flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
             let child_base = flow::mut_base(kid);
             let float_kind = child_base.flags.float_kind();
             if !is_absolutely_positioned && !fixed_width {
@@ -2112,8 +2129,10 @@ pub trait ISizeAndMarginsComputer {
         flow::mut_base(block).position.size.inline = inline_size + extra_inline_size_from_margin;
     }
 
-    /// Set the x coordinate of the given flow if it is absolutely positioned.
-    fn set_flow_x_coord_if_necessary(&self, _: &mut BlockFlow, _: ISizeConstraintSolution) {}
+    /// Set the inline coordinate of the given flow if it is absolutely positioned.
+    fn set_inline_position_of_flow_if_necessary(&self,
+                                                _: &mut BlockFlow,
+                                                _: ISizeConstraintSolution) {}
 
     /// Solve the inline-size and margins constraints for this block flow.
     fn solve_inline_size_constraints(&self,
@@ -2179,7 +2198,7 @@ pub trait ISizeAndMarginsComputer {
         }
 
         self.set_inline_size_constraint_solutions(block, solution);
-        self.set_flow_x_coord_if_necessary(block, solution);
+        self.set_inline_position_of_flow_if_necessary(block, solution);
     }
 
     /// Computes inline-start and inline-end margins and inline-size.
@@ -2291,13 +2310,13 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
     /// Constraint equation:
     /// inline-start + inline-end + inline-size + margin-inline-start + margin-inline-end
     /// = absolute containing block inline-size - (horizontal padding and border)
-    /// [aka available_inline-size]
+    /// [aka available inline-size]
     ///
     /// Return the solution for the equation.
     fn solve_inline_size_constraints(&self,
-                               block: &mut BlockFlow,
-                               input: &ISizeConstraintInput)
-                               -> ISizeConstraintSolution {
+                                     block: &mut BlockFlow,
+                                     input: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution {
         let &ISizeConstraintInput {
             computed_inline_size,
             inline_start_margin,
@@ -2440,13 +2459,17 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
                                                    margin_inline_end)
     }
 
-    fn containing_block_inline_size(&self, block: &mut BlockFlow, _: Au, ctx: &LayoutContext) -> Au {
-        block.containing_block_size(ctx.shared.screen_size).inline
+    fn containing_block_inline_size(&self,
+                                    block: &mut BlockFlow,
+                                    _: Au,
+                                    layout_context: &LayoutContext)
+                                    -> Au {
+        block.containing_block_size(layout_context.shared.screen_size).inline
     }
 
-    fn set_flow_x_coord_if_necessary(&self,
-                                     block: &mut BlockFlow,
-                                     solution: ISizeConstraintSolution) {
+    fn set_inline_position_of_flow_if_necessary(&self,
+                                                block: &mut BlockFlow,
+                                                solution: ISizeConstraintSolution) {
         // Set the inline position of the absolute flow wrt to its containing block.
         if !block.base.flags.contains(INLINE_POSITION_IS_STATIC) {
             block.base.position.start.i = solution.inline_start;
@@ -2465,7 +2488,7 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
     ///
     /// Return the solution for the equation.
     fn solve_inline_size_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
-                               -> ISizeConstraintSolution {
+                                     -> ISizeConstraintSolution {
         let &ISizeConstraintInput {
             computed_inline_size,
             inline_start_margin,
@@ -2565,9 +2588,9 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
         block.containing_block_size(ctx.shared.screen_size).inline
     }
 
-    fn set_flow_x_coord_if_necessary(&self,
-                                     block: &mut BlockFlow,
-                                     solution: ISizeConstraintSolution) {
+    fn set_inline_position_of_flow_if_necessary(&self,
+                                                block: &mut BlockFlow,
+                                                solution: ISizeConstraintSolution) {
         // Set the x-coordinate of the absolute flow wrt to its containing block.
         block.base.position.start.i = solution.inline_start;
     }
@@ -2622,13 +2645,15 @@ impl ISizeAndMarginsComputer for FloatNonReplaced {
                                block: &mut BlockFlow,
                                input: &ISizeConstraintInput)
                                -> ISizeConstraintSolution {
-        let (computed_inline_size, inline_start_margin, inline_end_margin, available_inline_size) = (input.computed_inline_size,
-                                                                            input.inline_start_margin,
-                                                                            input.inline_end_margin,
-                                                                            input.available_inline_size);
+        let (computed_inline_size, inline_start_margin, inline_end_margin, available_inline_size) =
+            (input.computed_inline_size,
+             input.inline_start_margin,
+             input.inline_end_margin,
+             input.available_inline_size);
         let margin_inline_start = inline_start_margin.specified_or_zero();
         let margin_inline_end = inline_end_margin.specified_or_zero();
-        let available_inline_size_float = available_inline_size - margin_inline_start - margin_inline_end;
+        let available_inline_size_float = available_inline_size - margin_inline_start -
+            margin_inline_end;
         let shrink_to_fit = block.get_shrink_to_fit_inline_size(available_inline_size_float);
         let inline_size = computed_inline_size.specified_or_default(shrink_to_fit);
         debug!("assign_inline_sizes_float -- inline_size: {:?}", inline_size);
@@ -2642,9 +2667,8 @@ impl ISizeAndMarginsComputer for FloatReplaced {
     /// If inline-size is computed as 'auto', the used value is the 'shrink-to-fit' inline-size.
     fn solve_inline_size_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
                                -> ISizeConstraintSolution {
-        let (computed_inline_size, inline_start_margin, inline_end_margin) = (input.computed_inline_size,
-                                                           input.inline_start_margin,
-                                                           input.inline_end_margin);
+        let (computed_inline_size, inline_start_margin, inline_end_margin) =
+            (input.computed_inline_size, input.inline_start_margin, input.inline_end_margin);
         let margin_inline_start = inline_start_margin.specified_or_zero();
         let margin_inline_end = inline_end_margin.specified_or_zero();
         let inline_size = match computed_inline_size {
