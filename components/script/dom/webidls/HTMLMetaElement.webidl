@@ -5,9 +5,9 @@
 
 // https://www.whatwg.org/html/#htmlmetaelement
 interface HTMLMetaElement : HTMLElement {
-  //         attribute DOMString name;
+             attribute DOMString name;
   //         attribute DOMString httpEquiv;
-  //         attribute DOMString content;
+             attribute DOMString content;
 
   // also has obsolete members
 };
