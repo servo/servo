@@ -8,7 +8,7 @@ use hyper::header::Headers;
 use std::ascii::AsciiExt;
 use std::sync::mpsc::Receiver;
 
-/// [Response type](http://fetch.spec.whatwg.org/#concept-response-type)
+/// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
 #[derive(Clone, PartialEq, Copy)]
 pub enum ResponseType {
     Basic,
@@ -18,7 +18,7 @@ pub enum ResponseType {
     Opaque
 }
 
-/// [Response termination reason](http://fetch.spec.whatwg.org/#concept-response-termination-reason)
+/// [Response termination reason](https://fetch.spec.whatwg.org/#concept-response-termination-reason)
 #[derive(Clone, Copy)]
 pub enum TerminationReason {
     EndUserAbort,
@@ -49,7 +49,7 @@ pub struct ResponseLoader {
     chan: Receiver<ResponseMsg>
 }
 
-/// A [Response](http://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
+/// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
 #[derive(Clone)]
 pub struct Response {
     pub response_type: ResponseType,
@@ -59,7 +59,7 @@ pub struct Response {
     pub status: Option<StatusCode>,
     pub headers: Headers,
     pub body: ResponseBody,
-    /// [Internal response](http://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response is a filtered response
+    /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response is a filtered response
     pub internal_response: Option<Box<Response>>,
 }
 

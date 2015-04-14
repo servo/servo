@@ -47,7 +47,7 @@ impl URLSearchParams {
         match init {
             Some(eString(_s)) => {
                 // XXXManishearth we need to parse the input here
-                // http://url.spec.whatwg.org/#concept-urlencoded-parser
+                // https://url.spec.whatwg.org/#concept-urlencoded-parser
                 // We can use rust-url's implementation here:
                 // https://github.com/SimonSapin/rust-url/blob/master/form_urlencoded.rs#L29
             },
@@ -115,9 +115,9 @@ pub trait URLSearchParamsHelpers {
 
 impl URLSearchParamsHelpers for URLSearchParams {
     fn serialize(&self, encoding: Option<EncodingRef>) -> Vec<u8> {
-        // http://url.spec.whatwg.org/#concept-urlencoded-serializer
+        // https://url.spec.whatwg.org/#concept-urlencoded-serializer
         fn serialize_string(value: &DOMString, encoding: EncodingRef) -> Vec<u8> {
-            // http://url.spec.whatwg.org/#concept-urlencoded-byte-serializer
+            // https://url.spec.whatwg.org/#concept-urlencoded-byte-serializer
 
             let value = value.as_slice();
             // XXXManishearth should this be a strict encoding? Can unwrap()ing the result fail?
@@ -139,7 +139,7 @@ impl URLSearchParamsHelpers for URLSearchParams {
                         0x41...0x5A | 0x5F | 0x61...0x7A => vec!(*i),
 
                     // Encode everything else using 'percented-encoded bytes'
-                    // http://url.spec.whatwg.org/#percent-encode
+                    // https://url.spec.whatwg.org/#percent-encode
                     a => format!("%{:X}", a).into_bytes(),
                 };
                 buf.push_all(&append);
@@ -170,6 +170,6 @@ impl URLSearchParamsHelpers for URLSearchParams {
 
     fn update_steps(&self) {
         // XXXManishearth Implement this when the URL interface is implemented
-        // http://url.spec.whatwg.org/#concept-uq-update
+        // https://url.spec.whatwg.org/#concept-uq-update
     }
 }

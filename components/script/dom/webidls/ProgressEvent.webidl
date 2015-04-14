@@ -4,7 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://xhr.spec.whatwg.org/#interface-progressevent
+ * https://xhr.spec.whatwg.org/#interface-progressevent
  *
  * To the extent possible under law, the editor has waived all copyright
  * and related or neighboring rights to this work. In addition, as of 1 May 2014,

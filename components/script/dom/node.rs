@@ -185,8 +185,8 @@ impl Drop for Node {
 }
 
 /// suppress observers flag
-/// http://dom.spec.whatwg.org/#concept-node-insert
-/// http://dom.spec.whatwg.org/#concept-node-remove
+/// https://dom.spec.whatwg.org/#concept-node-insert
+/// https://dom.spec.whatwg.org/#concept-node-remove
 #[derive(Copy)]
 enum SuppressObserver {
     Suppressed,
@@ -283,7 +283,7 @@ trait PrivateNodeHelpers {
 }
 
 impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
-    // http://dom.spec.whatwg.org/#node-is-inserted
+    // https://dom.spec.whatwg.org/#node-is-inserted
     fn node_inserted(self) {
         assert!(self.parent_node().is_some());
         let document = document_from_node(self).root();
@@ -299,7 +299,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         document.r().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
     }
 
-    // http://dom.spec.whatwg.org/#node-is-removed
+    // https://dom.spec.whatwg.org/#node-is-removed
     fn node_removed(self, parent_in_doc: bool) {
         assert!(self.parent_node().is_none());
         for node in self.traverse_preorder() {
@@ -802,7 +802,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         window_from_node(self).root().r().content_boxes_query(self.to_trusted_node_address())
     }
 
-    // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
+    // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         // Step 1.
         match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
@@ -841,7 +841,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         Ok(nodes)
     }
 
-    // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
+    // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     #[allow(unsafe_code)]
     fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
         let mut nodes = RootedVec::new();
@@ -1292,7 +1292,7 @@ impl Node {
         self.layout_data.borrow_unchecked()
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-adopt
+    // https://dom.spec.whatwg.org/#concept-node-adopt
     pub fn adopt(node: JSRef<Node>, document: JSRef<Document>) {
         // Step 1.
         match node.parent_node().root() {
@@ -1314,7 +1314,7 @@ impl Node {
         // If node is an element, it is _affected by a base URL change_.
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-pre-insert
+    // https://dom.spec.whatwg.org/#concept-node-pre-insert
     fn pre_insert(node: JSRef<Node>, parent: JSRef<Node>, child: Option<JSRef<Node>>)
                   -> Fallible<Temporary<Node>> {
         // Step 1.
@@ -1452,7 +1452,7 @@ impl Node {
         return Ok(Temporary::from_rooted(node))
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-insert
+    // https://dom.spec.whatwg.org/#concept-node-insert
     fn insert(node: JSRef<Node>,
               parent: JSRef<Node>,
               child: Option<JSRef<Node>>,
@@ -1519,7 +1519,7 @@ impl Node {
         }
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-replace-all
+    // https://dom.spec.whatwg.org/#concept-node-replace-all
     pub fn replace_all(node: Option<JSRef<Node>>, parent: JSRef<Node>) {
         // Step 1.
         match node {
@@ -1571,7 +1571,7 @@ impl Node {
         }
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-pre-remove
+    // https://dom.spec.whatwg.org/#concept-node-pre-remove
     fn pre_remove(child: JSRef<Node>, parent: JSRef<Node>) -> Fallible<Temporary<Node>> {
         // Step 1.
         match child.parent_node() {
@@ -1587,7 +1587,7 @@ impl Node {
         Ok(Temporary::from_rooted(child))
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-remove
+    // https://dom.spec.whatwg.org/#concept-node-remove
     fn remove(node: JSRef<Node>, parent: JSRef<Node>, suppress_observers: SuppressObserver) {
         assert!(node.parent_node().map_or(false, |node_parent| node_parent == Temporary::from_rooted(parent)));
 
@@ -1605,7 +1605,7 @@ impl Node {
         }
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-clone
+    // https://dom.spec.whatwg.org/#concept-node-clone
     pub fn clone(node: JSRef<Node>, maybe_doc: Option<JSRef<Document>>,
                  clone_children: CloneChildrenFlag) -> Temporary<Node> {
 
@@ -1734,7 +1734,7 @@ impl Node {
 }
 
 impl<'a> NodeMethods for JSRef<'a, Node> {
-    // http://dom.spec.whatwg.org/#dom-node-nodetype
+    // https://dom.spec.whatwg.org/#dom-node-nodetype
     fn NodeType(self) -> u16 {
         match self.type_id {
             NodeTypeId::Element(_)            => NodeConstants::ELEMENT_NODE,
@@ -1747,7 +1747,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-nodename
+    // https://dom.spec.whatwg.org/#dom-node-nodename
     fn NodeName(self) -> DOMString {
         match self.type_id {
             NodeTypeId::Element(..) => {
@@ -1770,13 +1770,13 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-baseuri
+    // https://dom.spec.whatwg.org/#dom-node-baseuri
     fn GetBaseURI(self) -> Option<DOMString> {
         // FIXME (#1824) implement.
         None
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-ownerdocument
+    // https://dom.spec.whatwg.org/#dom-node-ownerdocument
     fn GetOwnerDocument(self) -> Option<Temporary<Document>> {
         match self.type_id {
             NodeTypeId::Element(..) |
@@ -1789,12 +1789,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-parentnode
+    // https://dom.spec.whatwg.org/#dom-node-parentnode
     fn GetParentNode(self) -> Option<Temporary<Node>> {
         self.parent_node.get()
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-parentelement
+    // https://dom.spec.whatwg.org/#dom-node-parentelement
     fn GetParentElement(self) -> Option<Temporary<Element>> {
         self.parent_node.get()
                         .and_then(|parent| {
@@ -1805,12 +1805,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                         })
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-haschildnodes
+    // https://dom.spec.whatwg.org/#dom-node-haschildnodes
     fn HasChildNodes(self) -> bool {
         self.first_child.get().is_some()
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-childnodes
+    // https://dom.spec.whatwg.org/#dom-node-childnodes
     fn ChildNodes(self) -> Temporary<NodeList> {
         self.child_list.or_init(|| {
             let doc = self.owner_doc().root();
@@ -1819,27 +1819,27 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         })
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-firstchild
+    // https://dom.spec.whatwg.org/#dom-node-firstchild
     fn GetFirstChild(self) -> Option<Temporary<Node>> {
         self.first_child.get()
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-lastchild
+    // https://dom.spec.whatwg.org/#dom-node-lastchild
     fn GetLastChild(self) -> Option<Temporary<Node>> {
         self.last_child.get()
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-previoussibling
+    // https://dom.spec.whatwg.org/#dom-node-previoussibling
     fn GetPreviousSibling(self) -> Option<Temporary<Node>> {
         self.prev_sibling.get()
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-nextsibling
+    // https://dom.spec.whatwg.org/#dom-node-nextsibling
     fn GetNextSibling(self) -> Option<Temporary<Node>> {
         self.next_sibling.get()
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-nodevalue
+    // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn GetNodeValue(self) -> Option<DOMString> {
         match self.type_id {
             NodeTypeId::Comment |
@@ -1854,7 +1854,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-nodevalue
+    // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn SetNodeValue(self, val: Option<DOMString>) {
         match self.type_id {
             NodeTypeId::Comment |
@@ -1866,7 +1866,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-textcontent
+    // https://dom.spec.whatwg.org/#dom-node-textcontent
     fn GetTextContent(self) -> Option<DOMString> {
         match self.type_id {
             NodeTypeId::DocumentFragment |
@@ -1887,7 +1887,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-textcontent
+    // https://dom.spec.whatwg.org/#dom-node-textcontent
     fn SetTextContent(self, value: Option<DOMString>) {
         let value = null_str_as_empty(&value);
         match self.type_id {
@@ -1919,17 +1919,17 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-insertbefore
+    // https://dom.spec.whatwg.org/#dom-node-insertbefore
     fn InsertBefore(self, node: JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Temporary<Node>> {
         Node::pre_insert(node, self, child)
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-appendchild
+    // https://dom.spec.whatwg.org/#dom-node-appendchild
     fn AppendChild(self, node: JSRef<Node>) -> Fallible<Temporary<Node>> {
         Node::pre_insert(node, self, None)
     }
 
-    // http://dom.spec.whatwg.org/#concept-node-replace
+    // https://dom.spec.whatwg.org/#concept-node-replace
     fn ReplaceChild(self, node: JSRef<Node>, child: JSRef<Node>) -> Fallible<Temporary<Node>> {
 
         // Step 1.
@@ -2085,13 +2085,13 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         Ok(Temporary::from_rooted(child))
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-removechild
+    // https://dom.spec.whatwg.org/#dom-node-removechild
     fn RemoveChild(self, node: JSRef<Node>)
                        -> Fallible<Temporary<Node>> {
         Node::pre_remove(node, self)
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-normalize
+    // https://dom.spec.whatwg.org/#dom-node-normalize
     fn Normalize(self) {
         let mut prev_text: Option<Temporary<Text>> = None;
         for child in self.children() {
@@ -2121,7 +2121,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-clonenode
+    // https://dom.spec.whatwg.org/#dom-node-clonenode
     fn CloneNode(self, deep: bool) -> Temporary<Node> {
         Node::clone(self, None, if deep {
             CloneChildrenFlag::CloneChildren
@@ -2130,7 +2130,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         })
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-isequalnode
+    // https://dom.spec.whatwg.org/#dom-node-isequalnode
     fn IsEqualNode(self, maybe_node: Option<JSRef<Node>>) -> bool {
         fn is_equal_doctype(node: JSRef<Node>, other: JSRef<Node>) -> bool {
             let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
@@ -2211,7 +2211,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-comparedocumentposition
+    // https://dom.spec.whatwg.org/#dom-node-comparedocumentposition
     fn CompareDocumentPosition(self, other: JSRef<Node>) -> u16 {
         if self == other {
             // step 2.
@@ -2269,7 +2269,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-contains
+    // https://dom.spec.whatwg.org/#dom-node-contains
     fn Contains(self, maybe_other: Option<JSRef<Node>>) -> bool {
         match maybe_other {
             None => false,
@@ -2277,19 +2277,19 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-lookupprefix
+    // https://dom.spec.whatwg.org/#dom-node-lookupprefix
     fn LookupPrefix(self, _prefix: Option<DOMString>) -> Option<DOMString> {
         // FIXME (#1826) implement.
         None
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
+    // https://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
     fn LookupNamespaceURI(self, _namespace: Option<DOMString>) -> Option<DOMString> {
         // FIXME (#1826) implement.
         None
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
+    // https://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
     fn IsDefaultNamespace(self, _namespace: Option<DOMString>) -> bool {
         // FIXME (#1826) implement.
         false

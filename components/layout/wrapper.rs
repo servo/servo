@@ -560,7 +560,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
         // FIXME: This is HTML only.
         let node: &Node = NodeCast::from_actual(self.element);
         match node.type_id_for_layout() {
-            // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
+            // https://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
             // selector-link
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |

@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://www.whatwg.org/html/#htmlembedelement
+// https://www.whatwg.org/html/#htmlembedelement
 interface HTMLEmbedElement : HTMLElement {
   //         attribute DOMString src;
   //         attribute DOMString type;
@@ -14,7 +14,7 @@ interface HTMLEmbedElement : HTMLElement {
   // also has obsolete members
 };
 
-// http://www.whatwg.org/html/#HTMLEmbedElement-partial
+// https://www.whatwg.org/html/#HTMLEmbedElement-partial
 partial interface HTMLEmbedElement {
   //         attribute DOMString align;
   //         attribute DOMString name;

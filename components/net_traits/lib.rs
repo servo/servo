@@ -128,7 +128,7 @@ impl Metadata {
             content_type: None,
             charset:      None,
             headers: None,
-            // http://fetch.spec.whatwg.org/#concept-response-status-message
+            // https://fetch.spec.whatwg.org/#concept-response-status-message
             status: Some(RawStatus(200, "OK".into_cow())),
         }
     }

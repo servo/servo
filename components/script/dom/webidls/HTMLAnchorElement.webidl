@@ -4,14 +4,14 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://www.whatwg.org/specs/web-apps/current-work/#the-a-element
- * http://www.whatwg.org/specs/web-apps/current-work/#other-elements,-attributes-and-apis
+ * https://www.whatwg.org/specs/web-apps/current-work/#the-a-element
+ * https://www.whatwg.org/specs/web-apps/current-work/#other-elements,-attributes-and-apis
  * © Copyright 2004-2011 Apple Computer, Inc., Mozilla Foundation, and
  * Opera Software ASA. You are granted a license to use, reproduce
  * and create derivative works of this document.
  */
 
-// http://www.whatwg.org/html/#htmlanchorelement
+// https://www.whatwg.org/html/#htmlanchorelement
 interface HTMLAnchorElement : HTMLElement {
   //         attribute DOMString target;
   //         attribute DOMString download;
@@ -28,7 +28,7 @@ interface HTMLAnchorElement : HTMLElement {
 };
 //HTMLAnchorElement implements URLUtils;
 
-// http://www.whatwg.org/html/#HTMLAnchorElement-partial
+// https://www.whatwg.org/html/#HTMLAnchorElement-partial
 partial interface HTMLAnchorElement {
   //         attribute DOMString coords;
   //         attribute DOMString charset;
