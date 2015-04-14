@@ -1,0 +1,26 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <foo-á>foo</foo-á>
+<script>
+test(function() {
+  assert_true(window.document instanceof Node, "Should be Node");
+  gc(); // ensure that our document rooting works; subsequent accesses should be valid.
+  assert_true(window.document instanceof Node, "Should be Node");
+  assert_equals(window.document.nodeType, Node.DOCUMENT_NODE);
+  assert_true(window.document.documentElement instanceof Node, "Should be Node");
+  assert_true(window.document.documentElement instanceof Element, "Should be Element");
+  assert_true(window.document.documentElement instanceof HTMLElement, "Should be HTMLElement");
+  assert_true(window.document.documentElement instanceof HTMLHtmlElement, "Should be HTMLHtmlElement");
+  assert_true(window.document instanceof Document, "Should be Document");
+  assert_equals(window.document.documentElement.tagName, "HTML");
+  assert_true(window.document.getElementsByTagName('foo-á')[0] instanceof HTMLUnknownElement, "Should be HTMLUnknownElement");
+  assert_equals(window.document.getElementsByTagName('foo-á')[0].tagName, "FOO-á");
+});
+</script>
+</body>
+</html>

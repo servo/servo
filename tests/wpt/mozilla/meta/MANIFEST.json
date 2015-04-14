@@ -1,0 +1,23 @@
+{
+  "items": {
+    "manual": [],
+    "reftest": [],
+    "stub": [],
+    "testharness": [
+      {
+        "path": "mozilla/prototypes.html",
+        "url": "/_mozilla/mozilla/prototypes.html"
+      }
+    ],
+    "wdspec": []
+  },
+  "local_changes": {
+    "deleted": [],
+    "items": {},
+    "reftest_nodes": {}
+  },
+  "reftest_nodes": {},
+  "rev": null,
+  "url_base": "/_mozilla/",
+  "version": 2
+}

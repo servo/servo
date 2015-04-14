@@ -17,6 +17,7 @@ In particular, this folder contains:
 * `metadata`: expected failures for the web-platform-tests we run.
 * `css-tests`: copy of the built CSSWG tests.
 * `metadata-css`: expected failures for the CSSWG tests we run.
+* `mozilla`: web-platform-tests that cannot be upstreamed.
 
 Running the tests
 =================
@@ -125,3 +126,11 @@ The easiest way to update the test harness is using git:
     cd ../../..
 
 At this point you should commit the updated files in the *servo* git repository.
+
+Servo-specific tests
+====================
+
+The `mozilla` directory contains tests that cannot be upstreamed for some
+reason (e.g. because they depend on Servo-specific APIs), as well as some
+legacy tests that should be upstreamed at some point. When run they are
+mounted on the server under `/_mozilla/`.
