@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_msg::CanvasMsg;
+use canvas_msg::{CanvasWebGLMsg, CanvasCommonMsg, CanvasMsg};
+use compositing::windowing::{WindowMethods};
 use geom::size::Size2D;
 
 use gleam::gl;
 use gleam::gl::types::{GLsizei};
 
 use util::task::spawn_named;
-
 use std::borrow::ToOwned;
 use std::sync::mpsc::{channel, Sender};
 use util::vec::byte_swap;
@@ -17,6 +17,7 @@ use offscreen_gl_context::{GLContext, GLContextMethods};
 
 pub struct WebGLPaintTask {
     size: Size2D<i32>,
+    original_context_size: Size2D<i32>,
     gl_context: GLContext
 }
 
@@ -31,6 +32,7 @@ impl WebGLPaintTask {
         let context = try!(GLContext::create_offscreen(size));
         Ok(WebGLPaintTask {
             size: size,
+            original_context_size: size,
             gl_context: context
         })
     }
@@ -42,16 +44,20 @@ impl WebGLPaintTask {
             painter.init();
             loop {
                 match port.recv().unwrap() {
-                    CanvasMsg::Clear(mask) => {
-                      painter.clear(mask);
+                    CanvasMsg::WebGL(message) => {
+                        match message {
+                            CanvasWebGLMsg::Clear(mask) => painter.clear(mask),
+                            CanvasWebGLMsg::ClearColor(r, g, b, a) => painter.clear_color(r, g, b, a),
+                        }
                     },
-                    CanvasMsg::ClearColor(r, g, b, a) => {
-                      painter.clear_color(r, g, b, a);
+                    CanvasMsg::Common(message) => {
+                        match message {
+                            CanvasCommonMsg::Close => break,
+                            CanvasCommonMsg::SendPixelContents(chan) => painter.send_pixel_contents(chan),
+                            CanvasCommonMsg::Recreate(size) => painter.recreate(size),
+                        }
                     },
-                    CanvasMsg::Close => break,
-                    CanvasMsg::Recreate(size) => painter.recreate(size),
-                    CanvasMsg::SendPixelContents(chan) => painter.send_pixel_contents(chan),
-                    _ => panic!("Wrong message sent to WebGLTask"),
+                    CanvasMsg::Canvas2d(_) => panic!("Wrong message sent to WebGLTask"),
                 }
             }
         });
@@ -68,6 +74,8 @@ impl WebGLPaintTask {
     }
 
     fn send_pixel_contents(&mut self, chan: Sender<Vec<u8>>) {
+        // FIXME: Instead of a readback strategy we have
+        // to layerize the canvas
         let mut pixels = gl::read_pixels(0, 0,
                                      self.size.width as gl::GLsizei,
                                      self.size.height as gl::GLsizei,
@@ -86,14 +94,20 @@ impl WebGLPaintTask {
     }
 
     fn recreate(&mut self, size: Size2D<i32>) {
-        // FIXME(ecoal95): Resizing properly: This just works for less size than when it was
-        // created
-        self.size = size;
-        gl::viewport(0, 0, size.width, size.height);
-        unsafe { gl::Scissor(0, 0, size.width, size.height); }
+        // TODO(ecoal95): GLContext should support a resize() method
+        if size.width > self.original_context_size.width
+            || size.height > self.original_context_size.height {
+            panic!("Can't grow a GLContext (yet)");
+        } else {
+            // Right now we just crop the viewport, it will do the job
+            self.size = size;
+            gl::viewport(0, 0, size.width, size.height);
+            unsafe { gl::Scissor(0, 0, size.width, size.height); }
+        }
     }
 
     fn init(&mut self) {
         self.gl_context.make_current().unwrap();
     }
+
 }

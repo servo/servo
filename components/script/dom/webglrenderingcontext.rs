@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas::webgl_paint_task::WebGLPaintTask;
-use canvas::canvas_msg::CanvasMsg;
+use canvas::canvas_msg::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
@@ -47,7 +47,7 @@ impl WebGLRenderingContext {
     }
 
     pub fn recreate(&self, size: Size2D<i32>) {
-        self.renderer.send(CanvasMsg::Recreate(size)).unwrap();
+        self.renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
     }
 
 }
@@ -55,17 +55,17 @@ impl WebGLRenderingContext {
 #[unsafe_destructor]
 impl Drop for WebGLRenderingContext {
     fn drop(&mut self) {
-        self.renderer.send(CanvasMsg::Close).unwrap();
+        self.renderer.send(CanvasMsg::Common(CanvasCommonMsg::Close)).unwrap();
     }
 }
 
 impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
     fn Clear(self, mask: u32) -> () {
-        self.renderer.send(CanvasMsg::Clear(mask)).unwrap()
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::Clear(mask))).unwrap()
     }
 
     fn ClearColor(self, red: f32, green: f32, blue: f32, alpha: f32) -> (){
-        self.renderer.send(CanvasMsg::ClearColor(red, green, blue, alpha)).unwrap()
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::ClearColor(red, green, blue, alpha))).unwrap()
     }
 }
 
