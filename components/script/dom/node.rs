@@ -826,19 +826,16 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     unsafe fn query_selector_iter(self, selectors: DOMString)
                                   -> Fallible<QuerySelectorIterator> {
         // Step 1.
-        let nodes;
-        let root = self.ancestors().last().root()
-                       .map(|node| node.get_unsound_ref_forever())
-                       .unwrap_or(self.clone());
         match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
-            Err(()) => return Err(Syntax),
+            Err(()) => Err(Syntax),
             // Step 3.
             Ok(selectors) => {
-                nodes = QuerySelectorIterator::new(root.traverse_preorder(), selectors);
+                let root = self.ancestors().last().root();
+                let root = root.r().unwrap_or(self);
+                Ok(QuerySelectorIterator::new(root.traverse_preorder(), selectors))
             }
-        };
-        Ok(nodes)
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
@@ -1437,9 +1434,10 @@ impl Node {
 
         // Step 7-8.
         let reference_child = match child {
-            Some(child) if child == node => node.next_sibling().map(|node| node.root().get_unsound_ref_forever()),
-            _ => child
-        };
+            Some(child) if child == node => node.next_sibling(),
+            _ => None
+        }.root();
+        let reference_child = reference_child.r().or(child);
 
         // Step 9.
         let document = document_from_node(parent).root();
@@ -2040,10 +2038,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Step 7-8.
-        let next_sibling = child.next_sibling().map(|node| node.root().get_unsound_ref_forever());
-        let reference_child = match next_sibling {
-            Some(sibling) if sibling == node => node.next_sibling().map(|node| node.root().get_unsound_ref_forever()),
-            _ => next_sibling
+        let child_next_sibling = child.next_sibling().root();
+        let node_next_sibling = node.next_sibling().root();
+        let reference_child = if child_next_sibling.r() == Some(node) {
+            node_next_sibling.r()
+        } else {
+            child_next_sibling.r()
         };
 
         // Step 9.
