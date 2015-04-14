@@ -21,6 +21,7 @@ use style::properties::PropertyDeclaration;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 
+// http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
 pub struct CSSStyleDeclaration {
     reflector_: Reflector,
@@ -335,6 +336,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         self.SetPropertyValue("float".to_owned(), value)
     }
 
+    // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(self, index: u32, found: &mut bool) -> DOMString {
         let rval = self.Item(index);
         *found = index < self.Length();

@@ -11,6 +11,7 @@ use dom::window::WindowHelpers;
 use devtools_traits::{DevtoolsControlMsg, ConsoleMessage};
 use util::str::DOMString;
 
+// https://developer.mozilla.org/en-US/docs/Web/API/Console
 #[dom_struct]
 pub struct Console {
     reflector_: Reflector,
@@ -31,6 +32,7 @@ impl Console {
 }
 
 impl<'a> ConsoleMethods for JSRef<'a, Console> {
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
     fn Log(self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
@@ -45,24 +47,28 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
         }
     }
 
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/info
     fn Info(self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
         }
     }
 
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/warn
     fn Warn(self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
         }
     }
 
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/error
     fn Error(self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
         }
     }
 
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
     fn Assert(self, condition: bool, message: Option<DOMString>) {
         if !condition {
             let message = match message {

@@ -4,6 +4,7 @@
 
 use dom::bindings::utils::Reflector;
 
+// https://html.spec.whatwg.org/multipage/#canvaspattern
 #[dom_struct]
 pub struct CanvasPattern {
     reflector_: Reflector,

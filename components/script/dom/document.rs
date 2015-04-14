@@ -97,6 +97,7 @@ pub enum IsHTMLDocument {
     NonHTMLDocument,
 }
 
+// https://dom.spec.whatwg.org/#document
 #[dom_struct]
 pub struct Document {
     node: Node,
@@ -1098,7 +1099,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
     }
 
-    // https://www.whatwg.org/html/#dom-document-lastmodified
+    // https://html.spec.whatwg.org/#dom-document-lastmodified
     fn LastModified(self) -> DOMString {
         match self.last_modified {
             Some(ref t) => t.clone(),
@@ -1118,7 +1119,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     // TODO: Support root SVG namespace: https://github.com/servo/servo/issues/5315
-    // https://www.whatwg.org/specs/web-apps/current-work/#document.title
+    // https://html.spec.whatwg.org/#document.title
     fn Title(self) -> DOMString {
         let title_element = self.GetDocumentElement().root().and_then(|root| {
             NodeCast::from_ref(root.r()).traverse_preorder().find(|node| {
@@ -1140,7 +1141,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     // TODO: Support root SVG namespace: https://github.com/servo/servo/issues/5315
-    // https://www.whatwg.org/specs/web-apps/current-work/#document.title
+    // https://html.spec.whatwg.org/#document.title
     fn SetTitle(self, title: DOMString) -> ErrorResult {
         self.GetDocumentElement().root().map(|root| {
             let root: JSRef<Node> = NodeCast::from_ref(root.r());
@@ -1179,7 +1180,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Ok(())
     }
 
-    // https://www.whatwg.org/specs/web-apps/current-work/#dom-document-head
+    // https://html.spec.whatwg.org/#dom-document-head
     fn GetHead(self) -> Option<Temporary<HTMLHeadElement>> {
         self.get_html_element().and_then(|root| {
             let root = root.root();
@@ -1191,12 +1192,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         })
     }
 
-    // https://www.whatwg.org/specs/web-apps/current-work/#dom-document-currentscript
+    // https://html.spec.whatwg.org/#dom-document-currentscript
     fn GetCurrentScript(self) -> Option<Temporary<HTMLScriptElement>> {
         self.current_script.get()
     }
 
-    // https://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
+    // https://html.spec.whatwg.org/#dom-document-body
     fn GetBody(self) -> Option<Temporary<HTMLElement>> {
         self.get_html_element().and_then(|root| {
             let root = root.root();
@@ -1213,7 +1214,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         })
     }
 
-    // https://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
+    // https://html.spec.whatwg.org/#dom-document-body
     fn SetBody(self, new_body: Option<JSRef<HTMLElement>>) -> ErrorResult {
         // Step 1.
         let new_body = match new_body {
@@ -1256,7 +1257,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Ok(())
     }
 
-    // https://www.whatwg.org/specs/web-apps/current-work/#dom-document-getelementsbyname
+    // https://html.spec.whatwg.org/#dom-document-getelementsbyname
     fn GetElementsByName(self, name: DOMString) -> Temporary<NodeList> {
         self.create_node_list(|node| {
             let element: JSRef<Element> = match ElementCast::to_ref(node) {

@@ -22,6 +22,7 @@ use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::cmp;
 
+// https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]
 pub struct CharacterData {
     node: Node,
