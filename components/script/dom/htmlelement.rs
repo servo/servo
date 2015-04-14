@@ -98,7 +98,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
 
     global_event_handlers!(NoOnload);
 
-    // https://html.spec.whatwg.org/multipage/dom.html#dom-dataset
+    // https://html.spec.whatwg.org/multipage/#dom-dataset
     fn Dataset(self) -> Temporary<DOMStringMap> {
         self.dataset.or_init(|| DOMStringMap::new(self))
     }

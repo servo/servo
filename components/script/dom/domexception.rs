@@ -60,21 +60,21 @@ impl DOMException {
 }
 
 impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
-    // http://heycam.github.io/webidl/#dfn-DOMException
+    // https://heycam.github.io/webidl/#dfn-DOMException
     fn Code(self) -> u16 {
         match self.code {
-            // http://heycam.github.io/webidl/#dfn-throw
+            // https://heycam.github.io/webidl/#dfn-throw
             DOMErrorName::EncodingError => 0,
             code => code as u16
         }
     }
 
-    // http://heycam.github.io/webidl/#idl-DOMException-error-names
+    // https://heycam.github.io/webidl/#idl-DOMException-error-names
     fn Name(self) -> DOMString {
         format!("{:?}", self.code)
     }
 
-    // http://heycam.github.io/webidl/#error-names
+    // https://heycam.github.io/webidl/#error-names
     fn Message(self) -> DOMString {
         let message = match self.code {
             DOMErrorName::IndexSizeError => "The index is not in the allowed range.",

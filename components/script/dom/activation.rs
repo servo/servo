@@ -29,7 +29,7 @@ pub trait Activatable : Copy {
     // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
     fn activation_behavior(&self, event: JSRef<Event>, target: JSRef<EventTarget>);
 
-    // https://html.spec.whatwg.org/multipage/forms.html#implicit-submission
+    // https://html.spec.whatwg.org/multipage/#implicit-submission
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool);
 
     // https://html.spec.whatwg.org/multipage/interaction.html#run-synthetic-click-activation-steps
@@ -45,7 +45,7 @@ pub trait Activatable : Copy {
         self.pre_click_activation();
 
         // Step 4
-        // https://html.spec.whatwg.org/multipage/webappapis.html#fire-a-synthetic-mouse-event
+        // https://html.spec.whatwg.org/multipage/#fire-a-synthetic-mouse-event
         let win = window_from_node(element.r()).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(element.r());
         let mouse = MouseEvent::new(win.r(), "click".to_owned(),

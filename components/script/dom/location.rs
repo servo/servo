@@ -37,7 +37,7 @@ impl Location {
 }
 
 impl<'a> LocationMethods for JSRef<'a, Location> {
-    // https://html.spec.whatwg.org/multipage/browsers.html#dom-location-assign
+    // https://html.spec.whatwg.org/multipage/#dom-location-assign
     fn Assign(self, url: DOMString) {
         self.window.root().r().load_url(url);
     }

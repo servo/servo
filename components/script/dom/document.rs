@@ -124,7 +124,7 @@ pub struct Document {
     focused: MutNullableJS<Element>,
     /// The script element that is currently executing.
     current_script: MutNullableJS<HTMLScriptElement>,
-    /// https://html.spec.whatwg.org/multipage/webappapis.html#concept-n-noscript
+    /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: Cell<bool>,
 }
@@ -249,7 +249,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         self.is_html_document
     }
 
-    // https://html.spec.whatwg.org/multipage/browsers.html#fully-active
+    // https://html.spec.whatwg.org/multipage/#fully-active
     fn is_fully_active(self) -> bool {
         let window = self.window.root();
         let window = window.r();
@@ -418,7 +418,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/dom.html#current-document-readiness
+    // https://html.spec.whatwg.org/multipage/#current-document-readiness
     fn set_ready_state(self, state: DocumentReadyState) {
         self.ready_state.set(state);
 
@@ -1388,17 +1388,17 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         root.query_selector_all(selectors)
     }
 
-    // https://html.spec.whatwg.org/multipage/dom.html#dom-document-readystate
+    // https://html.spec.whatwg.org/multipage/#dom-document-readystate
     fn ReadyState(self) -> DocumentReadyState {
         self.ready_state.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/browsers.html#dom-document-defaultview
+    // https://html.spec.whatwg.org/multipage/#dom-document-defaultview
     fn DefaultView(self) -> Temporary<Window> {
         Temporary::new(self.window)
     }
 
-    // https://html.spec.whatwg.org/multipage/dom.html#dom-document-cookie
+    // https://html.spec.whatwg.org/multipage/#dom-document-cookie
     fn GetCookie(self) -> Fallible<DOMString> {
         //TODO: return empty string for cookie-averse Document
         let url = self.url();
@@ -1412,7 +1412,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Ok(cookies.unwrap_or("".to_owned()))
     }
 
-    // https://html.spec.whatwg.org/multipage/dom.html#dom-document-cookie
+    // https://html.spec.whatwg.org/multipage/#dom-document-cookie
     fn SetCookie(self, cookie: DOMString) -> ErrorResult {
         //TODO: ignore for cookie-averse Document
         let url = self.url();

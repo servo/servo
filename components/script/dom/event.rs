@@ -270,7 +270,7 @@ impl<'a> EventHelpers for JSRef<'a, Event> {
         self.trusted.set(trusted);
     }
 
-    // https://html.spec.whatwg.org/multipage/webappapis.html#fire-a-simple-event
+    // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
     fn fire(self, target: JSRef<EventTarget>) -> bool {
         self.set_trusted(true);
         target.dispatch_event(self)

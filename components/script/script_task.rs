@@ -1233,7 +1233,7 @@ impl ScriptTask {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/browsers.html#navigating-across-documents
+    /// https://html.spec.whatwg.org/multipage/#navigating-across-documents
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline (specifically the "navigate" algorithm).
     fn handle_navigate(&self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>, load_data: LoadData) {
