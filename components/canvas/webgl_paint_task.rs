@@ -2,7 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+<<<<<<< HEAD
 use canvas_msg::CanvasMsg;
+=======
+use canvas_msg::{CanvasWebGLMsg, CanvasCommonMsg, CanvasMsg};
+use compositing::windowing::{WindowMethods};
+>>>>>>> Adressing review comments
 use geom::size::Size2D;
 
 use gleam::gl;
@@ -28,8 +33,6 @@ unsafe impl Send for WebGLPaintTask {}
 
 impl WebGLPaintTask {
     fn new(size: Size2D<i32>) -> Result<WebGLPaintTask, &'static str> {
-        // TODO(ecoal95): Handle error nicely instead of `unwrap` (make getContext return null)
-        //   Maybe allowing Send on WebGLPaintTask?
         let context = try!(GLContext::create_offscreen(size));
         Ok(WebGLPaintTask {
             size: size,
