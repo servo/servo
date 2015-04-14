@@ -289,6 +289,7 @@ experimental == rtl_simple.html rtl_simple_ref.html
 == table_auto_width.html table_auto_width_ref.html
 == table_caption_bottom_a.html table_caption_bottom_ref.html
 == table_caption_top_a.html table_caption_top_ref.html
+== table_cell_float_a.html table_cell_float_ref.html
 == table_colspan_fixed_a.html table_colspan_fixed_ref.html
 == table_colspan_simple_a.html table_colspan_simple_ref.html
 == table_containing_block_a.html table_containing_block_ref.html
