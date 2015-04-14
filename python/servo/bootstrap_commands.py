@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
-import urllib
+import urllib2
 
 from mach.decorators import (
     CommandArgument,
@@ -16,33 +16,40 @@ from mach.decorators import (
 
 from servo.command_base import CommandBase, cd, host_triple
 
-class PanickyUrlOpener(urllib.FancyURLopener):
-  def http_error_default(self, url, fp, errcode, errmsg, headers):
-    print("Download failed (%d): %s - %s" % (errcode, errmsg, url))
-
-    cpu_type = subprocess.check_output(["uname", "-m"]).strip().lower()
-    if errcode == 404 and cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
-        # i686
-        print("Note: Servo does not currently bootstrap 32bit snapshots of Rust")
-        print("See https://github.com/servo/servo/issues/3899")
-
-    sys.exit(1)
 
 def download(desc, src, dst):
-    recved = [0]
-
-    def report(count, bsize, fsize):
-        recved[0] += bsize
-        pct = recved[0] * 100.0 / fsize
-        print("\rDownloading %s: %5.1f%%" % (desc, pct), end="")
-        sys.stdout.flush()
-
     print("Downloading %s..." % desc)
     dumb = (os.environ.get("TERM") == "dumb") or (not sys.stdout.isatty())
-    PanickyUrlOpener().retrieve(src, dst, None if dumb else report)
-    if not dumb:
-        print()
 
+    try: 
+        resp = urllib2.urlopen(src)
+        fsize = int(resp.info().getheader('Content-Length').strip())
+        recved = 0
+        chunk_size = 8192
+
+        with open(dst, 'wb') as fd:
+            while True:
+                chunk = resp.read(chunk_size)
+                if not chunk: break
+                recved += len(chunk)
+                if not dumb:
+                    pct = recved * 100.0 / fsize
+                    print("\rDownloading %s: %5.1f%%" % (desc, pct), end="")
+                    sys.stdout.flush()
+                fd.write(chunk)
+
+        if not dumb:
+            print()
+    except urllib2.HTTPError, e:
+        print("Download failed (%d): %s - %s" % (e.code, e.reason, src))
+
+        cpu_type = subprocess.check_output(["uname", "-m"]).strip().lower()
+        if e.code == 404 and cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
+            # i686
+            print("Note: Servo does not currently bootstrap 32bit snapshots of Rust")
+            print("See https://github.com/servo/servo/issues/3899")
+
+        sys.exit(1)
 
 def extract(src, dst, movedir=None):
     tarfile.open(src).extractall(dst)
