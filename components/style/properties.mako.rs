@@ -4704,7 +4704,11 @@ impl ComputedValues {
     #[inline]
     pub fn content_inline_size(&self) -> computed::LengthOrPercentageOrAuto {
         let box_style = self.get_box();
-        if self.writing_mode.is_vertical() { box_style.height } else { box_style.width }
+        if self.writing_mode.is_vertical() {
+            box_style.height
+        } else {
+            box_style.width
+        }
     }
 
     #[inline]

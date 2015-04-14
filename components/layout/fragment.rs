@@ -1226,7 +1226,8 @@ impl Fragment {
     }
 
 
-    /// TODO: What exactly does this function return? Why is it Au(0) for SpecificFragmentInfo::Generic?
+    /// TODO: What exactly does this function return? Why is it Au(0) for
+    /// SpecificFragmentInfo::Generic?
     pub fn content_inline_size(&self) -> Au {
         match self.specific {
             SpecificFragmentInfo::Generic |
