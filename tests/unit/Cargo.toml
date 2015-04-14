@@ -47,3 +47,4 @@ git = "https://github.com/servo/string-cache"
 [dependencies]
 cookie = "*"
 url = "*"
+hyper = "0.3"
