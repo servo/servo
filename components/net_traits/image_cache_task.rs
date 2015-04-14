@@ -31,7 +31,7 @@ pub enum Msg {
     StorePrefetchedImageData(Url, Result<Vec<u8>, ()>),
 
     /// Used by the decoder tasks to post decoded images back to the cache
-    StoreImage(Url, Option<Arc<Box<Image>>>),
+    StoreImage(Url, Option<Arc<Image>>),
 
     /// For testing
     WaitForStore(Sender<()>),
@@ -42,7 +42,7 @@ pub enum Msg {
 
 #[derive(Clone)]
 pub enum ImageResponseMsg {
-    ImageReady(Arc<Box<Image>>),
+    ImageReady(Arc<Image>),
     ImageNotReady,
     ImageFailed
 }

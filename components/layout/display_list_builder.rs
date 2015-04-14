@@ -414,7 +414,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Use `background-size` to get the size.
         let mut bounds = *absolute_bounds;
-        let image_size = self.compute_background_image_size(style, &bounds, &**image);
+        let image_size = self.compute_background_image_size(style, &bounds, &*image);
 
         // Clip.
         //
@@ -1016,7 +1016,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                             &*self.style,
                                                                             Cursor::DefaultCursor),
                                                (*clip).clone()),
-                    image: Arc::new(box png::Image {
+                    image: Arc::new(png::Image {
                         width: width as u32,
                         height: height as u32,
                         pixels: PixelsByColorType::RGBA8(canvas_data),
