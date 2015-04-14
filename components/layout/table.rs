@@ -174,19 +174,6 @@ impl TableFlow {
         }
     }
 
-    /// Returns the effective spacing per cell, taking the value of `border-collapse` into account.
-    fn spacing(&self) -> border_spacing::T {
-        let style = self.block_flow.fragment.style();
-        match style.get_inheritedtable().border_collapse {
-            border_collapse::T::separate => style.get_inheritedtable().border_spacing,
-            border_collapse::T::collapse => {
-                border_spacing::T {
-                    horizontal: Au(0),
-                    vertical: Au(0),
-                }
-            }
-        }
-    }
 }
 
 impl Flow for TableFlow {
@@ -204,6 +191,10 @@ impl Flow for TableFlow {
 
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
+    }
+
+    fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
+        &self.block_flow
     }
 
     fn column_intrinsic_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnIntrinsicInlineSize> {
@@ -641,4 +632,22 @@ impl<'a> ChildInlineSizeInfo<'a> {
         }
     }
 }
+
+pub trait TableAndTableWrapperMethods : Flow {
+    /// Returns the effective spacing per cell, taking the value of `border-collapse` into account.
+    fn spacing(&self) -> border_spacing::T {
+        let style = self.as_immutable_block().fragment.style();
+        match style.get_inheritedtable().border_collapse {
+            border_collapse::T::separate => style.get_inheritedtable().border_spacing,
+            border_collapse::T::collapse => {
+                border_spacing::T {
+                    horizontal: Au(0),
+                    vertical: Au(0),
+                }
+            }
+        }
+    }
+}
+
+impl TableAndTableWrapperMethods for TableFlow {}
 
