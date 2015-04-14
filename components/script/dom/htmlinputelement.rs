@@ -209,10 +209,10 @@ impl RawLayoutHTMLInputElementHelpers for HTMLInputElement {
 }
 
 impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
-    // http://www.whatwg.org/html/#dom-fe-disabled
+    // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_getter!(Disabled);
 
-    // http://www.whatwg.org/html/#dom-fe-disabled
+    // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-defaultchecked

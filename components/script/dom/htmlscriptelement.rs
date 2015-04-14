@@ -96,7 +96,7 @@ impl HTMLScriptElement {
 }
 
 pub trait HTMLScriptElementHelpers {
-    /// Prepare a script (<http://www.whatwg.org/html/#prepare-a-script>)
+    /// Prepare a script (<https://www.whatwg.org/html/#prepare-a-script>)
     fn prepare(self);
 
     /// [Execute a script block]
@@ -126,7 +126,7 @@ pub trait HTMLScriptElementHelpers {
 }
 
 /// Supported script types as defined by
-/// <http://whatwg.org/html/#support-the-scripting-language>.
+/// <https://whatwg.org/html/#support-the-scripting-language>.
 static SCRIPT_JS_MIMES: StaticStringVec = &[
     "application/ecmascript",
     "application/javascript",
@@ -522,12 +522,12 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
 
     make_setter!(SetSrc, "src");
 
-    // http://www.whatwg.org/html/#dom-script-text
+    // https://www.whatwg.org/html/#dom-script-text
     fn Text(self) -> DOMString {
         Node::collect_text_contents(NodeCast::from_ref(self).children())
     }
 
-    // http://www.whatwg.org/html/#dom-script-text
+    // https://www.whatwg.org/html/#dom-script-text
     fn SetText(self, value: DOMString) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))

@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://www.whatwg.org/html/#htmlmetaelement
+// https://www.whatwg.org/html/#htmlmetaelement
 interface HTMLMetaElement : HTMLElement {
   //         attribute DOMString name;
   //         attribute DOMString httpEquiv;
@@ -12,7 +12,7 @@ interface HTMLMetaElement : HTMLElement {
   // also has obsolete members
 };
 
-// http://www.whatwg.org/html/#HTMLMetaElement-partial
+// https://www.whatwg.org/html/#HTMLMetaElement-partial
 partial interface HTMLMetaElement {
   //         attribute DOMString scheme;
 };

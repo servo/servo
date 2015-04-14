@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://www.whatwg.org/html/#navigator
+// https://www.whatwg.org/html/#navigator
 interface Navigator {
   // objects implementing this interface also implement the interfaces given below
 };
@@ -14,7 +14,7 @@ Navigator implements NavigatorID;
 //Navigator implements NavigatorStorageUtils;
 //Navigator implements NavigatorPlugins;
 
-// http://www.whatwg.org/html/#navigatorid
+// https://www.whatwg.org/html/#navigatorid
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface NavigatorID {
   readonly attribute DOMString appCodeName; // constant "Mozilla"

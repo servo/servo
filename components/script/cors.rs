@@ -32,12 +32,12 @@ pub struct CORSRequest {
     pub mode: RequestMode,
     pub method: Method,
     pub headers: Headers,
-    /// CORS preflight flag (http://fetch.spec.whatwg.org/#concept-http-fetch)
+    /// CORS preflight flag (https://fetch.spec.whatwg.org/#concept-http-fetch)
     /// Indicates that a CORS preflight request and/or cache check is to be performed
     pub preflight_flag: bool
 }
 
-/// http://fetch.spec.whatwg.org/#concept-request-mode
+/// https://fetch.spec.whatwg.org/#concept-request-mode
 /// This only covers some of the request modes. The
 /// `same-origin` and `no CORS` modes are unnecessary for XHR.
 #[derive(PartialEq, Copy, Clone)]
@@ -88,7 +88,7 @@ impl CORSRequest {
         }
     }
 
-    /// http://fetch.spec.whatwg.org/#concept-http-fetch
+    /// https://fetch.spec.whatwg.org/#concept-http-fetch
     /// This method assumes that the CORS flag is set
     /// This does not perform the full HTTP fetch, rather it handles part of the CORS filtering
     /// if self.mode is ForcedPreflight, then the CORS-with-forced-preflight
@@ -112,7 +112,7 @@ impl CORSRequest {
         response
     }
 
-    /// http://fetch.spec.whatwg.org/#cors-preflight-fetch
+    /// https://fetch.spec.whatwg.org/#cors-preflight-fetch
     fn preflight_fetch(&self) -> CORSResponse {
         let error = CORSResponse::new_error();
         let mut cors_response = CORSResponse::new();
@@ -159,7 +159,7 @@ impl CORSRequest {
             _ => return error
         }
         cors_response.headers = response.headers.clone();
-        // Substeps 1-3 (parsing rules: http://fetch.spec.whatwg.org/#http-new-header-syntax)
+        // Substeps 1-3 (parsing rules: https://fetch.spec.whatwg.org/#http-new-header-syntax)
         let methods_substep4 = [self.method.clone()];
         let mut methods = match response.headers.get() {
             Some(&AccessControlAllowMethods(ref v)) => v.as_slice(),
@@ -292,7 +292,7 @@ impl CORSCacheEntry {
 }
 
 impl CORSCache {
-    /// http://fetch.spec.whatwg.org/#concept-cache-clear
+    /// https://fetch.spec.whatwg.org/#concept-cache-clear
     #[allow(dead_code)]
     fn clear (&mut self, request: &CORSRequest) {
         let CORSCache(buf) = self.clone();
@@ -308,7 +308,7 @@ impl CORSCache {
         *self = CORSCache(new_buf);
     }
 
-    /// http://fetch.spec.whatwg.org/#concept-cache-match-header
+    /// https://fetch.spec.whatwg.org/#concept-cache-match-header
     fn find_entry_by_header<'a>(&'a mut self, request: &CORSRequest, header_name: &str) -> Option<&'a mut CORSCacheEntry> {
         self.cleanup();
         let CORSCache(ref mut buf) = *self;
@@ -342,7 +342,7 @@ impl CORSCache {
         entry
     }
 
-    /// http://fetch.spec.whatwg.org/#concept-cache-match-method
+    /// https://fetch.spec.whatwg.org/#concept-cache-match-method
     fn match_method(&mut self, request: &CORSRequest, method: &Method) -> bool {
         self.find_entry_by_method(request, method).is_some()
     }
@@ -383,7 +383,7 @@ fn is_simple_method(m: &Method) -> bool {
 }
 
 /// Perform a CORS check on a header list and CORS request
-/// http://fetch.spec.whatwg.org/#cors-check
+/// https://fetch.spec.whatwg.org/#cors-check
 pub fn allow_cross_origin_request(req: &CORSRequest, headers: &Headers) -> bool {
     //FIXME(seanmonstar): use req.headers.get::<AccessControlAllowOrigin>()
     match headers.get() {

@@ -264,7 +264,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         true
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-url
+    // https://dom.spec.whatwg.org/#dom-document-url
     fn url(self) -> Url {
         self.url.clone()
     }
@@ -764,17 +764,17 @@ impl Document {
             content_type: match content_type {
                 Some(string) => string.clone(),
                 None => match is_html_document {
-                    // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
+                    // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
                     IsHTMLDocument::HTMLDocument => "text/html".to_owned(),
-                    // http://dom.spec.whatwg.org/#concept-document-content-type
+                    // https://dom.spec.whatwg.org/#concept-document-content-type
                     IsHTMLDocument::NonHTMLDocument => "application/xml".to_owned()
                 }
             },
             last_modified: last_modified,
             url: url,
-            // http://dom.spec.whatwg.org/#concept-document-quirks
+            // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(NoQuirks),
-            // http://dom.spec.whatwg.org/#concept-document-encoding
+            // https://dom.spec.whatwg.org/#concept-document-encoding
             encoding_name: DOMRefCell::new("UTF-8".to_owned()),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             images: Default::default(),
@@ -792,7 +792,7 @@ impl Document {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-document
+    // https://dom.spec.whatwg.org/#dom-document
     pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<Document>> {
         Ok(Document::new(global.as_window(), None,
                          IsHTMLDocument::NonHTMLDocument, None,
@@ -866,12 +866,12 @@ impl<'a> PrivateClickEventHelpers for JSRef<'a, Node> {
 }
 
 impl<'a> DocumentMethods for JSRef<'a, Document> {
-    // http://dom.spec.whatwg.org/#dom-document-implementation
+    // https://dom.spec.whatwg.org/#dom-document-implementation
     fn Implementation(self) -> Temporary<DOMImplementation> {
         self.implementation.or_init(|| DOMImplementation::new(self))
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-url
+    // https://dom.spec.whatwg.org/#dom-document-url
     fn URL(self) -> DOMString {
         self.url().serialize()
     }
@@ -889,12 +889,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-documenturi
+    // https://dom.spec.whatwg.org/#dom-document-documenturi
     fn DocumentURI(self) -> DOMString {
         self.URL()
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-compatmode
+    // https://dom.spec.whatwg.org/#dom-document-compatmode
     fn CompatMode(self) -> DOMString {
         match self.quirks_mode.get() {
             LimitedQuirks | NoQuirks => "CSS1Compat".to_owned(),
@@ -902,26 +902,26 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-characterset
+    // https://dom.spec.whatwg.org/#dom-document-characterset
     fn CharacterSet(self) -> DOMString {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let encoding_name = self.encoding_name.borrow();
         encoding_name.clone()
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-inputencoding
+    // https://dom.spec.whatwg.org/#dom-document-inputencoding
     fn InputEncoding(self) -> DOMString {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let encoding_name = self.encoding_name.borrow();
         encoding_name.clone()
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-content_type
+    // https://dom.spec.whatwg.org/#dom-document-content_type
     fn ContentType(self) -> DOMString {
         self.content_type.clone()
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-doctype
+    // https://dom.spec.whatwg.org/#dom-document-doctype
     fn GetDoctype(self) -> Option<Temporary<DocumentType>> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.children()
@@ -930,33 +930,33 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             .next()
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-documentelement
+    // https://dom.spec.whatwg.org/#dom-document-documentelement
     fn GetDocumentElement(self) -> Option<Temporary<Element>> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.child_elements().next()
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname
+    // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     fn GetElementsByTagName(self, tag_name: DOMString) -> Temporary<HTMLCollection> {
         let window = self.window.root();
         HTMLCollection::by_tag_name(window.r(), NodeCast::from_ref(self), tag_name)
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
+    // https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
     fn GetElementsByTagNameNS(self, maybe_ns: Option<DOMString>, tag_name: DOMString)
                               -> Temporary<HTMLCollection> {
         let window = self.window.root();
         HTMLCollection::by_tag_name_ns(window.r(), NodeCast::from_ref(self), tag_name, maybe_ns)
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
+    // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     fn GetElementsByClassName(self, classes: DOMString) -> Temporary<HTMLCollection> {
         let window = self.window.root();
 
         HTMLCollection::by_class_name(window.r(), NodeCast::from_ref(self), classes)
     }
 
-    // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
+    // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(self, id: DOMString) -> Option<Temporary<Element>> {
         let id = Atom::from_slice(&id);
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
@@ -964,7 +964,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         idmap.get(&id).map(|ref elements| Temporary::new((*elements)[0].clone()))
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-createelement
+    // https://dom.spec.whatwg.org/#dom-document-createelement
     fn CreateElement(self, mut local_name: DOMString) -> Fallible<Temporary<Element>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
@@ -977,7 +977,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Ok(Element::create(name, None, self, ElementCreator::ScriptCreated))
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-createelementns
+    // https://dom.spec.whatwg.org/#dom-document-createelementns
     fn CreateElementNS(self,
                        namespace: Option<DOMString>,
                        qualified_name: DOMString) -> Fallible<Temporary<Element>> {
@@ -987,7 +987,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Ok(Element::create(name, prefix, self, ElementCreator::ScriptCreated))
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-createattribute
+    // https://dom.spec.whatwg.org/#dom-document-createattribute
     fn CreateAttribute(self, local_name: DOMString) -> Fallible<Temporary<Attr>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
@@ -1003,7 +1003,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Ok(Attr::new(window.r(), name, value, l_name, ns!(""), None, None))
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-createattributens
+    // https://dom.spec.whatwg.org/#dom-document-createattributens
     fn CreateAttributeNS(self, namespace: Option<DOMString>, qualified_name: DOMString)
                          -> Fallible<Temporary<Attr>> {
         let (namespace, prefix, local_name) =
@@ -1015,22 +1015,22 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                      namespace, prefix, None))
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-createdocumentfragment
+    // https://dom.spec.whatwg.org/#dom-document-createdocumentfragment
     fn CreateDocumentFragment(self) -> Temporary<DocumentFragment> {
         DocumentFragment::new(self)
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-createtextnode
+    // https://dom.spec.whatwg.org/#dom-document-createtextnode
     fn CreateTextNode(self, data: DOMString) -> Temporary<Text> {
         Text::new(data, self)
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-createcomment
+    // https://dom.spec.whatwg.org/#dom-document-createcomment
     fn CreateComment(self, data: DOMString) -> Temporary<Comment> {
         Comment::new(data, self)
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-createprocessinginstruction
+    // https://dom.spec.whatwg.org/#dom-document-createprocessinginstruction
     fn CreateProcessingInstruction(self, target: DOMString, data: DOMString) ->
             Fallible<Temporary<ProcessingInstruction>> {
         // Step 1.
@@ -1047,7 +1047,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Ok(ProcessingInstruction::new(target, data, self))
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-importnode
+    // https://dom.spec.whatwg.org/#dom-document-importnode
     fn ImportNode(self, node: JSRef<Node>, deep: bool) -> Fallible<Temporary<Node>> {
         // Step 1.
         if node.is_document() {
@@ -1063,7 +1063,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Ok(Node::clone(node, Some(self), clone_children))
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-adoptnode
+    // https://dom.spec.whatwg.org/#dom-document-adoptnode
     fn AdoptNode(self, node: JSRef<Node>) -> Fallible<Temporary<Node>> {
         // Step 1.
         if node.is_document() {
@@ -1077,7 +1077,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Ok(Temporary::from_rooted(node))
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-createevent
+    // https://dom.spec.whatwg.org/#dom-document-createevent
     fn CreateEvent(self, interface: DOMString) -> Fallible<Temporary<Event>> {
         let window = self.window.root();
 
@@ -1098,7 +1098,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
     }
 
-    // http://www.whatwg.org/html/#dom-document-lastmodified
+    // https://www.whatwg.org/html/#dom-document-lastmodified
     fn LastModified(self) -> DOMString {
         match self.last_modified {
             Some(ref t) => t.clone(),
@@ -1106,19 +1106,19 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-createrange
+    // https://dom.spec.whatwg.org/#dom-document-createrange
     fn CreateRange(self) -> Temporary<Range> {
         Range::new(self)
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-createtreewalker
+    // https://dom.spec.whatwg.org/#dom-document-createtreewalker
     fn CreateTreeWalker(self, root: JSRef<Node>, whatToShow: u32, filter: Option<NodeFilter>)
                         -> Temporary<TreeWalker> {
         TreeWalker::new(self, root, whatToShow, filter)
     }
 
     // TODO: Support root SVG namespace: https://github.com/servo/servo/issues/5315
-    // http://www.whatwg.org/specs/web-apps/current-work/#document.title
+    // https://www.whatwg.org/specs/web-apps/current-work/#document.title
     fn Title(self) -> DOMString {
         let title_element = self.GetDocumentElement().root().and_then(|root| {
             NodeCast::from_ref(root.r()).traverse_preorder().find(|node| {
@@ -1140,7 +1140,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     // TODO: Support root SVG namespace: https://github.com/servo/servo/issues/5315
-    // http://www.whatwg.org/specs/web-apps/current-work/#document.title
+    // https://www.whatwg.org/specs/web-apps/current-work/#document.title
     fn SetTitle(self, title: DOMString) -> ErrorResult {
         self.GetDocumentElement().root().map(|root| {
             let root: JSRef<Node> = NodeCast::from_ref(root.r());
@@ -1179,7 +1179,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Ok(())
     }
 
-    // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-head
+    // https://www.whatwg.org/specs/web-apps/current-work/#dom-document-head
     fn GetHead(self) -> Option<Temporary<HTMLHeadElement>> {
         self.get_html_element().and_then(|root| {
             let root = root.root();
@@ -1191,12 +1191,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         })
     }
 
-    // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-currentscript
+    // https://www.whatwg.org/specs/web-apps/current-work/#dom-document-currentscript
     fn GetCurrentScript(self) -> Option<Temporary<HTMLScriptElement>> {
         self.current_script.get()
     }
 
-    // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
+    // https://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
     fn GetBody(self) -> Option<Temporary<HTMLElement>> {
         self.get_html_element().and_then(|root| {
             let root = root.root();
@@ -1213,7 +1213,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         })
     }
 
-    // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
+    // https://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
     fn SetBody(self, new_body: Option<JSRef<HTMLElement>>) -> ErrorResult {
         // Step 1.
         let new_body = match new_body {
@@ -1256,7 +1256,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Ok(())
     }
 
-    // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-getelementsbyname
+    // https://www.whatwg.org/specs/web-apps/current-work/#dom-document-getelementsbyname
     fn GetElementsByName(self, name: DOMString) -> Temporary<NodeList> {
         self.create_node_list(|node| {
             let element: JSRef<Element> = match ElementCast::to_ref(node) {
@@ -1355,7 +1355,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         self.location.or_init(|| Location::new(window))
     }
 
-    // http://dom.spec.whatwg.org/#dom-parentnode-children
+    // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
         HTMLCollection::children(window.r(), NodeCast::from_ref(self))
@@ -1376,13 +1376,13 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         NodeCast::from_ref(self).child_elements().count() as u32
     }
 
-    // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
+    // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn QuerySelector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         let root: JSRef<Node> = NodeCast::from_ref(self);
         root.query_selector(selectors)
     }
 
-    // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
+    // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     fn QuerySelectorAll(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
         let root: JSRef<Node> = NodeCast::from_ref(self);
         root.query_selector_all(selectors)

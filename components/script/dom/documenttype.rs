@@ -83,7 +83,7 @@ impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
         self.system_id.clone()
     }
 
-    // http://dom.spec.whatwg.org/#dom-childnode-remove
+    // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(self) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.remove_self();

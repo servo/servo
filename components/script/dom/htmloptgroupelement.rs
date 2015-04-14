@@ -46,10 +46,10 @@ impl HTMLOptGroupElement {
 }
 
 impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
-    // http://www.whatwg.org/html#dom-optgroup-disabled
+    // https://www.whatwg.org/html#dom-optgroup-disabled
     make_bool_getter!(Disabled);
 
-    // http://www.whatwg.org/html#dom-optgroup-disabled
+    // https://www.whatwg.org/html#dom-optgroup-disabled
     make_bool_setter!(SetDisabled, "disabled");
 }
 

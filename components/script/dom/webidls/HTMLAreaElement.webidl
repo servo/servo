@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://www.whatwg.org/html/#htmlareaelement
+// https://www.whatwg.org/html/#htmlareaelement
 interface HTMLAreaElement : HTMLElement {
   //         attribute DOMString alt;
   //         attribute DOMString coords;
@@ -20,7 +20,7 @@ interface HTMLAreaElement : HTMLElement {
 };
 //HTMLAreaElement implements URLUtils;
 
-// http://www.whatwg.org/html/#HTMLAreaElement-partial
+// https://www.whatwg.org/html/#HTMLAreaElement-partial
 partial interface HTMLAreaElement {
   //         attribute boolean noHref;
 };

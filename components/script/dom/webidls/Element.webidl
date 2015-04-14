@@ -4,8 +4,8 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://dom.spec.whatwg.org/#element and
- * http://domparsing.spec.whatwg.org/ and
+ * https://dom.spec.whatwg.org/#element and
+ * https://domparsing.spec.whatwg.org/ and
  * http://dev.w3.org/csswg/cssom-view/ and
  * http://www.w3.org/TR/selectors-api/
  *
@@ -61,7 +61,7 @@ partial interface Element {
   DOMRect getBoundingClientRect();
 };
 
-// http://domparsing.spec.whatwg.org/#extensions-to-the-element-interface
+// https://domparsing.spec.whatwg.org/#extensions-to-the-element-interface
 partial interface Element {
   [Throws,TreatNullAs=EmptyString]
   attribute DOMString innerHTML;

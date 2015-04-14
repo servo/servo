@@ -223,7 +223,7 @@ impl Window {
     }
 }
 
-// http://www.whatwg.org/html/#atob
+// https://www.whatwg.org/html/#atob
 pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     // "The btoa() method must throw an InvalidCharacterError exception if
     //  the method's first argument contains any character whose code point
@@ -243,7 +243,7 @@ pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     }
 }
 
-// http://www.whatwg.org/html/#atob
+// https://www.whatwg.org/html/#atob
 pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     // "Remove all space characters from input."
     // serialize::base64::from_base64 ignores \r and \n,
@@ -397,7 +397,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.Window()
     }
 
-    // http://www.whatwg.org/html/#dom-frames
+    // https://www.whatwg.org/html/#dom-frames
     fn Frames(self) -> Temporary<Window> {
         self.Window()
     }

@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://www.whatwg.org/html/#htmliframeelement
+// https://www.whatwg.org/html/#htmliframeelement
 interface HTMLIFrameElement : HTMLElement {
            attribute DOMString src;
   //         attribute DOMString srcdoc;
@@ -21,7 +21,7 @@ interface HTMLIFrameElement : HTMLElement {
   // also has obsolete members
 };
 
-// http://www.whatwg.org/html/#HTMLIFrameElement-partial
+// https://www.whatwg.org/html/#HTMLIFrameElement-partial
 partial interface HTMLIFrameElement {
   //         attribute DOMString align;
   //         attribute DOMString scrolling;
