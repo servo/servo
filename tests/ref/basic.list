@@ -40,6 +40,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 
 == abs_float_pref_width_a.html abs_float_pref_width_ref.html
 == absolute_content_height_a.html absolute_content_height_ref.html
+== absolute_hypothetical_float_a.html absolute_hypothetical_float_ref.html
 == acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html
 == after_block_iteration.html after_block_iteration_ref.html

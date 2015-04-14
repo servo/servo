@@ -58,11 +58,12 @@ use std::fmt;
 use std::iter::Zip;
 use std::num::FromPrimitive;
 use std::raw;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::slice::IterMut;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use style::computed_values::{clear, empty_cells, float, position, text_align};
 use style::properties::ComputedValues;
-use std::sync::Arc;
+use style::values::computed::LengthOrPercentageOrAuto;
 
 /// Virtual methods that make up a float context.
 ///
@@ -426,16 +427,6 @@ pub trait MutableFlowUtils {
     /// Computes the overflow region for this flow.
     fn store_overflow(self, _: &LayoutContext);
 
-    /// Gathers static block-offsets bubbled up by kids.
-    ///
-    /// This essentially gives us offsets of all absolutely positioned direct descendants and all
-    /// fixed descendants, in tree order.
-    ///
-    /// This is called in a bottom-up traversal (specifically, the assign-block-size traversal).
-    /// So, kids have their flow origin already set. In the case of absolute flow kids, they have
-    /// their hypothetical box position already set.
-    fn collect_static_block_offsets_from_children(self);
-
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
     fn repair_style_and_bubble_inline_sizes(self, style: &Arc<ComputedValues>);
@@ -548,7 +539,17 @@ bitflags! {
         const AFFECTS_COUNTERS = 0b0000_1000_0000_0000_0000,
         #[doc = "Whether this flow's descendants have fragments that affect `counter-reset` or \
                  `counter-increment` styles."]
-        const HAS_COUNTER_AFFECTING_CHILDREN = 0b0001_0000_0000_0000_0000
+        const HAS_COUNTER_AFFECTING_CHILDREN = 0b0001_0000_0000_0000_0000,
+        #[doc = "Whether this flow behaves as though it had `position: static` for the purposes \
+                 of positioning in the inline direction. This is set for flows with `position: \
+                 static` and `position: relative` as well as absolutely-positioned flows with \
+                 unconstrained positions in the inline direction."]
+        const INLINE_POSITION_IS_STATIC = 0b0010_0000_0000_0000_0000,
+        #[doc = "Whether this flow behaves as though it had `position: static` for the purposes \
+                 of positioning in the block direction. This is set for flows with `position: \
+                 static` and `position: relative` as well as absolutely-positioned flows with \
+                 unconstrained positions in the block direction."]
+        const BLOCK_POSITION_IS_STATIC = 0b0100_0000_0000_0000_0000,
     }
 }
 
@@ -637,16 +638,12 @@ pub struct Descendants {
     /// Links to every descendant. This must be private because it is unsafe to leak `FlowRef`s to
     /// layout.
     descendant_links: Vec<FlowRef>,
-
-    /// Static block-direction offsets of all descendants from the start of this flow box.
-    pub static_block_offsets: Vec<Au>,
 }
 
 impl Descendants {
     pub fn new() -> Descendants {
         Descendants {
             descendant_links: Vec::new(),
-            static_block_offsets: Vec::new(),
         }
     }
 
@@ -676,14 +673,6 @@ impl Descendants {
         DescendantIter {
             iter: self.descendant_links.iter_mut(),
         }
-    }
-
-    /// Return an iterator over (descendant, static y offset).
-    pub fn iter_with_offset<'a>(&'a mut self) -> DescendantOffsetIter<'a> {
-        let descendant_iter = DescendantIter {
-            iter: self.descendant_links.iter_mut(),
-        };
-        descendant_iter.zip(self.static_block_offsets.iter_mut())
     }
 }
 
@@ -916,37 +905,50 @@ impl BaseFlow {
                force_nonfloated: ForceNonfloatedFlag)
                -> BaseFlow {
         let mut flags = FlowFlags::empty();
-        if let Some(node) = node {
-            let node_style = node.style();
-            match node_style.get_box().position {
-                position::T::absolute | position::T::fixed => {
-                    flags.insert(IS_ABSOLUTELY_POSITIONED)
-                }
-                _ => {}
-            }
+        match node {
+            Some(node) => {
+                let node_style = node.style();
+                match node_style.get_box().position {
+                    position::T::absolute | position::T::fixed => {
+                        flags.insert(IS_ABSOLUTELY_POSITIONED);
 
-            if force_nonfloated == ForceNonfloatedFlag::FloatIfNecessary {
-                match node_style.get_box().float {
-                    float::T::none => {}
-                    float::T::left => flags.insert(FLOATS_LEFT),
-                    float::T::right => flags.insert(FLOATS_RIGHT),
+                        let logical_position = node_style.logical_position();
+                        if logical_position.inline_start == LengthOrPercentageOrAuto::Auto &&
+                                logical_position.inline_end == LengthOrPercentageOrAuto::Auto {
+                            flags.insert(INLINE_POSITION_IS_STATIC);
+                        }
+                        if logical_position.block_start == LengthOrPercentageOrAuto::Auto &&
+                                logical_position.block_end == LengthOrPercentageOrAuto::Auto {
+                            flags.insert(BLOCK_POSITION_IS_STATIC);
+                        }
+                    }
+                    _ => flags.insert(BLOCK_POSITION_IS_STATIC | INLINE_POSITION_IS_STATIC),
+                }
+
+                if force_nonfloated == ForceNonfloatedFlag::FloatIfNecessary {
+                    match node_style.get_box().float {
+                        float::T::none => {}
+                        float::T::left => flags.insert(FLOATS_LEFT),
+                        float::T::right => flags.insert(FLOATS_RIGHT),
+                    }
+                }
+
+                match node_style.get_box().clear {
+                    clear::T::none => {}
+                    clear::T::left => flags.insert(CLEARS_LEFT),
+                    clear::T::right => flags.insert(CLEARS_RIGHT),
+                    clear::T::both => {
+                        flags.insert(CLEARS_LEFT);
+                        flags.insert(CLEARS_RIGHT);
+                    }
+                }
+
+                if !node_style.get_counters().counter_reset.0.is_empty() ||
+                        !node_style.get_counters().counter_increment.0.is_empty() {
+                    flags.insert(AFFECTS_COUNTERS)
                 }
             }
-
-            match node_style.get_box().clear {
-                clear::T::none => {}
-                clear::T::left => flags.insert(CLEARS_LEFT),
-                clear::T::right => flags.insert(CLEARS_RIGHT),
-                clear::T::both => {
-                    flags.insert(CLEARS_LEFT);
-                    flags.insert(CLEARS_RIGHT);
-                }
-            }
-
-            if !node_style.get_counters().counter_reset.0.is_empty() ||
-                    !node_style.get_counters().counter_increment.0.is_empty() {
-                flags.insert(AFFECTS_COUNTERS)
-            }
+            None => flags.insert(BLOCK_POSITION_IS_STATIC | INLINE_POSITION_IS_STATIC),
         }
 
         // New flows start out as fully damaged.
@@ -1266,52 +1268,6 @@ impl<'a> MutableFlowUtils for &'a mut (Flow + 'a) {
         }
 
         mut_base(self).overflow = overflow;
-    }
-
-    /// Collect and update static y-offsets bubbled up by kids.
-    ///
-    /// This would essentially give us offsets of all absolutely positioned
-    /// direct descendants and all fixed descendants, in tree order.
-    ///
-    /// Assume that this is called in a bottom-up traversal (specifically, the
-    /// assign-block-size traversal). So, kids have their flow origin already set.
-    /// In the case of absolute flow kids, they have their hypothetical box
-    /// position already set.
-    fn collect_static_block_offsets_from_children(self) {
-        let mut absolute_descendant_block_offsets = Vec::new();
-        for kid in mut_base(self).child_iter() {
-            let mut gives_absolute_offsets = true;
-            if kid.is_block_like() {
-                let kid_block = kid.as_block();
-                if kid_block.is_fixed() || kid_block.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-                    // It won't contribute any offsets for descendants because it would be the
-                    // containing block for them.
-                    gives_absolute_offsets = false;
-                    // Give the offset for the current absolute flow alone.
-                    absolute_descendant_block_offsets.push(
-                        kid_block.get_hypothetical_block_start_edge());
-                } else if kid_block.is_positioned() {
-                    // It won't contribute any offsets because it would be the containing block
-                    // for the descendants.
-                    gives_absolute_offsets = false;
-                }
-            }
-
-            if gives_absolute_offsets {
-                let kid_base = mut_base(kid);
-                // Avoid copying the offset vector.
-                let offsets = mem::replace(&mut kid_base.abs_descendants.static_block_offsets,
-                                           Vec::new());
-                // Consume all the static block-offsets bubbled up by kids.
-                for block_offset in offsets.into_iter() {
-                    // The offsets are with respect to the kid flow's fragment. Translate them to
-                    // that of the current flow.
-                    absolute_descendant_block_offsets.push(
-                        block_offset + kid_base.position.start.b);
-                }
-            }
-        }
-        mut_base(self).abs_descendants.static_block_offsets = absolute_descendant_block_offsets
     }
 
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
