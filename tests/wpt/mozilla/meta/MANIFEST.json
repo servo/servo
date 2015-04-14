@@ -13,8 +13,36 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
-    "reftest_nodes": {}
+    "items": {
+      "reftest": {
+        "css/abs_float_pref_width.html": [
+          {
+            "path": "css/abs_float_pref_width.html",
+            "references": [
+              [
+                "/_mozilla/css/abs_float_pref_width-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/abs_float_pref_width.html"
+          }
+        ]
+      }
+    },
+    "reftest_nodes": {
+      "css/abs_float_pref_width.html": [
+        {
+          "path": "css/abs_float_pref_width.html",
+          "references": [
+            [
+              "/_mozilla/css/abs_float_pref_width-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/abs_float_pref_width.html"
+        }
+      ]
+    }
   },
   "reftest_nodes": {},
   "rev": null,
