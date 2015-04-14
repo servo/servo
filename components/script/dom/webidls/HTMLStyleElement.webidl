@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://www.whatwg.org/html/#htmlstyleelement
+// https://www.whatwg.org/html/#htmlstyleelement
 interface HTMLStyleElement : HTMLElement {
   //         attribute DOMString media;
   //         attribute DOMString type;

@@ -69,16 +69,16 @@ fn collect_text(node: &JSRef<Node>, value: &mut DOMString) {
 }
 
 impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
-    // http://www.whatwg.org/html/#dom-option-disabled
+    // https://www.whatwg.org/html/#dom-option-disabled
     make_bool_getter!(Disabled);
 
-    // http://www.whatwg.org/html/#dom-option-disabled
+    // https://www.whatwg.org/html/#dom-option-disabled
     fn SetDisabled(self, disabled: bool) {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
         elem.set_bool_attribute(&atom!("disabled"), disabled)
     }
 
-    // http://www.whatwg.org/html/#dom-option-text
+    // https://www.whatwg.org/html/#dom-option-text
     fn Text(self) -> DOMString {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let mut content = String::new();
@@ -87,7 +87,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
         v.connect(" ")
     }
 
-    // http://www.whatwg.org/html/#dom-option-text
+    // https://www.whatwg.org/html/#dom-option-text
     fn SetText(self, value: DOMString) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))

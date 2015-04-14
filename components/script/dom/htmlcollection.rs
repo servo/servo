@@ -175,7 +175,7 @@ impl HTMLCollection {
 }
 
 impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
-    // http://dom.spec.whatwg.org/#dom-htmlcollection-length
+    // https://dom.spec.whatwg.org/#dom-htmlcollection-length
     fn Length(self) -> u32 {
         match self.collection {
             CollectionTypeId::Static(ref elems) => elems.len() as u32,
@@ -188,7 +188,7 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-htmlcollection-item
+    // https://dom.spec.whatwg.org/#dom-htmlcollection-item
     fn Item(self, index: u32) -> Option<Temporary<Element>> {
         let index = index as usize;
         match self.collection {
@@ -205,7 +205,7 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
+    // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
     fn NamedItem(self, key: DOMString) -> Option<Temporary<Element>> {
         // Step 1.
         if key.is_empty() {

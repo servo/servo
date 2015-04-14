@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! An implementation of the [CORS preflight cache](http://fetch.spec.whatwg.org/#cors-preflight-cache)
+//! An implementation of the [CORS preflight cache](https://fetch.spec.whatwg.org/#cors-preflight-cache)
 //! For now this library is XHR-specific.
 //! For stuff involving `<img>`, `<iframe>`, `<form>`, etc please check what
 //! the request mode should be and compare with the fetch spec
@@ -74,24 +74,24 @@ pub struct CacheRequestDetails {
 
 /// Trait for a generic CORS Cache
 pub trait CORSCache {
-    /// [Clear the cache](http://fetch.spec.whatwg.org/#concept-cache-clear)
+    /// [Clear the cache](https://fetch.spec.whatwg.org/#concept-cache-clear)
     fn clear (&mut self, request: CacheRequestDetails);
 
     /// Remove old entries
     fn cleanup(&mut self);
 
-    /// Returns true if an entry with a [matching header](http://fetch.spec.whatwg.org/#concept-cache-match-header) is found
+    /// Returns true if an entry with a [matching header](https://fetch.spec.whatwg.org/#concept-cache-match-header) is found
     fn match_header(&mut self, request: CacheRequestDetails, header_name: &str) -> bool;
 
-    /// Updates max age if an entry for a [matching header](http://fetch.spec.whatwg.org/#concept-cache-match-header) is found.
+    /// Updates max age if an entry for a [matching header](https://fetch.spec.whatwg.org/#concept-cache-match-header) is found.
     ///
     /// If not, it will insert an equivalent entry
     fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: u32) -> bool;
 
-    /// Returns true if an entry with a [matching method](http://fetch.spec.whatwg.org/#concept-cache-match-method) is found
+    /// Returns true if an entry with a [matching method](https://fetch.spec.whatwg.org/#concept-cache-match-method) is found
     fn match_method(&mut self, request: CacheRequestDetails, method: Method) -> bool;
 
-    /// Updates max age if an entry for [a matching method](http://fetch.spec.whatwg.org/#concept-cache-match-method) is found.
+    /// Updates max age if an entry for [a matching method](https://fetch.spec.whatwg.org/#concept-cache-match-method) is found.
     ///
     /// If not, it will insert an equivalent entry
     fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: u32) -> bool;
@@ -132,7 +132,7 @@ impl BasicCORSCache {
 }
 
 impl CORSCache for BasicCORSCache {
-    /// http://fetch.spec.whatwg.org/#concept-cache-clear
+    /// https://fetch.spec.whatwg.org/#concept-cache-clear
     #[allow(dead_code)]
     fn clear (&mut self, request: CacheRequestDetails) {
         let BasicCORSCache(buf) = self.clone();

@@ -47,7 +47,7 @@ pub mod resource_task;
 pub mod storage_task;
 pub mod mime_classifier;
 
-/// An implementation of the [Fetch spec](http://fetch.spec.whatwg.org/)
+/// An implementation of the [Fetch spec](https://fetch.spec.whatwg.org/)
 pub mod fetch {
     #![allow(dead_code, unused)] // XXXManishearth this is only temporary until the Fetch mod starts being used
     pub mod request;

@@ -116,10 +116,10 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-cols
     make_uint_setter!(SetCols, "cols");
 
-    // http://www.whatwg.org/html/#dom-fe-disabled
+    // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_getter!(Disabled);
 
-    // http://www.whatwg.org/html/#dom-fe-disabled
+    // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name

@@ -1036,7 +1036,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         encoding.decode(response.as_slice(), DecoderTrap::Replace).unwrap().to_owned()
     }
     fn filter_response_headers(self) -> Headers {
-        // http://fetch.spec.whatwg.org/#concept-response-header-list
+        // https://fetch.spec.whatwg.org/#concept-response-header-list
         use std::fmt;
         use hyper::header::{Header, HeaderFormat};
         use hyper::header::SetCookie;
@@ -1072,7 +1072,7 @@ trait Extractable {
 }
 impl Extractable for SendParam {
     fn extract(&self) -> Vec<u8> {
-        // http://fetch.spec.whatwg.org/#concept-fetchbodyinit-extract
+        // https://fetch.spec.whatwg.org/#concept-fetchbodyinit-extract
         let encoding = UTF_8 as EncodingRef;
         match *self {
             eString(ref s) => encoding.encode(s.as_slice(), EncoderTrap::Replace).unwrap(),

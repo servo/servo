@@ -250,7 +250,7 @@ reason: \"certificate verify failed\" }]";
         if response.status.class() == StatusClass::Redirection {
             match response.headers.get::<Location>() {
                 Some(&Location(ref new_url)) => {
-                    // CORS (http://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
+                    // CORS (https://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
                     match load_data.cors {
                         Some(ref c) => {
                             if c.preflight {

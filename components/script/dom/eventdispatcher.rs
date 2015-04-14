@@ -12,7 +12,7 @@ use dom::event::{Event, EventPhase};
 use dom::node::{Node, NodeHelpers};
 use dom::virtualmethods::vtable_for;
 
-// See http://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
+// See https://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
 pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
                               pseudo_target: Option<JSRef<'b, EventTarget>>,
                               event: JSRef<Event>) -> bool {

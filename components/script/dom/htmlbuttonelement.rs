@@ -72,10 +72,10 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         ValidityState::new(window.r())
     }
 
-    // http://www.whatwg.org/html/#dom-fe-disabled
+    // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_getter!(Disabled);
 
-    // http://www.whatwg.org/html/#dom-fe-disabled
+    // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-button-type

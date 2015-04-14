@@ -25,6 +25,7 @@ use util::str::DOMString;
 
 use std::borrow::ToOwned;
 
+// https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]
 pub struct DOMImplementation {
     reflector_: Reflector,
@@ -47,9 +48,9 @@ impl DOMImplementation {
     }
 }
 
-// http://dom.spec.whatwg.org/#domimplementation
+// https://dom.spec.whatwg.org/#domimplementation
 impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
-    // http://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
+    // https://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
     fn CreateDocumentType(self, qualified_name: DOMString, pubid: DOMString, sysid: DOMString)
                           -> Fallible<Temporary<DocumentType>> {
         try!(validate_qualified_name(&qualified_name));
@@ -57,7 +58,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         Ok(DocumentType::new(qualified_name, Some(pubid), Some(sysid), document.r()))
     }
 
-    // http://dom.spec.whatwg.org/#dom-domimplementation-createdocument
+    // https://dom.spec.whatwg.org/#dom-domimplementation-createdocument
     fn CreateDocument(self, namespace: Option<DOMString>, qname: DOMString,
                       maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Temporary<Document>> {
         let doc = self.document.root();
@@ -104,7 +105,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         Ok(Temporary::from_rooted(doc.r()))
     }
 
-    // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
+    // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
     fn CreateHTMLDocument(self, title: Option<DOMString>) -> Temporary<Document> {
         let document = self.document.root();
         let win = document.r().window().root();

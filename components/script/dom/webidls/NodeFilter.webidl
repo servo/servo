@@ -4,7 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://dom.spec.whatwg.org/#interface-nodefilter
+ * https://dom.spec.whatwg.org/#interface-nodefilter
  */
 // Import from http://hg.mozilla.org/mozilla-central/file/a5a720259d79/dom/webidl/NodeFilter.webidl
 

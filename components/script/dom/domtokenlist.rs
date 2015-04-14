@@ -62,9 +62,9 @@ impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
     }
 }
 
-// http://dom.spec.whatwg.org/#domtokenlist
+// https://dom.spec.whatwg.org/#domtokenlist
 impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
-    // http://dom.spec.whatwg.org/#dom-domtokenlist-length
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-length
     fn Length(self) -> u32 {
         self.attribute().root().map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
@@ -74,7 +74,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
         }).unwrap_or(0) as u32
     }
 
-    // http://dom.spec.whatwg.org/#dom-domtokenlist-item
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-item
     fn Item(self, index: u32) -> Option<DOMString> {
         self.attribute().root().and_then(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
@@ -92,7 +92,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
         item
     }
 
-    // http://dom.spec.whatwg.org/#dom-domtokenlist-contains
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-contains
     fn Contains(self, token: DOMString) -> Fallible<bool> {
         self.check_token_exceptions(&token).map(|token| {
             self.attribute().root().map(|attr| {
