@@ -96,7 +96,7 @@ pub enum TracingMetadata {
 pub struct TimelineMarker {
     pub name: String,
     pub metadata: TracingMetadata,
-    pub time: u64,
+    pub time: time::PreciseTime,
     pub stack: Option<Vec<()>>,
 }
 
@@ -159,7 +159,7 @@ impl TimelineMarker {
         TimelineMarker {
             name: name,
             metadata: metadata,
-            time: time::precise_time_ns(),
+            time: time::PreciseTime::now(),
             stack: None,
         }
     }
