@@ -10,13 +10,13 @@ In particular, this folder contains:
 * `include.ini`: the subset of web-platform-tests we currently run.
 * `config_css.ini`: some configuration for the CSSWG tests.
 * `include_css.ini`: the subset of the CSSWG tests we currently run.
-* `run_wpt.py` glue code to run the web-platform-tests in Servo.
-* `run_css.py` glue code to run the CSSWG tests in Servo.
-* `run.py` common code used by `run_wpt.py` and `run_css.py`.
+* `run_wpt.py`: glue code to run the web-platform-tests in Servo.
+* `run_css.py`: glue code to run the CSSWG tests in Servo.
+* `run.py`: common code used by `run_wpt.py` and `run_css.py`.
 * `web-platform-tests`: copy of the web-platform-tests.
 * `metadata`: expected failures for the web-platform-tests we run.
-* `css-tests` copy of the built CSSWG tests.
-* `metadata-css` expected failures for the CSSWG tests we run.
+* `css-tests`: copy of the built CSSWG tests.
+* `metadata-css`: expected failures for the CSSWG tests we run.
 
 Running the tests
 =================
