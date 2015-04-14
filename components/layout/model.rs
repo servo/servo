@@ -80,6 +80,17 @@ impl CollapsibleMargins {
     pub fn new() -> CollapsibleMargins {
         CollapsibleMargins::None(Au(0), Au(0))
     }
+
+    /// Returns the amount of margin that should be applied in a noncollapsible context. This is
+    /// currently used to apply block-start margin for hypothetical boxes, since we do not collapse
+    /// margins of hypothetical boxes.
+    pub fn block_start_margin_for_noncollapsible_context(&self) -> Au {
+        match *self {
+            CollapsibleMargins::None(block_start, _) => block_start,
+            CollapsibleMargins::Collapse(ref block_start, _) |
+            CollapsibleMargins::CollapseThrough(ref block_start) => block_start.collapse(),
+        }
+    }
 }
 
 enum FinalMarginState {

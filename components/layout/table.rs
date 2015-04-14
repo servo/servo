@@ -11,7 +11,7 @@ use block::{ISizeConstraintInput, ISizeConstraintSolution};
 use context::LayoutContext;
 use floats::FloatKind;
 use flow::{self, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
-use flow::{ImmutableFlowUtils, MutableFlowUtils};
+use flow::{ImmutableFlowUtils};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
@@ -476,9 +476,6 @@ impl TableLikeFlow for BlockFlow {
                 let kid_base = flow::mut_base(kid);
                 current_block_offset = current_block_offset + kid_base.position.size.block;
             }
-
-            // Collect various offsets needed by absolutely positioned descendants.
-            (&mut *self as &mut Flow).collect_static_block_offsets_from_children();
 
             // Compute any explicitly-specified block size.
             // Can't use `for` because we assign to `candidate_block_size_iterator.candidate_value`.

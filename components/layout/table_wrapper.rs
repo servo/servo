@@ -211,12 +211,14 @@ impl TableWrapperFlow {
             let solution = FloatNonReplaced.solve_inline_size_constraints(&mut self.block_flow,
                                                                           &input);
             FloatNonReplaced.set_inline_size_constraint_solutions(&mut self.block_flow, solution);
-            FloatNonReplaced.set_flow_x_coord_if_necessary(&mut self.block_flow, solution);
+            FloatNonReplaced.set_inline_position_of_flow_if_necessary(&mut self.block_flow,
+                                                                      solution);
         } else {
             let solution = BlockNonReplaced.solve_inline_size_constraints(&mut self.block_flow,
                                                                           &input);
             BlockNonReplaced.set_inline_size_constraint_solutions(&mut self.block_flow, solution);
-            BlockNonReplaced.set_flow_x_coord_if_necessary(&mut self.block_flow, solution);
+            BlockNonReplaced.set_inline_position_of_flow_if_necessary(&mut self.block_flow,
+                                                                      solution);
         }
     }
 }

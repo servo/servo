@@ -8,8 +8,7 @@ use css::node_style::StyledNode;
 use context::LayoutContext;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
 use floats::{FloatKind, Floats, PlacementInfo};
-use flow::{self, BaseFlow, FlowClass, Flow, MutableFlowUtils, ForceNonfloatedFlag};
-use flow::{IS_ABSOLUTELY_POSITIONED};
+use flow::{self, BaseFlow, FlowClass, Flow, ForceNonfloatedFlag, IS_ABSOLUTELY_POSITIONED};
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
 use layout_debug;
@@ -1183,10 +1182,6 @@ impl Flow for InlineFlow {
     /// Calculate and set the block-size of this flow. See CSS 2.1 § 10.6.1.
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("inline::assign_block_size {:x}", self.base.debug_id());
-
-        // Collect various offsets needed by absolutely positioned inline-block or hypothetical
-        // absolute descendants.
-        (&mut *self as &mut Flow).collect_static_block_offsets_from_children();
 
         // Divide the fragments into lines.
         //

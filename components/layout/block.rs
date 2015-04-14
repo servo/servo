@@ -34,8 +34,8 @@ use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, AbsolutePositionInfo, BaseFlow, ForceNonfloatedFlag, FlowClass, Flow};
 use flow::{ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
 use flow::{PostorderFlowTraversal, mut_base};
-use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
-use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
+use flow::{BLOCK_POSITION_IS_STATIC, HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
+use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, INLINE_POSITION_IS_STATIC};
 use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{CLEARS_LEFT, CLEARS_RIGHT};
@@ -90,7 +90,6 @@ impl FloatedBlockInfo {
 #[derive(Copy)]
 struct BSizeConstraintSolution {
     block_start: Au,
-    _block_end: Au,
     block_size: Au,
     margin_block_start: Au,
     margin_block_end: Au
@@ -98,14 +97,12 @@ struct BSizeConstraintSolution {
 
 impl BSizeConstraintSolution {
     fn new(block_start: Au,
-           block_end: Au,
            block_size: Au,
            margin_block_start: Au,
            margin_block_end: Au)
            -> BSizeConstraintSolution {
         BSizeConstraintSolution {
             block_start: block_start,
-            _block_end: block_end,
             block_size: block_size,
             margin_block_start: margin_block_start,
             margin_block_end: margin_block_end,
@@ -127,30 +124,18 @@ impl BSizeConstraintSolution {
                                                   block_start: MaybeAuto,
                                                   block_end: MaybeAuto,
                                                   content_block_size: Au,
-                                                  available_block_size: Au,
-                                                  static_b_offset: Au)
+                                                  available_block_size: Au)
                                                   -> BSizeConstraintSolution {
-        // Distance from the block-start edge of the Absolute Containing Block to the
-        // block-start margin edge of a hypothetical box that would have been the
-        // first box of the element.
-        let static_position_block_start = static_b_offset;
-
-        let (block_start, block_end, block_size, margin_block_start, margin_block_end) =
+        let (block_start, block_size, margin_block_start, margin_block_end) =
             match (block_start, block_end, block_size) {
                 (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Auto) => {
                     let margin_block_start = block_start_margin.specified_or_zero();
                     let margin_block_end = block_end_margin.specified_or_zero();
-                    let block_start = static_position_block_start;
                     // Now it is the same situation as block-start Specified and block-end
                     // and block-size Auto.
-
                     let block_size = content_block_size;
-                    let sum = block_start + block_size + margin_block_start + margin_block_end;
-                    (block_start,
-                     available_block_size - sum,
-                     block_size,
-                     margin_block_start,
-                     margin_block_end)
+                    // Use a dummy value for `block_start`, since it has the static position.
+                    (Au(0), block_size, margin_block_start, margin_block_end)
                 }
                 (MaybeAuto::Specified(block_start),
                  MaybeAuto::Specified(block_end),
@@ -159,36 +144,26 @@ impl BSizeConstraintSolution {
                         (MaybeAuto::Auto, MaybeAuto::Auto) => {
                             let total_margin_val =
                                 available_block_size - block_start - block_end - block_size;
-                            (block_start, block_end, block_size,
+                            (block_start,
+                             block_size,
                              total_margin_val.scale_by(0.5),
                              total_margin_val.scale_by(0.5))
                         }
                         (MaybeAuto::Specified(margin_block_start), MaybeAuto::Auto) => {
                             let sum = block_start + block_end + block_size + margin_block_start;
                             (block_start,
-                             block_end,
                              block_size,
                              margin_block_start,
                              available_block_size - sum)
                         }
                         (MaybeAuto::Auto, MaybeAuto::Specified(margin_block_end)) => {
                             let sum = block_start + block_end + block_size + margin_block_end;
-                            (block_start,
-                             block_end,
-                             block_size,
-                             available_block_size - sum,
-                             margin_block_end)
+                            (block_start, block_size, available_block_size - sum, margin_block_end)
                         }
                         (MaybeAuto::Specified(margin_block_start),
                          MaybeAuto::Specified(margin_block_end)) => {
                             // Values are over-constrained. Ignore value for 'block-end'.
-                            let sum = block_start + block_size + margin_block_start +
-                                margin_block_end;
-                            (block_start,
-                             available_block_size - sum,
-                             block_size,
-                             margin_block_start,
-                             margin_block_end)
+                            (block_start, block_size, margin_block_start, margin_block_end)
                         }
                     }
                 }
@@ -202,23 +177,14 @@ impl BSizeConstraintSolution {
                     let margin_block_start = block_start_margin.specified_or_zero();
                     let margin_block_end = block_end_margin.specified_or_zero();
                     let sum = block_end + block_size + margin_block_start + margin_block_end;
-                    (available_block_size - sum,
-                     block_end,
-                     block_size,
-                     margin_block_start,
-                     margin_block_end)
+                    (available_block_size - sum, block_size, margin_block_start, margin_block_end)
                 }
                 (MaybeAuto::Specified(block_start),
                  MaybeAuto::Auto,
                  MaybeAuto::Specified(block_size)) => {
                     let margin_block_start = block_start_margin.specified_or_zero();
                     let margin_block_end = block_end_margin.specified_or_zero();
-                    let sum = block_start + block_size + margin_block_start + margin_block_end;
-                    (block_start,
-                     available_block_size - sum,
-                     block_size,
-                     margin_block_start,
-                     margin_block_end)
+                    (block_start, block_size, margin_block_start, margin_block_end)
                 }
                 (MaybeAuto::Specified(block_start),
                  MaybeAuto::Specified(block_end),
@@ -226,11 +192,7 @@ impl BSizeConstraintSolution {
                     let margin_block_start = block_start_margin.specified_or_zero();
                     let margin_block_end = block_end_margin.specified_or_zero();
                     let sum = block_start + block_end + margin_block_start + margin_block_end;
-                    (block_start,
-                     block_end,
-                     available_block_size - sum,
-                     margin_block_start,
-                     margin_block_end)
+                    (block_start, available_block_size - sum, margin_block_start, margin_block_end)
                 }
 
                 // If block-size is auto, then block-size is content block-size. Solve for the
@@ -239,43 +201,25 @@ impl BSizeConstraintSolution {
                     let margin_block_start = block_start_margin.specified_or_zero();
                     let margin_block_end = block_end_margin.specified_or_zero();
                     let block_size = content_block_size;
-                    let sum = block_start + block_size + margin_block_start + margin_block_end;
-                    (block_start,
-                     available_block_size - sum,
-                     block_size,
-                     margin_block_start,
-                     margin_block_end)
+                    (block_start, block_size, margin_block_start, margin_block_end)
                 }
                 (MaybeAuto::Auto, MaybeAuto::Specified(block_end), MaybeAuto::Auto) => {
                     let margin_block_start = block_start_margin.specified_or_zero();
                     let margin_block_end = block_end_margin.specified_or_zero();
                     let block_size = content_block_size;
                     let sum = block_end + block_size + margin_block_start + margin_block_end;
-                    (available_block_size - sum,
-                     block_end,
-                     block_size,
-                     margin_block_start,
-                     margin_block_end)
+                    (available_block_size - sum, block_size, margin_block_start, margin_block_end)
                 }
 
                 (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Specified(block_size)) => {
                     let margin_block_start = block_start_margin.specified_or_zero();
                     let margin_block_end = block_end_margin.specified_or_zero();
-                    let block_start = static_position_block_start;
-                    let sum = block_start + block_size + margin_block_start + margin_block_end;
-                    (block_start,
-                     available_block_size - sum,
-                     block_size,
-                     margin_block_start,
-                     margin_block_end)
+                    // Use a dummy value for `block_start`, since it has the static position.
+                    (Au(0), block_size, margin_block_start, margin_block_end)
                 }
             };
 
-        BSizeConstraintSolution::new(block_start,
-                                     block_end,
-                                     block_size,
-                                     margin_block_start,
-                                     margin_block_end)
+        BSizeConstraintSolution::new(block_start, block_size, margin_block_start, margin_block_end)
     }
 
     /// Solve the vertical constraint equation for absolute replaced elements.
@@ -286,7 +230,7 @@ impl BSizeConstraintSolution {
     /// Constraint equation:
     /// block-start + block-end + block-size + margin-block-start + margin-block-end
     /// = absolute containing block block-size - (vertical padding and border)
-    /// [aka available_block-size]
+    /// [aka available block-size]
     ///
     /// Return the solution for the equation.
     fn solve_vertical_constraints_abs_replaced(block_size: Au,
@@ -295,61 +239,59 @@ impl BSizeConstraintSolution {
                                                block_start: MaybeAuto,
                                                block_end: MaybeAuto,
                                                _: Au,
-                                               available_block_size: Au,
-                                               static_b_offset: Au)
+                                               available_block_size: Au)
                                                -> BSizeConstraintSolution {
-        // Distance from the block-start edge of the Absolute Containing Block to the
-        // block-start margin edge of a hypothetical box that would have been the
-        // first box of the element.
-        let static_position_block_start = static_b_offset;
-
-        let (block_start, block_end, block_size, margin_block_start, margin_block_end) = match (block_start, block_end) {
-            (MaybeAuto::Auto, MaybeAuto::Auto) => {
-                let margin_block_start = block_start_margin.specified_or_zero();
-                let margin_block_end = block_end_margin.specified_or_zero();
-                let block_start = static_position_block_start;
-                let sum = block_start + block_size + margin_block_start + margin_block_end;
-                (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
-            }
-            (MaybeAuto::Specified(block_start), MaybeAuto::Specified(block_end)) => {
-                match (block_start_margin, block_end_margin) {
-                    (MaybeAuto::Auto, MaybeAuto::Auto) => {
-                        let total_margin_val = available_block_size - block_start - block_end - block_size;
-                        (block_start, block_end, block_size,
-                         total_margin_val.scale_by(0.5),
-                         total_margin_val.scale_by(0.5))
-                    }
-                    (MaybeAuto::Specified(margin_block_start), MaybeAuto::Auto) => {
-                        let sum = block_start + block_end + block_size + margin_block_start;
-                        (block_start, block_end, block_size, margin_block_start, available_block_size - sum)
-                    }
-                    (MaybeAuto::Auto, MaybeAuto::Specified(margin_block_end)) => {
-                        let sum = block_start + block_end + block_size + margin_block_end;
-                        (block_start, block_end, block_size, available_block_size - sum, margin_block_end)
-                    }
-                    (MaybeAuto::Specified(margin_block_start), MaybeAuto::Specified(margin_block_end)) => {
-                        // Values are over-constrained. Ignore value for 'block-end'.
-                        let sum = block_start + block_size + margin_block_start + margin_block_end;
-                        (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
+        let (block_start, block_size, margin_block_start, margin_block_end) =
+            match (block_start, block_end) {
+                (MaybeAuto::Auto, MaybeAuto::Auto) => {
+                    let margin_block_start = block_start_margin.specified_or_zero();
+                    let margin_block_end = block_end_margin.specified_or_zero();
+                    // Use a dummy value for `block_start`, since it has the static position.
+                    (Au(0), block_size, margin_block_start, margin_block_end)
+                }
+                (MaybeAuto::Specified(block_start), MaybeAuto::Specified(block_end)) => {
+                    match (block_start_margin, block_end_margin) {
+                        (MaybeAuto::Auto, MaybeAuto::Auto) => {
+                            let total_margin_val = available_block_size - block_start - block_end -
+                                block_size;
+                            (block_start,
+                             block_size,
+                             total_margin_val.scale_by(0.5),
+                             total_margin_val.scale_by(0.5))
+                        }
+                        (MaybeAuto::Specified(margin_block_start), MaybeAuto::Auto) => {
+                            let sum = block_start + block_end + block_size + margin_block_start;
+                            (block_start,
+                             block_size,
+                             margin_block_start,
+                             available_block_size - sum)
+                        }
+                        (MaybeAuto::Auto, MaybeAuto::Specified(margin_block_end)) => {
+                            let sum = block_start + block_end + block_size + margin_block_end;
+                            (block_start, block_size, available_block_size - sum, margin_block_end)
+                        }
+                        (MaybeAuto::Specified(margin_block_start),
+                         MaybeAuto::Specified(margin_block_end)) => {
+                            // Values are over-constrained. Ignore value for 'block-end'.
+                            (block_start, block_size, margin_block_start, margin_block_end)
+                        }
                     }
                 }
-            }
 
-            // If only one is Auto, solve for it
-            (MaybeAuto::Auto, MaybeAuto::Specified(block_end)) => {
-                let margin_block_start = block_start_margin.specified_or_zero();
-                let margin_block_end = block_end_margin.specified_or_zero();
-                let sum = block_end + block_size + margin_block_start + margin_block_end;
-                (available_block_size - sum, block_end, block_size, margin_block_start, margin_block_end)
-            }
-            (MaybeAuto::Specified(block_start), MaybeAuto::Auto) => {
-                let margin_block_start = block_start_margin.specified_or_zero();
-                let margin_block_end = block_end_margin.specified_or_zero();
-                let sum = block_start + block_size + margin_block_start + margin_block_end;
-                (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
-            }
-        };
-        BSizeConstraintSolution::new(block_start, block_end, block_size, margin_block_start, margin_block_end)
+                // If only one is Auto, solve for it
+                (MaybeAuto::Auto, MaybeAuto::Specified(block_end)) => {
+                    let margin_block_start = block_start_margin.specified_or_zero();
+                    let margin_block_end = block_end_margin.specified_or_zero();
+                    let sum = block_end + block_size + margin_block_start + margin_block_end;
+                    (available_block_size - sum, block_size, margin_block_start, margin_block_end)
+                }
+                (MaybeAuto::Specified(block_start), MaybeAuto::Auto) => {
+                    let margin_block_start = block_start_margin.specified_or_zero();
+                    let margin_block_end = block_end_margin.specified_or_zero();
+                    (block_start, block_size, margin_block_start, margin_block_end)
+                }
+            };
+        BSizeConstraintSolution::new(block_start, block_size, margin_block_start, margin_block_end)
     }
 }
 
@@ -590,9 +532,6 @@ pub struct BlockFlow {
     /// The associated fragment.
     pub fragment: Fragment,
 
-    /// Static y offset of an absolute flow from its CB.
-    pub static_b_offset: Au,
-
     /// The sum of the inline-sizes of all logically left floats that precede this block. This is
     /// used to speculatively lay out block formatting contexts.
     inline_size_of_preceding_left_floats: Au,
@@ -600,9 +539,6 @@ pub struct BlockFlow {
     /// The sum of the inline-sizes of all logically right floats that precede this block. This is
     /// used to speculatively lay out block formatting contexts.
     inline_size_of_preceding_right_floats: Au,
-
-    /// The hypothetical position, used for absolutely-positioned flows.
-    hypothetical_position: LogicalPoint<Au>,
 
     /// Additional floating flow members.
     pub float: Option<Box<FloatedBlockInfo>>,
@@ -628,12 +564,12 @@ impl BlockFlow {
     pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment) -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::ForceNonfloated),
+            base: BaseFlow::new(Some((*node).clone()),
+                                writing_mode,
+                                ForceNonfloatedFlag::ForceNonfloated),
             fragment: fragment,
-            static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
-            hypothetical_position: LogicalPoint::new(writing_mode, Au(0), Au(0)),
             float: None,
             flags: BlockFlowFlags::empty(),
         }
@@ -645,12 +581,12 @@ impl BlockFlow {
                                         -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::FloatIfNecessary),
+            base: BaseFlow::new(Some((*node).clone()),
+                                writing_mode,
+                                ForceNonfloatedFlag::FloatIfNecessary),
             fragment: fragment,
-            static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
-            hypothetical_position: LogicalPoint::new(writing_mode, Au(0), Au(0)),
             float: Some(box FloatedBlockInfo::new(float_kind)),
             flags: BlockFlowFlags::empty(),
         }
@@ -684,33 +620,45 @@ impl BlockFlow {
 
     /// Compute the actual inline size and position for this block.
     pub fn compute_used_inline_size(&mut self,
-                                    ctx: &LayoutContext,
+                                    layout_context: &LayoutContext,
                                     containing_block_inline_size: Au) {
         let block_type = self.block_type();
         match block_type {
             BlockType::AbsoluteReplaced => {
                 let inline_size_computer = AbsoluteReplaced;
-                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
+                inline_size_computer.compute_used_inline_size(self,
+                                                              layout_context,
+                                                              containing_block_inline_size);
             }
             BlockType::AbsoluteNonReplaced => {
                 let inline_size_computer = AbsoluteNonReplaced;
-                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
+                inline_size_computer.compute_used_inline_size(self,
+                                                              layout_context,
+                                                              containing_block_inline_size);
             }
             BlockType::FloatReplaced => {
                 let inline_size_computer = FloatReplaced;
-                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
+                inline_size_computer.compute_used_inline_size(self,
+                                                              layout_context,
+                                                              containing_block_inline_size);
             }
             BlockType::FloatNonReplaced => {
                 let inline_size_computer = FloatNonReplaced;
-                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
+                inline_size_computer.compute_used_inline_size(self,
+                                                              layout_context,
+                                                              containing_block_inline_size);
             }
             BlockType::Replaced => {
                 let inline_size_computer = BlockReplaced;
-                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
+                inline_size_computer.compute_used_inline_size(self,
+                                                              layout_context,
+                                                              containing_block_inline_size);
             }
             BlockType::NonReplaced => {
                 let inline_size_computer = BlockNonReplaced;
-                inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
+                inline_size_computer.compute_used_inline_size(self,
+                                                              layout_context,
+                                                              containing_block_inline_size);
             }
         }
     }
@@ -718,15 +666,6 @@ impl BlockFlow {
     /// Return this flow's fragment.
     pub fn fragment<'a>(&'a mut self) -> &'a mut Fragment {
         &mut self.fragment
-    }
-
-    /// Return the static x offset from the appropriate Containing Block for this flow.
-    pub fn static_i_offset(&self) -> Au {
-        if self.is_fixed() {
-            self.base.fixed_static_i_offset
-        } else {
-            self.base.absolute_static_i_offset
-        }
     }
 
     /// Return the size of the Containing Block for this flow.
@@ -750,33 +689,25 @@ impl BlockFlow {
     ///
     /// Traverse all your direct absolute descendants, who will then traverse
     /// their direct absolute descendants.
-    /// Also, set the static y offsets for each descendant (using the value
-    /// which was bubbled up during normal assign-block-size).
     ///
     /// Return true if the traversal is to continue or false to stop.
-    fn traverse_preorder_absolute_flows<T:PreorderFlowTraversal>(&mut self,
-                                                                 traversal: &mut T) {
+    fn traverse_preorder_absolute_flows<T>(&mut self, traversal: &mut T)
+                                           where T: PreorderFlowTraversal {
         let flow = self as &mut Flow;
 
         traversal.process(flow);
 
-        let cb_block_start_edge_offset = flow.generated_containing_block_rect().start.b;
-        let descendant_offset_iter = mut_base(flow).abs_descendants.iter_with_offset();
-        // Pass in the respective static y offset for each descendant.
-        for (ref mut descendant_link, ref y_offset) in descendant_offset_iter {
-            let block = descendant_link.as_block();
-            // The stored y_offset is wrt to the flow box.
-            // Translate it to the CB (which is the padding box).
-            block.static_b_offset = **y_offset - cb_block_start_edge_offset;
-            block.traverse_preorder_absolute_flows(traversal);
+        let descendant_offset_iter = mut_base(flow).abs_descendants.iter();
+        for ref mut descendant_link in descendant_offset_iter {
+            descendant_link.as_block().traverse_preorder_absolute_flows(traversal)
         }
     }
 
     /// Traverse the Absolute flow tree in postorder.
     ///
     /// Return true if the traversal is to continue or false to stop.
-    fn traverse_postorder_absolute_flows<T:PostorderFlowTraversal>(&mut self,
-                                                                   traversal: &mut T) {
+    fn traverse_postorder_absolute_flows<T>(&mut self, traversal: &mut T)
+                                            where T: PostorderFlowTraversal {
         let flow = self as &mut Flow;
 
         for descendant_link in mut_base(flow).abs_descendants.iter() {
@@ -898,7 +829,11 @@ impl BlockFlow {
                 if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                     // Assume that the *hypothetical box* for an absolute flow starts immediately
                     // after the block-end border edge of the previous flow.
-                    kid.as_block().hypothetical_position.b = cur_b;
+                    if flow::base(kid).flags.contains(BLOCK_POSITION_IS_STATIC) {
+                        flow::mut_base(kid).position.start.b = cur_b +
+                            flow::base(kid).collapsible_margins
+                                           .block_start_margin_for_noncollapsible_context()
+                    }
                     kid.place_float_if_applicable(layout_context);
                     if !flow::base(kid).flags.is_float() {
                         kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
@@ -988,9 +923,6 @@ impl BlockFlow {
             // Mark ourselves for layerization if that will be necessary to paint in the proper
             // order (CSS 2.1, Appendix E).
             self.base.flags.set(LAYERS_NEEDED_FOR_DESCENDANTS, layers_needed_for_descendants);
-
-            // Collect various offsets needed by absolutely positioned descendants.
-            (&mut *self as &mut Flow).collect_static_block_offsets_from_children();
 
             // Add in our block-end margin and compute our collapsible margins.
             let can_collapse_block_end_margin_with_kids =
@@ -1149,15 +1081,13 @@ impl BlockFlow {
                                               Au(0),
                                               self.fragment.margin.block_start);
 
-        if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-            let mut origin = LogicalPoint::new(self.base.writing_mode,
-                                               self.hypothetical_position.i,
-                                               self.base.position.start.b);
-            origin = origin.add_point(&float_offset).add_point(&margin_offset);
-            self.base.position = LogicalRect::from_point_size(self.base.writing_mode,
-                                                              origin,
-                                                              self.base.position.size);
-        }
+        let mut origin = LogicalPoint::new(self.base.writing_mode,
+                                           self.base.position.start.i,
+                                           self.base.position.start.b);
+        origin = origin.add_point(&float_offset).add_point(&margin_offset);
+        self.base.position = LogicalRect::from_point_size(self.base.writing_mode,
+                                                          origin,
+                                                          self.base.position.size);
     }
 
 
@@ -1170,7 +1100,6 @@ impl BlockFlow {
     /// + block-size, vertical margins, and y-coordinate for the flow's box.
     fn calculate_absolute_block_size_and_margins(&mut self, ctx: &LayoutContext) {
         let containing_block_block_size = self.containing_block_size(ctx.shared.screen_size).block;
-        let static_b_offset = self.static_b_offset;
 
         // This is the stored content block-size value from assign-block-size
         let content_block_size = self.fragment.border_box.size.block;
@@ -1216,8 +1145,7 @@ impl BlockFlow {
                         block_start,
                         block_end,
                         content_block_size,
-                        available_block_size,
-                        static_b_offset));
+                        available_block_size))
             } else {
                 let mut candidate_block_size_iterator =
                     CandidateBSizeIterator::new(&self.fragment, Some(containing_block_block_size));
@@ -1235,8 +1163,7 @@ impl BlockFlow {
                                     block_start,
                                     block_end,
                                     content_block_size,
-                                    available_block_size,
-                                    static_b_offset));
+                                    available_block_size));
 
                             candidate_block_size_iterator.candidate_value
                                 = solution.unwrap().block_size;
@@ -1252,7 +1179,9 @@ impl BlockFlow {
         self.fragment.margin.block_end = solution.margin_block_end;
         self.fragment.border_box.start.b = Au(0);
 
-        self.base.position.start.b = solution.block_start + self.fragment.margin.block_start;
+        if !self.base.flags.contains(BLOCK_POSITION_IS_STATIC) {
+            self.base.position.start.b = solution.block_start + self.fragment.margin.block_start
+        }
 
         let block_size = solution.block_size + self.fragment.border_padding.block_start_end();
         self.fragment.border_box.size.block = block_size;
@@ -1270,17 +1199,6 @@ impl BlockFlow {
         if self.base.flags.is_float() {
             self.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size;
         }
-    }
-
-    /// Return the block-start outer edge of the hypothetical box for an absolute flow.
-    ///
-    /// This is wrt its parent flow box.
-    ///
-    /// During normal layout assign-block-size, the absolute flow's position is
-    /// roughly set to its static position (the position it would have had in
-    /// the normal flow).
-    pub fn get_hypothetical_block_start_edge(&self) -> Au {
-        self.hypothetical_position.b
     }
 
     /// Assigns the computed inline-start content edge and inline-size to all the children of this
@@ -1401,8 +1319,7 @@ impl BlockFlow {
             let kid_mode = flow::base(kid).writing_mode;
             {
                 let kid_base = flow::mut_base(kid);
-                if !kid_base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
-                        !kid_base.flags.is_float() {
+                if kid_base.flags.contains(INLINE_POSITION_IS_STATIC) {
                     kid_base.position.start.i =
                         if kid_mode.is_bidi_ltr() == containing_block_mode.is_bidi_ltr() {
                             inline_start_content_edge
@@ -1413,15 +1330,6 @@ impl BlockFlow {
                 }
                 kid_base.block_container_inline_size = content_inline_size;
                 kid_base.block_container_writing_mode = containing_block_mode;
-            }
-            if kid.is_block_like() {
-                kid.as_block().hypothetical_position.i =
-                    if kid_mode.is_bidi_ltr() == containing_block_mode.is_bidi_ltr() {
-                        inline_start_content_edge
-                    } else {
-                        // The kid's inline 'start' is at the parent's 'end'
-                        inline_end_content_edge
-                    }
             }
 
             {
@@ -1521,7 +1429,7 @@ impl BlockFlow {
 
         // Offset our position by whatever displacement is needed to not impact the floats.
         let rect = self.base.floats.place_between_floats(&info);
-        self.base.position.start.i = self.hypothetical_position.i + rect.start.i;
+        self.base.position.start.i = self.base.position.start.i + rect.start.i;
 
         // TODO(pcwalton): If the inline-size of this flow is different from the size we estimated
         // earlier, lay it out again.
@@ -1586,7 +1494,8 @@ impl Flow for BlockFlow {
         let mut left_float_width = Au(0);
         let mut right_float_width = Au(0);
         for kid in self.base.child_iter() {
-            let is_absolutely_positioned = flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
+            let is_absolutely_positioned =
+                flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
             let child_base = flow::mut_base(kid);
             let float_kind = child_base.flags.float_kind();
             if !is_absolutely_positioned && !fixed_width {
@@ -1791,7 +1700,7 @@ impl Flow for BlockFlow {
 
             // Compute our position relative to the nearest ancestor stacking context. This will be
             // passed down later as part of containing block details for absolute descendants.
-            self.base.stacking_relative_position = if self.is_fixed() {
+            let absolute_stacking_relative_position = if self.is_fixed() {
                 // The viewport is initially at (0, 0).
                 position_start
             } else {
@@ -1800,6 +1709,22 @@ impl Flow for BlockFlow {
                 self.base
                     .absolute_position_info
                     .stacking_relative_position_of_absolute_containing_block + position_start
+            };
+
+            if !self.base.writing_mode.is_vertical() {
+                if !self.base.flags.contains(INLINE_POSITION_IS_STATIC) {
+                    self.base.stacking_relative_position.x = absolute_stacking_relative_position.x
+                }
+                if !self.base.flags.contains(BLOCK_POSITION_IS_STATIC) {
+                    self.base.stacking_relative_position.y = absolute_stacking_relative_position.y
+                }
+            } else {
+                if !self.base.flags.contains(INLINE_POSITION_IS_STATIC) {
+                    self.base.stacking_relative_position.y = absolute_stacking_relative_position.y
+                }
+                if !self.base.flags.contains(BLOCK_POSITION_IS_STATIC) {
+                    self.base.stacking_relative_position.x = absolute_stacking_relative_position.x
+                }
             }
         }
 
@@ -1888,13 +1813,34 @@ impl Flow for BlockFlow {
 
         // Process children.
         for kid in self.base.child_iter() {
-            if !flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            if flow::base(kid).flags.contains(INLINE_POSITION_IS_STATIC) ||
+                    flow::base(kid).flags.contains(BLOCK_POSITION_IS_STATIC) {
                 let kid_base = flow::mut_base(kid);
                 // FIXME (mbrubeck): `position.size` is inflated by the inline margin size, making
                 // this incorrect for RTL blocks (see `set_inline_size_constraint_solutions`).
                 let physical_position = kid_base.position.to_physical(kid_base.writing_mode,
                                                                       container_size_for_children);
-                kid_base.stacking_relative_position = origin_for_children + physical_position.origin;
+
+                // Set the inline and block positions as necessary.
+                if !kid_base.writing_mode.is_vertical() {
+                    if kid_base.flags.contains(INLINE_POSITION_IS_STATIC) {
+                        kid_base.stacking_relative_position.x = origin_for_children.x +
+                            physical_position.origin.x
+                    }
+                    if kid_base.flags.contains(BLOCK_POSITION_IS_STATIC) {
+                        kid_base.stacking_relative_position.y = origin_for_children.y +
+                            physical_position.origin.y
+                    }
+                } else {
+                    if kid_base.flags.contains(INLINE_POSITION_IS_STATIC) {
+                        kid_base.stacking_relative_position.y = origin_for_children.y +
+                            physical_position.origin.y
+                    }
+                    if kid_base.flags.contains(BLOCK_POSITION_IS_STATIC) {
+                        kid_base.stacking_relative_position.x = origin_for_children.x +
+                            physical_position.origin.x
+                    }
+                }
             }
 
             flow::mut_base(kid).absolute_position_info = absolute_position_info_for_children;
@@ -2019,7 +1965,6 @@ pub struct ISizeConstraintInput {
     pub inline_start: MaybeAuto,
     pub inline_end: MaybeAuto,
     pub available_inline_size: Au,
-    pub static_i_offset: Au,
 }
 
 impl ISizeConstraintInput {
@@ -2028,8 +1973,7 @@ impl ISizeConstraintInput {
                inline_end_margin: MaybeAuto,
                inline_start: MaybeAuto,
                inline_end: MaybeAuto,
-               available_inline_size: Au,
-               static_i_offset: Au)
+               available_inline_size: Au)
            -> ISizeConstraintInput {
         ISizeConstraintInput {
             computed_inline_size: computed_inline_size,
@@ -2038,7 +1982,6 @@ impl ISizeConstraintInput {
             inline_start: inline_start,
             inline_end: inline_end,
             available_inline_size: available_inline_size,
-            static_i_offset: static_i_offset,
         }
     }
 }
@@ -2047,7 +1990,6 @@ impl ISizeConstraintInput {
 #[derive(Copy, Debug)]
 pub struct ISizeConstraintSolution {
     pub inline_start: Au,
-    pub inline_end: Au,
     pub inline_size: Au,
     pub margin_inline_start: Au,
     pub margin_inline_end: Au
@@ -2058,7 +2000,6 @@ impl ISizeConstraintSolution {
                -> ISizeConstraintSolution {
         ISizeConstraintSolution {
             inline_start: Au(0),
-            inline_end: Au(0),
             inline_size: inline_size,
             margin_inline_start: margin_inline_start,
             margin_inline_end: margin_inline_end,
@@ -2066,14 +2007,12 @@ impl ISizeConstraintSolution {
     }
 
     fn for_absolute_flow(inline_start: Au,
-                         inline_end: Au,
                          inline_size: Au,
                          margin_inline_start: Au,
                          margin_inline_end: Au)
                          -> ISizeConstraintSolution {
         ISizeConstraintSolution {
             inline_start: inline_start,
-            inline_end: inline_end,
             inline_size: inline_size,
             margin_inline_start: margin_inline_start,
             margin_inline_end: margin_inline_end,
@@ -2123,14 +2062,16 @@ pub trait ISizeAndMarginsComputer {
 
         let available_inline_size = containing_block_inline_size -
             block.fragment.border_padding.inline_start_end();
-        return ISizeConstraintInput::new(
-            computed_inline_size,
-            MaybeAuto::from_style(margin.inline_start, containing_block_inline_size),
-            MaybeAuto::from_style(margin.inline_end, containing_block_inline_size),
-            MaybeAuto::from_style(position.inline_start, containing_block_inline_size),
-            MaybeAuto::from_style(position.inline_end, containing_block_inline_size),
-            available_inline_size,
-            block.static_i_offset());
+        ISizeConstraintInput::new(computed_inline_size,
+                                  MaybeAuto::from_style(margin.inline_start,
+                                                        containing_block_inline_size),
+                                  MaybeAuto::from_style(margin.inline_end,
+                                                        containing_block_inline_size),
+                                  MaybeAuto::from_style(position.inline_start,
+                                                        containing_block_inline_size),
+                                  MaybeAuto::from_style(position.inline_end,
+                                                        containing_block_inline_size),
+                                  available_inline_size)
     }
 
     /// Set the used values for inline-size and margins from the relevant constraint equation.
@@ -2188,8 +2129,10 @@ pub trait ISizeAndMarginsComputer {
         flow::mut_base(block).position.size.inline = inline_size + extra_inline_size_from_margin;
     }
 
-    /// Set the x coordinate of the given flow if it is absolutely positioned.
-    fn set_flow_x_coord_if_necessary(&self, _: &mut BlockFlow, _: ISizeConstraintSolution) {}
+    /// Set the inline coordinate of the given flow if it is absolutely positioned.
+    fn set_inline_position_of_flow_if_necessary(&self,
+                                                _: &mut BlockFlow,
+                                                _: ISizeConstraintSolution) {}
 
     /// Solve the inline-size and margins constraints for this block flow.
     fn solve_inline_size_constraints(&self,
@@ -2255,7 +2198,7 @@ pub trait ISizeAndMarginsComputer {
         }
 
         self.set_inline_size_constraint_solutions(block, solution);
-        self.set_flow_x_coord_if_necessary(block, solution);
+        self.set_inline_position_of_flow_if_necessary(block, solution);
     }
 
     /// Computes inline-start and inline-end margins and inline-size.
@@ -2367,13 +2310,13 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
     /// Constraint equation:
     /// inline-start + inline-end + inline-size + margin-inline-start + margin-inline-end
     /// = absolute containing block inline-size - (horizontal padding and border)
-    /// [aka available_inline-size]
+    /// [aka available inline-size]
     ///
     /// Return the solution for the equation.
     fn solve_inline_size_constraints(&self,
-                               block: &mut BlockFlow,
-                               input: &ISizeConstraintInput)
-                               -> ISizeConstraintSolution {
+                                     block: &mut BlockFlow,
+                                     input: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution {
         let &ISizeConstraintInput {
             computed_inline_size,
             inline_start_margin,
@@ -2381,7 +2324,6 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
             inline_start,
             inline_end,
             available_inline_size,
-            static_i_offset,
             ..
         } = input;
 
@@ -2392,139 +2334,151 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
         // FIXME (mbrubeck): Handle vertical writing modes.
         let parent_has_same_direction = container_mode.is_bidi_ltr() == block_mode.is_bidi_ltr();
 
-        // Distance from the inline-start edge of the Absolute Containing Block to the
-        // inline-start margin edge of a hypothetical box that would have been the
-        // first box of the element.
-        let static_position_inline_start = static_i_offset;
+        let (inline_start, inline_size, margin_inline_start, margin_inline_end) =
+            match (inline_start, inline_end, computed_inline_size) {
+                (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Auto) => {
+                    let margin_start = inline_start_margin.specified_or_zero();
+                    let margin_end = inline_end_margin.specified_or_zero();
+                    // Now it is the same situation as inline-start Specified and inline-end
+                    // and inline-size Auto.
 
-        let (inline_start, inline_end, inline_size, margin_inline_start, margin_inline_end) = match (inline_start, inline_end, computed_inline_size) {
-            (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Auto) => {
-                let margin_start = inline_start_margin.specified_or_zero();
-                let margin_end = inline_end_margin.specified_or_zero();
-                let inline_start = static_position_inline_start;
-                // Now it is the same situation as inline-start Specified and inline-end
-                // and inline-size Auto.
-
-                // Set inline-end to zero to calculate inline-size
-                let inline_size = block.get_shrink_to_fit_inline_size(
-                    available_inline_size - (inline_start + margin_start + margin_end));
-                let sum = inline_start + inline_size + margin_start + margin_end;
-                (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
-            }
-            (MaybeAuto::Specified(inline_start), MaybeAuto::Specified(inline_end), MaybeAuto::Specified(inline_size)) => {
-                match (inline_start_margin, inline_end_margin) {
-                    (MaybeAuto::Auto, MaybeAuto::Auto) => {
-                        let total_margin_val = available_inline_size - inline_start - inline_end - inline_size;
-                        if total_margin_val < Au(0) {
-                            if parent_has_same_direction {
-                                // margin-inline-start becomes 0
-                                (inline_start, inline_end, inline_size, Au(0), total_margin_val)
+                    // Set inline-end to zero to calculate inline-size.
+                    let inline_size =
+                        block.get_shrink_to_fit_inline_size(available_inline_size -
+                                                            (margin_start + margin_end));
+                    (Au(0), inline_size, margin_start, margin_end)
+                }
+                (MaybeAuto::Specified(inline_start),
+                 MaybeAuto::Specified(inline_end),
+                 MaybeAuto::Specified(inline_size)) => {
+                    match (inline_start_margin, inline_end_margin) {
+                        (MaybeAuto::Auto, MaybeAuto::Auto) => {
+                            let total_margin_val =
+                                available_inline_size - inline_start - inline_end - inline_size;
+                            if total_margin_val < Au(0) {
+                                if parent_has_same_direction {
+                                    // margin-inline-start becomes 0
+                                    (inline_start, inline_size, Au(0), total_margin_val)
+                                } else {
+                                    // margin-inline-end becomes 0, because it's toward the parent's
+                                    // inline-start edge.
+                                    (inline_start, inline_size, total_margin_val, Au(0))
+                                }
                             } else {
-                                // margin-inline-end becomes 0, because it's toward the parent's
-                                // inline-start edge.
-                                (inline_start, inline_end, inline_size, total_margin_val, Au(0))
+                                // Equal margins
+                                (inline_start,
+                                 inline_size,
+                                 total_margin_val.scale_by(0.5),
+                                 total_margin_val.scale_by(0.5))
                             }
-                        } else {
-                            // Equal margins
-                            (inline_start, inline_end, inline_size,
-                             total_margin_val.scale_by(0.5),
-                             total_margin_val.scale_by(0.5))
                         }
-                    }
-                    (MaybeAuto::Specified(margin_start), MaybeAuto::Auto) => {
-                        let sum = inline_start + inline_end + inline_size + margin_start;
-                        (inline_start, inline_end, inline_size, margin_start, available_inline_size - sum)
-                    }
-                    (MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) => {
-                        let sum = inline_start + inline_end + inline_size + margin_end;
-                        (inline_start, inline_end, inline_size, available_inline_size - sum, margin_end)
-                    }
-                    (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(margin_end)) => {
-                        // Values are over-constrained.
-                        let sum = inline_start + inline_size + margin_start + margin_end;
-                        if parent_has_same_direction {
-                            // Ignore value for 'inline-end'
-                            (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
-                        } else {
-                            // Ignore value for 'inline-start'
-                            (available_inline_size - sum, inline_end, inline_size, margin_start, margin_end)
+                        (MaybeAuto::Specified(margin_start), MaybeAuto::Auto) => {
+                            let sum = inline_start + inline_end + inline_size + margin_start;
+                            (inline_start, inline_size, margin_start, available_inline_size - sum)
+                        }
+                        (MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) => {
+                            let sum = inline_start + inline_end + inline_size + margin_end;
+                            (inline_start, inline_size, available_inline_size - sum, margin_end)
+                        }
+                        (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(margin_end)) => {
+                            // Values are over-constrained.
+                            let sum = inline_start + inline_size + margin_start + margin_end;
+                            if parent_has_same_direction {
+                                // Ignore value for 'inline-end'
+                                (inline_start, inline_size, margin_start, margin_end)
+                            } else {
+                                // Ignore value for 'inline-start'
+                                (available_inline_size - sum,
+                                 inline_size,
+                                 margin_start,
+                                 margin_end)
+                            }
                         }
                     }
                 }
-            }
-            // For the rest of the cases, auto values for margin are set to 0
+                // For the rest of the cases, auto values for margin are set to 0
 
-            // If only one is Auto, solve for it
-            (MaybeAuto::Auto, MaybeAuto::Specified(inline_end), MaybeAuto::Specified(inline_size)) => {
-                let margin_start = inline_start_margin.specified_or_zero();
-                let margin_end = inline_end_margin.specified_or_zero();
-                let sum = inline_end + inline_size + margin_start + margin_end;
-                (available_inline_size - sum, inline_end, inline_size, margin_start, margin_end)
-            }
-            (MaybeAuto::Specified(inline_start), MaybeAuto::Auto, MaybeAuto::Specified(inline_size)) => {
-                let margin_start = inline_start_margin.specified_or_zero();
-                let margin_end = inline_end_margin.specified_or_zero();
-                let sum = inline_start + inline_size + margin_start + margin_end;
-                (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
-            }
-            (MaybeAuto::Specified(inline_start), MaybeAuto::Specified(inline_end), MaybeAuto::Auto) => {
-                let margin_start = inline_start_margin.specified_or_zero();
-                let margin_end = inline_end_margin.specified_or_zero();
-                let sum = inline_start + inline_end + margin_start + margin_end;
-                (inline_start, inline_end, available_inline_size - sum, margin_start, margin_end)
-            }
+                // If only one is Auto, solve for it
+                (MaybeAuto::Auto,
+                 MaybeAuto::Specified(inline_end),
+                 MaybeAuto::Specified(inline_size)) => {
+                    let margin_start = inline_start_margin.specified_or_zero();
+                    let margin_end = inline_end_margin.specified_or_zero();
+                    let sum = inline_end + inline_size + margin_start + margin_end;
+                    (available_inline_size - sum, inline_size, margin_start, margin_end)
+                }
+                (MaybeAuto::Specified(inline_start),
+                 MaybeAuto::Auto,
+                 MaybeAuto::Specified(inline_size)) => {
+                    let margin_start = inline_start_margin.specified_or_zero();
+                    let margin_end = inline_end_margin.specified_or_zero();
+                    (inline_start, inline_size, margin_start, margin_end)
+                }
+                (MaybeAuto::Specified(inline_start),
+                 MaybeAuto::Specified(inline_end),
+                 MaybeAuto::Auto) => {
+                    let margin_start = inline_start_margin.specified_or_zero();
+                    let margin_end = inline_end_margin.specified_or_zero();
+                    let sum = inline_start + inline_end + margin_start + margin_end;
+                    (inline_start, available_inline_size - sum, margin_start, margin_end)
+                }
 
-            // If inline-size is auto, then inline-size is shrink-to-fit. Solve for the
-            // non-auto value.
-            (MaybeAuto::Specified(inline_start), MaybeAuto::Auto, MaybeAuto::Auto) => {
-                let margin_start = inline_start_margin.specified_or_zero();
-                let margin_end = inline_end_margin.specified_or_zero();
-                // Set inline-end to zero to calculate inline-size
-                let inline_size = block.get_shrink_to_fit_inline_size(
-                    available_inline_size - (inline_start + margin_start + margin_end));
-                let sum = inline_start + inline_size + margin_start + margin_end;
-                (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
-            }
-            (MaybeAuto::Auto, MaybeAuto::Specified(inline_end), MaybeAuto::Auto) => {
-                let margin_start = inline_start_margin.specified_or_zero();
-                let margin_end = inline_end_margin.specified_or_zero();
-                // Set inline-start to zero to calculate inline-size
-                let inline_size = block.get_shrink_to_fit_inline_size(
-                    available_inline_size - (inline_end + margin_start + margin_end));
-                let sum = inline_end + inline_size + margin_start + margin_end;
-                (available_inline_size - sum, inline_end, inline_size, margin_start, margin_end)
-            }
+                // If inline-size is auto, then inline-size is shrink-to-fit. Solve for the
+                // non-auto value.
+                (MaybeAuto::Specified(inline_start), MaybeAuto::Auto, MaybeAuto::Auto) => {
+                    let margin_start = inline_start_margin.specified_or_zero();
+                    let margin_end = inline_end_margin.specified_or_zero();
+                    // Set inline-end to zero to calculate inline-size
+                    let inline_size =
+                        block.get_shrink_to_fit_inline_size(available_inline_size -
+                                                            (margin_start + margin_end));
+                    (inline_start, inline_size, margin_start, margin_end)
+                }
+                (MaybeAuto::Auto, MaybeAuto::Specified(inline_end), MaybeAuto::Auto) => {
+                    let margin_start = inline_start_margin.specified_or_zero();
+                    let margin_end = inline_end_margin.specified_or_zero();
+                    // Set inline-start to zero to calculate inline-size
+                    let inline_size =
+                        block.get_shrink_to_fit_inline_size(available_inline_size -
+                                                            (margin_start + margin_end));
+                    let sum = inline_end + inline_size + margin_start + margin_end;
+                    (available_inline_size - sum, inline_size, margin_start, margin_end)
+                }
 
-            (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Specified(inline_size)) => {
-                let margin_start = inline_start_margin.specified_or_zero();
-                let margin_end = inline_end_margin.specified_or_zero();
-                // Setting 'inline-start' to static position because direction is 'ltr'.
-                // TODO: Handle 'rtl' when it is implemented.
-                let inline_start = static_position_inline_start;
-                let sum = inline_start + inline_size + margin_start + margin_end;
-                (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
-            }
-        };
-        ISizeConstraintSolution::for_absolute_flow(inline_start, inline_end, inline_size, margin_inline_start, margin_inline_end)
+                (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Specified(inline_size)) => {
+                    let margin_start = inline_start_margin.specified_or_zero();
+                    let margin_end = inline_end_margin.specified_or_zero();
+                    // Setting 'inline-start' to static position because direction is 'ltr'.
+                    // TODO: Handle 'rtl' when it is implemented.
+                    (Au(0), inline_size, margin_start, margin_end)
+                }
+            };
+        ISizeConstraintSolution::for_absolute_flow(inline_start,
+                                                   inline_size,
+                                                   margin_inline_start,
+                                                   margin_inline_end)
     }
 
-    fn containing_block_inline_size(&self, block: &mut BlockFlow, _: Au, ctx: &LayoutContext) -> Au {
-        block.containing_block_size(ctx.shared.screen_size).inline
+    fn containing_block_inline_size(&self,
+                                    block: &mut BlockFlow,
+                                    _: Au,
+                                    layout_context: &LayoutContext)
+                                    -> Au {
+        block.containing_block_size(layout_context.shared.screen_size).inline
     }
 
-    fn set_flow_x_coord_if_necessary(&self,
-                                     block: &mut BlockFlow,
-                                     solution: ISizeConstraintSolution) {
-        // Set the x-coordinate of the absolute flow wrt to its containing block.
-        block.base.position.start.i = solution.inline_start;
+    fn set_inline_position_of_flow_if_necessary(&self,
+                                                block: &mut BlockFlow,
+                                                solution: ISizeConstraintSolution) {
+        // Set the inline position of the absolute flow wrt to its containing block.
+        if !block.base.flags.contains(INLINE_POSITION_IS_STATIC) {
+            block.base.position.start.i = solution.inline_start;
+        }
     }
 }
 
 impl ISizeAndMarginsComputer for AbsoluteReplaced {
     /// Solve the horizontal constraint equation for absolute replaced elements.
-    ///
-    /// `static_i_offset`: total offset of current flow's hypothetical
-    /// position (static position) from its actual Containing Block.
     ///
     /// CSS Section 10.3.8
     /// Constraint equation:
@@ -2534,7 +2488,7 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
     ///
     /// Return the solution for the equation.
     fn solve_inline_size_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
-                               -> ISizeConstraintSolution {
+                                     -> ISizeConstraintSolution {
         let &ISizeConstraintInput {
             computed_inline_size,
             inline_start_margin,
@@ -2542,7 +2496,6 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
             inline_start,
             inline_end,
             available_inline_size,
-            static_i_offset,
             ..
         } = input;
         // TODO: Check for direction of static-position Containing Block (aka
@@ -2558,64 +2511,61 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
                        "should have already been calculated by now.")
         };
 
-        // Distance from the inline-start edge of the Absolute Containing Block to the
-        // inline-start margin edge of a hypothetical box that would have been the
-        // first box of the element.
-        let static_position_inline_start = static_i_offset;
-
-        let (inline_start, inline_end, inline_size, margin_inline_start, margin_inline_end) = match (inline_start, inline_end) {
-            (MaybeAuto::Auto, MaybeAuto::Auto) => {
-                let inline_start = static_position_inline_start;
-                let margin_start = inline_start_margin.specified_or_zero();
-                let margin_end = inline_end_margin.specified_or_zero();
-                let sum = inline_start + inline_size + margin_start + margin_end;
-                (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
-            }
-            // If only one is Auto, solve for it
-            (MaybeAuto::Auto, MaybeAuto::Specified(inline_end)) => {
-                let margin_start = inline_start_margin.specified_or_zero();
-                let margin_end = inline_end_margin.specified_or_zero();
-                let sum = inline_end + inline_size + margin_start + margin_end;
-                (available_inline_size - sum, inline_end, inline_size, margin_start, margin_end)
-            }
-            (MaybeAuto::Specified(inline_start), MaybeAuto::Auto) => {
-                let margin_start = inline_start_margin.specified_or_zero();
-                let margin_end = inline_end_margin.specified_or_zero();
-                let sum = inline_start + inline_size + margin_start + margin_end;
-                (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
-            }
-            (MaybeAuto::Specified(inline_start), MaybeAuto::Specified(inline_end)) => {
-                match (inline_start_margin, inline_end_margin) {
-                    (MaybeAuto::Auto, MaybeAuto::Auto) => {
-                        let total_margin_val = available_inline_size - inline_start - inline_end - inline_size;
-                        if total_margin_val < Au(0) {
-                            // margin-inline-start becomes 0 because direction is 'ltr'.
-                            (inline_start, inline_end, inline_size, Au(0), total_margin_val)
-                        } else {
-                            // Equal margins
-                            (inline_start, inline_end, inline_size,
-                             total_margin_val.scale_by(0.5),
-                             total_margin_val.scale_by(0.5))
+        let (inline_start, inline_size, margin_inline_start, margin_inline_end) =
+            match (inline_start, inline_end) {
+                (MaybeAuto::Auto, MaybeAuto::Auto) => {
+                    let margin_start = inline_start_margin.specified_or_zero();
+                    let margin_end = inline_end_margin.specified_or_zero();
+                    (Au(0), inline_size, margin_start, margin_end)
+                }
+                // If only one is Auto, solve for it
+                (MaybeAuto::Auto, MaybeAuto::Specified(inline_end)) => {
+                    let margin_start = inline_start_margin.specified_or_zero();
+                    let margin_end = inline_end_margin.specified_or_zero();
+                    let sum = inline_end + inline_size + margin_start + margin_end;
+                    (available_inline_size - sum, inline_size, margin_start, margin_end)
+                }
+                (MaybeAuto::Specified(inline_start), MaybeAuto::Auto) => {
+                    let margin_start = inline_start_margin.specified_or_zero();
+                    let margin_end = inline_end_margin.specified_or_zero();
+                    (inline_start, inline_size, margin_start, margin_end)
+                }
+                (MaybeAuto::Specified(inline_start), MaybeAuto::Specified(inline_end)) => {
+                    match (inline_start_margin, inline_end_margin) {
+                        (MaybeAuto::Auto, MaybeAuto::Auto) => {
+                            let total_margin_val = available_inline_size - inline_start -
+                                inline_end - inline_size;
+                            if total_margin_val < Au(0) {
+                                // margin-inline-start becomes 0 because direction is 'ltr'.
+                                (inline_start, inline_size, Au(0), total_margin_val)
+                            } else {
+                                // Equal margins
+                                (inline_start,
+                                 inline_size,
+                                 total_margin_val.scale_by(0.5),
+                                 total_margin_val.scale_by(0.5))
+                            }
+                        }
+                        (MaybeAuto::Specified(margin_start), MaybeAuto::Auto) => {
+                            let sum = inline_start + inline_end + inline_size + margin_start;
+                            (inline_start, inline_size, margin_start, available_inline_size - sum)
+                        }
+                        (MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) => {
+                            let sum = inline_start + inline_end + inline_size + margin_end;
+                            (inline_start, inline_size, available_inline_size - sum, margin_end)
+                        }
+                        (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(margin_end)) => {
+                            // Values are over-constrained.
+                            // Ignore value for 'inline-end' cos direction is 'ltr'.
+                            (inline_start, inline_size, margin_start, margin_end)
                         }
                     }
-                    (MaybeAuto::Specified(margin_start), MaybeAuto::Auto) => {
-                        let sum = inline_start + inline_end + inline_size + margin_start;
-                        (inline_start, inline_end, inline_size, margin_start, available_inline_size - sum)
-                    }
-                    (MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) => {
-                        let sum = inline_start + inline_end + inline_size + margin_end;
-                        (inline_start, inline_end, inline_size, available_inline_size - sum, margin_end)
-                    }
-                    (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(margin_end)) => {
-                        // Values are over-constrained.
-                        // Ignore value for 'inline-end' cos direction is 'ltr'.
-                        let sum = inline_start + inline_size + margin_start + margin_end;
-                        (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
-                    }
                 }
-            }
-        };
-        ISizeConstraintSolution::for_absolute_flow(inline_start, inline_end, inline_size, margin_inline_start, margin_inline_end)
+            };
+        ISizeConstraintSolution::for_absolute_flow(inline_start,
+                                                   inline_size,
+                                                   margin_inline_start,
+                                                   margin_inline_end)
     }
 
     /// Calculate used value of inline-size just like we do for inline replaced elements.
@@ -2638,9 +2588,9 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
         block.containing_block_size(ctx.shared.screen_size).inline
     }
 
-    fn set_flow_x_coord_if_necessary(&self,
-                                     block: &mut BlockFlow,
-                                     solution: ISizeConstraintSolution) {
+    fn set_inline_position_of_flow_if_necessary(&self,
+                                                block: &mut BlockFlow,
+                                                solution: ISizeConstraintSolution) {
         // Set the x-coordinate of the absolute flow wrt to its containing block.
         block.base.position.start.i = solution.inline_start;
     }
@@ -2695,13 +2645,15 @@ impl ISizeAndMarginsComputer for FloatNonReplaced {
                                block: &mut BlockFlow,
                                input: &ISizeConstraintInput)
                                -> ISizeConstraintSolution {
-        let (computed_inline_size, inline_start_margin, inline_end_margin, available_inline_size) = (input.computed_inline_size,
-                                                                            input.inline_start_margin,
-                                                                            input.inline_end_margin,
-                                                                            input.available_inline_size);
+        let (computed_inline_size, inline_start_margin, inline_end_margin, available_inline_size) =
+            (input.computed_inline_size,
+             input.inline_start_margin,
+             input.inline_end_margin,
+             input.available_inline_size);
         let margin_inline_start = inline_start_margin.specified_or_zero();
         let margin_inline_end = inline_end_margin.specified_or_zero();
-        let available_inline_size_float = available_inline_size - margin_inline_start - margin_inline_end;
+        let available_inline_size_float = available_inline_size - margin_inline_start -
+            margin_inline_end;
         let shrink_to_fit = block.get_shrink_to_fit_inline_size(available_inline_size_float);
         let inline_size = computed_inline_size.specified_or_default(shrink_to_fit);
         debug!("assign_inline_sizes_float -- inline_size: {:?}", inline_size);
@@ -2715,9 +2667,8 @@ impl ISizeAndMarginsComputer for FloatReplaced {
     /// If inline-size is computed as 'auto', the used value is the 'shrink-to-fit' inline-size.
     fn solve_inline_size_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
                                -> ISizeConstraintSolution {
-        let (computed_inline_size, inline_start_margin, inline_end_margin) = (input.computed_inline_size,
-                                                           input.inline_start_margin,
-                                                           input.inline_end_margin);
+        let (computed_inline_size, inline_start_margin, inline_end_margin) =
+            (input.computed_inline_size, input.inline_start_margin, input.inline_end_margin);
         let margin_inline_start = inline_start_margin.specified_or_zero();
         let margin_inline_end = inline_end_margin.specified_or_zero();
         let inline_size = match computed_inline_size {
