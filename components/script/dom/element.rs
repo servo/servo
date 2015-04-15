@@ -615,7 +615,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
                     let attrs = element.Attributes().root();
                     for i in 0..attrs.r().Length() {
                         let attr = attrs.r().Item(i).unwrap().root();
-                        if attr.r().GetPrefix() == Some(String::from_str("xmlns")) &&
+                        if attr.r().GetPrefix() == Some("xmlns".to_owned()) &&
                            Some(attr.r().Value()) == namespace {
                             return Some(attr.r().LocalName());
                         }
