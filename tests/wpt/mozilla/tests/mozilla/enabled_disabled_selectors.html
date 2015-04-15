@@ -83,13 +83,17 @@
                 }
 
                 // These are :enabled (and not :disabled) by default.
-                // XXX: Add 'menuitem' here whenever available.
                 list = ['button', 'input', 'select', 'textarea', 'optgroup', 'option', 'fieldset'];
                 for(i = 0; i < list.length; i++) {
                     elem = document.createElement(list[i]);
                     check_disabled_selector(elem, false);
                 }
             }, "Simple initialization checks");
+
+            test(function() {
+                var elem = document.createElement('menuitem');
+                check_disabled_selector(elem, false);
+            }, "menuitem initial state");
 
             test(function() {
                 var click_count = 0;

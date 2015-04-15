@@ -459,6 +459,12 @@
             "url": "/_mozilla/mozilla/title.html"
           }
         ],
+        "mozilla/trace_null.html": [
+          {
+            "path": "mozilla/trace_null.html",
+            "url": "/_mozilla/mozilla/trace_null.html"
+          }
+        ],
         "mozilla/union.html": [
           {
             "path": "mozilla/union.html",

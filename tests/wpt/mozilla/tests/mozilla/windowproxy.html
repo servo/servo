@@ -13,14 +13,16 @@ test(function() {
   assert_equals(window.hasOwnProperty('abcd'), true);
 
   assert_equals('location' in window, true);
-  // FIXME: https://github.com/servo/servo/issues/4593
-  assert_equals(Object.hasOwnProperty('location'), false)
 
   // Can't set indexed properties
   window[100] = "abc";
   assert_equals(window[100], undefined);
   assert_equals(Object.getOwnPropertyDescriptor(window, 1000), undefined);
 });
+
+test(function() {
+  assert_own_property(window, 'location')
+}, "Unforgeable location");
 </script>
 </body>
 </html>
