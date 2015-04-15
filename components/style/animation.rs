@@ -6,10 +6,23 @@ use properties::ComputedValues;
 use properties::longhands::transition_property::computed_value::TransitionProperty;
 use properties::longhands::transition_timing_function::computed_value::{StartEnd};
 use properties::longhands::transition_timing_function::computed_value::{TransitionTimingFunction};
+use properties::longhands::z_index::computed_value::T as ZIndex;
+use properties::longhands::visibility::computed_value::T as Visibility;
+use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
+use properties::longhands::border_spacing::computed_value::T as BorderSpacing;
+use properties::longhands::line_height::computed_value::T as LineHeight;
+use properties::longhands::font_weight::computed_value::T as FontWeight;
+use properties::longhands::clip::computed_value::ClipRect;
+use properties::longhands::background_position::computed_value::T as BackgroundPosition;
 use properties::longhands::transition_property;
-use values::computed::{LengthOrPercentageOrAuto, Time};
+use values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, LengthOrPercentage, Length, Time};
+use values::CSSFloat;
+use cssparser::{RGBA, Color};
 
 use std::num::Float;
+use std::cmp::Ordering;
+use std::iter::repeat;
+use std::num::FromPrimitive;
 use util::bezier::Bezier;
 use util::geometry::Au;
 
@@ -62,28 +75,66 @@ impl PropertyAnimation {
                                 new_style: &mut ComputedValues)
                                 -> Option<PropertyAnimation> {
         let animation_style = new_style.get_animation();
-        let animated_property = match transition_property {
-            TransitionProperty::All => {
-                panic!("Don't use `TransitionProperty::All` with \
-                        `PropertyAnimation::from_transition_property`!")
-            }
-            TransitionProperty::Top => {
-                AnimatedProperty::Top(old_style.get_positionoffsets().top,
-                                      new_style.get_positionoffsets().top)
-            }
-            TransitionProperty::Right => {
-                AnimatedProperty::Right(old_style.get_positionoffsets().right,
-                                        new_style.get_positionoffsets().right)
-            }
-            TransitionProperty::Bottom => {
-                AnimatedProperty::Bottom(old_style.get_positionoffsets().bottom,
-                                         new_style.get_positionoffsets().bottom)
-            }
-            TransitionProperty::Left => {
-                AnimatedProperty::Left(old_style.get_positionoffsets().left,
-                                       new_style.get_positionoffsets().left)
-            }
-        };
+        macro_rules! match_transition {
+                ( $( [$name:ident; $structname:ident; $field:ident] ),* ) => {
+                    match transition_property {
+                        TransitionProperty::All => {
+                            panic!("Don't use `TransitionProperty::All` with \
+                                   `PropertyAnimation::from_transition_property`!")
+                        }
+                        $(
+                            TransitionProperty::$name => {
+                                AnimatedProperty::$name(old_style.$structname().$field,
+                                                        new_style.$structname().$field)
+                            }
+                        )*
+                    }
+                }
+        }
+        let animated_property = match_transition!(
+            [BackgroundColor; get_background; background_color],
+            [BackgroundPosition; get_background; background_position],
+            [BorderBottomColor; get_border; border_bottom_color],
+            [BorderBottomWidth; get_border; border_bottom_width],
+            [BorderLeftColor; get_border; border_left_color],
+            [BorderLeftWidth; get_border; border_left_width],
+            [BorderRightColor; get_border; border_right_color],
+            [BorderRightWidth; get_border; border_right_width],
+            [BorderSpacing; get_inheritedtable; border_spacing],
+            [BorderTopColor; get_border; border_top_color],
+            [BorderTopWidth; get_border; border_top_width],
+            [Bottom; get_positionoffsets; bottom],
+            [Color; get_color; color],
+            [Clip; get_effects; clip],
+            [FontSize; get_font; font_size],
+            [FontWeight; get_font; font_weight],
+            [Height; get_box; height],
+            [Left; get_positionoffsets; bottom],
+            [LetterSpacing; get_inheritedtext; letter_spacing],
+            [LineHeight; get_inheritedbox; line_height],
+            [MarginBottom; get_margin; margin_bottom],
+            [MarginLeft; get_margin; margin_left],
+            [MarginRight; get_margin; margin_right],
+            [MarginTop; get_margin; margin_top],
+            [MaxHeight; get_box; max_height],
+            [MaxWidth; get_box; max_width],
+            [MinHeight; get_box; min_height],
+            [MinWidth; get_box; min_width],
+            [Opacity; get_effects; opacity],
+            [OutlineColor; get_outline; outline_color],
+            [OutlineWidth; get_outline; outline_width],
+            [PaddingBottom; get_margin; margin_bottom],
+            [PaddingLeft; get_margin; margin_left],
+            [PaddingRight; get_margin; margin_right],
+            [PaddingTop; get_margin; margin_top],
+            [Right; get_positionoffsets; right],
+            [TextIndent; get_inheritedtext; text_indent],
+            [Top; get_positionoffsets; top],
+            [VerticalAlign; get_box; vertical_align],
+            [Visibility; get_inheritedbox; visibility],
+            [Width; get_box; width],
+            [WordSpacing; get_inheritedtext; word_spacing],
+            [ZIndex; get_box; z_index]);
 
         let property_animation = PropertyAnimation {
             property: animated_property,
@@ -112,28 +163,63 @@ impl PropertyAnimation {
                 (time * (steps as f64)).floor() / (steps as f64)
             }
         };
-        match self.property {
-            AnimatedProperty::Top(ref start, ref end) => {
-                if let Some(value) = start.interpolate(end, progress) {
-                    style.mutate_positionoffsets().top = value
+
+        macro_rules! match_property(
+            ( $( [$name:ident; $structname:ident; $field:ident] ),* ) => {
+                match self.property {
+                    $(
+                        AnimatedProperty::$name(ref start, ref end) => {
+                            if let Some(value) = start.interpolate(end, progress) {
+                                style.$structname().$field = value
+                            }
+                        }
+                    )*
                 }
-            }
-            AnimatedProperty::Right(ref start, ref end) => {
-                if let Some(value) = start.interpolate(end, progress) {
-                    style.mutate_positionoffsets().right = value
-                }
-            }
-            AnimatedProperty::Bottom(ref start, ref end) => {
-                if let Some(value) = start.interpolate(end, progress) {
-                    style.mutate_positionoffsets().bottom = value
-                }
-            }
-            AnimatedProperty::Left(ref start, ref end) => {
-                if let Some(value) = start.interpolate(end, progress) {
-                    style.mutate_positionoffsets().left = value
-                }
-            }
-        }
+            });
+        match_property!(
+            [BackgroundColor; mutate_background; background_color],
+            [BackgroundPosition; mutate_background; background_position],
+            [BorderBottomColor; mutate_border; border_bottom_color],
+            [BorderBottomWidth; mutate_border; border_bottom_width],
+            [BorderLeftColor; mutate_border; border_left_color],
+            [BorderLeftWidth; mutate_border; border_left_width],
+            [BorderRightColor; mutate_border; border_right_color],
+            [BorderRightWidth; mutate_border; border_right_width],
+            [BorderSpacing; mutate_inheritedtable; border_spacing],
+            [BorderTopColor; mutate_border; border_top_color],
+            [BorderTopWidth; mutate_border; border_top_width],
+            [Bottom; mutate_positionoffsets; bottom],
+            [Color; mutate_color; color],
+            [Clip; mutate_effects; clip],
+            [FontSize; mutate_font; font_size],
+            [FontWeight; mutate_font; font_weight],
+            [Height; mutate_box; height],
+            [Left; mutate_positionoffsets; bottom],
+            [LetterSpacing; mutate_inheritedtext; letter_spacing],
+            [LineHeight; mutate_inheritedbox; line_height],
+            [MarginBottom; mutate_margin; margin_bottom],
+            [MarginLeft; mutate_margin; margin_left],
+            [MarginRight; mutate_margin; margin_right],
+            [MarginTop; mutate_margin; margin_top],
+            [MaxHeight; mutate_box; max_height],
+            [MaxWidth; mutate_box; max_width],
+            [MinHeight; mutate_box; min_height],
+            [MinWidth; mutate_box; min_width],
+            [Opacity; mutate_effects; opacity],
+            [OutlineColor; mutate_outline; outline_color],
+            [OutlineWidth; mutate_outline; outline_width],
+            [PaddingBottom; mutate_margin; margin_bottom],
+            [PaddingLeft; mutate_margin; margin_left],
+            [PaddingRight; mutate_margin; margin_right],
+            [PaddingTop; mutate_margin; margin_top],
+            [Right; mutate_positionoffsets; right],
+            [TextIndent; mutate_inheritedtext; text_indent],
+            [Top; mutate_positionoffsets; top],
+            [VerticalAlign; mutate_box; vertical_align],
+            [Visibility; mutate_inheritedbox; visibility],
+            [Width; mutate_box; width],
+            [WordSpacing; mutate_inheritedtext; word_spacing],
+            [ZIndex; mutate_box; z_index]);
     }
 
     #[inline]
@@ -144,10 +230,49 @@ impl PropertyAnimation {
 
 #[derive(Copy, Clone, Debug)]
 enum AnimatedProperty {
-    Top(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
-    Right(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    BackgroundColor(Color, Color),
+    BackgroundPosition(BackgroundPosition, BackgroundPosition),
+    BorderBottomColor(Color, Color),
+    BorderBottomWidth(Length, Length),
+    BorderLeftColor(Color, Color),
+    BorderLeftWidth(Length, Length),
+    BorderRightColor(Color, Color),
+    BorderRightWidth(Length, Length),
+    BorderSpacing(BorderSpacing, BorderSpacing),
+    BorderTopColor(Color, Color),
+    BorderTopWidth(Length, Length),
     Bottom(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    Color(RGBA, RGBA),
+    Clip(Option<ClipRect>, Option<ClipRect>),
+    FontSize(Length, Length),
+    FontWeight(FontWeight, FontWeight),
+    Height(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
     Left(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    LetterSpacing(Option<Au>, Option<Au>),
+    LineHeight(LineHeight, LineHeight),
+    MarginBottom(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    MarginLeft(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    MarginRight(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    MarginTop(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    MaxHeight(LengthOrPercentageOrNone, LengthOrPercentageOrNone),
+    MaxWidth(LengthOrPercentageOrNone, LengthOrPercentageOrNone),
+    MinHeight(LengthOrPercentage, LengthOrPercentage),
+    MinWidth(LengthOrPercentage, LengthOrPercentage),
+    Opacity(CSSFloat, CSSFloat),
+    OutlineColor(Color, Color),
+    OutlineWidth(Length, Length),
+    PaddingBottom(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    PaddingLeft(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    PaddingRight(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    PaddingTop(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    Right(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    TextIndent(LengthOrPercentage, LengthOrPercentage),
+    Top(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    VerticalAlign(VerticalAlign, VerticalAlign),
+    Visibility(Visibility, Visibility),
+    Width(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
+    WordSpacing(Option<Au>, Option<Au>),
+    ZIndex(ZIndex, ZIndex),
 }
 
 impl AnimatedProperty {
@@ -157,7 +282,46 @@ impl AnimatedProperty {
             AnimatedProperty::Top(ref a, ref b) |
             AnimatedProperty::Right(ref a, ref b) |
             AnimatedProperty::Bottom(ref a, ref b) |
-            AnimatedProperty::Left(ref a, ref b) => a == b,
+            AnimatedProperty::Left(ref a, ref b) |
+            AnimatedProperty::MarginTop(ref a, ref b) |
+            AnimatedProperty::MarginRight(ref a, ref b) |
+            AnimatedProperty::MarginBottom(ref a, ref b) |
+            AnimatedProperty::MarginLeft(ref a, ref b) |
+            AnimatedProperty::PaddingTop(ref a, ref b) |
+            AnimatedProperty::PaddingRight(ref a, ref b) |
+            AnimatedProperty::PaddingBottom(ref a, ref b) |
+            AnimatedProperty::PaddingLeft(ref a, ref b) |
+            AnimatedProperty::Width(ref a, ref b) | 
+            AnimatedProperty::Height(ref a, ref b) => a == b,
+            AnimatedProperty::MaxWidth(ref a, ref b) | 
+            AnimatedProperty::MaxHeight(ref a, ref b) => a == b,
+            AnimatedProperty::MinWidth(ref a, ref b) | 
+            AnimatedProperty::MinHeight(ref a, ref b) => a == b,
+            AnimatedProperty::TextIndent(ref a, ref b) => a == b,
+            AnimatedProperty::BorderTopColor(ref a, ref b) |
+            AnimatedProperty::BorderRightColor(ref a, ref b) |
+            AnimatedProperty::BorderBottomColor(ref a, ref b) |
+            AnimatedProperty::BorderLeftColor(ref a, ref b) |
+            AnimatedProperty::BackgroundColor(ref a, ref b) => a == b,
+            AnimatedProperty::BackgroundPosition(ref a, ref b) => a == b,
+            AnimatedProperty::BorderSpacing(ref a, ref b) => a == b,
+            AnimatedProperty::Color(ref a, ref b) => a == b,
+            AnimatedProperty::Clip(ref a, ref b) => a == b,
+            AnimatedProperty::VerticalAlign(ref a, ref b) => a == b,
+            AnimatedProperty::FontWeight(ref a, ref b) => a == b,
+            AnimatedProperty::FontSize(ref a, ref b) |
+            AnimatedProperty::BorderTopWidth(ref a, ref b) |
+            AnimatedProperty::BorderRightWidth(ref a, ref b) |
+            AnimatedProperty::BorderBottomWidth(ref a, ref b) |
+            AnimatedProperty::BorderLeftWidth(ref a, ref b) => a == b,
+            AnimatedProperty::LineHeight(ref a, ref b) => a == b,
+            AnimatedProperty::LetterSpacing(ref a, ref b) |
+            AnimatedProperty::WordSpacing(ref a, ref b) => a == b,
+            AnimatedProperty::Visibility(ref a, ref b) => a == b,
+            AnimatedProperty::ZIndex(ref a, ref b) => a == b,
+            AnimatedProperty::OutlineWidth(ref a, ref b) => a == b,
+            AnimatedProperty::OutlineColor(ref a, ref b) => a == b,
+            AnimatedProperty::Opacity(ref a, ref b) => a == b,
         }
     }
 }
@@ -173,10 +337,145 @@ impl Interpolate for Au {
     }
 }
 
+impl <T> Interpolate for Option<T> where T:Interpolate {
+    #[inline]
+    fn interpolate(&self, other: &Option<T>, time: f64) -> Option<Option<T>> {
+        match (self, other) {
+            (&Some(ref this), &Some(ref other)) => {
+                this.interpolate(other, time).and_then(|value| {
+                    Some(Some(value))
+                })
+            }
+            (_, _) => None
+        }
+    }
+}
+
 impl Interpolate for f64 {
     #[inline]
     fn interpolate(&self, other: &f64, time: f64) -> Option<f64> {
         Some(*self + (*other - *self) * time)
+    }
+}
+
+impl Interpolate for i32 {
+    #[inline]
+    fn interpolate(&self, other: &i32, time: f64) -> Option<i32> {
+        let a = *self as f64;
+        let b = *other as f64;
+        Some((a + (b - a) * time).round() as i32)
+    }
+}
+
+impl Interpolate for Visibility {
+    #[inline]
+    fn interpolate(&self, other: &Visibility, time: f64)
+                   -> Option<Visibility> {
+        match (*self, *other) {
+            (Visibility::visible, _) | (_, Visibility::visible) => {
+                if time >= 0.0 && time <= 1.0 {
+                    Some(Visibility::visible)
+                } else if time < 0.5 {
+                    Some(*self)
+                } else {
+                    Some(*other)
+                }
+            }
+            (_, _) => None,
+        }
+    }
+}
+
+impl Interpolate for ZIndex {
+    #[inline]
+    fn interpolate(&self, other: &ZIndex, time: f64)
+                   -> Option<ZIndex> {
+        match (*self, *other) {
+            (ZIndex::Number(ref this),
+             ZIndex::Number(ref other)) => {
+                this.interpolate(other, time).and_then(|value| {
+                    Some(ZIndex::Number(value))
+                })
+            }
+            (_, _) => None,
+        }
+    }
+}
+
+impl Interpolate for VerticalAlign {
+    #[inline]
+    fn interpolate(&self, other: &VerticalAlign, time: f64)
+                   -> Option<VerticalAlign> {
+        match (*self, *other) {
+            (VerticalAlign::Length(ref this),
+             VerticalAlign::Length(ref other)) => {
+                this.interpolate(other, time).and_then(|value| {
+                    Some(VerticalAlign::Length(value))
+                })
+            }
+            (_, _) => None,
+        }
+    }
+}
+
+impl Interpolate for BorderSpacing {
+    #[inline]
+    fn interpolate(&self, other: &BorderSpacing, time: f64)
+                   -> Option<BorderSpacing> {
+        self.horizontal.interpolate(&other.horizontal, time).and_then(|horizontal| {
+            self.vertical.interpolate(&other.vertical, time).and_then(|vertical| {
+                Some(BorderSpacing { horizontal: horizontal, vertical: vertical })
+            })
+        })
+    }
+}
+
+impl Interpolate for RGBA {
+    #[inline]
+    fn interpolate(&self, other: &RGBA, time: f64) -> Option<RGBA> {
+        let time32 = time as f32;
+        Some(RGBA {
+            red: self.red + (other.red - self.red) * time32,
+            green: self.green + (other.green - self.green) * time32,
+            blue: self.blue + (other.blue - self.blue) * time32,
+            alpha: self.alpha + (other.alpha - self.alpha) * time32
+        })
+    }
+}
+
+impl Interpolate for Color {
+    #[inline]
+    fn interpolate(&self, other: &Color, time: f64) -> Option<Color> {
+        match (*self, *other) {
+            (Color::RGBA(ref this), Color::RGBA(ref other)) => {
+                this.interpolate(other, time).and_then(|value| {
+                    Some(Color::RGBA(value))
+                })
+            }
+            (_, _) => None,
+        }
+    }
+}
+
+impl Interpolate for LengthOrPercentage {
+    #[inline]
+    fn interpolate(&self, other: &LengthOrPercentage, time: f64)
+                   -> Option<LengthOrPercentage> {
+        match (*self, *other) {
+            (LengthOrPercentage::Length(ref this),
+             LengthOrPercentage::Length(ref other)) => {
+                this.interpolate(other, time).and_then(|value| {
+                    Some(LengthOrPercentage::Length(value))
+                })
+            }
+            (LengthOrPercentage::Percentage(ref this),
+             LengthOrPercentage::Percentage(ref other)) => {
+                this.interpolate(other, time).and_then(|value| {
+                    Some(LengthOrPercentage::Percentage(value))
+                })
+            }
+            (_, _) => None,
+        }
     }
 }
 
@@ -200,6 +499,98 @@ impl Interpolate for LengthOrPercentageOrAuto {
             (LengthOrPercentageOrAuto::Auto, LengthOrPercentageOrAuto::Auto) => {
                 Some(LengthOrPercentageOrAuto::Auto)
             }
+            (_, _) => None,
+        }
+    }
+}
+
+impl Interpolate for LengthOrPercentageOrNone {
+    #[inline]
+    fn interpolate(&self, other: &LengthOrPercentageOrNone, time: f64)
+                   -> Option<LengthOrPercentageOrNone> {
+        match (*self, *other) {
+            (LengthOrPercentageOrNone::Length(ref this),
+             LengthOrPercentageOrNone::Length(ref other)) => {
+                this.interpolate(other, time).and_then(|value| {
+                    Some(LengthOrPercentageOrNone::Length(value))
+                })
+            }
+            (LengthOrPercentageOrNone::Percentage(ref this),
+             LengthOrPercentageOrNone::Percentage(ref other)) => {
+                this.interpolate(other, time).and_then(|value| {
+                    Some(LengthOrPercentageOrNone::Percentage(value))
+                })
+            }
+            (LengthOrPercentageOrNone::None, LengthOrPercentageOrNone::None) => {
+                Some(LengthOrPercentageOrNone::None)
+            }
+            (_, _) => None,
+        }
+    }
+}
+
+impl Interpolate for LineHeight {
+    #[inline]
+    fn interpolate(&self, other: &LineHeight, time: f64)
+                   -> Option<LineHeight> {
+        match (*self, *other) {
+            (LineHeight::Length(ref this),
+             LineHeight::Length(ref other)) => {
+                this.interpolate(other, time).and_then(|value| {
+                    Some(LineHeight::Length(value))
+                })
+            }
+            (LineHeight::Number(ref this),
+             LineHeight::Number(ref other)) => {
+                this.interpolate(other, time).and_then(|value| {
+                    Some(LineHeight::Number(value))
+                })
+            }
+            (LineHeight::Normal, LineHeight::Normal) => {
+                Some(LineHeight::Normal)
+            }
+            (_, _) => None,
+        }
+    }
+}
+
+impl Interpolate for FontWeight {
+    #[inline]
+    fn interpolate(&self, other: &FontWeight, time: f64)
+                   -> Option<FontWeight> {
+        // let weight:Option<FontWeight> = FromPrimitive::from_isize(*self as isize);
+        let a = (*self as isize) as f64;
+        let b = (*other as isize) as f64;
+        let weight:Option<FontWeight> = FromPrimitive::from_isize((a + (b - a) * time).round() as isize);
+        weight
+    }
+}
+
+impl Interpolate for ClipRect {
+    #[inline]
+    fn interpolate(&self, other: &ClipRect, time: f64)
+                   -> Option<ClipRect> {
+        match (self.top.interpolate(&other.top, time),
+               self.right.interpolate(&other.right, time),
+               self.bottom.interpolate(&other.bottom, time),
+               self.left.interpolate(&other.left, time)) {
+            (Some(top), Some(right), Some(bottom), Some(left)) => {
+                Some(ClipRect { top: top, right: right, bottom: bottom, left: left })
+            },
+            (_, _, _, _) => None,
+        }
+    }
+}
+
+impl Interpolate for BackgroundPosition {
+    #[inline]
+    fn interpolate(&self, other: &BackgroundPosition, time: f64)
+                   -> Option<BackgroundPosition> {
+        match (self.horizontal.interpolate(&other.horizontal, time),
+               self.vertical.interpolate(&other.vertical, time)) {
+            (Some(horizontal), Some(vertical)) => {
+                Some(BackgroundPosition { horizontal: horizontal, vertical: vertical})
+            },
             (_, _) => None,
         }
     }
