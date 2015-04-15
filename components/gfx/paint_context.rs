@@ -914,7 +914,7 @@ impl<'a> PaintContext<'a> {
 
         // Pre-calculate if there is a blur expansion need.
         let accum_blur = filters::calculate_accumulated_blur(filters);
-        let mut matrix = Matrix2D::identity();
+        let mut matrix = self.draw_target.get_transform();
         if accum_blur > Au(0) {
             // Set the correct size.
             let side_inflation = accum_blur * BLUR_INFLATION_FACTOR;
@@ -932,12 +932,7 @@ impl<'a> PaintContext<'a> {
         let temporary_draw_target =
             self.draw_target.create_similar_draw_target(&size, self.draw_target.get_format());
 
-        if accum_blur > Au(0) {
-            temporary_draw_target.set_transform(&matrix);
-        } else {
-            temporary_draw_target.set_transform(&self.draw_target.get_transform());
-        }
-
+        temporary_draw_target.set_transform(&matrix);
         temporary_draw_target
     }
 
