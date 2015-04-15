@@ -8,15 +8,18 @@ use azure::AzFloat;
 use azure::azure_hl::{ColorMatrixAttribute, ColorMatrixInput, CompositeInput, DrawTarget};
 use azure::azure_hl::{FilterNode, FilterType, LinearTransferAttribute, LinearTransferInput};
 use azure::azure_hl::{Matrix5x4, TableTransferAttribute, TableTransferInput};
+use azure::azure_hl::{GaussianBlurAttribute, GaussianBlurInput};
 
 use std::num::Float;
 use style::computed_values::filter;
+use util::geometry::Au;
 
 /// Creates a filter pipeline from a set of CSS filters. Returns the destination end of the filter
 /// pipeline and the opacity.
 pub fn create_filters(draw_target: &DrawTarget,
                       temporary_draw_target: &DrawTarget,
-                      style_filters: &filter::T)
+                      style_filters: &filter::T,
+                      accumulated_blur_radius: &mut Au)
                       -> (FilterNode, AzFloat) {
     let mut opacity = 1.0;
     let mut filter = draw_target.create_filter(FilterType::Composite);
@@ -91,6 +94,14 @@ pub fn create_filters(draw_target: &DrawTarget,
                 contrast.set_input(LinearTransferInput, &filter);
                 filter = contrast
             }
+            filter::Filter::Blur(amount) => {
+                *accumulated_blur_radius = accumulated_blur_radius.clone() + amount;
+                let amount = amount.to_frac32_px();
+                let blur = draw_target.create_filter(FilterType::GaussianBlur);
+                blur.set_attribute(GaussianBlurAttribute::StdDeviation(amount));
+                blur.set_input(GaussianBlurInput, &filter);
+                filter = blur
+            }
         }
     }
     (filter, opacity)
@@ -106,6 +117,23 @@ pub fn temporary_draw_target_needed_for_style_filters(filters: &filter::T) -> bo
     }
     false
 }
+
+// If there is one or more blur filters, we need to know the blur ammount
+// to expand the draw target size.
+pub fn calculate_accumulated_blur(style_filters: &filter::T) -> Au {
+    let mut accum_blur = Au::new(0);
+    for style_filter in style_filters.filters.iter() {
+        match *style_filter {
+            filter::Filter::Blur(amount) => {
+                accum_blur = accum_blur.clone() + amount;
+            }
+            _ => continue,
+        }
+    }
+
+    accum_blur
+}
+
 
 /// Creates a grayscale 5x4 color matrix per CSS-FILTERS § 12.1.1.
 fn grayscale(amount: AzFloat) -> Matrix5x4 {
