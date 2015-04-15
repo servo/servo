@@ -15,7 +15,7 @@ use url::Url;
 #[test]
 fn test_exit() {
     let resource_task = new_resource_task(None);
-    resource_task.send(ControlMsg::Exit).unwrap();
+    resource_task.exit();
 }
 
 #[test]
@@ -23,13 +23,13 @@ fn test_bad_scheme() {
     let resource_task = new_resource_task(None);
     let (start_chan, start) = channel();
     let url = Url::parse("bogus://whatever").unwrap();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, start_chan))).unwrap();
+    resource_task.load(LoadData::new(url, start_chan));
     let response = start.recv().unwrap();
-    match response.progress_port.recv().unwrap() {
+    match start.recv().unwrap() {
       ProgressMsg::Done(result) => { assert!(result.is_err()) }
       _ => panic!("bleh")
     }
-    resource_task.send(ControlMsg::Exit).unwrap();
+    resource_task.exit();
 }
 
 #[test]
@@ -173,12 +173,12 @@ fn test_replace_hosts() {
     let resource_task = new_resource_task(None);
     let (start_chan, _) = channel();
     let url = Url::parse(&format!("http://foo.bar.com:{}", port)).unwrap();
-    resource_task.send(ControlMsg::Load(replace_hosts(LoadData::new(url, start_chan), host_table))).unwrap();
+    resource_task.load(replace_hosts(LoadData::new(url, start_chan), host_table));
 
     match listener.accept() {
         Ok(..) => assert!(true, "received request"),
         Err(_) => assert!(false, "error")
     }
 
-    resource_task.send(ControlMsg::Exit).unwrap();
+    resource_task.exit();
 }

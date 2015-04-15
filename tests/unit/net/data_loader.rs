@@ -5,7 +5,7 @@
 extern crate hyper;
 
 use net_traits::LoadData;
-use net_traits::ProgressMsg::{Payload, Done};
+use net_traits::ProgressMsg::{Headers, Payload, Done};
 use self::hyper::header::ContentType;
 use self::hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 
@@ -22,19 +22,33 @@ fn assert_parse(url:          &'static str,
     load(LoadData::new(Url::parse(url).unwrap(), start_chan));
 
     let response = start_port.recv().unwrap();
-    assert_eq!(&response.metadata.content_type, &content_type);
-    assert_eq!(&response.metadata.charset,      &charset);
+    match response {
+        Headers(metadata) => {
+            assert_eq!(&metadata.content_type, &content_type);
+            assert_eq!(&metadata.charset,      &charset);
 
-    let progress = response.progress_port.recv().unwrap();
+            let progress = start_port.recv().unwrap();
 
-    match data {
-        None => {
-            assert_eq!(progress, Done(Err("invalid data uri".to_string())));
+            match data {
+                None => {
+                    match progress {
+                        Done(err) => assert_eq!(err, Err("invalid data uri".to_string())),
+                        _ => panic!("unexpected"),
+                    }
+                }
+                Some(dat) => {
+                    match progress {
+                        Payload(data) => assert_eq!(data, dat),
+                        _ => panic!("unexpected"),
+                    }
+                    match start_port.recv().unwrap() {
+                        Done(res) => assert_eq!(res, Ok(())),
+                        _ => panic!("unexpected"),
+                    }
+                }
+            }
         }
-        Some(dat) => {
-            assert_eq!(progress, Payload(dat));
-            assert_eq!(response.progress_port.recv().unwrap(), Done(Ok(())));
-        }
+        _ => panic!("unexpected response"),
     }
 }
 
