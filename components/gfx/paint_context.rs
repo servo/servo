@@ -912,8 +912,6 @@ impl<'a> PaintContext<'a> {
         let size = self.draw_target.get_size(); //Az size.
         let mut size = Size2D(size.width, size.height); //Geom::Size.
 
-        println!("orig size: {:?}", size);
-
         // Pre-calculate if there is a blur expansion need.
         let accum_blur = filters::calculate_accumulated_blur(filters);
         let mut matrix = Matrix2D::identity();
@@ -933,7 +931,6 @@ impl<'a> PaintContext<'a> {
                                                     -temporary_draw_target_bounds.origin.y as AzFloat).mul(&old_transform);
         }
 
-        println!("scaled size: {:?}", size);
         let temporary_draw_target =
             self.draw_target.create_similar_draw_target(&size, self.draw_target.get_format());
 
@@ -962,8 +959,6 @@ impl<'a> PaintContext<'a> {
         self.draw_target.set_transform(&Matrix2D::identity());
         let rect = Rect(Point2D(0.0, 0.0), self.draw_target.get_size().to_azure_size());
 
-        let old_transform_temporary = temporary_draw_target.get_transform();
-        temporary_draw_target.set_transform(&Matrix2D::identity());
         let rect_temporary = Rect(Point2D(0.0, 0.0), temporary_draw_target.get_size().to_azure_size());
 
         // Create the Azure filter pipeline.
