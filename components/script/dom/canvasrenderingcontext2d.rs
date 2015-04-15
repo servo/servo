@@ -859,6 +859,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.renderer.send(CanvasMsg::SetLineWidth(width as f32)).unwrap()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
     fn LineCap(self) -> DOMString {
         match self.line_cap.get() {
             LineCapStyle::Butt => "butt".to_owned(),
@@ -867,6 +868,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
     fn SetLineCap(self, cap_str: DOMString) {
         if let Some(cap) = LineCapStyle::from_str(&cap_str) {
             self.line_cap.set(cap);
@@ -874,6 +876,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
     fn LineJoin(self) -> DOMString {
         match self.line_join.get() {
             LineJoinStyle::Round => "round".to_owned(),
@@ -882,6 +885,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
     fn SetLineJoin(self, join_str: DOMString) {
         if let Some(join) = LineJoinStyle::from_str(&join_str) {
             self.line_join.set(join);
