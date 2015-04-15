@@ -1,0 +1,149 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>test_binding
+    page  </title>
+<base href="./"></base>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+
+<div id="first" name="test">fffff<br><br><br><br>fffffffffffffffff</div>
+<div id="second">ggg</div>
+<span id="third" name="test">hhhhhhhh</span>
+<div id="fourth">iiiiiiiiiiiiiiiiiii</div>
+<a href="http://www.mozilla.org"></a>
+<img src="test.jpg"/>
+<embed></embed>
+<form>
+  <fieldset>
+    <legend>legend</legend>
+    <label for="">label<input type="text" value="input" /></label>
+  </fieldset>
+</form>
+<hr />
+<canvas/>
+<p>pppppppppp</p>
+<q>qqqqqqqqqqqqqqqqqqqqqqqqqqq</q>
+<progress max="100" value="80">80%</progress>
+<applet></applet>
+<input type="text" value="input"/>
+<iframe></iframe>
+<ol type="1">
+  <li>li</li>
+</ol>
+<table>
+  <caption>sample table</caption>
+  <colgroup>
+    <col/>
+  </colgroup>
+  <tbody>
+    <tr><th>head</th></tr>
+    <tr><td>data</td></tr>
+  </tbody>
+</table>
+<section>section</section>
+<aside>aside</aside>
+<b>b</b>
+<i>i</i>
+<small>small</small>
+<textarea>textarea</textarea>
+<time datetime="2014-02-14">Valentines day</time>
+<area></area>
+<data></data>
+<dialog></dialog>
+<template></template>
+<pre>pre</pre>
+<audio>
+  <source src="horse.ogg" type="audio/ogg">
+  <source src="horse.mp3" type="audio/mpeg">
+</audio>
+<video src="">
+  <track></track>
+</video>
+
+<foo-á>hi</foo-á>
+
+<script>
+test(function() {
+  function check_collection(obj, num, classes, name) {
+    test(function() {
+      assert_true(obj instanceof HTMLCollection, "Should be HTMLCollection");
+      assert_equals(obj.length, num);
+      assert_equals(obj[obj.length], undefined);
+
+      if (classes === undefined) {
+        return;
+      }
+
+      classes = [Element, HTMLElement].concat(classes);
+
+      for (var i = 0; i < obj.length; i++) {
+        assert_not_equals(obj[i], undefined);
+        assert_equals(obj[i].tagName, name);
+        for (var j = 0; j < classes.length; j++) {
+          assert_true(obj[i] instanceof classes[j], "Should be " + classes[j]);
+        }
+      }
+    });
+  }
+
+  function check_tag(tagname, num, classes, tagname_upper) {
+      if (tagname_upper === undefined)
+          tagname_upper = tagname.toUpperCase();
+      check_collection(document.getElementsByTagName(tagname), num, classes, tagname_upper);
+  }
+
+  check_collection(document.links,   1, [HTMLAnchorElement], "A");
+  check_collection(document.images,  1, [HTMLImageElement],  "IMG");
+  check_collection(document.embeds,  1, [HTMLEmbedElement],  "EMBED");
+  check_collection(document.plugins, 1, [HTMLEmbedElement],  "EMBED");
+  check_collection(document.scripts, 3, [HTMLScriptElement], "SCRIPT");
+  check_collection(document.applets, 1, [HTMLAppletElement], "APPLET");
+  check_collection(document.forms,   1, [HTMLFormElement],   "FORM");
+
+  check_collection(document.getElementsByTagName("nosuchtag"), 0);
+
+  check_tag("section",  1, []);
+  check_tag("aside",    1, []);
+  check_tag("b",        1, []);
+  check_tag("i",        1, []);
+  check_tag("small",    1, []);
+  check_tag("head",     1, [HTMLHeadElement]);
+  check_tag("div",      3, [HTMLDivElement]);
+  check_tag("iframe",   1, [HTMLIFrameElement]);
+  check_tag("body",     1, [HTMLBodyElement]);
+  check_tag("area",     1, [HTMLAreaElement]);
+  check_tag("base",     1, [HTMLBaseElement]);
+  check_tag("data",     1, [HTMLDataElement]);
+  check_tag("dialog",   1, [HTMLDialogElement]);
+  check_tag("ol",       1, [HTMLOListElement]);
+  check_tag("canvas",   1, [HTMLCanvasElement]);
+  check_tag("source",   2, [HTMLSourceElement]);
+  check_tag("time",     1, [HTMLTimeElement]);
+  check_tag("caption",  1, [HTMLTableCaptionElement]);
+  check_tag("textarea", 1, [HTMLTextAreaElement]);
+  check_tag("q",        1, [HTMLQuoteElement]);
+  check_tag("th",       1, [HTMLTableCellElement, HTMLTableHeaderCellElement]);
+  check_tag("td",       1, [HTMLTableCellElement, HTMLTableDataCellElement]);
+  check_tag("col",      1, [HTMLTableColElement]);
+  check_tag("colgroup", 1, [HTMLTableColElement]);
+  check_tag("input",    2, [HTMLInputElement]);
+  check_tag("li",       1, [HTMLLIElement]);
+  check_tag("progress", 1, [HTMLProgressElement]);
+  check_tag("template", 1, [HTMLTemplateElement]);
+  check_tag("pre",      1, [HTMLPreElement]);
+  check_tag("legend",   1, [HTMLLegendElement]);
+  check_tag("label",    1, [HTMLLabelElement]);
+  check_tag("track",    1, [HTMLTrackElement]);
+  check_tag("audio",    1, [HTMLMediaElement, HTMLAudioElement]);
+  check_tag("video",    1, [HTMLMediaElement, HTMLVideoElement]);
+
+  // Test non-ASCII tag names.  Uppercasing is ASCII-only per spec:
+  // http://dom.spec.whatwg.org/#dom-element-tagname
+  check_tag("foo-á", 1, [HTMLUnknownElement], "FOO-á");
+});
+</script>
+</body>
+</html>

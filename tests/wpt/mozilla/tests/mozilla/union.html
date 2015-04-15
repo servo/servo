@@ -1,0 +1,24 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<select id="sel"></select>
+<script>
+test(function() {
+  var div = document.createElement('div');
+  var optgroup = document.createElement('optgroup');
+  var sel = document.getElementById('sel');
+
+  var opt = document.createElement('option');
+  sel.add(opt);
+  sel.add(optgroup);
+  sel.add(opt, div);
+  sel.add(optgroup, div);
+  sel.add(opt, 5);
+  sel.add(optgroup, 5);
+  assert_throws(null, function() { sel.add(div) });
+  sel.add(optgroup, function() {})
+});
+</script>
+</head>
+</html>

@@ -1,0 +1,15 @@
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+    test(function() {
+      var a = document.createElement("div");
+      a.appendChild(document.createElement("pre")).appendChild(new Text(""));
+      var b = document.createElement("div");
+      b.appendChild(a);
+      assert_equals(b.innerHTML, "<div><pre></pre></div>");
+    });
+    </script>
+  </head>
+</html>

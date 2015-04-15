@@ -13,7 +13,490 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "mozilla/DOMParser.html": [
+          {
+            "path": "mozilla/DOMParser.html",
+            "url": "/_mozilla/mozilla/DOMParser.html"
+          }
+        ],
+        "mozilla/Event.html": [
+          {
+            "path": "mozilla/Event.html",
+            "url": "/_mozilla/mozilla/Event.html"
+          }
+        ],
+        "mozilla/MouseEvent.html": [
+          {
+            "path": "mozilla/MouseEvent.html",
+            "url": "/_mozilla/mozilla/MouseEvent.html"
+          }
+        ],
+        "mozilla/blob.html": [
+          {
+            "path": "mozilla/blob.html",
+            "url": "/_mozilla/mozilla/blob.html"
+          }
+        ],
+        "mozilla/body_listener.html": [
+          {
+            "path": "mozilla/body_listener.html",
+            "url": "/_mozilla/mozilla/body_listener.html"
+          }
+        ],
+        "mozilla/caption.html": [
+          {
+            "path": "mozilla/caption.html",
+            "url": "/_mozilla/mozilla/caption.html"
+          }
+        ],
+        "mozilla/characterdata.html": [
+          {
+            "path": "mozilla/characterdata.html",
+            "url": "/_mozilla/mozilla/characterdata.html"
+          }
+        ],
+        "mozilla/collections.html": [
+          {
+            "path": "mozilla/collections.html",
+            "url": "/_mozilla/mozilla/collections.html"
+          }
+        ],
+        "mozilla/createElement_script.html": [
+          {
+            "path": "mozilla/createElement_script.html",
+            "url": "/_mozilla/mozilla/createElement_script.html"
+          }
+        ],
+        "mozilla/create_element.html": [
+          {
+            "path": "mozilla/create_element.html",
+            "url": "/_mozilla/mozilla/create_element.html"
+          }
+        ],
+        "mozilla/documentElement.html": [
+          {
+            "path": "mozilla/documentElement.html",
+            "url": "/_mozilla/mozilla/documentElement.html"
+          }
+        ],
+        "mozilla/document_activeElement.html": [
+          {
+            "path": "mozilla/document_activeElement.html",
+            "url": "/_mozilla/mozilla/document_activeElement.html"
+          }
+        ],
+        "mozilla/document_body.html": [
+          {
+            "path": "mozilla/document_body.html",
+            "url": "/_mozilla/mozilla/document_body.html"
+          }
+        ],
+        "mozilla/document_characterSet.html": [
+          {
+            "path": "mozilla/document_characterSet.html",
+            "url": "/_mozilla/mozilla/document_characterSet.html"
+          }
+        ],
+        "mozilla/document_characterSet_default.html": [
+          {
+            "path": "mozilla/document_characterSet_default.html",
+            "url": "/_mozilla/mozilla/document_characterSet_default.html"
+          }
+        ],
+        "mozilla/document_characterSet_invalid.html": [
+          {
+            "path": "mozilla/document_characterSet_invalid.html",
+            "url": "/_mozilla/mozilla/document_characterSet_invalid.html"
+          }
+        ],
+        "mozilla/document_compatMode_loose.html": [
+          {
+            "path": "mozilla/document_compatMode_loose.html",
+            "url": "/_mozilla/mozilla/document_compatMode_loose.html"
+          }
+        ],
+        "mozilla/document_compatMode_strict.html": [
+          {
+            "path": "mozilla/document_compatMode_strict.html",
+            "url": "/_mozilla/mozilla/document_compatMode_strict.html"
+          }
+        ],
+        "mozilla/document_contenttype.html": [
+          {
+            "path": "mozilla/document_contenttype.html",
+            "url": "/_mozilla/mozilla/document_contenttype.html"
+          }
+        ],
+        "mozilla/document_datalist_options.html": [
+          {
+            "path": "mozilla/document_datalist_options.html",
+            "url": "/_mozilla/mozilla/document_datalist_options.html"
+          }
+        ],
+        "mozilla/document_defaultView.html": [
+          {
+            "path": "mozilla/document_defaultView.html",
+            "url": "/_mozilla/mozilla/document_defaultView.html"
+          }
+        ],
+        "mozilla/document_getElementById.html": [
+          {
+            "path": "mozilla/document_getElementById.html",
+            "url": "/_mozilla/mozilla/document_getElementById.html"
+          }
+        ],
+        "mozilla/document_getElementsByName.html": [
+          {
+            "path": "mozilla/document_getElementsByName.html",
+            "url": "/_mozilla/mozilla/document_getElementsByName.html"
+          }
+        ],
+        "mozilla/document_head.html": [
+          {
+            "path": "mozilla/document_head.html",
+            "url": "/_mozilla/mozilla/document_head.html"
+          }
+        ],
+        "mozilla/document_images_cache.html": [
+          {
+            "path": "mozilla/document_images_cache.html",
+            "url": "/_mozilla/mozilla/document_images_cache.html"
+          }
+        ],
+        "mozilla/document_implementation.html": [
+          {
+            "path": "mozilla/document_implementation.html",
+            "url": "/_mozilla/mozilla/document_implementation.html"
+          }
+        ],
+        "mozilla/document_links_cache.html": [
+          {
+            "path": "mozilla/document_links_cache.html",
+            "url": "/_mozilla/mozilla/document_links_cache.html"
+          }
+        ],
+        "mozilla/document_readystate.html": [
+          {
+            "path": "mozilla/document_readystate.html",
+            "url": "/_mozilla/mozilla/document_readystate.html"
+          }
+        ],
+        "mozilla/document_set_node_value.html": [
+          {
+            "path": "mozilla/document_set_node_value.html",
+            "url": "/_mozilla/mozilla/document_set_node_value.html"
+          }
+        ],
+        "mozilla/document_title_nontextchildren.html": [
+          {
+            "path": "mozilla/document_title_nontextchildren.html",
+            "url": "/_mozilla/mozilla/document_title_nontextchildren.html"
+          }
+        ],
+        "mozilla/document_url.html": [
+          {
+            "path": "mozilla/document_url.html",
+            "url": "/_mozilla/mozilla/document_url.html"
+          }
+        ],
+        "mozilla/domtokenlist.html": [
+          {
+            "path": "mozilla/domtokenlist.html",
+            "url": "/_mozilla/mozilla/domtokenlist.html"
+          }
+        ],
+        "mozilla/element_attribute.html": [
+          {
+            "path": "mozilla/element_attribute.html",
+            "url": "/_mozilla/mozilla/element_attribute.html"
+          }
+        ],
+        "mozilla/element_attributes.html": [
+          {
+            "path": "mozilla/element_attributes.html",
+            "url": "/_mozilla/mozilla/element_attributes.html"
+          }
+        ],
+        "mozilla/element_classList.html": [
+          {
+            "path": "mozilla/element_classList.html",
+            "url": "/_mozilla/mozilla/element_classList.html"
+          }
+        ],
+        "mozilla/element_className.html": [
+          {
+            "path": "mozilla/element_className.html",
+            "url": "/_mozilla/mozilla/element_className.html"
+          }
+        ],
+        "mozilla/element_matches.html": [
+          {
+            "path": "mozilla/element_matches.html",
+            "url": "/_mozilla/mozilla/element_matches.html"
+          }
+        ],
+        "mozilla/empty_clientrect.html": [
+          {
+            "path": "mozilla/empty_clientrect.html",
+            "url": "/_mozilla/mozilla/empty_clientrect.html"
+          }
+        ],
+        "mozilla/enabled_disabled_selectors.html": [
+          {
+            "path": "mozilla/enabled_disabled_selectors.html",
+            "url": "/_mozilla/mozilla/enabled_disabled_selectors.html"
+          }
+        ],
+        "mozilla/event_dispatch.html": [
+          {
+            "path": "mozilla/event_dispatch.html",
+            "url": "/_mozilla/mozilla/event_dispatch.html"
+          }
+        ],
+        "mozilla/event_dispatch_dynamic.html": [
+          {
+            "path": "mozilla/event_dispatch_dynamic.html",
+            "url": "/_mozilla/mozilla/event_dispatch_dynamic.html"
+          }
+        ],
+        "mozilla/event_dispatch_order.html": [
+          {
+            "path": "mozilla/event_dispatch_order.html",
+            "url": "/_mozilla/mozilla/event_dispatch_order.html"
+          }
+        ],
+        "mozilla/event_handler_syntax_error.html": [
+          {
+            "path": "mozilla/event_handler_syntax_error.html",
+            "url": "/_mozilla/mozilla/event_handler_syntax_error.html"
+          }
+        ],
+        "mozilla/event_listener.html": [
+          {
+            "path": "mozilla/event_listener.html",
+            "url": "/_mozilla/mozilla/event_listener.html"
+          }
+        ],
+        "mozilla/focus_blur.html": [
+          {
+            "path": "mozilla/focus_blur.html",
+            "url": "/_mozilla/mozilla/focus_blur.html"
+          }
+        ],
+        "mozilla/getBoundingClientRect.html": [
+          {
+            "path": "mozilla/getBoundingClientRect.html",
+            "url": "/_mozilla/mozilla/getBoundingClientRect.html"
+          }
+        ],
+        "mozilla/getPropertyPriority.html": [
+          {
+            "path": "mozilla/getPropertyPriority.html",
+            "url": "/_mozilla/mozilla/getPropertyPriority.html"
+          }
+        ],
+        "mozilla/global.html": [
+          {
+            "path": "mozilla/global.html",
+            "url": "/_mozilla/mozilla/global.html"
+          }
+        ],
+        "mozilla/htmlcollection.html": [
+          {
+            "path": "mozilla/htmlcollection.html",
+            "url": "/_mozilla/mozilla/htmlcollection.html"
+          }
+        ],
+        "mozilla/htmlfieldsetelement_elements.html": [
+          {
+            "path": "mozilla/htmlfieldsetelement_elements.html",
+            "url": "/_mozilla/mozilla/htmlfieldsetelement_elements.html"
+          }
+        ],
+        "mozilla/htmlspacechars.html": [
+          {
+            "path": "mozilla/htmlspacechars.html",
+            "url": "/_mozilla/mozilla/htmlspacechars.html"
+          }
+        ],
+        "mozilla/iframe_contentDocument.html": [
+          {
+            "path": "mozilla/iframe_contentDocument.html",
+            "url": "/_mozilla/mozilla/iframe_contentDocument.html"
+          }
+        ],
+        "mozilla/img_width_height.html": [
+          {
+            "path": "mozilla/img_width_height.html",
+            "url": "/_mozilla/mozilla/img_width_height.html"
+          }
+        ],
+        "mozilla/inline_event_handler.html": [
+          {
+            "path": "mozilla/inline_event_handler.html",
+            "url": "/_mozilla/mozilla/inline_event_handler.html"
+          }
+        ],
+        "mozilla/innerHTML.html": [
+          {
+            "path": "mozilla/innerHTML.html",
+            "url": "/_mozilla/mozilla/innerHTML.html"
+          }
+        ],
+        "mozilla/interfaces.html": [
+          {
+            "path": "mozilla/interfaces.html",
+            "url": "/_mozilla/mozilla/interfaces.html"
+          }
+        ],
+        "mozilla/lenient_this.html": [
+          {
+            "path": "mozilla/lenient_this.html",
+            "url": "/_mozilla/mozilla/lenient_this.html"
+          }
+        ],
+        "mozilla/load_event.html": [
+          {
+            "path": "mozilla/load_event.html",
+            "url": "/_mozilla/mozilla/load_event.html"
+          }
+        ],
+        "mozilla/navigator.html": [
+          {
+            "path": "mozilla/navigator.html",
+            "url": "/_mozilla/mozilla/navigator.html"
+          }
+        ],
+        "mozilla/node_cloneNode.html": [
+          {
+            "path": "mozilla/node_cloneNode.html",
+            "url": "/_mozilla/mozilla/node_cloneNode.html"
+          }
+        ],
+        "mozilla/node_compareDocumentPosition.html": [
+          {
+            "path": "mozilla/node_compareDocumentPosition.html",
+            "url": "/_mozilla/mozilla/node_compareDocumentPosition.html"
+          }
+        ],
+        "mozilla/node_contains.html": [
+          {
+            "path": "mozilla/node_contains.html",
+            "url": "/_mozilla/mozilla/node_contains.html"
+          }
+        ],
+        "mozilla/node_insertBefore.html": [
+          {
+            "path": "mozilla/node_insertBefore.html",
+            "url": "/_mozilla/mozilla/node_insertBefore.html"
+          }
+        ],
+        "mozilla/node_isEqualNode.html": [
+          {
+            "path": "mozilla/node_isEqualNode.html",
+            "url": "/_mozilla/mozilla/node_isEqualNode.html"
+          }
+        ],
+        "mozilla/node_normalize.html": [
+          {
+            "path": "mozilla/node_normalize.html",
+            "url": "/_mozilla/mozilla/node_normalize.html"
+          }
+        ],
+        "mozilla/node_replaceChild.html": [
+          {
+            "path": "mozilla/node_replaceChild.html",
+            "url": "/_mozilla/mozilla/node_replaceChild.html"
+          }
+        ],
+        "mozilla/parentNode_querySelector.html": [
+          {
+            "path": "mozilla/parentNode_querySelector.html",
+            "url": "/_mozilla/mozilla/parentNode_querySelector.html"
+          }
+        ],
+        "mozilla/parentNode_querySelectorAll.html": [
+          {
+            "path": "mozilla/parentNode_querySelectorAll.html",
+            "url": "/_mozilla/mozilla/parentNode_querySelectorAll.html"
+          }
+        ],
+        "mozilla/parentnodes.html": [
+          {
+            "path": "mozilla/parentnodes.html",
+            "url": "/_mozilla/mozilla/parentnodes.html"
+          }
+        ],
+        "mozilla/proxy_setter.html": [
+          {
+            "path": "mozilla/proxy_setter.html",
+            "url": "/_mozilla/mozilla/proxy_setter.html"
+          }
+        ],
+        "mozilla/script_type.html": [
+          {
+            "path": "mozilla/script_type.html",
+            "url": "/_mozilla/mozilla/script_type.html"
+          }
+        ],
+        "mozilla/storage.html": [
+          {
+            "path": "mozilla/storage.html",
+            "url": "/_mozilla/mozilla/storage.html"
+          }
+        ],
+        "mozilla/textcontent.html": [
+          {
+            "path": "mozilla/textcontent.html",
+            "url": "/_mozilla/mozilla/textcontent.html"
+          }
+        ],
+        "mozilla/title.html": [
+          {
+            "path": "mozilla/title.html",
+            "url": "/_mozilla/mozilla/title.html"
+          }
+        ],
+        "mozilla/trace_null.html": [
+          {
+            "path": "mozilla/trace_null.html",
+            "url": "/_mozilla/mozilla/trace_null.html"
+          }
+        ],
+        "mozilla/union.html": [
+          {
+            "path": "mozilla/union.html",
+            "url": "/_mozilla/mozilla/union.html"
+          }
+        ],
+        "mozilla/window.html": [
+          {
+            "path": "mozilla/window.html",
+            "url": "/_mozilla/mozilla/window.html"
+          }
+        ],
+        "mozilla/window_performance.html": [
+          {
+            "path": "mozilla/window_performance.html",
+            "url": "/_mozilla/mozilla/window_performance.html"
+          }
+        ],
+        "mozilla/window_setInterval.html": [
+          {
+            "path": "mozilla/window_setInterval.html",
+            "url": "/_mozilla/mozilla/window_setInterval.html"
+          }
+        ],
+        "mozilla/windowproxy.html": [
+          {
+            "path": "mozilla/windowproxy.html",
+            "url": "/_mozilla/mozilla/windowproxy.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {},

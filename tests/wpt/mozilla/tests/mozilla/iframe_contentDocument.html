@@ -1,0 +1,28 @@
+<html>
+<head>
+<meta charset="utf8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>Iframe contentDocument test.</title>
+</head>
+<body>
+<iframe src="resources/iframe_contentDocument_inner.html" id="iframe"></iframe>
+<script>
+async_test(function() {
+  var timeout = 100;
+  var iframe = document.getElementById('iframe');
+  function test_contentWindow() {
+    if (!iframe.contentWindow) {
+      // Iframe not loaded yet, try again.
+      // No load event for iframe, insert bug number here.
+      setTimeout(this.step_func(test_contentWindow), timeout);
+      return;
+    }
+    assert_equals(iframe.contentDocument.getElementById('test').textContent, 'value');
+    this.done();
+  }
+  this.step(test_contentWindow);
+});
+</script>
+</body>
+</html>

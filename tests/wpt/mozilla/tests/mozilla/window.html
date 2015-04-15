@@ -1,0 +1,15 @@
+<html>
+<head>
+  <title></title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+test(function() {
+  assert_equals(window, window.self);
+  assert_true(window.self instanceof Window, "Should be Window");
+});
+</script>
+</body>
+</html>
