@@ -4,6 +4,7 @@
 
 /// General actor system infrastructure.
 
+use rustc_serialize::json;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::cell::{Cell, RefCell};
@@ -11,7 +12,7 @@ use std::mem::{replace, transmute};
 use std::net::TcpStream;
 use std::raw::TraitObject;
 use std::sync::{Arc, Mutex};
-use rustc_serialize::json;
+use time::PreciseTime;
 
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
@@ -82,6 +83,7 @@ pub struct ActorRegistry {
     script_actors: RefCell<HashMap<String, String>>,
     shareable: Option<Arc<Mutex<ActorRegistry>>>,
     next: Cell<u32>,
+    start_stamp: PreciseTime,
 }
 
 impl ActorRegistry {
@@ -94,6 +96,7 @@ impl ActorRegistry {
             script_actors: RefCell::new(HashMap::new()),
             shareable: None,
             next: Cell::new(0),
+            start_stamp: PreciseTime::now(),
         }
     }
 
@@ -113,6 +116,11 @@ impl ActorRegistry {
     /// Get shareable registry through threads
     pub fn get_shareable(&self) -> Arc<Mutex<ActorRegistry>> {
         self.shareable.as_ref().unwrap().clone()
+    }
+
+    /// Get start stamp when registry was started
+    pub fn get_start_stamp(&self) -> PreciseTime {
+        self.start_stamp.clone()
     }
 
     pub fn register_script_actor(&self, script_id: String, actor: String) {
