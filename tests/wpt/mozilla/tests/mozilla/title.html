@@ -1,0 +1,14 @@
+<html>
+<head>
+<title>starting title</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_equals(document.title, "starting title");
+  document.title = "new title";
+  assert_equals(document.title, "new title");
+});
+</script>
+</head>
+</html>

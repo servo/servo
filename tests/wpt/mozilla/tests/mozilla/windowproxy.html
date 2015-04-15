@@ -1,0 +1,28 @@
+<html>
+<head id="foo">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div></div>
+<script>
+test(function() {
+  window.abcd = 15;
+  assert_equals(window.abcd, 15);
+  assert_equals(Object.getOwnPropertyDescriptor(window, 'abcd').value, 15);
+  assert_equals(window.hasOwnProperty('abcd'), true);
+
+  assert_equals('location' in window, true);
+
+  // Can't set indexed properties
+  window[100] = "abc";
+  assert_equals(window[100], undefined);
+  assert_equals(Object.getOwnPropertyDescriptor(window, 1000), undefined);
+});
+
+test(function() {
+  assert_own_property(window, 'location')
+}, "Unforgeable location");
+</script>
+</body>
+</html>

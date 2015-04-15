@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="foo-1" class="foo"></div>
+        <div id="foo-2" class="foo"></div>
+        <div id="bar" class="bar"></div>
+        <div id="live" class="live"></div>
+        <div id="class-example">
+            <p id="p1" class="aaa bbb"/>
+            <p id="p2" class="aaa ccc"/>
+            <p id="p3" class="bbb ccc"/>
+        </div>
+        <script>
+            let foo1 = document.getElementById("foo-1");
+            let foo2 = document.getElementById("foo-2");
+            let bar = document.getElementById("bar");
+            let live = document.getElementById("live");
+            let child = document.createElement("p");
+            let p1 = document.getElementById("p1");
+            let p2 = document.getElementById("p2");
+            let p3 = document.getElementById("p3");
+
+            let htmlcollection = null;
+
+            test(function() {
+                htmlcollection = document.getElementsByClassName("foo");
+                assert_equals(htmlcollection.length, 2);
+                assert_equals(htmlcollection.item(0), foo1);
+                assert_equals(htmlcollection.item(1), foo2);
+                assert_equals(htmlcollection.item(2), null);
+                assert_equals(htmlcollection.namedItem("foo-1"), foo1);
+                assert_equals(htmlcollection.namedItem("bar"), null);
+
+                htmlcollection = document.getElementsByClassName("FOO");
+                assert_equals(htmlcollection.length, 0);
+
+                htmlcollection = document.getElementsByClassName("bar");
+                assert_equals(htmlcollection.length, 1);
+                assert_equals(htmlcollection.item(0), bar);
+                assert_equals(htmlcollection.item(1), null);
+                assert_equals(htmlcollection.namedItem("bar"), bar);
+            }, "HTMLCollection interface");
+
+            test(function() {
+                htmlcollection = document.getElementsByClassName("live");
+                assert_equals(htmlcollection.length, 1);
+                assert_equals(htmlcollection.item(0), live);
+
+                let new_live = document.createElement("div");
+                new_live.className = "live";
+                document.body.appendChild(new_live);
+                assert_equals(htmlcollection.length, 2);
+                assert_equals(htmlcollection.item(1), new_live);
+
+                document.body.removeChild(new_live);
+                assert_equals(htmlcollection.length, 1);
+            }, "live HTMLCollection");
+
+            test(function() {
+                assert_equals(document.getElementsByTagName("DIV").length, 5);
+
+                assert_equals(document.getElementsByTagName("div").length,
+                   document.documentElement.getElementsByTagName("div").length);
+
+                assert_equals(document.getElementsByTagName("p").length,
+                   document.getElementById("class-example").getElementsByTagName("p").length);
+            }, "getElementsByTagName");
+
+            test(function() {
+                htmlcollection = document.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "div");
+                assert_equals(htmlcollection.length, 5);
+
+                let from_element = document.documentElement.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "div");
+                assert_equals(htmlcollection.length, from_element.length);
+
+                htmlcollection = document.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "DIV");
+                assert_equals(htmlcollection.length, 0);
+
+                htmlcollection = document.getElementsByTagNameNS("", "div");
+                assert_equals(htmlcollection.length, 0);
+
+                htmlcollection = document.getElementsByTagNameNS("invalid", "div");
+                assert_equals(htmlcollection.length, 0);
+
+                from_element = document.getElementById("class-example").getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "p");
+                assert_equals(from_element.length, 3);
+            }, "getElementsByTagNameNS");
+
+            test(function() {
+                htmlcollection = document.getElementsByClassName("aaa");
+                assert_equals(htmlcollection.length, 2);
+                assert_equals(htmlcollection.item(0), p1);
+                assert_equals(htmlcollection.item(1), p2);
+
+                htmlcollection = document.getElementsByClassName("ccc bbb");
+                assert_equals(htmlcollection.length, 1);
+                assert_equals(htmlcollection.item(0), p3);
+
+                htmlcollection = document.getElementsByClassName("aaa,bbb");
+                assert_equals(htmlcollection.length, 0);
+
+                let from_element = document.getElementById("class-example").getElementsByClassName("bbb");
+                assert_equals(from_element.length, 2);
+                assert_equals(from_element.item(0), p1);
+                assert_equals(from_element.item(1), p3);
+            }, "document.getElementsByClassName");
+        </script>
+    </body>
+</html>

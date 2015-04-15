@@ -1,0 +1,105 @@
+<html>
+<head>
+  <title></title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    async_test(function() {
+      var executed = 0;
+      window.ok = this.step_func(function() {
+        ++executed;
+      })
+      window.fail = this.unreached_func()
+      window.onload = this.step_func_done(function() {
+        assert_equals(executed, 22);
+      });
+    });
+  </script>
+  <script type="">
+    ok('type is empty string');
+  </script>
+  <script language="">
+    ok('language is empty string');
+  </script>
+  <script type="text/javascript" language="vbscript">
+    ok('type is text/javascript, language ignored');
+  </script>
+  <script type="" language="fooscript">
+    ok('type is empty string, language ingored');
+  </script>
+  <script language="javascript">
+    ok('language is javascript');
+  </script>
+  <script language="ecmascript">
+    ok('language is ecmascript');
+  </script>
+
+  <!-- list found at http://www.whatwg.org/specs/web-apps/current-work/multipage/scripting.html#support-the-scripting-language -->
+  <script type="application/ecmascript">
+    ok('type is application/ecmascript');
+  </script>
+  <script type="application/javascript">
+    ok('type is application/javascript');
+  </script>
+  <script type="application/x-ecmascript">
+    ok('type is application/x-ecmascript');
+  </script>
+  <script type="application/x-javascript">
+    ok('type is application/x-javascript');
+  </script>
+  <script type="text/ecmascript">
+    ok('type is text/ecmascript');
+  </script>
+  <script type="text/javascript">
+    ok('type is text/javascript');
+  </script>
+  <script type="text/javascript1.0">
+    ok('type is text/javascript1.0');
+  </script>
+  <script type="text/javascript1.1">
+    ok('type is text/javascript1.1');
+  </script>
+  <script type="text/javascript1.2">
+    ok('type is text/javascript1.2');
+  </script>
+  <script type="text/javascript1.3">
+    ok('type is text/javascript1.3');
+  </script>
+  <script type="text/javascript1.4">
+    ok('type is text/javascript1.4');
+  </script>
+  <script type="text/javascript1.5">
+    ok('type is text/javascript1.5');
+  </script>
+  <script type="text/jscript">
+    ok('type is text/jsscript');
+  </script>
+  <script type="text/livescript">
+    ok('type is text/livescript');
+  </script>
+  <script type="text/x-ecmascript">
+    ok('type is text/x-ecmascript');
+  </script>
+  <script type="text/x-javascript">
+    ok('type is text/x-javascript');
+  </script>
+
+
+  <!-- should not execute -->
+  <script type=" ">
+    fail('type is space');
+  </script>
+  <script type="foo">
+    fail('type is unknown');
+  </script>
+  <script type="text/javascript1.6">
+    fail('type is unknown');
+  </script>
+  <script language="text/javascript">
+    fail('language is text/javascript');
+  </script>
+</body>
+</html>
+

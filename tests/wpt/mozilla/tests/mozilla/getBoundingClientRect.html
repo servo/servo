@@ -1,0 +1,37 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+    position: relative;
+    top:  100px;
+    left: 100px;
+    width: 100px;
+    height: 100px;
+}
+</style>
+</head>
+<body>
+    <div>my div</div>
+    <script>
+    test(function() {
+      assert_equals(String(DOMRect).indexOf("function DOMRect("), 0);
+
+      var elems = document.getElementsByTagName('div');
+      var rect = elems[0].getBoundingClientRect();
+      assert_true(rect instanceof DOMRect, "Should be DOMRect");
+
+      assert_greater_than_equal(rect.top,    100);
+      assert_greater_than_equal(rect.bottom, 200);
+      assert_greater_than_equal(rect.left,   100);
+      assert_greater_than_equal(rect.right,  200);
+
+      assert_equals(rect.width, 100);
+      assert_equals(rect.height, 100);
+      assert_equals(rect.width,  rect.right  - rect.left);
+      assert_equals(rect.height, rect.bottom - rect.top);
+    });
+    </script>
+</body>
+</html>

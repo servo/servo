@@ -1,0 +1,26 @@
+<html>
+<head>
+  <title></title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="div1"></div>
+  <script>
+  test(function() {
+    assert_true(document.documentElement.parentNode instanceof Document, "Should be Document");
+    assert_equals(document.documentElement.parentElement, null);
+
+    var elem = document.createElement("p");
+    assert_equals(elem.parentNode, null);
+    assert_equals(elem.parentElement, null);
+    
+    var child = document.createElement("p");
+    elem.appendChild(child);
+
+    assert_equals(child.parentNode, elem);
+    assert_equals(child.parentElement, elem);
+  });
+  </script>
+</body>
+</html>
