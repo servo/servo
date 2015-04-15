@@ -299,38 +299,38 @@ impl AnimatedProperty {
             AnimatedProperty::PaddingRight(ref a, ref b) |
             AnimatedProperty::PaddingBottom(ref a, ref b) |
             AnimatedProperty::PaddingLeft(ref a, ref b) |
-            AnimatedProperty::Width(ref a, ref b) | 
+            AnimatedProperty::Width(ref a, ref b) |
             AnimatedProperty::Height(ref a, ref b) => a == b,
-            AnimatedProperty::MaxWidth(ref a, ref b) | 
+            AnimatedProperty::MaxWidth(ref a, ref b) |
             AnimatedProperty::MaxHeight(ref a, ref b) => a == b,
-            AnimatedProperty::MinWidth(ref a, ref b) | 
-            AnimatedProperty::MinHeight(ref a, ref b) => a == b,
+            AnimatedProperty::MinWidth(ref a, ref b) |
+            AnimatedProperty::MinHeight(ref a, ref b) |
             AnimatedProperty::TextIndent(ref a, ref b) => a == b,
-            AnimatedProperty::TextShadow(ref a, ref b) => a == b,
-            AnimatedProperty::BorderTopColor(ref a, ref b) |
-            AnimatedProperty::BorderRightColor(ref a, ref b) |
-            AnimatedProperty::BorderBottomColor(ref a, ref b) |
-            AnimatedProperty::BorderLeftColor(ref a, ref b) |
-            AnimatedProperty::BackgroundColor(ref a, ref b) => a == b,
-            AnimatedProperty::BackgroundPosition(ref a, ref b) => a == b,
-            AnimatedProperty::BorderSpacing(ref a, ref b) => a == b,
-            AnimatedProperty::Color(ref a, ref b) => a == b,
-            AnimatedProperty::Clip(ref a, ref b) => a == b,
-            AnimatedProperty::VerticalAlign(ref a, ref b) => a == b,
-            AnimatedProperty::FontWeight(ref a, ref b) => a == b,
             AnimatedProperty::FontSize(ref a, ref b) |
             AnimatedProperty::BorderTopWidth(ref a, ref b) |
             AnimatedProperty::BorderRightWidth(ref a, ref b) |
             AnimatedProperty::BorderBottomWidth(ref a, ref b) |
             AnimatedProperty::BorderLeftWidth(ref a, ref b) => a == b,
+            AnimatedProperty::BorderTopColor(ref a, ref b) |
+            AnimatedProperty::BorderRightColor(ref a, ref b) |
+            AnimatedProperty::BorderBottomColor(ref a, ref b) |
+            AnimatedProperty::BorderLeftColor(ref a, ref b) |
+            AnimatedProperty::OutlineColor(ref a, ref b) |
+            AnimatedProperty::BackgroundColor(ref a, ref b) => a == b,
             AnimatedProperty::LineHeight(ref a, ref b) => a == b,
-            AnimatedProperty::LetterSpacing(ref a, ref b) |
-            AnimatedProperty::WordSpacing(ref a, ref b) => a == b,
-            AnimatedProperty::Visibility(ref a, ref b) => a == b,
-            AnimatedProperty::ZIndex(ref a, ref b) => a == b,
-            AnimatedProperty::OutlineWidth(ref a, ref b) => a == b,
-            AnimatedProperty::OutlineColor(ref a, ref b) => a == b,
+            AnimatedProperty::LetterSpacing(ref a, ref b) => a == b,
+            AnimatedProperty::BackgroundPosition(ref a, ref b) => a == b,
+            AnimatedProperty::BorderSpacing(ref a, ref b) => a == b,
+            AnimatedProperty::Clip(ref a, ref b) => a == b,
+            AnimatedProperty::Color(ref a, ref b) => a == b,
+            AnimatedProperty::FontWeight(ref a, ref b) => a == b,
             AnimatedProperty::Opacity(ref a, ref b) => a == b,
+            AnimatedProperty::OutlineWidth(ref a, ref b) => a == b,
+            AnimatedProperty::TextShadow(ref a, ref b) => a == b,
+            AnimatedProperty::VerticalAlign(ref a, ref b) => a == b,
+            AnimatedProperty::Visibility(ref a, ref b) => a == b,
+            AnimatedProperty::WordSpacing(ref a, ref b) => a == b,
+            AnimatedProperty::ZIndex(ref a, ref b) => a == b,
         }
     }
 }
