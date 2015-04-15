@@ -26,8 +26,8 @@ interface CanvasRenderingContext2D {
   //void commit(); // push the image to the output bitmap
 
   // state
-  //void save(); // push state on state stack
-  //void restore(); // pop state stack and restore state
+  void save(); // push state on state stack
+  void restore(); // pop state stack and restore state
 
   // transformations (default transform is the identity matrix)
   //         attribute SVGMatrix currentTransform;
