@@ -16,11 +16,14 @@ use util::vec::byte_swap;
 
 use cssparser::RGBA;
 use std::borrow::ToOwned;
+use std::mem;
 use std::num::{Float, ToPrimitive};
 use std::sync::mpsc::{channel, Sender};
 
 #[derive(Clone)]
 pub enum CanvasMsg {
+    SaveContext,
+    RestoreContext,
     FillRect(Rect<f32>),
     ClearRect(Rect<f32>),
     StrokeRect(Rect<f32>),
@@ -109,7 +112,7 @@ impl<'a> CanvasPaintTask<'a> {
             image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
 
         let draw_surface_options = DrawSurfaceOptions::new(filter, true);
-        let draw_options = DrawOptions::new(self.draw_options.alpha, 0);
+        let draw_options = DrawOptions::new(self.state.draw_options.alpha, 0);
 
         self.drawtarget.draw_surface(source_surface,
                                      dest_rect.to_azfloat(),
@@ -186,14 +189,32 @@ impl<'a> CanvasPaintTask<'a> {
 
 pub struct CanvasPaintTask<'a> {
     drawtarget: DrawTarget,
+    /// TODO(pcwalton): Support multiple paths.
+    path_builder: PathBuilder,
+    state: CanvasPaintState<'a>,
+    saved_states: Vec<CanvasPaintState<'a>>,
+}
+
+#[derive(Clone)]
+struct CanvasPaintState<'a> {
     draw_options: DrawOptions,
     fill_style: Pattern,
     stroke_style: Pattern,
     stroke_opts: StrokeOptions<'a>,
-    /// TODO(pcwalton): Support multiple paths.
-    path_builder: PathBuilder,
     /// The current 2D transform matrix.
     transform: Matrix2D<f32>,
+}
+
+impl<'a> CanvasPaintState<'a> {
+    fn new() -> CanvasPaintState<'a> {
+        CanvasPaintState {
+            draw_options: DrawOptions::new(1.0, 0),
+            fill_style: Pattern::Color(ColorPattern::new(color::black())),
+            stroke_style: Pattern::Color(ColorPattern::new(color::black())),
+            stroke_opts: StrokeOptions::new(1.0, JoinStyle::MiterOrBevel, CapStyle::Butt, 10.0, &[]),
+            transform: Matrix2D::identity(),
+        }
+    }
 }
 
 impl<'a> CanvasPaintTask<'a> {
@@ -202,12 +223,9 @@ impl<'a> CanvasPaintTask<'a> {
         let path_builder = draw_target.create_path_builder();
         CanvasPaintTask {
             drawtarget: draw_target,
-            draw_options: DrawOptions::new(1.0, 0),
-            fill_style: Pattern::Color(ColorPattern::new(color::black())),
-            stroke_style: Pattern::Color(ColorPattern::new(color::black())),
-            stroke_opts: StrokeOptions::new(1.0, JoinStyle::MiterOrBevel, CapStyle::Butt, 10.0, &[]),
             path_builder: path_builder,
-            transform: Matrix2D::identity(),
+            state: CanvasPaintState::new(),
+            saved_states: Vec::new(),
         }
     }
 
@@ -218,6 +236,8 @@ impl<'a> CanvasPaintTask<'a> {
 
             loop {
                 match port.recv().unwrap() {
+                    CanvasMsg::SaveContext => painter.save_context_state(),
+                    CanvasMsg::RestoreContext => painter.restore_context_state(),
                     CanvasMsg::FillRect(ref rect) => painter.fill_rect(rect),
                     CanvasMsg::StrokeRect(ref rect) => painter.stroke_rect(rect),
                     CanvasMsg::ClearRect(ref rect) => painter.clear_rect(rect),
@@ -265,8 +285,20 @@ impl<'a> CanvasPaintTask<'a> {
         chan
     }
 
+    fn save_context_state(&mut self) {
+        self.saved_states.push(self.state.clone());
+    }
+
+    fn restore_context_state(&mut self) {
+        if let Some(state) = self.saved_states.pop() {
+            mem::replace(&mut self.state, state);
+            self.drawtarget.set_transform(&self.state.transform);
+        }
+    }
+
     fn fill_rect(&self, rect: &Rect<f32>) {
-        self.drawtarget.fill_rect(rect, self.fill_style.to_pattern_ref(), Some(&self.draw_options));
+        self.drawtarget.fill_rect(rect, self.state.fill_style.to_pattern_ref(),
+                                  Some(&self.state.draw_options));
     }
 
     fn clear_rect(&self, rect: &Rect<f32>) {
@@ -274,9 +306,9 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn stroke_rect(&self, rect: &Rect<f32>) {
-        match self.stroke_style {
+        match self.state.stroke_style {
             Pattern::Color(ref color) => {
-                self.drawtarget.stroke_rect(rect, color, &self.stroke_opts, &self.draw_options)
+                self.drawtarget.stroke_rect(rect, color, &self.state.stroke_opts, &self.state.draw_options)
             }
             _ => {
                 // TODO(pcwalton)
@@ -293,9 +325,9 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn fill(&self) {
-        match self.fill_style {
+        match self.state.fill_style {
             Pattern::Color(ref color) => {
-                self.drawtarget.fill(&self.path_builder.finish(), color, &self.draw_options);
+                self.drawtarget.fill(&self.path_builder.finish(), color, &self.state.draw_options);
             }
             _ => {
                 // TODO(pcwalton)
@@ -304,10 +336,10 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn stroke(&self) {
-        match self.stroke_style {
+        match self.state.stroke_style {
             Pattern::Color(ref color) => {
                 self.drawtarget.stroke(&self.path_builder.finish(),
-                                       color, &self.stroke_opts, &self.draw_options);
+                                       color, &self.state.stroke_opts, &self.state.draw_options);
             }
             _ => {
                 // TODO
@@ -420,36 +452,36 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn set_fill_style(&mut self, style: FillOrStrokeStyle) {
-        self.fill_style = style.to_azure_pattern(&self.drawtarget)
+        self.state.fill_style = style.to_azure_pattern(&self.drawtarget)
     }
 
     fn set_stroke_style(&mut self, style: FillOrStrokeStyle) {
-        self.stroke_style = style.to_azure_pattern(&self.drawtarget)
+        self.state.stroke_style = style.to_azure_pattern(&self.drawtarget)
     }
 
     fn set_line_width(&mut self, width: f32) {
-        self.stroke_opts.line_width = width;
+        self.state.stroke_opts.line_width = width;
     }
 
     fn set_line_cap(&mut self, cap: LineCapStyle) {
-        self.stroke_opts.line_cap = cap.to_azure_style();
+        self.state.stroke_opts.line_cap = cap.to_azure_style();
     }
 
     fn set_line_join(&mut self, join: LineJoinStyle) {
-        self.stroke_opts.line_join = join.to_azure_style();
+        self.state.stroke_opts.line_join = join.to_azure_style();
     }
 
     fn set_miter_limit(&mut self, limit: f32) {
-        self.stroke_opts.miter_limit = limit;
+        self.state.stroke_opts.miter_limit = limit;
     }
 
     fn set_transform(&mut self, transform: &Matrix2D<f32>) {
-        self.transform = *transform;
+        self.state.transform = *transform;
         self.drawtarget.set_transform(transform)
     }
 
     fn set_global_alpha(&mut self, alpha: f32) {
-        self.draw_options.alpha = alpha;
+        self.state.draw_options.alpha = alpha;
     }
 
     fn create(size: Size2D<i32>) -> DrawTarget {
