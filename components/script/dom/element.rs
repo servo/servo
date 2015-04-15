@@ -700,7 +700,7 @@ pub trait AttributeHandlers {
 
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_attribute(self, namespace: &Namespace, local_name: &Atom) -> Option<Temporary<Attr>> {
-        let mut attributes: RootedVec<JS<Attr>> = RootedVec::new();
+        let mut attributes = RootedVec::new();
         self.get_attributes(local_name, &mut attributes);
         attributes.iter().map(|attr| attr.root())
             .find(|attr| attr.r().namespace() == namespace)
@@ -953,7 +953,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         assert!(local_name.chars().all(|ch| {
             !ch.is_ascii() || ch.to_ascii_lowercase() == ch
         }));
-        let mut attribute = self.get_attribute(&ns!(""), local_name).root();
+        let attribute = self.get_attribute(&ns!(""), local_name).root();
         match attribute {
             Some(attribute) => {
                 match *attribute.r().value() {
@@ -1468,7 +1468,7 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
     }
     #[allow(unsafe_code)]
     fn get_attrs(self, local_name: &Atom) -> Vec<&'a str> {
-        let mut attributes: RootedVec<JS<Attr>> = RootedVec::new();
+        let mut attributes = RootedVec::new();
         self.get_attributes(local_name, &mut attributes);
         attributes.iter().map(|attr| attr.root()).map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
