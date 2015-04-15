@@ -1,0 +1,30 @@
+<html>
+<head>
+  <title></title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+test(function() {
+  assert_not_equals(window.performance, undefined);
+  assert_true(window.performance instanceof Performance, "Should be Performance");
+
+  assert_not_equals(window.performance.timing, undefined);
+  assert_true(window.performance.timing instanceof PerformanceTiming, "Should be PerformanceTiming");
+
+  assert_greater_than(window.performance.timing.navigationStart, 0);
+
+  var last = window.performance.now();
+  assert_greater_than(last, 0);
+
+  // Check that window.performance.now() is monotonically increasing
+  for (var i = 0; i < 100; i++) {
+    var next = window.performance.now();
+    assert_greater_than(next, last);
+    last = next;
+  }
+});
+</script>
+</body>
+</html>

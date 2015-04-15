@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+      </head>
+      <body>
+
+        <img src="test.png">
+
+        <noscript>
+            <img src="test.jpg">
+        </noscript>
+
+        <script>
+          test(function() {
+            var images = document.images;
+            assert_equals(images, document.images);
+            assert_equals(images.length, 1);
+
+            var image = document.createElement("img");
+            image.setAttribute("src", "test.jpg");
+            document.body.appendChild(image);
+            assert_equals(images.length, 2);
+
+            document.body.removeChild(image);
+            assert_equals(images.length, 1);
+          });
+        </script>
+    </body>
+</html>

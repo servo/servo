@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script>
+                test(function() {
+                        var elem = document.createElement("div");
+                        var other = document.createElement("div");
+                        assert_equals(elem.compareDocumentPosition(elem),0);
+
+                        var nonTree = elem.compareDocumentPosition(other);
+                        var prefix = Node.DOCUMENT_POSITION_DISCONNECTED + Node.DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+                        assert_equals(nonTree == prefix + Node.DOCUMENT_POSITION_FOLLOWING || nonTree == prefix + Node.DOCUMENT_POSITION_PRECEDING,
+                           true);
+
+                        elem.appendChild(other);
+                        assert_equals(elem.compareDocumentPosition(other), Node.DOCUMENT_POSITION_CONTAINED_BY + Node.DOCUMENT_POSITION_FOLLOWING);
+                        assert_equals(other.compareDocumentPosition(elem), Node.DOCUMENT_POSITION_CONTAINS + Node.DOCUMENT_POSITION_PRECEDING);
+
+                        var another = document.createElement("div");
+                        other.appendChild(another);
+                        assert_equals(elem.compareDocumentPosition(another), Node.DOCUMENT_POSITION_CONTAINED_BY + Node.DOCUMENT_POSITION_FOLLOWING);
+                        assert_equals(another.compareDocumentPosition(elem), Node.DOCUMENT_POSITION_CONTAINS + Node.DOCUMENT_POSITION_PRECEDING);
+
+                        var follower = document.createElement("div");
+                        elem.appendChild(follower);
+                        var preceder = document.createElement("div");
+                        another.appendChild(preceder);
+                        assert_equals(another.compareDocumentPosition(follower), Node.DOCUMENT_POSITION_FOLLOWING);
+                        assert_equals(follower.compareDocumentPosition(another), Node.DOCUMENT_POSITION_PRECEDING);
+                        assert_equals(follower.compareDocumentPosition(preceder), Node.DOCUMENT_POSITION_PRECEDING);
+                });
+        </script>
+    </head>
+</html>

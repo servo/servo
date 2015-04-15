@@ -1,0 +1,20 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(function() {
+  window.check_onload = this.step_func(function(listener) {
+    assert_equals(listener, window);
+    var ev = new Event('click', {bubbles: true, cancelable: true});
+    document.body.dispatchEvent(ev);
+  });
+  window.check_onclick = this.step_func_done(function(listener) {
+    assert_equals(listener, document.body);
+  });
+});
+</script>
+</head>
+<body onload="check_onload(this)" onclick="check_onclick(this)">
+</body>
+</html>

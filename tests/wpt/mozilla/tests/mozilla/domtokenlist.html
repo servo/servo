@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script>
+          test(function() {
+            var div = document.createElement("div");
+            var classList = div.classList;
+
+            assert_equals(classList.length, 0);
+            assert_equals(classList.item(0), null);
+            assert_throws(null, function () {
+                classList.contains("");
+            });
+            assert_throws(null, function () {
+                classList.contains(" ");
+            });
+
+            var list = ["foo", " foo", "foo ", " foo ", "   foo   "];
+            for(var i = 0; i < list.length; i++) {
+                div.className = list[i];
+                assert_equals(div.className, list[i]);
+                assert_equals(classList.length, 1);
+                assert_equals(classList.item(0), "foo");
+                assert_equals(classList.item(1), null);
+                assert_equals(classList.contains("foo"), true);
+                assert_equals(classList.contains("bar"), false);
+            }
+
+            list = ["foo bar", " foo bar", " foo bar ", "   foo   bar   "];
+            for(var i = 0; i < list.length; i++) {
+                div.className = list[i];
+                assert_equals(div.className, list[i]);
+                assert_equals(classList.length, 2);
+                assert_equals(classList.item(0), "foo");
+                assert_equals(classList.item(1), "bar");
+                assert_equals(classList.item(2), null);
+                assert_equals(classList.contains("foo"), true);
+                assert_equals(classList.contains("bar"), true);
+                assert_equals(classList.contains("baz"), false);
+            }
+          });
+        </script>
+    </head>
+</html>

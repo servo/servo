@@ -1,0 +1,44 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="foo"></div>
+<script>
+test(function() {
+  var sawBubble = false;
+  var sawCapture = false;
+  var sawBubbleTwice = false;
+  function handler(ev) {
+    assert_equals(ev.eventPhase, ev.AT_TARGET);
+    assert_equals(sawBubble, false);
+    assert_equals(sawCapture, false);
+    sawBubble = true;
+  }
+  function handler2(ev) {
+    assert_equals(ev.eventPhase, ev.AT_TARGET);
+    assert_equals(sawBubble, true);
+    assert_equals(sawCapture, false);
+    sawCapture = true;
+  }
+  function handler3(ev) {
+    assert_equals(ev.eventPhase, ev.AT_TARGET);
+    assert_equals(sawBubble, true);
+    assert_equals(sawCapture, true);
+    sawBubbleTwice = true;
+  }
+
+  var target = document.getElementById('foo');
+  target.addEventListener('foopy', this.step_func(handler), false);
+  target.addEventListener('foopy', this.step_func(handler2), true);
+  target.addEventListener('foopy', this.step_func(handler3), false);
+  var ev = new Event('foopy', {bubbles: true});
+  target.dispatchEvent(ev);
+  assert_equals(sawBubble, true);
+  assert_equals(sawCapture, true);
+  assert_equals(sawBubbleTwice, true);
+});
+</script>
+</body>
+</html>

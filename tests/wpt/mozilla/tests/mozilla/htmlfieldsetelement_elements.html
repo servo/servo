@@ -1,0 +1,47 @@
+<html>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <fieldset id="fs">
+    <legend>Display</legend>
+    <input type=radio name=a>
+    <fieldset>
+      <button>Click!</button>
+    </fieldset>
+    <keygen name="key">
+    <textarea>
+      A
+    </textarea>
+    <select>
+      <option value="1"> A </option>
+      <option value="2" selected> B </option>
+    </select>
+    <form onsubmit="return false" oninput="o.value = a.valueAsNumber + b.valueAsNumber">
+      <input name=a type=number step=any> +
+      <input name=b type=number step=any> =
+      <output name=c for="a b"></output>
+    </form>
+    <figure>
+      <object type="application/x-java-applet">
+        <param name="code" value="MyJavaClass">
+        <p>You do not have Java available, or it is disabled.</p>
+      </object>
+      <figcaption>My Java Clock</figcaption>
+    </figure>
+  </fieldset>
+  <script>
+  test(function() {
+    var fs = document.getElementById("fs");
+    assert_equals(fs.elements.length, 10);
+    assert_true(fs.elements[0] instanceof HTMLInputElement, "Should be HTMLInputElement");
+    assert_true(fs.elements[1] instanceof HTMLFieldSetElement, "Should be HTMLFieldSetElement");
+    assert_true(fs.elements[2] instanceof HTMLButtonElement, "Should be HTMLButtonElement");
+    assert_true(fs.elements[3] instanceof HTMLUnknownElement, "Should be HTMLUnknownElement");
+    assert_true(fs.elements[4] instanceof HTMLTextAreaElement, "Should be HTMLTextAreaElement");
+    assert_true(fs.elements[5] instanceof HTMLSelectElement, "Should be HTMLSelectElement");
+    assert_true(fs.elements[6] instanceof HTMLInputElement, "Should be HTMLInputElement");
+    assert_true(fs.elements[7] instanceof HTMLInputElement, "Should be HTMLInputElement");
+    assert_true(fs.elements[8] instanceof HTMLOutputElement, "Should be HTMLOutputElement");
+    assert_true(fs.elements[9] instanceof HTMLObjectElement, "Should be HTMLObjectElement");
+  });
+  </script>
+</html>

@@ -1,0 +1,46 @@
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+    test(function() {
+      var testData = ['<a id="a"><b id="b">hey!</b></a>'];
+      var b = new Blob(testData); // the blob
+      assert_equals(b.size, 32);
+      assert_equals(b.type, "");
+
+      var bs = b.slice(0, 5);
+      assert_equals(bs.size, 5);
+      assert_equals(b.type, "");
+
+      var bc = new Blob(testData, {type:"text/plain"}); // the blob
+      assert_equals(bc.size, 32);
+      assert_equals(bc.type, "text/plain");
+
+      var bss = new Blob(testData, {type:" text/plain "}); // spaces
+      assert_equals(bss.size, 32);
+      assert_equals(bss.type, " text/plain ");
+
+      var bcs = bc.slice(0, 7);
+      assert_equals(bcs.size, 7);
+      assert_equals(bcs.type, "");
+
+      var bcsc = bc.slice(0, 7, "text/xml");
+      assert_equals(bcsc.size, 7);
+      assert_equals(bcsc.type, "text/xml");
+
+      var bu = new Blob(testData, {type:"TEXT/PLAIN"}); // the blob
+      assert_equals(bu.size, 32);
+      assert_equals(bu.type, "text/plain");
+
+      var bj = new Blob(testData, {type:"☃"}); // the blob
+      assert_equals(bj.size, 32);
+      assert_equals(bj.type, "");
+
+      var bjs = bj.slice(0, 7, "☃");
+      assert_equals(bjs.size, 7);
+      assert_equals(bjs.type, "");
+    });
+    </script>
+  </head>
+</html>

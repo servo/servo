@@ -1,0 +1,22 @@
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <datalist id="id">
+    <option value="A">
+    <option value="B">
+    <p>P</p>
+    <div>DIV</div>
+    <option value="C">
+  </datalist>
+  <script>
+  test(function() {
+    var datalist = document.getElementById("id");
+    assert_equals(datalist.options.length, 3);
+    assert_true(datalist.options[0] instanceof HTMLOptionElement, "Should be HTMLOptionElement");
+    assert_true(datalist.options[1] instanceof HTMLOptionElement, "Should be HTMLOptionElement");
+    assert_true(datalist.options[2] instanceof HTMLOptionElement, "Should be HTMLOptionElement");
+  });
+  </script>
+</html>
