@@ -13,6 +13,8 @@ use properties::longhands::border_spacing::computed_value::T as BorderSpacing;
 use properties::longhands::line_height::computed_value::T as LineHeight;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::clip::computed_value::ClipRect;
+use properties::longhands::text_shadow::computed_value::TextShadow;
+use properties::longhands::text_shadow::computed_value::T as TextShadowList;
 use properties::longhands::background_position::computed_value::T as BackgroundPosition;
 use properties::longhands::transition_property;
 use values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, LengthOrPercentage, Length, Time};
@@ -88,6 +90,10 @@ impl PropertyAnimation {
                                                         new_style.$structname().$field)
                             }
                         )*
+                        TransitionProperty::TextShadow => {
+                            AnimatedProperty::TextShadow(old_style.get_effects().text_shadow.clone(),
+                                                         new_style.get_effects().text_shadow.clone())
+                        }
                     }
                 }
         }
@@ -214,6 +220,7 @@ impl PropertyAnimation {
             [PaddingTop; mutate_margin; margin_top],
             [Right; mutate_positionoffsets; right],
             [TextIndent; mutate_inheritedtext; text_indent],
+            [TextShadow; mutate_effects; text_shadow],
             [Top; mutate_positionoffsets; top],
             [VerticalAlign; mutate_box; vertical_align],
             [Visibility; mutate_inheritedbox; visibility],
@@ -267,6 +274,7 @@ enum AnimatedProperty {
     PaddingTop(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
     Right(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
     TextIndent(LengthOrPercentage, LengthOrPercentage),
+    TextShadow(TextShadowList, TextShadowList),
     Top(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
     VerticalAlign(VerticalAlign, VerticalAlign),
     Visibility(Visibility, Visibility),
@@ -298,6 +306,7 @@ impl AnimatedProperty {
             AnimatedProperty::MinWidth(ref a, ref b) | 
             AnimatedProperty::MinHeight(ref a, ref b) => a == b,
             AnimatedProperty::TextIndent(ref a, ref b) => a == b,
+            AnimatedProperty::TextShadow(ref a, ref b) => a == b,
             AnimatedProperty::BorderTopColor(ref a, ref b) |
             AnimatedProperty::BorderRightColor(ref a, ref b) |
             AnimatedProperty::BorderBottomColor(ref a, ref b) |
@@ -593,6 +602,46 @@ impl Interpolate for BackgroundPosition {
             },
             (_, _) => None,
         }
+    }
+}
+
+impl Interpolate for TextShadow {
+    #[inline]
+    fn interpolate(&self, other: &TextShadow, time: f64)
+                   -> Option<TextShadow> {
+        match (self.offset_x.interpolate(&other.offset_x, time),
+               self.offset_y.interpolate(&other.offset_y, time),
+               self.blur_radius.interpolate(&other.blur_radius, time),
+               self.color.interpolate(&other.color, time)) {
+            (Some(offset_x), Some(offset_y), Some(blur_radius), Some(color)) => {
+                Some(TextShadow { offset_x: offset_x, offset_y: offset_y, blur_radius: blur_radius, color: color })
+            },
+            (_, _, _, _) => None,
+        }
+    }
+}
+
+impl Interpolate for TextShadowList {
+    #[inline]
+    fn interpolate(&self, other: &TextShadowList, time: f64)
+                   -> Option<TextShadowList> {
+        let zero = TextShadow {
+            offset_x: Au::from_px(0),
+            offset_y: Au::from_px(0),
+            blur_radius: Au::from_px(0),
+            color: Color::RGBA(RGBA {
+                red: 0.0, green: 0.0, blue: 0.0, alpha: 0.0
+            })
+        };
+
+        let interpolate_each = |(a, b):(&TextShadow, &TextShadow)| {
+            a.interpolate(b, time).unwrap()
+        };
+
+        Some(TextShadowList(match self.0.len().cmp(&other.0.len()) {
+            Ordering::Less => other.0.iter().chain(repeat(&zero)).zip(other.0.iter()).map(interpolate_each).collect(),
+            _ => self.0.iter().zip(other.0.iter().chain(repeat(&zero))).map(interpolate_each).collect(),
+        }))
     }
 }
 
