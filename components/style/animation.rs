@@ -26,7 +26,7 @@ use std::num::FromPrimitive;
 use util::bezier::Bezier;
 use util::geometry::Au;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct PropertyAnimation {
     property: AnimatedProperty,
     timing_function: TransitionTimingFunction,
@@ -228,7 +228,7 @@ impl PropertyAnimation {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 enum AnimatedProperty {
     BackgroundColor(Color, Color),
     BackgroundPosition(BackgroundPosition, BackgroundPosition),
