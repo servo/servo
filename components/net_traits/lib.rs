@@ -69,7 +69,42 @@ impl LoadData {
 }
 
 /// Handle to a resource task
-pub type ResourceTask = Sender<ControlMsg>;
+#[derive(Clone)]
+pub struct ResourceTask(Sender<ControlMsg>);
+
+impl ResourceTask {
+    pub fn new(sender: Sender<ControlMsg>) -> ResourceTask {
+        ResourceTask(sender)
+    }
+
+    pub fn load_url(&self, url: Url, consumer: Sender<ProgressMsg>) {
+        let ResourceTask(ref sender) = *self;
+        sender.send(ControlMsg::Load(LoadData::new(url.clone(), consumer))).unwrap();
+    }
+
+    pub fn load(&self, load_data: LoadData) {
+        let ResourceTask(ref sender) = *self;
+        sender.send(ControlMsg::Load(load_data)).unwrap();
+    }
+
+    pub fn set_cookies_for_url(&self, url: Url, cookie: String, source: CookieSource) {
+        let ResourceTask(ref sender) = *self;
+        sender.send(ControlMsg::SetCookiesForUrl(url, cookie, source)).unwrap();
+    }
+
+    pub fn get_cookies_for_url(&self,
+                               url: Url,
+                               consumer: Sender<Option<String>>,
+                               source: CookieSource) {
+        let ResourceTask(ref sender) = *self;
+        sender.send(ControlMsg::GetCookiesForUrl(url, consumer, source)).unwrap();
+    }
+
+    pub fn exit(&self) {
+        let ResourceTask(ref sender) = *self;
+        sender.send(ControlMsg::Exit).unwrap();
+    }
+}
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
@@ -168,7 +203,7 @@ pub struct LoadInfo {
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
         -> Result<(Metadata, Vec<u8>), String> {
     let (sender, receiver) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, sender))).unwrap();
+    resource_task.load_url(url, sender);
 
     let mut metadata = None;
     let mut buf = vec!();
@@ -185,7 +220,7 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
 /// Load a URL asynchronously and iterate over chunks of bytes from the response.
 pub fn load_bytes_iter(resource_task: &ResourceTask, url: Url) -> (Metadata, ProgressMsgPortIterator) {
     let (input_chan, input_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, input_chan))).unwrap();
+    resource_task.load_url(url, input_chan);
 
     let response = input_port.recv().unwrap();
     match response {

@@ -42,7 +42,6 @@ use js::jsapi::{JS_ParseJSON, JSContext};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
-use net_traits::ControlMsg::Load;
 use net_traits::ProgressMsg::{Headers, Payload, Done};
 use net_traits::{ResourceTask, ResourceCORSData, LoadData, ProgressMsg};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode};
@@ -283,7 +282,7 @@ impl XMLHttpRequest {
         }
 
         // Step 10, 13
-        resource_task.send(Load(load_data)).unwrap();
+        resource_task.load(load_data);
 
         select! (
             response = progress_port.recv() => {

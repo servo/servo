@@ -20,7 +20,7 @@ use msg::constellation_msg::{IFrameSandboxState, MozBrowserEvent, NavigationDire
 use msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::constellation_msg::{self, ConstellationChan, Failure};
-use net_traits::{self, ResourceTask};
+use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use net_traits::storage_task::{StorageTask, StorageTaskMsg};
 use profile::mem;
@@ -392,7 +392,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             pipeline.exit(PipelineExitType::Complete);
         }
         self.image_cache_task.exit();
-        self.resource_task.send(net_traits::ControlMsg::Exit).unwrap();
+        self.resource_task.exit();
         self.devtools_chan.as_ref().map(|chan| {
             chan.send(DevtoolsControlMsg::ServerExitMsg).unwrap();
         });

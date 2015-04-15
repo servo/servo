@@ -105,7 +105,7 @@ pub fn new_resource_task(user_agent: Option<String>) -> ResourceTask {
     spawn_named("ResourceManager".to_owned(), move || {
         ResourceManager::new(setup_port, user_agent, setup_chan_clone).start();
     });
-    setup_chan
+    ResourceTask::new(setup_chan)
 }
 
 pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> {
