@@ -22,7 +22,6 @@ pub fn factory(load_data: LoadData, _classifier: Arc<MIMEClassifier>) {
 }
 
 pub fn load(load_data: LoadData) {
-    let start_chan = load_data.consumer;
     let url = load_data.url;
     assert!(&*url.scheme == "data");
 
@@ -42,7 +41,8 @@ pub fn load(load_data: LoadData) {
     }
     let parts: Vec<&str> = scheme_data.splitn(1, ',').collect();
     if parts.len() != 2 {
-        start_sending(start_chan, metadata).send(Done(Err("invalid data uri".to_string()))).unwrap();
+        start_sending(&load_data.consumer, metadata);
+        load_data.consumer.send(Done(Err("invalid data uri".to_string()))).unwrap();
         return;
     }
 
@@ -60,7 +60,7 @@ pub fn load(load_data: LoadData) {
     let content_type: Option<Mime> = ct_str.parse().ok();
     metadata.set_content_type(content_type.as_ref());
 
-    let progress_chan = start_sending(start_chan, metadata);
+    start_sending(&load_data.consumer, metadata);
     let bytes = percent_decode(parts[1].as_bytes());
 
     if is_base64 {
@@ -69,15 +69,15 @@ pub fn load(load_data: LoadData) {
         let bytes = bytes.into_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
         match bytes.from_base64() {
             Err(..) => {
-                progress_chan.send(Done(Err("non-base64 data uri".to_string()))).unwrap();
+                load_data.consumer.send(Done(Err("non-base64 data uri".to_string()))).unwrap();
             }
             Ok(data) => {
-                progress_chan.send(Payload(data)).unwrap();
-                progress_chan.send(Done(Ok(()))).unwrap();
+                load_data.consumer.send(Payload(data)).unwrap();
+                load_data.consumer.send(Done(Ok(()))).unwrap();
             }
         }
     } else {
-        progress_chan.send(Payload(bytes)).unwrap();
-        progress_chan.send(Done(Ok(()))).unwrap();
+        load_data.consumer.send(Payload(bytes)).unwrap();
+        load_data.consumer.send(Done(Ok(()))).unwrap();
     }
 }

@@ -12,7 +12,7 @@ use cookie_storage::CookieStorage;
 use cookie;
 use mime_classifier::MIMEClassifier;
 
-use net_traits::{ControlMsg, LoadData, LoadResponse};
+use net_traits::{ControlMsg, LoadData};
 use net_traits::{Metadata, ProgressMsg, ResourceTask};
 use net_traits::ProgressMsg::Done;
 use util::opts;
@@ -29,7 +29,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::str::FromStr;
 use std::sync::Arc;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Receiver, Sender, SendError};
 use std::thunk::Invoke;
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
@@ -59,21 +59,20 @@ pub fn global_init() {
 }
 
 /// For use by loaders in responding to a Load message.
-pub fn start_sending(start_chan: Sender<LoadResponse>, metadata: Metadata) -> Sender<ProgressMsg> {
+pub fn start_sending(start_chan: &Sender<ProgressMsg>, metadata: Metadata) {
     start_sending_opt(start_chan, metadata).ok().unwrap()
 }
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
-pub fn start_sending_sniffed(start_chan: Sender<LoadResponse>, metadata: Metadata,
-                             classifier: Arc<MIMEClassifier>, partial_body: &Vec<u8>)
-                             -> Sender<ProgressMsg> {
+pub fn start_sending_sniffed(start_chan: &Sender<ProgressMsg>, metadata: Metadata,
+                             classifier: Arc<MIMEClassifier>, partial_body: &Vec<u8>) {
     start_sending_sniffed_opt(start_chan, metadata, classifier, partial_body).ok().unwrap()
 }
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
-pub fn start_sending_sniffed_opt(start_chan: Sender<LoadResponse>, mut metadata: Metadata,
+pub fn start_sending_sniffed_opt(start_chan: &Sender<ProgressMsg>, mut metadata: Metadata,
                                  classifier: Arc<MIMEClassifier>, partial_body: &Vec<u8>)
-                                 -> Result<Sender<ProgressMsg>, ()> {
+                                 -> Result<(), SendError<ProgressMsg>> {
     if opts::get().sniff_mime_types {
         // TODO: should be calculated in the resource loader, from pull requeset #4094
         let nosniff = false;
@@ -94,16 +93,9 @@ pub fn start_sending_sniffed_opt(start_chan: Sender<LoadResponse>, mut metadata:
 }
 
 /// For use by loaders in responding to a Load message.
-pub fn start_sending_opt(start_chan: Sender<LoadResponse>, metadata: Metadata) -> Result<Sender<ProgressMsg>, ()> {
-    let (progress_chan, progress_port) = channel();
-    let result = start_chan.send(LoadResponse {
-        metadata:      metadata,
-        progress_port: progress_port,
-    });
-    match result {
-        Ok(_) => Ok(progress_chan),
-        Err(_) => Err(())
-    }
+pub fn start_sending_opt(consumer: &Sender<ProgressMsg>, metadata: Metadata)
+                         -> Result<(), SendError<ProgressMsg>> {
+    consumer.send(ProgressMsg::Headers(metadata))
 }
 
 /// Create a ResourceTask
@@ -222,8 +214,8 @@ impl ResourceManager {
             "about" => from_factory(about_loader::factory),
             _ => {
                 debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
-                start_sending(load_data.consumer, Metadata::default(load_data.url))
-                    .send(ProgressMsg::Done(Err("no loader for scheme".to_string()))).unwrap();
+                start_sending(&load_data.consumer, Metadata::default(load_data.url));
+                load_data.consumer.send(ProgressMsg::Done(Err("no loader for scheme".to_string()))).unwrap();
                 return
             }
         };

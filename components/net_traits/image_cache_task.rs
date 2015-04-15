@@ -88,9 +88,9 @@ pub fn load_image_data(url: Url, resource_task: ResourceTask, placeholder: &[u8]
 
     let mut image_data = vec!();
 
-    let progress_port = response_port.recv().unwrap().progress_port;
     loop {
-        match progress_port.recv().unwrap() {
+        match response_port.recv().unwrap() {
+            ProgressMsg::Headers(..) => {}
             ProgressMsg::Payload(data) => {
                 image_data.push_all(&data);
             }

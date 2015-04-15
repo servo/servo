@@ -61,7 +61,7 @@ use msg::constellation_msg::{ConstellationChan};
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent, WorkerId};
 use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::{ResourceTask, ControlMsg, LoadResponse};
+use net_traits::{ResourceTask, ControlMsg, LoadInfo, ProgressMsg};
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
@@ -189,7 +189,7 @@ pub enum ScriptMsg {
     /// A DOM object's last pinned reference was removed (dispatched to all tasks).
     RefcountCleanup(TrustedReference),
     /// The final network response for a page has arrived.
-    PageFetchComplete(PipelineId, Option<SubpageId>, LoadResponse),
+    PageFetchComplete(PipelineId, Option<SubpageId>, LoadInfo),
 }
 
 /// A cloneable interface for communicating with an event loop.
@@ -688,8 +688,8 @@ impl ScriptTask {
                 runnable.handler(self),
             ScriptMsg::RefcountCleanup(addr) =>
                 LiveDOMReferences::cleanup(self.get_cx(), addr),
-            ScriptMsg::PageFetchComplete(id, subpage, response) =>
-                self.handle_page_fetch_complete(id, subpage, response),
+            ScriptMsg::PageFetchComplete(id, subpage, load_info) =>
+                self.handle_page_fetch_complete(id, subpage, load_info),
         }
     }
 
@@ -898,13 +898,13 @@ impl ScriptTask {
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
     fn handle_page_fetch_complete(&self, id: PipelineId, subpage: Option<SubpageId>,
-                                  response: LoadResponse) {
+                                  load_info: LoadInfo) {
         // Any notification received should refer to an existing, in-progress load that is tracked.
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
             load.pipeline_id == id && load.parent_info.map(|info| info.1) == subpage
         }).unwrap();
         let load = self.incomplete_loads.borrow_mut().remove(idx);
-        self.load(response, load);
+        self.load(load_info, load);
     }
 
     /// Handles a request for the window title.
@@ -938,8 +938,8 @@ impl ScriptTask {
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-    fn load(&self, response: LoadResponse, incomplete: InProgressLoad) {
-        let final_url = response.metadata.final_url.clone();
+    fn load(&self, load_info: LoadInfo, incomplete: InProgressLoad) {
+        let final_url = load_info.metadata.final_url.clone();
         debug!("ScriptTask: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
 
         // We should either be initializing a root page or loading a child page of an
@@ -1049,11 +1049,11 @@ impl ScriptTask {
                                  incomplete.parent_info,
                                  incomplete.window_size).root();
 
-        let last_modified: Option<DOMString> = response.metadata.headers.as_ref().and_then(|headers| {
+        let last_modified: Option<DOMString> = load_info.metadata.headers.as_ref().and_then(|headers| {
             headers.get().map(|&LastModified(ref tm)| dom_last_modified(tm))
         });
 
-        let content_type = match response.metadata.content_type {
+        let content_type = match load_info.metadata.content_type {
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => Some("text/plain".to_owned()),
             _ => None
         };
@@ -1081,7 +1081,7 @@ impl ScriptTask {
                                                           StringificationBehavior::Empty);
             HTMLInput::InputString(strval.unwrap_or("".to_owned()))
         } else {
-            HTMLInput::InputUrl(response)
+            HTMLInput::InputUrl(load_info)
         };
 
         parse_html(document.r(), parse_input, &final_url, None);
@@ -1334,8 +1334,18 @@ impl ScriptTask {
                 consumer: input_chan,
             })).unwrap();
 
-            let load_response = input_port.recv().unwrap();
-            script_chan.send(ScriptMsg::PageFetchComplete(id, subpage, load_response)).unwrap();
+            let headers = input_port.recv().unwrap();
+            match headers {
+                ProgressMsg::Headers(metadata) => {
+                    let load_info = LoadInfo {
+                        metadata: metadata,
+                        consumer: input_port,
+                    };
+
+                    script_chan.send(ScriptMsg::PageFetchComplete(id, subpage, load_info)).unwrap();
+                }
+                _ => unreachable!(),
+            }
         });
 
         self.incomplete_loads.borrow_mut().push(incomplete);

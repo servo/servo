@@ -43,8 +43,8 @@ use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
 use net_traits::ControlMsg::Load;
-use net_traits::ProgressMsg::{Payload, Done};
-use net_traits::{ResourceTask, ResourceCORSData, LoadData, LoadResponse};
+use net_traits::ProgressMsg::{Headers, Payload, Done};
+use net_traits::{ResourceTask, ResourceCORSData, LoadData, ProgressMsg};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode};
 use util::str::DOMString;
 use util::task::spawn_named;
@@ -214,7 +214,7 @@ impl XMLHttpRequest {
     fn fetch(fetch_type: &SyncOrAsync, resource_task: ResourceTask,
              mut load_data: LoadData, terminate_receiver: Receiver<TerminateReason>,
              cors_request: Result<Option<CORSRequest>,()>, gen_id: GenerationId,
-             start_port: Receiver<LoadResponse>) -> ErrorResult {
+             progress_port: Receiver<ProgressMsg>) -> ErrorResult {
 
         fn notify_partial_progress(fetch_type: &SyncOrAsync, msg: XHRProgress) {
             match *fetch_type {
@@ -285,26 +285,28 @@ impl XMLHttpRequest {
         // Step 10, 13
         resource_task.send(Load(load_data)).unwrap();
 
-
-        let progress_port;
         select! (
-            response = start_port.recv() => {
+            response = progress_port.recv() => {
                 let response = response.unwrap();
-                match cors_request {
-                    Ok(Some(ref req)) => {
-                        match response.metadata.headers {
-                            Some(ref h) if allow_cross_origin_request(req, h) => {},
-                            _ => notify_error_and_return!(Network)
-                        }
-                    },
+                match response {
+                    ProgressMsg::Headers(metadata) => {
+                        match cors_request {
+                            Ok(Some(ref req)) => {
+                                match metadata.headers {
+                                    Some(ref h) if allow_cross_origin_request(req, h) => {},
+                                    _ => notify_error_and_return!(Network)
+                                }
+                            },
 
-                    _ => {}
-                };
-                // XXXManishearth Clear cache entries in case of a network error
-                notify_partial_progress(fetch_type, XHRProgress::HeadersReceived(gen_id,
-                    response.metadata.headers.clone(), response.metadata.status.clone()));
+                            _ => {}
+                        };
+                        // XXXManishearth Clear cache entries in case of a network error
+                        notify_partial_progress(fetch_type, XHRProgress::HeadersReceived(gen_id,
+                            metadata.headers.clone(), metadata.status.clone()));
 
-                progress_port = response.progress_port;
+                    }
+                    _ => unreachable!(),
+                }
             },
             reason = terminate_receiver.recv() => terminate!(reason.unwrap())
         );
@@ -324,6 +326,7 @@ impl XMLHttpRequest {
 
             select! (
                 progress = progress_port.recv() => match progress.unwrap() {
+                    Headers(..) => unreachable!(),
                     Payload(data) => {
                         buf.push_all(data.as_slice());
                         notify_partial_progress(fetch_type,

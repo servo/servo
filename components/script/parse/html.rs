@@ -34,12 +34,13 @@ use parse::Parser;
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
 
-use net_traits::{ProgressMsg, LoadResponse};
+use net_traits::{LoadInfo, ProgressMsg};
 use util::str::DOMString;
 use util::task_state;
 use util::task_state::IN_HTML_PARSER;
 use std::borrow::Cow;
 use std::old_io::{Writer, IoResult};
+use std::sync::mpsc::Receiver;
 use url::Url;
 use html5ever::Attribute;
 use html5ever::serialize::{Serializable, Serializer, AttrRef};
@@ -53,7 +54,7 @@ use hyper::mime::{Mime, TopLevel, SubLevel};
 
 pub enum HTMLInput {
     InputString(String),
-    InputUrl(LoadResponse),
+    InputUrl(LoadInfo),
 }
 
 trait SinkHelpers {
@@ -275,9 +276,10 @@ pub fn parse_html(document: JSRef<Document>,
         task_state::enter(IN_HTML_PARSER);
     }
 
-    fn parse_progress(parser: &JSRef<ServoHTMLParser>, url: &Url, load_response: &LoadResponse) {
-        for msg in load_response.progress_port.iter() {
+    fn parse_progress(parser: &JSRef<ServoHTMLParser>, url: &Url, consumer: &Receiver<ProgressMsg>) {
+        for msg in consumer.iter() {
             match msg {
+                ProgressMsg::Headers(..) => unreachable!(),
                 ProgressMsg::Payload(data) => {
                     // FIXME: use Vec<u8> (html5ever #34)
                     let data = UTF_8.decode(data.as_slice(), DecoderTrap::Replace).unwrap();
@@ -297,8 +299,8 @@ pub fn parse_html(document: JSRef<Document>,
         HTMLInput::InputString(s) => {
             parser.parse_chunk(s);
         }
-        HTMLInput::InputUrl(load_response) => {
-            match load_response.metadata.content_type {
+        HTMLInput::InputUrl(load_info) => {
+            match load_info.metadata.content_type {
                 Some(ContentType(Mime(TopLevel::Image, _, _))) => {
                     let page = format!("<html><body><img src='{}' /></body></html>", url.serialize());
                     parser.parse_chunk(page);
@@ -314,10 +316,10 @@ pub fn parse_html(document: JSRef<Document>,
                     // https://html.spec.whatwg.org/multipage/#read-text
                     let page = format!("<pre>\u{000A}<plaintext>");
                     parser.parse_chunk(page);
-                    parse_progress(&parser, url, &load_response);
+                    parse_progress(&parser, url, &load_info.consumer);
                 },
                 _ => {
-                    parse_progress(&parser, url, &load_response);
+                    parse_progress(&parser, url, &load_info.consumer);
                 }
             }
         }

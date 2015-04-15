@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{ControlMsg, CookieSource, LoadData, LoadResponse, Metadata};
+use net_traits::{ControlMsg, CookieSource, LoadData, ProgressMsg, Metadata};
 use net_traits::ProgressMsg::{Payload, Done};
 use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
@@ -38,12 +38,12 @@ pub fn factory(cookies_chan: Sender<ControlMsg>)
     }
 }
 
-fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {
+fn send_error(url: Url, err: String, consumer: Sender<ProgressMsg>) {
     let mut metadata: Metadata = Metadata::default(url);
     metadata.status = None;
 
-    match start_sending_opt(start_chan, metadata) {
-        Ok(p) => p.send(Done(Err(err))).unwrap(),
+    match start_sending_opt(&consumer, metadata) {
+        Ok(..) => consumer.send(Done(Err(err))).unwrap(),
         _ => {}
     };
 }
@@ -340,23 +340,23 @@ reason: \"certificate verify failed\" }]";
 }
 
 fn send_data<R: Read>(reader: &mut R,
-                      start_chan: Sender<LoadResponse>,
+                      consumer: Sender<ProgressMsg>,
                       metadata: Metadata,
                       classifier: Arc<MIMEClassifier>) {
-    let (progress_chan, mut chunk) = {
+    let mut chunk = {
         let buf = match read_block(reader) {
             Ok(ReadResult::Payload(buf)) => buf,
             _ => vec!(),
         };
-        let p = match start_sending_sniffed_opt(start_chan, metadata, classifier, &buf) {
-            Ok(p) => p,
+        match start_sending_sniffed_opt(&consumer, metadata, classifier, &buf) {
+            Ok(..) => {}
             _ => return
         };
-        (p, buf)
+        buf
     };
 
     loop {
-        if progress_chan.send(Payload(chunk)).is_err() {
+        if consumer.send(Payload(chunk)).is_err() {
             // The send errors when the receiver is out of scope,
             // which will happen if the fetch has timed out (or has been aborted)
             // so we don't need to continue with the loading of the file here.
@@ -369,5 +369,5 @@ fn send_data<R: Read>(reader: &mut R,
         };
     }
 
-    let _ = progress_chan.send(Done(Ok(())));
+    let _ = consumer.send(Done(Ok(())));
 }

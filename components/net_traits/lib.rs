@@ -51,11 +51,11 @@ pub struct LoadData {
     pub preserved_headers: Headers,
     pub data: Option<Vec<u8>>,
     pub cors: Option<ResourceCORSData>,
-    pub consumer: Sender<LoadResponse>,
+    pub consumer: Sender<ProgressMsg>,
 }
 
 impl LoadData {
-    pub fn new(url: Url, consumer: Sender<LoadResponse>) -> LoadData {
+    pub fn new(url: Url, consumer: Sender<ProgressMsg>) -> LoadData {
         LoadData {
             url: url,
             method: Method::Get,
@@ -81,16 +81,16 @@ pub enum ControlMsg {
     Exit
 }
 
-/// Message sent in response to `Load`.  Contains metadata, and a port
-/// for receiving the data.
-///
-/// Even if loading fails immediately, we send one of these and the
-/// progress_port will provide the error.
-pub struct LoadResponse {
-    /// Metadata, such as from HTTP headers.
-    pub metadata: Metadata,
-    /// Port for reading data.
-    pub progress_port: Receiver<ProgressMsg>,
+/// Message sent by the resource task during an
+/// asynchronous resource load. Headers is always
+/// the first message type sent. This is followed
+/// by zero or more Payloads, and then a Done message
+/// indicating success or failure.
+#[derive(Debug)]
+pub enum ProgressMsg {
+    Headers(Metadata),
+    Payload(Vec<u8>),
+    Done(Result<(), String>)
 }
 
 #[derive(Clone)]
@@ -102,7 +102,7 @@ pub struct ResourceCORSData {
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Metadata {
     /// Final URL after redirects.
     pub final_url: Url,
@@ -159,27 +159,24 @@ pub enum CookieSource {
     NonHTTP,
 }
 
-/// Messages sent in response to a `Load` message
-#[derive(PartialEq,Debug)]
-pub enum ProgressMsg {
-    /// Binary data - there may be multiple of these
-    Payload(Vec<u8>),
-    /// Indicates loading is complete, either successfully or not
-    Done(Result<(), String>)
+pub struct LoadInfo {
+    pub metadata: Metadata,
+    pub consumer: Receiver<ProgressMsg>,
 }
 
 /// Convenience function for synchronously loading a whole resource.
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
         -> Result<(Metadata, Vec<u8>), String> {
-    let (start_chan, start_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, start_chan))).unwrap();
-    let response = start_port.recv().unwrap();
+    let (sender, receiver) = channel();
+    resource_task.send(ControlMsg::Load(LoadData::new(url, sender))).unwrap();
 
+    let mut metadata = None;
     let mut buf = vec!();
     loop {
-        match response.progress_port.recv().unwrap() {
+        match receiver.recv().unwrap() {
+            ProgressMsg::Headers(data) => metadata = Some(data),
             ProgressMsg::Payload(data) => buf.push_all(&data),
-            ProgressMsg::Done(Ok(()))  => return Ok((response.metadata, buf)),
+            ProgressMsg::Done(Ok(()))  => return Ok((metadata.unwrap(), buf)),
             ProgressMsg::Done(Err(e))  => return Err(e)
         }
     }
@@ -191,8 +188,13 @@ pub fn load_bytes_iter(resource_task: &ResourceTask, url: Url) -> (Metadata, Pro
     resource_task.send(ControlMsg::Load(LoadData::new(url, input_chan))).unwrap();
 
     let response = input_port.recv().unwrap();
-    let iter = ProgressMsgPortIterator { progress_port: response.progress_port };
-    (response.metadata, iter)
+    match response {
+        ProgressMsg::Headers(metadata) => {
+            let iter = ProgressMsgPortIterator { progress_port: input_port };
+            (metadata, iter)
+        }
+        _ => unreachable!(),
+    }
 }
 
 /// Iterator that reads chunks of bytes from a ProgressMsg port
@@ -205,6 +207,7 @@ impl Iterator for ProgressMsgPortIterator {
 
     fn next(&mut self) -> Option<Vec<u8>> {
         match self.progress_port.recv().unwrap() {
+            ProgressMsg::Headers(..) => unreachable!(),
             ProgressMsg::Payload(data) => Some(data),
             ProgressMsg::Done(Ok(()))  => None,
             ProgressMsg::Done(Err(e))  => {

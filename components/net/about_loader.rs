@@ -21,15 +21,14 @@ use std::sync::Arc;
 pub fn factory(mut load_data: LoadData, classifier: Arc<MIMEClassifier>) {
     match load_data.url.non_relative_scheme_data().unwrap() {
         "blank" => {
-            let start_chan = load_data.consumer;
-            let chan = start_sending(start_chan, Metadata {
+            start_sending(&load_data.consumer, Metadata {
                 final_url: load_data.url,
                 content_type: Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![]))),
                 charset: Some("utf-8".to_string()),
                 headers: None,
                 status: Some(RawStatus(200, "OK".into_cow())),
             });
-            chan.send(Done(Ok(()))).unwrap();
+            load_data.consumer.send(Done(Ok(()))).unwrap();
             return
         }
         "crash" => panic!("Loading the about:crash URL."),
@@ -40,9 +39,8 @@ pub fn factory(mut load_data: LoadData, classifier: Arc<MIMEClassifier>) {
             load_data.url = Url::from_file_path(&*path).unwrap();
         }
         _ => {
-            let start_chan = load_data.consumer;
-            start_sending(start_chan, Metadata::default(load_data.url))
-                .send(Done(Err("Unknown about: URL.".to_string()))).unwrap();
+            start_sending(&load_data.consumer, Metadata::default(load_data.url));
+            load_data.consumer.send(Done(Err("Unknown about: URL.".to_string()))).unwrap();
             return
         }
     };

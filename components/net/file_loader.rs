@@ -34,11 +34,11 @@ fn read_block(reader: &mut File) -> Result<ReadStatus, String> {
     }
 }
 
-fn read_all(reader: &mut File, progress_chan: &Sender<ProgressMsg>)
+fn read_all(reader: &mut File, consumer: &Sender<ProgressMsg>)
             -> Result<(), String> {
     loop {
         match try!(read_block(reader)) {
-            ReadStatus::Partial(buf) => progress_chan.send(Payload(buf)).unwrap(),
+            ReadStatus::Partial(buf) => consumer.send(Payload(buf)).unwrap(),
             ReadStatus::EOF => return Ok(()),
         }
     }
@@ -46,7 +46,7 @@ fn read_all(reader: &mut File, progress_chan: &Sender<ProgressMsg>)
 
 pub fn factory(load_data: LoadData, classifier: Arc<MIMEClassifier>) {
     let url = load_data.url;
-    let start_chan = load_data.consumer;
+    let consumer = load_data.consumer;
     assert!(&*url.scheme == "file");
     spawn_named("file_loader".to_owned(), move || {
         let metadata = Metadata::default(url.clone());
@@ -56,27 +56,29 @@ pub fn factory(load_data: LoadData, classifier: Arc<MIMEClassifier>) {
                 match File::open(&file_path) {
                     Ok(ref mut reader) => {
                         let res = read_block(reader);
-                        let (res, progress_chan) = match res {
+                        let res = match res {
                             Ok(ReadStatus::Partial(buf)) => {
-                                let progress_chan = start_sending_sniffed(start_chan, metadata,
-                                                                          classifier, &buf);
-                                progress_chan.send(Payload(buf)).unwrap();
-                                (read_all(reader, &progress_chan), progress_chan)
+                                start_sending_sniffed(&consumer, metadata,
+                                                      classifier, &buf);
+                                consumer.send(Payload(buf)).unwrap();
+                                read_all(reader, &consumer)
                             }
-                            Ok(ReadStatus::EOF) | Err(_) =>
-                                (res.map(|_| ()), start_sending(start_chan, metadata)),
+                            Ok(ReadStatus::EOF) | Err(_) => {
+                                start_sending(&consumer, metadata);
+                                res.map(|_| ())
+                            }
                         };
-                        progress_chan.send(Done(res)).unwrap();
+                        consumer.send(Done(res)).unwrap();
                     }
                     Err(e) => {
-                        let progress_chan = start_sending(start_chan, metadata);
-                        progress_chan.send(Done(Err(e.description().to_string()))).unwrap();
+                        start_sending(&consumer, metadata);
+                        consumer.send(Done(Err(e.description().to_string()))).unwrap();
                     }
                 }
             }
             Err(_) => {
-                let progress_chan = start_sending(start_chan, metadata);
-                progress_chan.send(Done(Err(url.to_string()))).unwrap();
+                start_sending(&consumer, metadata);
+                consumer.send(Done(Err(url.to_string()))).unwrap();
             }
         }
     });
