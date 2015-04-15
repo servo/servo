@@ -1244,9 +1244,10 @@ impl ScriptTask {
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document().root();
                 let mut mouse_over_targets = RootedVec::new();
-                (*mouse_over_targets).append(&mut *self.mouse_over_targets.borrow_mut());
+                mouse_over_targets.append(&mut *self.mouse_over_targets.borrow_mut());
 
                 document.r().handle_mouse_move_event(self.js_runtime.ptr, point, &mut mouse_over_targets);
+                *self.mouse_over_targets.borrow_mut() = mouse_over_targets.clone();
             }
 
             KeyEvent(key, state, modifiers) => {
