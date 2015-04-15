@@ -915,17 +915,15 @@ impl<'a> PaintContext<'a> {
         // Pre-calculate if there is a blur expansion need.
         let accum_blur = filters::calculate_accumulated_blur(filters);
         let mut matrix = Matrix2D::identity();
-        if accum_blur > Au::new(0) {
+        if accum_blur > Au(0) {
             // Set the correct size.
-            let rect = Rect(Point2D(0, 0), size);
             let side_inflation = accum_blur * BLUR_INFLATION_FACTOR;
-            let inflated_size = rect.inflate(side_inflation.to_nearest_px() as i32, side_inflation.to_nearest_px() as i32);
-            size = inflated_size.size;
+            size = Size2D(size.width + (side_inflation.to_nearest_px() * 2) as i32, size.height + (side_inflation.to_nearest_px() * 2) as i32);
 
             // Calculate the transform matrix.
             let old_transform = self.draw_target.get_transform();
-            let inflated_size = Rect(Point2D(0.0, 0.0), Size2D(inflated_size.size.width as AzFloat,
-                                                               inflated_size.size.height as AzFloat));
+            let inflated_size = Rect(Point2D(0.0, 0.0), Size2D(size.width as AzFloat,
+                                                               size.height as AzFloat));
             let temporary_draw_target_bounds = old_transform.transform_rect(&inflated_size);
             matrix = Matrix2D::identity().translate(-temporary_draw_target_bounds.origin.x as AzFloat,
                                                     -temporary_draw_target_bounds.origin.y as AzFloat).mul(&old_transform);
@@ -934,7 +932,7 @@ impl<'a> PaintContext<'a> {
         let temporary_draw_target =
             self.draw_target.create_similar_draw_target(&size, self.draw_target.get_format());
 
-        if accum_blur > Au::new(0) {
+        if accum_blur > Au(0) {
             temporary_draw_target.set_transform(&matrix);
         } else {
             temporary_draw_target.set_transform(&self.draw_target.get_transform());
@@ -962,17 +960,18 @@ impl<'a> PaintContext<'a> {
         let rect_temporary = Rect(Point2D(0.0, 0.0), temporary_draw_target.get_size().to_azure_size());
 
         // Create the Azure filter pipeline.
-        let mut accum_blur = Au::new(0);
+        let mut accum_blur = Au(0);
         let (filter_node, opacity) = filters::create_filters(&self.draw_target,
                                                              temporary_draw_target,
-                                                             filters, &mut accum_blur);
+                                                             filters,
+                                                             &mut accum_blur);
 
         // Perform the blit operation.
         let mut draw_options = DrawOptions::new(opacity, 0);
         draw_options.set_composition_op(blend_mode.to_azure_composition_op());
 
        // If there is a blur expansion, shift the transform and update the size.
-        if accum_blur > Au::new(0) {
+        if accum_blur > Au(0) {
             // Remove both the transient clip and the stacking context clip, because we may need to
             // draw outside the stacking context's clip.
             self.remove_transient_clip_if_applicable();
