@@ -93,7 +93,7 @@ pub fn tick_all_animations(layout_task: &LayoutTask, rw_data: &mut LayoutTaskDat
     let running_animations = mem::replace(&mut rw_data.running_animations, Vec::new());
     let now = clock_ticks::precise_time_s();
     for running_animation in running_animations.into_iter() {
-        layout_task.tick_animation(running_animation, rw_data);
+        layout_task.tick_animation(&running_animation, rw_data);
 
         if now < running_animation.end_time {
             // Keep running the animation if it hasn't expired.
