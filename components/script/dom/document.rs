@@ -221,6 +221,19 @@ pub trait DocumentHelpers<'a> {
     fn dirty_all_nodes(self);
     fn handle_click_event(self, js_runtime: *mut JSRuntime,
                           button: MouseButton, point: Point2D<f32>);
+    fn handle_mouse_down_event(self,
+                               js_runtime: *mut JSRuntime,
+                               button: MouseButton,
+                               point: &Point2D<f32>);
+    fn handle_mouse_up_event(self,
+                             js_runtime: *mut JSRuntime,
+                             button: MouseButton,
+                             point: &Point2D<f32>);
+    fn handle_mouse_down_or_mouse_up_event(self,
+                                           js_runtime: *mut JSRuntime,
+                                           event_name: String,
+                                           button: MouseButton,
+                                           point: &Point2D<f32>);
     fn dispatch_key_event(self, key: Key, state: KeyState,
         modifiers: KeyModifiers, compositor: &mut Box<ScriptListener+'static>);
 
@@ -554,6 +567,79 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
         self.commit_focus_transaction();
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::MouseEvent);
+    }
+
+    fn handle_mouse_down_event(self,
+                               js_runtime: *mut JSRuntime,
+                               button: MouseButton,
+                               point: &Point2D<f32>) {
+        self.handle_mouse_down_or_mouse_up_event(js_runtime, "mousedown".to_owned(), button, point)
+    }
+
+    fn handle_mouse_up_event(self,
+                             js_runtime: *mut JSRuntime,
+                             button: MouseButton,
+                             point: &Point2D<f32>) {
+        self.handle_mouse_down_or_mouse_up_event(js_runtime, "mouseup".to_owned(), button, point)
+    }
+
+    fn handle_mouse_down_or_mouse_up_event(self,
+                                           js_runtime: *mut JSRuntime,
+                                           event_name: String,
+                                           _: MouseButton,
+                                           point: &Point2D<f32>) {
+        let node = match self.hit_test(&point) {
+            Some(node_address) => {
+                debug!("node address is {:?}", node_address.0);
+                node::from_untrusted_node_address(js_runtime, node_address)
+            },
+            None => return,
+        }.root();
+
+        let el = match ElementCast::to_ref(node.r()) {
+            Some(el) => Temporary::from_rooted(el),
+            None => {
+                let parent = node.r().parent_node();
+                match parent.and_then(ElementCast::to_temporary) {
+                    Some(parent) => parent,
+                    None => return,
+                }
+            },
+        }.root();
+
+        let node: JSRef<Node> = NodeCast::from_ref(el.r());
+
+        let window = self.window.root();
+
+        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-click
+        let event = MouseEvent::new(window.r(),
+                                    event_name,
+                                    EventBubbles::Bubbles,
+                                    EventCancelable::Cancelable,
+                                    Some(window.r()),
+                                    0,
+                                    point.x as i32,
+                                    point.y as i32,
+                                    point.x as i32,
+                                    point.y as i32,
+                                    false,
+                                    false,
+                                    false,
+                                    false,
+                                    0,
+                                    None).root();
+
+        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
+        let event: JSRef<Event> = EventCast::from_ref(event.r());
+        event.set_trusted(true);
+
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(node);
+        event.fire(target);
+
+        self.commit_focus_transaction();
+        window.r().reflow(ReflowGoal::ForDisplay,
+                          ReflowQueryType::NoQuery,
+                          ReflowReason::MouseEvent);
     }
 
     fn handle_mouse_move_event(self,
