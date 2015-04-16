@@ -19,6 +19,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletE
 use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, CharacterDataCast};
+use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
 use dom::bindings::error::Error::HierarchyRequest;
@@ -223,6 +224,8 @@ pub trait DocumentHelpers<'a> {
                           button: MouseButton, point: Point2D<f32>);
     fn dispatch_key_event(self, key: Key, state: KeyState,
         modifiers: KeyModifiers, compositor: &mut Box<ScriptListener+'static>);
+    fn node_from_nodes_and_strings(self, nodes: Vec<NodeOrString>)
+                                   -> Fallible<Temporary<Node>>;
 
     /// Handles a mouse-move event coming from the compositor.
     fn handle_mouse_move_event(self,
@@ -700,6 +703,34 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         }
 
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::KeyEvent);
+    }
+
+    fn node_from_nodes_and_strings(self, nodes: Vec<NodeOrString>)
+                                   -> Fallible<Temporary<Node>> {
+        if nodes.len() == 1 {
+            match nodes.into_iter().next().unwrap() {
+                NodeOrString::eNode(node) => Ok(Temporary::from_unrooted(node)),
+                NodeOrString::eString(string) => {
+                    Ok(NodeCast::from_temporary(self.CreateTextNode(string)))
+                },
+            }
+        } else {
+            let fragment = NodeCast::from_temporary(self.CreateDocumentFragment()).root();
+            for node in nodes.into_iter() {
+                match node {
+                    NodeOrString::eNode(node) => {
+                        try!(fragment.r().AppendChild(node.root().r()));
+                    },
+                    NodeOrString::eString(string) => {
+                        let node = NodeCast::from_temporary(self.CreateTextNode(string)).root();
+                        // No try!() here because appending a text node
+                        // should not fail.
+                        fragment.r().AppendChild(node.r()).unwrap();
+                    }
+                }
+            }
+            Ok(Temporary::from_rooted(fragment.r()))
+        }
     }
 
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>) {
@@ -1375,6 +1406,16 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
     fn ChildElementCount(self) -> u32 {
         NodeCast::from_ref(self).child_elements().count() as u32
+    }
+
+    // https://dom.spec.whatwg.org/#dom-parentnode-prepend
+    fn Prepend(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        NodeCast::from_ref(self).prepend(nodes)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-parentnode-append
+    fn Append(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        NodeCast::from_ref(self).append(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector

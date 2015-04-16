@@ -5,6 +5,8 @@
 use dom::bindings::codegen::Bindings::DocumentTypeBinding;
 use dom::bindings::codegen::Bindings::DocumentTypeBinding::DocumentTypeMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentTypeDerived, NodeCast};
+use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -85,6 +87,21 @@ impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
     // https://dom.spec.whatwg.org/#dom-documenttype-systemid
     fn SystemId(self) -> DOMString {
         self.system_id.clone()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-childnode-before
+    fn Before(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        NodeCast::from_ref(self).before(nodes)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-childnode-after
+    fn After(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        NodeCast::from_ref(self).after(nodes)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-childnode-replacewith
+    fn ReplaceWith(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        NodeCast::from_ref(self).replace_with(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove

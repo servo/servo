@@ -23,6 +23,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCel
 use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTextAreaElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
+use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
 use dom::bindings::error::Error::NoModificationAllowed;
@@ -1292,6 +1293,16 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         NodeCast::from_ref(self).child_elements().count() as u32
     }
 
+    // https://dom.spec.whatwg.org/#dom-parentnode-prepend
+    fn Prepend(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        NodeCast::from_ref(self).prepend(nodes)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-parentnode-append
+    fn Append(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        NodeCast::from_ref(self).append(nodes)
+    }
+
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn QuerySelector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         let root: JSRef<Node> = NodeCast::from_ref(self);
@@ -1302,6 +1313,21 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn QuerySelectorAll(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
         let root: JSRef<Node> = NodeCast::from_ref(self);
         root.query_selector_all(selectors)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-childnode-before
+    fn Before(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        NodeCast::from_ref(self).before(nodes)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-childnode-after
+    fn After(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        NodeCast::from_ref(self).after(nodes)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-childnode-replacewith
+    fn ReplaceWith(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        NodeCast::from_ref(self).replace_with(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove

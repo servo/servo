@@ -19,8 +19,9 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast, ElementDerived
 use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, NodeBase, NodeDerived};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, TextCast};
+use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::conversions;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, LayoutJS, RootedReference, Temporary, Root, Unrooted};
@@ -500,6 +501,12 @@ pub trait NodeHelpers {
     fn get_bounding_content_box(self) -> Rect<Au>;
     fn get_content_boxes(self) -> Vec<Rect<Au>>;
 
+    fn before(self, nodes: Vec<NodeOrString>) -> ErrorResult;
+    fn after(self, nodes: Vec<NodeOrString>) -> ErrorResult;
+    fn replace_with(self, nodes: Vec<NodeOrString>) -> ErrorResult;
+    fn prepend(self, nodes: Vec<NodeOrString>) -> ErrorResult;
+    fn append(self, nodes: Vec<NodeOrString>) -> ErrorResult;
+
     fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
     #[allow(unsafe_code)]
     unsafe fn query_selector_iter(self, selectors: DOMString) -> Fallible<QuerySelectorIterator>;
@@ -513,6 +520,7 @@ pub trait NodeHelpers {
     fn teardown(self);
 
     fn parse_fragment(self, markup: DOMString) -> Fallible<Temporary<DocumentFragment>>;
+
 }
 
 impl<'a> NodeHelpers for JSRef<'a, Node> {
@@ -801,6 +809,80 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     fn get_content_boxes(self) -> Vec<Rect<Au>> {
         window_from_node(self).root().r().content_boxes_query(self.to_trusted_node_address())
+    }
+
+    // https://dom.spec.whatwg.org/#dom-childnode-before
+    fn before(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        match self.parent_node().root() {
+            None => {
+                // Step 1.
+                Ok(())
+            },
+            Some(ref parent_node) => {
+                // Step 2.
+                let doc = self.owner_doc().root();
+                let node = try!(doc.r().node_from_nodes_and_strings(nodes)).root();
+                // Step 3.
+                Node::pre_insert(node.r(), parent_node.r(),
+                                 Some(self)).map(|_| ())
+            },
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#dom-childnode-after
+    fn after(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        match self.parent_node().root() {
+            None => {
+                // Step 1.
+                Ok(())
+            },
+            Some(ref parent_node) => {
+                // Step 2.
+                let doc = self.owner_doc().root();
+                let node = try!(doc.r().node_from_nodes_and_strings(nodes)).root();
+                // Step 3.
+                // FIXME(https://github.com/servo/servo/issues/5720)
+                let next_sibling = self.next_sibling().root();
+                Node::pre_insert(node.r(), parent_node.r(),
+                                 next_sibling.r()).map(|_| ())
+            },
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#dom-childnode-replacewith
+    fn replace_with(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        match self.parent_node().root() {
+            None => {
+                // Step 1.
+                Ok(())
+            },
+            Some(ref parent_node) => {
+                // Step 2.
+                let doc = self.owner_doc().root();
+                let node = try!(doc.r().node_from_nodes_and_strings(nodes)).root();
+                // Step 3.
+                parent_node.r().ReplaceChild(node.r(), self).map(|_| ())
+            },
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#dom-parentnode-prepend
+    fn prepend(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        // Step 1.
+        let doc = self.owner_doc().root();
+        let node = try!(doc.r().node_from_nodes_and_strings(nodes)).root();
+        // Step 2.
+        let first_child = self.first_child().root();
+        Node::pre_insert(node.r(), self, first_child.r()).map(|_| ())
+    }
+
+    // https://dom.spec.whatwg.org/#dom-parentnode-append
+    fn append(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        // Step 1.
+        let doc = self.owner_doc().root();
+        let node = try!(doc.r().node_from_nodes_and_strings(nodes)).root();
+        // Step 2.
+        self.AppendChild(node.r()).map(|_| ())
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector

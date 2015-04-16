@@ -7,8 +7,9 @@ use dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentM
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::DocumentFragmentDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
+use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::document::Document;
 use dom::element::Element;
@@ -71,6 +72,16 @@ impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
     fn ChildElementCount(self) -> u32 {
         NodeCast::from_ref(self).child_elements().count() as u32
+    }
+
+    // https://dom.spec.whatwg.org/#dom-parentnode-prepend
+    fn Prepend(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        NodeCast::from_ref(self).prepend(nodes)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-parentnode-append
+    fn Append(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        NodeCast::from_ref(self).append(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
