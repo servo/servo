@@ -61,7 +61,7 @@ use msg::constellation_msg::{ConstellationChan};
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent, WorkerId};
 use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::{ResourceTask, LoadInfo, ProgressMsg};
+use net_traits::{ResourceTask, LoadInfo, ProgressType};
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
@@ -1331,12 +1331,11 @@ impl ScriptTask {
                 preserved_headers: load_data.headers,
                 data: load_data.data,
                 cors: None,
-                consumer: input_chan,
-            });
+            }, input_chan);
 
             let headers = input_port.recv().unwrap();
-            match headers {
-                ProgressMsg::Headers(metadata) => {
+            match headers.progress {
+                ProgressType::Headers(metadata) => {
                     let load_info = LoadInfo {
                         metadata: metadata,
                         consumer: input_port,

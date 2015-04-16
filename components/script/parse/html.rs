@@ -34,7 +34,7 @@ use parse::Parser;
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
 
-use net_traits::{LoadInfo, ProgressMsg};
+use net_traits::{LoadInfo, ProgressMsg, ProgressType};
 use util::str::DOMString;
 use util::task_state;
 use util::task_state::IN_HTML_PARSER;
@@ -278,19 +278,19 @@ pub fn parse_html(document: JSRef<Document>,
 
     fn parse_progress(parser: &JSRef<ServoHTMLParser>, url: &Url, consumer: &Receiver<ProgressMsg>) {
         for msg in consumer.iter() {
-            match msg {
-                ProgressMsg::Headers(..) => unreachable!(),
-                ProgressMsg::Payload(data) => {
+            match msg.progress {
+                ProgressType::Headers(..) => unreachable!(),
+                ProgressType::Payload(data) => {
                     // FIXME: use Vec<u8> (html5ever #34)
                     let data = UTF_8.decode(data.as_slice(), DecoderTrap::Replace).unwrap();
                     parser.parse_chunk(data);
                 }
-                ProgressMsg::Done(Err(err)) => {
+                ProgressType::Done(Err(err)) => {
                     debug!("Failed to load page URL {}, error: {}", url.serialize(), err);
                     // TODO(Savago): we should send a notification to callers #5463.
                     break;
                 }
-                ProgressMsg::Done(Ok(())) => break,
+                ProgressType::Done(Ok(())) => break,
             }
         }
     };

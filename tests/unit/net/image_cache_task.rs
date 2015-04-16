@@ -6,16 +6,26 @@ use net::image_cache_task::*;
 use net_traits::image_cache_task::ImageResponseMsg::*;
 use net_traits::image_cache_task::Msg::*;
 
-use net::resource_task::start_sending;
-use net_traits::{ControlMsg, Metadata, ProgressMsg, ResourceTask};
+use net::resource_task::ResourceConsumer;
+use net_traits::{ControlMsg, LoadId, Metadata, ProgressMsg, ProgressType, ResourceTask};
 use net_traits::image_cache_task::{ImageCacheTask, ImageCacheTaskClient, ImageResponseMsg, Msg};
-use net_traits::ProgressMsg::{Payload, Done};
+use net_traits::ProgressType::{Payload, Done};
 use profile::time;
 use std::sync::mpsc::{Sender, channel, Receiver};
 use url::Url;
 use util::taskpool::TaskPool;
 
 static TEST_IMAGE: &'static [u8] = include_bytes!("test.jpeg");
+
+// This isn't quite right (creating a new load id for each msg)
+// but it will do for the purposes of these unit tests (which
+// are going to be replaced in the near future anyway)
+fn progress_msg(progress: ProgressType) -> ProgressMsg {
+    ProgressMsg {
+        load_id: LoadId::new(),
+        progress: progress
+    }
+}
 
 pub fn test_image_bin() -> Vec<u8> {
     TEST_IMAGE.iter().map(|&x| x).collect()
@@ -52,31 +62,31 @@ struct JustSendOK {
 impl Closure for JustSendOK {
     fn invoke(&self, response: Sender<ProgressMsg>) {
         self.url_requested_chan.send(()).unwrap();
-        response.send(Done(Ok(()))).unwrap();
+        response.send(progress_msg(Done(Ok(())))).unwrap();
     }
 }
 
 struct SendTestImage;
 impl Closure for SendTestImage {
     fn invoke(&self, response: Sender<ProgressMsg>) {
-        response.send(Payload(test_image_bin())).unwrap();
-        response.send(Done(Ok(()))).unwrap();
+        response.send(progress_msg(Payload(test_image_bin()))).unwrap();
+        response.send(progress_msg(Done(Ok(())))).unwrap();
     }
 }
 
 struct SendBogusImage;
 impl Closure for SendBogusImage {
     fn invoke(&self, response: Sender<ProgressMsg>) {
-        response.send(Payload(vec!())).unwrap();
-        response.send(Done(Ok(()))).unwrap();
+        response.send(progress_msg(Payload(vec!()))).unwrap();
+        response.send(progress_msg(Done(Ok(())))).unwrap();
     }
 }
 
 struct SendTestImageErr;
 impl Closure for SendTestImageErr {
     fn invoke(&self, response: Sender<ProgressMsg>) {
-        response.send(Payload(test_image_bin())).unwrap();
-        response.send(Done(Err("".to_string()))).unwrap();
+        response.send(progress_msg(Payload(test_image_bin()))).unwrap();
+        response.send(progress_msg(Done(Err("".to_string())))).unwrap();
     }
 }
 
@@ -88,8 +98,8 @@ impl Closure for WaitSendTestImage {
         // Don't send the data until after the client requests
         // the image
         self.wait_port.recv().unwrap();
-        response.send(Payload(test_image_bin())).unwrap();
-        response.send(Done(Ok(()))).unwrap();
+        response.send(progress_msg(Payload(test_image_bin()))).unwrap();
+        response.send(progress_msg(Done(Ok(())))).unwrap();
     }
 }
 
@@ -101,8 +111,8 @@ impl Closure for WaitSendTestImageErr {
         // Don't send the data until after the client requests
         // the image
         self.wait_port.recv().unwrap();
-        response.send(Payload(test_image_bin())).unwrap();
-        response.send(Done(Err("".to_string()))).unwrap();
+        response.send(progress_msg(Payload(test_image_bin()))).unwrap();
+        response.send(progress_msg(Done(Err("".to_string())))).unwrap();
     }
 }
 
@@ -110,10 +120,11 @@ fn mock_resource_task<T: Closure + Send + 'static>(on_load: Box<T>) -> ResourceT
     ResourceTask::new(spawn_listener(move |port: Receiver<ControlMsg>| {
         loop {
             match port.recv().unwrap() {
-                ControlMsg::Load(response) => {
-                    start_sending(&response.consumer, Metadata::default(
-                        Url::parse("file:///fake").unwrap()));
-                    on_load.invoke(response.consumer);
+                ControlMsg::Load(load_id, load_data, consumer) => {
+                    let mut resource_consumer = ResourceConsumer::new(load_id, consumer.clone());
+                    resource_consumer.start(Metadata::default(
+                                        Url::parse("file:///fake").unwrap()));
+                    on_load.invoke(consumer);
                 }
                 ControlMsg::Exit => break,
                 _ => {}
@@ -280,11 +291,12 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
     let mock_resource_task = ResourceTask::new(spawn_listener(move |port: Receiver<ControlMsg>| {
         loop {
             match port.recv().unwrap() {
-                ControlMsg::Load(response) => {
-                    start_sending(&response.consumer, Metadata::default(
-                        Url::parse("file:///fake").unwrap()));
-                    response.consumer.send(Payload(test_image_bin()));
-                    response.consumer.send(Done(Ok(())));
+                ControlMsg::Load(load_id, load_data, consumer) => {
+                    let mut resource_consumer = ResourceConsumer::new(load_id, consumer);
+                    resource_consumer.start(Metadata::default(
+                                        Url::parse("file:///fake").unwrap()));
+                    resource_consumer.send(test_image_bin());
+                    resource_consumer.complete();
                     image_bin_sent_chan.send(());
                 }
                 ControlMsg::Exit => {
@@ -329,11 +341,12 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
     let mock_resource_task = ResourceTask::new(spawn_listener(move |port: Receiver<ControlMsg>| {
         loop {
             match port.recv().unwrap() {
-                ControlMsg::Load(response) => {
-                    start_sending(&response.consumer, Metadata::default(
-                        Url::parse("file:///fake").unwrap()));
-                    response.consumer.send(Payload(test_image_bin()));
-                    response.consumer.send(Done(Err("".to_string())));
+                ControlMsg::Load(load_id, load_data, consumer) => {
+                    let mut resource_consumer = ResourceConsumer::new(load_id, consumer);
+                    resource_consumer.start(Metadata::default(
+                                        Url::parse("file:///fake").unwrap()));
+                    resource_consumer.send(test_image_bin());
+                    resource_consumer.error("".to_string());
                     image_bin_sent_chan.send(());
                 }
                 ControlMsg::Exit => {

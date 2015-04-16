@@ -25,11 +25,27 @@ use hyper::mime::{Mime, Attr};
 use url::Url;
 
 use std::borrow::IntoCow;
+use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 pub mod image_cache_task;
 pub mod local_image_cache;
 pub mod storage_task;
+
+static GLOBAL_LOAD_ID_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
+
+#[derive(Copy, Debug)]
+pub struct LoadId(usize);
+
+/// A unique identifier for each load issued to the resource
+/// task. This can be used to multiplex multiple resource
+/// loads through a single receiver.
+impl LoadId {
+    pub fn new() -> LoadId {
+        let load_id = GLOBAL_LOAD_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
+        LoadId(load_id)
+    }
+}
 
 /// Image handling.
 ///
@@ -51,11 +67,10 @@ pub struct LoadData {
     pub preserved_headers: Headers,
     pub data: Option<Vec<u8>>,
     pub cors: Option<ResourceCORSData>,
-    pub consumer: Sender<ProgressMsg>,
 }
 
 impl LoadData {
-    pub fn new(url: Url, consumer: Sender<ProgressMsg>) -> LoadData {
+    pub fn new(url: Url) -> LoadData {
         LoadData {
             url: url,
             method: Method::Get,
@@ -63,7 +78,6 @@ impl LoadData {
             preserved_headers: Headers::new(),
             data: None,
             cors: None,
-            consumer: consumer,
         }
     }
 }
@@ -77,14 +91,15 @@ impl ResourceTask {
         ResourceTask(sender)
     }
 
-    pub fn load_url(&self, url: Url, consumer: Sender<ProgressMsg>) {
-        let ResourceTask(ref sender) = *self;
-        sender.send(ControlMsg::Load(LoadData::new(url.clone(), consumer))).unwrap();
+    pub fn load_url(&self, url: Url, consumer: Sender<ProgressMsg>) -> LoadId {
+        self.load(LoadData::new(url), consumer)
     }
 
-    pub fn load(&self, load_data: LoadData) {
+    pub fn load(&self, load_data: LoadData, consumer: Sender<ProgressMsg>) -> LoadId {
         let ResourceTask(ref sender) = *self;
-        sender.send(ControlMsg::Load(load_data)).unwrap();
+        let load_id = LoadId::new();
+        sender.send(ControlMsg::Load(load_id, load_data, consumer)).unwrap();
+        load_id
     }
 
     pub fn set_cookies_for_url(&self, url: Url, cookie: String, source: CookieSource) {
@@ -108,7 +123,7 @@ impl ResourceTask {
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
-    Load(LoadData),
+    Load(LoadId, LoadData, Sender<ProgressMsg>),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
@@ -122,7 +137,13 @@ pub enum ControlMsg {
 /// by zero or more Payloads, and then a Done message
 /// indicating success or failure.
 #[derive(Debug)]
-pub enum ProgressMsg {
+pub struct ProgressMsg {
+    pub load_id: LoadId,
+    pub progress: ProgressType,
+}
+
+#[derive(Debug)]
+pub enum ProgressType {
     Headers(Metadata),
     Payload(Vec<u8>),
     Done(Result<(), String>)
@@ -208,11 +229,12 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
     let mut metadata = None;
     let mut buf = vec!();
     loop {
-        match receiver.recv().unwrap() {
-            ProgressMsg::Headers(data) => metadata = Some(data),
-            ProgressMsg::Payload(data) => buf.push_all(&data),
-            ProgressMsg::Done(Ok(()))  => return Ok((metadata.unwrap(), buf)),
-            ProgressMsg::Done(Err(e))  => return Err(e)
+        let msg = receiver.recv().unwrap();
+        match msg.progress {
+            ProgressType::Headers(data) => metadata = Some(data),
+            ProgressType::Payload(data) => buf.push_all(&data),
+            ProgressType::Done(Ok(()))  => return Ok((metadata.unwrap(), buf)),
+            ProgressType::Done(Err(e))  => return Err(e)
         }
     }
 }
@@ -222,9 +244,9 @@ pub fn load_bytes_iter(resource_task: &ResourceTask, url: Url) -> (Metadata, Pro
     let (input_chan, input_port) = channel();
     resource_task.load_url(url, input_chan);
 
-    let response = input_port.recv().unwrap();
-    match response {
-        ProgressMsg::Headers(metadata) => {
+    let msg = input_port.recv().unwrap();
+    match msg.progress {
+        ProgressType::Headers(metadata) => {
             let iter = ProgressMsgPortIterator { progress_port: input_port };
             (metadata, iter)
         }
@@ -241,11 +263,12 @@ impl Iterator for ProgressMsgPortIterator {
     type Item = Vec<u8>;
 
     fn next(&mut self) -> Option<Vec<u8>> {
-        match self.progress_port.recv().unwrap() {
-            ProgressMsg::Headers(..) => unreachable!(),
-            ProgressMsg::Payload(data) => Some(data),
-            ProgressMsg::Done(Ok(()))  => None,
-            ProgressMsg::Done(Err(e))  => {
+        let msg = self.progress_port.recv().unwrap();
+        match msg.progress {
+            ProgressType::Headers(..) => unreachable!(),
+            ProgressType::Payload(data) => Some(data),
+            ProgressType::Done(Ok(()))  => None,
+            ProgressType::Done(Err(e))  => {
                 error!("error receiving bytes: {}", e);
                 None
             }

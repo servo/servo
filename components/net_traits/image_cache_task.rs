@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use image::base::Image;
-use {ProgressMsg, ResourceTask};
+use {ProgressType, ResourceTask};
 use url::Url;
 
 use std::sync::Arc;
@@ -89,15 +89,16 @@ pub fn load_image_data(url: Url, resource_task: ResourceTask, placeholder: &[u8]
     let mut image_data = vec!();
 
     loop {
-        match response_port.recv().unwrap() {
-            ProgressMsg::Headers(..) => {}
-            ProgressMsg::Payload(data) => {
+        let msg = response_port.recv().unwrap();
+        match msg.progress {
+            ProgressType::Headers(..) => {}
+            ProgressType::Payload(data) => {
                 image_data.push_all(&data);
             }
-            ProgressMsg::Done(Ok(..)) => {
+            ProgressType::Done(Ok(..)) => {
                 return Ok(image_data);
             }
-            ProgressMsg::Done(Err(..)) => {
+            ProgressType::Done(Err(..)) => {
                 // Failure to load the requested image will return the
                 // placeholder instead. In case it failed to load at init(),
                 // we still recover and return Err() but nothing will be drawn.

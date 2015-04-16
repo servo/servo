@@ -3,9 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net_traits::{LoadData, Metadata};
-use net_traits::ProgressMsg::{Payload, Done};
 use mime_classifier::MIMEClassifier;
-use resource_task::start_sending;
+use resource_task::ResourceConsumer;
 
 use rustc_serialize::base64::FromBase64;
 
@@ -13,15 +12,15 @@ use hyper::mime::Mime;
 use std::sync::Arc;
 use url::{percent_decode, SchemeData};
 
-pub fn factory(load_data: LoadData, _classifier: Arc<MIMEClassifier>) {
+pub fn factory(resource_consumer: ResourceConsumer, load_data: LoadData, _classifier: Arc<MIMEClassifier>) {
     // NB: we don't spawn a new task.
     // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
     // Should be tested at some point.
     // Left in separate function to allow easy moving to a task, if desired.
-    load(load_data)
+    load(resource_consumer, load_data)
 }
 
-pub fn load(load_data: LoadData) {
+pub fn load(mut resource_consumer: ResourceConsumer, load_data: LoadData) {
     let url = load_data.url;
     assert!(&*url.scheme == "data");
 
@@ -41,8 +40,8 @@ pub fn load(load_data: LoadData) {
     }
     let parts: Vec<&str> = scheme_data.splitn(1, ',').collect();
     if parts.len() != 2 {
-        start_sending(&load_data.consumer, metadata);
-        load_data.consumer.send(Done(Err("invalid data uri".to_string()))).unwrap();
+        resource_consumer.start(metadata);
+        resource_consumer.error("invalid data uri".to_string());
         return;
     }
 
@@ -60,7 +59,7 @@ pub fn load(load_data: LoadData) {
     let content_type: Option<Mime> = ct_str.parse().ok();
     metadata.set_content_type(content_type.as_ref());
 
-    start_sending(&load_data.consumer, metadata);
+    resource_consumer.start(metadata);
     let bytes = percent_decode(parts[1].as_bytes());
 
     if is_base64 {
@@ -69,15 +68,15 @@ pub fn load(load_data: LoadData) {
         let bytes = bytes.into_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
         match bytes.from_base64() {
             Err(..) => {
-                load_data.consumer.send(Done(Err("non-base64 data uri".to_string()))).unwrap();
+                resource_consumer.error("non-base64 data uri".to_string());
             }
             Ok(data) => {
-                load_data.consumer.send(Payload(data)).unwrap();
-                load_data.consumer.send(Done(Ok(()))).unwrap();
+                resource_consumer.send(data);
+                resource_consumer.complete();
             }
         }
     } else {
-        load_data.consumer.send(Payload(bytes)).unwrap();
-        load_data.consumer.send(Done(Ok(()))).unwrap();
+        resource_consumer.send(bytes);
+        resource_consumer.complete();
     }
 }
