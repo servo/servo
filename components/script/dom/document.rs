@@ -226,7 +226,10 @@ pub trait DocumentHelpers<'a> {
         modifiers: KeyModifiers, compositor: &mut Box<ScriptListener+'static>);
     fn node_from_nodes_and_strings(self, nodes: Vec<NodeOrString>)
                                    -> Fallible<Temporary<Node>>;
-
+    fn handle_mouse_down_event(self, js_runtime: *mut JSRuntime,
+                              button: MouseButton, point: Point2D<f32>);
+    fn handle_mouse_up_event(self, js_runtime: *mut JSRuntime,
+                             button: MouseButton, point: Point2D<f32>);
     /// Handles a mouse-move event coming from the compositor.
     fn handle_mouse_move_event(self,
                                js_runtime: *mut JSRuntime,
@@ -566,6 +569,116 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::MouseEvent);
     }
 
+    fn handle_mouse_down_event(self, js_runtime: *mut JSRuntime,
+                               _button: MouseButton, point: Point2D<f32>) {
+        debug!("MouseDownEvent: mousedown at {:?}", point);
+        let node = match self.hit_test(&point) {
+            Some(node_address) => {
+                debug!("node address is {:?}", node_address.0);
+                node::from_untrusted_node_address(js_runtime, node_address)
+            },
+            None => return,
+        }.root();
+
+        let element = match ElementCast::to_ref(node.r()) {
+            Some(element) => Temporary::from_rooted(element),
+            None => {
+                let parent = node.r().parent_node();
+                match parent.and_then(ElementCast::to_temporary) {
+                    Some(parent) => parent,
+                    None => return,
+                }
+            },
+        }.root();
+
+        let node: JSRef<Node> = NodeCast::from_ref(element.r());
+        debug!("mousedown on {:?}", node.debug_str());
+        // Prevent mouse down event if form control element is disabled.
+        if node.click_event_filter_by_disabled_state() {
+            return;
+        }
+
+        self.begin_focus_transaction();
+
+        let window = self.window.root();
+
+        let x = point.x as i32;
+        let y = point.y as i32;
+        let event = MouseEvent::new(window.r(),
+                                    "mousedown".to_owned(),
+                                    EventBubbles::Bubbles,
+                                    EventCancelable::Cancelable,
+                                    Some(window.r()),
+                                    0i32,
+                                    x, y, x, y,
+                                    false, false, false, false,
+                                    0i16,
+                                    None).root();
+        let event: JSRef<Event> = EventCast::from_ref(event.r());
+
+        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-click
+        event.set_trusted(true);
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(node);
+        event.fire(target);
+
+        self.commit_focus_transaction();
+        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::MouseEvent);
+    }
+
+    fn handle_mouse_up_event(self, js_runtime: *mut JSRuntime,
+                             _button: MouseButton, point: Point2D<f32>) {
+        debug!("MouseUpEvent: Mouseup at {:?}", point);
+        let node = match self.hit_test(&point) {
+            Some(node_address) => {
+                debug!("node addres is {:?}", node_address.0);
+                node::from_untrusted_node_address(js_runtime, node_address)
+            },
+            None => return,
+        }.root();
+
+        let element = match ElementCast::to_ref(node.r()) {
+            Some(element) => Temporary::from_rooted(element),
+            None => {
+                let parent = node.r().parent_node();
+                match parent.and_then(ElementCast::to_temporary) {
+                    Some(parent) => parent,
+                    None => return,
+                }
+            },
+        }.root();
+
+        let node: JSRef<Node> = NodeCast::from_ref(element.r());
+        debug!("mouseuip on {:?}", node.debug_str());
+        // Prevent mousedown if form control element is disabled
+        if node.click_event_filter_by_disabled_state() {
+            return;
+        }
+
+        self.begin_focus_transaction();
+
+        let window = self.window.root();
+
+        let x = point.x as i32;
+        let y = point.y as i32;
+        let event = MouseEvent::new(window.r(),
+                                    "mouseup".to_owned(),
+                                    EventBubbles::Bubbles,
+                                    EventCancelable::Cancelable,
+                                    Some(window.r()),
+                                    0i32,
+                                    x, y, x, y,
+                                    false, false, false, false,
+                                    0i16,
+                                    None).root();
+        let event: JSRef<Event> = EventCast::from_ref(event.r());
+
+        event.set_trusted(true);
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(node);
+        event.fire(target);
+
+        self.commit_focus_transaction();
+        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::MouseEvent);
+    }
     fn handle_mouse_move_event(self,
                                js_runtime: *mut JSRuntime,
                                point: Point2D<f32>,
