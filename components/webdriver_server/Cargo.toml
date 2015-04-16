@@ -7,5 +7,16 @@ authors = ["The Servo Project Developers"]
 name = "webdriver_server"
 path = "lib.rs"
 
+[dependencies.msg]
+path = "../msg"
+
+[dependencies.util]
+path = "../util"
+
 [dependencies.webdriver]
 git = "https://github.com/jgraham/webdriver-rust.git"
+
+[dependencies]
+rustc-serialize="0.3.4"
+url = "0.2.16"
+uuid = "0.1.11"

@@ -104,10 +104,6 @@ impl Browser  {
             devtools::start_server(port)
         });
 
-        if let Some(port) = opts.webdriver_port {
-            webdriver_server::start_server(port);
-        }
-
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
@@ -117,6 +113,10 @@ impl Browser  {
                                                       devtools_chan,
                                                       mem_profiler_chan.clone(),
                                                       shared_task_pool);
+
+        if let Some(port) = opts.webdriver_port {
+            webdriver_server::start_server(port, constellation_chan.clone());
+        };
 
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.

@@ -31,6 +31,9 @@ path = "../net_traits"
 [dependencies.util]
 path = "../util"
 
+[dependencies.webdriver_server]
+path = "../webdriver_server"
+
 [dependencies.devtools_traits]
 path = "../devtools_traits"
 
