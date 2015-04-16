@@ -111,6 +111,18 @@
             "url": "/_mozilla/mozilla/document_characterSet_invalid.html"
           }
         ],
+        "mozilla/document_characterSet_long.html": [
+          {
+            "path": "mozilla/document_characterSet_long.html",
+            "url": "/_mozilla/mozilla/document_characterSet_long.html"
+          }
+        ],
+        "mozilla/document_characterSet_short.html": [
+          {
+            "path": "mozilla/document_characterSet_short.html",
+            "url": "/_mozilla/mozilla/document_characterSet_short.html"
+          }
+        ],
         "mozilla/document_compatMode_loose.html": [
           {
             "path": "mozilla/document_compatMode_loose.html",
