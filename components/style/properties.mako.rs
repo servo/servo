@@ -2699,7 +2699,7 @@ pub mod longhands {
         use values::computed::{Context, ToComputedValue};
         use values::specified::{Angle, Length};
         use values::CSSFloat;
-        use cssparser::{self, ToCss};
+        use cssparser::ToCss;
         use text_writer::{self, TextWriter};
 
         #[derive(Clone, PartialEq)]
