@@ -140,7 +140,7 @@ impl URLSearchParamsHelpers for URLSearchParams {
 
                     // Encode everything else using 'percented-encoded bytes'
                     // https://url.spec.whatwg.org/#percent-encode
-                    a => format!("%{:X}", a).into_bytes(),
+                    a => format!("%{:02X}", a).into_bytes(),
                 };
                 buf.push_all(&append);
             }
