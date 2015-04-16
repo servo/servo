@@ -50,6 +50,9 @@ var miscElements = {
     radiogroup: "string",
     "default": "boolean",
   },
+  dialog: {
+    open: "boolean",
+  },
 
   // Global attributes should exist even on unknown elements
   undefinedelement: {},

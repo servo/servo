@@ -8,6 +8,8 @@
 test(function() {
   var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/');
   delete ws.url;
-  assert_equals(ws.url, SCHEME_DOMAIN_PORT+'/');
+  assert_equals(ws.url, SCHEME_DOMAIN_PORT+'/', 'delete ws.url');
+  delete WebSocket.prototype.url;
+  assert_equals(ws.url, undefined, 'delete WebSocket.prototype.url');
 });
 </script>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>ok</title>
+<script>
+window.onmessage = function(e) {
+    var id = e.data.id;
+    try {
+        self.caches;
+        window.parent.postMessage({id: id, result: 'allowed'}, '*');
+    } catch (e) {
+        window.parent.postMessage({id: id, result: 'denied', name: e.name, message: e.message}, '*');
+    }
+};
+</script>

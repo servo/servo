@@ -21,7 +21,7 @@ async_test(function() {
     assert_equals(typeof e.message, 'string', 'typeof e.message');
     assert_equals(e.filename, document.URL+'#', 'e.filename');
     assert_equals(typeof e.lineno, 'number', 'typeof e.lineno');
-    assert_equals(typeof e.column, 'number', 'typeof e.column');
+    assert_equals(typeof e.colno, 'number', 'typeof e.column');
     e.preventDefault(); // "handled"
     this.done();
   });

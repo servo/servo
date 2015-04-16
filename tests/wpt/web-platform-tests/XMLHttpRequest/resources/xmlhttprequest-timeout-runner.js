@@ -1,3 +1,4 @@
+
 function testResultCallbackHandler(event) {
     if (event.data == "done") {
         done();
@@ -16,5 +17,5 @@ function testResultCallbackHandler(event) {
 window.addEventListener("message", testResultCallbackHandler);
 
 // Setting up testharness.js
-setup({ explicit_done: true, timeout: 30 * 1000 });
+setup({ explicit_done: true });
 

@@ -6,10 +6,11 @@
 <div id=log></div>
 <script>
 test(function(t) {
-  delete WebSocket.prototype.readyState;
   var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/');
   ws.close();
   delete ws.readyState;
-  assert_equals(ws.readyState, ws.CLOSING);
+  assert_equals(ws.readyState, ws.CLOSING, 'delete ws.readyState');
+  delete WebSocket.prototype.readyState;
+  assert_equals(ws.readyState, undefined, 'delete WebSocket.prototype.readyState');
 });
 </script>

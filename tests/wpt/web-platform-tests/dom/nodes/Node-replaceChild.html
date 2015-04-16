@@ -318,4 +318,17 @@ test(function() {
   assert_equals(a.firstChild, c);
   assert_equals(c.parentNode, a);
 }, "replaceChild should work in the presence of mutation events.")
+test(function() {
+  var TEST_ID = "findme";
+  var gBody = document.getElementsByTagName("body")[0];
+  var parent = document.createElement("div");
+  gBody.appendChild(parent);
+  var child = document.createElement("div");
+  parent.appendChild(child);
+  var df = document.createDocumentFragment();
+  var fragChild = df.appendChild(document.createElement("div"));
+  fragChild.setAttribute("id", TEST_ID);
+  parent.replaceChild(df, child);
+  assert_equals(document.getElementById(TEST_ID), fragChild, "should not be null");
+}, "Replacing an element with a DocumentFragment should allow a child of the DocumentFragment to be found by Id.")
 </script>
