@@ -38,6 +38,7 @@ use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
 use dom::node::{self, Node, NodeHelpers, NodeDamage, window_from_node};
 use dom::window::{Window, WindowHelpers, ScriptHelpers, ReflowReason};
+use dom::worker::TrustedWorkerAddress;
 use parse::html::{HTMLInput, parse_html};
 use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
 use layout_interface;
@@ -61,7 +62,7 @@ use msg::constellation_msg::{ConstellationChan};
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent, WorkerId};
 use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::{ResourceTask, ControlMsg, LoadResponse};
+use net_traits::{ResourceTask, ControlMsg, LoadResponse, LoadConsumer};
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
@@ -198,6 +199,25 @@ pub trait ScriptChan {
     fn send(&self, msg: ScriptMsg) -> Result<(), ()>;
     /// Clone this handle.
     fn clone(&self) -> Box<ScriptChan+Send>;
+}
+
+/// An interface for receiving ScriptMsg values in an event loop. Used for synchronous DOM
+/// APIs that need to abstract over multiple kinds of event loops (worker/main thread) with
+/// different Receiver interfaces.
+pub trait ScriptPort {
+    fn recv(&self) -> ScriptMsg;
+}
+
+impl ScriptPort for Receiver<ScriptMsg> {
+    fn recv(&self) -> ScriptMsg {
+        self.recv().unwrap()
+    }
+}
+
+impl ScriptPort for Receiver<(TrustedWorkerAddress, ScriptMsg)> {
+    fn recv(&self) -> ScriptMsg {
+        self.recv().unwrap().1
+    }
 }
 
 /// Encapsulates internal communication within the script task.
@@ -403,6 +423,15 @@ unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus) 
 }
 
 impl ScriptTask {
+    pub fn process_event(msg: ScriptMsg) {
+        SCRIPT_TASK_ROOT.with(|root| {
+            if let Some(script_task) = *root.borrow() {
+                let script_task = unsafe { &*script_task };
+                script_task.handle_msg_from_script(msg);
+            }
+        });
+    }
+
     /// Creates a new script task.
     pub fn new(compositor: Box<ScriptListener+'static>,
                port: Receiver<ScriptMsg>,
@@ -1331,8 +1360,7 @@ impl ScriptTask {
                 preserved_headers: load_data.headers,
                 data: load_data.data,
                 cors: None,
-                consumer: input_chan,
-            })).unwrap();
+            }, LoadConsumer::Channel(input_chan))).unwrap();
 
             let load_response = input_port.recv().unwrap();
             script_chan.send(ScriptMsg::PageFetchComplete(id, subpage, load_response)).unwrap();

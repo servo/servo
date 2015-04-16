@@ -6,8 +6,8 @@ use net::image_cache_task::*;
 use net_traits::image_cache_task::ImageResponseMsg::*;
 use net_traits::image_cache_task::Msg::*;
 
-use net::resource_task::start_sending;
-use net_traits::{ControlMsg, Metadata, ProgressMsg, ResourceTask};
+use net::resource_task::{start_sending, ProgressSender};
+use net_traits::{ControlMsg, Metadata, ProgressMsg, ResourceTask, ResponseSenders};
 use net_traits::image_cache_task::{ImageCacheTask, ImageCacheTaskClient, ImageResponseMsg, Msg};
 use net_traits::ProgressMsg::{Payload, Done};
 use profile::time;
@@ -41,7 +41,7 @@ impl ImageCacheTaskHelper for ImageCacheTask {
 }
 
 trait Closure {
-    fn invoke(&self, _response: Sender<ProgressMsg>) { }
+    fn invoke(&self, _response: ProgressSender) { }
 }
 struct DoesNothing;
 impl Closure for DoesNothing { }
@@ -50,7 +50,7 @@ struct JustSendOK {
     url_requested_chan: Sender<()>,
 }
 impl Closure for JustSendOK {
-    fn invoke(&self, response: Sender<ProgressMsg>) {
+    fn invoke(&self, response: ProgressSender) {
         self.url_requested_chan.send(()).unwrap();
         response.send(Done(Ok(()))).unwrap();
     }
@@ -58,7 +58,7 @@ impl Closure for JustSendOK {
 
 struct SendTestImage;
 impl Closure for SendTestImage {
-    fn invoke(&self, response: Sender<ProgressMsg>) {
+    fn invoke(&self, response: ProgressSender) {
         response.send(Payload(test_image_bin())).unwrap();
         response.send(Done(Ok(()))).unwrap();
     }
@@ -66,7 +66,7 @@ impl Closure for SendTestImage {
 
 struct SendBogusImage;
 impl Closure for SendBogusImage {
-    fn invoke(&self, response: Sender<ProgressMsg>) {
+    fn invoke(&self, response: ProgressSender) {
         response.send(Payload(vec!())).unwrap();
         response.send(Done(Ok(()))).unwrap();
     }
@@ -74,7 +74,7 @@ impl Closure for SendBogusImage {
 
 struct SendTestImageErr;
 impl Closure for SendTestImageErr {
-    fn invoke(&self, response: Sender<ProgressMsg>) {
+    fn invoke(&self, response: ProgressSender) {
         response.send(Payload(test_image_bin())).unwrap();
         response.send(Done(Err("".to_string()))).unwrap();
     }
@@ -84,7 +84,7 @@ struct WaitSendTestImage {
     wait_port: Receiver<()>,
 }
 impl Closure for WaitSendTestImage {
-    fn invoke(&self, response: Sender<ProgressMsg>) {
+    fn invoke(&self, response: ProgressSender) {
         // Don't send the data until after the client requests
         // the image
         self.wait_port.recv().unwrap();
@@ -97,7 +97,7 @@ struct WaitSendTestImageErr {
     wait_port: Receiver<()>,
 }
 impl Closure for WaitSendTestImageErr {
-    fn invoke(&self, response: Sender<ProgressMsg>) {
+    fn invoke(&self, response: ProgressSender) {
         // Don't send the data until after the client requests
         // the image
         self.wait_port.recv().unwrap();
@@ -110,8 +110,8 @@ fn mock_resource_task<T: Closure + Send + 'static>(on_load: Box<T>) -> ResourceT
     spawn_listener(move |port: Receiver<ControlMsg>| {
         loop {
             match port.recv().unwrap() {
-                ControlMsg::Load(response) => {
-                    let chan = start_sending(response.consumer, Metadata::default(
+                ControlMsg::Load(response, consumer) => {
+                    let chan = start_sending(ResponseSenders::from_consumer(consumer), Metadata::default(
                         Url::parse("file:///fake").unwrap()));
                     on_load.invoke(chan);
                 }
@@ -280,8 +280,8 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
     let mock_resource_task = spawn_listener(move |port: Receiver<ControlMsg>| {
         loop {
             match port.recv().unwrap() {
-                ControlMsg::Load(response) => {
-                    let chan = start_sending(response.consumer, Metadata::default(
+                ControlMsg::Load(response, consumer) => {
+                    let chan = start_sending(ResponseSenders::from_consumer(consumer), Metadata::default(
                         Url::parse("file:///fake").unwrap()));
                     chan.send(Payload(test_image_bin()));
                     chan.send(Done(Ok(())));
@@ -329,8 +329,8 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
     let mock_resource_task = spawn_listener(move |port: Receiver<ControlMsg>| {
         loop {
             match port.recv().unwrap() {
-                ControlMsg::Load(response) => {
-                    let chan = start_sending(response.consumer, Metadata::default(
+                ControlMsg::Load(response, consumer) => {
+                    let chan = start_sending(ResponseSenders::from_consumer(consumer), Metadata::default(
                         Url::parse("file:///fake").unwrap()));
                     chan.send(Payload(test_image_bin()));
                     chan.send(Done(Err("".to_string())));

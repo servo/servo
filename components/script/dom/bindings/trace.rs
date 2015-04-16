@@ -207,6 +207,16 @@ impl<T: JSTraceable> JSTraceable for Option<T> {
     }
 }
 
+impl<T: JSTraceable, U: JSTraceable> JSTraceable for Result<T, U> {
+    #[inline]
+    fn trace(&self, trc: *mut JSTracer) {
+        match *self {
+            Ok(ref inner) => inner.trace(trc),
+            Err(ref inner) => inner.trace(trc),
+        }
+    }
+}
+
 impl<K,V,S> JSTraceable for HashMap<K, V, S>
     where K: Hash + Eq + JSTraceable,
           V: JSTraceable,
@@ -294,6 +304,12 @@ impl JSTraceable for Box<LayoutRPC+'static> {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
+    }
+}
+
+impl JSTraceable for () {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
     }
 }
 

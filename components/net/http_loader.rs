@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{ControlMsg, CookieSource, LoadData, LoadResponse, Metadata};
+use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, ResponseSenders};
 use net_traits::ProgressMsg::{Payload, Done};
 use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
@@ -32,13 +32,13 @@ use url::{Url, UrlParser};
 use std::borrow::ToOwned;
 
 pub fn factory(cookies_chan: Sender<ControlMsg>)
-               -> Box<Invoke<(LoadData, Arc<MIMEClassifier>)> + Send> {
-    box move |(load_data, classifier)| {
-        spawn_named("http_loader".to_owned(), move || load(load_data, classifier, cookies_chan))
+               -> Box<Invoke<(LoadData, ResponseSenders, Arc<MIMEClassifier>)> + Send> {
+    box move |(load_data, senders, classifier)| {
+        spawn_named("http_loader".to_owned(), move || load(load_data, senders, classifier, cookies_chan))
     }
 }
 
-fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {
+fn send_error(url: Url, err: String, start_chan: ResponseSenders) {
     let mut metadata: Metadata = Metadata::default(url);
     metadata.status = None;
 
@@ -66,13 +66,12 @@ fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     }
 }
 
-fn load(mut load_data: LoadData, classifier: Arc<MIMEClassifier>, cookies_chan: Sender<ControlMsg>) {
+fn load(mut load_data: LoadData, start_chan: ResponseSenders, classifier: Arc<MIMEClassifier>, cookies_chan: Sender<ControlMsg>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
     let max_redirects = 50;
     let mut iters = 0;
-    let start_chan = load_data.consumer;
     let mut url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
 
@@ -140,8 +139,8 @@ reason: \"certificate verify failed\" }]";
             ) => {
                 let mut image = resources_dir_path();
                 image.push("badcert.html");
-                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), start_chan);
-                file_loader::factory(load_data, classifier);
+                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap());
+                file_loader::factory(load_data, start_chan, classifier);
                 return;
             },
             Err(e) => {
@@ -340,7 +339,7 @@ reason: \"certificate verify failed\" }]";
 }
 
 fn send_data<R: Read>(reader: &mut R,
-                      start_chan: Sender<LoadResponse>,
+                      start_chan: ResponseSenders,
                       metadata: Metadata,
                       classifier: Arc<MIMEClassifier>) {
     let (progress_chan, mut chunk) = {

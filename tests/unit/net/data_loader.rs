@@ -4,6 +4,7 @@
 
 extern crate hyper;
 
+use net_traits::ResponseSenders::Channel;
 use net_traits::LoadData;
 use net_traits::ProgressMsg::{Payload, Done};
 use self::hyper::header::ContentType;
@@ -19,7 +20,7 @@ fn assert_parse(url:          &'static str,
     use net::data_loader::load;
 
     let (start_chan, start_port) = channel();
-    load(LoadData::new(Url::parse(url).unwrap(), start_chan));
+    load(LoadData::new(Url::parse(url).unwrap()), Channel(start_chan));
 
     let response = start_port.recv().unwrap();
     assert_eq!(&response.metadata.content_type, &content_type);

@@ -51,11 +51,10 @@ pub struct LoadData {
     pub preserved_headers: Headers,
     pub data: Option<Vec<u8>>,
     pub cors: Option<ResourceCORSData>,
-    pub consumer: Sender<LoadResponse>,
 }
 
 impl LoadData {
-    pub fn new(url: Url, consumer: Sender<LoadResponse>) -> LoadData {
+    pub fn new(url: Url) -> LoadData {
         LoadData {
             url: url,
             method: Method::Get,
@@ -63,9 +62,54 @@ impl LoadData {
             preserved_headers: Headers::new(),
             data: None,
             cors: None,
-            consumer: consumer,
         }
     }
+}
+
+/// A listener for asynchronous network events. Cancelling the underlying request is unsupported.
+pub trait AsyncResponseListener {
+    /// The response headers for a request have been received.
+    fn headers_available(&self, metadata: Metadata);
+    /// A portion of the response body has been received. This data is unavailable after
+    /// this method returned, and must be stored accordingly.
+    fn data_available(&self, payload: Vec<u8>);
+    /// The response is complete. If the provided status is an Err value, there is no guarantee
+    /// that the response body was completely read.
+    fn response_complete(&self, status: Result<(), String>);
+}
+
+/// Data for passing between threads/processes to indicate a particular action to
+/// take on a provided network listener.
+pub enum ResponseAction {
+    /// Invoke headers_available
+    HeadersAvailable(Metadata),
+    /// Invoke data_available
+    DataAvailable(Vec<u8>),
+    /// Invoke response_complete
+    ResponseComplete(Result<(), String>)
+}
+
+impl ResponseAction {
+    /// Execute the default action on a provided listener.
+    pub fn process(self, listener: &AsyncResponseListener) {
+        match self {
+            ResponseAction::HeadersAvailable(m) => listener.headers_available(m),
+            ResponseAction::DataAvailable(d) => listener.data_available(d),
+            ResponseAction::ResponseComplete(r) => listener.response_complete(r),
+        }
+    }
+}
+
+/// A target for async networking events. Commonly used to dispatch a runnable event to another
+/// thread storing the wrapped closure for later execution.
+pub trait AsyncResponseTarget {
+    fn invoke_with_listener(&self, action: ResponseAction);
+}
+
+/// A wrapper for a network load that can either be channel or event-based.
+pub enum LoadConsumer {
+    Channel(Sender<LoadResponse>),
+    Listener(Box<AsyncResponseTarget + Send>),
 }
 
 /// Handle to a resource task
@@ -73,7 +117,7 @@ pub type ResourceTask = Sender<ControlMsg>;
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
-    Load(LoadData),
+    Load(LoadData, LoadConsumer),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
@@ -159,6 +203,20 @@ pub enum CookieSource {
     NonHTTP,
 }
 
+pub enum ResponseSenders {
+    Channel(Sender<LoadResponse>),
+    Listener(Box<AsyncResponseTarget+ Send>),
+}
+
+impl ResponseSenders {
+    pub fn from_consumer(consumer: LoadConsumer) -> ResponseSenders {
+        match consumer {
+            LoadConsumer::Channel(c) => ResponseSenders::Channel(c),
+            LoadConsumer::Listener(l) => ResponseSenders::Listener(l),
+        }
+    }
+}
+
 /// Messages sent in response to a `Load` message
 #[derive(PartialEq,Debug)]
 pub enum ProgressMsg {
@@ -172,7 +230,7 @@ pub enum ProgressMsg {
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
         -> Result<(Metadata, Vec<u8>), String> {
     let (start_chan, start_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, start_chan))).unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(url), LoadConsumer::Channel(start_chan))).unwrap();
     let response = start_port.recv().unwrap();
 
     let mut buf = vec!();
@@ -188,7 +246,7 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
 /// Load a URL asynchronously and iterate over chunks of bytes from the response.
 pub fn load_bytes_iter(resource_task: &ResourceTask, url: Url) -> (Metadata, ProgressMsgPortIterator) {
     let (input_chan, input_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, input_chan))).unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(url), LoadConsumer::Channel(input_chan))).unwrap();
 
     let response = input_port.recv().unwrap();
     let iter = ProgressMsgPortIterator { progress_port: response.progress_port };
