@@ -45,11 +45,7 @@ impl ListItemFlow {
                                              flotation: Option<FloatKind>)
                                              -> ListItemFlow {
         let mut this = ListItemFlow {
-            block_flow: if let Some(flotation) = flotation {
-                BlockFlow::float_from_node_and_fragment(node, main_fragment, flotation)
-            } else {
-                BlockFlow::from_node_and_fragment(node, main_fragment)
-            },
+            block_flow: BlockFlow::from_node_and_fragment(node, main_fragment, flotation),
             marker: marker_fragment,
         };
 

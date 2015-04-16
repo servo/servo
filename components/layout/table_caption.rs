@@ -28,7 +28,7 @@ impl TableCaptionFlow {
     pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment)
                                   -> TableCaptionFlow {
         TableCaptionFlow {
-            block_flow: BlockFlow::from_node_and_fragment(node, fragment)
+            block_flow: BlockFlow::from_node_and_fragment(node, fragment, None)
         }
     }
 }

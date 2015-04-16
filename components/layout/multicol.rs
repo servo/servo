@@ -4,10 +4,11 @@
 
 //! CSS Multi-column layout http://dev.w3.org/csswg/css-multicol/
 
-#![deny(unsafe_blocks)]
+#![deny(unsafe_code)]
 
 use block::BlockFlow;
 use context::LayoutContext;
+use floats::FloatKind;
 use flow::{FlowClass, Flow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use wrapper::ThreadSafeLayoutNode;
@@ -24,10 +25,12 @@ pub struct MulticolFlow {
 }
 
 impl MulticolFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment)
+    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
+                                  fragment: Fragment,
+                                  float_kind: Option<FloatKind>)
                                   -> MulticolFlow {
         MulticolFlow {
-            block_flow: BlockFlow::from_node_and_fragment(node, fragment)
+            block_flow: BlockFlow::from_node_and_fragment(node, fragment, float_kind)
         }
     }
 }
