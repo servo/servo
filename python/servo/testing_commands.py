@@ -110,8 +110,9 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
 
         return 0 != subprocess.call(
-            ["cargo", "test", "-p", "unit_tests"]
-            + test_name, env=self.build_env(), cwd=self.servo_crate())
+            ["cargo", "test", "-p", "gfx_tests", "net_tests", "script_tests",
+                "style_tests", "util_tests"] + test_name,
+            env=self.build_env(), cwd=self.servo_crate())
 
     @Command('test-ref',
              description='Run the reference tests',
