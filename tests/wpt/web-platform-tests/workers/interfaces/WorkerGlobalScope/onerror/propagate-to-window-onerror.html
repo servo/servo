@@ -16,15 +16,11 @@ setup({
 });
 async_test(function() {
   var worker = new Worker('#');
-  var timeout = setTimeout(this.step_func(function() {
-    assert_unreached();
-  }, 500));
   window.onerror = this.step_func(function(a, b, c, d) {
-    assert_true(typeof a, 'string', 'first argument');
+    assert_equals(typeof a, 'string', 'first argument');
     assert_equals(b, document.URL+'#', 'second argument');
     assert_equals(typeof c, 'number', 'third argument');
     assert_equals(typeof d, 'number', 'fourth argument');
-    clearTimeout(timeout);
     this.done();
     return true; // "handled"
   });
