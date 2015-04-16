@@ -4,7 +4,9 @@
 
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::WebSocketMethods;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::error::Error::{InvalidState, InvalidAccess};
+use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, JSRef};
 use dom::bindings::utils::reflect_dom_object;
@@ -57,11 +59,23 @@ impl WebSocket {
 
 impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
     fn Url(self) -> DOMString {
-	println!("Setting URL");
+	println!("Cloning URL");
        self.url.clone()
     }
 	
    fn ReadyState(self) -> u16 {
    	self.ready_state.get() as u16
+   }
+
+  
+   
+   fn Open (self, url: DOMString) -> ErrorResult {
+	println!("Trying to connect.");
+	let parsed_url = Url::parse(url.as_slice()).unwrap();
+   	let request = Client::connect(parsed_url).unwrap();
+	let response = request.send().unwrap();
+	response.validate().unwrap();
+	println!("Successful connection.");
+	Ok(())
    }
 }
