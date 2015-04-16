@@ -12,7 +12,7 @@ use net::mime_classifier::as_string_option;
 fn test_sniff_mp4_matcher() {
     let matcher = Mp4Matcher;
 
-    let p = Path::new("../../tests/content/parsable_mime/video/mp4/test.mp4");
+    let p = Path::new("../../tests/unit/net/parsable_mime/video/mp4/test.mp4");
     let mut file = File::open(&p);
     let read_result = file.read_to_end();
     match read_result {
@@ -32,7 +32,7 @@ fn test_sniff_full(filename_orig: &Path,type_string: &str,subtype_string: &str,
     let current_working_directory = os::getcwd().unwrap();
     println!("The current directory is {}", current_working_directory.display());
 
-    let mut filename = Path::new("../../tests/content/parsable_mime/");
+    let mut filename = Path::new("../../tests/unit/net/parsable_mime/");
 
     filename.push(filename_orig);
     let classifier = MIMEClassifier::new();

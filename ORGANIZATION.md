@@ -30,8 +30,6 @@ special integration:
 
 ## Tests
 
-* `tests/contenttest.rs`: Content (JavaScript) test runner.
-* `tests/content`: Content tests.
 * `tests/reftest.rs`: Reference (layout) test runner.
 * `tests/ref`: Reference tests.
 * `tests/html`: Manual test cases and examples.
