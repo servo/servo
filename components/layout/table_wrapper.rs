@@ -54,9 +54,10 @@ pub struct TableWrapperFlow {
 
 impl TableWrapperFlow {
     pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
-                                  fragment: Fragment)
+                                  fragment: Fragment,
+                                  float_kind: Option<FloatKind>)
                                   -> TableWrapperFlow {
-        let mut block_flow = BlockFlow::from_node_and_fragment(node, fragment);
+        let mut block_flow = BlockFlow::from_node_and_fragment(node, fragment, float_kind);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
                               table_layout::T::fixed {
             TableLayout::Fixed
@@ -69,25 +70,6 @@ impl TableWrapperFlow {
             table_layout: table_layout
         }
     }
-
-    pub fn float_from_node_and_fragment(node: &ThreadSafeLayoutNode,
-                                        fragment: Fragment,
-                                        float_kind: FloatKind)
-                                        -> TableWrapperFlow {
-        let mut block_flow = BlockFlow::float_from_node_and_fragment(node, fragment, float_kind);
-        let table_layout = if block_flow.fragment().style().get_table().table_layout ==
-                              table_layout::T::fixed {
-            TableLayout::Fixed
-        } else {
-            TableLayout::Auto
-        };
-        TableWrapperFlow {
-            block_flow: block_flow,
-            column_intrinsic_inline_sizes: vec!(),
-            table_layout: table_layout
-        }
-    }
-
     /// Calculates table column sizes for automatic layout per INTRINSIC § 4.3.
     fn calculate_table_column_sizes_for_automatic_layout(
             &mut self,

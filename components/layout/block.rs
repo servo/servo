@@ -564,33 +564,22 @@ impl Encodable for BlockFlowFlags {
 }
 
 impl BlockFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment) -> BlockFlow {
+    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
+                                  fragment: Fragment,
+                                  float_kind: Option<FloatKind>)
+                                  -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::ForceNonfloated),
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, match float_kind {
+                Some(_) => ForceNonfloatedFlag::FloatIfNecessary,
+                None => ForceNonfloatedFlag::ForceNonfloated,
+            }),
             fragment: fragment,
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
             hypothetical_position: LogicalPoint::new(writing_mode, Au(0), Au(0)),
-            float: None,
-            flags: BlockFlowFlags::empty(),
-        }
-    }
-
-    pub fn float_from_node_and_fragment(node: &ThreadSafeLayoutNode,
-                                        fragment: Fragment,
-                                        float_kind: FloatKind)
-                                        -> BlockFlow {
-        let writing_mode = node.style().writing_mode;
-        BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::FloatIfNecessary),
-            fragment: fragment,
-            static_b_offset: Au::new(0),
-            inline_size_of_preceding_left_floats: Au(0),
-            inline_size_of_preceding_right_floats: Au(0),
-            hypothetical_position: LogicalPoint::new(writing_mode, Au(0), Au(0)),
-            float: Some(box FloatedBlockInfo::new(float_kind)),
+            float: float_kind.map(|kind| box FloatedBlockInfo::new(kind)),
             flags: BlockFlowFlags::empty(),
         }
     }
