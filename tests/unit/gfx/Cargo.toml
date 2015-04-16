@@ -1,42 +1,21 @@
 [package]
-name = "unit_tests"
+name = "gfx_tests"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 
 [lib]
-name = "unit_tests"
+name = "gfx_tests"
 path = "lib.rs"
 doctest = false
-
-[dependencies.util]
-path = "../../components/util"
 
 [dependencies.gfx]
 path = "../../components/gfx"
 
-[dependencies.net]
-path = "../../components/net"
-
-[dependencies.net_traits]
-path = "../../components/net_traits"
-
 [dependencies.profile]
 path = "../../components/profile"
 
-[dependencies.style]
-path = "../../components/style"
-
-[dependencies.script]
-path = "../../components/script"
-
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
-
-[dependencies.cssparser]
-git = "https://github.com/servo/rust-cssparser"
-
-[dependencies.selectors]
-git = "https://github.com/servo/rust-selectors"
 
 [dependencies.string_cache]
 git = "https://github.com/servo/string-cache"
