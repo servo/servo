@@ -5,6 +5,8 @@
 [Constructor(DOMString url)]
 interface WebSocket : EventTarget {
 readonly attribute DOMString url;
+	[Throws]
+	void open(/* [EnsureUTF16] */ DOMString url);
     //attribute DOMString port;
     //attribute DOMString host;
     //ready state
