@@ -1234,8 +1234,26 @@ impl ScriptTask {
                 document.r().handle_click_event(self.js_runtime.ptr, button, point);
             }
 
-            MouseDownEvent(..) => {}
-            MouseUpEvent(..) => {}
+            MouseDownEvent(button, point) => {
+                let _marker;
+                if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
+                    _marker = AutoDOMEventMarker::new(self);
+                }
+                let page = get_page(&self.root_page(), pipeline_id);
+                let document = page.document().root();
+                document.r().handle_mouse_down_event(self.js_runtime.ptr, button, &point);
+            }
+
+            MouseUpEvent(button, point) => {
+                let _marker;
+                if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
+                    _marker = AutoDOMEventMarker::new(self);
+                }
+                let page = get_page(&self.root_page(), pipeline_id);
+                let document = page.document().root();
+                document.r().handle_mouse_up_event(self.js_runtime.ptr, button, &point);
+            }
+
             MouseMoveEvent(point) => {
                 let _marker;
                 if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
