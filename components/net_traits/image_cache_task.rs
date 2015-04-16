@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use image::base::Image;
-use {ControlMsg, LoadData, ProgressMsg, ResourceTask};
+use {ProgressType, ResourceTask};
 use url::Url;
 
 use std::sync::Arc;
@@ -84,20 +84,21 @@ impl ImageCacheTaskClient for ImageCacheTask {
 
 pub fn load_image_data(url: Url, resource_task: ResourceTask, placeholder: &[u8]) -> Result<Vec<u8>, ()> {
     let (response_chan, response_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url.clone(), response_chan))).unwrap();
+    resource_task.load_url(url.clone(), response_chan);
 
     let mut image_data = vec!();
 
-    let progress_port = response_port.recv().unwrap().progress_port;
     loop {
-        match progress_port.recv().unwrap() {
-            ProgressMsg::Payload(data) => {
+        let msg = response_port.recv().unwrap();
+        match msg.progress {
+            ProgressType::Headers(..) => {}
+            ProgressType::Payload(data) => {
                 image_data.push_all(&data);
             }
-            ProgressMsg::Done(Ok(..)) => {
+            ProgressType::Done(Ok(..)) => {
                 return Ok(image_data);
             }
-            ProgressMsg::Done(Err(..)) => {
+            ProgressType::Done(Err(..)) => {
                 // Failure to load the requested image will return the
                 // placeholder instead. In case it failed to load at init(),
                 // we still recover and return Err() but nothing will be drawn.

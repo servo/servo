@@ -42,9 +42,8 @@ use js::jsapi::{JS_ParseJSON, JSContext};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
-use net_traits::ControlMsg::Load;
-use net_traits::ProgressMsg::{Payload, Done};
-use net_traits::{ResourceTask, ResourceCORSData, LoadData, LoadResponse};
+use net_traits::ProgressType::{Headers, Payload, Done};
+use net_traits::{ResourceTask, ResourceCORSData, LoadData, ProgressMsg};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode};
 use util::str::DOMString;
 use util::task::spawn_named;
@@ -214,7 +213,8 @@ impl XMLHttpRequest {
     fn fetch(fetch_type: &SyncOrAsync, resource_task: ResourceTask,
              mut load_data: LoadData, terminate_receiver: Receiver<TerminateReason>,
              cors_request: Result<Option<CORSRequest>,()>, gen_id: GenerationId,
-             start_port: Receiver<LoadResponse>) -> ErrorResult {
+             progress_sender: Sender<ProgressMsg>,
+             progress_port: Receiver<ProgressMsg>) -> ErrorResult {
 
         fn notify_partial_progress(fetch_type: &SyncOrAsync, msg: XHRProgress) {
             match *fetch_type {
@@ -283,28 +283,30 @@ impl XMLHttpRequest {
         }
 
         // Step 10, 13
-        resource_task.send(Load(load_data)).unwrap();
+        resource_task.load(load_data, progress_sender);
 
-
-        let progress_port;
         select! (
-            response = start_port.recv() => {
+            response = progress_port.recv() => {
                 let response = response.unwrap();
-                match cors_request {
-                    Ok(Some(ref req)) => {
-                        match response.metadata.headers {
-                            Some(ref h) if allow_cross_origin_request(req, h) => {},
-                            _ => notify_error_and_return!(Network)
-                        }
-                    },
+                match response.progress {
+                    Headers(metadata) => {
+                        match cors_request {
+                            Ok(Some(ref req)) => {
+                                match metadata.headers {
+                                    Some(ref h) if allow_cross_origin_request(req, h) => {},
+                                    _ => notify_error_and_return!(Network)
+                                }
+                            },
 
-                    _ => {}
-                };
-                // XXXManishearth Clear cache entries in case of a network error
-                notify_partial_progress(fetch_type, XHRProgress::HeadersReceived(gen_id,
-                    response.metadata.headers.clone(), response.metadata.status.clone()));
+                            _ => {}
+                        };
+                        // XXXManishearth Clear cache entries in case of a network error
+                        notify_partial_progress(fetch_type, XHRProgress::HeadersReceived(gen_id,
+                            metadata.headers.clone(), metadata.status.clone()));
 
-                progress_port = response.progress_port;
+                    }
+                    _ => unreachable!(),
+                }
             },
             reason = terminate_receiver.recv() => terminate!(reason.unwrap())
         );
@@ -323,7 +325,8 @@ impl XMLHttpRequest {
             };
 
             select! (
-                progress = progress_port.recv() => match progress.unwrap() {
+                progress_msg = progress_port.recv() => match progress_msg.unwrap().progress {
+                    Headers(..) => unreachable!(),
                     Payload(data) => {
                         buf.push_all(data.as_slice());
                         notify_partial_progress(fetch_type,
@@ -580,7 +583,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         let global = self.global.root();
         let resource_task = global.r().resource_task();
         let (start_chan, start_port) = channel();
-        let mut load_data = LoadData::new(self.request_url.borrow().clone().unwrap(), start_chan);
+        let mut load_data = LoadData::new(self.request_url.borrow().clone().unwrap());
         load_data.data = extracted;
 
         #[inline]
@@ -650,7 +653,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         let gen_id = self.generation_id.get();
         if self.sync.get() {
             return XMLHttpRequest::fetch(&mut SyncOrAsync::Sync(self), resource_task, load_data,
-                                         terminate_receiver, cors_request, gen_id, start_port);
+                                         terminate_receiver, cors_request, gen_id,
+                                         start_chan, start_port);
         } else {
             self.fetch_time.set(time::now().to_timespec().sec);
             let script_chan = global.r().script_chan();
@@ -666,6 +670,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                                               terminate_receiver,
                                               cors_request,
                                               gen_id,
+                                              start_chan,
                                               start_port);
             });
             let timeout = self.timeout.get();

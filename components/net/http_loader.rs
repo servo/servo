@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{ControlMsg, CookieSource, LoadData, LoadResponse, Metadata};
-use net_traits::ProgressMsg::{Payload, Done};
+use net_traits::{ControlMsg, CookieSource, LoadData, Metadata};
+use net_traits::ProgressType::Payload;
 use mime_classifier::MIMEClassifier;
-use resource_task::{start_sending_opt, start_sending_sniffed_opt};
+use resource_task::ResourceConsumer;
 
 use log;
 use std::collections::HashSet;
@@ -32,20 +32,19 @@ use url::{Url, UrlParser};
 use std::borrow::ToOwned;
 
 pub fn factory(cookies_chan: Sender<ControlMsg>)
-               -> Box<Invoke<(LoadData, Arc<MIMEClassifier>)> + Send> {
-    box move |(load_data, classifier)| {
-        spawn_named("http_loader".to_owned(), move || load(load_data, classifier, cookies_chan))
+               -> Box<Invoke<(ResourceConsumer, LoadData, Arc<MIMEClassifier>)> + Send> {
+    box move |(resource_consumer, load_data, classifier)| {
+        spawn_named("http_loader".to_owned(), move || load(resource_consumer, load_data, classifier, cookies_chan))
     }
 }
 
-fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {
+fn send_error(url: Url, err: String, resource_consumer: &mut ResourceConsumer) {
     let mut metadata: Metadata = Metadata::default(url);
     metadata.status = None;
 
-    match start_sending_opt(start_chan, metadata) {
-        Ok(p) => p.send(Done(Err(err))).unwrap(),
-        _ => {}
-    };
+    if resource_consumer.start_opt(metadata).is_ok() {
+        resource_consumer.error(err);
+    }
 }
 
 enum ReadResult {
@@ -66,13 +65,12 @@ fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     }
 }
 
-fn load(mut load_data: LoadData, classifier: Arc<MIMEClassifier>, cookies_chan: Sender<ControlMsg>) {
+fn load(mut resource_consumer: ResourceConsumer, mut load_data: LoadData, classifier: Arc<MIMEClassifier>, cookies_chan: Sender<ControlMsg>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
     let max_redirects = 50;
     let mut iters = 0;
-    let start_chan = load_data.consumer;
     let mut url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
 
@@ -88,7 +86,7 @@ fn load(mut load_data: LoadData, classifier: Arc<MIMEClassifier>, cookies_chan: 
             "http" | "https" => {}
             _ => {
                 let s = format!("The {} scheme with view-source is not supported", url.scheme);
-                send_error(url, s, start_chan);
+                send_error(url, s, &mut resource_consumer);
                 return;
             }
         };
@@ -99,7 +97,7 @@ fn load(mut load_data: LoadData, classifier: Arc<MIMEClassifier>, cookies_chan: 
         iters = iters + 1;
 
         if iters > max_redirects {
-            send_error(url, "too many redirects".to_string(), start_chan);
+            send_error(url, "too many redirects".to_string(), &mut resource_consumer);
             return;
         }
 
@@ -107,7 +105,7 @@ fn load(mut load_data: LoadData, classifier: Arc<MIMEClassifier>, cookies_chan: 
             "http" | "https" => {}
             _ => {
                 let s = format!("{} request, but we don't support that scheme", url.scheme);
-                send_error(url, s, start_chan);
+                send_error(url, s, &mut resource_consumer);
                 return;
             }
         }
@@ -140,13 +138,13 @@ reason: \"certificate verify failed\" }]";
             ) => {
                 let mut image = resources_dir_path();
                 image.push("badcert.html");
-                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), start_chan);
-                file_loader::factory(load_data, classifier);
+                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap());
+                file_loader::factory(resource_consumer, load_data, classifier);
                 return;
             },
             Err(e) => {
                 println!("{:?}", e);
-                send_error(url, e.description().to_string(), start_chan);
+                send_error(url, e.description().to_string(), &mut resource_consumer);
                 return;
             }
         };
@@ -194,13 +192,13 @@ reason: \"certificate verify failed\" }]";
                 let mut writer = match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        send_error(url, e.description().to_string(), start_chan);
+                        send_error(url, e.description().to_string(), &mut resource_consumer);
                         return;
                     }
                 };
                 match writer.write_all(&*data) {
                     Err(e) => {
-                        send_error(url, e.description().to_string(), start_chan);
+                        send_error(url, e.description().to_string(), &mut resource_consumer);
                         return;
                     }
                     _ => {}
@@ -215,7 +213,7 @@ reason: \"certificate verify failed\" }]";
                 match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        send_error(url, e.description().to_string(), start_chan);
+                        send_error(url, e.description().to_string(), &mut resource_consumer);
                         return;
                     }
                 }
@@ -224,7 +222,7 @@ reason: \"certificate verify failed\" }]";
         let mut response = match writer.send() {
             Ok(r) => r,
             Err(e) => {
-                send_error(url, e.description().to_string(), start_chan);
+                send_error(url, e.description().to_string(), &mut resource_consumer);
                 return;
             }
         };
@@ -255,7 +253,7 @@ reason: \"certificate verify failed\" }]";
                         Some(ref c) => {
                             if c.preflight {
                                 // The preflight lied
-                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), start_chan);
+                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), &mut resource_consumer);
                                 return;
                             } else {
                                 // XXXManishearth There are some CORS-related steps here,
@@ -267,7 +265,7 @@ reason: \"certificate verify failed\" }]";
                     let new_url = match UrlParser::new().base_url(&url).parse(&new_url) {
                         Ok(u) => u,
                         Err(e) => {
-                            send_error(url, e.to_string(), start_chan);
+                            send_error(url, e.to_string(), &mut resource_consumer);
                             return;
                         }
                     };
@@ -283,7 +281,7 @@ reason: \"certificate verify failed\" }]";
                     }
 
                     if redirected_to.contains(&url) {
-                        send_error(url, "redirect loop".to_string(), start_chan);
+                        send_error(url, "redirect loop".to_string(), &mut resource_consumer);
                         return;
                     }
 
@@ -323,14 +321,14 @@ reason: \"certificate verify failed\" }]";
             Some(encoding) => {
                 if encoding == "gzip" {
                     let mut response_decoding = GzDecoder::new(response).unwrap();
-                    send_data(&mut response_decoding, start_chan, metadata, classifier);
+                    send_data(&mut response_decoding, &mut resource_consumer, metadata, classifier);
                 } else if encoding == "deflate" {
                     let mut response_decoding = DeflateDecoder::new(response);
-                    send_data(&mut response_decoding, start_chan, metadata, classifier);
+                    send_data(&mut response_decoding, &mut resource_consumer, metadata, classifier);
                 }
             },
             None => {
-                send_data(&mut response, start_chan, metadata, classifier);
+                send_data(&mut response, &mut resource_consumer, metadata, classifier);
             }
         }
 
@@ -340,23 +338,22 @@ reason: \"certificate verify failed\" }]";
 }
 
 fn send_data<R: Read>(reader: &mut R,
-                      start_chan: Sender<LoadResponse>,
+                      resource_consumer: &mut ResourceConsumer,
                       metadata: Metadata,
                       classifier: Arc<MIMEClassifier>) {
-    let (progress_chan, mut chunk) = {
+    let mut chunk = {
         let buf = match read_block(reader) {
             Ok(ReadResult::Payload(buf)) => buf,
             _ => vec!(),
         };
-        let p = match start_sending_sniffed_opt(start_chan, metadata, classifier, &buf) {
-            Ok(p) => p,
-            _ => return
-        };
-        (p, buf)
+        if resource_consumer.start_sniffed_opt(metadata, classifier, &buf).is_err() {
+            return;
+        }
+        buf
     };
 
     loop {
-        if progress_chan.send(Payload(chunk)).is_err() {
+        if resource_consumer.send_opt(chunk).is_err() {
             // The send errors when the receiver is out of scope,
             // which will happen if the fetch has timed out (or has been aborted)
             // so we don't need to continue with the loading of the file here.
@@ -369,5 +366,5 @@ fn send_data<R: Read>(reader: &mut R,
         };
     }
 
-    let _ = progress_chan.send(Done(Ok(())));
+    resource_consumer.complete();
 }
