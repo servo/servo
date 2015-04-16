@@ -42,9 +42,6 @@ path = "../gfx"
 [dependencies.canvas]
 path = "../canvas"
 
-[dependencies.webdriver_server]
-path = "../webdriver_server"
-
 [dependencies.cssparser]
 git = "https://github.com/servo/rust-cssparser"
 

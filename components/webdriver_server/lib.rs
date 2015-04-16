@@ -6,6 +6,7 @@
 #![crate_type = "rlib"]
 
 #![feature(net)]
+#![feature(rustc_private)]
 
 #[macro_use]
 extern crate log;
