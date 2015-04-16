@@ -18,9 +18,10 @@ interface ParentNode {
   [Pure]
   readonly attribute unsigned long childElementCount;
 
-  // Not implemented yet
-  // void prepend((Node or DOMString)... nodes);
-  // void append((Node or DOMString)... nodes);
+  [Throws]
+  void prepend((Node or DOMString)... nodes);
+  [Throws]
+  void append((Node or DOMString)... nodes);
 
   //Element? query(DOMString relativeSelectors);
   //[NewObject]
