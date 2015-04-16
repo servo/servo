@@ -367,6 +367,13 @@ impl Interpolate for f64 {
     }
 }
 
+impl Interpolate for f32 {
+    #[inline]
+    fn interpolate(&self, other: &f32, time: f64) -> Option<f32> {
+        Some(*self + (*other - *self) * (time as f32))
+    }
+}
+
 impl Interpolate for i32 {
     #[inline]
     fn interpolate(&self, other: &i32, time: f64) -> Option<i32> {
@@ -442,13 +449,15 @@ impl Interpolate for BorderSpacing {
 impl Interpolate for RGBA {
     #[inline]
     fn interpolate(&self, other: &RGBA, time: f64) -> Option<RGBA> {
-        let time32 = time as f32;
-        Some(RGBA {
-            red: self.red + (other.red - self.red) * time32,
-            green: self.green + (other.green - self.green) * time32,
-            blue: self.blue + (other.blue - self.blue) * time32,
-            alpha: self.alpha + (other.alpha - self.alpha) * time32
-        })
+        match (self.red.interpolate(&other.red, time),
+               self.green.interpolate(&other.green, time),
+               self.blue.interpolate(&other.blue, time),
+               self.alpha.interpolate(&other.alpha, time)) {
+            (Some(red), Some(green), Some(blue), Some(alpha)) => {
+                Some(RGBA { red: red, green: green, blue: blue, alpha: alpha })
+            }
+            (_, _, _, _) => None
+        }
     }
 }
 
