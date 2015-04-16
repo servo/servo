@@ -170,7 +170,7 @@ impl DisplayList {
         let doit = |items: &Vec<DisplayItem>| {
             for item in items.iter() {
                 match *item {
-                    DisplayItem::SolidColorClass(ref solid_color) => println!("{:?} SolidColor. {:?}", indentation, solid_color.base.bounds),
+                    DisplayItem::SolidColorClass(ref solid_color) => println!("{} SolidColor. {:?}", indentation, solid_color.base.bounds),
                     DisplayItem::TextClass(ref text) => println!("{:?} Text. {:?}", indentation, text.base.bounds),
                     DisplayItem::ImageClass(ref image) => println!("{:?} Image. {:?}", indentation, image.base.bounds),
                     DisplayItem::BorderClass(ref border) => println!("{:?} Border. {:?}", indentation, border.base.bounds),
@@ -184,14 +184,11 @@ impl DisplayList {
 
         doit(&(self.all_display_items()));
         if self.children.len() != 0 {
-            println!("{} Children stacking contexts list length: {}", indentation, self.children.len());
-            for subitem in self.children.iter() {
-                doit(&subitem.display_list.all_display_items());
-                if subitem.display_list.children.len() != 0 {
-                    // Rant: String doesn't have a substr() method that won't overflow if the
-                    // selected range is bigger than the string length.
-                    subitem.display_list.print_items(indentation.clone()+&indentation[0..min_length]);
-                }
+            println!("{} Children stacking contexts list length: {}",
+                     indentation,
+                     self.children.len());
+            for sublist in self.children.iter() {
+                sublist.display_list.print_items(indentation.clone()+&indentation[0..min_length]);
             }
         }
     }

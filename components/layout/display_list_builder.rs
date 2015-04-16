@@ -1253,6 +1253,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                          layout_context: &LayoutContext,
                                          background_border_level: BackgroundAndBorderLevel) {
         // Add the box that starts the block context.
+        let clip = if self.fragment.establishes_stacking_context() {
+            self.base.clip.translate(&-self.base.stacking_relative_position)
+        } else {
+            self.base.clip.clone()
+        };
         self.fragment.build_display_list(display_list,
                                          layout_context,
                                          &self.base.stacking_relative_position,
@@ -1263,7 +1268,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                              .absolute_position_info
                                              .relative_containing_block_mode,
                                          background_border_level,
-                                         &self.base.clip);
+                                         &clip);
 
         // Add children.
         for kid in self.base.children.iter_mut() {
