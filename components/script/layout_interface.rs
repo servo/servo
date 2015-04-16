@@ -178,7 +178,7 @@ impl ScriptLayoutChan for OpaqueScriptLayoutChannel {
 pub type OpaqueNode = uintptr_t;
 
 /// State relating to an animation.
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct Animation {
     /// An opaque reference to the DOM node participating in the animation.
     pub node: OpaqueNode,
