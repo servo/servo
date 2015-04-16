@@ -28,7 +28,7 @@ If you're looking for easy bugs, have a look at the [E-Easy issue tag](https://g
   comment, or you can ask for a review in `#servo` on `irc.mozilla.org`.
 
 - Add tests relevant to the fixed bug or new feature.  For a DOM change this
-  will usually be a content test; for layout, a reftest.  See our [testing
+  will usually be a web platform test; for layout, a reftest.  See our [testing
   guide](https://github.com/mozilla/servo/wiki/Testing) for more information.
 
 For specific git instructions, see [GitHub & Critic PR handling 101](https://github.com/mozilla/servo/wiki/Github-&-Critic-PR-handling-101).
