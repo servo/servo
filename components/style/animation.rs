@@ -391,7 +391,7 @@ impl Interpolate for Visibility {
             (Visibility::visible, _) | (_, Visibility::visible) => {
                 if time >= 0.0 && time <= 1.0 {
                     Some(Visibility::visible)
-                } else if time < 0.5 {
+                } else if time < 0.0 {
                     Some(*self)
                 } else {
                     Some(*other)
@@ -576,10 +576,9 @@ impl Interpolate for FontWeight {
     #[inline]
     fn interpolate(&self, other: &FontWeight, time: f64)
                    -> Option<FontWeight> {
-        // let weight:Option<FontWeight> = FromPrimitive::from_isize(*self as isize);
         let a = (*self as isize) as f64;
         let b = (*other as isize) as f64;
-        let weight:Option<FontWeight> = FromPrimitive::from_isize((a + (b - a) * time).round() as isize);
+        let weight: Option<FontWeight> = FromPrimitive::from_isize((a + (b - a) * time).round() as isize);
         weight
     }
 }
@@ -607,7 +606,7 @@ impl Interpolate for BackgroundPosition {
         match (self.horizontal.interpolate(&other.horizontal, time),
                self.vertical.interpolate(&other.vertical, time)) {
             (Some(horizontal), Some(vertical)) => {
-                Some(BackgroundPosition { horizontal: horizontal, vertical: vertical})
+                Some(BackgroundPosition { horizontal: horizontal, vertical: vertical })
             },
             (_, _) => None,
         }
@@ -635,15 +634,15 @@ impl Interpolate for TextShadowList {
     fn interpolate(&self, other: &TextShadowList, time: f64)
                    -> Option<TextShadowList> {
         let zero = TextShadow {
-            offset_x: Au::from_px(0),
-            offset_y: Au::from_px(0),
-            blur_radius: Au::from_px(0),
+            offset_x: Au(0),
+            offset_y: Au(0),
+            blur_radius: Au(0),
             color: Color::RGBA(RGBA {
                 red: 0.0, green: 0.0, blue: 0.0, alpha: 0.0
             })
         };
 
-        let interpolate_each = |(a, b):(&TextShadow, &TextShadow)| {
+        let interpolate_each = |(a, b): (&TextShadow, &TextShadow)| {
             a.interpolate(b, time).unwrap()
         };
 
