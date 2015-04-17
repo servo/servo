@@ -380,11 +380,11 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
         let transform = self.state.borrow().transform;
         self.state.borrow_mut().transform = transform.mul(&Matrix2D::new(a as f32,
-                                                             b as f32,
-                                                             c as f32,
-                                                             d as f32,
-                                                             e as f32,
-                                                             f as f32));
+                                                                         b as f32,
+                                                                         c as f32,
+                                                                         d as f32,
+                                                                         e as f32,
+                                                                         f as f32));
         self.update_transform()
     }
 
@@ -696,7 +696,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
     // https://html.spec.whatwg.org/#dom-context-2d-imagesmoothingenabled
     fn ImageSmoothingEnabled(self) -> bool {
-        let state = &self.state.borrow();
+        let state = self.state.borrow();
         state.image_smoothing_enabled
     }
 
@@ -882,7 +882,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
     fn LineWidth(self) -> f64 {
-        let state = &self.state.borrow();
+        let state = self.state.borrow();
         state.line_width
     }
 
@@ -898,7 +898,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
     fn LineCap(self) -> DOMString {
-        let state = &self.state.borrow();
+        let state = self.state.borrow();
         match state.line_cap {
             LineCapStyle::Butt => "butt".to_owned(),
             LineCapStyle::Round => "round".to_owned(),
@@ -916,7 +916,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
     fn LineJoin(self) -> DOMString {
-        let state = &self.state.borrow();
+        let state = self.state.borrow();
         match state.line_join {
             LineJoinStyle::Round => "round".to_owned(),
             LineJoinStyle::Bevel => "bevel".to_owned(),
@@ -934,7 +934,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-miterlimit
     fn MiterLimit(self) -> f64 {
-        let state = &self.state.borrow();
+        let state = self.state.borrow();
         state.miter_limit
     }
 
