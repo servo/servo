@@ -58,7 +58,6 @@ pub struct CanvasRenderingContext2D {
 
 #[derive(Clone)]
 #[jstraceable]
-#[must_root]
 struct CanvasContextState {
     global_alpha: f64,
     image_smoothing_enabled: bool,
