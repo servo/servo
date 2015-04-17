@@ -7,9 +7,12 @@ use canvas::canvas_msg::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::document::DocumentHelpers;
 use dom::htmlcanvaselement::{HTMLCanvasElement};
+use dom::node::{document_from_node, Node, NodeDamage};
 use geom::size::Size2D;
 use std::sync::mpsc::{Sender};
 
@@ -42,6 +45,15 @@ impl WebGLRenderingContext {
         self.renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
     }
 
+    fn send_gl_message(&self, msg: CanvasMsg) {
+        self.renderer.send(msg).unwrap();
+        let canvas = self.canvas.root();
+        let canvas = canvas.r();
+        let doc = document_from_node(canvas).root();
+        let node: JSRef<Node> = NodeCast::from_ref(canvas);
+        doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
+    }
+
 }
 
 #[unsafe_destructor]
@@ -53,11 +65,11 @@ impl Drop for WebGLRenderingContext {
 
 impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
     fn Clear(self, mask: u32) -> () {
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::Clear(mask))).unwrap()
+        self.send_gl_message(CanvasMsg::WebGL(CanvasWebGLMsg::Clear(mask)));
     }
 
-    fn ClearColor(self, red: f32, green: f32, blue: f32, alpha: f32) -> (){
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::ClearColor(red, green, blue, alpha))).unwrap()
+    fn ClearColor(self, red: f32, green: f32, blue: f32, alpha: f32) -> () {
+        self.send_gl_message(CanvasMsg::WebGL(CanvasWebGLMsg::ClearColor(red, green, blue, alpha)));
     }
 }
 
