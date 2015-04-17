@@ -39,11 +39,14 @@ pub struct WebSocket {
 impl WebSocket {
     pub fn new_inherited(url: DOMString) -> WebSocket {
         println!("Creating websocket...");
+	let copied_url = url.clone();
+	WebSocket::Open(copied_url);
 	WebSocket {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WebSocket),
             url: url,
 		ready_state: Cell::new(WebsocketRequestState::Unsent)
         }
+
     }
 
     pub fn new(global: GlobalRef, url: DOMString) -> Temporary<WebSocket> {
@@ -55,6 +58,15 @@ impl WebSocket {
     pub fn Constructor(global: GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
         Ok(WebSocket::new(global, url))
     }
+    fn Open(url: DOMString) -> ErrorResult {
+    	println!("Trying to connect.");
+	let parsed_url = Url::parse(url.as_slice()).unwrap();
+   	let request = Client::connect(parsed_url).unwrap();
+	let response = request.send().unwrap();
+	response.validate().unwrap();
+	println!("Successful connection.");
+	Ok(())
+    }
 }
 
 impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
@@ -64,14 +76,13 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
     }
 	
    fn ReadyState(self) -> u16 {
-   	self.ready_state.get() as u16
+   	println!("Setting readystate");
+	self.ready_state.get() as u16
    }
 
-  
-   
-   fn Open (self, url: DOMString) -> ErrorResult {
+   fn Open (self) -> ErrorResult {
 	println!("Trying to connect.");
-	let parsed_url = Url::parse(url.as_slice()).unwrap();
+	let parsed_url = Url::parse(self.url.as_slice()).unwrap();
    	let request = Client::connect(parsed_url).unwrap();
 	let response = request.send().unwrap();
 	response.validate().unwrap();
