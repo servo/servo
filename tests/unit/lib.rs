@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(plugin)]
-#![cfg_attr(test, feature(net, alloc))]
+#![cfg_attr(test, feature(net, alloc, path, io))]
 
 #![plugin(string_cache_plugin)]
 
