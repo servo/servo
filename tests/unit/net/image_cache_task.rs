@@ -7,7 +7,7 @@ use net_traits::image_cache_task::ImageResponseMsg::*;
 use net_traits::image_cache_task::Msg::*;
 
 use net::resource_task::{start_sending, ProgressSender};
-use net_traits::{ControlMsg, Metadata, ProgressMsg, ResourceTask, ResponseSenders};
+use net_traits::{ControlMsg, Metadata, ResourceTask, ResponseSenders};
 use net_traits::image_cache_task::{ImageCacheTask, ImageCacheTaskClient, ImageResponseMsg, Msg};
 use net_traits::ProgressMsg::{Payload, Done};
 use profile::time;
@@ -110,7 +110,7 @@ fn mock_resource_task<T: Closure + Send + 'static>(on_load: Box<T>) -> ResourceT
     spawn_listener(move |port: Receiver<ControlMsg>| {
         loop {
             match port.recv().unwrap() {
-                ControlMsg::Load(response, consumer) => {
+                ControlMsg::Load(_, consumer) => {
                     let chan = start_sending(ResponseSenders::from_consumer(consumer), Metadata::default(
                         Url::parse("file:///fake").unwrap()));
                     on_load.invoke(chan);
@@ -280,15 +280,15 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
     let mock_resource_task = spawn_listener(move |port: Receiver<ControlMsg>| {
         loop {
             match port.recv().unwrap() {
-                ControlMsg::Load(response, consumer) => {
+                ControlMsg::Load(_, consumer) => {
                     let chan = start_sending(ResponseSenders::from_consumer(consumer), Metadata::default(
                         Url::parse("file:///fake").unwrap()));
-                    chan.send(Payload(test_image_bin()));
-                    chan.send(Done(Ok(())));
-                    image_bin_sent_chan.send(());
+                    chan.send(Payload(test_image_bin())).unwrap();
+                    chan.send(Done(Ok(()))).unwrap();
+                    image_bin_sent_chan.send(()).unwrap();
                 }
                 ControlMsg::Exit => {
-                    resource_task_exited_chan.send(());
+                    resource_task_exited_chan.send(()).unwrap();
                     break
                 }
                 _ => {}
@@ -309,7 +309,7 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
     image_cache_task.send(Prefetch(url.clone()));
 
     image_cache_task.exit();
-    mock_resource_task.send(ControlMsg::Exit);
+    mock_resource_task.send(ControlMsg::Exit).unwrap();
 
     resource_task_exited.recv().unwrap();
 
@@ -329,15 +329,15 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
     let mock_resource_task = spawn_listener(move |port: Receiver<ControlMsg>| {
         loop {
             match port.recv().unwrap() {
-                ControlMsg::Load(response, consumer) => {
+                ControlMsg::Load(_, consumer) => {
                     let chan = start_sending(ResponseSenders::from_consumer(consumer), Metadata::default(
                         Url::parse("file:///fake").unwrap()));
-                    chan.send(Payload(test_image_bin()));
-                    chan.send(Done(Err("".to_string())));
-                    image_bin_sent_chan.send(());
+                    chan.send(Payload(test_image_bin())).unwrap();
+                    chan.send(Done(Err("".to_string()))).unwrap();
+                    image_bin_sent_chan.send(()).unwrap();
                 }
                 ControlMsg::Exit => {
-                    resource_task_exited_chan.send(());
+                    resource_task_exited_chan.send(()).unwrap();
                     break
                 }
                 _ => {}
@@ -360,7 +360,7 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
     image_cache_task.send(Decode(url.clone()));
 
     image_cache_task.exit();
-    mock_resource_task.send(ControlMsg::Exit);
+    mock_resource_task.send(ControlMsg::Exit).unwrap();
 
     resource_task_exited.recv().unwrap();
 
@@ -397,7 +397,7 @@ fn should_return_failed_if_image_bin_cannot_be_fetched() {
     }
 
     image_cache_task.exit();
-    mock_resource_task.send(ControlMsg::Exit);
+    mock_resource_task.send(ControlMsg::Exit).unwrap();
 }
 
 #[test]
@@ -433,7 +433,7 @@ fn should_return_failed_for_multiple_get_image_requests_if_image_bin_cannot_be_f
     }
 
     image_cache_task.exit();
-    mock_resource_task.send(ControlMsg::Exit);
+    mock_resource_task.send(ControlMsg::Exit).unwrap();
 }
 
 #[test]
@@ -463,7 +463,7 @@ fn should_return_failed_if_image_decode_fails() {
     }
 
     image_cache_task.exit();
-    mock_resource_task.send(ControlMsg::Exit);
+    mock_resource_task.send(ControlMsg::Exit).unwrap();
 }
 
 #[test]
@@ -491,7 +491,7 @@ fn should_return_image_on_wait_if_image_is_already_loaded() {
     }
 
     image_cache_task.exit();
-    mock_resource_task.send(ControlMsg::Exit);
+    mock_resource_task.send(ControlMsg::Exit).unwrap();
 }
 
 #[test]
@@ -511,7 +511,7 @@ fn should_return_image_on_wait_if_image_is_not_yet_loaded() {
     let (response_chan, response_port) = channel();
     image_cache_task.send(Msg::WaitForImage(url, response_chan));
 
-    wait_chan.send(());
+    wait_chan.send(()).unwrap();
 
     match response_port.recv().unwrap() {
         ImageResponseMsg::ImageReady(..) => (),
@@ -519,7 +519,7 @@ fn should_return_image_on_wait_if_image_is_not_yet_loaded() {
     }
 
     image_cache_task.exit();
-    mock_resource_task.send(ControlMsg::Exit);
+    mock_resource_task.send(ControlMsg::Exit).unwrap();
 }
 
 #[test]
@@ -539,7 +539,7 @@ fn should_return_image_failed_on_wait_if_image_fails_to_load() {
     let (response_chan, response_port) = channel();
     image_cache_task.send(Msg::WaitForImage(url, response_chan));
 
-    wait_chan.send(());
+    wait_chan.send(()).unwrap();
 
     match response_port.recv().unwrap() {
         ImageResponseMsg::ImageFailed => (),
@@ -547,7 +547,7 @@ fn should_return_image_failed_on_wait_if_image_fails_to_load() {
     }
 
     image_cache_task.exit();
-    mock_resource_task.send(ControlMsg::Exit);
+    mock_resource_task.send(ControlMsg::Exit).unwrap();
 }
 
 #[test]
@@ -570,5 +570,5 @@ fn sync_cache_should_wait_for_images() {
     }
 
     image_cache_task.exit();
-    mock_resource_task.send(ControlMsg::Exit);
+    mock_resource_task.send(ControlMsg::Exit).unwrap();
 }
