@@ -794,7 +794,7 @@ impl Document {
             implementation: Default::default(),
             location: Default::default(),
             content_type: match content_type {
-                Some(string) => string.clone(),
+                Some(string) => string,
                 None => match is_html_document {
                     // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
                     IsHTMLDocument::HTMLDocument => "text/html".to_owned(),
