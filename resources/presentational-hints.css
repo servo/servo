@@ -1,5 +1,5 @@
 /*
-https://html.spec.whatwg.org/multipage/rendering.html#presentational-hints
+https://html.spec.whatwg.org/multipage/#presentational-hints
 */
 
 @namespace url(http://www.w3.org/1999/xhtml);
@@ -9,7 +9,7 @@ pre[wrap] { white-space: pre-wrap; }
 
 /*
 FIXME: also "align descendants"
-https://html.spec.whatwg.org/multipage/rendering.html#align-descendants
+https://html.spec.whatwg.org/multipage/#align-descendants
 */
 center, div[align=center i], div[align=middle i] { text-align: center; }
 div[align=left i] { text-align: left; }
@@ -240,7 +240,7 @@ applet, embed, iframe, img, input[type=image i], object, video
 
 Extra
   ol > li
-    https://html.spec.whatwg.org/multipage/semantics.html#ordinal-value
+    https://html.spec.whatwg.org/multipage/#ordinal-value
   col
     span
   colgroup (if not col child)
@@ -253,7 +253,7 @@ Extra
     text-align: center;
   }
 
-  https://html.spec.whatwg.org/multipage/rendering.html#rendered-legend
+  https://html.spec.whatwg.org/multipage/#rendered-legend
 
 */
 

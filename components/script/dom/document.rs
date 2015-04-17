@@ -475,7 +475,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             node.set_focus_state(true);
         }
         // TODO: Update the focus state for all elements in the focus chain.
-        // https://html.spec.whatwg.org/multipage/interaction.html#focus-chain
+        // https://html.spec.whatwg.org/multipage/#focus-chain
     }
 
     /// Handles any updates when the document's title has changed.
@@ -552,7 +552,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
         event.set_trusted(true);
-        // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
+        // https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps
         el.r().authentic_click_activation(event);
 
         self.commit_focus_transaction();
@@ -908,7 +908,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         self.url().serialize()
     }
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#dom-document-activeelement
+    // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
     fn GetActiveElement(self) -> Option<Temporary<Element>> {
         // TODO: Step 2.
 

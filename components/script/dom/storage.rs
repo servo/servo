@@ -133,7 +133,7 @@ trait PrivateStorageHelpers {
 }
 
 impl<'a> PrivateStorageHelpers for JSRef<'a, Storage> {
-    /// https://html.spec.whatwg.org/multipage/webstorage.html#send-a-storage-notification
+    /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
     fn broadcast_change_notification(self, key: Option<DOMString>, old_value: Option<DOMString>,
                                      new_value: Option<DOMString>){
         let global_root = self.global.root();

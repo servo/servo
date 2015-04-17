@@ -44,18 +44,18 @@ use url::{Url, UrlParser};
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
 
-    /// https://html.spec.whatwg.org/multipage/scripting.html#already-started
+    /// https://html.spec.whatwg.org/multipage/#already-started
     already_started: Cell<bool>,
 
-    /// https://html.spec.whatwg.org/multipage/scripting.html#parser-inserted
+    /// https://html.spec.whatwg.org/multipage/#parser-inserted
     parser_inserted: Cell<bool>,
 
-    /// https://html.spec.whatwg.org/multipage/scripting.html#non-blocking
+    /// https://html.spec.whatwg.org/multipage/#non-blocking
     ///
     /// (currently unused)
     non_blocking: Cell<bool>,
 
-    /// https://html.spec.whatwg.org/multipage/scripting.html#ready-to-be-parser-executed
+    /// https://html.spec.whatwg.org/multipage/#ready-to-be-parser-executed
     ///
     /// (currently unused)
     ready_to_be_parser_executed: Cell<bool>,
@@ -63,7 +63,7 @@ pub struct HTMLScriptElement {
     /// Document of the parser that created this element
     parser_document: JS<Document>,
 
-    /// https://html.spec.whatwg.org/multipage/scripting.html#concept-script-encoding
+    /// https://html.spec.whatwg.org/multipage/#concept-script-encoding
     block_character_encoding: DOMRefCell<EncodingRef>,
 }
 
@@ -153,7 +153,7 @@ pub enum ScriptOrigin {
 
 impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
     fn prepare(self) {
-        // https://html.spec.whatwg.org/multipage/scripting.html#prepare-a-script
+        // https://html.spec.whatwg.org/multipage/#prepare-a-script
         // Step 1.
         if self.already_started.get() {
             return;

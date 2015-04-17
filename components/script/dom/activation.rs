@@ -20,19 +20,19 @@ pub trait Activatable : Copy {
     // Is this particular instance of the element activatable?
     fn is_instance_activatable(&self) -> bool;
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
+    // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps
     fn pre_click_activation(&self);
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#run-canceled-activation-steps
+    // https://html.spec.whatwg.org/multipage/#run-canceled-activation-steps
     fn canceled_activation(&self);
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
+    // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
     fn activation_behavior(&self, event: JSRef<Event>, target: JSRef<EventTarget>);
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool);
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#run-synthetic-click-activation-steps
+    // https://html.spec.whatwg.org/multipage/#run-synthetic-click-activation-steps
     fn synthetic_click_activation(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
         let element = self.as_element().root();
         // Step 1

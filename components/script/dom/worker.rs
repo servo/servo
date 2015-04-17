@@ -35,7 +35,7 @@ use std::sync::mpsc::{channel, Sender};
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
-// https://html.spec.whatwg.org/multipage/workers.html#worker
+// https://html.spec.whatwg.org/multipage/#worker
 #[dom_struct]
 pub struct Worker {
     eventtarget: EventTarget,

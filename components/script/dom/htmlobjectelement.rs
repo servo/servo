@@ -87,10 +87,10 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         ValidityState::new(window.r())
     }
 
-    // https://html.spec.whatwg.org/multipage/embedded-content.html#dom-object-type
+    // https://html.spec.whatwg.org/multipage/#dom-object-type
     make_getter!(Type);
 
-    // https://html.spec.whatwg.org/multipage/embedded-content.html#dom-object-type
+    // https://html.spec.whatwg.org/multipage/#dom-object-type
     make_setter!(SetType, "type");
 }
 

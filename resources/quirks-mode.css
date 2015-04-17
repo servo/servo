@@ -1,6 +1,6 @@
 /*
 
-https://html.spec.whatwg.org/multipage/rendering.html#flow-content-3
+https://html.spec.whatwg.org/multipage/#flow-content-3
 
 > In quirks mode, the following rules are also expected to apply:
 
@@ -23,7 +23,7 @@ table {
 }
 
 
-/* FIXME: https://html.spec.whatwg.org/multipage/rendering.html#margin-collapsing-quirks */
+/* FIXME: https://html.spec.whatwg.org/multipage/#margin-collapsing-quirks */
 
 
 input:not([type=image]), textarea { box-sizing: border-box; }
