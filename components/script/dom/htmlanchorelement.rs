@@ -107,16 +107,16 @@ impl<'a> Activatable for JSRef<'a, HTMLAnchorElement> {
     }
 
 
-    //TODO:https://html.spec.whatwg.org/multipage/semantics.html#the-a-element
+    //TODO:https://html.spec.whatwg.org/multipage/#the-a-element
     fn pre_click_activation(&self) {
     }
 
-    //TODO:https://html.spec.whatwg.org/multipage/semantics.html#the-a-element
-    // https://html.spec.whatwg.org/multipage/interaction.html#run-canceled-activation-steps
+    //TODO:https://html.spec.whatwg.org/multipage/#the-a-element
+    // https://html.spec.whatwg.org/multipage/#run-canceled-activation-steps
     fn canceled_activation(&self) {
     }
 
-    //https://html.spec.whatwg.org/multipage/semantics.html#the-a-element:activation-behaviour
+    //https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour
     fn activation_behavior(&self, event: JSRef<Event>, target: JSRef<EventTarget>) {
         //Step 1. If the node document is not fully active, abort.
         let doc = document_from_node(*self).root();
@@ -153,7 +153,7 @@ impl<'a> Activatable for JSRef<'a, HTMLAnchorElement> {
         }
     }
 
-    //TODO:https://html.spec.whatwg.org/multipage/semantics.html#the-a-element
+    //TODO:https://html.spec.whatwg.org/multipage/#the-a-element
     fn implicit_submission(&self, _ctrlKey: bool, _shiftKey: bool, _altKey: bool, _metaKey: bool) {
     }
 }

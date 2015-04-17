@@ -128,14 +128,14 @@ partial interface Window {
 };
 Window implements OnErrorEventHandlerForWindow;
 
-// https://html.spec.whatwg.org/multipage/webstorage.html#dom-sessionstorage
+// https://html.spec.whatwg.org/multipage/#dom-sessionstorage
 [NoInterfaceObject]
 interface WindowSessionStorage {
   readonly attribute Storage sessionStorage;
 };
 Window implements WindowSessionStorage;
 
-// https://html.spec.whatwg.org/multipage/webstorage.html#dom-localstorage
+// https://html.spec.whatwg.org/multipage/#dom-localstorage
 [NoInterfaceObject]
 interface WindowLocalStorage {
   readonly attribute Storage localStorage;

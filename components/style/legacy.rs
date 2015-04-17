@@ -194,7 +194,7 @@ impl PresentationalHintSynthesis for Stylist {
                         // the math for <textarea> is a little different since we need to take
                         // scrollbar size into consideration (but we don't have a scrollbar yet!)
                         //
-                        // https://html.spec.whatwg.org/multipage/rendering.html#textarea-effective-width
+                        // https://html.spec.whatwg.org/multipage/#textarea-effective-width
                         let value = specified::Length::ServoCharacterWidth(specified::CharacterWidth(value));
                         matching_rules_list.vec_push(from_declaration(
                                 PropertyDeclaration::Width(SpecifiedValue(
@@ -207,7 +207,7 @@ impl PresentationalHintSynthesis for Stylist {
                     Some(value) if value != 0 => {
                         // TODO(mttr) This should take scrollbar size into consideration.
                         //
-                        // https://html.spec.whatwg.org/multipage/rendering.html#textarea-effective-height
+                        // https://html.spec.whatwg.org/multipage/#textarea-effective-height
                         let value = specified::Length::FontRelative(specified::FontRelativeLength::Em(value as CSSFloat));
                         matching_rules_list.vec_push(from_declaration(
                                 PropertyDeclaration::Height(SpecifiedValue(

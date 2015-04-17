@@ -721,7 +721,7 @@ impl BlockFlow {
     /// Return true if this has a replaced fragment.
     ///
     /// Text, Images, Inline Block and
-    //  Canvas (https://html.spec.whatwg.org/multipage/rendering.html#replaced-elements)
+    //  Canvas (https://html.spec.whatwg.org/multipage/#replaced-elements)
     //  fragments are considered as replaced fragments
     fn is_replaced_content(&self) -> bool {
         match self.fragment.specific {

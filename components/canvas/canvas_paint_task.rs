@@ -92,7 +92,7 @@ impl<'a> CanvasPaintTask<'a> {
                     source_rect: Rect<f64>,
                     dest_rect: Rect<f64>,
                     smoothing_enabled: bool) {
-        // From spec https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-drawimage
+        // From spec https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
         // When scaling up, if the imageSmoothingEnabled attribute is set to true, the user agent should attempt
         // to apply a smoothing algorithm to the image data when it is scaled.
         // Otherwise, the image must be rendered using nearest-neighbor interpolation.

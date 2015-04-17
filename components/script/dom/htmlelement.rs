@@ -123,7 +123,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#dom-click
+    // https://html.spec.whatwg.org/multipage/#dom-click
     fn Click(self) {
         let maybe_input: Option<JSRef<HTMLInputElement>> = HTMLInputElementCast::to_ref(self);
         if let Some(i) = maybe_input {
@@ -136,10 +136,10 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
         element.as_maybe_activatable().map(|a| a.synthetic_click_activation(false, false, false, false));
     }
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#dom-focus
+    // https://html.spec.whatwg.org/multipage/#dom-focus
     fn Focus(self) {
         // TODO: Mark the element as locked for focus and run the focusing steps.
-        // https://html.spec.whatwg.org/multipage/interaction.html#focusing-steps
+        // https://html.spec.whatwg.org/multipage/#focusing-steps
         let element: JSRef<Element> = ElementCast::from_ref(self);
         let document = document_from_node(self).root();
         let document = document.r();
@@ -148,14 +148,14 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
         document.commit_focus_transaction();
     }
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#dom-blur
+    // https://html.spec.whatwg.org/multipage/#dom-blur
     fn Blur(self) {
         // TODO: Run the unfocusing steps.
         let node: JSRef<Node> = NodeCast::from_ref(self);
         if !node.get_focus_state() {
             return;
         }
-        // https://html.spec.whatwg.org/multipage/interaction.html#unfocusing-steps
+        // https://html.spec.whatwg.org/multipage/#unfocusing-steps
         let document = document_from_node(self).root();
         document.r().begin_focus_transaction();
         // If `request_focus` is not called, focus will be set to None.

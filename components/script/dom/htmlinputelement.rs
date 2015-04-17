@@ -651,7 +651,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
+    // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps
     #[allow(unsafe_code)]
     fn pre_click_activation(&self) {
         let mut cache = self.activation_state.borrow_mut();
@@ -701,7 +701,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#run-canceled-activation-steps
+    // https://html.spec.whatwg.org/multipage/#run-canceled-activation-steps
     fn canceled_activation(&self) {
         let cache = self.activation_state.borrow();
         let ty = self.input_type.get();
@@ -752,7 +752,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
+    // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
     fn activation_behavior(&self, _event: JSRef<Event>, _target: JSRef<EventTarget>) {
         let ty = self.input_type.get();
         if self.activation_state.borrow().old_type != ty {

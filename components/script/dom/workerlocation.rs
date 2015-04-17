@@ -13,7 +13,7 @@ use dom::workerglobalscope::WorkerGlobalScope;
 
 use url::Url;
 
-// https://html.spec.whatwg.org/multipage/workers.html#worker-locations
+// https://html.spec.whatwg.org/multipage/#worker-locations
 #[dom_struct]
 pub struct WorkerLocation {
     reflector_: Reflector,

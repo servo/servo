@@ -187,16 +187,16 @@ impl<'a> Activatable for JSRef<'a, HTMLButtonElement> {
         !(node.get_disabled_state())
     }
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
+    // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps
     // https://html.spec.whatwg.org/multipage/#the-button-element:activation-behavior
     fn pre_click_activation(&self) {
     }
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#run-canceled-activation-steps
+    // https://html.spec.whatwg.org/multipage/#run-canceled-activation-steps
     fn canceled_activation(&self) {
     }
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
+    // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
     fn activation_behavior(&self, _event: JSRef<Event>, _target: JSRef<EventTarget>) {
         let ty = self.button_type.get();
         match ty {

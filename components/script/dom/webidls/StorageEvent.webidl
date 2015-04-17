@@ -4,7 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * Interface for a client side storage. See
- * https://html.spec.whatwg.org/multipage/webstorage.html#the-storageevent-interface
+ * https://html.spec.whatwg.org/multipage/#the-storageevent-interface
  * for more information.
  *
  * Event sent to a window when a storage area changes.
