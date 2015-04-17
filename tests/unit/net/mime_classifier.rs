@@ -2,19 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::old_io::File;
-use std::os;
+use std::fs::File;
+use std::io::{self, Read};
+use std::env;
+use std::path::{self, PathBuf};
 use net::mime_classifier::Mp4Matcher;
 use net::mime_classifier::MIMEClassifier;
 use net::mime_classifier::as_string_option;
+
+fn read_file(path: &path::Path) -> io::Result<Vec<u8>> {
+    let mut file = try!(File::open(path));
+    let mut buffer = Vec::new();
+
+    try!(file.read_to_end(&mut buffer));
+
+    Ok(buffer)
+}
 
 #[test]
 fn test_sniff_mp4_matcher() {
     let matcher = Mp4Matcher;
 
-    let p = Path::new("../../tests/unit/net/parsable_mime/video/mp4/test.mp4");
-    let mut file = File::open(&p);
-    let read_result = file.read_to_end();
+    let p = PathBuf::new("../../tests/unit/net/parsable_mime/video/mp4/test.mp4");
+    let read_result = read_file(&p);
+
     match read_result {
         Ok(data) => {
             println!("Data Length {:?}",data.len());
@@ -27,42 +38,42 @@ fn test_sniff_mp4_matcher() {
 }
 
 #[cfg(test)]
-fn test_sniff_full(filename_orig: &Path,type_string: &str,subtype_string: &str,
+fn test_sniff_full(filename_orig: &path::Path,type_string: &str,subtype_string: &str,
                    supplied_type: Option<(&'static str,&'static str)>){
-    let current_working_directory = os::getcwd().unwrap();
+    let current_working_directory = env::current_dir().unwrap();
     println!("The current directory is {}", current_working_directory.display());
 
-    let mut filename = Path::new("../../tests/unit/net/parsable_mime/");
-
+    let mut filename = PathBuf::new("../../tests/unit/net/parsable_mime/");
     filename.push(filename_orig);
+
     let classifier = MIMEClassifier::new();
 
-    let mut file = File::open(&filename);
-    let read_result = file.read_to_end();
+    let read_result = read_file(&filename);
+
     match read_result {
         Ok(data) => {
             match classifier.classify(false, false, &as_string_option(supplied_type), &data) {
                 Some((parsed_type, parsed_subtp)) => {
-                    if (parsed_type.as_slice() != type_string) ||
-                        (parsed_subtp.as_slice() != subtype_string) {
-                            panic!("File {} parsed incorrectly should be {}/{}, parsed as {}/{}",
-                                   filename.as_str().unwrap(), type_string, subtype_string,
+                    if (&parsed_type[..] != type_string) ||
+                        (&parsed_subtp[..] != subtype_string) {
+                            panic!("File {:?} parsed incorrectly should be {}/{}, parsed as {}/{}",
+                                   filename, type_string, subtype_string,
                                    parsed_type, parsed_subtp);
                         }
                 }
-                None => panic!("No classification found for {} with supplied type {:?}",
-                               filename.as_str().unwrap(), supplied_type),
+                None => panic!("No classification found for {:?} with supplied type {:?}",
+                               filename, supplied_type),
             }
         }
-        Err(e) => panic!("Couldn't read from file {} with error {}",
-                         filename.as_str().unwrap(), e),
+        Err(e) => panic!("Couldn't read from file {:?} with error {}",
+                         filename, e),
     }
 }
 
 #[cfg(test)]
 fn test_sniff_classification(file: &str,type_string: &str,subtype_string: &str,
                              supplied_type: Option<(&'static str,&'static str)>){
-    let mut x = Path::new("./");
+    let mut x = PathBuf::new("./");
     x.push(type_string);
     x.push(subtype_string);
     x.push(file);
@@ -170,19 +181,19 @@ fn test_sniff_vsn_ms_fontobject() {
 #[test]
 #[should_panic]
 fn test_sniff_true_type() {
-    test_sniff_full(&Path::new("unknown/true_type.ttf"), "(TrueType)", "", None);
+    test_sniff_full(&PathBuf::new("unknown/true_type.ttf"), "(TrueType)", "", None);
 }
 
 #[test]
 #[should_panic]
 fn test_sniff_open_type() {
-    test_sniff_full(&Path::new("unknown/open_type"), "(OpenType)", "", None);
+    test_sniff_full(&PathBuf::new("unknown/open_type"), "(OpenType)", "", None);
 }
 
 #[test]
 #[should_panic]
 fn test_sniff_true_type_collection() {
-    test_sniff_full(&Path::new("unknown/true_type_collection.ttc"), "(TrueType Collection)", "", None);
+    test_sniff_full(&PathBuf::new("unknown/true_type_collection.ttc"), "(TrueType Collection)", "", None);
 }
 
 #[test]
@@ -424,10 +435,10 @@ fn test_sniff_utf_8_bom() {
 
 #[test]
 fn test_sniff_rss_feed() {
-    test_sniff_full(&Path::new("text/xml/feed.rss"), "application", "rss+xml", Some(("text", "html")));
+    test_sniff_full(&PathBuf::new("text/xml/feed.rss"), "application", "rss+xml", Some(("text", "html")));
 }
 
 #[test]
 fn test_sniff_atom_feed() {
-    test_sniff_full(&Path::new("text/xml/feed.atom"), "application", "atom+xml", Some(("text", "html")));
+    test_sniff_full(&PathBuf::new("text/xml/feed.atom"), "application", "atom+xml", Some(("text", "html")));
 }
