@@ -411,6 +411,12 @@
             "url": "/_mozilla/mozilla/node_isEqualNode.html"
           }
         ],
+        "mozilla/node_lookupPrefix.html": [
+          {
+            "path": "mozilla/node_lookupPrefix.html",
+            "url": "/_mozilla/mozilla/node_lookupPrefix.html"
+          }
+        ],
         "mozilla/node_normalize.html": [
           {
             "path": "mozilla/node_normalize.html",
