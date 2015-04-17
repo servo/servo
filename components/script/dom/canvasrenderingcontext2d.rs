@@ -335,13 +335,13 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         Temporary::new(self.canvas)
     }
 
-    // https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-save
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-save
     fn Save(self) {
         self.saved_states.borrow_mut().push(self.state.borrow().clone());
         self.renderer.send(CanvasMsg::SaveContext).unwrap();
     }
 
-    // https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-restore
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-restore
     fn Restore(self) {
         let mut saved_states = self.saved_states.borrow_mut();
         if let Some(state) = saved_states.pop() {
