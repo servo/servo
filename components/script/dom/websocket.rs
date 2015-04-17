@@ -123,6 +123,15 @@ impl WebSocket {
     pub fn Constructor(global: GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
         Ok(WebSocket::new(global, url))
     }
+    fn Open(url: DOMString) -> ErrorResult {
+    	println!("Trying to connect.");
+	let parsed_url = Url::parse(url.as_slice()).unwrap();
+   	let request = Client::connect(parsed_url).unwrap();
+	let response = request.send().unwrap();
+	response.validate().unwrap();
+	println!("Successful connection.");
+	Ok(())
+    }
 }
 
 impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
