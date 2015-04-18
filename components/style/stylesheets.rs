@@ -21,10 +21,18 @@ use font_face::{FontFaceRule, parse_font_face_block};
 use util::smallvec::{SmallVec, SmallVec2};
 
 
+/// Each style rule has an origin, which determines where it enters the cascade.
+///
+/// http://dev.w3.org/csswg/css-cascade/#cascading-origins
 #[derive(Clone, PartialEq, Eq, Copy, Debug)]
 pub enum Origin {
+    /// http://dev.w3.org/csswg/css-cascade/#cascade-origin-ua
     UserAgent,
+
+    /// http://dev.w3.org/csswg/css-cascade/#cascade-origin-author
     Author,
+
+    /// http://dev.w3.org/csswg/css-cascade/#cascade-origin-user
     User,
 }
 

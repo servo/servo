@@ -29,7 +29,7 @@ impl Range<specified::Length> {
             match width {
                 &specified::Length::Absolute(value) => value,
                 &specified::Length::FontRelative(value) => {
-                    // http://dev.w3.org/csswg/mediaqueries3/ - Section 6
+                    // http://dev.w3.org/csswg/mediaqueries3/#units
                     // em units are relative to the initial font-size.
                     let initial_font_size = longhands::font_size::get_initial_value();
                     value.to_computed_value(initial_font_size, initial_font_size)
@@ -58,11 +58,14 @@ impl<T: Ord> Range<T> {
     }
 }
 
+/// http://dev.w3.org/csswg/mediaqueries-3/#media1
 #[derive(PartialEq, Copy, Debug)]
 pub enum Expression {
+    /// http://dev.w3.org/csswg/mediaqueries-3/#width
     Width(Range<specified::Length>),
 }
 
+/// http://dev.w3.org/csswg/mediaqueries-3/#media0
 #[derive(PartialEq, Eq, Copy, Debug)]
 pub enum Qualifier {
     Only,
@@ -87,6 +90,7 @@ impl MediaQuery {
     }
 }
 
+/// http://dev.w3.org/csswg/mediaqueries-3/#media0
 #[derive(PartialEq, Eq, Copy, Debug)]
 pub enum MediaQueryType {
     All,  // Always true
