@@ -428,6 +428,7 @@ pub trait NodeHelpers {
 
     fn type_id(self) -> NodeTypeId;
     fn len(self) -> u32;
+    fn index(self) -> u32;
 
     fn parent_node(self) -> Option<Temporary<Node>>;
     fn first_child(self) -> Option<Temporary<Node>>;
@@ -577,6 +578,11 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
             },
             _ => self.children().count() as u32
         }
+    }
+
+    // https://dom.spec.whatwg.org/#concept-tree-index
+    fn index(self) -> u32 {
+        self.preceding_siblings().count() as u32
     }
 
     fn parent_node(self) -> Option<Temporary<Node>> {
