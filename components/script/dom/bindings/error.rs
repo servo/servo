@@ -30,6 +30,8 @@ pub enum Error {
     NotFound,
     /// HierarchyRequestError DOMException
     HierarchyRequest,
+    /// WrongDocumentError DOMException
+    WrongDocument,
     /// InvalidCharacterError DOMException
     InvalidCharacter,
     /// NotSupportedError DOMException
@@ -52,6 +54,8 @@ pub enum Error {
     Abort,
     /// TimeoutError DOMException
     Timeout,
+    /// InvalidNodeTypeError DOMException
+    InvalidNodeType,
     /// DataCloneError DOMException
     DataClone,
     /// NoModificationAllowedError DOMException
@@ -80,6 +84,7 @@ pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
         Error::IndexSize => DOMErrorName::IndexSizeError,
         Error::NotFound => DOMErrorName::NotFoundError,
         Error::HierarchyRequest => DOMErrorName::HierarchyRequestError,
+        Error::WrongDocument => DOMErrorName::WrongDocumentError,
         Error::InvalidCharacter => DOMErrorName::InvalidCharacterError,
         Error::NotSupported => DOMErrorName::NotSupportedError,
         Error::InUseAttribute => DOMErrorName::InUseAttributeError,
@@ -91,6 +96,7 @@ pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
         Error::Network => DOMErrorName::NetworkError,
         Error::Abort => DOMErrorName::AbortError,
         Error::Timeout => DOMErrorName::TimeoutError,
+        Error::InvalidNodeType => DOMErrorName::InvalidNodeTypeError,
         Error::DataClone => DOMErrorName::DataCloneError,
         Error::NoModificationAllowed => DOMErrorName::NoModificationAllowedError,
         Error::Type(message) => {
