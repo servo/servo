@@ -171,14 +171,14 @@ pub trait RawLayoutElementHelpers {
 
 #[inline]
 #[allow(unsafe_code)]
-unsafe fn get_attr_for_layout<'a>(elem: &'a Element, namespace: &Namespace, name: &Atom) -> Option<&'a JS<Attr>> {
+unsafe fn get_attr_for_layout(elem: &Element, namespace: &Namespace, name: &Atom) -> Option<LayoutJS<Attr>> {
     // cast to point to T in RefCell<T> directly
     let attrs = elem.attrs.borrow_for_layout();
     attrs.iter().find(|attr: & &JS<Attr>| {
         let attr = attr.to_layout().unsafe_get();
         *name == (*attr).local_name_atom_forever() &&
         (*attr).namespace() == namespace
-    })
+    }).map(|attr| attr.to_layout())
 }
 
 #[allow(unsafe_code)]
@@ -187,8 +187,7 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                           -> Option<&'a str> {
         get_attr_for_layout(self, namespace, name).map(|attr| {
-            let attr = attr.to_layout().unsafe_get();
-            (*attr).value_ref_forever()
+            (*attr.unsafe_get()).value_ref_forever()
         })
     }
 
