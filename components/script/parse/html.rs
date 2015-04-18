@@ -275,7 +275,7 @@ pub fn parse_html(document: JSRef<Document>,
         task_state::enter(IN_HTML_PARSER);
     }
 
-    fn parse_progress(parser: &JSRef<ServoHTMLParser>, url: &Url, load_response: &LoadResponse) {
+    fn parse_progress(parser: JSRef<ServoHTMLParser>, url: &Url, load_response: &LoadResponse) {
         for msg in load_response.progress_port.iter() {
             match msg {
                 ProgressMsg::Payload(data) => {
@@ -314,10 +314,10 @@ pub fn parse_html(document: JSRef<Document>,
                     // https://html.spec.whatwg.org/multipage/#read-text
                     let page = format!("<pre>\u{000A}<plaintext>");
                     parser.parse_chunk(page);
-                    parse_progress(&parser, url, &load_response);
+                    parse_progress(parser, url, &load_response);
                 },
                 _ => {
-                    parse_progress(&parser, url, &load_response);
+                    parse_progress(parser, url, &load_response);
                 }
             }
         }
