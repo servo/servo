@@ -207,14 +207,8 @@ impl RawLayoutElementHelpers for Element {
     #[inline]
     unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &Atom)
                                       -> Option<Atom> {
-        let attrs = self.attrs.borrow_for_layout();
-        (*attrs).iter().find(|attr: & &JS<Attr>| {
-            let attr = attr.to_layout().unsafe_get();
-            *name == (*attr).local_name_atom_forever() &&
-            (*attr).namespace() == namespace
-        }).and_then(|attr| {
-            let attr = attr.to_layout().unsafe_get();
-            (*attr).value_atom_forever()
+        get_attr_for_layout(self, namespace, name).and_then(|attr| {
+            (*attr.unsafe_get()).value_atom_forever()
         })
     }
 
