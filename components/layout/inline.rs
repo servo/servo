@@ -919,7 +919,7 @@ impl InlineFlow {
             }
         }
 
-        for fragment_index in range(line.range.begin(), line.range.end()) {
+        for fragment_index in line.range.begin()..line.range.end() {
             let fragment = fragments.get_mut(fragment_index.to_usize());
             let size = fragment.border_box.size;
             fragment.border_box = LogicalRect::new(fragment.style.writing_mode,
@@ -1008,7 +1008,7 @@ impl InlineFlow {
                                     line_distance_from_flow_block_start: Au,
                                     baseline_distance_from_block_start: Au,
                                     largest_depth_below_baseline: Au) {
-        for fragment_index in range(line.range.begin(), line.range.end()) {
+        for fragment_index in line.range.begin()..line.range.end() {
             // If any of the inline styles say `top` or `bottom`, adjust the vertical align
             // appropriately.
             //
@@ -1133,12 +1133,49 @@ impl Flow for InlineFlow {
             flow::mut_base(kid).floats = Floats::new(writing_mode);
         }
 
-        let mut computation = IntrinsicISizesContribution::new();
+        let mut intrinsic_sizes_for_flow = IntrinsicISizesContribution::new();
+        let mut intrinsic_sizes_for_inline_run = IntrinsicISizesContribution::new();
+        let mut intrinsic_sizes_for_nonbroken_run = IntrinsicISizesContribution::new();
         for fragment in self.fragments.fragments.iter_mut() {
-            debug!("Flow: measuring {:?}", *fragment);
-            computation.union_inline(&fragment.compute_intrinsic_inline_sizes().finish())
+            let intrinsic_sizes_for_fragment = fragment.compute_intrinsic_inline_sizes().finish();
+            match fragment.style.get_inheritedtext().white_space {
+                white_space::T::nowrap => {
+                    intrinsic_sizes_for_nonbroken_run.union_nonbreaking_inline(
+                        &intrinsic_sizes_for_fragment)
+                }
+                white_space::T::pre => {
+                    intrinsic_sizes_for_nonbroken_run.union_nonbreaking_inline(
+                        &intrinsic_sizes_for_fragment);
+
+                    // Flush the intrinsic sizes we've been gathering up in order to handle the
+                    // line break, if necessary.
+                    if fragment.requires_line_break_afterward_if_wrapping_on_newlines() {
+                        intrinsic_sizes_for_inline_run.union_inline(
+                            &intrinsic_sizes_for_nonbroken_run.finish());
+                        intrinsic_sizes_for_nonbroken_run = IntrinsicISizesContribution::new();
+                        intrinsic_sizes_for_flow.union_block(
+                            &intrinsic_sizes_for_inline_run.finish());
+                        intrinsic_sizes_for_inline_run = IntrinsicISizesContribution::new();
+                    }
+                }
+                white_space::T::normal => {
+                    // Flush the intrinsic sizes we were gathering up for the nonbroken run, if
+                    // necessary.
+                    intrinsic_sizes_for_inline_run.union_inline(
+                        &intrinsic_sizes_for_nonbroken_run.finish());
+                    intrinsic_sizes_for_nonbroken_run = IntrinsicISizesContribution::new();
+
+                    intrinsic_sizes_for_nonbroken_run.union_inline(&intrinsic_sizes_for_fragment)
+                }
+            }
         }
-        self.base.intrinsic_inline_sizes = computation.finish()
+
+        // Flush any remaining nonbroken-run and inline-run intrinsic sizes.
+        intrinsic_sizes_for_inline_run.union_inline(&intrinsic_sizes_for_nonbroken_run.finish());
+        intrinsic_sizes_for_flow.union_block(&intrinsic_sizes_for_inline_run.finish());
+
+        // Finish up the computation.
+        self.base.intrinsic_inline_sizes = intrinsic_sizes_for_flow.finish()
     }
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
@@ -1224,7 +1261,7 @@ impl Flow for InlineFlow {
         // Now, go through each line and lay out the fragments inside.
         let mut line_distance_from_flow_block_start = Au(0);
         let line_count = self.lines.len();
-        for line_index in range(0, line_count) {
+        for line_index in 0..line_count {
             let line = &mut self.lines[line_index];
 
             // Lay out fragments in the inline direction, and justify them if necessary.
@@ -1248,7 +1285,7 @@ impl Flow for InlineFlow {
             let (mut largest_block_size_for_top_fragments,
                  mut largest_block_size_for_bottom_fragments) = (Au(0), Au(0));
 
-            for fragment_index in range(line.range.begin(), line.range.end()) {
+            for fragment_index in line.range.begin()..line.range.end() {
                 let fragment = &mut self.fragments.fragments[fragment_index.to_usize()];
 
                 let InlineMetrics {
@@ -1347,7 +1384,7 @@ impl Flow for InlineFlow {
             kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
         }
 
-        self.base.position.size.block = match self.lines.as_slice().last() {
+        self.base.position.size.block = match self.lines.last() {
             Some(ref last_line) => last_line.bounds.start.b + last_line.bounds.size.block,
             None => Au(0),
         };

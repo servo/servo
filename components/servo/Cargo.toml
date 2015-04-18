@@ -16,8 +16,20 @@ test = false
 doc = false
 bench = false
 
-[dev-dependencies.unit_tests]
-path = "../../tests/unit"
+[dev-dependencies.gfx_tests]
+path = "../../tests/unit/gfx"
+
+[dev-dependencies.net_tests]
+path = "../../tests/unit/net"
+
+[dev-dependencies.script_tests]
+path = "../../tests/unit/script"
+
+[dev-dependencies.style_tests]
+path = "../../tests/unit/style"
+
+[dev-dependencies.util_tests]
+path = "../../tests/unit/util"
 
 [[test]]
 name = "reftest"

@@ -180,7 +180,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         }
         // TODO: Resolve the url relative to the submitter element
         // Step 10-15
-        let action_components = UrlParser::new().base_url(&base).parse(action.as_slice()).unwrap_or(base);
+        let action_components = UrlParser::new().base_url(&base).parse(&action).unwrap_or(base);
         let _action = action_components.serialize();
         let scheme = action_components.scheme.clone();
         let enctype = submitter.enctype();
@@ -194,13 +194,13 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
             FormEncType::UrlEncoded => {
                 let mime: mime::Mime = "application/x-www-form-urlencoded".parse().unwrap();
                 load_data.headers.set(ContentType(mime));
-                serialize(form_data.iter().map(|d| (d.name.as_slice(), d.value.as_slice())))
+                serialize(form_data.iter().map(|d| (&*d.name, &*d.value)))
             }
             _ => "".to_owned() // TODO: Add serializers for the other encoding types
         };
 
         // Step 18
-        match (scheme.as_slice(), method) {
+        match (&*scheme, method) {
             (_, FormMethod::FormDialog) => return, // Unimplemented
             ("http", FormMethod::FormGet) | ("https", FormMethod::FormGet) => {
                 load_data.url.query = Some(parsed_data);
@@ -269,7 +269,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                     let input = HTMLInputElementCast::to_ref(child.r()).unwrap();
                     let ty = input.Type();
                     let name = input.Name();
-                    match ty.as_slice() {
+                    match &*ty {
                         "radio" | "checkbox" => {
                             if !input.Checked() || name.is_empty() {
                                 return None;
@@ -290,7 +290,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                         },
                         _ => false
                     };
-                    match ty.as_slice() {
+                    match &*ty {
                         "image" => None, // Unimplemented
                         "radio" | "checkbox" => {
                             if value.is_empty() {
@@ -335,11 +335,11 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         //       https://html.spec.whatwg.org/multipage/#the-directionality
         let mut ret: Vec<FormDatum> = data_set.collect();
         for datum in ret.iter_mut() {
-            match datum.ty.as_slice() {
+            match &*datum.ty {
                 "file" | "textarea" => (),
                 _ => {
-                    datum.name = clean_crlf(datum.name.as_slice());
-                    datum.value = clean_crlf(datum.value.as_slice());
+                    datum.name = clean_crlf(&datum.name);
+                    datum.value = clean_crlf(&datum.value);
                 }
             }
         };
@@ -462,7 +462,7 @@ impl<'a> FormSubmitter<'a> {
                                                   |f| f.Action())
             }
         };
-        match attr.as_slice() {
+        match &*attr {
             "multipart/form-data" => FormEncType::FormDataEncoded,
             "text/plain" => FormEncType::TextPlainEncoded,
             // https://html.spec.whatwg.org/multipage/#attr-fs-enctype
@@ -486,7 +486,7 @@ impl<'a> FormSubmitter<'a> {
                                                   |f| f.Action())
             }
         };
-        match attr.as_slice() {
+        match &*attr {
             "dialog" => FormMethod::FormDialog,
             "post" => FormMethod::FormPost,
             _ => FormMethod::FormGet

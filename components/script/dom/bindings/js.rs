@@ -64,7 +64,6 @@ use std::cell::{Cell, UnsafeCell};
 use std::default::Default;
 use std::intrinsics::return_address;
 use std::marker::PhantomData;
-use std::mem;
 use std::ops::Deref;
 
 /// An unrooted, JS-owned value. Must not be held across a GC.
@@ -185,13 +184,6 @@ impl<T: Reflectable> Temporary<T> {
 
     unsafe fn inner(&self) -> JS<T> {
         self.inner.clone()
-    }
-
-    /// Returns `self` as a `Temporary` of another type. For use by
-    /// `InheritTypes` only.
-    //XXXjdm It would be lovely if this could be private.
-    pub unsafe fn transmute<To>(self) -> Temporary<To> {
-        mem::transmute(self)
     }
 }
 
@@ -435,20 +427,6 @@ impl<T: Reflectable> LayoutJS<T> {
     /// this is unsafe is what necessitates the layout wrappers.)
     pub unsafe fn unsafe_get(&self) -> *const T {
         *self.ptr
-    }
-}
-
-impl<From> JS<From> {
-    /// Return `self` as a `JS` of another type.
-    pub unsafe fn transmute_copy<To>(&self) -> JS<To> {
-        mem::transmute_copy(self)
-    }
-}
-
-impl<From> LayoutJS<From> {
-    /// Return `self` as a `LayoutJS` of another type.
-    pub unsafe fn transmute_copy<To>(&self) -> LayoutJS<To> {
-        mem::transmute_copy(self)
     }
 }
 
@@ -748,18 +726,6 @@ impl<'a, 'b, T> PartialEq<JSRef<'b, T>> for JSRef<'a, T> {
 }
 
 impl<'a,T> JSRef<'a,T> {
-    /// Return `self` as a `JSRef` of another type.
-    //XXXjdm It would be lovely if this could be private.
-    pub unsafe fn transmute<To>(self) -> JSRef<'a, To> {
-        mem::transmute(self)
-    }
-
-    /// Return `self` as a borrowed reference to a `JSRef` of another type.
-    // FIXME(zwarich): It would be nice to get rid of this entirely.
-    pub unsafe fn transmute_borrowed<'b, To>(&'b self) -> &'b JSRef<'a, To> {
-        mem::transmute(self)
-    }
-
     /// Return an unrooted `JS<T>` for the inner pointer.
     pub fn unrooted(&self) -> JS<T> {
         JS {

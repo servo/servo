@@ -312,7 +312,7 @@ impl ToJSValConvertible for str {
 
 impl ToJSValConvertible for DOMString {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-        self.as_slice().to_jsval(cx)
+        (**self).to_jsval(cx)
     }
 }
 

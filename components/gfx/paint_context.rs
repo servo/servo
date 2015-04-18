@@ -133,8 +133,8 @@ impl<'a> PaintContext<'a> {
                       image_rendering: image_rendering::T) {
         let size = Size2D(image.width as i32, image.height as i32);
         let (pixel_width, pixels, source_format) = match image.pixels {
-            PixelsByColorType::RGBA8(ref pixels) => (4, pixels.as_slice(), SurfaceFormat::B8G8R8A8),
-            PixelsByColorType::K8(ref pixels) => (1, pixels.as_slice(), SurfaceFormat::A8),
+            PixelsByColorType::RGBA8(ref pixels) => (4, pixels, SurfaceFormat::B8G8R8A8),
+            PixelsByColorType::K8(ref pixels) => (1, pixels, SurfaceFormat::A8),
             PixelsByColorType::RGB8(_) => panic!("RGB8 color type not supported"),
             PixelsByColorType::KA8(_) => panic!("KA8 color type not supported"),
         };
@@ -169,7 +169,7 @@ impl<'a> PaintContext<'a> {
     }
 
     pub fn clear(&self) {
-        let pattern = ColorPattern::new(color::transparent_black());
+        let pattern = ColorPattern::new(color::transparent());
         let rect = Rect(Point2D(self.page_rect.origin.x as AzFloat,
                                 self.page_rect.origin.y as AzFloat),
                         Size2D(self.screen_rect.size.width as AzFloat,

@@ -34,9 +34,9 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
         match png::load_png_from_memory(buffer) {
             Ok(mut png_image) => {
                 match png_image.pixels {
-                    png::PixelsByColorType::RGB8(ref mut data) => byte_swap(data.as_mut_slice()),
+                    png::PixelsByColorType::RGB8(ref mut data) => byte_swap(data),
                     png::PixelsByColorType::RGBA8(ref mut data) => {
-                        byte_swap_and_premultiply(data.as_mut_slice())
+                        byte_swap_and_premultiply(data)
                     }
                     _ => {}
                 }
@@ -54,9 +54,9 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                 assert!(image.depth == 4);
                 // handle gif separately because the alpha-channel has to be premultiplied
                 if is_gif(buffer) {
-                    byte_swap_and_premultiply(image.data.as_mut_slice());
+                    byte_swap_and_premultiply(&mut image.data);
                 } else {
-                    byte_swap(image.data.as_mut_slice());
+                    byte_swap(&mut image.data);
                 }
                 Some(png::Image {
                     width: image.width as u32,

@@ -119,13 +119,6 @@ pub enum DevtoolScriptControlMsg {
     DropTimelineMarkers(PipelineId, Vec<TimelineMarkerType>),
 }
 
-/// Messages to instruct devtools server to update its state relating to a particular
-/// tab.
-pub enum ScriptDevtoolControlMsg {
-    /// Report a new JS error message
-    ReportConsoleMsg(String),
-}
-
 #[derive(RustcEncodable)]
 pub struct Modification{
     pub attributeName: String,

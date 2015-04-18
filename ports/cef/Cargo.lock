@@ -65,7 +65,7 @@ dependencies = [
  "gfx 0.0.1",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
  "glutin 0.0.7 (git+https://github.com/servo/glutin?branch=servo)",
- "msg 0.0.1",
+ "offscreen_gl_context 0.0.1 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
  "util 0.0.1",
 ]
 
@@ -75,6 +75,15 @@ version = "0.0.1"
 source = "git+https://github.com/servo/rust-cgl#211afc4d1572d8fe67b91c452441b6cb292a2bc7"
 dependencies = [
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+]
+
+[[package]]
+name = "clipboard"
+version = "0.0.1"
+source = "git+https://github.com/aweinstock314/rust-x11-clipboard#eae9596e7e407c8b6037b934c1a8e42a309423fd"
+dependencies = [
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
 
 [[package]]
@@ -96,6 +105,7 @@ name = "compositing"
 version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
+ "clipboard 0.0.1 (git+https://github.com/aweinstock314/rust-x11-clipboard)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
  "devtools_traits 0.0.1",
@@ -114,7 +124,7 @@ dependencies = [
  "time 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
- "webdriver_server 0.0.1",
+ "webdriver_traits 0.0.1",
 ]
 
 [[package]]
@@ -641,6 +651,7 @@ dependencies = [
  "style 0.0.1",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
+ "webdriver_traits 0.0.1",
 ]
 
 [[package]]
@@ -674,6 +685,19 @@ dependencies = [
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
+]
+
+[[package]]
+name = "offscreen_gl_context"
+version = "0.0.1"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#9547d416019b15e0e59dc5176f5b1a14e14b44ca"
+dependencies = [
+ "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
 
 [[package]]
@@ -824,6 +848,7 @@ dependencies = [
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "uuid 0.1.11 (git+https://github.com/rust-lang/uuid)",
+ "webdriver_traits 0.0.1",
 ]
 
 [[package]]
@@ -837,6 +862,7 @@ dependencies = [
  "net_traits 0.0.1",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
+ "webdriver_traits 0.0.1",
 ]
 
 [[package]]
@@ -1012,7 +1038,7 @@ dependencies = [
 [[package]]
 name = "webdriver"
 version = "0.0.1"
-source = "git+https://github.com/jgraham/webdriver-rust.git#4f543416a269b9d0d7ee5332db489768c2a769dd"
+source = "git+https://github.com/jgraham/webdriver-rust.git#fa625e3cf8fdb39b503c1cc902506df3a1d1c9de"
 dependencies = [
  "hyper 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1031,6 +1057,14 @@ dependencies = [
  "util 0.0.1",
  "uuid 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "webdriver 0.0.1 (git+https://github.com/jgraham/webdriver-rust.git)",
+ "webdriver_traits 0.0.1",
+]
+
+[[package]]
+name = "webdriver_traits"
+version = "0.0.1"
+dependencies = [
+ "rustc-serialize 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1049,7 +1083,7 @@ dependencies = [
 [[package]]
 name = "xlib"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-xlib#715e6f9bb3dfcd925996caedeb77aefb31c2bd65"
+source = "git+https://github.com/servo/rust-xlib#1a0f3d48fbebf96e2d1bf83ac71309b27f49e0c7"
 dependencies = [
  "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",

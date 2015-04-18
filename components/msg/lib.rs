@@ -9,6 +9,7 @@ extern crate hyper;
 extern crate layers;
 extern crate util;
 extern crate url;
+extern crate webdriver_traits;
 
 #[cfg(target_os="macos")]
 extern crate core_foundation;

@@ -56,7 +56,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
             fn filter<'a>(&self, elem: JSRef<'a, Element>, _root: JSRef<'a, Node>) -> bool {
                 static TAG_NAMES: StaticStringVec = &["button", "fieldset", "input",
                     "keygen", "object", "output", "select", "textarea"];
-                TAG_NAMES.iter().any(|&tag_name| tag_name == elem.local_name().as_slice())
+                TAG_NAMES.iter().any(|&tag_name| tag_name == &**elem.local_name())
             }
         }
         let node: JSRef<Node> = NodeCast::from_ref(self);

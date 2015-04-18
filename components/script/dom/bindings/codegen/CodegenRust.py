@@ -1049,7 +1049,7 @@ class CGArgumentConverter(CGThing):
 
             variadicConversion = string.Template(
                 "let mut vector: ${seqType} = Vec::with_capacity((${argc} - ${index}) as usize);\n"
-                "for variadicArg in range(${index}, ${argc}) {\n"
+                "for variadicArg in ${index}..${argc} {\n"
                 "${inner}\n"
                 "    vector.push(slot);\n"
                 "}\n"
@@ -2616,7 +2616,11 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
         CGAbstractMethod.__init__(self, descriptor, name, "JSBool", args, extern=True)
 
     def definition_body(self):
-        return self.generate_code()
+        preamble = CGGeneric("""\
+let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
+let global = global.root();
+""")
+        return CGList([preamble, self.generate_code()])
 
     def generate_code(self):
         assert False  # Override me
@@ -2674,7 +2678,7 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
     def generate_code(self):
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
                                                         self.method)
-        return CGMethodCall([], nativeName, True, self.descriptor, self.method)
+        return CGMethodCall(["global.r()"], nativeName, True, self.descriptor, self.method)
 
 
 class CGGenericGetter(CGAbstractBindingMethod):
@@ -2748,7 +2752,7 @@ class CGStaticGetter(CGAbstractStaticBindingMethod):
     def generate_code(self):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
-        return CGGetterCall([], self.attr.type, nativeName, self.descriptor,
+        return CGGetterCall(["global.r()"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
 
 
@@ -2827,7 +2831,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
             "    throw_type_error(cx, \"Not enough arguments to %s setter.\");\n"
             "    return 0;\n"
             "}" % self.attr.identifier.name)
-        call = CGSetterCall([], self.attr.type, nativeName, self.descriptor,
+        call = CGSetterCall(["global.r()"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
         return CGList([checkForArg, call])
 
@@ -5157,7 +5161,7 @@ class CallbackMember(CGNativeMember):
                 successCode="")
         if arg.variadic:
             conversion = string.Template(
-                "for idx in range(0, ${arg}.len()) {\n" +
+                "for idx in 0..${arg}.len() {\n" +
                 CGIndenter(CGGeneric(conversion)).define() + "\n"
                 "}"
                 ).substitute({ "arg": arg.identifier.name })
@@ -5449,7 +5453,7 @@ impl ${name}Cast {
     #[inline(always)]
     pub fn to_ref<'a, T: ${toBound}+Reflectable>(base: JSRef<'a, T>) -> Option<JSRef<'a, ${name}>> {
         match base.${checkFn}() {
-            true => unsafe { Some(base.transmute()) },
+            true => Some(unsafe { mem::transmute(base) }),
             false => None
         }
     }
@@ -5457,7 +5461,7 @@ impl ${name}Cast {
     #[inline(always)]
     pub fn to_borrowed_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a JSRef<'b, T>) -> Option<&'a JSRef<'b, ${name}>> {
         match base.${checkFn}() {
-            true => unsafe { Some(base.transmute_borrowed()) },
+            true => Some(unsafe { mem::transmute(base) }),
             false => None
         }
     }
@@ -5467,7 +5471,7 @@ impl ${name}Cast {
     pub fn to_layout_js<T: ${toBound}+Reflectable>(base: &LayoutJS<T>) -> Option<LayoutJS<${name}>> {
         unsafe {
             match (*base.unsafe_get()).${checkFn}() {
-                true => Some(base.transmute_copy()),
+                true => Some(mem::transmute_copy(base)),
                 false => None
             }
         }
@@ -5475,33 +5479,31 @@ impl ${name}Cast {
 
     #[inline(always)]
     pub fn to_temporary<T: ${toBound}+Reflectable>(base: Temporary<T>) -> Option<Temporary<${name}>> {
-        let base = base.root();
-        let base = base.r();
-        match base.${checkFn}() {
-            true => Some(Temporary::from_rooted(unsafe { base.transmute() })),
+        match base.root().r().${checkFn}() {
+            true => Some(unsafe { mem::transmute(base) }),
             false => None
         }
     }
 
     #[inline(always)]
     pub fn from_ref<'a, T: ${fromBound}+Reflectable>(derived: JSRef<'a, T>) -> JSRef<'a, ${name}> {
-        unsafe { derived.transmute() }
+        unsafe { mem::transmute(derived) }
     }
 
     #[inline(always)]
     pub fn from_borrowed_ref<'a, 'b, T: ${fromBound}+Reflectable>(derived: &'a JSRef<'b, T>) -> &'a JSRef<'b, ${name}> {
-        unsafe { derived.transmute_borrowed() }
+        unsafe { mem::transmute(derived) }
     }
 
     #[inline(always)]
     #[allow(unrooted_must_root)]
     pub fn from_layout_js<T: ${fromBound}+Reflectable>(derived: &LayoutJS<T>) -> LayoutJS<${name}> {
-        unsafe { derived.transmute_copy() }
+        unsafe { mem::transmute_copy(derived) }
     }
 
     #[inline(always)]
     pub fn from_temporary<T: ${fromBound}+Reflectable>(derived: Temporary<T>) -> Temporary<${name}> {
-        unsafe { derived.transmute() }
+        unsafe { mem::transmute(derived) }
     }
 
     #[inline(always)]

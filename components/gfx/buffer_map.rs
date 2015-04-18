@@ -32,7 +32,7 @@ struct BufferKey([usize; 2]);
 impl Hash for BufferKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let BufferKey(ref bytes) = *self;
-        bytes.as_slice().hash(state);
+        bytes.hash(state);
     }
 }
 

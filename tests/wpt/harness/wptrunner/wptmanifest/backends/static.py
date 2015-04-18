@@ -68,6 +68,9 @@ class Compiler(NodeVisitor):
     def visit_ValueNode(self, node):
         return node.data
 
+    def visit_ListNode(self, node):
+        return [self.visit(child) for child in node.children]
+
     def visit_ConditionalNode(self, node):
         assert len(node.children) == 2
         if self.visit(node.children[0]):

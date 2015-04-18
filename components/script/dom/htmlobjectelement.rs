@@ -4,6 +4,7 @@
 
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
@@ -20,15 +21,15 @@ use dom::node::{Node, NodeTypeId, NodeHelpers, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
-use net_traits::image_cache_task::{self, ImageCacheTask};
+use net_traits::image::base::Image;
 use util::str::DOMString;
+use std::sync::Arc;
 use string_cache::Atom;
-
-use url::Url;
 
 #[dom_struct]
 pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
+    image: DOMRefCell<Option<Arc<Image>>>,
 }
 
 impl HTMLObjectElementDerived for EventTarget {
@@ -41,6 +42,7 @@ impl HTMLObjectElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLObjectElement {
         HTMLObjectElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLObjectElement, localName, prefix, document),
+            image: DOMRefCell::new(None),
         }
     }
 
@@ -52,24 +54,20 @@ impl HTMLObjectElement {
 }
 
 trait ProcessDataURL {
-    fn process_data_url(&self, image_cache: ImageCacheTask);
+    fn process_data_url(&self);
 }
 
 impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
     // Makes the local `data` member match the status of the `data` attribute and starts
     /// prefetching the image. This method must be called after `data` is changed.
-    fn process_data_url(&self, image_cache: ImageCacheTask) {
+    fn process_data_url(&self) {
         let elem: JSRef<Element> = ElementCast::from_ref(*self);
 
         // TODO: support other values
         match (elem.get_attribute(&ns!(""), &atom!("type")).map(|x| x.root().r().Value()),
                elem.get_attribute(&ns!(""), &atom!("data")).map(|x| x.root().r().Value())) {
-            (None, Some(uri)) => {
-                if is_image_data(uri.as_slice()) {
-                    let data_url = Url::parse(uri.as_slice()).unwrap();
-                    // Issue #84
-                    image_cache.send(image_cache_task::Msg::Prefetch(data_url));
-                }
+            (None, Some(_uri)) => {
+                // TODO(gw): Prefetch the image here.
             }
             _ => { }
         }
@@ -107,8 +105,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
 
         match attr.local_name() {
             &atom!("data") => {
-                let window = window_from_node(*self).root();
-                self.process_data_url(window.r().image_cache_task().clone());
+                self.process_data_url();
             },
             _ => ()
         }

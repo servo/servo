@@ -12,6 +12,7 @@
 import os
 import fnmatch
 import itertools
+import re
 from licenseck import licenses
 
 directories_to_check = ["ports", "components", "tests"]
@@ -66,29 +67,38 @@ def check_license(contents):
         yield (1, "incorrect license")
 
 
-def check_length(contents):
+def check_length(idx, line):
+    if len(line) >= 160:
+        yield (idx + 1, "(much) overlong line")
+
+def check_whatwg_url(idx, line):
+    matches = re.findall(r'whatwg.org/multipage.*#', line);
+    if matches:
+        for i, match in enumerate(matches):
+            parts = match.split('multipage')
+            if len(parts[1]) > 1 and parts[1][1] != '#':
+                yield (idx + 1, "URL should not point to specific WHATWG multipage page!")
+
+def check_whitespace(idx, line):
+    if line[-1] == "\n":
+        line = line[:-1]
+    else:
+        yield (idx + 1, "no newline at EOF")
+
+    if line.endswith(" "):
+        yield (idx + 1, "trailing whitespace")
+
+    if "\t" in line:
+        yield (idx + 1, "tab on line")
+
+    if "\r" in line:
+        yield (idx + 1, "CR on line")
+
+def check_by_line(contents):
     lines = contents.splitlines(True)
     for idx, line in enumerate(lines):
-        if len(line) >= 160:
-            yield (idx + 1, "(much) overlong line")
-
-
-def check_whitespace(contents):
-    lines = contents.splitlines(True)
-    for idx, line in enumerate(lines):
-        if line[-1] == "\n":
-            line = line[:-1]
-        else:
-            yield (idx + 1, "no newline at EOF")
-
-        if line.endswith(" "):
-            yield (idx + 1, "trailing whitespace")
-
-        if "\t" in line:
-            yield (idx + 1, "tab on line")
-
-        if "\r" in line:
-            yield (idx + 1, "CR on line")
+        for error in itertools.chain(check_length(idx, line), check_whitespace(idx, line), check_whatwg_url(idx, line)):
+            yield error
 
 
 def collect_errors_for_files(files_to_check, checking_functions):
@@ -127,7 +137,7 @@ def scan():
     all_files = collect_file_names(directories_to_check)
     files_to_check = filter(should_check, all_files)
 
-    checking_functions = [check_license, check_length, check_whitespace]
+    checking_functions = [check_license, check_by_line]
     errors = collect_errors_for_files(files_to_check, checking_functions)
 
     reftest_files = collect_file_names(reftest_directories)

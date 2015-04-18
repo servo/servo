@@ -76,7 +76,6 @@ partial interface Document {
   attribute DOMString cookie;
 
   // DOM tree accessors
-           [SetterThrows]
            attribute DOMString title;
            [SetterThrows]
            attribute HTMLElement? body;

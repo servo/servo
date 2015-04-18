@@ -288,7 +288,7 @@ impl Flow for TableWrapperFlow {
             TableLayout::Fixed => {}
             TableLayout::Auto => {
                 self.calculate_table_column_sizes_for_automatic_layout(
-                    intermediate_column_inline_sizes.as_mut_slice())
+                    &mut intermediate_column_inline_sizes)
             }
         }
 
@@ -324,7 +324,7 @@ impl Flow for TableWrapperFlow {
             }
             Some(ref assigned_column_inline_sizes) => {
                 let info = ChildInlineSizeInfo {
-                    column_computed_inline_sizes: assigned_column_inline_sizes.as_slice(),
+                    column_computed_inline_sizes: &assigned_column_inline_sizes,
                     spacing: self.block_flow.fragment.style().get_inheritedtable().border_spacing,
                 };
                 self.block_flow

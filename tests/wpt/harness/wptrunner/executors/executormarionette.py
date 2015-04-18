@@ -62,7 +62,7 @@ class MarionetteProtocol(Protocol):
         while True:
             success = self.marionette.wait_for_port(60)
             #When running in a debugger wait indefinitely for firefox to start
-            if success or self.executor.debug_args is None:
+            if success or self.executor.debug_info is None:
                 break
 
         session_started = False
@@ -131,12 +131,80 @@ class MarionetteProtocol(Protocol):
                 self.marionette.execute_async_script("");
             except errors.ScriptTimeoutException:
                 pass
-            except (socket.timeout, errors.InvalidResponseException, IOError):
+            except (socket.timeout, IOError):
                 break
             except Exception as e:
                 self.logger.error(traceback.format_exc(e))
                 break
 
+    def on_environment_change(self, old_environment, new_environment):
+        #Unset all the old prefs
+        for name, _ in old_environment.get("prefs", []):
+            value = self.executor.original_pref_values[name]
+            if value is None:
+                self.clear_user_pref(name)
+            else:
+                self.set_pref(name, value)
+
+        for name, value in new_environment.get("prefs", []):
+            self.executor.original_pref_values[name] = self.get_pref(name)
+            self.set_pref(name, value)
+
+    def set_pref(self, name, value):
+        self.logger.info("Setting pref %s (%s)" % (name, value))
+        self.marionette.set_context(self.marionette.CONTEXT_CHROME)
+        script = """
+            let prefInterface = Components.classes["@mozilla.org/preferences-service;1"]
+                                          .getService(Components.interfaces.nsIPrefBranch);
+            let pref = '%s';
+            let value = '%s';
+            let type = prefInterface.getPrefType(pref);
+            switch(type) {
+                case prefInterface.PREF_STRING:
+                    prefInterface.setCharPref(pref, value);
+                    break;
+                case prefInterface.PREF_BOOL:
+                    prefInterface.setBoolPref(pref, value);
+                    break;
+                case prefInterface.PREF_INT:
+                    prefInterface.setIntPref(pref, value);
+                    break;
+            }
+            """ % (name, value)
+        self.marionette.execute_script(script)
+        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
+
+    def clear_user_pref(self, name):
+        self.logger.info("Clearing pref %s" % (name))
+        self.marionette.set_context(self.marionette.CONTEXT_CHROME)
+        script = """
+            let prefInterface = Components.classes["@mozilla.org/preferences-service;1"]
+                                          .getService(Components.interfaces.nsIPrefBranch);
+            let pref = '%s';
+            prefInterface.clearUserPref(pref);
+            """ % name
+        self.marionette.execute_script(script)
+        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
+
+    def get_pref(self, name):
+        self.marionette.set_context(self.marionette.CONTEXT_CHROME)
+        self.marionette.execute_script("""
+            let prefInterface = Components.classes["@mozilla.org/preferences-service;1"]
+                                          .getService(Components.interfaces.nsIPrefBranch);
+            let pref = '%s';
+            let type = prefInterface.getPrefType(pref);
+            switch(type) {
+                case prefInterface.PREF_STRING:
+                    return prefInterface.getCharPref(pref);
+                case prefInterface.PREF_BOOL:
+                    return prefInterface.getBoolPref(pref);
+                case prefInterface.PREF_INT:
+                    return prefInterface.getIntPref(pref);
+                case prefInterface.PREF_INVALID:
+                    return null;
+            }
+            """ % (name))
+        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
 
 class MarionetteRun(object):
     def __init__(self, logger, func, marionette, url, timeout):
@@ -159,7 +227,7 @@ class MarionetteRun(object):
                 # make that possible. It also seems to time out immediately if the
                 # timeout is set too high. This works at least.
                 self.marionette.set_script_timeout(2**31 - 1)
-        except (IOError, errors.InvalidResponseException):
+        except IOError:
             self.logger.error("Lost marionette connection before starting test")
             return Stop
 
@@ -185,7 +253,7 @@ class MarionetteRun(object):
         except errors.ScriptTimeoutException:
             self.logger.debug("Got a marionette timeout")
             self.result = False, ("EXTERNAL-TIMEOUT", None)
-        except (socket.timeout, errors.InvalidResponseException, IOError):
+        except (socket.timeout, IOError):
             # This can happen on a crash
             # Also, should check after the test if the firefox process is still running
             # and otherwise ignore any other result and set it to crash
@@ -203,16 +271,18 @@ class MarionetteRun(object):
 
 class MarionetteTestharnessExecutor(TestharnessExecutor):
     def __init__(self, browser, server_config, timeout_multiplier=1, close_after_done=True,
-                 debug_args=None):
+                 debug_info=None):
         """Marionette-based executor for testharness.js tests"""
         TestharnessExecutor.__init__(self, browser, server_config,
                                      timeout_multiplier=timeout_multiplier,
-                                     debug_args=debug_args)
+                                     debug_info=debug_info)
 
         self.protocol = MarionetteProtocol(self, browser)
         self.script = open(os.path.join(here, "testharness_marionette.js")).read()
         self.close_after_done = close_after_done
         self.window_id = str(uuid.uuid4())
+
+        self.original_pref_values = {}
 
         if marionette is None:
             do_delayed_imports()
@@ -220,11 +290,14 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
     def is_alive(self):
         return self.protocol.is_alive()
 
-    def on_protocol_change(self, new_protocol):
-        self.protocol.load_runner(new_protocol)
+    def on_environment_change(self, new_environment):
+        self.protocol.on_environment_change(self.last_environment, new_environment)
+
+        if new_environment["protocol"] != self.last_environment["protocol"]:
+            self.protocol.load_runner(new_environment["protocol"])
 
     def do_test(self, test):
-        timeout = (test.timeout * self.timeout_multiplier if self.debug_args is None
+        timeout = (test.timeout * self.timeout_multiplier if self.debug_info is None
                    else None)
 
         success, data = MarionetteRun(self.logger,
@@ -258,18 +331,19 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
 
 class MarionetteRefTestExecutor(RefTestExecutor):
     def __init__(self, browser, server_config, timeout_multiplier=1,
-                 screenshot_cache=None, close_after_done=True, debug_args=None):
+                 screenshot_cache=None, close_after_done=True, debug_info=None):
         """Marionette-based executor for reftests"""
         RefTestExecutor.__init__(self,
                                  browser,
                                  server_config,
                                  screenshot_cache=screenshot_cache,
                                  timeout_multiplier=timeout_multiplier,
-                                 debug_args=debug_args)
+                                 debug_info=debug_info)
         self.protocol = MarionetteProtocol(self, browser)
         self.implementation = RefTestImplementation(self)
         self.close_after_done = close_after_done
         self.has_window = False
+        self.original_pref_values = {}
 
         with open(os.path.join(here, "reftest.js")) as f:
             self.script = f.read()
@@ -278,6 +352,9 @@ class MarionetteRefTestExecutor(RefTestExecutor):
 
     def is_alive(self):
         return self.protocol.is_alive()
+
+    def on_environment_change(self, new_environment):
+        self.protocol.on_environment_change(self.last_environment, new_environment)
 
     def do_test(self, test):
         if self.close_after_done and self.has_window:
@@ -296,7 +373,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
         return self.convert_result(test, result)
 
     def screenshot(self, test):
-        timeout = test.timeout if self.debug_args is None else None
+        timeout =  self.timeout_multiplier * test.timeout if self.debug_info is None else None
 
         test_url = self.test_url(test)
 

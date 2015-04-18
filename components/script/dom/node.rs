@@ -544,7 +544,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
             s.push_str("    ");
         }
 
-        s.push_str(self.debug_str().as_slice());
+        s.push_str(&*self.debug_str());
         debug!("{:?}", s);
 
         // FIXME: this should have a pure version?
@@ -888,7 +888,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         // Step 1.
-        match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
+        match parse_author_origin_selector_list_from_str(&selectors) {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
@@ -909,7 +909,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     unsafe fn query_selector_iter(self, selectors: DOMString)
                                   -> Fallible<QuerySelectorIterator> {
         // Step 1.
-        match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
+        match parse_author_origin_selector_list_from_str(&selectors) {
             // Step 2.
             Err(()) => Err(Syntax),
             // Step 3.
@@ -1734,7 +1734,7 @@ impl Node {
                     local: element.local_name().clone()
                 };
                 let element = Element::create(name,
-                    element.prefix().as_ref().map(|p| p.as_slice().to_owned()),
+                    element.prefix().as_ref().map(|p| (**p).to_owned()),
                     document.r(), ElementCreator::ScriptCreated);
                 NodeCast::from_temporary(element)
             },
@@ -2254,7 +2254,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 other_element.attrs().iter().map(|attr| attr.root()).any(|other_attr| {
                     (*attr.r().namespace() == *other_attr.r().namespace()) &&
                     (attr.r().local_name() == other_attr.r().local_name()) &&
-                    (attr.r().value().as_slice() == other_attr.r().value().as_slice())
+                    (**attr.r().value() == **other_attr.r().value())
                 })
             })
         }
@@ -2520,7 +2520,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
                         // FIXME(https://github.com/rust-lang/rust/issues/23338)
                         let attr = attr.r();
                         let value = attr.value();
-                        test(value.as_slice())
+                        test(&value)
                     })
             },
             NamespaceConstraint::Any => {
@@ -2530,7 +2530,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
                         // FIXME(https://github.com/rust-lang/rust/issues/23338)
                         let attr = attr.r();
                         let value = attr.value();
-                        test(value.as_slice())
+                        test(&value)
                     })
             }
         }

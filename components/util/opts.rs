@@ -145,7 +145,7 @@ pub struct Opts {
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
     let message = format!("Usage: {} [ options ... ] [URL]\n\twhere options include", app);
-    println!("{}", getopts::usage(message.as_slice(), opts));
+    println!("{}", getopts::usage(&message, opts));
 }
 
 pub fn print_debug_usage(app: &str)  {
@@ -262,16 +262,16 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         getopts::optflag("", "sniff-mime-types" , "Enable MIME sniffing"),
     );
 
-    let opt_match = match getopts::getopts(args, opts.as_slice()) {
+    let opt_match = match getopts::getopts(args, &opts) {
         Ok(m) => m,
         Err(f) => {
-            args_fail(f.to_string().as_slice());
+            args_fail(&f.to_string());
             return false;
         }
     };
 
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
-        print_usage(app_name.as_slice(), opts.as_slice());
+        print_usage(&app_name, &opts);
         return false;
     };
 
@@ -280,16 +280,16 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         None => String::new()
     };
     let mut debug_options = HashSet::new();
-    for split in debug_string.as_slice().split(',') {
+    for split in debug_string.split(',') {
         debug_options.insert(split.clone());
     }
     if debug_options.contains(&"help") {
-        print_debug_usage(app_name.as_slice());
+        print_debug_usage(&app_name);
         return false;
     }
 
     let url = if opt_match.free.is_empty() {
-        print_usage(app_name.as_slice(), opts.as_slice());
+        print_usage(&app_name, &opts);
         args_fail("servo asks that you provide a URL");
         return false;
     } else {

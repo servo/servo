@@ -29,6 +29,7 @@ use dom::htmlformelement::{SubmittedFrom, ResetFrom};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use dom::window::WindowHelpers;
 use textinput::TextInput;
 use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing};
 use textinput::Lines::Single;
@@ -109,6 +110,7 @@ static DEFAULT_INPUT_SIZE: u32 = 20;
 
 impl HTMLInputElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLInputElement {
+        let chan = document.window().root().r().constellation_chan();
         HTMLInputElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLInputElement, localName, prefix, document),
             input_type: Cell::new(InputType::InputText),
@@ -118,7 +120,7 @@ impl HTMLInputElement {
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned())),
+            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned(), Some(chan))),
             activation_state: DOMRefCell::new(InputActivationState::new())
         }
     }
@@ -162,7 +164,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 
         #[allow(unsafe_code)]
         unsafe fn get_raw_attr_value(input: LayoutJS<HTMLInputElement>) -> Option<String> {
-            let elem: LayoutJS<Element> = input.transmute_copy();
+            let elem = ElementCast::from_layout_js(&input);
             (*elem.unsafe_get()).get_attr_val_for_layout(&ns!(""), &atom!("value"))
                                 .map(|s| s.to_owned())
         }
@@ -370,7 +372,7 @@ fn in_same_group<'a,'b>(other: JSRef<'a, HTMLInputElement>,
     other_owner.equals(owner) &&
     // TODO should be a unicode compatibility caseless match
     match (other.get_radio_group_name(), group) {
-        (Some(ref s1), Some(s2)) => s1.as_slice() == s2,
+        (Some(ref s1), Some(s2)) => &**s1 == s2,
         (None, None) => true,
         _ => false
     }
@@ -408,7 +410,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
             broadcast_radio_checked(self,
                                     self.get_radio_group_name()
                                         .as_ref()
-                                        .map(|group| group.as_slice()));
+                                        .map(|group| &**group));
         }
         //TODO: dispatch change event
     }
@@ -477,7 +479,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             }
             &atom!("type") => {
                 let value = attr.value();
-                self.input_type.set(match value.as_slice() {
+                self.input_type.set(match &**value {
                     "button" => InputType::InputButton,
                     "submit" => InputType::InputSubmit,
                     "reset" => InputType::InputReset,
@@ -490,23 +492,23 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 if self.input_type.get() == InputType::InputRadio {
                     self.radio_group_updated(self.get_radio_group_name()
                                                  .as_ref()
-                                                 .map(|group| group.as_slice()));
+                                                 .map(|group| &**group));
                 }
             }
             &atom!("value") => {
                 if !self.value_changed.get() {
-                    self.textinput.borrow_mut().set_content(attr.value().as_slice().to_owned());
+                    self.textinput.borrow_mut().set_content((**attr.value()).to_owned());
                 }
             }
             &atom!("name") => {
                 if self.input_type.get() == InputType::InputRadio {
                     let value = attr.value();
-                    self.radio_group_updated(Some(value.as_slice()));
+                    self.radio_group_updated(Some(&value));
                 }
             }
             _ if attr.local_name() == &Atom::from_slice("placeholder") => {
                 let value = attr.value();
-                let stripped = value.as_slice().chars()
+                let stripped = value.chars()
                     .filter(|&c| c != '\n' && c != '\r')
                     .collect::<String>();
                 *self.placeholder.borrow_mut() = stripped;
@@ -541,7 +543,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                     broadcast_radio_checked(*self,
                                             self.get_radio_group_name()
                                                 .as_ref()
-                                                .map(|group| group.as_slice()));
+                                                .map(|group| &**group));
                 }
                 self.input_type.set(InputType::InputText);
             }
@@ -596,7 +598,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             s.handle_event(event);
         }
 
-        if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
+        if &*event.Type() == "click" && !event.DefaultPrevented() {
             match self.input_type.get() {
                 InputType::InputRadio => self.update_checked_state(true, true),
                 _ => {}
@@ -609,7 +611,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
 
             let doc = document_from_node(*self).root();
             doc.r().request_focus(ElementCast::from_ref(*self));
-        } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() &&
+        } else if &*event.Type() == "keydown" && !event.DefaultPrevented() &&
             (self.input_type.get() == InputType::InputText ||
              self.input_type.get() == InputType::InputPassword) {
                 let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
@@ -688,7 +690,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                                 .filter_map(HTMLInputElementCast::to_temporary)
                                 .map(|t| t.root())
                                 .find(|r| {
-                                    in_same_group(r.r(), owner.r(), group.as_ref().map(|gr| gr.as_slice())) &&
+                                    in_same_group(r.r(), owner.r(), group.as_ref().map(|gr| &**gr)) &&
                                     r.r().Checked()
                                 })
                     };

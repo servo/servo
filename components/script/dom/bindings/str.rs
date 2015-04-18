@@ -30,7 +30,7 @@ impl ByteString {
     /// Returns the underlying vector as a slice.
     pub fn as_slice<'a>(&'a self) -> &'a [u8] {
         let ByteString(ref vector) = *self;
-        vector.as_slice()
+        vector
     }
 
     /// Returns the length.

@@ -23,6 +23,7 @@ use string_cache::{Atom, Namespace};
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::mem;
+use std::ops::Deref;
 
 pub enum AttrSettingType {
     FirstSetAttr,
@@ -50,7 +51,7 @@ impl AttrValue {
     }
 
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
-        let tokens = atoms.iter().map(Atom::as_slice).collect::<Vec<_>>().connect("\x20");
+        let tokens = atoms.iter().map(|x| &**x).collect::<Vec<_>>().connect("\x20");
         AttrValue::TokenList(tokens, atoms)
     }
 
@@ -66,14 +67,30 @@ impl AttrValue {
 
     pub fn tokens<'a>(&'a self) -> Option<&'a [Atom]> {
         match *self {
-            AttrValue::TokenList(_, ref tokens) => Some(tokens.as_slice()),
+            AttrValue::TokenList(_, ref tokens) => Some(tokens),
+            _ => None
+        }
+    }
+
+    pub fn atom<'a>(&'a self) -> Option<&'a Atom> {
+        match *self {
+            AttrValue::Atom(ref value) => Some(value),
+            _ => None
+        }
+    }
+
+    pub fn atom<'a>(&'a self) -> Option<&'a Atom> {
+        match *self {
+            AttrValue::Atom(ref value) => Some(value),
             _ => None
         }
     }
 }
 
-impl Str for AttrValue {
-    fn as_slice<'a>(&'a self) -> &'a str {
+impl Deref for AttrValue {
+    type Target = str;
+
+    fn deref<'a>(&'a self) -> &'a str {
         match *self {
             AttrValue::String(ref value) |
                 AttrValue::TokenList(ref value, _) |
@@ -139,12 +156,12 @@ impl Attr {
 impl<'a> AttrMethods for JSRef<'a, Attr> {
     // https://dom.spec.whatwg.org/#dom-attr-localname
     fn LocalName(self) -> DOMString {
-        self.local_name().as_slice().to_owned()
+        (**self.local_name()).to_owned()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
     fn Value(self) -> DOMString {
-        self.value().as_slice().to_owned()
+        (**self.value()).to_owned()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
@@ -181,13 +198,13 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 
     // https://dom.spec.whatwg.org/#dom-attr-name
     fn Name(self) -> DOMString {
-        self.name.as_slice().to_owned()
+        (*self.name).to_owned()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-namespaceuri
     fn GetNamespaceURI(self) -> Option<DOMString> {
         let Namespace(ref atom) = self.namespace;
-        match atom.as_slice() {
+        match &**atom {
             "" => None,
             url => Some(url.to_owned()),
         }
@@ -271,7 +288,7 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     fn summarize(self) -> AttrInfo {
         let Namespace(ref ns) = self.namespace;
         AttrInfo {
-            namespace: ns.as_slice().to_owned(),
+            namespace: (**ns).to_owned(),
             name: self.Name(),
             value: self.Value(),
         }
@@ -292,7 +309,7 @@ impl AttrHelpersForLayout for Attr {
     unsafe fn value_ref_forever(&self) -> &'static str {
         // This transmute is used to cheat the lifetime restriction.
         let value = mem::transmute::<&AttrValue, &AttrValue>(self.value.borrow_for_layout());
-        value.as_slice()
+        &**value
     }
 
     #[inline]
@@ -309,7 +326,7 @@ impl AttrHelpersForLayout for Attr {
         // This transmute is used to cheat the lifetime restriction.
         let value = mem::transmute::<&AttrValue, &AttrValue>(self.value.borrow_for_layout());
         match *value {
-            AttrValue::TokenList(_, ref tokens) => Some(tokens.as_slice()),
+            AttrValue::TokenList(_, ref tokens) => Some(tokens),
             _ => None,
         }
     }

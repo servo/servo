@@ -108,6 +108,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == empty_cells_a.html empty_cells_ref.html
 == external_media_query_link.html external_media_query_ref.html
 == external_media_query_style.html external_media_query_ref.html
+== filter_inline_a.html filter_inline_ref.html
 == filter_opacity_a.html filter_opacity_ref.html
 == filter_sepia_a.html filter_sepia_ref.html
 == first_child_pseudo_a.html first_child_pseudo_b.html
@@ -178,6 +179,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 # inline_text_align_a.html inline_text_align_b.html
 == inline_whitespace_a.html inline_whitespace_ref.html
 == inline_whitespace_b.html inline_whitespace_ref.html
+== input_button_size_a.html input_button_size_ref.html
 != input_height_a.html input_height_ref.html
 == inset.html inset_ref.html
 != inset_blackborder.html blackborder_ref.html
@@ -330,7 +332,7 @@ resolution=800x600 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_a
 resolution=600x800 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_b.html
 == visibility_hidden.html visibility_hidden_ref.html
 
-flaky_cpu == webgl-context/clearcolor.html webgl-context/clearcolor_ref.html
+== webgl-context/clearcolor.html webgl-context/clearcolor_ref.html
 
 == whitespace_nowrap_a.html whitespace_nowrap_ref.html
 == whitespace_pre.html whitespace_pre_ref.html

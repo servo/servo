@@ -93,12 +93,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
 
         match attr.local_name() {
             &atom!("bgcolor") => {
-                self.background_color.set(str::parse_legacy_color(attr.value().as_slice()).ok())
+                self.background_color.set(str::parse_legacy_color(&attr.value()).ok())
             }
             &atom!("colspan") => {
-                self.colspan.set(str::parse_unsigned_integer(attr.value().as_slice().chars()));
+                self.colspan.set(str::parse_unsigned_integer(attr.value().chars()));
             }
-            &atom!("width") => self.width.set(str::parse_length(attr.value().as_slice())),
+            &atom!("width") => self.width.set(str::parse_length(&attr.value())),
             _ => ()
         }
     }

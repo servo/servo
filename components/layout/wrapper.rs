@@ -116,7 +116,7 @@ pub trait TLayoutNode {
     fn image_url(&self) -> Option<Url> {
         unsafe {
             match HTMLImageElementCast::to_layout_js(self.get_jsmanaged()) {
-                Some(elem) => elem.image().as_ref().map(|url| (*url).clone()),
+                Some(elem) => elem.image_url().as_ref().map(|url| (*url).clone()),
                 None => panic!("not an image!")
             }
         }
@@ -197,7 +197,7 @@ impl<'a> PartialEq for LayoutNode<'a> {
 impl<'ln> TLayoutNode for LayoutNode<'ln> {
     unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
-            node: node.transmute_copy(),
+            node: *node,
             chain: self.chain,
         }
     }
@@ -250,11 +250,11 @@ impl<'ln> LayoutNode<'ln> {
 
     fn dump_indent(self, indent: u32) {
         let mut s = String::new();
-        for _ in range(0, indent) {
+        for _ in 0..indent {
             s.push_str("  ");
         }
 
-        s.push_str(self.debug_str().as_slice());
+        s.push_str(&self.debug_str());
         println!("{}", s);
 
         for kid in self.children() {
@@ -728,10 +728,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     /// Creates a new layout node with the same lifetime as this layout node.
     unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> ThreadSafeLayoutNode<'ln> {
         ThreadSafeLayoutNode {
-            node: LayoutNode {
-                node: node.transmute_copy(),
-                chain: self.node.chain,
-            },
+            node: self.node.new_with_this_lifetime(node),
             pseudo: PseudoElementType::Normal,
         }
     }

@@ -207,7 +207,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
             ['e' as c_char, 'v' as c_char, 'e' as c_char, 'n' as c_char, 't' as c_char, 0];
         static mut ARG_NAMES: [*const c_char; 1] = [&ARG_NAME as *const c_char];
 
-        let source: Vec<u16> = source.as_slice().utf16_units().collect();
+        let source: Vec<u16> = source.utf16_units().collect();
         let handler = unsafe {
             JS_CompileUCFunction(cx,
                                  ptr::null_mut(),
@@ -269,7 +269,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
                     phase: phase,
                     listener: EventListenerType::Additive(listener)
                 };
-                if entry.as_slice().position_elem(&new_entry).is_none() {
+                if entry.position_elem(&new_entry).is_none() {
                     entry.push(new_entry);
                 }
             },
@@ -291,7 +291,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
                         phase: phase,
                         listener: EventListenerType::Additive(listener)
                     };
-                    let position = entry.as_slice().position_elem(&old_entry);
+                    let position = entry.position_elem(&old_entry);
                     for &position in position.iter() {
                         entry.remove(position);
                     }

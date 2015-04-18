@@ -4,8 +4,9 @@
 
 use azure::azure::AzFloat;
 use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
-use azure::azure_hl::{ColorPattern, PathBuilder, JoinStyle, CapStyle, DrawSurfaceOptions, Filter};
+use azure::azure_hl::{ColorPattern, PathBuilder, DrawSurfaceOptions, Filter};
 use azure::azure_hl::{GradientStop, LinearGradientPattern, RadialGradientPattern, ExtendMode};
+use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp};
 use canvas_msg::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -212,6 +213,7 @@ impl<'a> CanvasPaintTask<'a> {
                             Canvas2dMsg::ClosePath => painter.close_path(),
                             Canvas2dMsg::Fill => painter.fill(),
                             Canvas2dMsg::Stroke => painter.stroke(),
+                            Canvas2dMsg::Clip => painter.clip(),
                             Canvas2dMsg::DrawImage(imagedata, image_size, dest_rect, source_rect, smoothing_enabled) => {
                                 painter.draw_image(imagedata, image_size, dest_rect, source_rect, smoothing_enabled)
                             }
@@ -220,6 +222,7 @@ impl<'a> CanvasPaintTask<'a> {
                             }
                             Canvas2dMsg::MoveTo(ref point) => painter.move_to(point),
                             Canvas2dMsg::LineTo(ref point) => painter.line_to(point),
+                            Canvas2dMsg::Rect(ref rect) => painter.rect(rect),
                             Canvas2dMsg::QuadraticCurveTo(ref cp, ref pt) => {
                                 painter.quadratic_curve_to(cp, pt)
                             }
@@ -242,6 +245,7 @@ impl<'a> CanvasPaintTask<'a> {
                             Canvas2dMsg::SetMiterLimit(limit) => painter.set_miter_limit(limit),
                             Canvas2dMsg::SetTransform(ref matrix) => painter.set_transform(matrix),
                             Canvas2dMsg::SetGlobalAlpha(alpha) => painter.set_global_alpha(alpha),
+                            Canvas2dMsg::SetGlobalComposition(op) => painter.set_global_composition(op),
                             Canvas2dMsg::GetImageData(dest_rect, canvas_size, chan) => painter.get_image_data(dest_rect, canvas_size, chan),
                             Canvas2dMsg::PutImageData(imagedata, image_data_rect, dirty_rect)
                                 => painter.put_image_data(imagedata, image_data_rect, dirty_rect),
@@ -270,6 +274,7 @@ impl<'a> CanvasPaintTask<'a> {
         if let Some(state) = self.saved_states.pop() {
             mem::replace(&mut self.state, state);
             self.drawtarget.set_transform(&self.state.transform);
+            self.drawtarget.pop_clip();
         }
     }
 
@@ -324,6 +329,10 @@ impl<'a> CanvasPaintTask<'a> {
         };
     }
 
+    fn clip(&self) {
+        self.drawtarget.push_clip(&self.path_builder.finish());
+    }
+
     fn draw_image(&self, image_data: Vec<u8>, image_size: Size2D<f64>,
                   dest_rect: Rect<f64>, source_rect: Rect<f64>, smoothing_enabled: bool) {
         // We round up the floating pixel values to draw the pixels
@@ -349,6 +358,15 @@ impl<'a> CanvasPaintTask<'a> {
 
     fn line_to(&self, point: &Point2D<AzFloat>) {
         self.path_builder.line_to(*point)
+    }
+
+    fn rect(&self, rect: &Rect<f32>) {
+        self.path_builder.move_to(Point2D(rect.origin.x, rect.origin.y));
+        self.path_builder.line_to(Point2D(rect.origin.x + rect.size.width, rect.origin.y));
+        self.path_builder.line_to(Point2D(rect.origin.x + rect.size.width,
+                                          rect.origin.y + rect.size.height));
+        self.path_builder.line_to(Point2D(rect.origin.x, rect.origin.y + rect.size.height));
+        self.path_builder.close();
     }
 
     fn quadratic_curve_to(&self,
@@ -461,6 +479,10 @@ impl<'a> CanvasPaintTask<'a> {
         self.state.draw_options.alpha = alpha;
     }
 
+    fn set_global_composition(&mut self, op: CompositionOrBlending) {
+        self.state.draw_options.set_composition_op(op.to_azure_style());
+    }
+
     fn create(size: Size2D<i32>) -> DrawTarget {
         DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
     }
@@ -494,7 +516,7 @@ impl<'a> CanvasPaintTask<'a> {
         let mut dest_data = self.read_pixels(dest_rect, canvas_size);
 
         // bgra -> rgba
-        byte_swap(dest_data.as_mut_slice());
+        byte_swap(&mut dest_data);
         chan.send(dest_data).unwrap();
     }
 
@@ -508,7 +530,7 @@ impl<'a> CanvasPaintTask<'a> {
 
         assert!(image_data_rect.size.width * image_data_rect.size.height * 4.0 == imagedata.len() as f64);
         // rgba -> bgra
-        byte_swap(imagedata.as_mut_slice());
+        byte_swap(&mut imagedata);
 
         let image_rect = Rect(Point2D(0f64, 0f64),
                                Size2D(image_data_rect.size.width, image_data_rect.size.height));
@@ -696,6 +718,185 @@ impl LineJoinStyle {
             "miter" => Some(LineJoinStyle::Miter),
             _ => None
         }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum CompositionStyle {
+    SrcIn,
+    SrcOut,
+    SrcOver,
+    SrcAtop,
+    DestIn,
+    DestOut,
+    DestOver,
+    DestAtop,
+    Copy,
+    Lighter,
+    Xor,
+}
+
+impl CompositionStyle {
+    fn to_azure_style(&self) -> CompositionOp {
+        match *self {
+            CompositionStyle::SrcIn    => CompositionOp::In,
+            CompositionStyle::SrcOut   => CompositionOp::Out,
+            CompositionStyle::SrcOver  => CompositionOp::Over,
+            CompositionStyle::SrcAtop  => CompositionOp::Atop,
+            CompositionStyle::DestIn   => CompositionOp::DestIn,
+            CompositionStyle::DestOut  => CompositionOp::DestOut,
+            CompositionStyle::DestOver => CompositionOp::DestOver,
+            CompositionStyle::DestAtop => CompositionOp::DestAtop,
+            CompositionStyle::Copy     => CompositionOp::Source,
+            CompositionStyle::Lighter  => CompositionOp::Add,
+            CompositionStyle::Xor      => CompositionOp::Xor,
+        }
+    }
+
+    pub fn from_str(string: &str) -> Option<CompositionStyle> {
+        match string {
+            "source-in"        => Some(CompositionStyle::SrcIn),
+            "source-out"       => Some(CompositionStyle::SrcOut),
+            "source-over"      => Some(CompositionStyle::SrcOver),
+            "source-atop"      => Some(CompositionStyle::SrcAtop),
+            "destination-in"   => Some(CompositionStyle::DestIn),
+            "destination-out"  => Some(CompositionStyle::DestOut),
+            "destination-over" => Some(CompositionStyle::DestOver),
+            "destination-atop" => Some(CompositionStyle::DestAtop),
+            "copy"             => Some(CompositionStyle::Copy),
+            "lighter"          => Some(CompositionStyle::Lighter),
+            "xor"              => Some(CompositionStyle::Xor),
+            _ => None
+        }
+    }
+
+    pub fn to_str(&self) -> &str {
+        match *self {
+            CompositionStyle::SrcIn    => "source-in",
+            CompositionStyle::SrcOut   => "source-out",
+            CompositionStyle::SrcOver  => "source-over",
+            CompositionStyle::SrcAtop  => "source-atop",
+            CompositionStyle::DestIn   => "destination-in",
+            CompositionStyle::DestOut  => "destination-out",
+            CompositionStyle::DestOver => "destination-over",
+            CompositionStyle::DestAtop => "destination-atop",
+            CompositionStyle::Copy     => "copy",
+            CompositionStyle::Lighter  => "lighter",
+            CompositionStyle::Xor      => "xor",
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum BlendingStyle {
+    Multiply,
+    Screen,
+    Overlay,
+    Darken,
+    Lighten,
+    ColorDodge,
+    ColorBurn,
+    HardLight,
+    SoftLight,
+    Difference,
+    Exclusion,
+    Hue,
+    Saturation,
+    Color,
+    Luminosity,
+}
+
+impl BlendingStyle {
+    fn to_azure_style(&self) -> CompositionOp {
+        match *self {
+            BlendingStyle::Multiply   => CompositionOp::Multiply,
+            BlendingStyle::Screen     => CompositionOp::Screen,
+            BlendingStyle::Overlay    => CompositionOp::Overlay,
+            BlendingStyle::Darken     => CompositionOp::Darken,
+            BlendingStyle::Lighten    => CompositionOp::Lighten,
+            BlendingStyle::ColorDodge => CompositionOp::ColorDodge,
+            BlendingStyle::ColorBurn  => CompositionOp::ColorBurn,
+            BlendingStyle::HardLight  => CompositionOp::HardLight,
+            BlendingStyle::SoftLight  => CompositionOp::SoftLight,
+            BlendingStyle::Difference => CompositionOp::Difference,
+            BlendingStyle::Exclusion  => CompositionOp::Exclusion,
+            BlendingStyle::Hue        => CompositionOp::Hue,
+            BlendingStyle::Saturation => CompositionOp::Saturation,
+            BlendingStyle::Color      => CompositionOp::Color,
+            BlendingStyle::Luminosity => CompositionOp::Luminosity,
+        }
+    }
+
+    pub fn from_str(string: &str) -> Option<BlendingStyle> {
+        match string {
+            "multiply"    => Some(BlendingStyle::Multiply),
+            "screen"      => Some(BlendingStyle::Screen),
+            "overlay"     => Some(BlendingStyle::Overlay),
+            "darken"      => Some(BlendingStyle::Darken),
+            "lighten"     => Some(BlendingStyle::Lighten),
+            "color-dodge" => Some(BlendingStyle::ColorDodge),
+            "color-burn"  => Some(BlendingStyle::ColorBurn),
+            "hard-light"  => Some(BlendingStyle::HardLight),
+            "soft-light"  => Some(BlendingStyle::SoftLight),
+            "difference"  => Some(BlendingStyle::Difference),
+            "exclusion"   => Some(BlendingStyle::Exclusion),
+            "hue"         => Some(BlendingStyle::Hue),
+            "saturation"  => Some(BlendingStyle::Saturation),
+            "color"       => Some(BlendingStyle::Color),
+            "luminosity"  => Some(BlendingStyle::Luminosity),
+            _ => None
+        }
+    }
+
+    pub fn to_str(&self) -> &str {
+        match *self {
+            BlendingStyle::Multiply   => "multiply",
+            BlendingStyle::Screen     => "screen",
+            BlendingStyle::Overlay    => "overlay",
+            BlendingStyle::Darken     => "darken",
+            BlendingStyle::Lighten    => "lighten",
+            BlendingStyle::ColorDodge => "color-dodge",
+            BlendingStyle::ColorBurn  => "color-burn",
+            BlendingStyle::HardLight  => "hard-light",
+            BlendingStyle::SoftLight  => "soft-light",
+            BlendingStyle::Difference => "difference",
+            BlendingStyle::Exclusion  => "exclusion",
+            BlendingStyle::Hue        => "hue",
+            BlendingStyle::Saturation => "saturation",
+            BlendingStyle::Color      => "color",
+            BlendingStyle::Luminosity => "luminosity",
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum CompositionOrBlending {
+    Composition(CompositionStyle),
+    Blending(BlendingStyle),
+}
+
+impl CompositionOrBlending {
+    fn to_azure_style(&self) -> CompositionOp {
+        match *self {
+            CompositionOrBlending::Composition(op) => op.to_azure_style(),
+            CompositionOrBlending::Blending(op) => op.to_azure_style(),
+        }
+    }
+
+    pub fn default() -> CompositionOrBlending {
+        CompositionOrBlending::Composition(CompositionStyle::SrcOver)
+    }
+
+    pub fn from_str(string: &str) -> Option<CompositionOrBlending> {
+        if let Some(op) = CompositionStyle::from_str(string) {
+            return Some(CompositionOrBlending::Composition(op));
+        }
+
+        if let Some(op) = BlendingStyle::from_str(string) {
+            return Some(CompositionOrBlending::Blending(op));
+        }
+
+        None
     }
 }
 

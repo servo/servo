@@ -164,7 +164,7 @@ impl FontContext {
             // GWTODO: Check on real pages if this is faster as Vec() or HashMap().
             let mut cache_hit = false;
             for cached_font_entry in self.layout_font_cache.iter() {
-                if cached_font_entry.family.as_slice() == family.name() {
+                if cached_font_entry.family == family.name() {
                     match cached_font_entry.font {
                         None => {
                             cache_hit = true;

@@ -30,10 +30,10 @@ use geom::size::Size2D;
 use canvas::canvas_msg::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
 use canvas::canvas_paint_task::{CanvasPaintTask, FillOrStrokeStyle};
 use canvas::canvas_paint_task::{LinearGradientStyle, RadialGradientStyle};
-use canvas::canvas_paint_task::{LineCapStyle, LineJoinStyle};
+use canvas::canvas_paint_task::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
 
 use net_traits::image::base::Image;
-use net_traits::image_cache_task::{ImageResponseMsg, Msg};
+use net_traits::image_cache_task::ImageCacheChan;
 use png::PixelsByColorType;
 
 use std::borrow::ToOwned;
@@ -61,6 +61,7 @@ pub struct CanvasRenderingContext2D {
 #[jstraceable]
 struct CanvasContextState {
     global_alpha: f64,
+    global_composition: CompositionOrBlending,
     image_smoothing_enabled: bool,
     stroke_color: RGBA,
     line_width: f64,
@@ -81,6 +82,7 @@ impl CanvasContextState {
         };
         CanvasContextState {
             global_alpha: 1.0,
+            global_composition: CompositionOrBlending::default(),
             image_smoothing_enabled: true,
             stroke_color: black,
             line_width: 1.0,
@@ -262,10 +264,7 @@ impl CanvasRenderingContext2D {
         };
         // Pixels come from cache in BGRA order and drawImage expects RGBA so we
         // have to swap the color values
-        {
-            let mut pixel_colors = image_data.as_mut_slice();
-            byte_swap(pixel_colors);
-        }
+        byte_swap(&mut image_data);
         return Some((image_data, image_size));
     }
 
@@ -273,16 +272,11 @@ impl CanvasRenderingContext2D {
         let canvas = self.canvas.root();
         let window = window_from_node(canvas.r()).root();
         let window = window.r();
-        let image_cache_task = window.image_cache_task().clone();
-        image_cache_task.send(Msg::Prefetch(url.clone()));
-        image_cache_task.send(Msg::Decode(url.clone()));
+        let image_cache = window.image_cache_task();
         let (response_chan, response_port) = channel();
-        image_cache_task.send(Msg::WaitForImage(url, response_chan));
-        match response_port.recv().unwrap() {
-           ImageResponseMsg::ImageReady(image) => Some(image),
-           ImageResponseMsg::ImageFailed => None,
-           _ => panic!("Image Cache: Unknown Result")
-         }
+        image_cache.request_image(url, ImageCacheChan(response_chan), None);
+        let result = response_port.recv().unwrap();
+        result.image
     }
 
     fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
@@ -421,6 +415,23 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetGlobalAlpha(alpha as f32))).unwrap()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
+    fn GlobalCompositeOperation(self) -> DOMString {
+        let state = self.state.borrow();
+        match state.global_composition {
+            CompositionOrBlending::Composition(op) => op.to_str().to_owned(),
+            CompositionOrBlending::Blending(op) => op.to_str().to_owned(),
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
+    fn SetGlobalCompositeOperation(self, op_str: DOMString) {
+        if let Some(op) = CompositionOrBlending::from_str(&op_str) {
+            self.state.borrow_mut().global_composition = op;
+            self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetGlobalComposition(op))).unwrap()
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fillrect
     fn FillRect(self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
@@ -454,12 +465,19 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
     fn Fill(self, _: CanvasWindingRule) {
+        // TODO: Process winding rule
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Fill)).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
     fn Stroke(self) {
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Stroke)).unwrap();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
+    fn Clip(self, _: CanvasWindingRule) {
+        // TODO: Process winding rule
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Clip)).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -638,6 +656,15 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         }
 
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::LineTo(Point2D(x as f32, y as f32)))).unwrap();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-rect
+    fn Rect(self, x: f64, y: f64, width: f64, height: f64) {
+        if [x, y, width, height].iter().all(|val| val.is_finite()) {
+            let rect = Rect(Point2D(x as f32, y as f32),
+                            Size2D(width as f32, height as f32));
+            self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Rect(rect))).unwrap();
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-quadraticcurveto

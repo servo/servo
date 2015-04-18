@@ -139,7 +139,7 @@ fn read_input_device(device_path: &Path,
     // XXX: Need to use the real dimensions of the screen
     let screen_dist = dist(0, 480, 854, 0);
     loop {
-        let read = match device.read(buf.as_mut_slice()) {
+        let read = match device.read(&mut buf) {
             Ok(count) => {
                 assert!(count % size_of::<linux_input_event>() == 0,
                         "Unexpected input device read length!");
@@ -154,7 +154,7 @@ fn read_input_device(device_path: &Path,
         let count = read / size_of::<linux_input_event>();
         let events: *mut linux_input_event = unsafe { transmute(buf.as_mut_ptr()) };
         let mut tracking_updated = false;
-        for idx in range(0, count as int) {
+        for idx in 0..(count as int) {
             let event: &linux_input_event = unsafe { transmute(events.offset(idx)) };
             match (event.evt_type, event.code) {
                 (EV_SYN, EV_REPORT) => {

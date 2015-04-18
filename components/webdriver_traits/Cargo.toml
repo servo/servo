@@ -1,0 +1,11 @@
+[package]
+name = "webdriver_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "webdriver_traits"
+path = "lib.rs"
+
+[dependencies]
+rustc-serialize="0.3.4"

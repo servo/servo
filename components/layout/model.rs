@@ -331,6 +331,17 @@ impl IntrinsicISizesContribution {
             self.content_intrinsic_sizes.preferred_inline_size + sizes.preferred_inline_size
     }
 
+    /// Updates the computation so that the minimum is the sum of the current minimum and the
+    /// given minimum and the preferred is the sum of the current preferred and the given
+    /// preferred. This is used when laying out fragments in the inline direction when
+    /// `white-space` is `pre` or `nowrap`.
+    pub fn union_nonbreaking_inline(&mut self, sizes: &IntrinsicISizes) {
+        self.content_intrinsic_sizes.minimum_inline_size =
+            self.content_intrinsic_sizes.minimum_inline_size + sizes.minimum_inline_size;
+        self.content_intrinsic_sizes.preferred_inline_size =
+            self.content_intrinsic_sizes.preferred_inline_size + sizes.preferred_inline_size
+    }
+
     /// Updates the computation so that the minimum is the maximum of the current minimum and the
     /// given minimum and the preferred is the maximum of the current preferred and the given
     /// preferred. This can be useful when laying out fragments in the block direction (but note

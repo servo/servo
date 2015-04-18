@@ -85,12 +85,12 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(&ns!(""), &atom!("src")).root().and_then(|src| {
             let url = src.r().value();
-            if url.as_slice().is_empty() {
+            if url.is_empty() {
                 None
             } else {
                 let window = window_from_node(self).root();
                 UrlParser::new().base_url(&window.r().get_url())
-                    .parse(url.as_slice()).ok()
+                    .parse(&url).ok()
             }
         })
     }
@@ -335,7 +335,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                 let mut modes = SandboxAllowance::AllowNothing as u8;
                 if let Some(ref tokens) = attr.value().tokens() {
                     for token in tokens.iter() {
-                        modes |= match token.as_slice().to_ascii_lowercase().as_slice() {
+                        modes |= match &*token.to_ascii_lowercase() {
                             "allow-same-origin" => SandboxAllowance::AllowSameOrigin,
                             "allow-forms" => SandboxAllowance::AllowForms,
                             "allow-pointer-lock" => SandboxAllowance::AllowPointerLock,

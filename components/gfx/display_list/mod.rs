@@ -1130,7 +1130,7 @@ impl DisplayItem {
 
     pub fn debug_with_level(&self, level: u32) {
         let mut indent = String::new();
-        for _ in range(0, level) {
+        for _ in 0..level {
             indent.push_str("| ")
         }
         println!("{}+ {:?}", indent, self);
