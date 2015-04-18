@@ -221,13 +221,8 @@ impl RawLayoutElementHelpers for Element {
 
     #[inline]
     unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]> {
-        let attrs = self.attrs.borrow_for_layout();
-        (*attrs).iter().find(|attr: & &JS<Attr>| {
-            let attr = attr.to_layout().unsafe_get();
-            (*attr).local_name_atom_forever() == atom!("class")
-        }).and_then(|attr| {
-            let attr = attr.to_layout().unsafe_get();
-            (*attr).value_tokens_forever()
+        get_attr_for_layout(self, &ns!(""), &atom!("class")).map(|attr| {
+            (*attr.unsafe_get()).value_tokens_forever().unwrap()
         })
     }
 
