@@ -620,7 +620,8 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         }
 
         // Store the current mouse over targets for next frame
-        *prev_mouse_over_targets = mouse_over_targets;
+        prev_mouse_over_targets.clear();
+        prev_mouse_over_targets.append(&mut *mouse_over_targets);
 
         let window = self.window.root();
         window.r().reflow(ReflowGoal::ForDisplay,
