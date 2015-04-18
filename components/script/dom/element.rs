@@ -214,16 +214,9 @@ impl RawLayoutElementHelpers for Element {
 
     #[inline]
     unsafe fn has_class_for_layout(&self, name: &Atom) -> bool {
-        let attrs = self.attrs.borrow_for_layout();
-        (*attrs).iter().find(|attr: & &JS<Attr>| {
-            let attr = attr.to_layout().unsafe_get();
-            (*attr).local_name_atom_forever() == atom!("class")
-        }).map_or(false, |attr| {
-            let attr = attr.to_layout().unsafe_get();
-            (*attr).value_tokens_forever().map(|tokens| {
-                tokens.iter().any(|atom| atom == name)
-            })
-        }.take().unwrap())
+        get_attr_for_layout(self, &ns!(""), &atom!("class")).map_or(false, |attr| {
+            (*attr.unsafe_get()).value_tokens_forever().unwrap().iter().any(|atom| atom == name)
+        })
     }
 
     #[inline]
