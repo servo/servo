@@ -231,7 +231,7 @@ pub trait DocumentHelpers<'a> {
     fn handle_mouse_move_event(self,
                                js_runtime: *mut JSRuntime,
                                point: Point2D<f32>,
-                               prev_mouse_over_targets: &mut Vec<JS<Node>>);
+                               prev_mouse_over_targets: &mut RootedVec<JS<Node>>);
 
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>);
     fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
@@ -562,17 +562,18 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     fn handle_mouse_move_event(self,
                                js_runtime: *mut JSRuntime,
                                point: Point2D<f32>,
-                               prev_mouse_over_targets: &mut Vec<JS<Node>>) {
+                               prev_mouse_over_targets: &mut RootedVec<JS<Node>>) {
         // Build a list of elements that are currently under the mouse.
         let mouse_over_addresses = self.get_nodes_under_mouse(&point);
-        let mouse_over_targets: Vec<JS<Node>> = mouse_over_addresses.iter()
-                                                                    .filter_map(|node_address| {
+        let mut mouse_over_targets: RootedVec<JS<Node>> = RootedVec::new();
+        for node_address in mouse_over_addresses.iter() {
             let node = node::from_untrusted_node_address(js_runtime, *node_address);
-            node.root().r().inclusive_ancestors()
-                .map(|node| node.root())
-                .find(|node| node.r().is_element())
-                .map(|node| JS::from_rooted(node.r()))
-        }).collect();
+            mouse_over_targets.push(node.root().r().inclusive_ancestors()
+                                                      .map(|node| node.root())
+                                                      .find(|node| node.r()
+                                                      .is_element())
+                                                      .map(|node| JS::from_rooted(node.r())).unwrap());
+        };
 
         // Remove hover from any elements in the previous list that are no longer
         // under the mouse.
@@ -619,7 +620,8 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         }
 
         // Store the current mouse over targets for next frame
-        *prev_mouse_over_targets = mouse_over_targets;
+        prev_mouse_over_targets.clear();
+        prev_mouse_over_targets.append(&mut *mouse_over_targets);
 
         let window = self.window.root();
         window.r().reflow(ReflowGoal::ForDisplay,
