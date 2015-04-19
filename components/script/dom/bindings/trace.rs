@@ -12,18 +12,18 @@
 //!    phase. (This happens through `JSClass.trace` for non-proxy bindings, and
 //!    through `ProxyTraps.trace` otherwise.)
 //! 2. `_trace` calls `Foo::trace()` (an implementation of `JSTraceable`).
-//!    This is typically derived via a `#[dom_struct]` (implies `#[derive(JSTraceable)]`) annotation.
+//!    This is typically derived via a `#[dom_struct]`
+//!    (implies `#[derive(JSTraceable)]`) annotation.
 //!    Non-JS-managed types have an empty inline `trace()` method,
 //!    achieved via `no_jsmanaged_fields!` or similar.
 //! 3. For all fields, `Foo::trace()`
 //!    calls `trace()` on the field.
 //!    For example, for fields of type `JS<T>`, `JS<T>::trace()` calls
 //!    `trace_reflector()`.
-//! 4. `trace_reflector()` calls `trace_object()` with the `JSObject` for the
-//!    reflector.
-//! 5. `trace_object()` calls `JS_CallTracer()` to notify the GC, which will
-//!    add the object to the graph, and will trace that object as well.
-//! 6. When the GC finishes tracing, it [`finalizes`](../index.html#destruction)
+//! 4. `trace_reflector()` calls `JS_CallUnbarrieredObjectTracer()` with a
+//!    pointer to the `JSObject` for the reflector. This notifies the GC, which
+//!    will add the object to the graph, and will trace that object as well.
+//! 5. When the GC finishes tracing, it [`finalizes`](../index.html#destruction)
 //!    any reflectors that were not reachable.
 //!
 //! The `no_jsmanaged_fields!()` macro adds an empty implementation of `JSTraceable` to
