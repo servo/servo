@@ -67,6 +67,38 @@ impl WebSocket {
 	println!("Successful connection.");
 	Ok(())
     }
+	
+	fn send(self) -> ErrorResult {
+		tx_1 = self.tx.clone();
+		let send_loop = thread::scoped(move || {
+			loop {
+				let message = match self.rx.recv() {
+					Ok(m) => m,
+					Err(e) => {
+						println!("Send loop: {:?}",e);
+						return;
+					}
+				};
+				match message {
+					Message::Close(_) => {
+						let _ = self.sender.send_message(message);
+						// If it's a close message, send it and return
+						return;
+					}
+					_ => (),
+				}
+				//Send the message
+				match self.sender.send_message(message){
+					Ok(()) => (),
+					Err(e) => {
+						println!("Send Loop: {:?}", e);
+						let _ = self.sender.send_message(Message::Close(None));
+						return;
+					}
+				}
+			}	
+		});
+	}
 }
 
 impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
