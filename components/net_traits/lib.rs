@@ -203,20 +203,6 @@ pub enum CookieSource {
     NonHTTP,
 }
 
-pub enum ResponseSenders {
-    Channel(Sender<LoadResponse>),
-    Listener(Box<AsyncResponseTarget+ Send>),
-}
-
-impl ResponseSenders {
-    pub fn from_consumer(consumer: LoadConsumer) -> ResponseSenders {
-        match consumer {
-            LoadConsumer::Channel(c) => ResponseSenders::Channel(c),
-            LoadConsumer::Listener(l) => ResponseSenders::Listener(l),
-        }
-    }
-}
-
 /// Messages sent in response to a `Load` message
 #[derive(PartialEq,Debug)]
 pub enum ProgressMsg {

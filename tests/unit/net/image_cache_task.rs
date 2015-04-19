@@ -7,7 +7,7 @@ use net_traits::image_cache_task::ImageResponseMsg::*;
 use net_traits::image_cache_task::Msg::*;
 
 use net::resource_task::{start_sending, ProgressSender};
-use net_traits::{ControlMsg, Metadata, ResourceTask, ResponseSenders};
+use net_traits::{ControlMsg, Metadata, ResourceTask};
 use net_traits::image_cache_task::{ImageCacheTask, ImageCacheTaskClient, ImageResponseMsg, Msg};
 use net_traits::ProgressMsg::{Payload, Done};
 use profile::time;
@@ -111,7 +111,7 @@ fn mock_resource_task<T: Closure + Send + 'static>(on_load: Box<T>) -> ResourceT
         loop {
             match port.recv().unwrap() {
                 ControlMsg::Load(_, consumer) => {
-                    let chan = start_sending(ResponseSenders::from_consumer(consumer), Metadata::default(
+                    let chan = start_sending(consumer, Metadata::default(
                         Url::parse("file:///fake").unwrap()));
                     on_load.invoke(chan);
                 }
@@ -281,7 +281,7 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
         loop {
             match port.recv().unwrap() {
                 ControlMsg::Load(_, consumer) => {
-                    let chan = start_sending(ResponseSenders::from_consumer(consumer), Metadata::default(
+                    let chan = start_sending(consumer, Metadata::default(
                         Url::parse("file:///fake").unwrap()));
                     chan.send(Payload(test_image_bin())).unwrap();
                     chan.send(Done(Ok(()))).unwrap();
@@ -330,7 +330,7 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
         loop {
             match port.recv().unwrap() {
                 ControlMsg::Load(_, consumer) => {
-                    let chan = start_sending(ResponseSenders::from_consumer(consumer), Metadata::default(
+                    let chan = start_sending(consumer, Metadata::default(
                         Url::parse("file:///fake").unwrap()));
                     chan.send(Payload(test_image_bin())).unwrap();
                     chan.send(Done(Err("".to_string()))).unwrap();
