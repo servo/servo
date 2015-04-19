@@ -74,6 +74,8 @@ pub enum ConstellationControlMsg {
     MozBrowserEventMsg(PipelineId, SubpageId, MozBrowserEvent),
     /// Updates the current subpage id of a given iframe
     UpdateSubpageId(PipelineId, SubpageId, SubpageId),
+    /// Set an iframe to be focused. Used when an element in an iframe gains focus.
+    FocusIFrameMsg(PipelineId, SubpageId),
 }
 
 /// The mouse button involved in the event.

@@ -28,6 +28,7 @@ use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_n
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
+use msg::constellation_msg::FocusType;
 use util::str::DOMString;
 
 use string_cache::Atom;
@@ -145,7 +146,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
         let document = document.r();
         document.begin_focus_transaction();
         document.request_focus(element);
-        document.commit_focus_transaction();
+        document.commit_focus_transaction(FocusType::Element);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-blur
@@ -159,7 +160,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
         let document = document_from_node(self).root();
         document.r().begin_focus_transaction();
         // If `request_focus` is not called, focus will be set to None.
-        document.r().commit_focus_transaction();
+        document.r().commit_focus_transaction(FocusType::Element);
     }
 }
 

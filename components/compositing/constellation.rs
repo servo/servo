@@ -87,6 +87,9 @@ pub struct Constellation<LTF, STF> {
     /// The next free ID to assign to a frame.
     next_frame_id: FrameId,
 
+    /// Pipeline ID that has currently focused element for key events.
+    focus_pipeline_id: Option<PipelineId>,
+
     /// Navigation operations that are in progress.
     pending_frames: Vec<FrameChange>,
 
@@ -198,6 +201,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 next_pipeline_id: PipelineId(0),
                 root_frame_id: None,
                 next_frame_id: FrameId(0),
+                focus_pipeline_id: None,
                 time_profiler_chan: time_profiler_chan,
                 mem_profiler_chan: mem_profiler_chan,
                 window_size: WindowSizeData {
@@ -386,6 +390,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             ConstellationMsg::GetRootPipeline(resp_chan) => {
                 debug!("constellation got get root pipeline message");
                 self.handle_get_root_pipeline(resp_chan);
+            }
+            ConstellationMsg::FocusMsg(pipeline_id) => {
+                debug!("constellation got focus message");
+                self.handle_focus_msg(pipeline_id);
             }
         }
         true
@@ -594,6 +602,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             self.pipeline_to_frame_map.get(&pipeline_id).map(|id| *id)
         }).unwrap();
 
+        // Check if the currently focused pipeline is the pipeline being replaced
+        // (or a child of it). This has to be done here, before the current
+        // frame tree is modified below.
+        let update_focus_pipeline = self.focused_pipeline_in_tree(frame_id);
+
         // Get the ids for the previous and next pipelines.
         let (prev_pipeline_id, next_pipeline_id) = {
             let frame = self.mut_frame(frame_id);
@@ -621,6 +634,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             (prev, next)
         };
 
+        // If the currently focused pipeline is the one being changed (or a child
+        // of the pipeline being changed) then update the focus pipeline to be
+        // the replacement.
+        if update_focus_pipeline {
+            self.focus_pipeline_id = Some(next_pipeline_id);
+        }
+
         // Suspend the old pipeline, and resume the new one.
         self.pipeline(prev_pipeline_id).freeze();
         self.pipeline(next_pipeline_id).thaw();
@@ -645,10 +665,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_key_msg(&self, key: Key, state: KeyState, mods: KeyModifiers) {
-        match self.root_frame_id {
-            Some(root_frame_id) => {
-                let root_frame = self.frame(root_frame_id);
-                let pipeline = self.pipeline(root_frame.current);
+        // Send to the explicitly focused pipeline (if it exists), or the root
+        // frame's current pipeline. If neither exist, fall back to sending to
+        // the compositor below.
+        let target_pipeline_id = self.focus_pipeline_id.or(self.root_frame_id.map(|frame_id| {
+            self.frame(frame_id).current
+        }));
+
+        match target_pipeline_id {
+            Some(target_pipeline_id) => {
+                let pipeline = self.pipeline(target_pipeline_id);
                 let ScriptControlChan(ref chan) = pipeline.script_chan;
                 let event = CompositorEvent::KeyEvent(key, state, mods);
                 chan.send(ConstellationControlMsg::SendEvent(pipeline.id,
@@ -691,7 +717,39 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         resp_chan.send(pipeline_id).unwrap();
     }
 
+    fn focus_parent_pipeline(&self, pipeline_id: PipelineId) {
+        // Send a message to the parent of the provided pipeline (if it exists)
+        // telling it to mark the iframe element as focused.
+        if let Some((containing_pipeline_id, subpage_id)) = self.pipeline(pipeline_id).parent_info {
+            let pipeline = self.pipeline(containing_pipeline_id);
+            let ScriptControlChan(ref script_channel) = pipeline.script_chan;
+            let event = ConstellationControlMsg::FocusIFrameMsg(containing_pipeline_id,
+                                                                subpage_id);
+            script_channel.send(event).unwrap();
+
+            self.focus_parent_pipeline(containing_pipeline_id);
+        }
+    }
+
+    fn handle_focus_msg(&mut self, pipeline_id: PipelineId) {
+        self.focus_pipeline_id = Some(pipeline_id);
+
+        // Focus parent iframes recursively
+        self.focus_parent_pipeline(pipeline_id);
+    }
+
     fn add_or_replace_pipeline_in_frame_tree(&mut self, frame_change: FrameChange) {
+
+        // If the currently focused pipeline is the one being changed (or a child
+        // of the pipeline being changed) then update the focus pipeline to be
+        // the replacement.
+        if let Some(old_pipeline_id) = frame_change.old_pipeline_id {
+            let old_frame_id = *self.pipeline_to_frame_map.get(&old_pipeline_id).unwrap();
+            if self.focused_pipeline_in_tree(old_frame_id) {
+                self.focus_pipeline_id = Some(frame_change.new_pipeline_id);
+            }
+        }
+
         let evicted_frames = match frame_change.old_pipeline_id {
             Some(old_pipeline_id) => {
                 // The new pipeline is replacing an old one.
@@ -923,8 +981,20 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 
+    fn focused_pipeline_in_tree(&self, frame_id: FrameId) -> bool {
+        self.focus_pipeline_id.map_or(false, |pipeline_id| {
+            self.pipeline_exists_in_tree(pipeline_id, Some(frame_id))
+        })
+    }
+
     fn pipeline_is_in_current_frame(&self, pipeline_id: PipelineId) -> bool {
-        self.current_frame_tree_iter(self.root_frame_id)
+        self.pipeline_exists_in_tree(pipeline_id, self.root_frame_id)
+    }
+
+    fn pipeline_exists_in_tree(&self,
+                               pipeline_id: PipelineId,
+                               root_frame_id: Option<FrameId>) -> bool {
+        self.current_frame_tree_iter(root_frame_id)
             .any(|current_frame| current_frame.current == pipeline_id)
     }
 
