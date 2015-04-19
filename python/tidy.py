@@ -12,6 +12,7 @@
 import os
 import fnmatch
 import itertools
+import re
 from licenseck import licenses
 
 directories_to_check = ["ports", "components", "tests"]
@@ -72,6 +73,15 @@ def check_length(contents):
         if len(line) >= 160:
             yield (idx + 1, "(much) overlong line")
 
+def check_whatwg_url(contents):
+    lines = contents.splitlines(True)
+    for idx, line in enumerate(lines):
+        matches = re.findall(r'whatwg.org/multipage.*#', line);
+        if matches:
+            for i, match in enumerate(matches):
+                parts = match.split('multipage')
+                if len(parts[1]) > 1 and parts[1][1] != '#':
+                    yield (idx + 1, "URL should not point to specific WHATWG multipage page!")
 
 def check_whitespace(contents):
     lines = contents.splitlines(True)
@@ -127,7 +137,7 @@ def scan():
     all_files = collect_file_names(directories_to_check)
     files_to_check = filter(should_check, all_files)
 
-    checking_functions = [check_license, check_length, check_whitespace]
+    checking_functions = [check_license, check_length, check_whitespace, check_whatwg_url]
     errors = collect_errors_for_files(files_to_check, checking_functions)
 
     reftest_files = collect_file_names(reftest_directories)
