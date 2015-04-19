@@ -4,7 +4,7 @@
 
 extern crate hyper;
 
-use net_traits::ResponseSenders::Channel;
+use net_traits::LoadConsumer::Channel;
 use net_traits::LoadData;
 use net_traits::ProgressMsg::{Payload, Done};
 use self::hyper::header::ContentType;

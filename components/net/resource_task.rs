@@ -12,7 +12,7 @@ use cookie_storage::CookieStorage;
 use cookie;
 use mime_classifier::MIMEClassifier;
 
-use net_traits::{ControlMsg, LoadData, LoadResponse, ResponseSenders, LoadConsumer};
+use net_traits::{ControlMsg, LoadData, LoadResponse, LoadConsumer};
 use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction};
 use net_traits::ProgressMsg::Done;
 use util::opts;
@@ -81,19 +81,19 @@ impl ProgressSender {
 }
 
 /// For use by loaders in responding to a Load message.
-pub fn start_sending(start_chan: ResponseSenders, metadata: Metadata) -> ProgressSender {
+pub fn start_sending(start_chan: LoadConsumer, metadata: Metadata) -> ProgressSender {
     start_sending_opt(start_chan, metadata).ok().unwrap()
 }
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
-pub fn start_sending_sniffed(start_chan: ResponseSenders, metadata: Metadata,
+pub fn start_sending_sniffed(start_chan: LoadConsumer, metadata: Metadata,
                              classifier: Arc<MIMEClassifier>, partial_body: &Vec<u8>)
                              -> ProgressSender {
     start_sending_sniffed_opt(start_chan, metadata, classifier, partial_body).ok().unwrap()
 }
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
-pub fn start_sending_sniffed_opt(start_chan: ResponseSenders, mut metadata: Metadata,
+pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadata,
                                  classifier: Arc<MIMEClassifier>, partial_body: &Vec<u8>)
                                  -> Result<ProgressSender, ()> {
     if opts::get().sniff_mime_types {
@@ -116,9 +116,9 @@ pub fn start_sending_sniffed_opt(start_chan: ResponseSenders, mut metadata: Meta
 }
 
 /// For use by loaders in responding to a Load message.
-pub fn start_sending_opt(start_chan: ResponseSenders, metadata: Metadata) -> Result<ProgressSender, ()> {
+pub fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<ProgressSender, ()> {
     match start_chan {
-        ResponseSenders::Channel(start_chan) => {
+        LoadConsumer::Channel(start_chan) => {
             let (progress_chan, progress_port) = channel();
             let result = start_chan.send(LoadResponse {
                 metadata:      metadata,
@@ -129,7 +129,7 @@ pub fn start_sending_opt(start_chan: ResponseSenders, metadata: Metadata) -> Res
                 Err(_) => Err(())
             }
         }
-        ResponseSenders::Listener(target) => {
+        LoadConsumer::Listener(target) => {
             target.invoke_with_listener(ResponseAction::HeadersAvailable(metadata));
             Ok(ProgressSender::Listener(target))
         }
@@ -238,14 +238,13 @@ impl ResourceManager {
 
         self.user_agent.as_ref().map(|ua| load_data.headers.set(UserAgent(ua.clone())));
 
-        fn from_factory(factory: fn(LoadData, ResponseSenders, Arc<MIMEClassifier>))
-                        -> Box<Invoke<(LoadData, ResponseSenders, Arc<MIMEClassifier>)> + Send> {
+        fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
+                        -> Box<Invoke<(LoadData, LoadConsumer, Arc<MIMEClassifier>)> + Send> {
             box move |(load_data, senders, classifier)| {
                 factory(load_data, senders, classifier)
             }
         }
 
-        let senders = ResponseSenders::from_consumer(consumer);
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" => http_loader::factory(self.resource_task.clone()),
@@ -253,13 +252,13 @@ impl ResourceManager {
             "about" => from_factory(about_loader::factory),
             _ => {
                 debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
-                start_sending(senders, Metadata::default(load_data.url))
+                start_sending(consumer, Metadata::default(load_data.url))
                     .send(ProgressMsg::Done(Err("no loader for scheme".to_string()))).unwrap();
                 return
             }
         };
         debug!("resource_task: loading url: {}", load_data.url.serialize());
 
-        loader.invoke((load_data, senders, self.mime_classifier.clone()));
+        loader.invoke((load_data, consumer, self.mime_classifier.clone()));
     }
 }
