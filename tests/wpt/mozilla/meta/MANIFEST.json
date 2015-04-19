@@ -14,6 +14,20 @@
   "local_changes": {
     "deleted": [],
     "items": {
+      "reftest": {
+        "css/class-namespaces.html": [
+          {
+            "path": "css/class-namespaces.html",
+            "references": [
+              [
+                "/_mozilla/css/class-namespaces-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/class-namespaces.html"
+          }
+        ]
+      },
       "testharness": {
         "mozilla/DOMParser.html": [
           {
@@ -515,7 +529,20 @@
         ]
       }
     },
-    "reftest_nodes": {}
+    "reftest_nodes": {
+      "css/class-namespaces.html": [
+        {
+          "path": "css/class-namespaces.html",
+          "references": [
+            [
+              "/_mozilla/css/class-namespaces-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/class-namespaces.html"
+        }
+      ]
+    }
   },
   "reftest_nodes": {},
   "rev": null,
