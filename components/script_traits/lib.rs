@@ -75,6 +75,8 @@ pub enum ConstellationControlMsg {
     UpdateSubpageId(PipelineId, SubpageId, SubpageId),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     FocusIFrameMsg(PipelineId, SubpageId),
+    /// Notifies script task that all animations are done
+    TickAllAnimations(PipelineId),
 }
 
 /// The mouse button involved in the event.

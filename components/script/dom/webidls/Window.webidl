@@ -141,3 +141,10 @@ interface WindowLocalStorage {
   readonly attribute Storage localStorage;
 };
 Window implements WindowLocalStorage;
+
+// http://w3c.github.io/animation-timing/#Window-interface-extensions
+partial interface Window {
+  long requestAnimationFrame(FrameRequestCallback callback);
+  void cancelAnimationFrame(long handle);
+};
+callback FrameRequestCallback = void (DOMHighResTimeStamp time);

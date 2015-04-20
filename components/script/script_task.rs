@@ -727,6 +727,8 @@ impl ScriptTask {
                 self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
             ConstellationControlMsg::FocusIFrameMsg(containing_pipeline_id, subpage_id) =>
                 self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
+            ConstellationControlMsg::TickAllAnimations(pipeline_id) =>
+                self.handle_tick_all_animations(pipeline_id),
         }
     }
 
@@ -776,6 +778,8 @@ impl ScriptTask {
                 devtools::handle_set_timeline_markers(&page, self, marker_types, reply),
             DevtoolScriptControlMsg::DropTimelineMarkers(_pipeline_id, marker_types) =>
                 devtools::handle_drop_timeline_markers(&page, self, marker_types),
+            DevtoolScriptControlMsg::RequestAnimationFrame(pipeline_id, callback) =>
+                devtools::handle_request_animation_frame(&page, pipeline_id, callback),
         }
     }
 
@@ -1006,6 +1010,13 @@ impl ScriptTask {
             shut_down_layout(&*child_page, exit_type);
         }
         return false;
+    }
+
+    /// Handles when layout task finishes all animation in one tick
+    fn handle_tick_all_animations(&self, id: PipelineId) {
+        let page = get_page(&self.root_page(), id);
+        let document = page.document().root();
+        document.r().invoke_animation_callbacks();
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document

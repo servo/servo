@@ -222,7 +222,7 @@ pub enum Msg {
     /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
     MozBrowserEventMsg(PipelineId, SubpageId, MozBrowserEvent),
     /// Indicates whether this pipeline is currently running animations.
-    ChangeRunningAnimationsState(PipelineId, bool),
+    ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
     TickAnimation(PipelineId),
     // Request that the constellation send the current root pipeline id over a provided channel
@@ -231,6 +231,13 @@ pub enum Msg {
     FocusMsg(PipelineId),
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(Sender<String>),
+}
+
+#[derive(Clone, Eq, PartialEq)]
+pub enum AnimationState {
+    Stopped,
+    Running,
+    RunningByCallback
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events

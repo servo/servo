@@ -31,11 +31,12 @@ extern crate util;
 
 use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
-use actors::worker::WorkerActor;
+use actors::framerate::FramerateActor;
 use actors::inspector::InspectorActor;
 use actors::root::RootActor;
 use actors::tab::TabActor;
 use actors::timeline::TimelineActor;
+use actors::worker::WorkerActor;
 use protocol::JsonPacketStream;
 
 use devtools_traits::{ConsoleMessage, DevtoolsControlMsg};
@@ -147,12 +148,19 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         }
     }
 
+    fn handle_framerate_tick(actors: Arc<Mutex<ActorRegistry>>, actor_name: String, tick: f64) {
+        let actors = actors.lock().unwrap();
+        let framerate_actor = actors.find::<FramerateActor>(&actor_name);
+        framerate_actor.add_tick(tick);
+    }
+
     // We need separate actor representations for each script global that exists;
     // clients can theoretically connect to multiple globals simultaneously.
     // TODO: move this into the root or tab modules?
     fn handle_new_global(actors: Arc<Mutex<ActorRegistry>>,
                          ids: (PipelineId, Option<WorkerId>),
-                         scriptSender: Sender<DevtoolScriptControlMsg>,
+                         script_sender: Sender<DevtoolScriptControlMsg>,
+                         devtools_sender: Sender<DevtoolsControlMsg>,
                          actor_pipelines: &mut HashMap<PipelineId, String>,
                          actor_workers: &mut HashMap<(PipelineId, WorkerId), String>,
                          page_info: DevtoolsPageInfo) {
@@ -164,7 +172,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         let (tab, console, inspector, timeline) = {
             let console = ConsoleActor {
                 name: actors.new_name("console"),
-                script_chan: scriptSender.clone(),
+                script_chan: script_sender.clone(),
                 pipeline: pipeline,
                 streams: RefCell::new(Vec::new()),
             };
@@ -173,13 +181,14 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 walker: RefCell::new(None),
                 pageStyle: RefCell::new(None),
                 highlighter: RefCell::new(None),
-                script_chan: scriptSender.clone(),
+                script_chan: script_sender.clone(),
                 pipeline: pipeline,
             };
 
             let timeline = TimelineActor::new(actors.new_name("timeline"),
                                               pipeline,
-                                              scriptSender);
+                                              script_sender,
+                                              devtools_sender);
 
             let DevtoolsPageInfo { title, url } = page_info;
             let tab = TabActor {
@@ -250,13 +259,16 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         return console_actor_name;
     }
 
-    spawn_named("DevtoolsClientAcceptor".to_owned(), move || {
-        // accept connections and process them, spawning a new task for each one
-        for stream in listener.incoming() {
-            // connection succeeded
-            sender.send(DevtoolsControlMsg::AddClient(stream.unwrap())).unwrap();
-        }
-    });
+    {
+        let sender = sender.clone();
+        spawn_named("DevtoolsClientAcceptor".to_owned(), move || {
+            // accept connections and process them, spawning a new task for each one
+            for stream in listener.incoming() {
+                // connection succeeded
+                sender.send(DevtoolsControlMsg::AddClient(stream.unwrap())).unwrap();
+            }
+        });
+    }
 
     loop {
         match receiver.recv() {
@@ -267,13 +279,15 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     handle_client(actors, stream.try_clone().unwrap())
                 })
             }
-            Ok(DevtoolsControlMsg::ServerExitMsg) | Err(RecvError) => break,
-            Ok(DevtoolsControlMsg::NewGlobal(ids, scriptSender, pageinfo)) =>
-                handle_new_global(actors.clone(), ids, scriptSender, &mut actor_pipelines,
+            Ok(DevtoolsControlMsg::FramerateTick(actor_name, tick)) =>
+                handle_framerate_tick(actors.clone(), actor_name, tick),
+            Ok(DevtoolsControlMsg::NewGlobal(ids, script_sender, pageinfo)) =>
+                handle_new_global(actors.clone(), ids, script_sender, sender.clone(), &mut actor_pipelines,
                                   &mut actor_workers, pageinfo),
             Ok(DevtoolsControlMsg::SendConsoleMessage(id, console_message)) =>
                 handle_console_message(actors.clone(), id, console_message,
                                        &actor_pipelines),
+            Ok(DevtoolsControlMsg::ServerExitMsg) | Err(RecvError) => break,
         }
     }
 

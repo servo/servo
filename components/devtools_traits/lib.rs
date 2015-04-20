@@ -10,6 +10,7 @@
 #![crate_type = "rlib"]
 
 #![feature(net)]
+#![feature(unboxed_closures)]
 
 #![allow(non_snake_case)]
 
@@ -41,6 +42,7 @@ pub struct DevtoolsPageInfo {
 /// according to changes in the browser.
 pub enum DevtoolsControlMsg {
     AddClient(TcpStream),
+    FramerateTick(String, f64),
     NewGlobal((PipelineId, Option<WorkerId>), Sender<DevtoolScriptControlMsg>, DevtoolsPageInfo),
     SendConsoleMessage(PipelineId, ConsoleMessage),
     ServerExitMsg
@@ -117,6 +119,7 @@ pub enum DevtoolScriptControlMsg {
     WantsLiveNotifications(PipelineId, bool),
     SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, Sender<TimelineMarker>),
     DropTimelineMarkers(PipelineId, Vec<TimelineMarkerType>),
+    RequestAnimationFrame(PipelineId, Box<Fn(f64, ) + Send>),
 }
 
 /// Messages to instruct devtools server to update its state relating to a particular
