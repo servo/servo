@@ -98,41 +98,6 @@ impl WebSocket {
 			}	
 		}); 
 	}*/
-
-    fn Close(self, code: Option<u16>, reason: Option<DOMString>) -> Fallible<()>{
-	if(code.is_some()){ //Code defined
-	   if(!(code==Some(1000)||
-		(code>=Some(3000) && code<=Some(4999))
-	       )
-	   )
-	   { //Check code is NOT 1000 NOR in the range of 3000-4999 (inclusive)
-		return Err(Error::InvalidAccess); //Throw InvalidAccessError and abort
-	   }
-	}
-	if(reason.is_some()){ //reason defined
-	   //FIX ME
-	   /*if(reason.capacity() > 123) //reason cannot be larger than 123 bytes
-	   {
-		return Err(Error::Syntax); //Throw SyntaxError and abort
-	   }*/
-	}
-	//TODO:
-	/*match self.ready_state.get() { //Returns the value of the cell
-	   //WebsocketRequestState::Closing => (), //Do nothing
-	   //WebsocketRequestState::Closed => (), //Do nothing
-	   //To do:
-	   //How to detect not yet established - Receiving state?
-	      //Fail the WebSocket connection - how? What does this really mean for the websocket object?
-	      //Set readyState to closing
-	   //
-	   //How to detect not yet been started - Unsent state?
-	      //Start the Websocket closing handshake - how? What does this really mean for the websocket object?
-	      //if code.is_some - WebSocket status code in close message to be the same as code
-	      //if reason.is_some - Websocket close message reason to be same as reason
-	   //_ => {self.ready_state.set(WebsocketRequestState::Closing);}
-	}*/
-	Ok(())
-    }
 }
 
 impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
@@ -170,10 +135,10 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
 	}
 	if(reason.is_some()){ //reason defined
 	   //FIX ME
-	   /*if(reason.capacity() > 123) //reason cannot be larger than 123 bytes
+	   if(reason.unwrap().as_bytes().len() > 123) //reason cannot be larger than 123 bytes
 	   {
 		return Err(Error::Syntax); //Throw SyntaxError and abort
-	   }*/
+	   }
 	}
 	//TODO:
 	/*match self.ready_state.get() { //Returns the value of the cell
