@@ -25,7 +25,7 @@ use std::borrow::ToOwned;
 #[derive(PartialEq, Copy)]
 #[jstraceable]
 enum WebSocketRequestState {
-	Connecting = 0,
+    Connecting = 0,
     Open = 1,
     Closing = 2,
     Closed = 3,
@@ -148,9 +148,9 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
 	   }
 	}
 	//TODO:
-	/*match self.ready_state.get() { //Returns the value of the cell
-	   //WebsocketRequestState::Closing => (), //Do nothing
-	   //WebsocketRequestState::Closed => (), //Do nothing
+	match self.ready_state.get() { //Returns the value of the cell
+	   WebSocketRequestState::Closing => {} //Do nothing
+	   WebSocketRequestState::Closed => {} //Do nothing
 	   //To do:
 	   //How to detect not yet established - Receiving state?
 	      //Fail the WebSocket connection - how? What does this really mean for the websocket object?
@@ -160,8 +160,8 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
 	      //Start the Websocket closing handshake - how? What does this really mean for the websocket object?
 	      //if code.is_some - WebSocket status code in close message to be the same as code
 	      //if reason.is_some - Websocket close message reason to be same as reason
-	   //_ => {self.ready_state.set(WebsocketRequestState::Closing);}
-	}*/
-	
+	   _ => { self.ready_state.set(WebSocketRequestState::Closing); }
+	}
+	return Err(Error::Syntax); //Throw SyntaxError and abort
     }
 }
