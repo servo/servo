@@ -16,7 +16,7 @@ use dom::window::Window;
 use dom::virtualmethods::vtable_for;
 
 use devtools_traits::AttrInfo;
-use util::str::{DOMString, split_html_space_chars};
+use util::str::{DOMString, parse_unsigned_integer, split_html_space_chars};
 
 use string_cache::{Atom, Namespace};
 
@@ -55,8 +55,7 @@ impl AttrValue {
     }
 
     pub fn from_u32(string: DOMString, default: u32) -> AttrValue {
-        // XXX Is parse() correct?
-        let result: u32 = string.parse().unwrap_or(default);
+        let result = parse_unsigned_integer(string.chars()).unwrap_or(default);
         AttrValue::UInt(string, result)
     }
 
