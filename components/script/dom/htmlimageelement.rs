@@ -7,30 +7,36 @@ use dom::attr::{AttrHelpers, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCast, HTMLElementCast, HTMLImageElementDerived};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, LayoutJS, Temporary};
+use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
+use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
+use dom::node::{document_from_node, Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
-use net_traits::image_cache_task;
 use util::geometry::to_px;
 use util::str::DOMString;
 use string_cache::Atom;
 
+use net_traits::image::base::Image;
+use net_traits::image_cache_task::ImageResponder;
 use url::{Url, UrlParser};
 
 use std::borrow::ToOwned;
+use std::sync::Arc;
 
 #[dom_struct]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
-    image: DOMRefCell<Option<Url>>,
+    url: DOMRefCell<Option<Url>>,
+    image: DOMRefCell<Option<Arc<Image>>>,
 }
 
 impl HTMLImageElementDerived for EventTarget {
@@ -45,12 +51,54 @@ pub trait HTMLImageElementHelpers {
 
 impl<'a> HTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
     fn get_url(&self) -> Option<Url>{
-        self.image.borrow().clone()
+        self.url.borrow().clone()
     }
 }
 
 trait PrivateHTMLImageElementHelpers {
     fn update_image(self, value: Option<(DOMString, &Url)>);
+}
+
+/// This is passed to the image cache when the src attribute
+/// changes. It is returned via a message to the script task,
+/// which marks the element as dirty and triggers a reflow.
+struct Responder {
+    element: Trusted<HTMLImageElement>,
+}
+
+impl Responder {
+    fn new(element: Trusted<HTMLImageElement>) -> Responder {
+        Responder {
+            element: element
+        }
+    }
+}
+
+impl ImageResponder for Responder {
+    fn respond(&self, image: Option<Arc<Image>>) {
+        // Update the image field
+        let element = self.element.to_temporary().root();
+        let element_ref = element.r();
+        *element_ref.image.borrow_mut() = image;
+
+        // Mark the node dirty
+        let node = NodeCast::from_ref(element.r());
+        let document = document_from_node(node).root();
+        document.r().content_changed(node, NodeDamage::OtherNodeDamage);
+
+        // Fire image.onload
+        let window = window_from_node(document.r()).root();
+        let event = Event::new(GlobalRef::Window(window.r()),
+                               "load".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
+        let event = event.r();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(node);
+        event.fire(target);
+
+        // Trigger reflow
+        window.r().add_pending_reflow();
+    }
 }
 
 impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
@@ -64,17 +112,18 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
         let image_cache = window.image_cache_task();
         match value {
             None => {
+                *self.url.borrow_mut() = None;
                 *self.image.borrow_mut() = None;
             }
             Some((src, base_url)) => {
                 let img_url = UrlParser::new().base_url(base_url).parse(src.as_slice());
                 // FIXME: handle URL parse errors more gracefully.
                 let img_url = img_url.unwrap();
-                *self.image.borrow_mut() = Some(img_url.clone());
+                *self.url.borrow_mut() = Some(img_url.clone());
 
-                // inform the image cache to load this, but don't store a
-                // handle.
-                image_cache.send(image_cache_task::Msg::Prefetch(img_url));
+                let trusted_node = Trusted::new(window.get_cx(), self, window.script_chan());
+                let responder = box Responder::new(trusted_node);
+                image_cache.request_image(img_url, window.image_cache_chan(), Some(responder));
             }
         }
     }
@@ -84,6 +133,7 @@ impl HTMLImageElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLImageElement, localName, prefix, document),
+            url: DOMRefCell::new(None),
             image: DOMRefCell::new(None),
         }
     }
@@ -97,13 +147,21 @@ impl HTMLImageElement {
 
 pub trait LayoutHTMLImageElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn image(&self) -> Option<Url>;
+    unsafe fn image(&self) -> Option<Arc<Image>>;
+
+    #[allow(unsafe_code)]
+    unsafe fn image_url(&self) -> Option<Url>;
 }
 
 impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
     #[allow(unsafe_code)]
-    unsafe fn image(&self) -> Option<Url> {
+    unsafe fn image(&self) -> Option<Arc<Image>> {
         (*self.unsafe_get()).image.borrow_for_layout().clone()
+    }
+
+    #[allow(unsafe_code)]
+    unsafe fn image_url(&self) -> Option<Url> {
+        (*self.unsafe_get()).url.borrow_for_layout().clone()
     }
 }
 
@@ -161,6 +219,29 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
     fn SetHeight(self, height: u32) {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("height"), height)
+    }
+
+    fn NaturalWidth(self) -> u32 {
+        let image = self.image.borrow();
+
+        match *image {
+            Some(ref image) => image.width,
+            None => 0,
+        }
+    }
+
+    fn NaturalHeight(self) -> u32 {
+        let image = self.image.borrow();
+
+        match *image {
+            Some(ref image) => image.height,
+            None => 0,
+        }
+    }
+
+    fn Complete(self) -> bool {
+        let image = self.image.borrow();
+        image.is_some()
     }
 
     make_getter!(Name);

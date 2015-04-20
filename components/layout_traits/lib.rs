@@ -50,7 +50,7 @@ pub trait LayoutTaskFactory {
               script_chan: ScriptControlChan,
               paint_chan: PaintChan,
               resource_task: ResourceTask,
-              img_cache_task: ImageCacheTask,
+              image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
