@@ -790,6 +790,10 @@ impl FragmentDisplayListBuilding for Fragment {
                           relative_containing_block_mode: WritingMode,
                           background_and_border_level: BackgroundAndBorderLevel,
                           clip: &ClippingRegion) {
+        if self.style().get_inheritedbox().visibility != visibility::T::visible {
+            return
+        }
+
         // Compute the fragment position relative to the parent stacking context. If the fragment
         // itself establishes a stacking context, then the origin of its position will be (0, 0)
         // for the purposes of this computation.
@@ -806,10 +810,6 @@ impl FragmentDisplayListBuilding for Fragment {
                layout_context.shared.dirty,
                stacking_relative_flow_origin,
                self);
-
-        if self.style().get_inheritedbox().visibility != visibility::T::visible {
-            return
-        }
 
         if !stacking_relative_border_box.intersects(&layout_context.shared.dirty) {
             debug!("Fragment::build_display_list: Did not intersect...");
