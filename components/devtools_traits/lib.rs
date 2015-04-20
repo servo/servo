@@ -44,6 +44,7 @@ pub struct DevtoolsPageInfo {
 /// according to changes in the browser.
 pub enum DevtoolsControlMsg {
     AddClient(TcpStream),
+    FramerateTick(String, f64),
     NewGlobal((PipelineId, Option<WorkerId>), Sender<DevtoolScriptControlMsg>, DevtoolsPageInfo),
     SendConsoleMessage(PipelineId, ConsoleMessage),
     ServerExitMsg,
@@ -121,6 +122,7 @@ pub enum DevtoolScriptControlMsg {
     WantsLiveNotifications(PipelineId, bool),
     SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, Sender<TimelineMarker>),
     DropTimelineMarkers(PipelineId, Vec<TimelineMarkerType>),
+    RequestAnimationFrame(PipelineId, Box<Fn(f64, ) + Send>),
 }
 
 #[derive(RustcEncodable)]
