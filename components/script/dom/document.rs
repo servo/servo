@@ -11,6 +11,8 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
+use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLBodyElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLHeadElementCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
@@ -63,6 +65,7 @@ use dom::window::{Window, WindowHelpers, ReflowReason};
 
 use layout_interface::{HitTestResponse, MouseOverResponse};
 use msg::compositor_msg::ScriptListener;
+use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyState, KeyModifiers, MozBrowserEvent};
 use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
@@ -82,11 +85,12 @@ use url::Url;
 use js::jsapi::JSRuntime;
 
 use num::ToPrimitive;
+use std::iter::FromIterator;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::ascii::AsciiExt;
-use std::cell::{Cell, Ref};
+use std::cell::{Cell, Ref, RefCell};
 use std::default::Default;
 use std::sync::mpsc::channel;
 use time;
@@ -129,6 +133,12 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: Cell<bool>,
+    /// https://html.spec.whatwg.org/multipage/#animation-frame-callback-identifier
+    /// Current identifier of animation frame callback
+    animation_frame_ident: Cell<i32>,
+    /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
+    /// List of animation frame callbacks
+    animation_frame_list: RefCell<HashMap<i32, Box<Fn(f64)>>>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -238,6 +248,12 @@ pub trait DocumentHelpers<'a> {
 
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>);
     fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
+    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
+    fn request_animation_frame(self, callback: Box<Fn(f64, )>) -> i32;
+    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
+    fn cancel_animation_frame(self, ident: i32);
+    /// http://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
+    fn invoke_animation_callbacks(self);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -793,6 +809,61 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             }
         }
     }
+
+    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
+    fn request_animation_frame(self, callback: Box<Fn(f64, )>) -> i32 {
+        let window = self.window.root();
+        let window = window.r();
+        let ident = self.animation_frame_ident.get() + 1;
+
+        self.animation_frame_ident.set(ident);
+        self.animation_frame_list.borrow_mut().insert(ident, callback);
+
+        // TODO: Should tick animation only when document is visible
+        let ConstellationChan(ref chan) = window.constellation_chan();
+        let event = ConstellationMsg::ChangeRunningAnimationsState(window.pipeline(),
+                                                                   AnimationState::AnimationCallbacksPresent);
+        chan.send(event).unwrap();
+
+        ident
+    }
+
+    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
+    fn cancel_animation_frame(self, ident: i32) {
+        self.animation_frame_list.borrow_mut().remove(&ident);
+        if self.animation_frame_list.borrow().len() == 0 {
+            let window = self.window.root();
+            let window = window.r();
+            let ConstellationChan(ref chan) = window.constellation_chan();
+            let event = ConstellationMsg::ChangeRunningAnimationsState(window.pipeline(),
+                                                                       AnimationState::NoAnimationCallbacksPresent);
+            chan.send(event).unwrap();
+        }
+    }
+
+    /// http://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
+    fn invoke_animation_callbacks(self) {
+        let animation_frame_list;
+        {
+            let mut list = self.animation_frame_list.borrow_mut();
+            animation_frame_list = Vec::from_iter(list.drain());
+
+            let window = self.window.root();
+            let window = window.r();
+            let ConstellationChan(ref chan) = window.constellation_chan();
+            let event = ConstellationMsg::ChangeRunningAnimationsState(window.pipeline(),
+                                                                       AnimationState::NoAnimationCallbacksPresent);
+            chan.send(event).unwrap();
+        }
+        let window = self.window.root();
+        let window = window.r();
+        let performance = window.Performance().root();
+        let performance = performance.r();
+
+        for (_, callback) in animation_frame_list {
+            callback(*performance.Now());
+        }
+    }
 }
 
 pub enum MouseEventType {
@@ -870,6 +941,8 @@ impl Document {
             focused: Default::default(),
             current_script: Default::default(),
             scripting_enabled: Cell::new(true),
+            animation_frame_ident: Cell::new(0),
+            animation_frame_list: RefCell::new(HashMap::new()),
         }
     }
 

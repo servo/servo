@@ -281,6 +281,13 @@ impl JSTraceable for Box<ScriptChan+Send> {
     }
 }
 
+impl JSTraceable for Box<Fn(f64, )> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
 impl<'a> JSTraceable for &'a str {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {

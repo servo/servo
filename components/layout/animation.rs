@@ -10,8 +10,9 @@ use incremental::{self, RestyleDamage};
 use clock_ticks;
 use gfx::display_list::OpaqueNode;
 use layout_task::{LayoutTask, LayoutTaskData};
-use msg::constellation_msg::{Msg, PipelineId};
+use msg::constellation_msg::{AnimationState, Msg, PipelineId};
 use script::layout_interface::Animation;
+use script_traits::{ConstellationControlMsg, ScriptControlChan};
 use std::mem;
 use std::sync::mpsc::Sender;
 use style::animation::{GetMod, PropertyAnimation};
@@ -51,11 +52,18 @@ pub fn process_new_animations(rw_data: &mut LayoutTaskData, pipeline_id: Pipelin
         rw_data.running_animations.push(animation)
     }
 
-    let animations_are_running = !rw_data.running_animations.is_empty();
+    let animation_state;
+    if rw_data.running_animations.is_empty() {
+        animation_state = AnimationState::NoAnimationsPresent;
+    } else {
+        animation_state = AnimationState::AnimationsPresent;
+    }
+
     rw_data.constellation_chan
            .0
-           .send(Msg::ChangeRunningAnimationsState(pipeline_id, animations_are_running))
+           .send(Msg::ChangeRunningAnimationsState(pipeline_id, animation_state))
            .unwrap();
+
 }
 
 /// Recalculates style for an animation. This does *not* run with the DOM lock held.
@@ -100,5 +108,8 @@ pub fn tick_all_animations(layout_task: &LayoutTask, rw_data: &mut LayoutTaskDat
             rw_data.running_animations.push(running_animation)
         }
     }
+
+    let ScriptControlChan(ref chan) = layout_task.script_chan;
+    chan.send(ConstellationControlMsg::TickAllAnimations(layout_task.id)).unwrap();
 }
 
