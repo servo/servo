@@ -961,8 +961,6 @@ impl ScriptTask {
         let window = page.window().root();
         if window.r().pipeline() == id {
             debug!("shutting down layout for root page {:?}", id);
-            // To ensure the elements of the DOM tree remain usable (such as the window global),
-            // don't free the JS context until all interactions with it are finished.
             shut_down_layout(&page, exit_type);
             return true
         }
@@ -1005,8 +1003,6 @@ impl ScriptTask {
         }).root();
 
         self.compositor.borrow_mut().set_ready_state(incomplete.pipeline_id, Loading);
-
-        let cx = &self.js_context;
 
         // Create a new frame tree entry.
         let page = Rc::new(Page::new(incomplete.pipeline_id, final_url.clone()));
@@ -1066,7 +1062,7 @@ impl ScriptTask {
         let mut page_remover = AutoPageRemover::new(self, page_to_remove);
 
         // Create the window and document objects.
-        let window = Window::new(cx.clone(),
+        let window = Window::new(self.js_context.clone(),
                                  page.clone(),
                                  self.chan.clone(),
                                  self.control_chan.clone(),
