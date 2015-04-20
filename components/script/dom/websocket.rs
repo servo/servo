@@ -24,7 +24,6 @@ use dom::bindings::js::{Temporary, JSRef, Rootable};
 use dom::bindings::utils::reflect_dom_object;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use util::str::DOMString;
-use dom::bindings::str::USVString;
 use script_task::Runnable;
 use script_task::ScriptMsg;
 use dom::bindings::refcounted::Trusted;
@@ -122,15 +121,6 @@ impl WebSocket {
 
     pub fn Constructor(global: GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
         Ok(WebSocket::new(global, url))
-    }
-    fn Open(url: DOMString) -> ErrorResult {
-    	println!("Trying to connect.");
-	let parsed_url = Url::parse(url.as_slice()).unwrap();
-   	let request = Client::connect(parsed_url).unwrap();
-	let response = request.send().unwrap();
-	response.validate().unwrap();
-	println!("Successful connection.");
-	Ok(())
     }
 }
 
@@ -351,45 +341,6 @@ impl WebSocketTaskHandler {
         let event: JSRef<Event> = EventCast::from_ref(close_event.r());
         event.set_trusted(true);
         event.fire(target);
-        println!("Fired close event.");
-    }
-
-    fn dispatch_send(&self){
-    	
-        println!("Trying to send");
-    	let ws = self.addr.to_temporary().root();
-    	let global = ws.r().global.root();
-    	let ws = ws.r();
-    	let mut other_sender = ws.sender.borrow_mut();
-        let my_sender = other_sender.as_mut().unwrap();
-    	let data = ws.data.borrow();
-        let data_clone = data.clone();
-        my_sender.send_message(Message::Text(data_clone));
-    	
-    }
-
-
-
-
-    fn dispatch_close(&self) {
-    	let ws = self.addr.to_temporary().root();
-    	let global = ws.r().global.root();
-	ws.r().ready_state.set(WebSocketRequestState::Closed); //Set to closed state
-	if(ws.r().failed.get()){
-		ws.r().failed.set(false); //Unset flag
-	        let event = Event::new(global.r(),
-                               "error".to_owned(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::Cancelable).root();		
-	}
-	//FIX ME event is not up to standards
-	//https://html.spec.whatwg.org/multipage/comms.html#closeWebSocket
-        let event = Event::new(global.r(),
-                               "close".to_owned(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::Cancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws.r());
-        event.r().fire(target);
         println!("Fired close event.");
     }
 }

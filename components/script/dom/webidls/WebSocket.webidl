@@ -6,13 +6,7 @@ enum BinaryType { "blob", "arraybuffer" };
 
 [Constructor(DOMString url)]
 interface WebSocket : EventTarget {
-<<<<<<< HEAD
     readonly attribute DOMString url;
-=======
-readonly attribute DOMString url;
-    [Throws] void open();
-
->>>>>>> Trouble with WebSocket.webidls
     //ready state
     const unsigned short CONNECTING = 0;
     const unsigned short OPEN = 1;
@@ -25,7 +19,6 @@ readonly attribute DOMString url;
     attribute EventHandler onopen;
     attribute EventHandler onerror;
     attribute EventHandler onclose;
-<<<<<<< HEAD
     [Throws] void Open();
     //readonly attribute DOMString extensions;
     //readonly attribute DOMString protocol;
@@ -36,16 +29,6 @@ readonly attribute DOMString url;
     //attribute EventHandler onmessage;
     //attribute BinaryType binaryType;
     [Throws] void send(optional DOMString data);
-=======
-    readonly attribute DOMString extensions;
-    readonly attribute DOMString protocol;
-    [Throws] void close([Clamp] optional unsigned short code, optional DOMString reason);
-
-    //messaging
-    attribute EventHandler onmessage;
-    attribute BinaryType binaryType;
-    void send(USVString data);
->>>>>>> Trouble with WebSocket.webidls
     //void send(Blob data);
     //void send(ArrayBuffer data);
     //void send(ArrayBufferView data);
