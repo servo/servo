@@ -28,8 +28,7 @@ use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
-use net_traits::image::holder::ImageHolder;
-use net_traits::local_image_cache::LocalImageCache;
+use net_traits::image::base::Image;
 use rustc_serialize::{Encodable, Encoder};
 use script_traits::UntrustedNodeAddress;
 use std::borrow::ToOwned;
@@ -297,7 +296,7 @@ impl CanvasFragmentInfo {
 pub struct ImageFragmentInfo {
     /// The image held within this fragment.
     pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
-    pub image: ImageHolder<UntrustedNodeAddress>,
+    pub image: Option<Arc<Image>>,
 }
 
 impl ImageFragmentInfo {
@@ -306,8 +305,8 @@ impl ImageFragmentInfo {
     /// FIXME(pcwalton): The fact that image fragments store the cache in the fragment makes little
     /// sense to me.
     pub fn new(node: &ThreadSafeLayoutNode,
-               image_url: Url,
-               local_image_cache: Arc<Mutex<LocalImageCache<UntrustedNodeAddress>>>)
+               url: Option<Url>,
+               layout_context: &LayoutContext)
                -> ImageFragmentInfo {
         fn convert_length(node: &ThreadSafeLayoutNode, name: &Atom) -> Option<Au> {
             let element = node.as_element();
@@ -316,32 +315,42 @@ impl ImageFragmentInfo {
                    .map(|pixels| Au::from_px(pixels))
         }
 
+        let image = url.and_then(|url| layout_context.get_or_request_image(url));
+
         ImageFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
                 convert_length(node, &atom!("width")),
                 convert_length(node, &atom!("height"))),
-            image: ImageHolder::new(image_url, local_image_cache)
+            image: image,
         }
     }
 
     /// Returns the original inline-size of the image.
     pub fn image_inline_size(&mut self) -> Au {
-        let size = self.image.get_size(self.replaced_image_fragment_info.for_node).unwrap_or(Size2D::zero());
-        Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical {
-            size.height
-        } else {
-            size.width
-        } as isize)
+        match self.image {
+            Some(ref image) => {
+                Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical {
+                    image.height
+                } else {
+                    image.width
+                } as isize)
+            }
+            None => Au(0)
+        }
     }
 
     /// Returns the original block-size of the image.
     pub fn image_block_size(&mut self) -> Au {
-        let size = self.image.get_size(self.replaced_image_fragment_info.for_node).unwrap_or(Size2D::zero());
-        Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical {
-            size.width
-        } else {
-            size.height
-        } as isize)
+        match self.image {
+            Some(ref image) => {
+                Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical {
+                    image.width
+                } else {
+                    image.height
+                } as isize)
+            }
+            None => Au(0)
+        }
     }
 
     /// Tile an image

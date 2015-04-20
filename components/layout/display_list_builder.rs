@@ -20,7 +20,6 @@ use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
 use inline::InlineFlow;
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix};
-use opaque_node::OpaqueNodeMethods;
 
 use geom::{Matrix2D, Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color;
@@ -36,7 +35,6 @@ use png::{self, PixelsByColorType};
 use msg::compositor_msg::ScrollPolicy;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::ConstellationChan;
-use net_traits::image::holder::ImageHolder;
 use util::cursor::Cursor;
 use util::geometry::{self, Au, ZERO_POINT, to_px, to_frac_px};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
@@ -398,95 +396,86 @@ impl FragmentDisplayListBuilding for Fragment {
                                                clip: &ClippingRegion,
                                                image_url: &Url) {
         let background = style.get_background();
-        let mut holder = ImageHolder::new(image_url.clone(),
-                                          layout_context.shared.image_cache.clone());
-        let image = match holder.get_image(self.node.to_untrusted_node_address()) {
-            None => {
-                // No image data at all? Do nothing.
-                //
-                // TODO: Add some kind of placeholder background image.
-                debug!("(building display list) no background image :(");
-                return
-            }
-            Some(image) => image,
-        };
-        debug!("(building display list) building background image");
+        let image = layout_context.get_or_request_image(image_url.clone());
+        if let Some(image) = image {
+            debug!("(building display list) building background image");
 
-        // Use `background-size` to get the size.
-        let mut bounds = *absolute_bounds;
-        let image_size = self.compute_background_image_size(style, &bounds, &*image);
+            // Use `background-size` to get the size.
+            let mut bounds = *absolute_bounds;
+            let image_size = self.compute_background_image_size(style, &bounds, &*image);
 
-        // Clip.
-        //
-        // TODO: Check the bounds to see if a clip item is actually required.
-        let clip = clip.clone().intersect_rect(&bounds);
+            // Clip.
+            //
+            // TODO: Check the bounds to see if a clip item is actually required.
+            let clip = clip.clone().intersect_rect(&bounds);
 
-        // Use `background-attachment` to get the initial virtual origin
-        let (virtual_origin_x, virtual_origin_y) = match background.background_attachment {
-            background_attachment::T::scroll => {
-                (absolute_bounds.origin.x, absolute_bounds.origin.y)
-            }
-            background_attachment::T::fixed => {
-                (Au(0), Au(0))
-            }
-        };
+            // Use `background-attachment` to get the initial virtual origin
+            let (virtual_origin_x, virtual_origin_y) = match background.background_attachment {
+                background_attachment::T::scroll => {
+                    (absolute_bounds.origin.x, absolute_bounds.origin.y)
+                }
+                background_attachment::T::fixed => {
+                    (Au(0), Au(0))
+                }
+            };
 
-        // Use `background-position` to get the offset.
-        let horizontal_position = model::specified(background.background_position.horizontal,
-                                                   bounds.size.width - image_size.width);
-        let vertical_position = model::specified(background.background_position.vertical,
-                                                 bounds.size.height - image_size.height);
+            // Use `background-position` to get the offset.
+            let horizontal_position = model::specified(background.background_position.horizontal,
+                                                       bounds.size.width - image_size.width);
+            let vertical_position = model::specified(background.background_position.vertical,
+                                                     bounds.size.height - image_size.height);
 
-        let abs_x = virtual_origin_x + horizontal_position;
-        let abs_y = virtual_origin_y + vertical_position;
+            let abs_x = virtual_origin_x + horizontal_position;
+            let abs_y = virtual_origin_y + vertical_position;
 
-        // Adjust origin and size based on background-repeat
-        match background.background_repeat {
-            background_repeat::T::no_repeat => {
-                bounds.origin.x = abs_x;
-                bounds.origin.y = abs_y;
-                bounds.size.width = image_size.width;
-                bounds.size.height = image_size.height;
-            }
-            background_repeat::T::repeat_x => {
-                bounds.origin.y = abs_y;
-                bounds.size.height = image_size.height;
-                ImageFragmentInfo::tile_image(&mut bounds.origin.x,
-                                              &mut bounds.size.width,
-                                              abs_x,
-                                              image_size.width.to_nearest_px() as u32);
-            }
-            background_repeat::T::repeat_y => {
-                bounds.origin.x = abs_x;
-                bounds.size.width = image_size.width;
-                ImageFragmentInfo::tile_image(&mut bounds.origin.y,
-                                              &mut bounds.size.height,
-                                              abs_y,
-                                              image_size.height.to_nearest_px() as u32);
-            }
-            background_repeat::T::repeat => {
-                ImageFragmentInfo::tile_image(&mut bounds.origin.x,
-                                              &mut bounds.size.width,
-                                              abs_x,
-                                              image_size.width.to_nearest_px() as u32);
-                ImageFragmentInfo::tile_image(&mut bounds.origin.y,
-                                              &mut bounds.size.height,
-                                              abs_y,
-                                              image_size.height.to_nearest_px() as u32);
-            }
-        };
+            // Adjust origin and size based on background-repeat
+            match background.background_repeat {
+                background_repeat::T::no_repeat => {
+                    bounds.origin.x = abs_x;
+                    bounds.origin.y = abs_y;
+                    bounds.size.width = image_size.width;
+                    bounds.size.height = image_size.height;
+                }
+                background_repeat::T::repeat_x => {
+                    bounds.origin.y = abs_y;
+                    bounds.size.height = image_size.height;
+                    ImageFragmentInfo::tile_image(&mut bounds.origin.x,
+                                                  &mut bounds.size.width,
+                                                  abs_x,
+                                                  image_size.width.to_nearest_px() as u32);
+                }
+                background_repeat::T::repeat_y => {
+                    bounds.origin.x = abs_x;
+                    bounds.size.width = image_size.width;
+                    ImageFragmentInfo::tile_image(&mut bounds.origin.y,
+                                                  &mut bounds.size.height,
+                                                  abs_y,
+                                                  image_size.height.to_nearest_px() as u32);
+                }
+                background_repeat::T::repeat => {
+                    ImageFragmentInfo::tile_image(&mut bounds.origin.x,
+                                                  &mut bounds.size.width,
+                                                  abs_x,
+                                                  image_size.width.to_nearest_px() as u32);
+                    ImageFragmentInfo::tile_image(&mut bounds.origin.y,
+                                                  &mut bounds.size.height,
+                                                  abs_y,
+                                                  image_size.height.to_nearest_px() as u32);
+                }
+            };
 
-        // Create the image display item.
-        display_list.push(DisplayItem::ImageClass(box ImageDisplayItem {
-            base: BaseDisplayItem::new(bounds,
-                                       DisplayItemMetadata::new(self.node,
-                                                                style,
-                                                                Cursor::DefaultCursor),
-                                       clip),
-            image: image.clone(),
-            stretch_size: Size2D(image_size.width, image_size.height),
-            image_rendering: style.get_effects().image_rendering.clone(),
-        }), level);
+            // Create the image display item.
+            display_list.push(DisplayItem::ImageClass(box ImageDisplayItem {
+                base: BaseDisplayItem::new(bounds,
+                                           DisplayItemMetadata::new(self.node,
+                                                                    style,
+                                                                    Cursor::DefaultCursor),
+                                           clip),
+                image: image.clone(),
+                stretch_size: Size2D(image_size.width, image_size.height),
+                image_rendering: style.get_effects().image_rendering.clone(),
+            }), level);
+        }
     }
 
     fn build_display_list_for_background_linear_gradient(&self,
@@ -973,11 +962,8 @@ impl FragmentDisplayListBuilding for Fragment {
                 }
             }
             SpecificFragmentInfo::Image(ref mut image_fragment) => {
-                let image_ref = &mut image_fragment.image;
-                if let Some(image) = image_ref.get_image(self.node.to_untrusted_node_address()) {
-                    debug!("(building display list) building image fragment");
-
-                    // Place the image into the display list.
+                // Place the image into the display list.
+                if let Some(ref image) = image_fragment.image {
                     display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem {
                         base: BaseDisplayItem::new(stacking_relative_content_box,
                                                    DisplayItemMetadata::new(self.node,
@@ -988,11 +974,6 @@ impl FragmentDisplayListBuilding for Fragment {
                         stretch_size: stacking_relative_content_box.size,
                         image_rendering: self.style.get_effects().image_rendering.clone(),
                     }));
-                } else {
-                    // No image data at all? Do nothing.
-                    //
-                    // TODO: Add some kind of placeholder image.
-                    debug!("(building display list) no image :(");
                 }
             }
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {

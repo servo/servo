@@ -24,7 +24,6 @@ use msg::compositor_msg::ScriptListener;
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
-use util::smallvec::SmallVec1;
 use std::any::Any;
 use std::sync::mpsc::{Sender, Receiver};
 
@@ -89,7 +88,6 @@ pub enum MouseButton {
 /// Events from the compositor that the script task needs to know about
 pub enum CompositorEvent {
     ResizeEvent(WindowSizeData),
-    ReflowEvent(SmallVec1<UntrustedNodeAddress>),
     ClickEvent(MouseButton, Point2D<f32>),
     MouseDownEvent(MouseButton, Point2D<f32>),
     MouseUpEvent(MouseButton, Point2D<f32>),

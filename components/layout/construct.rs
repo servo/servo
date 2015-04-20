@@ -250,24 +250,6 @@ impl<'a> FlowConstructor<'a> {
         node.set_flow_construction_result(result);
     }
 
-    /// Builds the `ImageFragmentInfo` for the given image. This is out of line to guide inlining.
-    fn build_fragment_info_for_image(&mut self, node: &ThreadSafeLayoutNode, url: Option<Url>)
-                                -> SpecificFragmentInfo {
-        match url {
-            None => SpecificFragmentInfo::Generic,
-            Some(url) => {
-                // FIXME(pcwalton): The fact that image fragments store the cache within them makes
-                // little sense to me.
-                SpecificFragmentInfo::Image(box ImageFragmentInfo::new(node,
-                                                         url,
-                                                         self.layout_context
-                                                             .shared
-                                                             .image_cache
-                                                             .clone()))
-            }
-        }
-    }
-
     /// Builds the fragment for the given block or subclass thereof.
     fn build_fragment_for_block(&mut self, node: &ThreadSafeLayoutNode) -> Fragment {
         let specific_fragment_info = match node.type_id() {
@@ -277,12 +259,17 @@ impl<'a> FlowConstructor<'a> {
             }
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                         HTMLElementTypeId::HTMLImageElement))) => {
-                self.build_fragment_info_for_image(node, node.image_url())
+                let image_info = box ImageFragmentInfo::new(node,
+                                                            node.image_url(),
+                                                            &self.layout_context);
+                SpecificFragmentInfo::Image(image_info)
             }
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                         HTMLElementTypeId::HTMLObjectElement))) => {
-                let data = node.get_object_data();
-                self.build_fragment_info_for_image(node, data)
+                let image_info = box ImageFragmentInfo::new(node,
+                                                            node.get_object_data(),
+                                                            &self.layout_context);
+                SpecificFragmentInfo::Image(image_info)
             }
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                         HTMLElementTypeId::HTMLTableElement))) => {
@@ -1031,8 +1018,10 @@ impl<'a> FlowConstructor<'a> {
         };
         let marker_fragment = match node.style().get_list().list_style_image {
             Some(ref url) => {
-                Some(Fragment::new(node,
-                                   self.build_fragment_info_for_image(node, Some((*url).clone()))))
+                let image_info = box ImageFragmentInfo::new(node,
+                                                            Some((*url).clone()),
+                                                            &self.layout_context);
+                Some(Fragment::new(node, SpecificFragmentInfo::Image(image_info)))
             }
             None => {
                 match ListStyleTypeContent::from_list_style_type(node.style()
