@@ -4,9 +4,7 @@
 
 [Constructor(DOMString url)]
 interface WebSocket : EventTarget {
-readonly attribute DOMString url;
-	[Throws]
-	void open();
+    readonly attribute DOMString url;
     //ready state
     const unsigned short CONNECTING = 0;
     const unsigned short OPEN = 1;
@@ -16,11 +14,13 @@ readonly attribute DOMString url;
     //readonly attribute unsigned long bufferedAmount;
 
     //networking
-    //attribute EventHandler onopen;
-    //attribute EventHandler onerror;
-    //attribute EventHandler onclose;
+    attribute EventHandler onopen;
+    attribute EventHandler onerror;
+    attribute EventHandler onclose;
     //readonly attribute DOMString extensions;
     //readonly attribute DOMString protocol;
+    [Throws]
+    void Open();
     //void close([Clamp] optional unsigned short code, optional DOMString reason);
 
     //messaging
