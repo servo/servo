@@ -27,8 +27,8 @@ use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::PipelineExitType;
 use profile::time::{self, profile};
 use skia::SkiaGrGLNativeContextRef;
+use std::borrow::ToOwned;
 use std::mem;
-use std::thread::Builder;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use util::geometry::{Au, ZERO_POINT};
@@ -36,6 +36,7 @@ use util::opts;
 use util::smallvec::SmallVec;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
+use util::task::spawn_named;
 
 /// Information about a hardware graphics layer that layout sends to the painting task.
 #[derive(Clone)]
@@ -432,14 +433,14 @@ impl WorkerThreadProxy {
             let native_graphics_metadata = native_graphics_metadata.clone();
             let font_cache_task = font_cache_task.clone();
             let time_profiler_chan = time_profiler_chan.clone();
-            Builder::new().spawn(move || {
+            spawn_named("PaintWorker".to_owned(), move || {
                 let mut worker_thread = WorkerThread::new(from_worker_sender,
                                                           to_worker_receiver,
                                                           native_graphics_metadata,
                                                           font_cache_task,
                                                           time_profiler_chan);
                 worker_thread.main();
-            }).unwrap();
+            });
             WorkerThreadProxy {
                 receiver: from_worker_receiver,
                 sender: to_worker_sender,

@@ -116,7 +116,7 @@ pub trait TLayoutNode {
     fn image_url(&self) -> Option<Url> {
         unsafe {
             match HTMLImageElementCast::to_layout_js(self.get_jsmanaged()) {
-                Some(elem) => elem.image().as_ref().map(|url| (*url).clone()),
+                Some(elem) => elem.image_url().as_ref().map(|url| (*url).clone()),
                 None => panic!("not an image!")
             }
         }

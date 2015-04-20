@@ -117,8 +117,11 @@ impl<T: Reflectable> Drop for Trusted<T> {
         assert!(*refcount > 0);
         *refcount -= 1;
         if *refcount == 0 {
-            self.script_chan.send(
-                ScriptMsg::RefcountCleanup(TrustedReference(self.ptr))).unwrap();
+            // It's possible this send will fail if the script task
+            // has already exited. There's not much we can do at this
+            // point though.
+            let msg = ScriptMsg::RefcountCleanup(TrustedReference(self.ptr));
+            let _ = self.script_chan.send(msg);
         }
     }
 }

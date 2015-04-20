@@ -38,7 +38,7 @@ use devtools_traits::{DevtoolsControlChan, TimelineMarker, TimelineMarkerType, T
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
 use net_traits::ResourceTask;
-use net_traits::image_cache_task::ImageCacheTask;
+use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::{StorageTask, StorageType};
 use util::geometry::{self, Au, MAX_RECT};
 use util::opts;
@@ -67,18 +67,19 @@ use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
 use time;
 
 /// Extra information concerning the reason for reflowing.
+#[derive(Debug)]
 pub enum ReflowReason {
     CachedPageNeededReflow,
     FirstLoad,
     KeyEvent,
     MouseEvent,
     Query,
-    ReceivedReflowEvent,
     Timer,
     Viewport,
     WindowResize,
     DOMContentLoaded,
     DocumentLoaded,
+    ImageLoaded,
 }
 
 #[dom_struct]
@@ -89,6 +90,7 @@ pub struct Window {
     console: MutNullableJS<Console>,
     navigator: MutNullableJS<Navigator>,
     image_cache_task: ImageCacheTask,
+    image_cache_chan: ImageCacheChan,
     compositor: DOMRefCell<Box<ScriptListener+'static>>,
     browser_context: DOMRefCell<Option<BrowserContext>>,
     page: Rc<Page>,
@@ -160,6 +162,9 @@ pub struct Window {
     /// An enlarged rectangle around the page contents visible in the viewport, used
     /// to prevent creating display list items for content that is far away from the viewport.
     page_clip_rect: Cell<Rect<Au>>,
+
+    /// A counter of the number of pending reflows for this window.
+    pending_reflow_count: Cell<u32>,
 }
 
 impl Window {
@@ -177,6 +182,10 @@ impl Window {
 
     pub fn script_chan(&self) -> Box<ScriptChan+Send> {
         self.script_chan.clone()
+    }
+
+    pub fn image_cache_chan(&self) -> ImageCacheChan {
+        self.image_cache_chan.clone()
     }
 
     pub fn get_next_worker_id(&self) -> WorkerId {
@@ -481,6 +490,8 @@ pub trait WindowHelpers {
     fn windowproxy_handler(self) -> WindowProxyHandler;
     fn get_next_subpage_id(self) -> SubpageId;
     fn layout_is_idle(self) -> bool;
+    fn get_pending_reflow_count(self) -> u32;
+    fn add_pending_reflow(self);
     fn set_resize_event(self, event: WindowSizeData);
     fn steal_resize_event(self) -> Option<WindowSizeData>;
     fn set_page_clip_rect_with_new_viewport(self, viewport: Rect<f32>) -> bool;
@@ -549,11 +560,9 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             None => return,
         };
 
-        debug!("script: performing reflow for goal {:?}", goal);
-
         let root: JSRef<Node> = NodeCast::from_ref(root);
         if query_type == ReflowQueryType::NoQuery && !root.get_has_dirty_descendants() {
-            debug!("root has no dirty descendants; avoiding reflow");
+            debug!("root has no dirty descendants; avoiding reflow (reason {:?})", reason);
             return
         }
 
@@ -561,6 +570,8 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             Some(window_size) => window_size,
             None => return,
         };
+
+        debug!("script: performing reflow for goal {:?} reason {:?}", goal, reason);
 
         if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
             let marker = TimelineMarker::new("Reflow".to_owned(), TracingMetadata::IntervalStart);
@@ -603,6 +614,8 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         debug!("script: layout forked");
 
         self.join_layout();
+
+        self.pending_reflow_count.set(0);
 
         if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
             let marker = TimelineMarker::new("Reflow".to_owned(), TracingMetadata::IntervalEnd);
@@ -745,6 +758,14 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         port.is_none()
     }
 
+    fn get_pending_reflow_count(self) -> u32 {
+        self.pending_reflow_count.get()
+    }
+
+    fn add_pending_reflow(self) {
+        self.pending_reflow_count.set(self.pending_reflow_count.get() + 1);
+    }
+
     fn set_resize_event(self, event: WindowSizeData) {
         self.resize_event.set(Some(event));
     }
@@ -828,6 +849,7 @@ impl Window {
     pub fn new(js_context: Rc<Cx>,
                page: Rc<Page>,
                script_chan: Box<ScriptChan+Send>,
+               image_cache_chan: ImageCacheChan,
                control_chan: ScriptControlChan,
                compositor: Box<ScriptListener+'static>,
                image_cache_task: ImageCacheTask,
@@ -850,6 +872,7 @@ impl Window {
         let win = box Window {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::Window),
             script_chan: script_chan,
+            image_cache_chan: image_cache_chan,
             control_chan: control_chan,
             console: Default::default(),
             compositor: DOMRefCell::new(compositor),
@@ -882,6 +905,7 @@ impl Window {
             layout_rpc: layout_rpc,
             layout_join_port: DOMRefCell::new(None),
             window_size: Cell::new(window_size),
+            pending_reflow_count: Cell::new(0),
 
             devtools_marker_sender: RefCell::new(None),
             devtools_markers: RefCell::new(HashSet::new()),
@@ -929,12 +953,12 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowReason::KeyEvent => "\tKeyEvent",
         ReflowReason::MouseEvent => "\tMouseEvent",
         ReflowReason::Query => "\tQuery",
-        ReflowReason::ReceivedReflowEvent => "\tReceivedReflowEvent",
         ReflowReason::Timer => "\tTimer",
         ReflowReason::Viewport => "\tViewport",
         ReflowReason::WindowResize => "\tWindowResize",
         ReflowReason::DOMContentLoaded => "\tDOMContentLoaded",
         ReflowReason::DocumentLoaded => "\tDocumentLoaded",
+        ReflowReason::ImageLoaded => "\tImageLoaded",
     });
 
     println!("{}", debug_msg);
