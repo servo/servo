@@ -79,8 +79,7 @@ use hyper::header::{LastModified, Headers};
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetExtraGCRootsTracer};
 use js::jsapi::{JSContext, JSRuntime, JSObject, JSTracer};
 use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
-use js::rust::{Runtime, Cx, RtUtils};
-use js;
+use js::rust::{Runtime, RtUtils};
 use url::Url;
 
 use libc;
@@ -309,9 +308,7 @@ pub struct ScriptTask {
     devtools_marker_sender: RefCell<Option<Sender<TimelineMarker>>>,
 
     /// The JavaScript runtime.
-    js_runtime: js::rust::rt,
-    /// The JSContext.
-    js_context: Rc<Cx>,
+    js_runtime: Runtime,
 
     mouse_over_targets: DOMRefCell<Vec<JS<Node>>>
 }
@@ -443,7 +440,7 @@ impl ScriptTask {
                img_cache_task: ImageCacheTask,
                devtools_chan: Option<DevtoolsControlChan>)
                -> ScriptTask {
-        let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
+        let runtime = ScriptTask::new_rt_and_cx();
         let wrap_for_same_compartment = wrap_for_same_compartment as
             unsafe extern "C" fn(*mut JSContext, *mut JSObject) -> *mut JSObject;
         let pre_wrap = pre_wrap as
@@ -455,11 +452,11 @@ impl ScriptTask {
             // and JSCompartment::wrap crashes if that happens. The only way
             // to retrieve the default callback is as the result of
             // JS_SetWrapObjectCallbacks, which is why we call it twice.
-            let callback = JS_SetWrapObjectCallbacks((*js_runtime).ptr,
+            let callback = JS_SetWrapObjectCallbacks(runtime.rt(),
                                                      None,
                                                      Some(wrap_for_same_compartment),
                                                      None);
-            JS_SetWrapObjectCallbacks((*js_runtime).ptr,
+            JS_SetWrapObjectCallbacks(runtime.rt(),
                                       callback,
                                       Some(wrap_for_same_compartment),
                                       Some(pre_wrap));
@@ -486,13 +483,12 @@ impl ScriptTask {
             devtools_markers: RefCell::new(HashSet::new()),
             devtools_marker_sender: RefCell::new(None),
 
-            js_runtime: js_runtime,
-            js_context: js_context,
+            js_runtime: runtime,
             mouse_over_targets: DOMRefCell::new(vec!())
         }
     }
 
-    pub fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
+    pub fn new_rt_and_cx() -> Runtime {
         LiveDOMReferences::initialize();
         let runtime = Runtime::new();
 
@@ -508,7 +504,7 @@ impl ScriptTask {
             }
         }
 
-        (runtime.rt, runtime.cx)
+        runtime
     }
 
     // Return the root page in the frame tree. Panics if it doesn't exist.
@@ -517,7 +513,7 @@ impl ScriptTask {
     }
 
     pub fn get_cx(&self) -> *mut JSContext {
-        self.js_context.ptr
+        self.js_runtime.cx()
     }
 
     /// Starts the script task. After calling this method, the script task will loop receiving
@@ -1062,7 +1058,7 @@ impl ScriptTask {
         let mut page_remover = AutoPageRemover::new(self, page_to_remove);
 
         // Create the window and document objects.
-        let window = Window::new(self.js_context.clone(),
+        let window = Window::new(self.js_runtime.cx.clone(),
                                  page.clone(),
                                  self.chan.clone(),
                                  self.control_chan.clone(),
@@ -1223,7 +1219,7 @@ impl ScriptTask {
                 // See the implementation of `Width()` and `Height()` in `HTMLImageElement` for
                 // fallout of this problem.
                 for node in nodes.iter() {
-                    let node_to_dirty = node::from_untrusted_node_address(self.js_runtime.ptr,
+                    let node_to_dirty = node::from_untrusted_node_address(self.js_runtime.rt(),
                                                                           *node).root();
                     let page = get_page(&self.root_page(), pipeline_id);
                     let document = page.document().root();
@@ -1241,7 +1237,7 @@ impl ScriptTask {
                 }
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document().root();
-                document.r().handle_click_event(self.js_runtime.ptr, button, point);
+                document.r().handle_click_event(self.js_runtime.rt(), button, point);
             }
 
             MouseDownEvent(..) => {}
@@ -1256,7 +1252,7 @@ impl ScriptTask {
                 let mut mouse_over_targets = RootedVec::new();
                 mouse_over_targets.append(&mut *self.mouse_over_targets.borrow_mut());
 
-                document.r().handle_mouse_move_event(self.js_runtime.ptr, point, &mut mouse_over_targets);
+                document.r().handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
                 *self.mouse_over_targets.borrow_mut() = mouse_over_targets.clone();
             }
 
