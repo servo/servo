@@ -74,6 +74,8 @@ pub enum ConstellationControlMsg {
     MozBrowserEventMsg(PipelineId, SubpageId, MozBrowserEvent),
     /// Updates the current subpage id of a given iframe
     UpdateSubpageId(PipelineId, SubpageId, SubpageId),
+    /// Notifies script task that all animations are done
+    TickAllAnimations(PipelineId),
 }
 
 /// The mouse button involved in the event.

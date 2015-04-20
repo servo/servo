@@ -94,20 +94,24 @@ struct FramerateEmitterReply {
     __type__: String,
     from: String,
     delta: HighResolutionStamp,
-    timestamps: Vec<u64>,
+    timestamps: Vec<HighResolutionStamp>,
 }
 
 /// HighResolutionStamp is struct that contains duration in milliseconds
 /// with accuracy to microsecond that shows how much time has passed since
 /// actor registry inited
 /// analog https://w3c.github.io/hr-time/#sec-DOMHighResTimeStamp
-struct HighResolutionStamp(f64);
+pub struct HighResolutionStamp(f64);
 
 impl HighResolutionStamp {
-    fn new(start_stamp: PreciseTime, time: PreciseTime) -> HighResolutionStamp {
+    pub fn new(start_stamp: PreciseTime, time: PreciseTime) -> HighResolutionStamp {
         let duration = start_stamp.to(time).num_microseconds()
                                   .expect("Too big duration in microseconds");
         HighResolutionStamp(duration as f64 / 1000 as f64)
+    }
+
+    pub fn wrap(time: f64) -> HighResolutionStamp {
+        HighResolutionStamp(time)
     }
 }
 
@@ -249,7 +253,10 @@ impl Actor for TimelineActor {
                 // init framerate actor
                 if let Some(with_ticks) = msg.get("withTicks") {
                     if let Some(true) = with_ticks.as_boolean() {
-                        *self.framerate_actor.borrow_mut() = Some(FramerateActor::create(registry));
+                        let framerate_actor = Some(FramerateActor::create(registry,
+                                                                          self.pipeline.clone(),
+                                                                          self.script_sender.clone()));
+                        *self.framerate_actor.borrow_mut() = framerate_actor;
                     }
                 }
 

@@ -10,6 +10,7 @@
 #![crate_type = "rlib"]
 
 #![feature(net)]
+#![feature(unboxed_closures)]
 
 #![allow(non_snake_case)]
 
@@ -117,6 +118,7 @@ pub enum DevtoolScriptControlMsg {
     WantsLiveNotifications(PipelineId, bool),
     SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, Sender<TimelineMarker>),
     DropTimelineMarkers(PipelineId, Vec<TimelineMarkerType>),
+    RequestAnimationFrame(PipelineId, Box<Fn(f64, ) + Send>),
 }
 
 /// Messages to instruct devtools server to update its state relating to a particular

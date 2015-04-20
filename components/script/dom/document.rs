@@ -11,6 +11,8 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
+use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
@@ -81,11 +83,12 @@ use string_cache::{Atom, QualName};
 use url::Url;
 use js::jsapi::JSRuntime;
 
+use core::iter::FromIterator;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::ascii::AsciiExt;
-use std::cell::{Cell, Ref};
+use std::cell::{Cell, Ref, RefCell};
 use std::default::Default;
 use std::sync::mpsc::channel;
 use std::num::ToPrimitive;
@@ -129,6 +132,12 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: Cell<bool>,
+    /// https://html.spec.whatwg.org/multipage/webappapis.html#animation-frame-callback-identifier
+    /// Current identifier of animation frame callback
+    animation_frame_ident: RefCell<i32>,
+    /// https://html.spec.whatwg.org/multipage/webappapis.html#list-of-animation-frame-callbacks
+    /// List of animation frame callbacks
+    animation_frame_list: RefCell<HashMap<i32, Box<Fn(f64)>>>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -235,6 +244,9 @@ pub trait DocumentHelpers<'a> {
 
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>);
     fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
+    fn request_animation_frame(self, callback: Box<Fn(f64, )>) -> i32;
+    fn cancel_animation_frame(self, ident: i32);
+    fn run_animations(self);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -750,6 +762,38 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             }
         }
     }
+
+    fn request_animation_frame(self, callback: Box<Fn(f64, )>) -> i32 {
+        let window = self.window.root();
+        let window = window.r();
+        *self.animation_frame_ident.borrow_mut() += 1;
+        let ident = *self.animation_frame_ident.borrow();
+        self.animation_frame_list.borrow_mut().insert(ident, callback);
+
+        // TODO: Should tick animation only when document is visible
+        window.layout_chan().0.send(Msg::TickAnimations).unwrap();
+
+        ident
+    }
+
+    fn cancel_animation_frame(self, ident: i32) {
+        self.animation_frame_list.borrow_mut().remove(&ident);
+    }
+
+    /// https://html.spec.whatwg.org/multipage/webappapis.html#run-the-animation-frame-callbacks
+    /// http://www.w3.org/TR/animation-timing/#dfn-animation-task-source
+    fn run_animations(self) {
+        let mut animation_frame_list = self.animation_frame_list.borrow_mut();
+        let animation_frame_list = Vec::from_iter(animation_frame_list.drain());
+        let window = self.window.root();
+        let window = window.r();
+        let performance = window.Performance().root();
+        let performance = performance.r();
+
+        for (_, callback) in animation_frame_list {
+            callback(*performance.Now());
+        }
+    }
 }
 
 #[derive(PartialEq)]
@@ -821,6 +865,8 @@ impl Document {
             focused: Default::default(),
             current_script: Default::default(),
             scripting_enabled: Cell::new(true),
+            animation_frame_ident: RefCell::new(0),
+            animation_frame_list: RefCell::new(HashMap::new()),
         }
     }
 

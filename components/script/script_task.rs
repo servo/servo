@@ -694,6 +694,8 @@ impl ScriptTask {
                                                      old_subpage_id,
                                                      new_subpage_id) =>
                 self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
+            ConstellationControlMsg::TickAllAnimations(pipeline_id) =>
+                self.handle_tick_all_animations(pipeline_id),
         }
     }
 
@@ -743,6 +745,8 @@ impl ScriptTask {
                 devtools::handle_set_timeline_markers(&page, self, marker_types, reply),
             DevtoolScriptControlMsg::DropTimelineMarkers(_pipeline_id, marker_types) =>
                 devtools::handle_drop_timeline_markers(&page, self, marker_types),
+            DevtoolScriptControlMsg::RequestAnimationFrame(pipeline_id, callback) =>
+                self.handle_request_animation_frame(pipeline_id, callback),
         }
     }
 
@@ -910,6 +914,13 @@ impl ScriptTask {
         page.set_reflow_status(true);
     }
 
+    fn handle_request_animation_frame(&self, id: PipelineId, callback: Box<Fn(f64, )>) {
+        let page = self.root_page();
+        let page = page.find(id).expect("There is no such page");
+        let doc = page.document().root();
+        doc.r().request_animation_frame(callback);
+    }
+
     /// We have gotten a window.close from script, which we pass on to the compositor.
     /// We do not shut down the script task now, because the compositor will ask the
     /// constellation to shut down the pipeline, which will clean everything up
@@ -963,6 +974,13 @@ impl ScriptTask {
             shut_down_layout(&*child_page, exit_type);
         }
         return false;
+    }
+
+    /// Handles when layout task finishes all animation in one tick
+    fn handle_tick_all_animations(&self, id: PipelineId) {
+        let page = get_page(&self.root_page(), id);
+        let document = page.document().root();
+        document.r().run_animations();
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document

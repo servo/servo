@@ -3,17 +3,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
-use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::WindowBinding;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::codegen::Bindings::WindowBinding::{self, WindowMethods, FrameRequestCallback};
 use dom::bindings::codegen::InheritTypes::{NodeCast, EventTargetCast};
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::error::{report_pending_exception, Fallible};
 use dom::bindings::error::Error::InvalidCharacter;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable, RootedReference};
+use dom::bindings::num::Finite;
 use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
@@ -455,6 +456,23 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     fn Atob(self, atob: DOMString) -> Fallible<DOMString> {
         base64_atob(atob)
     }
+
+    /// https://html.spec.whatwg.org/multipage/webappapis.html#dom-window-requestanimationframe
+    fn RequestAnimationFrame(self, callback: FrameRequestCallback) -> i32 {
+        let doc = self.Document().root();
+
+        let callback  = move |now: f64| {
+            callback.Call__(Finite::wrap(now), ExceptionHandling::Rethrow);
+        };
+
+        doc.r().request_animation_frame(Box::new(callback))
+    }
+
+    /// https://html.spec.whatwg.org/multipage/webappapis.html#dom-window-cancelanimationframe
+    fn CancelAnimationFrame(self, ident: i32) {
+        let doc = self.Document().root();
+        doc.r().cancel_animation_frame(ident);
+    }
 }
 
 pub trait WindowHelpers {
@@ -865,6 +883,7 @@ impl Window {
             session_storage: Default::default(),
             local_storage: Default::default(),
             timers: TimerManager::new(),
+
             next_worker_id: Cell::new(WorkerId(0)),
             id: id,
             parent_info: parent_info,

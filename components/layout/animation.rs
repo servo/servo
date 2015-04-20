@@ -12,6 +12,7 @@ use gfx::display_list::OpaqueNode;
 use layout_task::{LayoutTask, LayoutTaskData};
 use msg::constellation_msg::{Msg, PipelineId};
 use script::layout_interface::Animation;
+use script_traits::{ConstellationControlMsg, ScriptControlChan};
 use std::mem;
 use std::sync::mpsc::Sender;
 use style::animation::{GetMod, PropertyAnimation};
@@ -100,5 +101,8 @@ pub fn tick_all_animations(layout_task: &LayoutTask, rw_data: &mut LayoutTaskDat
             rw_data.running_animations.push(running_animation)
         }
     }
+
+    let ScriptControlChan(ref chan) = layout_task.script_chan;
+    chan.send(ConstellationControlMsg::TickAllAnimations(layout_task.id)).unwrap();
 }
 
