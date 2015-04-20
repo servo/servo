@@ -17,7 +17,7 @@ use time::PreciseTime;
 use actor::{Actor, ActorRegistry};
 use actors::memory::{MemoryActor, TimelineMemoryReply};
 use actors::framerate::FramerateActor;
-use devtools_traits::DevtoolScriptControlMsg;
+use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
 use devtools_traits::DevtoolScriptControlMsg::{SetTimelineMarkers, DropTimelineMarkers};
 use devtools_traits::{TimelineMarker, TracingMetadata, TimelineMarkerType};
 use protocol::JsonPacketStream;
@@ -26,6 +26,7 @@ use util::task;
 pub struct TimelineActor {
     name: String,
     script_sender: Sender<DevtoolScriptControlMsg>,
+    devtools_sender: Sender<DevtoolsControlMsg>,
     marker_types: Vec<TimelineMarkerType>,
     pipeline: PipelineId,
     is_recording: Arc<Mutex<bool>>,
@@ -94,20 +95,24 @@ struct FramerateEmitterReply {
     __type__: String,
     from: String,
     delta: HighResolutionStamp,
-    timestamps: Vec<u64>,
+    timestamps: Vec<HighResolutionStamp>,
 }
 
 /// HighResolutionStamp is struct that contains duration in milliseconds
 /// with accuracy to microsecond that shows how much time has passed since
 /// actor registry inited
 /// analog https://w3c.github.io/hr-time/#sec-DOMHighResTimeStamp
-struct HighResolutionStamp(f64);
+pub struct HighResolutionStamp(f64);
 
 impl HighResolutionStamp {
-    fn new(start_stamp: PreciseTime, time: PreciseTime) -> HighResolutionStamp {
+    pub fn new(start_stamp: PreciseTime, time: PreciseTime) -> HighResolutionStamp {
         let duration = start_stamp.to(time).num_microseconds()
                                   .expect("Too big duration in microseconds");
         HighResolutionStamp(duration as f64 / 1000 as f64)
+    }
+
+    pub fn wrap(time: f64) -> HighResolutionStamp {
+        HighResolutionStamp(time)
     }
 }
 
@@ -122,7 +127,8 @@ static DEFAULT_TIMELINE_DATA_PULL_TIMEOUT: usize = 200; //ms
 impl TimelineActor {
     pub fn new(name: String,
                pipeline: PipelineId,
-               script_sender: Sender<DevtoolScriptControlMsg>) -> TimelineActor {
+               script_sender: Sender<DevtoolScriptControlMsg>,
+               devtools_sender: Sender<DevtoolsControlMsg>) -> TimelineActor {
 
         let marker_types = vec!(TimelineMarkerType::Reflow,
                                 TimelineMarkerType::DOMEvent);
@@ -132,6 +138,7 @@ impl TimelineActor {
             pipeline: pipeline,
             marker_types: marker_types,
             script_sender: script_sender,
+            devtools_sender: devtools_sender,
             is_recording: Arc::new(Mutex::new(false)),
             stream: RefCell::new(None),
 
@@ -249,7 +256,11 @@ impl Actor for TimelineActor {
                 // init framerate actor
                 if let Some(with_ticks) = msg.get("withTicks") {
                     if let Some(true) = with_ticks.as_boolean() {
-                        *self.framerate_actor.borrow_mut() = Some(FramerateActor::create(registry));
+                        let framerate_actor = Some(FramerateActor::create(registry,
+                                                                          self.pipeline.clone(),
+                                                                          self.script_sender.clone(),
+                                                                          self.devtools_sender.clone()));
+                        *self.framerate_actor.borrow_mut() = framerate_actor;
                     }
                 }
 
@@ -353,7 +364,7 @@ impl Emitter {
         if let Some(ref actor_name) = self.framerate_actor {
             let mut lock = self.registry.lock();
             let registry = lock.as_mut().unwrap();
-            let mut framerate_actor = registry.find_mut::<FramerateActor>(actor_name);
+            let framerate_actor = registry.find_mut::<FramerateActor>(actor_name);
             let framerateReply = FramerateEmitterReply {
                 __type__: "framerate".to_string(),
                 from: framerate_actor.name(),

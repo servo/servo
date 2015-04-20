@@ -19,7 +19,7 @@ use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphics
 use layers::layers::LayerBufferSet;
 use msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
 use msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
-use msg::constellation_msg::{ConstellationChan, PipelineId};
+use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use profile_traits::mem;
 use profile_traits::time;
@@ -202,7 +202,7 @@ pub enum Msg {
     /// Alerts the compositor that the current page has changed its URL.
     ChangePageUrl(PipelineId, Url),
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
-    ChangeRunningAnimationsState(PipelineId, bool),
+    ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Alerts the compositor that a `PaintMsg` has been discarded.
     PaintMsgDiscarded,
     /// Replaces the current frame tree, typically called during main frame navigation.

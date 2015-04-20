@@ -79,6 +79,8 @@ pub enum ConstellationControlMsg {
     FocusIFrame(PipelineId, SubpageId),
     // Passes a webdriver command to the script task for execution
     WebDriverCommand(PipelineId, WebDriverScriptCommand)
+    /// Notifies script task that all animations are done
+    TickAllAnimations(PipelineId),
 }
 
 /// The mouse button involved in the event.

@@ -14,6 +14,7 @@
 #![feature(std_misc)]
 #![feature(unicode)]
 #![feature(unsafe_destructor)]
+#![feature(unboxed_closures)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]

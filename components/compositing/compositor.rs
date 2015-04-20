@@ -27,6 +27,7 @@ use layers::rendergl;
 use layers::scene::Scene;
 use msg::compositor_msg::{Epoch, LayerId};
 use msg::compositor_msg::{ReadyState, PaintState, ScrollPolicy};
+use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, NavigationDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
@@ -167,8 +168,8 @@ struct PipelineDetails {
     /// The status of this pipeline's PaintTask.
     paint_state: PaintState,
 
-    /// Whether animations are running.
-    animations_running: bool,
+    /// Current animation state
+    animation_state: AnimationState,
 }
 
 impl PipelineDetails {
@@ -177,7 +178,7 @@ impl PipelineDetails {
             pipeline: None,
             ready_state: ReadyState::Blank,
             paint_state: PaintState::Painting,
-            animations_running: false,
+            animation_state: AnimationState::Stopped,
         }
     }
 }
@@ -279,9 +280,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.change_paint_state(pipeline_id, paint_state);
             }
 
-            (Msg::ChangeRunningAnimationsState(pipeline_id, running_animations),
+            (Msg::ChangeRunningAnimationsState(pipeline_id, animation_state),
              ShutdownState::NotShuttingDown) => {
-                self.change_running_animations_state(pipeline_id, running_animations);
+                self.change_running_animations_state(pipeline_id, animation_state);
             }
 
             (Msg::ChangePageTitle(pipeline_id, title), ShutdownState::NotShuttingDown) => {
@@ -423,10 +424,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// recomposite if necessary.
     fn change_running_animations_state(&mut self,
                                        pipeline_id: PipelineId,
-                                       animations_running: bool) {
-        self.get_or_create_pipeline_details(pipeline_id).animations_running = animations_running;
+                                       animation_state: AnimationState) {
+        self.get_or_create_pipeline_details(pipeline_id).animation_state = animation_state.clone();
 
-        if animations_running {
+        if animation_state != AnimationState::Stopped {
             self.composite_if_necessary(CompositingReason::Animation);
         }
     }
@@ -922,7 +923,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// If there are any animations running, dispatches appropriate messages to the constellation.
     fn process_animations(&mut self) {
         for (pipeline_id, pipeline_details) in self.pipeline_details.iter() {
-            if !pipeline_details.animations_running {
+            if pipeline_details.animation_state == AnimationState::Stopped {
                 continue
             }
             self.constellation_chan.0.send(ConstellationMsg::TickAnimation(*pipeline_id)).unwrap();
