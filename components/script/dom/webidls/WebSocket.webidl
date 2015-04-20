@@ -17,16 +17,16 @@ interface WebSocket : EventTarget {
     attribute EventHandler onopen;
     attribute EventHandler onerror;
     attribute EventHandler onclose;
-    //readonly attribute DOMString extensions;
-    //readonly attribute DOMString protocol;
     [Throws]
     void Open();
-    //void close([Clamp] optional unsigned short code, optional DOMString reason);
+    readonly attribute DOMString extensions;
+    readonly attribute DOMString protocol;
+    [Throws] void close([Clamp] optional unsigned short code, optional DOMString reason);
 
     //messaging
-    //attribute EventHandler onmessage;
-    //attribute BinaryType binaryType;
-    //void send(USVString data);
+    attribute EventHandler onmessage;
+    attribute BinaryType binaryType;
+    void send(USVString data);
     //void send(Blob data);
     //void send(ArrayBuffer data);
     //void send(ArrayBufferView data);
