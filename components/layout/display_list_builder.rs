@@ -1345,53 +1345,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                display_list: Box<DisplayList>,
                                layer: Option<Arc<PaintLayer>>)
                                -> Arc<StackingContext> {
-        debug_assert!(self.fragment.establishes_stacking_context());
-        let border_box = self.fragment
-                             .stacking_relative_border_box(&self.base.stacking_relative_position,
-                                                           &self.base
-                                                                .absolute_position_info
-                                                                .relative_containing_block_size,
-                                                           self.base
-                                                               .absolute_position_info
-                                                               .relative_containing_block_mode,
-                                                           CoordinateSystem::Parent);
-
-        let transform_origin = self.fragment.style().get_effects().transform_origin;
-        let transform_origin =
-            Point2D(model::specified(transform_origin.horizontal,
-                                     border_box.size.width).to_frac32_px(),
-                    model::specified(transform_origin.vertical,
-                                     border_box.size.height).to_frac32_px());
-        let transform = self.fragment
-                            .style()
-                            .get_effects()
-                            .transform
-                            .unwrap_or(ComputedMatrix::identity())
-                            .to_gfx_matrix(&border_box.size);
-        let transform = Matrix2D::identity().translate(transform_origin.x, transform_origin.y)
-                                            .mul(&transform)
-                                            .translate(-transform_origin.x, -transform_origin.y);
-
-        // FIXME(pcwalton): Is this vertical-writing-direction-safe?
-        let margin = self.fragment.margin.to_physical(self.base.writing_mode);
-        let overflow = self.base.overflow.translate(&-Point2D(margin.left, Au(0)));
-
-        // Create the filter pipeline.
-        let effects = self.fragment.style().get_effects();
-        let mut filters = effects.filter.clone();
-        if effects.opacity != 1.0 {
-            filters.push(Filter::Opacity(effects.opacity))
-        }
-
-        Arc::new(StackingContext::new(display_list,
-                                      &border_box,
-                                      &overflow,
-                                      self.fragment.style().get_box().z_index.number_or_zero(),
-                                      &transform,
-                                      filters,
-                                      self.fragment.style().get_effects().mix_blend_mode,
-                                      layer))
+        create_stacking_context(&self.fragment, &self.base, display_list, layer)
     }
+
 }
 
 pub trait InlineFlowDisplayListBuilding {
@@ -1604,4 +1560,50 @@ impl ToGfxColor for RGBA {
     fn to_gfx_color(&self) -> Color {
         color::rgba(self.red, self.green, self.blue, self.alpha)
     }
+}
+
+fn create_stacking_context(fragment: &Fragment,
+                           base_flow: &BaseFlow,
+                           display_list: Box<DisplayList>,
+                           layer: Option<Arc<PaintLayer>>)
+                           -> Arc<StackingContext> {
+
+    let border_box = fragment.stacking_relative_border_box(&base_flow.stacking_relative_position,
+                                                           &base_flow.absolute_position_info
+                                                           .relative_containing_block_size,
+                                                           base_flow.absolute_position_info
+                                                           .relative_containing_block_mode,
+                                                           CoordinateSystem::Parent);
+
+    let transform_origin = fragment.style().get_effects().transform_origin;
+    let transform_origin =
+        Point2D(model::specified(transform_origin.horizontal,
+                                 border_box.size.width).to_frac32_px(),
+                model::specified(transform_origin.vertical,
+                                 border_box.size.height).to_frac32_px());
+    let transform = fragment.style().get_effects().transform
+                    .unwrap_or(ComputedMatrix::identity()).to_gfx_matrix(&border_box.size);
+
+    let transform = Matrix2D::identity().translate(transform_origin.x, transform_origin.y)
+                    .mul(&transform).translate(-transform_origin.x, -transform_origin.y);
+
+    // FIXME(pcwalton): Is this vertical-writing-direction-safe?
+    let margin = fragment.margin.to_physical(base_flow.writing_mode);
+    let overflow = base_flow.overflow.translate(&-Point2D(margin.left, Au(0)));
+
+    // Create the filter pipeline.
+    let effects = fragment.style().get_effects();
+    let mut filters = effects.filter.clone();
+    if effects.opacity != 1.0 {
+        filters.push(Filter::Opacity(effects.opacity))
+    }
+
+    Arc::new(StackingContext::new(display_list,
+                                  &border_box,
+                                  &overflow,
+                                  fragment.style().get_box().z_index.number_or_zero(),
+                                  &transform,
+                                  filters,
+                                  fragment.style().get_effects().mix_blend_mode,
+                                  layer))
 }
