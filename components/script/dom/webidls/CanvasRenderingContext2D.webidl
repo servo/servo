@@ -50,7 +50,7 @@ interface CanvasRenderingContext2D {
 
   // compositing
   attribute unrestricted double globalAlpha; // (default 1.0)
-  //         attribute DOMString globalCompositeOperation; // (default source-over)
+  attribute DOMString globalCompositeOperation; // (default source-over)
 
   // image smoothing
            attribute boolean imageSmoothingEnabled; // (default true)

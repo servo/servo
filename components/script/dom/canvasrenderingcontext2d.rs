@@ -29,7 +29,7 @@ use geom::size::Size2D;
 
 use canvas::canvas_paint_task::{CanvasMsg, CanvasPaintTask, FillOrStrokeStyle};
 use canvas::canvas_paint_task::{LinearGradientStyle, RadialGradientStyle};
-use canvas::canvas_paint_task::{LineCapStyle, LineJoinStyle};
+use canvas::canvas_paint_task::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
 
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageResponseMsg, Msg};
@@ -60,6 +60,7 @@ pub struct CanvasRenderingContext2D {
 #[jstraceable]
 struct CanvasContextState {
     global_alpha: f64,
+    global_composition: CompositionOrBlending,
     image_smoothing_enabled: bool,
     stroke_color: RGBA,
     line_width: f64,
@@ -80,6 +81,7 @@ impl CanvasContextState {
         };
         CanvasContextState {
             global_alpha: 1.0,
+            global_composition: CompositionOrBlending::default(),
             image_smoothing_enabled: true,
             stroke_color: black,
             line_width: 1.0,
@@ -418,6 +420,23 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
         self.state.borrow_mut().global_alpha = alpha;
         self.renderer.send(CanvasMsg::SetGlobalAlpha(alpha as f32)).unwrap()
+    }
+
+    // https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-globalcompositeoperation
+    fn GlobalCompositeOperation(self) -> DOMString {
+        let state = self.state.borrow();
+        match state.global_composition {
+            CompositionOrBlending::Composition(op) => op.to_str().to_owned(),
+            CompositionOrBlending::Blending(op) => op.to_str().to_owned(),
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-globalcompositeoperation
+    fn SetGlobalCompositeOperation(self, op_str: DOMString) {
+        if let Some(op) = CompositionOrBlending::from_str(&op_str) {
+            self.state.borrow_mut().global_composition = op;
+            self.renderer.send(CanvasMsg::SetGlobalComposition(op)).unwrap()
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fillrect
