@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+enum BinaryType { "blob", "arraybuffer" };
+
 [Constructor(DOMString url)]
 interface WebSocket : EventTarget {
     readonly attribute DOMString url;
@@ -24,9 +26,9 @@ interface WebSocket : EventTarget {
     [Throws] void close([Clamp] optional unsigned short code, optional DOMString reason);
 
     //messaging
-    attribute EventHandler onmessage;
-    attribute BinaryType binaryType;
-    void send(USVString data);
+    //attribute EventHandler onmessage;
+    //attribute BinaryType binaryType;
+    //[Throws] void send(USVString data);
     //void send(Blob data);
     //void send(ArrayBuffer data);
     //void send(ArrayBufferView data);
