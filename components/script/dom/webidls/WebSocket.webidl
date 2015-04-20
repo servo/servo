@@ -16,13 +16,14 @@ interface WebSocket : EventTarget {
     //readonly attribute unsigned long bufferedAmount;
 
     //networking
-    //attribute EventHandler onopen;
-    //attribute EventHandler onerror;
-    //attribute EventHandler onclose;
+    attribute EventHandler onopen;
+    attribute EventHandler onerror;
+    attribute EventHandler onclose;
+    [Throws] void Open();
     //readonly attribute DOMString extensions;
     //readonly attribute DOMString protocol;
-    //[Throws] void close([Clamp] optional unsigned short code, optional DOMString reason);
-    [Throws] void close(optional unsigned short code, optional DOMString reason);
+    //[Throws] void close([Clamp] optional unsigned short code, optional DOMString reason); //Clamp doesn't work
+    [Throws] void close(optional unsigned short code, optional DOMString reason); //No clamp version - works
 
     //messaging
     //attribute EventHandler onmessage;
