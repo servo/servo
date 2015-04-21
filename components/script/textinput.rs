@@ -43,7 +43,7 @@ pub struct TextInput {
     selection_begin: Option<TextPoint>,
     /// Is this a multiline input?
     multiline: bool,
-    constellation_channel: ConstellationChan
+    constellation_channel: Option<ConstellationChan>
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
@@ -91,7 +91,7 @@ fn is_control_key(event: JSRef<KeyboardEvent>) -> bool {
 
 impl TextInput {
     /// Instantiate a new text input control
-    pub fn new(lines: Lines, initial: DOMString, cc: ConstellationChan) -> TextInput {
+    pub fn new(lines: Lines, initial: DOMString, cc: Option<ConstellationChan>) -> TextInput {
         let mut i = TextInput {
             lines: vec!(),
             edit_point: Default::default(),
@@ -298,9 +298,14 @@ impl TextInput {
             },
             "v" if is_control_key(event) => {
                 let (tx, rx) = channel();
-                self.constellation_channel.0.send(ConstellationMsg::GetClipboardContents(tx)).unwrap();
-                let contents = rx.recv().unwrap();
-                self.insert_string(contents.as_slice());
+                let mut contents = None;
+                if let Some(ref cc) = self.constellation_channel {
+                    cc.0.send(ConstellationMsg::GetClipboardContents(tx)).unwrap();
+                    contents = Some(rx.recv().unwrap());
+                }
+                if let Some(contents) = contents {
+                    self.insert_string(contents.as_slice());
+                }
                 KeyReaction::DispatchInput
             },
             // printable characters have single-character key values

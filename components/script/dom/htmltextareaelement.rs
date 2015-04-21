@@ -94,7 +94,7 @@ impl HTMLTextAreaElement {
         let chan = document.window().root().r().constellation_chan();
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTextAreaElement, localName, prefix, document),
-            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned(), chan)),
+            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned(), Some(chan))),
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),
             value_changed: Cell::new(false),
