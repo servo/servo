@@ -1,0 +1,15 @@
+[package]
+name = "util_tests"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "util_tests"
+path = "lib.rs"
+doctest = false
+
+[dependencies.util]
+path = "../../../components/util"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"

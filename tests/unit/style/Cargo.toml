@@ -1,0 +1,33 @@
+[package]
+name = "style_tests"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "style_tests"
+path = "lib.rs"
+doctest = false
+
+[dependencies.style]
+path = "../../../components/style"
+
+[dependencies.util]
+path = "../../../components/util"
+
+[dependencies.string_cache_plugin]
+git = "https://github.com/servo/string-cache"
+
+[dependencies.string_cache]
+git = "https://github.com/servo/string-cache"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.selectors]
+git = "https://github.com/servo/rust-selectors"
+
+[dependencies.cssparser]
+git = "https://github.com/servo/rust-cssparser"
+
+[dependencies]
+url = "*"
