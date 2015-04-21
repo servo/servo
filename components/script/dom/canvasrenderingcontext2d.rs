@@ -422,7 +422,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.renderer.send(CanvasMsg::SetGlobalAlpha(alpha as f32)).unwrap()
     }
 
-    // https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-globalcompositeoperation
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     fn GlobalCompositeOperation(self) -> DOMString {
         let state = self.state.borrow();
         match state.global_composition {
@@ -431,7 +431,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/scripting.html#dom-context-2d-globalcompositeoperation
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     fn SetGlobalCompositeOperation(self, op_str: DOMString) {
         if let Some(op) = CompositionOrBlending::from_str(&op_str) {
             self.state.borrow_mut().global_composition = op;
