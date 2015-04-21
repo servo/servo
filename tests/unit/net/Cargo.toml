@@ -9,24 +9,18 @@ path = "lib.rs"
 doctest = false
 
 [dependencies.net]
-path = "../../components/net"
+path = "../../../components/net"
 
 [dependencies.net_traits]
-path = "../../components/net_traits"
+path = "../../../components/net_traits"
 
-[dependencies.cssparser]
-git = "https://github.com/servo/rust-cssparser"
+[dependencies.profile]
+path = "../../../components/profile"
 
-[dependencies.selectors]
-git = "https://github.com/servo/rust-selectors"
-
-[dependencies.string_cache]
-git = "https://github.com/servo/string-cache"
-
-[dependencies.string_cache_plugin]
-git = "https://github.com/servo/string-cache"
+[dependencies.util]
+path = "../../../components/util"
 
 [dependencies]
 cookie = "*"
+hyper = "*"
 url = "*"
-hyper = "0.3"

@@ -9,21 +9,7 @@ path = "lib.rs"
 doctest = false
 
 [dependencies.util]
-path = "../../components/util"
+path = "../../../components/util"
 
-[dependencies.cssparser]
-git = "https://github.com/servo/rust-cssparser"
-
-[dependencies.selectors]
-git = "https://github.com/servo/rust-selectors"
-
-[dependencies.string_cache]
-git = "https://github.com/servo/string-cache"
-
-[dependencies.string_cache_plugin]
-git = "https://github.com/servo/string-cache"
-
-[dependencies]
-cookie = "*"
-url = "*"
-hyper = "0.3"
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"

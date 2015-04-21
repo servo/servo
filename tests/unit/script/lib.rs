@@ -2,5 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[cfg(target_pointer_width = "64")] mod size_of;
-mod textinput;
+extern crate script;
+
+#[cfg(all(test, target_pointer_width = "64"))] mod size_of;
+#[cfg(test)] mod textinput;
