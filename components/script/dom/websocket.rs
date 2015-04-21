@@ -344,15 +344,18 @@ impl WebSocketTaskHandler {
         println!("Fired close event.");
     }
     fn dispatch_close(&self) {
-    	println!("Trying to close.");
-	let ws = self.addr.to_temporary().root();
-	let reason = ws.r().reason;
-	let code = ws.r().code;
-	//TODO: tx_clone = tx.clone()
-	// Do we need a global tx and rx?
-	// tx_clone.send(Message::Close(code,reason))
-	println!("Closed the connection.");
+    	let ws = self.addr.to_temporary().root();
     	let global = ws.r().global.root();
+	ws.r().ready_state.set(WebSocketRequestState::Closed); //Set to closed state
+	if(ws.r().failed.get()){
+		ws.r().failed.set(false); //Unset flag
+	        let event = Event::new(global.r(),
+                               "error".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::Cancelable).root();		
+	}
+	//FIX ME event is not up to standards
+	//https://html.spec.whatwg.org/multipage/comms.html#closeWebSocket
         let event = Event::new(global.r(),
                                "close".to_owned(),
                                EventBubbles::DoesNotBubble,
