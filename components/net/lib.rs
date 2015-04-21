@@ -16,6 +16,7 @@
 
 extern crate net_traits;
 extern crate cookie as cookie_rs;
+extern crate devtools_traits;
 extern crate collections;
 extern crate flate2;
 extern crate geom;

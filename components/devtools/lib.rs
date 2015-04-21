@@ -25,9 +25,13 @@ extern crate rustc_serialize;
 extern crate msg;
 extern crate time;
 extern crate util;
+extern crate url;
+extern crate hyper;
 
 use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
+use actors::network_event::NetworkEventActor;
+use actors::network_event::{HttpRequest};
 use actors::worker::WorkerActor;
 use actors::inspector::InspectorActor;
 use actors::root::RootActor;
@@ -49,6 +53,12 @@ use std::net::{TcpListener, TcpStream, Shutdown};
 use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
 
+use url::Url;
+
+use hyper::header::Headers;
+use hyper::http::RawStatus;
+use hyper::method::Method;
+
 mod actor;
 /// Corresponds to http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/
 mod actors {
@@ -60,6 +70,7 @@ mod actors {
     pub mod tab;
     pub mod timeline;
     pub mod worker;
+    pub mod network_event;
 }
 mod protocol;
 
@@ -78,6 +89,22 @@ struct ConsoleMsg {
     filename: String,
     lineNumber: u32,
     columnNumber: u32,
+}
+
+#[derive(RustcEncodable)]
+struct NetworkEventMsg {
+    from: String,
+    __type__: String,
+    eventActor: EventActor,
+}
+
+#[derive(RustcEncodable)]
+struct EventActor {
+    actor: NetworkEventActor,
+    url: String,
+    method: String,
+    startedDateTime: String,
+    isXHR: String,
 }
 
 /// Spin up a devtools server that listens for connections on the specified port.
@@ -252,6 +279,49 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         return console_actor_name;
     }
 
+    fn handle_network_event(actors: Arc<Mutex<ActorRegistry>>,
+                            connections: RefCell<Vec<TcpStream>>,
+                            url: Url,
+                            method: Method,
+                            headers: Headers,
+                            body: Option<Vec<u8>>) {
+
+        //println!("handle_network_event");
+        let mut actors = actors.lock().unwrap();
+
+        /* TODO: Maintain a HashMap that maps request/response ID to actor name.
+         * Check if the map contains the ID of the request/response message.
+         * If no actor exists, create a new one.
+         * Store to stream(s) to the actor and retrieve them.
+         */
+
+        let actor = NetworkEventActor {
+            name: actors.new_name("network_event"),
+            request: HttpRequest {
+                url: url.clone(),
+                //method: method.clone(),
+                //headers: headers.clone(),
+                body: body.clone()
+                },
+        };
+
+        let msg = NetworkEventMsg {
+            from: actor.name.clone(),
+            __type__: "networkEvent".to_string(),
+            eventActor: EventActor {
+                actor: actor,
+                url: url.serialize(),
+                method: "".to_string(),
+                startedDateTime: "".to_string(),
+                isXHR: "false".to_string(),
+            },
+        };
+
+        for stream in connections.borrow_mut().iter_mut() {
+            stream.write_json_packet(&msg);
+        }
+    }
+
     spawn_named("DevtoolsClientAcceptor".to_owned(), move || {
         // accept connections and process them, spawning a new task for each one
         for stream in listener.incoming() {
@@ -276,6 +346,15 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
             Ok(DevtoolsControlMsg::SendConsoleMessage(id, console_message)) =>
                 handle_console_message(actors.clone(), id, console_message,
                                        &actor_pipelines),
+
+            Ok(DevtoolsControlMsg::HttpRequest(url, method, headers, body)) => {
+                //println!("run_server: HttpRequest");
+                let connections = RefCell::new(Vec::<TcpStream>::new());                 
+                let mut stream = accepted_connections.get_mut(0).unwrap();
+                connections.borrow_mut().push(stream.try_clone().unwrap());
+                handle_network_event(actors.clone(), connections, url, method, headers, body);
+            }
+            _ => break,
         }
     }
 

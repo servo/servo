@@ -17,5 +17,9 @@ path = "../msg"
 path = "../util"
 
 [dependencies]
+url = "0.2.16"
+hyper = "0.3"
+
+[dependencies]
 time = "*"
 rustc-serialize = "0.3"
