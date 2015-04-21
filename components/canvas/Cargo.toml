@@ -25,10 +25,6 @@ git = "https://github.com/servo/gleam"
 [dependencies.msg]
 path = "../msg"
 
-[dependencies.skia]
-git = "https://github.com/servo/skia"
-branch = "upstream-2014-06-16"
-
 [dependencies.util]
 path = "../util"
 

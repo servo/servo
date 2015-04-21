@@ -663,14 +663,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-name = "objc"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "malloc_buf 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
-=======
 name = "offscreen_gl_context"
 version = "0.0.1"
 source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#aa838c2e4e5a47f4a3b613292ca4d5c196965b8e"
@@ -680,7 +672,6 @@ dependencies = [
  "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
->>>>>>> Added GLContextAttributes
 ]
 
 [[package]]

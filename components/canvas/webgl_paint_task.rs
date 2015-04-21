@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_msg::CanvasMsg;
+use canvas_msg::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg};
 use geom::size::Size2D;
 
 use gleam::gl;
@@ -15,10 +15,10 @@ use std::sync::mpsc::{channel, Sender};
 use util::vec::byte_swap;
 use offscreen_gl_context::{GLContext, GLContextAttributes};
 
-use glutin::{HeadlessRendererBuilder};
 
 pub struct WebGLPaintTask {
     size: Size2D<i32>,
+    original_context_size: Size2D<i32>,
     gl_context: GLContext
 }
 
@@ -31,6 +31,7 @@ impl WebGLPaintTask {
         let context = try!(GLContext::create_offscreen(size, GLContextAttributes::default()));
         Ok(WebGLPaintTask {
             size: size,
+            original_context_size: size,
             gl_context: context
         })
     }
@@ -85,15 +86,19 @@ impl WebGLPaintTask {
     }
 
     fn recreate(&mut self, size: Size2D<i32>) {
-        // FIXME(ecoal95): Resizing properly: This just works for less size than when it was
-        // created
-        self.size = size;
-        gl::viewport(0, 0, size.width, size.height);
-        unsafe { gl::Scissor(0, 0, size.width, size.height); }
+        // TODO(ecoal95): GLContext should support a resize() method
+        if size.width > self.original_context_size.width
+            || size.height > self.original_context_size.height {
+            panic!("Can't grow a GLContext (yet)");
+        } else {
+            // Right now we just crop the viewport, it will do the job
+            self.size = size;
+            gl::viewport(0, 0, size.width, size.height);
+            unsafe { gl::Scissor(0, 0, size.width, size.height); }
+        }
     }
 
     fn init(&mut self) {
         self.gl_context.make_current().unwrap();
     }
-
 }
