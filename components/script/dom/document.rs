@@ -1162,8 +1162,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             if root.r().namespace() == &ns!(SVG) && root.r().local_name() == &atom!("svg") {
                 // Step 1.
                 NodeCast::from_ref(root.r()).child_elements().find(|node| {
-                    node.root().r().namespace() == &ns!(SVG) &&
-                    node.root().r().local_name() == &atom!("title")
+                    let node = node.root();
+                    node.r().namespace() == &ns!(SVG) &&
+                    node.r().local_name() == &atom!("title")
                 }).map(NodeCast::from_temporary)
             } else {
                 // Step 2.
@@ -1193,13 +1194,14 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         let elem = if root.r().namespace() == &ns!(SVG) &&
                        root.r().local_name() == &atom!("svg") {
             let elem = NodeCast::from_ref(root.r()).child_elements().find(|node| {
-                node.root().r().namespace() == &ns!(SVG) &&
-                node.root().r().local_name() == &atom!("title")
+                let node = node.root();
+                node.r().namespace() == &ns!(SVG) &&
+                node.r().local_name() == &atom!("title")
             });
             match elem {
                 Some(elem) => NodeCast::from_temporary(elem),
                 None => {
-                    let name = QualName::new(ns!(HTML), atom!("title"));
+                    let name = QualName::new(ns!(SVG), atom!("title"));
                     let elem = Element::create(name, None, self,
                                                ElementCreator::ScriptCreated);
                     NodeCast::from_ref(root.r())
@@ -1218,7 +1220,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                         Some(head) => {
                             let name = QualName::new(ns!(HTML), atom!("title"));
                             let elem = Element::create(name, None, self,
-                                                        ElementCreator::ScriptCreated);
+                                                       ElementCreator::ScriptCreated);
                             NodeCast::from_ref(head.root().r())
                                      .AppendChild(NodeCast::from_ref(elem.root().r()))
                                      .unwrap()
