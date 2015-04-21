@@ -1222,10 +1222,6 @@ pub trait BlockFlowDisplayListBuilding {
     fn build_display_list_for_block(&mut self,
                                     display_list: Box<DisplayList>,
                                     layout_context: &LayoutContext);
-    fn create_stacking_context(&self,
-                               display_list: Box<DisplayList>,
-                               layer: Option<Arc<PaintLayer>>)
-                               -> Arc<StackingContext>;
 }
 
 impl BlockFlowDisplayListBuilding for BlockFlow {
@@ -1268,8 +1264,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                background_border_level);
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            DisplayListBuildingResult::StackingContext(self.create_stacking_context(display_list,
-                                                                                    None))
+            DisplayListBuildingResult::StackingContext(create_stacking_context(&self.fragment, &self.base, display_list, None))
         } else {
             DisplayListBuildingResult::Normal(display_list)
         }
@@ -1286,9 +1281,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 !self.base.flags.contains(NEEDS_LAYER) {
             // We didn't need a layer.
             self.base.display_list_building_result =
-                DisplayListBuildingResult::StackingContext(self.create_stacking_context(
-                        display_list,
-                        None));
+                DisplayListBuildingResult::StackingContext(create_stacking_context(&self.fragment, &self.base, display_list, None));
             return
         }
 
@@ -1301,10 +1294,10 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         let transparent = color::transparent();
         let stacking_context =
-            self.create_stacking_context(display_list,
-                                         Some(Arc::new(PaintLayer::new(self.layer_id(0),
-                                                                       transparent,
-                                                                       scroll_policy))));
+            create_stacking_context(&self.fragment, &self.base, display_list,
+                                    Some(Arc::new(PaintLayer::new(self.layer_id(0),
+                                                                  transparent,
+                                                                  scroll_policy))));
         self.base.display_list_building_result =
             DisplayListBuildingResult::StackingContext(stacking_context)
     }
@@ -1318,8 +1311,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         display_list.form_float_pseudo_stacking_context();
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            DisplayListBuildingResult::StackingContext(self.create_stacking_context(display_list,
-                                                                                    None))
+            DisplayListBuildingResult::StackingContext(create_stacking_context(&self.fragment, &self.base, display_list, None))
         } else {
             DisplayListBuildingResult::Normal(display_list)
         }
@@ -1340,14 +1332,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                      BackgroundAndBorderLevel::Block);
         }
     }
-
-    fn create_stacking_context(&self,
-                               display_list: Box<DisplayList>,
-                               layer: Option<Arc<PaintLayer>>)
-                               -> Arc<StackingContext> {
-        create_stacking_context(&self.fragment, &self.base, display_list, layer)
-    }
-
 }
 
 pub trait InlineFlowDisplayListBuilding {
