@@ -2359,7 +2359,8 @@ class CGCallGenerator(CGThing):
 
         if isFallible:
             if static:
-                glob = ""
+                glob = "        let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());\n"\
+                       "        let global = global.root();\n"
             else:
                 glob = "        let global = global_object_for_js_object(this.r().reflector().get_jsobject());\n"\
                        "        let global = global.root();\n"
