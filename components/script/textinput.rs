@@ -6,6 +6,8 @@
 
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use dom::bindings::js::JSRef;
+use msg::constellation_msg::ConstellationChan;
+use msg::constellation_msg::Msg as ConstellationMsg;
 use dom::keyboardevent::KeyboardEvent;
 use util::str::DOMString;
 
@@ -13,6 +15,7 @@ use std::borrow::ToOwned;
 use std::cmp::{min, max};
 use std::default::Default;
 use std::num::SignedInt;
+use std::sync::mpsc::channel;
 
 #[derive(Copy, PartialEq)]
 pub enum Selection {
@@ -40,6 +43,7 @@ pub struct TextInput {
     selection_begin: Option<TextPoint>,
     /// Is this a multiline input?
     multiline: bool,
+    constellation_channel: Option<ConstellationChan>
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
@@ -87,12 +91,13 @@ fn is_control_key(event: JSRef<KeyboardEvent>) -> bool {
 
 impl TextInput {
     /// Instantiate a new text input control
-    pub fn new(lines: Lines, initial: DOMString) -> TextInput {
+    pub fn new(lines: Lines, initial: DOMString, cc: Option<ConstellationChan>) -> TextInput {
         let mut i = TextInput {
             lines: vec!(),
             edit_point: Default::default(),
             selection_begin: None,
             multiline: lines == Lines::Multiple,
+            constellation_channel: cc,
         };
         i.set_content(initial);
         i
@@ -116,6 +121,15 @@ impl TextInput {
             self.selection_begin = Some(self.edit_point);
         }
         self.replace_selection(ch.to_string());
+    }
+
+    /// Insert a string at the current editing point
+    fn insert_string(&mut self, s: &str) {
+        // it looks like this could be made performant by avoiding some redundant
+        //  selection-related checks, but use the simple implementation for now
+        for ch in s.chars() {
+            self.insert_char(ch);
+        }
     }
 
     pub fn get_sorted_selection(&self) -> (TextPoint, TextPoint) {
@@ -282,10 +296,22 @@ impl TextInput {
                 self.select_all();
                 KeyReaction::Nothing
             },
+            "v" if is_control_key(event) => {
+                let (tx, rx) = channel();
+                let mut contents = None;
+                if let Some(ref cc) = self.constellation_channel {
+                    cc.0.send(ConstellationMsg::GetClipboardContents(tx)).unwrap();
+                    contents = Some(rx.recv().unwrap());
+                }
+                if let Some(contents) = contents {
+                    self.insert_string(contents.as_slice());
+                }
+                KeyReaction::DispatchInput
+            },
             // printable characters have single-character key values
             c if c.len() == 1 => {
                 self.insert_char(c.char_at(0));
-                return KeyReaction::DispatchInput;
+                KeyReaction::DispatchInput
             }
             "Space" => {
                 self.insert_char(' ');

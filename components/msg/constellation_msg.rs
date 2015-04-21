@@ -229,6 +229,8 @@ pub enum Msg {
     GetRootPipeline(Sender<Option<PipelineId>>),
     /// Notifies the constellation that this frame has received focus.
     FocusMsg(PipelineId),
+    /// Requests that the constellation retrieve the current contents of the clipboard
+    GetClipboardContents(Sender<String>),
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events

@@ -27,6 +27,7 @@ use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId}
 use dom::node::{document_from_node, window_from_node};
 use textinput::{TextInput, Lines, KeyReaction};
 use dom::virtualmethods::VirtualMethods;
+use dom::window::WindowHelpers;
 use script_task::{ScriptMsg, Runnable};
 
 use util::str::DOMString;
@@ -90,9 +91,10 @@ static DEFAULT_ROWS: u32 = 2;
 
 impl HTMLTextAreaElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTextAreaElement {
+        let chan = document.window().root().r().constellation_chan();
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTextAreaElement, localName, prefix, document),
-            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned())),
+            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned(), Some(chan))),
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),
             value_changed: Cell::new(false),

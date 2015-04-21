@@ -29,6 +29,7 @@ use dom::htmlformelement::{SubmittedFrom, ResetFrom};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use dom::window::WindowHelpers;
 use textinput::TextInput;
 use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing};
 use textinput::Lines::Single;
@@ -109,6 +110,7 @@ static DEFAULT_INPUT_SIZE: u32 = 20;
 
 impl HTMLInputElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLInputElement {
+        let chan = document.window().root().r().constellation_chan();
         HTMLInputElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLInputElement, localName, prefix, document),
             input_type: Cell::new(InputType::InputText),
@@ -118,7 +120,7 @@ impl HTMLInputElement {
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned())),
+            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned(), Some(chan))),
             activation_state: DOMRefCell::new(InputActivationState::new())
         }
     }
