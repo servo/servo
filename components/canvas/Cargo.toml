@@ -13,17 +13,11 @@ git = "https://github.com/servo/rust-azure"
 [dependencies.cssparser]
 git = "https://github.com/servo/rust-cssparser"
 
-[dependencies.compositing]
-path = "../compositing"
-
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
 [dependencies.gleam]
 git = "https://github.com/servo/gleam"
-
-[dependencies.msg]
-path = "../msg"
 
 [dependencies.util]
 path = "../util"
