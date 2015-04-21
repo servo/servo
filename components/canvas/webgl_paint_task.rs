@@ -13,7 +13,7 @@ use util::task::spawn_named;
 use std::borrow::ToOwned;
 use std::sync::mpsc::{channel, Sender};
 use util::vec::byte_swap;
-use offscreen_gl_context::{GLContext, GLContextMethods};
+use offscreen_gl_context::{GLContext, GLContextAttributes};
 
 use glutin::{HeadlessRendererBuilder};
 
@@ -28,7 +28,7 @@ unsafe impl Send for WebGLPaintTask {}
 
 impl WebGLPaintTask {
     fn new(size: Size2D<i32>) -> Result<WebGLPaintTask, &'static str> {
-        let context = try!(GLContext::create_offscreen(size));
+        let context = try!(GLContext::create_offscreen(size, GLContextAttributes::default()));
         Ok(WebGLPaintTask {
             size: size,
             gl_context: context

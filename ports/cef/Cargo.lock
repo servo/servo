@@ -60,12 +60,15 @@ name = "canvas"
 version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
+ "compositing 0.0.1",
  "cssparser 0.2.0 (git+https://github.com/servo/rust-cssparser)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
- "glutin 0.0.7 (git+https://github.com/servo/glutin?branch=servo)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "msg 0.0.1",
+ "offscreen_gl_context 0.0.1 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
+ "skia 0.0.20130412 (git+https://github.com/servo/skia?branch=upstream-2014-06-16)",
  "util 0.0.1",
 ]
 
@@ -674,6 +677,18 @@ dependencies = [
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
+]
+
+[[package]]
+name = "offscreen_gl_context"
+version = "0.0.1"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#aa838c2e4e5a47f4a3b613292ca4d5c196965b8e"
+dependencies = [
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
 
 [[package]]

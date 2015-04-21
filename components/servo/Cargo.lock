@@ -678,7 +678,7 @@ dependencies = [
 [[package]]
 name = "offscreen_gl_context"
 version = "0.0.1"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#5771e09599e4d34c20af3ca776a36f0a89e4944f"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#aa838c2e4e5a47f4a3b613292ca4d5c196965b8e"
 dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
