@@ -41,7 +41,10 @@ pub struct WebSocket {
     url: DOMString,
     global: GlobalField,
 	ready_state: Cell<WebSocketRequestState>
+<<<<<<< HEAD
     ready_state: Cell<WebsocketRequestState>
+=======
+>>>>>>> 90% complete on close function. Reverted some changes to dispatch_open
 }
 
 impl WebSocket {
@@ -152,16 +155,24 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
 	match self.ready_state.get() { //Returns the value of the cell
 	   WebSocketRequestState::Closing => {} //Do nothing
 	   WebSocketRequestState::Closed => {} //Do nothing
-	   //To do:
-	   //How to detect not yet established - Receiving state?
-	      //Fail the WebSocket connection - how? What does this really mean for the websocket object?
-	      //Set readyState to closing
-	   //
-	   //How to detect not yet been started - Unsent state?
+	   WebSocketRequestState::Connecting => { //Connection is not yet established
+		/*By setting the state to closing, the open function
+		  will attempt to close the websocket*/
+		self.ready_state.set(WebSocketRequestState::Closing); //Set state to closing
+	   }
+	   WebSocketRequestState::Open => {//Closing handshake not started - still in open
+
+		//Send a close task
+		let global_root = self.global.root();
+      		let addr: Trusted<WebSocket> = Trusted::new(global_root.r().get_cx(), self, global_root.r().script_chan().clone());
+	    	let close_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Close);
+		global_root.r().script_chan().send(ScriptMsg::RunnableMsg(close_task)).unwrap();
+
 	      //Start the Websocket closing handshake - how? What does this really mean for the websocket object?
 	      //if code.is_some - WebSocket status code in close message to be the same as code
 	      //if reason.is_some - Websocket close message reason to be same as reason
-	   _ => { self.ready_state.set(WebSocketRequestState::Closing); }
+	   }
+	   //_ => { self.ready_state.set(WebSocketRequestState::Closing); } //Unreachable - Uncomment if you add more states to WebSocketRequestState
 	}
 	return Err(Error::Syntax); //Throw SyntaxError and abort
     }
@@ -202,6 +213,9 @@ impl WebSocketTaskHandler {
         event.r().fire(target);
         println!("Fired event.");
     }
+    fn dispatch_close(&self) {
+    	println!("Trying to close.");
+    }
 }
 
 impl Runnable for WebSocketTaskHandler {
@@ -209,6 +223,9 @@ impl Runnable for WebSocketTaskHandler {
         match self.task {
             WebSocketTask::Open => {
                 self.dispatch_open();
+            }
+            WebSocketTask::Close => {
+                self.dispatch_close();
             }
         }
     }
