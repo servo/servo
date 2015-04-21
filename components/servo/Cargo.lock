@@ -62,6 +62,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "glutin 0.0.7 (git+https://github.com/servo/glutin?branch=servo)",
  "offscreen_gl_context 0.0.1 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
  "util 0.0.1",
 ]

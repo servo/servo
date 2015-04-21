@@ -25,5 +25,10 @@ path = "../util"
 [dependencies.gfx]
 path = "../gfx"
 
+[dependencies.glutin]
+git = "https://github.com/servo/glutin"
+branch = "servo"
+features = ["headless"]
+
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
