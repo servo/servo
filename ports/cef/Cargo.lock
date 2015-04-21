@@ -1059,7 +1059,7 @@ dependencies = [
 [[package]]
 name = "xlib"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-xlib#715e6f9bb3dfcd925996caedeb77aefb31c2bd65"
+source = "git+https://github.com/servo/rust-xlib#1a0f3d48fbebf96e2d1bf83ac71309b27f49e0c7"
 dependencies = [
  "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
