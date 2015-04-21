@@ -15,12 +15,16 @@ use dom::bindings::js::{Temporary, JSRef};
 use dom::bindings::utils::reflect_dom_object;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use util::str::DOMString;
+use script_task::Runnable;
+use script_task::ScriptMsg;
+use dom::bindings::refcounted::Trusted;
 
 use websocket::{Message, Sender, Receiver};
 use websocket::client::request::Url;
 use websocket::Client;
 use std::cell::Cell;
 use std::borrow::ToOwned;
+use std::sync::mpsc::channel;
 
 #[derive(PartialEq, Copy)]
 #[jstraceable]
@@ -36,13 +40,15 @@ pub struct WebSocket {
     eventtarget: EventTarget,
     url: DOMString,
     global: GlobalField,
-	ready_state: Cell<WebSocketRequestState>
+	ready_state: Cell<WebSocketRequestState>,
+    THandler: Box<WebSocketTaskHandler>
 }
 
 impl WebSocket {
     pub fn new_inherited(global: GlobalRef, url: DOMString) -> WebSocket {
         println!("Creating websocket...");
 	let copied_url = url.clone();
+	let (tx1,rx1) = channel();
 	WebSocket {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WebSocket),
             url: url,
@@ -113,21 +119,12 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
    }
 
    fn Open(self) -> ErrorResult {
-    	println!("Trying to connect.");
-		let parsed_url = Url::parse(self.url.as_slice()).unwrap();
-   		let request = Client::connect(parsed_url).unwrap();
-		let response = request.send().unwrap();
-		response.validate().unwrap();
-		println!("Successful connection.");
-    	let global = self.global.root();
-        let event = Event::new(global.r(),
-                               "open".to_owned(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::Cancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        event.r().fire(target);
-        println!("Fired event.");
-		Ok(())
+   		let global_root = self.global.root();
+        let addr: Trusted<WebSocket> = Trusted::new(global_root.r().get_cx(), self, global_root.r().script_chan().clone()); 
+    	//let open_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Open);
+	self.THandler = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Open);
+        global_root.r().script_chan().send(ScriptMsg::RunnableMsg(self.THandler)).unwrap();
+   		Ok(())
     }
 
     fn Close(self, code: Option<u16>, reason: Option<DOMString>) -> Fallible<()>{
@@ -141,27 +138,80 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
 	   }
 	}
 	if(reason.is_some()){ //reason defined
-	   //FIX ME
 	   if(reason.unwrap().as_bytes().len() > 123) //reason cannot be larger than 123 bytes
 	   {
 		return Err(Error::Syntax); //Throw SyntaxError and abort
 	   }
 	}
-	//TODO:
+	
 	match self.ready_state.get() { //Returns the value of the cell
 	   WebSocketRequestState::Closing => {} //Do nothing
 	   WebSocketRequestState::Closed => {} //Do nothing
-	   //To do:
-	   //How to detect not yet established - Receiving state?
-	      //Fail the WebSocket connection - how? What does this really mean for the websocket object?
-	      //Set readyState to closing
-	   //
-	   //How to detect not yet been started - Unsent state?
+	   WebSocketRequestState::Connecting => { //Connection is not yet established
+		/*By setting the state to closing, the open function
+		  will attempt to close the websocket*/
+		self.ready_state.set(WebSocketRequestState::Closing); //Set state to closing
+	   }
+	   WebSocketRequestState::Open => {//Closing handshake not started
+	      	let global_root = self.global.root();
+      		let addr: Trusted<WebSocket> = Trusted::new(global_root.r().get_cx(), self, global_root.r().script_chan().clone());
 	      //Start the Websocket closing handshake - how? What does this really mean for the websocket object?
 	      //if code.is_some - WebSocket status code in close message to be the same as code
 	      //if reason.is_some - Websocket close message reason to be same as reason
+	   }
 	   _ => { self.ready_state.set(WebSocketRequestState::Closing); }
 	}
 	return Err(Error::Syntax); //Throw SyntaxError and abort
     }
 }
+
+
+pub enum WebSocketTask {
+    Open,
+    Close,
+}
+
+pub struct WebSocketTaskHandler {
+    addr: Trusted<WebSocket>,
+    task: WebSocketTask,
+}
+
+impl WebSocketTaskHandler {
+    pub fn new(addr: Trusted<WebSocket>, task: WebSocketTask) -> WebSocketTaskHandler {
+        WebSocketTaskHandler {
+            addr: addr,
+            task: task,
+        }
+    }
+
+    fn dispatch_open(&self) {
+    	println!("Trying to connect.");
+    	let ws = self.addr.to_temporary().root();
+		let parsed_url = Url::parse(ws.r().url.as_slice()).unwrap();
+   		let request = Client::connect(parsed_url).unwrap();
+		let response = request.send().unwrap();
+		response.validate().unwrap();
+		println!("Successful connection.");
+		//TODO: Check to see if ready_state is Closing - means we're trying to fail the websocket
+		// if so, call the closing method and return (don't set any states - should be in closed state)
+    	let global = ws.r().global.root();
+        let event = Event::new(global.r(),
+                               "open".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::Cancelable).root();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws.r());
+        event.r().fire(target);
+        println!("Fired event.");
+    }
+}
+
+impl Runnable for WebSocketTaskHandler {
+    fn handler(self: Box<WebSocketTaskHandler>) {
+        match self.task {
+            WebSocketTask::Open => {
+                self.dispatch_open();
+            }
+        }
+    }
+}
+

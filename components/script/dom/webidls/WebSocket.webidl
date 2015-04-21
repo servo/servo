@@ -19,6 +19,7 @@ interface WebSocket : EventTarget {
     attribute EventHandler onopen;
     attribute EventHandler onerror;
     attribute EventHandler onclose;
+    
     [Throws] void Open();
     //readonly attribute DOMString extensions;
     //readonly attribute DOMString protocol;
