@@ -183,20 +183,19 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
             }
             "webgl" | "experimental-webgl" => {
                 if self.context_2d.get().is_some() {
-                    println!("Trying to get a WebGL context for a canvas with an already initialized 2d context");
+                    debug!("Trying to get a WebGL context for a canvas with an already initialized 2d context");
                     return None;
                 }
 
                 if !self.context_webgl.get().is_some() {
                     let window = window_from_node(self).root();
-                    let (w, h) = (self.width.get() as i32, self.height.get() as i32);
-                    self.context_webgl.assign(WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, Size2D(w, h)))
+                    let size = self.get_size();
+
+                    self.context_webgl.assign(WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, size))
                 }
 
-                match self.context_webgl.get() {
-                    Some(ctx) => Some(CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(Unrooted::from_temporary(ctx))),
-                    None => None
-                }
+                self.context_webgl.get().map( |ctx|
+                    CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(Unrooted::from_temporary(ctx)))
             }
             _ => None
         }

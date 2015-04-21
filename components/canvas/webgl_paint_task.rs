@@ -87,8 +87,8 @@ impl WebGLPaintTask {
 
     fn recreate(&mut self, size: Size2D<i32>) {
         // TODO(ecoal95): GLContext should support a resize() method
-        if size.width > self.original_context_size.width
-            || size.height > self.original_context_size.height {
+        if size.width > self.original_context_size.width ||
+           size.height > self.original_context_size.height {
             panic!("Can't grow a GLContext (yet)");
         } else {
             // Right now we just crop the viewport, it will do the job

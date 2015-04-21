@@ -40,7 +40,7 @@ impl WebGLRenderingContext {
             Ok(ctx) => Some(reflect_dom_object(box ctx, global,
                                                WebGLRenderingContextBinding::Wrap)),
             Err(msg) => {
-                println!("Couldn't create WebGLRenderingContext: {}", msg);
+                error!("Couldn't create WebGLRenderingContext: {}", msg);
                 None
             }
         }
