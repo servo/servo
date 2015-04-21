@@ -40,15 +40,13 @@ pub struct WebSocket {
     eventtarget: EventTarget,
     url: DOMString,
     global: GlobalField,
-	ready_state: Cell<WebSocketRequestState>,
-    THandler: Box<WebSocketTaskHandler>
+	ready_state: Cell<WebSocketRequestState>
 }
 
 impl WebSocket {
     pub fn new_inherited(global: GlobalRef, url: DOMString) -> WebSocket {
         println!("Creating websocket...");
 	let copied_url = url.clone();
-	let (tx1,rx1) = channel();
 	WebSocket {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WebSocket),
             url: url,
@@ -121,9 +119,8 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
    fn Open(self) -> ErrorResult {
    		let global_root = self.global.root();
         let addr: Trusted<WebSocket> = Trusted::new(global_root.r().get_cx(), self, global_root.r().script_chan().clone()); 
-    	//let open_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Open);
-	self.THandler = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Open);
-        global_root.r().script_chan().send(ScriptMsg::RunnableMsg(self.THandler)).unwrap();
+    	let open_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Open);
+        global_root.r().script_chan().send(ScriptMsg::RunnableMsg(open_task)).unwrap();
    		Ok(())
     }
 
@@ -152,14 +149,19 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
 		  will attempt to close the websocket*/
 		self.ready_state.set(WebSocketRequestState::Closing); //Set state to closing
 	   }
-	   WebSocketRequestState::Open => {//Closing handshake not started
-	      	let global_root = self.global.root();
+	   WebSocketRequestState::Open => {//Closing handshake not started - still in open
+
+		//Send a close task
+		let global_root = self.global.root();
       		let addr: Trusted<WebSocket> = Trusted::new(global_root.r().get_cx(), self, global_root.r().script_chan().clone());
+	    	let close_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Close);
+		global_root.r().script_chan().send(ScriptMsg::RunnableMsg(close_task)).unwrap();
+
 	      //Start the Websocket closing handshake - how? What does this really mean for the websocket object?
 	      //if code.is_some - WebSocket status code in close message to be the same as code
 	      //if reason.is_some - Websocket close message reason to be same as reason
 	   }
-	   _ => { self.ready_state.set(WebSocketRequestState::Closing); }
+	   //_ => { self.ready_state.set(WebSocketRequestState::Closing); } //Unreachable - Uncomment if you add more states to WebSocketRequestState
 	}
 	return Err(Error::Syntax); //Throw SyntaxError and abort
     }
@@ -203,6 +205,9 @@ impl WebSocketTaskHandler {
         event.r().fire(target);
         println!("Fired event.");
     }
+    fn dispatch_close(&self) {
+    	println!("Trying to close.");
+    }
 }
 
 impl Runnable for WebSocketTaskHandler {
@@ -210,6 +215,9 @@ impl Runnable for WebSocketTaskHandler {
         match self.task {
             WebSocketTask::Open => {
                 self.dispatch_open();
+            }
+            WebSocketTask::Close => {
+                self.dispatch_close();
             }
         }
     }
