@@ -345,6 +345,21 @@ impl WebSocketTaskHandler {
     }
     fn dispatch_close(&self) {
     	println!("Trying to close.");
+	let ws = self.addr.to_temporary().root();
+	let reason = ws.r().reason;
+	let code = ws.r().code;
+	//TODO: tx_clone = tx.clone()
+	// Do we need a global tx and rx?
+	// tx_clone.send(Message::Close(code,reason))
+	println!("Closed the connection.");
+    	let global = ws.r().global.root();
+        let event = Event::new(global.r(),
+                               "close".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::Cancelable).root();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws.r());
+        event.r().fire(target);
+        println!("Fired close event.");
     }
 }
 
