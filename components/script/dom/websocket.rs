@@ -40,11 +40,17 @@ pub struct WebSocket {
     eventtarget: EventTarget,
     url: DOMString,
     global: GlobalField,
+<<<<<<< HEAD
 	ready_state: Cell<WebSocketRequestState>
 <<<<<<< HEAD
     ready_state: Cell<WebsocketRequestState>
 =======
 >>>>>>> 90% complete on close function. Reverted some changes to dispatch_open
+=======
+	ready_state: Cell<WebSocketRequestState>,
+    code: Option<u16>,
+    reason: Option<DOMString>
+>>>>>>> Close compile issue again
 }
 
 impl WebSocket {
@@ -55,7 +61,9 @@ impl WebSocket {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WebSocket),
             url: url,
             global: GlobalField::from_rooted(&global),
-		ready_state: Cell::new(WebSocketRequestState::Connecting)
+		ready_state: Cell::new(WebSocketRequestState::Connecting),
+	    code: None,
+	    reason: None
         }
 
     }
@@ -161,20 +169,24 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
 		self.ready_state.set(WebSocketRequestState::Closing); //Set state to closing
 	   }
 	   WebSocketRequestState::Open => {//Closing handshake not started - still in open
+		//Start the closing by setting the code and reason if they exist
+		if(code.is_some()){
+		    self.code = code;
+		}
+		if(reason.is_some()){
+		    self.reason = reason;
+		}
+		self.ready_state.set(WebSocketRequestState::Closing); //Set state to closing
 
-		//Send a close task
+		//Sent a close task
 		let global_root = self.global.root();
       		let addr: Trusted<WebSocket> = Trusted::new(global_root.r().get_cx(), self, global_root.r().script_chan().clone());
-	    	let close_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Close);
+	    	let close_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Close());
 		global_root.r().script_chan().send(ScriptMsg::RunnableMsg(close_task)).unwrap();
-
-	      //Start the Websocket closing handshake - how? What does this really mean for the websocket object?
-	      //if code.is_some - WebSocket status code in close message to be the same as code
-	      //if reason.is_some - Websocket close message reason to be same as reason
 	   }
 	   //_ => { self.ready_state.set(WebSocketRequestState::Closing); } //Unreachable - Uncomment if you add more states to WebSocketRequestState
 	}
-	return Err(Error::Syntax); //Throw SyntaxError and abort
+	Ok(())
     }
 }
 
@@ -211,10 +223,25 @@ impl WebSocketTaskHandler {
                                EventCancelable::Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws.r());
         event.r().fire(target);
-        println!("Fired event.");
+        println!("Fired open event.");
     }
     fn dispatch_close(&self) {
     	println!("Trying to close.");
+	let ws = self.addr.to_temporary().root();
+	let reason = ws.r().reason;
+	let code = ws.r().code;
+	//TODO: tx_clone = tx.clone()
+	// Do we need a global tx and rx?
+	// tx_clone.send(Message::Close(code,reason))
+	println!("Closed the connection.");
+    	let global = ws.r().global.root();
+        let event = Event::new(global.r(),
+                               "close".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::Cancelable).root();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws.r());
+        event.r().fire(target);
+        println!("Fired close event.");
     }
 }
 
