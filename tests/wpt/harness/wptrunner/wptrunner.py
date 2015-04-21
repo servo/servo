@@ -134,6 +134,7 @@ def run_tests(config, test_paths, product, **kwargs):
         with env.TestEnvironment(test_paths,
                                  ssl_env,
                                  kwargs["pause_after_test"],
+                                 kwargs["debug_info"],
                                  env_options) as test_environment:
             try:
                 test_environment.ensure_started()
@@ -180,7 +181,7 @@ def run_tests(config, test_paths, product, **kwargs):
                                       executor_kwargs,
                                       kwargs["pause_after_test"],
                                       kwargs["pause_on_unexpected"],
-                                      kwargs["debug_args"]) as manager_group:
+                                      kwargs["debug_info"]) as manager_group:
                         try:
                             manager_group.run(test_type, test_loader.tests)
                         except KeyboardInterrupt:

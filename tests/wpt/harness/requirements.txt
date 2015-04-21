@@ -1,5 +1,4 @@
 html5lib >= 0.99
 mozinfo >= 0.7
 mozlog >= 2.8
-# Unfortunately, just for gdb flags
-mozrunner >= 6.1
+mozdebug >= 0.1
