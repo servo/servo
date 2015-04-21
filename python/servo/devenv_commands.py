@@ -31,6 +31,15 @@ class MachCommands(CommandBase):
         return subprocess.call(['cargo'] + params,
                                env=self.build_env())
 
+    @Command('cargo-update',
+             description='Same as update-cargo',
+             category='devenv')
+    @CommandArgument(
+        'params', default=None, nargs='...',
+        help='Command-line arguments to be passed through to cargo update')
+    def cargo_update(self, params=None):
+        self.update_cargo(params)
+
     @Command('update-cargo',
              description='Update Cargo dependencies',
              category='devenv')
