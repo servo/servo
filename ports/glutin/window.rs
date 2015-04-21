@@ -255,6 +255,45 @@ impl Window {
         self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(event));
     }
 
+    #[cfg(not(target_os="linux"))]
+    fn handle_next_event(&self) -> bool {
+        let event = self.window.wait_events().next().unwrap();
+        self.handle_window_event(event)
+    }
+
+    #[cfg(target_os="linux")]
+    fn handle_next_event(&self) -> bool {
+        use std::old_io::timer::sleep;
+        use std::time::duration::Duration;
+
+        // TODO(gw): This is an awful hack to work around the
+        // broken way we currently call X11 from multiple threads.
+        //
+        // On some (most?) X11 implementations, blocking here
+        // with XPeekEvent results in the paint task getting stuck
+        // in XGetGeometry randomly. When this happens the result
+        // is that until you trigger the XPeekEvent to return
+        // (by moving the mouse over the window) the paint task
+        // never completes and you don't see the most recent
+        // results.
+        //
+        // For now, poll events and sleep for ~1 frame if there
+        // are no events. This means we don't spin the CPU at
+        // 100% usage, but is far from ideal!
+        //
+        // See https://github.com/servo/servo/issues/5780
+        //
+        match self.window.poll_events().next() {
+            Some(event) => {
+                self.handle_window_event(event)
+            }
+            None => {
+                sleep(Duration::milliseconds(16));
+                false
+            }
+        }
+    }
+
     pub fn wait_events(&self) -> WindowEvent {
         {
             let mut event_queue = self.event_queue.borrow_mut();
@@ -276,8 +315,7 @@ impl Window {
                 }
             }
         } else {
-            let event = self.window.wait_events().next().unwrap();
-            close_event = self.handle_window_event(event);
+            close_event = self.handle_next_event();
         }
 
         if close_event || self.window.is_closed() {
