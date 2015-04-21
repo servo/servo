@@ -201,6 +201,7 @@ pub mod canvasgradient;
 pub mod canvaspattern;
 pub mod canvasrenderingcontext2d;
 pub mod characterdata;
+pub mod css;
 pub mod cssstyledeclaration;
 pub mod domrect;
 pub mod domrectlist;
