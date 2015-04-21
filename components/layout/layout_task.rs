@@ -454,7 +454,7 @@ impl LayoutTask {
     /// used when an image arrives asynchronously and triggers a relayout and
     /// repaint.
     /// TODO: In the future we could detect if the image size hasn't changed
-    /// since last time and early out on the layout.
+    /// since last time and avoid performing a complete layout pass.
     fn repaint<'a>(&'a self,
                    possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) -> bool {
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);

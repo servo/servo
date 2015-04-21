@@ -335,7 +335,7 @@ impl ImageFragmentInfo {
                     image.width
                 } as isize)
             }
-            None => Au(0)
+            None => Au::from_px(300)
         }
     }
 
@@ -349,7 +349,7 @@ impl ImageFragmentInfo {
                     image.height
                 } as isize)
             }
-            None => Au(0)
+            None => Au::from_px(300)
         }
     }
 

@@ -162,15 +162,15 @@ impl<'a> LayoutContext<'a> {
                     (_, true) => {
                         let (sync_tx, sync_rx) = channel();
                         self.shared.image_cache_task.request_image(url,
-                                                                     ImageCacheChan(sync_tx),
-                                                                     None);
+                                                                   ImageCacheChan(sync_tx),
+                                                                   None);
                         sync_rx.recv().unwrap().image
                     }
                     // Not yet requested, async mode - request image from the cache
                     (ImageState::NotRequested, false) => {
                         self.shared.image_cache_task.request_image(url,
-                                                                     self.shared.image_cache_sender.clone(),
-                                                                     None);
+                                                                   self.shared.image_cache_sender.clone(),
+                                                                   None);
                         None
                     }
                     // Image has been requested, is still pending. Return no image
