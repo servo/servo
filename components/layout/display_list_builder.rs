@@ -1345,7 +1345,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
         debug!("Flow: building display list for {} inline fragments", self.fragments.len());
 
         let mut display_list = box DisplayList::new();
-
+        let mut has_stacking_context = false;
         for fragment in self.fragments.fragments.iter_mut() {
             fragment.build_display_list(&mut *display_list,
                                         layout_context,
@@ -1358,6 +1358,8 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                             .relative_containing_block_mode,
                                         BackgroundAndBorderLevel::Content,
                                         &self.base.clip);
+
+            has_stacking_context = fragment.establishes_stacking_context();
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
                     let block_flow = &mut *block_flow.flow_ref;
@@ -1378,7 +1380,15 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                                              self.fragments.fragments[0].node);
         }
 
-        self.base.display_list_building_result = DisplayListBuildingResult::Normal(display_list);
+        if has_stacking_context {
+            self.base.display_list_building_result =
+                DisplayListBuildingResult::StackingContext(create_stacking_context(&self.fragments.fragments[0],
+                                                                                   &self.base,
+                                                                                   display_list,
+                                                                                   None));
+        } else {
+            self.base.display_list_building_result = DisplayListBuildingResult::Normal(display_list);
+        }
 
         if opts::get().validate_display_list_geometry {
             self.base.validate_display_list_geometry();
