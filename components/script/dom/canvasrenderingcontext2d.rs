@@ -454,12 +454,19 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
     fn Fill(self, _: CanvasWindingRule) {
+        // TODO: Process winding rule
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Fill)).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
     fn Stroke(self) {
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Stroke)).unwrap();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
+    fn Clip(self, _: CanvasWindingRule) {
+        // TODO: Process winding rule
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Clip)).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
