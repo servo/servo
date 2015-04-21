@@ -12,7 +12,7 @@
 
 use azure::azure_hl::Color;
 use block::BlockFlow;
-use canvas::canvas_paint_task::CanvasMsg::SendPixelContents;
+use canvas::canvas_msg::{CanvasMsg, CanvasCommonMsg};
 use context::LayoutContext;
 use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
 use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo};
@@ -1004,7 +1004,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 let (sender, receiver) = channel::<Vec<u8>>();
                 let canvas_data = match canvas_fragment_info.renderer {
                     Some(ref renderer) =>  {
-                        renderer.lock().unwrap().send(SendPixelContents(sender)).unwrap();
+                        renderer.lock().unwrap().send(CanvasMsg::Common(CanvasCommonMsg::SendPixelContents(sender))).unwrap();
                         receiver.recv().unwrap()
                     },
                     None => repeat(0xFFu8).take(width * height * 4).collect(),

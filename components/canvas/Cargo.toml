@@ -16,6 +16,17 @@ git = "https://github.com/servo/rust-cssparser"
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
+[dependencies.gleam]
+git = "https://github.com/servo/gleam"
+
+[dependencies.glutin]
+git = "https://github.com/servo/glutin"
+branch = "servo"
+features = ["headless"]
+
+[dependencies.msg]
+path = "../msg"
+
 [dependencies.util]
 path = "../util"
 
