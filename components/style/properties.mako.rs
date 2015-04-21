@@ -5497,9 +5497,7 @@ macro_rules! css_properties_accessors {
     ($macro_name: ident) => {
         $macro_name! {
             % for property in SHORTHANDS + LONGHANDS:
-                ## Servo internal CSS properties are not accessible.
-                ## FIXME: Add BinaryName WebIDL annotation (#4435).
-                % if property.derived_from is None and property.name != "float":
+                % if property.derived_from is None:
                     % if property != LONGHANDS[-1]:
                         [${property.camel_case}, Set${property.camel_case}, "${property.name}"],
                     % else:
