@@ -33,6 +33,7 @@ pub enum Canvas2dMsg {
     MoveTo(Point2D<f32>),
     PutImageData(Vec<u8>, Rect<f64>, Option<Rect<f64>>),
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
+    Rect(Rect<f32>),
     RestoreContext,
     SaveContext,
     StrokeRect(Rect<f32>),
