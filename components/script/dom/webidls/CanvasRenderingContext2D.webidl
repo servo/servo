@@ -171,7 +171,7 @@ interface CanvasPathMethods {
              unrestricted double radius);
 // NOT IMPLEMENTED  [LenientFloat] void arcTo(double x1, double y1, double x2, double y2, double radiusX, double radiusY, double rotation);
 
-  //void rect(double x, double y, double w, double h);
+  void rect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
 
   [Throws]
   void arc(double x, double y, double radius, double startAngle, double endAngle, optional boolean anticlockwise = false);
