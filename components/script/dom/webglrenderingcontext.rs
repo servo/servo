@@ -23,25 +23,32 @@ pub struct WebGLRenderingContext {
 
 impl WebGLRenderingContext {
     fn new_inherited(global: GlobalRef, canvas: JSRef<HTMLCanvasElement>, size: Size2D<i32>)
-                     -> WebGLRenderingContext {
-        WebGLRenderingContext {
+                     -> Result<WebGLRenderingContext, &'static str> {
+        let chan = try!(WebGLPaintTask::start(size));
+
+        Ok(WebGLRenderingContext {
             reflector_: Reflector::new(),
             global: GlobalField::from_rooted(&global),
-            renderer: WebGLPaintTask::start(size),
+            renderer: chan,
             canvas: JS::from_rooted(canvas),
-        }
+        })
     }
 
     pub fn new(global: GlobalRef, canvas: JSRef<HTMLCanvasElement>, size: Size2D<i32>)
-               -> Temporary<WebGLRenderingContext> {
-        reflect_dom_object(box WebGLRenderingContext::new_inherited(global, canvas, size),
-                           global, WebGLRenderingContextBinding::Wrap)
+               -> Option<Temporary<WebGLRenderingContext>> {
+        match WebGLRenderingContext::new_inherited(global, canvas, size) {
+            Ok(ctx) => Some(reflect_dom_object(box ctx, global,
+                                               WebGLRenderingContextBinding::Wrap)),
+            Err(msg) => {
+                error!("Couldn't create WebGLRenderingContext: {}", msg);
+                None
+            }
+        }
     }
 
     pub fn recreate(&self, size: Size2D<i32>) {
         self.renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
     }
-
 }
 
 #[unsafe_destructor]
@@ -72,4 +79,3 @@ impl LayoutCanvasWebGLRenderingContextHelpers for LayoutJS<WebGLRenderingContext
         (*self.unsafe_get()).renderer.clone()
     }
 }
-
