@@ -94,7 +94,7 @@ def check_whitespace(idx, line):
     if "\r" in line:
         yield (idx + 1, "CR on line")
 
-def check_whitespace_url_len(contents):
+def check_by_line(contents):
     lines = contents.splitlines(True)
     for idx, line in enumerate(lines):
         for error in itertools.chain(check_length(idx, line), check_whitespace(idx, line), check_whatwg_url(idx, line)):
@@ -137,7 +137,7 @@ def scan():
     all_files = collect_file_names(directories_to_check)
     files_to_check = filter(should_check, all_files)
 
-    checking_functions = [check_license, check_whitespace_url_len]
+    checking_functions = [check_license, check_by_line]
     errors = collect_errors_for_files(files_to_check, checking_functions)
 
     reftest_files = collect_file_names(reftest_directories)
