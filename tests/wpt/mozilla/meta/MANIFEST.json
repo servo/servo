@@ -71,6 +71,12 @@
             "url": "/_mozilla/mozilla/characterdata.html"
           }
         ],
+        "mozilla/child_reparenting.html": [
+          {
+            "path": "mozilla/child_reparenting.html",
+            "url": "/_mozilla/mozilla/child_reparenting.html"
+          }
+        ],
         "mozilla/collections.html": [
           {
             "path": "mozilla/collections.html",
