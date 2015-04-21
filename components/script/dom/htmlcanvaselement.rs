@@ -146,7 +146,6 @@ impl<'a> HTMLCanvasElementHelpers for JSRef<'a, HTMLCanvasElement> {
     fn is_valid(self) -> bool {
         self.height.get() != 0 && self.width.get() != 0
     }
-
 }
 
 impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
