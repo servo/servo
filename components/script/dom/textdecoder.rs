@@ -61,6 +61,30 @@ impl TextDecoder {
         };
         Ok(TextDecoder::new(global, encoding, options.fatal, options.ignoreBOM))
     }
+
+    // https://encoding.spec.whatwg.org/#concept-td-serialize
+    fn serialize(self, stream: Vec<u8>) -> USVString {
+        // Step 1
+        let output = Vec::new();
+        // Step 2
+        while(true) {
+            // Step 2.1, 2.4
+            let token = match stream.pop() {
+                None => return USVString(String::from_utf8(output).unwrap()),
+                Some(data) => data
+            };
+            // Step 2.2, 2.3
+            match self.encoding.name() {
+                "utf-8" | "utf-16be" | "utf-16le" if (!self.ignoreBOM && !self.BOMseen) => {
+                    self.BOMseen = true;
+                    if token != 0xFEFF {
+                        output.push(token)
+                    }
+                },
+                _ => output.push(token)
+            }
+        }
+    }
 }
 
 impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
