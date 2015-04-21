@@ -343,6 +343,9 @@ impl WebSocketTaskHandler {
         event.fire(target);
         println!("Fired close event.");
     }
+    fn dispatch_close(&self) {
+    	println!("Trying to close.");
+    }
 }
 
 impl Runnable for WebSocketTaskHandler {
