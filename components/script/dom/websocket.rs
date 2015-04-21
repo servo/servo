@@ -41,8 +41,8 @@ pub struct WebSocket {
     url: DOMString,
     global: GlobalField,
 	ready_state: Cell<WebSocketRequestState>,
-    code: Option<u16>,
-    reason: Option<DOMString>
+    failed: Cell<bool>
+    full: Cell<bool>
 }
 
 impl WebSocket {
@@ -54,8 +54,8 @@ impl WebSocket {
             url: url,
             global: GlobalField::from_rooted(&global),
 		ready_state: Cell::new(WebSocketRequestState::Connecting),
-	    code: None,
-	    reason: None
+	    failed: Cell::new(false)
+	    full: Cell::new(false)
         }
 
     }
@@ -72,6 +72,8 @@ impl WebSocket {
     	Ok(WebSocket::new(global, url))
     }
 	
+	//The send function needs to flag when full by using the following
+	//self.full.set(true)
 	/*fn send(self) -> ErrorResult {
 		 let tx_1 = self.tx.clone();
 		let send_loop = thread::scoped(move || {
@@ -150,23 +152,25 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
 	   WebSocketRequestState::Closed => {} //Do nothing
 	   WebSocketRequestState::Connecting => { //Connection is not yet established
 		/*By setting the state to closing, the open function
-		  will attempt to close the websocket*/
+		  will abort connecting the websocket*/
 		self.ready_state.set(WebSocketRequestState::Closing); //Set state to closing
-	   }
-	   WebSocketRequestState::Open => {//Closing handshake not started - still in open
-		//Start the closing by setting the code and reason if they exist
-		if(code.is_some()){
-		    self.code = code;
-		}
-		if(reason.is_some()){
-		    self.reason = reason;
-		}
-		self.ready_state.set(WebSocketRequestState::Closing); //Set state to closing
-
-		//Sent a close task
+		self.failed.set(true); //Set failed flag
+		//Send close task
 		let global_root = self.global.root();
       		let addr: Trusted<WebSocket> = Trusted::new(global_root.r().get_cx(), self, global_root.r().script_chan().clone());
-	    	let close_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Close());
+	    	let close_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Close);
+		global_root.r().script_chan().send(ScriptMsg::RunnableMsg(close_task)).unwrap();
+	   }
+	   WebSocketRequestState::Open => {//Closing handshake not started - still in open
+		//TODO: Start the closing by setting the code and reason if they exist
+		// Send the close message with the code and reason
+		
+		self.ready_state.set(WebSocketRequestState::Closing); //Set state to closing
+
+		//Send a close task
+		let global_root = self.global.root();
+      		let addr: Trusted<WebSocket> = Trusted::new(global_root.r().get_cx(), self, global_root.r().script_chan().clone());
+	    	let close_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Close);
 		global_root.r().script_chan().send(ScriptMsg::RunnableMsg(close_task)).unwrap();
 	   }
 	   //_ => { self.ready_state.set(WebSocketRequestState::Closing); } //Unreachable - Uncomment if you add more states to WebSocketRequestState
@@ -202,8 +206,8 @@ impl WebSocketTaskHandler {
 		let response = request.send().unwrap();
 		response.validate().unwrap();
 		println!("Successful connection.");
-		//TODO: Check to see if ready_state is Closing - means we're trying to fail the websocket
-		// if so, call the closing method and return (don't set any states - should be in closed state)
+		//TODO: Check to see if ready_state is Closing or Closed and failed = true - means we failed the websocket
+		//if so return without setting any states
     	let global = ws.r().global.root();
         let event = Event::new(global.r(),
                                "open".to_owned(),
@@ -214,15 +218,18 @@ impl WebSocketTaskHandler {
         println!("Fired open event.");
     }
     fn dispatch_close(&self) {
-    	println!("Trying to close.");
-	let ws = self.addr.to_temporary().root();
-	let reason = ws.r().reason;
-	let code = ws.r().code;
-	//TODO: tx_clone = tx.clone()
-	// Do we need a global tx and rx?
-	// tx_clone.send(Message::Close(code,reason))
-	println!("Closed the connection.");
+    	let ws = self.addr.to_temporary().root();
     	let global = ws.r().global.root();
+	ws.r().ready_state.set(WebSocketRequestState::Closed); //Set to closed state
+	if(ws.r().failed.get()){
+		ws.r().failed.set(false); //Unset flag
+	        let event = Event::new(global.r(),
+                               "error".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::Cancelable).root();		
+	}
+	//FIX ME event is not up to standards
+	//https://html.spec.whatwg.org/multipage/comms.html#closeWebSocket
         let event = Event::new(global.r(),
                                "close".to_owned(),
                                EventBubbles::DoesNotBubble,
