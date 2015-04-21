@@ -462,6 +462,11 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Stroke)).unwrap();
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
+    fn Clip(self, _: CanvasWindingRule) {
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Clip)).unwrap();
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage(self, image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
                  dx: f64, dy: f64) -> Fallible<()> {
