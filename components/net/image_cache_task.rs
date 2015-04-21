@@ -85,7 +85,7 @@ impl ImageListener {
             responder: self.responder,
             image: image,
         };
-        sender.send(msg).unwrap();
+        sender.send(msg).ok();
     }
 }
 
