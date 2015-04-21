@@ -4,6 +4,7 @@
 
 use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer};
 use net_traits::ProgressMsg::{Payload, Done};
+use devtools_traits::{DevtoolsControlMsg};
 use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 
@@ -31,10 +32,10 @@ use url::{Url, UrlParser};
 
 use std::borrow::ToOwned;
 
-pub fn factory(cookies_chan: Sender<ControlMsg>)
+pub fn factory(cookies_chan: Sender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>)
                -> Box<Invoke<(LoadData, LoadConsumer, Arc<MIMEClassifier>)> + Send> {
     box move |(load_data, senders, classifier)| {
-        spawn_named("http_loader".to_owned(), move || load(load_data, senders, classifier, cookies_chan))
+        spawn_named("http_loader".to_owned(), move || load(load_data, senders, classifier, cookies_chan, devtools_chan))
     }
 }
 
@@ -66,7 +67,8 @@ fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     }
 }
 
-fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>, cookies_chan: Sender<ControlMsg>) {
+fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>, 
+        cookies_chan: Sender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -195,6 +197,17 @@ reason: \"certificate verify failed\" }]";
             }
             info!("{:?}", load_data.data);
         }
+
+/*
+        match devtools_chan {
+            Some(chan) => chan.send(DevtoolsControlMsg::HttpRequest(load_data.url.clone(), load_data.method.clone(), load_data.headers.clone(), load_data.data.clone())).unwrap(),
+            None => {}
+        }
+*/
+
+        println!("load");
+        devtools_chan.as_ref().map(|chan| chan.send(DevtoolsControlMsg::HttpRequest(load_data.url.clone(), load_data.method.clone(), load_data.headers.clone(), load_data.data.clone())).unwrap());
+
 
         // Avoid automatically sending request body if a redirect has occurred.
         let writer = match load_data.data {

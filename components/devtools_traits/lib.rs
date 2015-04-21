@@ -16,6 +16,7 @@
 extern crate msg;
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate url;
+extern crate hyper;
 extern crate util;
 extern crate time;
 
@@ -23,6 +24,10 @@ use rustc_serialize::{Decodable, Decoder};
 use msg::constellation_msg::{PipelineId, WorkerId};
 use util::str::DOMString;
 use url::Url;
+
+use hyper::header::Headers;
+use hyper::http::RawStatus;
+use hyper::method::Method;
 
 use std::net::TcpStream;
 use std::sync::mpsc::{Sender, Receiver};
@@ -43,7 +48,9 @@ pub enum DevtoolsControlMsg {
     AddClient(TcpStream),
     NewGlobal((PipelineId, Option<WorkerId>), Sender<DevtoolScriptControlMsg>, DevtoolsPageInfo),
     SendConsoleMessage(PipelineId, ConsoleMessage),
-    ServerExitMsg
+    ServerExitMsg,
+    HttpRequest(Url, Method, Headers, Option<Vec<u8>>),
+    HttpResponse(Option<Headers>, RawStatus, Vec<u8>)
 }
 
 /// Serialized JS return values

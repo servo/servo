@@ -18,6 +18,7 @@
 #![plugin(regex_macros)]
 
 extern crate net_traits;
+extern crate devtools_traits;
 extern crate "cookie" as cookie_rs;
 extern crate collections;
 extern crate flate2;
