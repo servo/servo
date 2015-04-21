@@ -109,4 +109,24 @@ impl WebGLPaintTask {
         self.init();
     }
 
+    fn render(&self) {
+        //rendergl::render();
+        let pixels = gl::read_pixels(0, 0,
+                                    self.size.width as gl::GLsizei,
+                                    self.size.height as gl::GLsizei,
+                                    gl::RGB, gl::UNSIGNED_BYTE);
+        let source_surface = self.drawtarget.create_source_surface_from_data(&pixels,
+            self.size, self.size.width * 4, SurfaceFormat::B8G8R8A8);
+
+        let canvas_rect = Rect(Point2D(0i32, 0i32), self.size);
+        let draw_surface_options = DrawSurfaceOptions::new(Filter::Linear, true);
+        let draw_options = DrawOptions::new(1.0f64 as AzFloat, 0);
+
+        self.drawtarget.draw_surface(source_surface,
+                                     canvas_rect.to_azfloat(),
+                                     canvas_rect.to_azfloat(),
+                                     draw_surface_options, draw_options);
+
+    }
+
 }

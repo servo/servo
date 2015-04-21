@@ -12,12 +12,22 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::htmlcanvaselement::{HTMLCanvasElement};
 use geom::size::Size2D;
 use std::sync::mpsc::{Sender};
+use canvas::webgl_paint_task::{WebGLMsg, WebGLPaintTask};
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
+use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::htmlcanvaselement::{HTMLCanvasElement};
+use dom::node::window_from_node;
+use geom::size::Size2D;
+use std::sync::mpsc::{channel, Sender};
 
 #[dom_struct]
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
     global: GlobalField,
-    renderer: Sender<CanvasMsg>,
+    renderer: Sender<WebGLMsg>,
     canvas: JS<HTMLCanvasElement>,
 }
 
@@ -72,4 +82,3 @@ impl LayoutCanvasWebGLRenderingContextHelpers for LayoutJS<WebGLRenderingContext
         (*self.unsafe_get()).renderer.clone()
     }
 }
-

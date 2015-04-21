@@ -92,6 +92,12 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
     fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers) {
         self.send(Msg::KeyEvent(key, state, modifiers));
     }
+
+    fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata> {
+        let (chan, port) = channel();
+        self.send(Msg::GetGraphicsMetadata(chan));
+        port.recv().unwrap()
+    }
 }
 
 /// Information about each layer that the compositor keeps.
