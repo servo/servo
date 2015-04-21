@@ -212,6 +212,7 @@ impl<'a> CanvasPaintTask<'a> {
                             Canvas2dMsg::ClosePath => painter.close_path(),
                             Canvas2dMsg::Fill => painter.fill(),
                             Canvas2dMsg::Stroke => painter.stroke(),
+                            Canvas2dMsg::Clip => painter.clip(),
                             Canvas2dMsg::DrawImage(imagedata, image_size, dest_rect, source_rect, smoothing_enabled) => {
                                 painter.draw_image(imagedata, image_size, dest_rect, source_rect, smoothing_enabled)
                             }
@@ -271,6 +272,7 @@ impl<'a> CanvasPaintTask<'a> {
         if let Some(state) = self.saved_states.pop() {
             mem::replace(&mut self.state, state);
             self.drawtarget.set_transform(&self.state.transform);
+            self.drawtarget.pop_clip();
         }
     }
 
@@ -323,6 +325,10 @@ impl<'a> CanvasPaintTask<'a> {
                 // TODO
             }
         };
+    }
+
+    fn clip(&self) {
+        self.drawtarget.push_clip(&self.path_builder.finish());
     }
 
     fn draw_image(&self, image_data: Vec<u8>, image_size: Size2D<f64>,
