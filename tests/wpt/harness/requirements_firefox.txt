@@ -1,4 +1,5 @@
-marionette_client >= 0.7.10
+marionette_driver >= 0.4
 mozprofile >= 0.21
 mozprocess >= 0.19
 mozcrash >= 0.13
+mozrunner >= 6.7

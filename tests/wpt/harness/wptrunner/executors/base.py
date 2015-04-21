@@ -21,7 +21,7 @@ def executor_kwargs(test_type, server_config, cache_manager, **kwargs):
 
     executor_kwargs = {"server_config": server_config,
                        "timeout_multiplier": timeout_multiplier,
-                       "debug_args": kwargs["debug_args"]}
+                       "debug_info": kwargs["debug_info"]}
 
     if test_type == "reftest":
         executor_kwargs["screenshot_cache"] = cache_manager.dict()
@@ -81,7 +81,7 @@ class TestExecutor(object):
     convert_result = None
 
     def __init__(self, browser, server_config, timeout_multiplier=1,
-                 debug_args=None):
+                 debug_info=None):
         """Abstract Base class for object that actually executes the tests in a
         specific browser. Typically there will be a different TestExecutor
         subclass for each test type and method of executing tests.
@@ -97,8 +97,9 @@ class TestExecutor(object):
         self.browser = browser
         self.server_config = server_config
         self.timeout_multiplier = timeout_multiplier
-        self.debug_args = debug_args
-        self.last_protocol = "http"
+        self.debug_info = debug_info
+        self.last_environment = {"protocol": "http",
+                                 "prefs": []}
         self.protocol = None # This must be set in subclasses
 
     @property
@@ -123,9 +124,8 @@ class TestExecutor(object):
         """Run a particular test.
 
         :param test: The test to run"""
-
-        if test.protocol != self.last_protocol:
-            self.on_protocol_change(test.protocol)
+        if test.environment != self.last_environment:
+            self.on_environment_change(test.environment)
 
         try:
             result = self.do_test(test)
@@ -138,7 +138,7 @@ class TestExecutor(object):
         if result[0].status == "ERROR":
             self.logger.debug(result[0].message)
 
-        self.last_protocol = test.protocol
+        self.last_environment = test.environment
 
         self.runner.send_message("test_ended", test, result)
 
@@ -149,17 +149,17 @@ class TestExecutor(object):
                                self.server_config["ports"][protocol][0])
 
     def test_url(self, test):
-        return urlparse.urljoin(self.server_url(test.protocol), test.url)
+        return urlparse.urljoin(self.server_url(test.environment["protocol"]), test.url)
 
     @abstractmethod
     def do_test(self, test):
-        """Test-type and protocol specific implmentation of running a
+        """Test-type and protocol specific implementation of running a
         specific test.
 
         :param test: The test to run."""
         pass
 
-    def on_protocol_change(self, new_protocol):
+    def on_environment_change(self, new_environment):
         pass
 
     def result_from_exception(self, test, e):
@@ -182,10 +182,10 @@ class RefTestExecutor(TestExecutor):
     convert_result = reftest_result_converter
 
     def __init__(self, browser, server_config, timeout_multiplier=1, screenshot_cache=None,
-                 debug_args=None):
+                 debug_info=None):
         TestExecutor.__init__(self, browser, server_config,
                               timeout_multiplier=timeout_multiplier,
-                              debug_args=debug_args)
+                              debug_info=debug_info)
 
         self.screenshot_cache = screenshot_cache
 

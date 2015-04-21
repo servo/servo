@@ -2,15 +2,25 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from node import NodeVisitor, ValueNode, BinaryExpressionNode
+from node import NodeVisitor, ValueNode, ListNode, BinaryExpressionNode
 from parser import precedence
 
+named_escapes = set(["\a", "\b", "\f", "\n", "\r", "\t", "\v"])
 
 def escape(string, extras=""):
-    rv = string.encode("utf8").encode("string_escape")
-    for extra in extras:
-        rv = rv.replace(extra, "\\" + extra)
-    return rv
+    rv = ""
+    for c in string:
+        if c in named_escapes:
+            rv += c.encode("unicode_escape")
+        elif c == "\\":
+            rv += "\\\\"
+        elif c < '\x20':
+            rv += "\\x%02x" % ord(c)
+        elif c in extras:
+            rv += "\\" + c
+        else:
+            rv += c
+    return rv.encode("utf8")
 
 
 class ManifestSerializer(NodeVisitor):
@@ -42,34 +52,48 @@ class ManifestSerializer(NodeVisitor):
         return rv
 
     def visit_KeyValueNode(self, node):
-        rv = [node.data + ":"]
+        rv = [escape(node.data, ":") + ":"]
         indent = " " * self.indent
 
-        if len(node.children) == 1 and isinstance(node.children[0], ValueNode):
-            rv[0] += " %s" % escape(self.visit(node.children[0])[0])
+        if len(node.children) == 1 and isinstance(node.children[0], (ValueNode, ListNode)):
+            rv[0] += " %s" % self.visit(node.children[0])[0]
         else:
             for child in node.children:
                 rv.append(indent + self.visit(child)[0])
 
         return rv
 
+    def visit_ListNode(self, node):
+        rv = ["["]
+        rv.extend(", ".join(self.visit(child)[0] for child in node.children))
+        rv.append("]")
+        return ["".join(rv)]
+
     def visit_ValueNode(self, node):
-        return [escape(node.data)]
+        if "#" in node.data or (isinstance(node.parent, ListNode) and
+                                ("," in node.data or "]" in node.data)):
+            if "\"" in node.data:
+                quote = "'"
+            else:
+                quote = "\""
+        else:
+            quote = ""
+        return [quote + escape(node.data, extras=quote) + quote]
 
     def visit_ConditionalNode(self, node):
         return ["if %s: %s" % tuple(self.visit(item)[0] for item in node.children)]
 
     def visit_StringNode(self, node):
-        rv = ["\"%s\"" % node.data]
+        rv = ["\"%s\"" % escape(node.data, extras="\"")]
         for child in node.children:
             rv[0] += self.visit(child)[0]
         return rv
 
     def visit_NumberNode(self, node):
-        return [node.data]
+        return [str(node.data)]
 
     def visit_VariableNode(self, node):
-        rv = node.data
+        rv = escape(node.data)
         for child in node.children:
             rv += self.visit(child)
         return [rv]
@@ -100,10 +124,10 @@ class ManifestSerializer(NodeVisitor):
         return [" ".join(children)]
 
     def visit_UnaryOperatorNode(self, node):
-        return [node.data]
+        return [str(node.data)]
 
     def visit_BinaryOperatorNode(self, node):
-        return [node.data]
+        return [str(node.data)]
 
 
 def serialize(tree, *args, **kwargs):
