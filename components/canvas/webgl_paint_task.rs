@@ -13,7 +13,7 @@ use util::task::spawn_named;
 use std::borrow::ToOwned;
 use std::sync::mpsc::{channel, Sender};
 use util::vec::byte_swap;
-use offscreen_gl_context::{GLContext, GLContextMethods};
+use offscreen_gl_context::{GLContext, GLContextAttributes};
 
 pub struct WebGLPaintTask {
     size: Size2D<i32>,
@@ -27,9 +27,7 @@ unsafe impl Send for WebGLPaintTask {}
 
 impl WebGLPaintTask {
     fn new(size: Size2D<i32>) -> Result<WebGLPaintTask, &'static str> {
-        // TODO(ecoal95): Handle error nicely instead of `unwrap` (make getContext return null)
-        //   Maybe allowing Send on WebGLPaintTask?
-        let context = try!(GLContext::create_offscreen(size));
+        let context = try!(GLContext::create_offscreen(size, GLContextAttributes::default()));
         Ok(WebGLPaintTask {
             size: size,
             original_context_size: size,
