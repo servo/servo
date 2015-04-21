@@ -640,6 +640,15 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::LineTo(Point2D(x as f32, y as f32)))).unwrap();
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-rect
+    fn Rect(self, x: f64, y: f64, width: f64, height: f64) {
+        if [x, y, width, height].iter().all(|val| val.is_finite()) {
+            let rect = Rect(Point2D(x as f32, y as f32),
+                            Size2D(width as f32, height as f32));
+            self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Rect(rect))).unwrap();
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-quadraticcurveto
     fn QuadraticCurveTo(self, cpx: f64, cpy: f64, x: f64, y: f64) {
         if !(cpx.is_finite() && cpy.is_finite() &&

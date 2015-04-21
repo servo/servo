@@ -220,6 +220,7 @@ impl<'a> CanvasPaintTask<'a> {
                             }
                             Canvas2dMsg::MoveTo(ref point) => painter.move_to(point),
                             Canvas2dMsg::LineTo(ref point) => painter.line_to(point),
+                            Canvas2dMsg::Rect(ref rect) => painter.rect(rect),
                             Canvas2dMsg::QuadraticCurveTo(ref cp, ref pt) => {
                                 painter.quadratic_curve_to(cp, pt)
                             }
@@ -349,6 +350,15 @@ impl<'a> CanvasPaintTask<'a> {
 
     fn line_to(&self, point: &Point2D<AzFloat>) {
         self.path_builder.line_to(*point)
+    }
+
+    fn rect(&self, rect: &Rect<f32>) {
+        self.path_builder.move_to(Point2D(rect.origin.x, rect.origin.y));
+        self.path_builder.line_to(Point2D(rect.origin.x + rect.size.width, rect.origin.y));
+        self.path_builder.line_to(Point2D(rect.origin.x + rect.size.width,
+                                          rect.origin.y + rect.size.height));
+        self.path_builder.line_to(Point2D(rect.origin.x, rect.origin.y + rect.size.height));
+        self.path_builder.close();
     }
 
     fn quadratic_curve_to(&self,
