@@ -90,7 +90,7 @@ interface CanvasRenderingContext2D {
   //boolean drawCustomFocusRing(Path2D path, Element element);
   //void scrollPathIntoView();
   //void scrollPathIntoView(Path2D path);
-  //void clip(optional CanvasWindingRule fillRule = "nonzero");
+  void clip(optional CanvasWindingRule fillRule = "nonzero");
   //void clip(Path2D path, optional CanvasWindingRule fillRule = "nonzero");
   //void resetClip();
   //boolean isPointInPath(unrestricted double x, unrestricted double y, optional CanvasWindingRule fillRule = "nonzero");
