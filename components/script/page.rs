@@ -9,7 +9,6 @@ use dom::node::NodeHelpers;
 use dom::window::Window;
 
 use msg::constellation_msg::PipelineId;
-use util::smallvec::SmallVec;
 use std::cell::Cell;
 use std::rc::Rc;
 use url::Url;

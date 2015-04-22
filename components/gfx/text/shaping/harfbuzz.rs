@@ -154,7 +154,6 @@ pub struct Shaper {
     font_and_shaping_options: Box<FontAndShapingOptions>,
 }
 
-#[unsafe_destructor]
 impl Drop for Shaper {
     fn drop(&mut self) {
         unsafe {

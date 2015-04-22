@@ -5,8 +5,7 @@
 #![crate_name = "webdriver_server"]
 #![crate_type = "rlib"]
 
-#![feature(net)]
-#![feature(rustc_private)]
+#![feature(rustc_private, ip_addr)]
 
 #[macro_use]
 extern crate log;
@@ -15,7 +14,7 @@ extern crate webdriver;
 extern crate msg;
 extern crate url;
 extern crate util;
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 extern crate uuid;
 extern crate webdriver_traits;
 
@@ -35,15 +34,15 @@ use util::task::spawn_named;
 use uuid::Uuid;
 
 use std::borrow::ToOwned;
-use std::net::IpAddr;
 use rustc_serialize::json::{Json, ToJson};
 use std::collections::BTreeMap;
+use std::net::SocketAddr;
 
 pub fn start_server(port: u16, constellation_chan: ConstellationChan) {
     let handler = Handler::new(constellation_chan);
 
     spawn_named("WebdriverHttpServer".to_owned(), move || {
-        server::start(IpAddr::new_v4(0, 0, 0, 0), port, handler);
+        server::start(SocketAddr::new("0.0.0.0".parse().unwrap(), port), handler);
     });
 }
 

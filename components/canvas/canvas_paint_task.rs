@@ -13,13 +13,13 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::color;
+use num::ToPrimitive;
 use util::task::spawn_named;
 use util::vec::byte_swap;
 
 use cssparser::RGBA;
 use std::borrow::ToOwned;
 use std::mem;
-use std::num::{Float, ToPrimitive};
 use std::sync::mpsc::{channel, Sender};
 
 impl<'a> CanvasPaintTask<'a> {

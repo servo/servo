@@ -4,6 +4,7 @@
 
 use interfaces::{cef_drag_data_t, cef_post_data_element_t, cef_v8value_t, CefPostDataElement};
 use interfaces::{CefV8Value};
+use rustc_unicode::str::Utf16Encoder;
 use types::{cef_base_t, cef_browser_settings_t, cef_color_model_t};
 use types::{cef_context_menu_edit_state_flags_t, cef_context_menu_handler_t};
 use types::{cef_context_menu_media_state_flags_t};
@@ -29,7 +30,6 @@ use types::{cef_termination_status_t, cef_text_input_context_t, cef_thread_id_t}
 use types::{cef_time_t, cef_transition_type_t, cef_urlrequest_status_t};
 use types::{cef_v8_accesscontrol_t, cef_v8_propertyattribute_t, cef_value_type_t};
 use types::{cef_window_info_t, cef_xml_encoding_type_t, cef_xml_node_type_t};
-use unicode::str::Utf16Encoder;
 
 use libc::{self, c_char, c_int, c_ushort, c_void};
 use std::boxed;
@@ -183,8 +183,8 @@ cef_unimplemented_wrapper!(cef_string_t, String);
 impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
     fn to_c(buffer: &'a [u16]) -> *const cef_string_t {
         unsafe {
-            let ptr: *mut c_ushort = mem::transmute(libc::malloc(((buffer.len() + 1) * 2) as u64));
-            ptr::copy(ptr, mem::transmute(buffer.as_ptr()), buffer.len());
+            let ptr = libc::malloc(((buffer.len() + 1) * 2) as u64) as *mut c_ushort;
+            ptr::copy(buffer.as_ptr(), ptr, buffer.len());
             *ptr.offset(buffer.len() as isize) = 0;
 
             // FIXME(pcwalton): This leaks!! We should instead have the caller pass some scratch

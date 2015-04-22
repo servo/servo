@@ -25,8 +25,8 @@ use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_n
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
+use num::ToPrimitive;
 use std::default::Default;
-use std::num::ToPrimitive;
 use string_cache::Atom;
 use util::str::DOMString;
 

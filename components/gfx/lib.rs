@@ -6,12 +6,10 @@
 #![feature(box_syntax)]
 #![feature(collections)]
 #![feature(core)]
-#![cfg_attr(any(target_os="linux", target_os = "android"), feature(io))]
 #![feature(plugin)]
 #![feature(rustc_private)]
 #![feature(std_misc)]
-#![feature(unicode)]
-#![feature(unsafe_destructor)]
+#![feature(str_char)]
 
 #![plugin(plugins)]
 
@@ -28,8 +26,7 @@ extern crate stb_image;
 extern crate png;
 extern crate profile_traits;
 extern crate script_traits;
-extern crate "rustc-serialize" as rustc_serialize;
-extern crate unicode;
+extern crate rustc_serialize;
 extern crate net_traits;
 #[macro_use]
 extern crate util;

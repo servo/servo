@@ -434,8 +434,8 @@ impl ToGfxMatrix for ComputedMatrix {
                       self.m12 as f32,
                       self.m21 as f32,
                       self.m22 as f32,
-                      self.m31.to_au(containing_size.width).to_subpx() as f32,
-                      self.m32.to_au(containing_size.height).to_subpx() as f32)
+                      self.m31.to_au(containing_size.width).to_frac32_px(),
+                      self.m32.to_au(containing_size.height).to_frac32_px())
     }
 }
 
@@ -446,7 +446,7 @@ trait ToAu {
 impl ToAu for LengthAndPercentage {
     #[inline]
     fn to_au(&self, containing_size: Au) -> Au {
-        self.length + Au::from_frac_px(self.percentage * containing_size.to_subpx())
+        self.length + Au::from_frac32_px(self.percentage * containing_size.to_frac32_px())
     }
 }
 

@@ -36,9 +36,9 @@ use net_traits::image::base::Image;
 use net_traits::image_cache_task::ImageCacheChan;
 use png::PixelsByColorType;
 
+use num::{Float, ToPrimitive};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
-use std::num::{Float, ToPrimitive};
 use std::sync::{Arc};
 use std::sync::mpsc::{channel, Sender};
 
@@ -977,7 +977,6 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
     }
 }
 
-#[unsafe_destructor]
 impl Drop for CanvasRenderingContext2D {
     fn drop(&mut self) {
         self.renderer.send(CanvasMsg::Common(CanvasCommonMsg::Close)).unwrap();

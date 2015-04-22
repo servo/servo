@@ -87,7 +87,7 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let data = self.data.borrow();
         if data.contains_key(&name) {
-            match data[name][0].clone() {
+            match data[&name][0].clone() {
                 FormDatum::StringData(ref s) => Some(eString(s.clone())),
                 FormDatum::FileData(ref f) => {
                     Some(eFile(Unrooted::from_js(*f)))

@@ -6,13 +6,12 @@
 #![feature(box_syntax)]
 #![feature(collections)]
 #![feature(core)]
-#![feature(io)]
+#![feature(filling_drop)]
 #![feature(plugin)]
 #![feature(rustc_private)]
 #![feature(std_misc)]
+#![feature(str_char)]
 #![feature(thread_local)]
-#![feature(unicode)]
-#![feature(unsafe_destructor)]
 #![feature(unsafe_no_drop_flag)]
 
 #![deny(unsafe_code)]
@@ -29,7 +28,7 @@ extern crate bitflags;
 
 #[macro_use]
 #[no_link]
-extern crate "plugins" as servo_plugins;
+extern crate plugins as servo_plugins;
 extern crate net_traits;
 #[macro_use]
 extern crate profile_traits;
@@ -37,7 +36,7 @@ extern crate profile_traits;
 #[macro_use]
 extern crate util;
 
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 extern crate alloc;
 extern crate azure;
 extern crate canvas;

@@ -71,7 +71,6 @@ use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheRes
 use net_traits::storage_task::StorageTask;
 use string_cache::Atom;
 use util::geometry::to_frac_px;
-use util::smallvec::SmallVec;
 use util::str::DOMString;
 use util::task::{spawn_named, spawn_named_with_send_on_failure};
 use util::task_state;
@@ -86,11 +85,11 @@ use js::rust::{Runtime, RtUtils};
 use url::Url;
 
 use libc;
+use num::ToPrimitive;
 use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
-use std::num::ToPrimitive;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
@@ -98,7 +97,7 @@ use std::result::Result;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use time::Tm;
 
-use hyper::header::ContentType;
+use hyper::header::{ContentType, HttpDate};
 use hyper::mime::{Mime, TopLevel, SubLevel};
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
@@ -340,7 +339,6 @@ impl<'a> ScriptMemoryFailsafe<'a> {
     }
 }
 
-#[unsafe_destructor]
 impl<'a> Drop for ScriptMemoryFailsafe<'a> {
     #[allow(unrooted_must_root)]
     fn drop(&mut self) {
@@ -1088,7 +1086,6 @@ impl ScriptTask {
                 self.neutered = true;
             }
         }
-        #[unsafe_destructor]
         impl<'a> Drop for AutoPageRemover<'a> {
             fn drop(&mut self) {
                 if !self.neutered {
@@ -1127,7 +1124,7 @@ impl ScriptTask {
                                  incomplete.window_size).root();
 
         let last_modified: Option<DOMString> = response.metadata.headers.as_ref().and_then(|headers| {
-            headers.get().map(|&LastModified(ref tm)| dom_last_modified(tm))
+            headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
         });
 
         let content_type = match response.metadata.content_type {
@@ -1458,7 +1455,6 @@ impl<'a> AutoDOMEventMarker<'a> {
     }
 }
 
-#[unsafe_destructor]
 impl<'a> Drop for AutoDOMEventMarker<'a> {
     fn drop(&mut self) {
         let marker = TimelineMarker::new("DOMEvent".to_owned(), TracingMetadata::IntervalEnd);

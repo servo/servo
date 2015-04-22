@@ -639,7 +639,7 @@ pub fn validate_and_extract(namespace: Option<DOMString>, qualified_name: &str)
 
     let (prefix, local_name) = if qualified_name.contains(":") {
         // Step 5.
-        let mut parts = qualified_name.splitn(1, ':');
+        let mut parts = qualified_name.splitn(2, ':');
         let prefix = parts.next().unwrap();
         debug_assert!(!prefix.is_empty());
         let local_name = parts.next().unwrap();

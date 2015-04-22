@@ -33,8 +33,6 @@ use msg::constellation_msg::{KeyState, CONTROL, SHIFT, ALT};
 #[cfg(feature = "window")]
 use std::cell::{Cell, RefCell};
 #[cfg(feature = "window")]
-use std::num::Float;
-#[cfg(feature = "window")]
 use util::opts;
 
 #[cfg(all(feature = "headless", target_os="linux"))]
@@ -266,8 +264,7 @@ impl Window {
 
     #[cfg(target_os="linux")]
     fn handle_next_event(&self) -> bool {
-        use std::old_io::timer::sleep;
-        use std::time::duration::Duration;
+        use std::thread::sleep_ms;
 
         // TODO(gw): This is an awful hack to work around the
         // broken way we currently call X11 from multiple threads.
@@ -291,7 +288,7 @@ impl Window {
                 self.handle_window_event(event)
             }
             None => {
-                sleep(Duration::milliseconds(16));
+                sleep_ms(16);
                 false
             }
         }
@@ -741,42 +738,42 @@ impl CompositorProxy for GlutinCompositorProxy {
 
 #[allow(non_snake_case)]
 #[no_mangle]
-pub extern "C" fn glBindVertexArrayOES(_array: uint)
+pub extern "C" fn glBindVertexArrayOES(_array: usize)
 {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
 #[no_mangle]
-pub extern "C" fn glDeleteVertexArraysOES(_n: int, _arrays: *const ())
+pub extern "C" fn glDeleteVertexArraysOES(_n: isize, _arrays: *const ())
 {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
 #[no_mangle]
-pub extern "C" fn glGenVertexArraysOES(_n: int, _arrays: *const ())
+pub extern "C" fn glGenVertexArraysOES(_n: isize, _arrays: *const ())
 {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
 #[no_mangle]
-pub extern "C" fn glRenderbufferStorageMultisampleIMG(_: int, _: int, _: int, _: int, _: int)
+pub extern "C" fn glRenderbufferStorageMultisampleIMG(_: isize, _: isize, _: isize, _: isize, _: isize)
 {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
 #[no_mangle]
-pub extern "C" fn glFramebufferTexture2DMultisampleIMG(_: int, _: int, _: int, _: int, _: int, _: int)
+pub extern "C" fn glFramebufferTexture2DMultisampleIMG(_: isize, _: isize, _: isize, _: isize, _: isize, _: isize)
 {
     unimplemented!()
 }
 
 #[allow(non_snake_case)]
 #[no_mangle]
-pub extern "C" fn glDiscardFramebufferEXT(_: int, _: int, _: *const ())
+pub extern "C" fn glDiscardFramebufferEXT(_: isize, _: isize, _: *const ())
 {
     unimplemented!()
 }

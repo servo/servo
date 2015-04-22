@@ -7,10 +7,10 @@
 
 use legacy::{IntegerAttribute, LengthAttribute, UnsignedIntegerAttribute};
 use properties::PropertyDeclaration;
+use util::smallvec::VecLike;
 use util::str::LengthOrPercentageOrAuto;
 
 use selectors::matching::DeclarationBlock;
-use selectors::smallvec::VecLike;
 pub use selectors::tree::{TNode, TElement};
 
 pub trait TElementAttributes : Copy {

@@ -6,8 +6,6 @@ use geom::point::Point2D;
 use std::cmp::{Ordering, PartialOrd};
 use std::iter::repeat;
 use std::mem;
-use std::num::{ToPrimitive, NumCast};
-use std::ops::{Add, Sub, Mul, Neg, Div, Rem, BitAnd, BitOr, BitXor, Shl, Shr, Not};
 use std::u16;
 use std::vec::Vec;
 use util::geometry::Au;
@@ -156,10 +154,9 @@ fn is_simple_glyph_id(id: GlyphId) -> bool {
 }
 
 fn is_simple_advance(advance: Au) -> bool {
-    match advance.to_u32() {
-        Some(unsigned_au) =>
-            (unsigned_au & (GLYPH_ADVANCE_MASK >> GLYPH_ADVANCE_SHIFT)) == unsigned_au,
-        None => false
+    advance >= Au(0) && {
+        let unsigned_au = advance.0 as u32;
+        (unsigned_au & (GLYPH_ADVANCE_MASK >> GLYPH_ADVANCE_SHIFT)) == unsigned_au
     }
 }
 
@@ -171,7 +168,7 @@ impl GlyphEntry {
     // getter methods
     #[inline(always)]
     fn advance(&self) -> Au {
-        NumCast::from((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT).unwrap()
+        Au(((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT) as i32)
     }
 
     fn id(&self) -> GlyphId {
@@ -731,7 +728,7 @@ impl<'a> GlyphStore {
                 // FIXME(pcwalton): This can overflow for very large font-sizes.
                 let advance =
                     ((entry.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT) +
-                    Au::from_frac_px(space).to_u32().unwrap();
+                    Au::from_frac_px(space).0 as u32;
                 entry.value = (entry.value & !GLYPH_ADVANCE_MASK) |
                     (advance << GLYPH_ADVANCE_SHIFT);
             }

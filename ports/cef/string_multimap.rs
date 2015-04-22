@@ -3,9 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use eutil::slice_to_str;
-use libc::{c_int};
+use libc::c_int;
 use std::collections::BTreeMap;
-use std::iter::AdditiveIterator;
 use std::mem;
 use std::string::String;
 use string::{cef_string_userfree_utf16_alloc, cef_string_userfree_utf16_free};
@@ -31,7 +30,11 @@ pub extern "C" fn cef_string_multimap_size(smm: *mut cef_string_multimap_t) -> c
     unsafe {
         if smm.is_null() { return 0; }
         let v = string_multimap_to_treemap(smm);
-        (*v).values().map(|val| (*val).len()).sum() as c_int
+        // t1 : collections::btree::map::Values<'_, collections::string::String, collections::vec::Vec<*mut types::cef_string_utf16>>` 
+        let t1 = (*v).values();
+        // t2 : collections::btree::map::BTreeMap<collections::string::String, collections::vec::Vec<*mut types::cef_string_utf16>>
+        let t2 : usize = t1.map(|val| (*val).len()).sum();
+        t2 as c_int
     }
 }
 

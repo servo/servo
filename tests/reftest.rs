@@ -7,7 +7,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![feature(collections, exit_status, fs_walk, io, old_io, path, path_ext, std_misc, test)]
+#![feature(collections, exit_status, fs_walk, io, path, path_ext, slice_patterns, std_misc, test)]
 #[macro_use] extern crate bitflags;
 extern crate png;
 extern crate test;
@@ -16,8 +16,7 @@ extern crate url;
 use std::env;
 use std::ffi::OsStr;
 use std::fs::{PathExt, File, walk_dir};
-use std::io::Read;
-use std::old_io::{Reader, IoResult};
+use std::io::{self, Read, Result};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::thunk::Thunk;
@@ -72,7 +71,7 @@ fn main() {
         let maybe_extension = file.extension();
         match maybe_extension {
             Some(extension) => {
-                if extension == OsStr::from_str("list") && file.is_file() {
+                if extension == OsStr::new("list") && file.is_file() {
                     let mut tests = parse_lists(&file, servo_args, render_mode, all_tests.len());
                     println!("\t{} [{} tests]", file.display(), tests.len());
                     all_tests.append(&mut tests);
@@ -102,7 +101,7 @@ fn main() {
 }
 
 fn run(test_opts: TestOpts, all_tests: Vec<TestDescAndFn>,
-       servo_args: Vec<String>) -> IoResult<bool> {
+       servo_args: Vec<String>) -> io::Result<bool> {
     // Verify that we're passing in valid servo arguments. Otherwise, servo
     // will exit before we've run any tests, and it will appear to us as if
     // all the tests are failing.
@@ -238,7 +237,7 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
             ignore: false,
             should_panic: ShouldPanic::No,
         },
-        testfn: DynTestFn(Thunk::new(move || {
+        testfn: DynTestFn(Box::new(move || {
             check_reftest(reftest);
         })),
     }

@@ -56,7 +56,7 @@ use script_traits::UntrustedNodeAddress;
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
-use util::smallvec::{SmallVec1, SmallVec};
+use util::smallvec::SmallVec1;
 use util::str::{LengthOrPercentageOrAuto};
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
@@ -64,7 +64,6 @@ use std::collections::hash_state::HashState;
 use std::ffi::CString;
 use std::hash::{Hash, Hasher};
 use std::intrinsics::return_address;
-use std::old_io::timer::Timer;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -252,7 +251,7 @@ no_jsmanaged_fields!(Receiver<T>);
 no_jsmanaged_fields!(Rect<T>);
 no_jsmanaged_fields!(Arc<T>);
 no_jsmanaged_fields!(Image, ImageCacheChan, ImageCacheTask, ScriptControlChan);
-no_jsmanaged_fields!(Atom, Namespace, Timer);
+no_jsmanaged_fields!(Atom, Namespace);
 no_jsmanaged_fields!(Trusted<T>);
 no_jsmanaged_fields!(PropertyDeclarationBlock);
 no_jsmanaged_fields!(HashSet<T>);
@@ -444,7 +443,6 @@ impl<T: VecRootableType> RootedVec<T> {
     }
 }
 
-#[unsafe_destructor]
 impl<T: VecRootableType> Drop for RootedVec<T> {
     fn drop(&mut self) {
         RootedCollectionSet::remove(self);

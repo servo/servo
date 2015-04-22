@@ -33,7 +33,7 @@ fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
         ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) |
         ast::TyPtr(ast::MutTy { ty: ref t, ..}) | ast::TyRptr(_, ast::MutTy { ty: ref t, ..}) => lint_unrooted_ty(cx, &**t, warning),
         ast::TyPath(..) => {
-                match cx.tcx.def_map.borrow()[ty.id] {
+                match cx.tcx.def_map.borrow()[&ty.id] {
                     def::PathResolution{ base_def: def::DefTy(def_id, _), .. } => {
                         if ty::has_attr(cx.tcx, def_id, "must_root") {
                             cx.span_lint(UNROOTED_MUST_ROOT, ty.span, warning);
@@ -78,11 +78,11 @@ impl LintPass for UnrootedPass {
     fn check_fn(&mut self, cx: &Context, kind: visit::FnKind, decl: &ast::FnDecl,
                 block: &ast::Block, _span: codemap::Span, id: ast::NodeId) {
         match kind {
-            visit::FkItemFn(i, _, _, _) |
+            visit::FkItemFn(i, _, _, _, _) |
             visit::FkMethod(i, _, _) if i.as_str() == "new" || i.as_str() == "new_inherited" => {
                 return;
             },
-            visit::FkItemFn(_, _, style, _) => match style {
+            visit::FkItemFn(_, _, style, _, _) => match style {
                 ast::Unsafety::Unsafe => return,
                 _ => ()
             },

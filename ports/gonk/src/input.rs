@@ -8,9 +8,7 @@ use std::path::Path;
 use std::mem::size_of;
 use std::mem::transmute;
 use std::mem::zeroed;
-use std::os::errno;
-use std::os::unix::AsRawFd;
-use std::num::Float;
+use std::os::unix::io::AsRawFd;
 use std::fs::File;
 use std::thread;
 use std::sync::mpsc::Sender;
@@ -18,6 +16,7 @@ use std::io::Read;
 
 use geom::point::TypedPoint2D;
 
+use errno::errno;
 use libc::c_int;
 use libc::c_long;
 use libc::time_t;
@@ -135,7 +134,7 @@ fn read_input_device(device_path: &Path,
 
     let mut last_dist: f32 = 0f32;
     let mut touch_count: i32 = 0;
-    let mut current_slot: uint = 0;
+    let mut current_slot: usize = 0;
     // XXX: Need to use the real dimensions of the screen
     let screen_dist = dist(0, 480, 854, 0);
     loop {
@@ -154,7 +153,7 @@ fn read_input_device(device_path: &Path,
         let count = read / size_of::<linux_input_event>();
         let events: *mut linux_input_event = unsafe { transmute(buf.as_mut_ptr()) };
         let mut tracking_updated = false;
-        for idx in 0..(count as int) {
+        for idx in 0..(count as isize) {
             let event: &linux_input_event = unsafe { transmute(events.offset(idx)) };
             match (event.evt_type, event.code) {
                 (EV_SYN, EV_REPORT) => {
@@ -204,8 +203,8 @@ fn read_input_device(device_path: &Path,
                 },
                 (EV_SYN, _) => println!("Unknown SYN code {}", event.code),
                 (EV_ABS, ABS_MT_SLOT) => {
-                            if (event.value as uint) < slots.len() {
-                                current_slot = event.value as uint;
+                            if (event.value as usize) < slots.len() {
+                                current_slot = event.value as usize;
                             } else {
                                 println!("Invalid slot! {}", event.value);
                             }

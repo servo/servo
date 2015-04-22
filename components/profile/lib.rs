@@ -5,12 +5,8 @@
 #![feature(box_syntax)]
 #![feature(collections)]
 #![feature(core)]
-#![cfg_attr(target_os="linux", feature(io))]
-#![feature(old_io)]
 #![cfg_attr(target_os="linux", feature(page_size))]
 #![feature(rustc_private)]
-#![feature(std_misc)]
-#![cfg_attr(target_os="linux", feature(str_words))]
 
 #[macro_use] extern crate log;
 
@@ -22,7 +18,7 @@ extern crate profile_traits;
 extern crate regex;
 #[cfg(target_os="macos")]
 extern crate task_info;
-extern crate "time" as std_time;
+extern crate time as std_time;
 extern crate util;
 
 pub mod mem;

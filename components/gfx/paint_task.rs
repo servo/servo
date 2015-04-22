@@ -33,7 +33,6 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use util::geometry::{Au, ZERO_POINT};
 use util::opts;
-use util::smallvec::SmallVec;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 use util::task::spawn_named;

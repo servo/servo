@@ -64,6 +64,7 @@ use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_sty
 use style::properties::DeclaredValue::SpecifiedValue;
 use style::values::specified::CSSColor;
 use util::namespace;
+use util::smallvec::VecLike;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 use cssparser::Color;
@@ -74,16 +75,14 @@ use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
 use html5ever::tree_builder::{NoQuirks, LimitedQuirks, Quirks};
 use selectors::matching::{matches, DeclarationBlock};
 use selectors::parser::parse_author_origin_selector_list_from_str;
-use selectors::smallvec::VecLike;
 use string_cache::{Atom, Namespace, QualName};
 use url::UrlParser;
 
 use std::ascii::AsciiExt;
-use std::borrow::{IntoCow, ToOwned};
+use std::borrow::{Cow, ToOwned};
 use std::cell::{Ref, RefMut};
 use std::default::Default;
 use std::mem;
-use std::old_io::Writer;
 use std::sync::Arc;
 
 #[dom_struct]
@@ -257,7 +256,7 @@ impl RawLayoutElementHelpers for Element {
         };
 
         if let Some(color) = bgcolor {
-            hints.vec_push(from_declaration(
+            hints.push(from_declaration(
                 PropertyDeclaration::BackgroundColor(SpecifiedValue(
                     CSSColor { parsed: Color::RGBA(color), authored: None }))));
         }
@@ -1011,9 +1010,9 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn TagName(self) -> DOMString {
         let qualified_name = match self.prefix {
             Some(ref prefix) => {
-                (format!("{}:{}", &**prefix, &*self.local_name)).into_cow()
+                Cow::Owned(format!("{}:{}", &**prefix, &*self.local_name))
             },
-            None => self.local_name.into_cow()
+            None => Cow::Borrowed(&*self.local_name)
         };
         if self.html_element_in_html_document() {
             qualified_name.to_ascii_uppercase()

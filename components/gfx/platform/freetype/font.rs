@@ -28,7 +28,6 @@ use freetype::tt_os2::TT_OS2;
 
 use libc::c_char;
 use std::mem;
-use std::num::Float;
 use std::ptr;
 use std::sync::Arc;
 
@@ -56,7 +55,6 @@ pub struct FontHandle {
     pub handle: FontContextHandle
 }
 
-#[unsafe_destructor]
 impl Drop for FontHandle {
     fn drop(&mut self) {
         assert!(!self.face.is_null());

@@ -14,7 +14,7 @@ use dom::node::window_from_node;
 use std::borrow::ToOwned;
 
 /// Trait for elements with defined activation behavior
-pub trait Activatable : Copy {
+pub trait Activatable {
     fn as_element(&self) -> Temporary<Element>;
 
     // Is this particular instance of the element activatable?

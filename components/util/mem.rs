@@ -154,7 +154,6 @@ unsafe fn linked_list2_check() {
 
 // Currently, types that implement the Drop type are larger than those that don't. Because
 // LinkedList implements Drop, LinkedList2 must also so that linked_list2_check() doesn't fail.
-#[unsafe_destructor]
 impl<T> Drop for LinkedList2<T> {
     fn drop(&mut self) {}
 }

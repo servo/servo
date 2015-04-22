@@ -167,10 +167,12 @@ impl HTMLCollection {
     fn traverse(root: JSRef<Node>)
                 -> FilterMap<Skip<TreeIterator>,
                              fn(Temporary<Node>) -> Option<Temporary<Element>>> {
+        fn to_temporary(node: Temporary<Node>) -> Option<Temporary<Element>> {
+            ElementCast::to_temporary(node)
+        }
         root.traverse_preorder()
             .skip(1)
-            .filter_map(ElementCast::to_temporary as
-                        fn(Temporary<Node>) -> Option<Temporary<Element>>)
+            .filter_map(to_temporary as fn(Temporary<Node>) -> Option<Temporary<Element>>)
     }
 }
 

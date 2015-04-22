@@ -7,16 +7,14 @@
 #![feature(collections)]
 #![feature(core)]
 #![feature(exit_status)]
-#![feature(hash)]
-#![feature(io)]
 #![feature(optin_builtin_traits)]
-#![feature(path)]
 #![cfg_attr(not(target_os = "android"), feature(path_ext))]
 #![feature(plugin)]
 #![feature(rustc_private)]
+#![feature(step_by)]
+#![feature(step_trait)]
 #![feature(std_misc)]
-#![feature(unicode)]
-#![feature(unsafe_destructor)]
+#![feature(zero_one)]
 
 #![plugin(string_cache_plugin)]
 
@@ -25,21 +23,24 @@
 extern crate azure;
 extern crate alloc;
 #[macro_use] extern crate bitflags;
-extern crate cssparser;
+#[macro_use] extern crate cssparser;
+extern crate fnv as fnv_;
 extern crate geom;
 extern crate getopts;
 extern crate layers;
 extern crate libc;
-#[no_link] #[macro_use] extern crate cssparser;
+extern crate num as num_lib;
+extern crate num_cpus;
 extern crate rand;
-extern crate "rustc-serialize" as rustc_serialize;
-extern crate text_writer;
+extern crate rustc_serialize;
 extern crate selectors;
+extern crate smallvec as smallvec_;
 extern crate string_cache;
 
-pub use selectors::smallvec;
-
 use std::sync::Arc;
+
+pub use fnv_ as fnv;
+pub use smallvec_ as smallvec;
 
 pub mod bezier;
 pub mod cache;
@@ -47,7 +48,6 @@ pub mod cursor;
 pub mod debug_utils;
 pub mod deque;
 pub mod linked_list;
-pub mod fnv;
 pub mod geometry;
 pub mod logical_geometry;
 pub mod mem;

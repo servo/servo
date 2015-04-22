@@ -34,7 +34,7 @@ impl FontTemplateData {
                 }
             },
             None => {
-                Some(core_text::font::new_from_name(&identifier, 0.0).unwrap())
+                Some(core_text::font::new_from_name(identifier, 0.0).unwrap())
             }
         };
 
