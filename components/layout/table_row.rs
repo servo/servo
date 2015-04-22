@@ -30,7 +30,7 @@ use style::computed_values::{border_collapse, border_spacing, border_top_style};
 use style::properties::ComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
 use util::geometry::Au;
-use util::logical_geometry::{LogicalRect, WritingMode};
+use util::logical_geometry::{LogicalRect, PhysicalSide, WritingMode};
 
 /// A single row of a table.
 pub struct TableRowFlow {
@@ -593,58 +593,53 @@ impl CollapsedBorder {
         }
     }
 
+    /// Creates a collapsed border style from the given physical side.
+    fn from_side(side: PhysicalSide,
+                 css_style: &ComputedValues,
+                 provenance: CollapsedBorderProvenance)
+                 -> CollapsedBorder {
+        match side {
+            PhysicalSide::Top => CollapsedBorder::top(css_style, provenance),
+            PhysicalSide::Right => CollapsedBorder::right(css_style, provenance),
+            PhysicalSide::Bottom => CollapsedBorder::bottom(css_style, provenance),
+            PhysicalSide::Left => CollapsedBorder::left(css_style, provenance),
+        }
+    }
+
     /// Creates a collapsed border style from the inline-start border described in the given CSS
     /// style object.
     pub fn inline_start(css_style: &ComputedValues, provenance: CollapsedBorderProvenance)
                         -> CollapsedBorder {
-        let writing_mode = css_style.writing_mode;
-        match (writing_mode.is_vertical(),
-               writing_mode.is_inline_tb(),
-               writing_mode.is_bidi_ltr()) {
-            (false, _, true) => CollapsedBorder::left(css_style, provenance),
-            (false, _, false) => CollapsedBorder::right(css_style, provenance),
-            (true, true, _) => CollapsedBorder::top(css_style, provenance),
-            (true, false, _) => CollapsedBorder::bottom(css_style, provenance),
-        }
+        CollapsedBorder::from_side(css_style.writing_mode.inline_start_physical_side(),
+                                   css_style,
+                                   provenance)
     }
 
     /// Creates a collapsed border style from the inline-start border described in the given CSS
     /// style object.
     pub fn inline_end(css_style: &ComputedValues, provenance: CollapsedBorderProvenance)
                       -> CollapsedBorder {
-        let writing_mode = css_style.writing_mode;
-        match (writing_mode.is_vertical(),
-               writing_mode.is_inline_tb(),
-               writing_mode.is_bidi_ltr()) {
-            (false, _, true) => CollapsedBorder::right(css_style, provenance),
-            (false, _, false) => CollapsedBorder::left(css_style, provenance),
-            (true, true, _) => CollapsedBorder::bottom(css_style, provenance),
-            (true, false, _) => CollapsedBorder::top(css_style, provenance),
-        }
+        CollapsedBorder::from_side(css_style.writing_mode.inline_end_physical_side(),
+                                   css_style,
+                                   provenance)
     }
 
     /// Creates a collapsed border style from the block-start border described in the given CSS
     /// style object.
     pub fn block_start(css_style: &ComputedValues, provenance: CollapsedBorderProvenance)
                        -> CollapsedBorder {
-        let writing_mode = css_style.writing_mode;
-        match (writing_mode.is_vertical(), writing_mode.is_vertical_lr()) {
-            (false, _) => CollapsedBorder::top(css_style, provenance),
-            (true, true) => CollapsedBorder::left(css_style, provenance),
-            (true, false) => CollapsedBorder::right(css_style, provenance),
-        }
+        CollapsedBorder::from_side(css_style.writing_mode.block_start_physical_side(),
+                                   css_style,
+                                   provenance)
     }
 
     /// Creates a collapsed border style from the block-end border described in the given CSS style
     /// object.
     pub fn block_end(css_style: &ComputedValues, provenance: CollapsedBorderProvenance)
                      -> CollapsedBorder {
-        let writing_mode = css_style.writing_mode;
-        match (writing_mode.is_vertical(), writing_mode.is_vertical_lr()) {
-            (false, _) => CollapsedBorder::bottom(css_style, provenance),
-            (true, true) => CollapsedBorder::right(css_style, provenance),
-            (true, false) => CollapsedBorder::left(css_style, provenance),
-        }
+        CollapsedBorder::from_side(css_style.writing_mode.block_end_physical_side(),
+                                   css_style,
+                                   provenance)
     }
 
     /// If `other` has a higher priority per CSS 2.1 § 17.6.2.1, replaces `self` with it.
@@ -659,8 +654,8 @@ impl CollapsedBorder {
             // Step 3.
             _ if self.width > other.width => {}
             _ if self.width < other.width => *self = *other,
-            (this_style, other_style) if (this_style as i8) > other_style as i8 => {}
-            (this_style, other_style) if (this_style as i8) < other_style as i8 => *self = *other,
+            (this_style, other_style) if this_style > other_style => {}
+            (this_style, other_style) if this_style < other_style => *self = *other,
             // Step 4.
             _ if (self.provenance as i8) >= other.provenance as i8 => {}
             _ => *self = *other,

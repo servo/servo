@@ -28,8 +28,8 @@ use std::num::ToPrimitive;
 use std::ops::{Add, Sub, Mul, Div, Rem, Neg, Shl, Shr, Not, BitOr, BitAnd, BitXor};
 use std::sync::Arc;
 use std::u16;
-use style::computed_values::{border_collapse, display, overflow_x, text_align, text_justify};
-use style::computed_values::{text_overflow, vertical_align, white_space};
+use style::computed_values::{display, overflow_x, text_align, text_justify, text_overflow};
+use style::computed_values::{vertical_align, white_space};
 use style::properties::ComputedValues;
 use util::geometry::{Au, MAX_AU, ZERO_RECT};
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
@@ -1160,7 +1160,8 @@ impl Flow for InlineFlow {
         {
             let this = &mut *self;
             for fragment in this.fragments.fragments.iter_mut() {
-                fragment.compute_border_and_padding(inline_size, border_collapse::T::separate);
+                let border_collapse = fragment.style.get_inheritedtable().border_collapse;
+                fragment.compute_border_and_padding(inline_size, border_collapse);
                 fragment.compute_block_direction_margins(inline_size);
                 fragment.compute_inline_direction_margins(inline_size);
                 fragment.assign_replaced_inline_size_if_necessary(inline_size);

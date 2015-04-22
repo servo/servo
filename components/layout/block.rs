@@ -1589,7 +1589,8 @@ impl Flow for BlockFlow {
 
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
         // Now compute the real value.
-        self.propagate_and_compute_used_inline_size(layout_context, border_collapse::T::separate);
+        let border_collapse = self.fragment.style.get_inheritedtable().border_collapse;
+        self.propagate_and_compute_used_inline_size(layout_context, border_collapse);
 
         // Formatting contexts are never impacted by floats.
         match self.formatting_context_type() {

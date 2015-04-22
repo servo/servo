@@ -51,7 +51,7 @@ macro_rules! define_numbered_css_keyword_enum {
     };
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+) => {
         #[allow(non_camel_case_types)]
-        #[derive(Clone, Eq, PartialEq, FromPrimitive, Copy, RustcEncodable)]
+        #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, FromPrimitive, Copy, RustcEncodable)]
         pub enum $name {
             $( $variant = $value ),+
         }
