@@ -169,7 +169,7 @@ impl<'a> PaintContext<'a> {
     }
 
     pub fn clear(&self) {
-        let pattern = ColorPattern::new(color::transparent_black());
+        let pattern = ColorPattern::new(color::transparent());
         let rect = Rect(Point2D(self.page_rect.origin.x as AzFloat,
                                 self.page_rect.origin.y as AzFloat),
                         Size2D(self.screen_rect.size.width as AzFloat,

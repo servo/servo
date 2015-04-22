@@ -1318,7 +1318,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             ScrollPolicy::Scrollable
         };
 
-        let transparent = color::transparent_black();
+        let transparent = color::transparent();
         let stacking_context =
             self.create_stacking_context(display_list,
                                          Some(Arc::new(PaintLayer::new(self.layer_id(0),
