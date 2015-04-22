@@ -781,7 +781,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn set_devtools_wants_updates(self, value: bool) {
-       self.devtools_wants_updates.set(value);
+        self.devtools_wants_updates.set(value);
     }
 
     // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
