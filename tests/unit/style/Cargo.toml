@@ -12,6 +12,21 @@ doctest = false
 path = "../../../components/style"
 
 [dependencies.util]
+path = "../../components/util"
+
+[dependencies.gfx]
+path = "../../components/gfx"
+
+[dependencies.msg]
+path = "../../components/msg"
+
+[dependencies.net]
+path = "../../components/net"
+
+[dependencies.net_traits]
+path = "../../components/net_traits"
+
+[dependencies.util]
 path = "../../../components/util"
 
 [dependencies.string_cache_plugin]

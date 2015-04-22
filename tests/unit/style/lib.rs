@@ -7,6 +7,12 @@
 
 extern crate cssparser;
 extern crate geom;
+extern crate gfx;
+extern crate msg;
+extern crate net;
+extern crate net_traits;
+extern crate profile;
+extern crate script;
 extern crate selectors;
 extern crate string_cache;
 extern crate style;

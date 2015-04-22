@@ -33,6 +33,7 @@ use dom::window::WindowHelpers;
 use textinput::TextInput;
 use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing};
 use textinput::Lines::Single;
+use msg::constellation_msg::ConstellationChan;
 
 use util::str::DOMString;
 use string_cache::Atom;
@@ -70,7 +71,7 @@ pub struct HTMLInputElement {
     indeterminate: Cell<bool>,
     value_changed: Cell<bool>,
     size: Cell<u32>,
-    textinput: DOMRefCell<TextInput>,
+    textinput: DOMRefCell<TextInput<ConstellationChan>>,
     activation_state: DOMRefCell<InputActivationState>,
 }
 
@@ -120,7 +121,7 @@ impl HTMLInputElement {
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned(), Some(chan))),
+            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned(), chan)),
             activation_state: DOMRefCell::new(InputActivationState::new())
         }
     }
