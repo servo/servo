@@ -140,6 +140,7 @@ class MachCommands(CommandBase):
             env['OPENSSL_LIB_DIR'] = openssl_dir
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
 
+        env['OPENSSL_STATIC'] = 'TRUE'
         status = subprocess.call(
             ["cargo", "build"] + opts,
             env=env, cwd=self.servo_crate())
