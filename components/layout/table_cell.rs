@@ -40,7 +40,7 @@ pub struct TableCellFlow {
 
     /// The column span of this cell.
     pub column_span: u32,
-    
+
     /// Whether this cell is visible. If false, the value of `empty-cells` means that we must not
     /// display this cell.
     pub visible: bool,

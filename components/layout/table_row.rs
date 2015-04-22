@@ -544,7 +544,7 @@ impl CollapsedBorder {
             provenance: CollapsedBorderProvenance::FromTable,
         }
     }
-    
+
     /// Creates a collapsed border from the block-start border described in the given CSS style
     /// object.
     fn top(css_style: &ComputedValues, provenance: CollapsedBorderProvenance)
