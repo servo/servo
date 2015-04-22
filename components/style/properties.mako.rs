@@ -608,7 +608,7 @@ pub mod longhands {
         /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
         /// | <percentage> | <length>
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            input.try(specified::LengthOrPercentage::parse_non_negative)
+            input.try(specified::LengthOrPercentage::parse)
             .map(SpecifiedValue::LengthOrPercentage)
             .or_else(|()| {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
