@@ -207,6 +207,9 @@ class MachCommands(CommandBase):
         hosts_file_path = path.join('tests', 'wpt', 'hosts')
 
         os.environ["hosts_file_path"] = hosts_file_path
+        # Replace "test/wpt/mozilla/tests" with "_mozilla" in test paths. This
+        # allows for tab-completing of mozilla wpt tests.
+        kwargs["test_list"] = [x.replace("tests/wpt/mozilla/tests", "_mozilla") for x in kwargs["test_list"]]
 
         run_file = path.abspath(path.join("tests", "wpt", "run_wpt.py"))
         run_globals = {"__file__": run_file}
