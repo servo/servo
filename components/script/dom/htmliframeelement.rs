@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::attr::AttrValue;
-use dom::attr::AttrHelpers;
+use dom::attr::{Attr, AttrHelpers, AttrHelpersForLayout, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -17,8 +15,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary};
 use dom::customevent::CustomEvent;
 use dom::document::Document;
-use dom::element::Element;
-use dom::element::AttributeHandlers;
+use dom::element::{self, AttributeHandlers, Element};
 use dom::event::{Event, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -33,7 +30,7 @@ use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan, MozBrowse
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use util::opts;
-use util::str::{self, DOMString};
+use util::str::DOMString;
 use string_cache::Atom;
 
 use std::ascii::AsciiExt;
@@ -57,8 +54,6 @@ pub struct HTMLIFrameElement {
     subpage_id: Cell<Option<SubpageId>>,
     containing_page_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
-    width: Cell<Option<u32>>,
-    height: Cell<Option<u32>>,
 }
 
 impl HTMLIFrameElementDerived for EventTarget {
@@ -187,8 +182,6 @@ impl HTMLIFrameElement {
             subpage_id: Cell::new(None),
             containing_page_pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),
-            width: Cell::new(None),
-            height: Cell::new(None),
         }
     }
 
@@ -375,12 +368,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                 }
                 self.sandbox.set(Some(modes));
             }
-            &atom!("width") => {
-                self.width.set(str::parse_unsigned_integer(attr.value().chars()))
-            }
-            &atom!("height") => {
-                self.height.set(str::parse_unsigned_integer(attr.value().chars()))
-            }
             &atom!("src") => {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
                 if node.is_in_doc() {
@@ -394,6 +381,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
             &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value),
+            &atom!("width") | &atom!("height") => AttrValue::from_u32(value, 0),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
