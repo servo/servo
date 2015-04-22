@@ -701,8 +701,8 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let props = KeyboardEvent::key_properties(key, modifiers);
 
         let keyevent = KeyboardEvent::new(window.r(), ev_type, true, true,
-                                          Some(window.r()), 0,
-                                          props.key.to_owned(), props.code.to_owned(),
+                                          Some(window.r()), 0, Some(key),
+                                          props.key_string.to_owned(), props.code.to_owned(),
                                           props.location, is_repeating, is_composing,
                                           ctrl, alt, shift, meta,
                                           None, props.key_code).root();
@@ -714,8 +714,8 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         if state != KeyState::Released && props.is_printable() && !prevented {
             // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
             let event = KeyboardEvent::new(window.r(), "keypress".to_owned(),
-                                           true, true, Some(window.r()),
-                                           0, props.key.to_owned(), props.code.to_owned(),
+                                           true, true, Some(window.r()), 0, Some(key),
+                                            props.key_string.to_owned(), props.code.to_owned(),
                                            props.location, is_repeating, is_composing,
                                            ctrl, alt, shift, meta,
                                            props.char_code, 0).root();

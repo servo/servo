@@ -66,6 +66,7 @@ pub mod page;
 pub mod script_task;
 mod timers;
 pub mod textinput;
+pub mod clipboard_provider;
 mod devtools;
 mod horribly_inefficient_timers;
 mod webdriver_handlers;
