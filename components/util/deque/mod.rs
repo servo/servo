@@ -170,7 +170,9 @@ impl<T: Send + 'static> BufferPool<T> {
             }
         }
     }
+}
 
+impl<T> BufferPool<T> {
     fn free(&self, buf: Box<Buffer<T>>) {
         let mut pool = self.pool.lock().unwrap();
         match pool.iter().position(|v| v.size() > buf.size()) {
@@ -331,8 +333,7 @@ impl<T: Send + 'static> Deque<T> {
 }
 
 
-#[unsafe_destructor]
-impl<T: Send + 'static> Drop for Deque<T> {
+impl<T> Drop for Deque<T> {
     fn drop(&mut self) {
         let t = self.top.load(SeqCst);
         let b = self.bottom.load(SeqCst);
@@ -351,7 +352,7 @@ fn buffer_alloc_size<T>(log_size: usize) -> usize {
     (1 << log_size) * size_of::<T>()
 }
 
-impl<T: Send> Buffer<T> {
+impl<T> Buffer<T> {
     unsafe fn new(log_size: usize) -> Buffer<T> {
         let size = buffer_alloc_size::<T>(log_size);
         let buffer = allocate(size, min_align_of::<T>());
@@ -399,8 +400,7 @@ impl<T: Send> Buffer<T> {
     }
 }
 
-#[unsafe_destructor]
-impl<T: Send> Drop for Buffer<T> {
+impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
         // It is assumed that all buffers are empty on drop.
         let size = buffer_alloc_size::<T>(self.log_size);

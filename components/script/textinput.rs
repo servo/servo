@@ -14,7 +14,6 @@ use util::str::DOMString;
 use std::borrow::ToOwned;
 use std::cmp::{min, max};
 use std::default::Default;
-use std::num::SignedInt;
 use std::sync::mpsc::channel;
 
 #[derive(Copy, Clone, PartialEq)]
@@ -310,7 +309,7 @@ impl TextInput {
             },
             // printable characters have single-character key values
             c if c.len() == 1 => {
-                self.insert_char(c.char_at(0));
+                self.insert_char(c.chars().next().unwrap());
                 KeyReaction::DispatchInput
             }
             "Space" => {

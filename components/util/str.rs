@@ -7,11 +7,11 @@ use geometry::Au;
 use cssparser::{self, RGBA, Color};
 
 use libc::c_char;
+use num_lib::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::ffi::CStr;
 use std::iter::Filter;
-use std::num::{Int, ToPrimitive};
 use std::ops::Deref;
 use std::str::{from_utf8, FromStr, Split};
 
@@ -130,7 +130,7 @@ pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
 #[derive(Copy, Clone)]
 pub enum LengthOrPercentageOrAuto {
     Auto,
-    Percentage(f64),
+    Percentage(f32),
     Length(Au),
 }
 
@@ -171,9 +171,9 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     value = &value[..end_index];
 
     if found_percent {
-        let result: Result<f64, _> = FromStr::from_str(value);
+        let result: Result<f32, _> = FromStr::from_str(value);
         match result {
-            Ok(number) => return LengthOrPercentageOrAuto::Percentage((number as f64) / 100.0),
+            Ok(number) => return LengthOrPercentageOrAuto::Percentage((number as f32) / 100.0),
             Err(_) => return LengthOrPercentageOrAuto::Auto,
         }
     }
@@ -243,7 +243,7 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA,()> {
     }
 
     // Step 9.
-    if input.char_at(0) == '#' {
+    if input.as_bytes()[0] == b'#' {
         input = &input[1..]
     }
 
@@ -324,7 +324,7 @@ pub struct LowercaseString {
 impl LowercaseString {
     pub fn new(s: &str) -> LowercaseString {
         LowercaseString {
-            inner: s.chars().map(|c| c.to_lowercase()).collect(),
+            inner: s.to_lowercase(),
         }
     }
 }

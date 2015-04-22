@@ -91,7 +91,7 @@ impl Window {
     /// bundles custom resources (which we don't yet do).
     #[cfg(target_os="macos")]
     fn cursor_handle_for_cursor(&self, cursor: Cursor) -> cef_cursor_handle_t {
-        use cocoa::base::{class, msg_send, selector};
+        use cocoa::base::{class, selector};
 
         let cocoa_name = match cursor {
             Cursor::NoCursor => return 0 as cef_cursor_handle_t,
@@ -114,7 +114,7 @@ impl Window {
             _ => "arrowCursor",
         };
         unsafe {
-            msg_send()(class("NSCursor"), selector(cocoa_name))
+            msg_send![class("NSCursor"), cocoa_name]
         }
     }
 

@@ -94,7 +94,7 @@ pub extern "C" fn cef_string_utf8_set(src: *const u8, src_len: size_t, output: *
                  return 0;
              }
 
-             ptr::copy((*output).str, src, src_len as usize);
+             ptr::copy(src, (*output).str, src_len as usize);
              (*output).length = src_len;
              (*output).dtor = Some(string_utf8_dtor as extern "C" fn(*mut u8));
            }
@@ -175,7 +175,7 @@ pub extern "C" fn cef_string_utf16_set(src: *const c_ushort, src_len: size_t, ou
                  return 0;
              }
 
-             ptr::copy((*output).str, src, src_len as usize);
+             ptr::copy(src, (*output).str, src_len as usize);
              (*output).length = src_len;
              (*output).dtor = Some(string_utf16_dtor as extern "C" fn(*mut c_ushort));
            }
@@ -233,7 +233,7 @@ pub extern "C" fn cef_string_wide_set(src: *const wchar_t, src_len: size_t, outp
                  return 0;
              }
 
-             ptr::copy((*output).str, src, src_len as usize);
+             ptr::copy(src, (*output).str, src_len as usize);
              (*output).length = src_len;
              (*output).dtor = Some(string_wide_dtor as extern "C" fn(*mut wchar_t));
            }

@@ -55,7 +55,6 @@ use rustc_serialize::{Encoder, Encodable};
 use std::fmt;
 use std::iter::Zip;
 use std::mem;
-use std::num::FromPrimitive;
 use std::raw;
 use std::slice::IterMut;
 use std::sync::Arc;
@@ -582,13 +581,29 @@ impl FlowFlags {
 
     #[inline]
     pub fn text_align(self) -> text_align::T {
-        FromPrimitive::from_u32((self & TEXT_ALIGN).bits() >> TEXT_ALIGN_SHIFT).unwrap()
+        match (self & TEXT_ALIGN).bits() >> TEXT_ALIGN_SHIFT {
+            0 => text_align::T::start,
+            1 => text_align::T::end,
+            2 => text_align::T::left,
+            3 => text_align::T::right,
+            4 => text_align::T::center,
+            5 => text_align::T::justify,
+            _ => unreachable!()
+        }
     }
 
     #[inline]
     pub fn set_text_align(&mut self, value: text_align::T) {
+        let value = match value {
+            text_align::T::start => 0,
+            text_align::T::end => 1,
+            text_align::T::left => 2,
+            text_align::T::right => 3,
+            text_align::T::center => 4,
+            text_align::T::justify => 5,
+        };
         *self = (*self & !TEXT_ALIGN) |
-            FlowFlags::from_bits((value as u32) << TEXT_ALIGN_SHIFT).unwrap();
+            FlowFlags::from_bits(value << TEXT_ALIGN_SHIFT).unwrap();
     }
 
     #[inline]
@@ -876,7 +891,6 @@ impl Encodable for BaseFlow {
     }
 }
 
-#[unsafe_destructor]
 impl Drop for BaseFlow {
     fn drop(&mut self) {
         if self.strong_ref_count.load(Ordering::SeqCst) != 0 &&

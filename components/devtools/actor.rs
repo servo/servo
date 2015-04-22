@@ -8,6 +8,7 @@ use rustc_serialize::json;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::cell::{Cell, RefCell};
+use std::marker::Reflect;
 use std::mem::{replace, transmute};
 use std::net::TcpStream;
 use std::raw::TraitObject;
@@ -26,10 +27,10 @@ pub trait Actor: Any {
     fn name(&self) -> String;
 }
 
-impl Actor {
+impl Actor + Send {
     /// Returns true if the boxed type is the same as `T`
     #[inline]
-    pub fn is<T: 'static>(&self) -> bool {
+    pub fn is<T: Reflect + 'static>(&self) -> bool {
         // Get TypeId of the type this function is instantiated with
         let t = TypeId::of::<T>();
 
@@ -43,7 +44,7 @@ impl Actor {
     /// Returns some reference to the boxed value if it is of type `T`, or
     /// `None` if it isn't.
     #[inline]
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+    pub fn downcast_ref<T: Reflect + 'static>(&self) -> Option<&T> {
         if self.is::<T>() {
             unsafe {
                 // Get the raw representation of the trait object
@@ -60,7 +61,7 @@ impl Actor {
     /// Returns some mutable reference to the boxed value if it is of type `T`, or
     /// `None` if it isn't.
     #[inline]
-    pub fn downcast_mut<T: 'static>(&mut self) -> Option<&mut T> {
+    pub fn downcast_mut<T: Reflect + 'static>(&mut self) -> Option<&mut T> {
         if self.is::<T>() {
             unsafe {
                 // Get the raw representation of the trait object
@@ -168,13 +169,13 @@ impl ActorRegistry {
     }
 
     /// Find an actor by registered name
-    pub fn find<'a, T: 'static>(&'a self, name: &str) -> &'a T {
+    pub fn find<'a, T: Reflect + 'static>(&'a self, name: &str) -> &'a T {
         let actor = self.actors.get(&name.to_string()).unwrap();
         actor.downcast_ref::<T>().unwrap()
     }
 
     /// Find an actor by registered name
-    pub fn find_mut<'a, T: 'static>(&'a mut self, name: &str) -> &'a mut T {
+    pub fn find_mut<'a, T: Reflect + 'static>(&'a mut self, name: &str) -> &'a mut T {
         let actor = self.actors.get_mut(&name.to_string()).unwrap();
         actor.downcast_mut::<T>().unwrap()
     }

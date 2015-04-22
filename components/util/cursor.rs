@@ -6,11 +6,10 @@
 
 use cssparser::ToCss;
 use std::ascii::AsciiExt;
-use text_writer::TextWriter;
 
 macro_rules! define_cursor {
     ($( $css: expr => $variant: ident = $value: expr, )+) => {
-        #[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Debug)]
+        #[derive(Clone, Copy, PartialEq, Eq, Debug)]
         #[repr(u8)]
         pub enum Cursor {
             $( $variant = $value ),+
@@ -26,7 +25,7 @@ macro_rules! define_cursor {
         }
 
         impl ToCss for Cursor {
-            fn to_css<W>(&self, dest: &mut W) -> ::text_writer::Result where W: TextWriter {
+            fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result where W: ::std::fmt::Write {
                 match self {
                     $( &Cursor::$variant => dest.write_str($css) ),+
                 }

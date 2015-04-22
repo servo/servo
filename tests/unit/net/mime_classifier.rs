@@ -23,7 +23,7 @@ fn read_file(path: &path::Path) -> io::Result<Vec<u8>> {
 fn test_sniff_mp4_matcher() {
     let matcher = Mp4Matcher;
 
-    let p = PathBuf::new("parsable_mime/video/mp4/test.mp4");
+    let p = PathBuf::from("parsable_mime/video/mp4/test.mp4");
     let read_result = read_file(&p);
 
     match read_result {
@@ -43,7 +43,7 @@ fn test_sniff_full(filename_orig: &path::Path,type_string: &str,subtype_string: 
     let current_working_directory = env::current_dir().unwrap();
     println!("The current directory is {}", current_working_directory.display());
 
-    let mut filename = PathBuf::new("parsable_mime/");
+    let mut filename = PathBuf::from("parsable_mime/");
     filename.push(filename_orig);
 
     let classifier = MIMEClassifier::new();
@@ -73,7 +73,7 @@ fn test_sniff_full(filename_orig: &path::Path,type_string: &str,subtype_string: 
 #[cfg(test)]
 fn test_sniff_classification(file: &str,type_string: &str,subtype_string: &str,
                              supplied_type: Option<(&'static str,&'static str)>){
-    let mut x = PathBuf::new("./");
+    let mut x = PathBuf::from("./");
     x.push(type_string);
     x.push(subtype_string);
     x.push(file);
@@ -181,19 +181,19 @@ fn test_sniff_vsn_ms_fontobject() {
 #[test]
 #[should_panic]
 fn test_sniff_true_type() {
-    test_sniff_full(&PathBuf::new("unknown/true_type.ttf"), "(TrueType)", "", None);
+    test_sniff_full(&PathBuf::from("unknown/true_type.ttf"), "(TrueType)", "", None);
 }
 
 #[test]
 #[should_panic]
 fn test_sniff_open_type() {
-    test_sniff_full(&PathBuf::new("unknown/open_type"), "(OpenType)", "", None);
+    test_sniff_full(&PathBuf::from("unknown/open_type"), "(OpenType)", "", None);
 }
 
 #[test]
 #[should_panic]
 fn test_sniff_true_type_collection() {
-    test_sniff_full(&PathBuf::new("unknown/true_type_collection.ttc"), "(TrueType Collection)", "", None);
+    test_sniff_full(&PathBuf::from("unknown/true_type_collection.ttc"), "(TrueType Collection)", "", None);
 }
 
 #[test]
@@ -435,10 +435,10 @@ fn test_sniff_utf_8_bom() {
 
 #[test]
 fn test_sniff_rss_feed() {
-    test_sniff_full(&PathBuf::new("text/xml/feed.rss"), "application", "rss+xml", Some(("text", "html")));
+    test_sniff_full(&PathBuf::from("text/xml/feed.rss"), "application", "rss+xml", Some(("text", "html")));
 }
 
 #[test]
 fn test_sniff_atom_feed() {
-    test_sniff_full(&PathBuf::new("text/xml/feed.atom"), "application", "atom+xml", Some(("text", "html")));
+    test_sniff_full(&PathBuf::from("text/xml/feed.atom"), "application", "atom+xml", Some(("text", "html")));
 }

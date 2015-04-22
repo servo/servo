@@ -14,7 +14,6 @@ use hyper::http::RawStatus;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use util::resource_files::resources_dir_path;
 
-use std::borrow::IntoCow;
 use std::fs::PathExt;
 use std::sync::Arc;
 
@@ -26,7 +25,7 @@ pub fn factory(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Ar
                 content_type: Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![]))),
                 charset: Some("utf-8".to_string()),
                 headers: None,
-                status: Some(RawStatus(200, "OK".into_cow())),
+                status: Some(RawStatus(200, "OK".into())),
             });
             chan.send(Done(Ok(()))).unwrap();
             return

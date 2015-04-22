@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use core::iter::FromIterator;
 use msg::constellation_msg::PipelineId;
 use rustc_serialize::{json, Encoder, Encodable};
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
+use std::mem;
 use std::net::TcpStream;
-use std::old_io::timer::sleep;
+use std::thread::sleep_ms;
 use std::sync::{Arc, Mutex};
-use std::time::duration::Duration;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use time::PreciseTime;
 
@@ -117,7 +116,7 @@ impl Encodable for HighResolutionStamp {
     }
 }
 
-static DEFAULT_TIMELINE_DATA_PULL_TIMEOUT: usize = 200; //ms
+static DEFAULT_TIMELINE_DATA_PULL_TIMEOUT: u32 = 200; //ms
 
 impl TimelineActor {
     pub fn new(name: String,
@@ -214,7 +213,7 @@ impl TimelineActor {
                 }
                 emitter.send();
 
-                sleep(Duration::milliseconds(DEFAULT_TIMELINE_DATA_PULL_TIMEOUT as i64));
+                sleep_ms(DEFAULT_TIMELINE_DATA_PULL_TIMEOUT);
             }
         });
     }
@@ -344,7 +343,7 @@ impl Emitter {
         let end_time = PreciseTime::now();
         let reply = MarkersEmitterReply {
             __type__: "markers".to_string(),
-            markers: Vec::from_iter(self.markers.drain()),
+            markers: mem::replace(&mut self.markers, Vec::new()),
             from: self.from.clone(),
             endTime: HighResolutionStamp::new(self.start_stamp, end_time),
         };

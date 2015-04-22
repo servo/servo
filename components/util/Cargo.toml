@@ -18,9 +18,6 @@ doctest = false
 [dependencies.plugins]
 path = "../plugins"
 
-[dependencies.cssparser]
-git = "https://github.com/servo/rust-cssparser"
-
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
 
@@ -47,5 +44,9 @@ bitflags = "*"
 libc = "*"
 rand = "*"
 rustc-serialize = "0.3"
-text_writer = "0.1.1"
 time = "0.1.12"
+smallvec = "0.1"
+num_cpus = "0.2.2"
+fnv = "1.0"
+cssparser = "0.3.1"
+num = "0.1.24"

@@ -84,7 +84,6 @@ impl<'a> AutoWorkerReset<'a> {
     }
 }
 
-#[unsafe_destructor]
 impl<'a> Drop for AutoWorkerReset<'a> {
     fn drop(&mut self) {
         *self.workerscope.worker.borrow_mut() = self.old_worker.clone();

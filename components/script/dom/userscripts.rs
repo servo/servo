@@ -28,7 +28,7 @@ pub fn load_script(head: JSRef<HTMLHeadElement>) {
             p.push("user-agent-js");
             p
         } else {
-            PathBuf::new(path_str)
+            PathBuf::from(path_str)
         };
 
         let mut files = read_dir(&path).ok().expect("Bad path passed to --userscripts")

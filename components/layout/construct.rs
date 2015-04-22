@@ -1480,13 +1480,12 @@ impl FlowConstructionUtils for FlowRef {
     ///
     /// This must not be public because only the layout constructor can do this.
     fn add_new_child(&mut self, mut new_child: FlowRef) {
-        let base = flow::mut_base(&mut **self);
-
         {
             let kid_base = flow::mut_base(&mut *new_child);
             kid_base.parallel.parent = parallel::mut_owned_flow_to_unsafe_flow(self);
         }
 
+        let base = flow::mut_base(&mut **self);
         base.children.push_back(new_child);
         let _ = base.parallel.children_count.fetch_add(1, Ordering::Relaxed);
     }

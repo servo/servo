@@ -10,7 +10,6 @@ use azure::azure_hl::{FilterNode, FilterType, LinearTransferAttribute, LinearTra
 use azure::azure_hl::{Matrix5x4, TableTransferAttribute, TableTransferInput};
 use azure::azure_hl::{GaussianBlurAttribute, GaussianBlurInput};
 
-use std::num::Float;
 use style::computed_values::filter;
 use util::geometry::Au;
 

@@ -22,7 +22,7 @@ use hyper::header::{ContentType, Header, SetCookie, UserAgent};
 use hyper::mime::{Mime, TopLevel, SubLevel};
 
 use std::borrow::ToOwned;
-use std::boxed;
+use std::boxed::{self, FnBox};
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
@@ -30,7 +30,6 @@ use std::io::{BufReader, Read};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver, Sender};
-use std::thunk::Invoke;
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 
@@ -48,7 +47,7 @@ pub fn global_init() {
 
     let mut lines = String::new();
     match file.read_to_string(&mut lines) {
-        Ok(()) => (),
+        Ok(_) => (),
         Err(_) => return,
     };
 
@@ -239,8 +238,8 @@ impl ResourceManager {
         self.user_agent.as_ref().map(|ua| load_data.headers.set(UserAgent(ua.clone())));
 
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
-                        -> Box<Invoke<(LoadData, LoadConsumer, Arc<MIMEClassifier>)> + Send> {
-            box move |(load_data, senders, classifier)| {
+                        -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
+            box move |load_data, senders, classifier| {
                 factory(load_data, senders, classifier)
             }
         }
@@ -259,6 +258,6 @@ impl ResourceManager {
         };
         debug!("resource_task: loading url: {}", load_data.url.serialize());
 
-        loader.invoke((load_data, consumer, self.mime_classifier.clone()));
+        loader.call_box((load_data, consumer, self.mime_classifier.clone()));
     }
 }

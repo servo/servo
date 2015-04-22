@@ -18,7 +18,6 @@ use collections::BTreeMap;
 use core::cell::RefCell;
 use rustc_serialize::json::{self, Json, ToJson};
 use std::net::TcpStream;
-use std::num::Float;
 use std::sync::mpsc::{channel, Sender};
 
 #[derive(RustcEncodable)]
@@ -251,7 +250,7 @@ impl Actor for ConsoleActor {
                                 m.insert("type".to_string(), "Infinity".to_string().to_json());
                             }
                             Json::Object(m)
-                        } else if val == Float::neg_zero() {
+                        } else if val == 0. && val.is_sign_negative() {
                             let mut m = BTreeMap::new();
                             m.insert("type".to_string(), "-0".to_string().to_json());
                             Json::Object(m)

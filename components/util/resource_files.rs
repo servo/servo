@@ -18,7 +18,7 @@ pub fn resources_dir_path() -> PathBuf {
     use std::fs::PathExt;
 
     match opts::get().resources_path {
-        Some(ref path) => PathBuf::new(path),
+        Some(ref path) => PathBuf::from(path),
         None => {
             // FIXME: Find a way to not rely on the executable being
             // under `<servo source>/components/servo/target`

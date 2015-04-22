@@ -11,7 +11,8 @@ use rustc_serialize::base64::FromBase64;
 
 use hyper::mime::Mime;
 use std::sync::Arc;
-use url::{percent_decode, SchemeData};
+use url::percent_encoding::percent_decode;
+use url::SchemeData;
 
 pub fn factory(load_data: LoadData, senders: LoadConsumer, _classifier: Arc<MIMEClassifier>) {
     // NB: we don't spawn a new task.
@@ -39,7 +40,7 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
         },
         None => ()
     }
-    let parts: Vec<&str> = scheme_data.splitn(1, ',').collect();
+    let parts: Vec<&str> = scheme_data.splitn(2, ',').collect();
     if parts.len() != 2 {
         start_sending(start_chan, metadata).send(Done(Err("invalid data uri".to_string()))).unwrap();
         return;

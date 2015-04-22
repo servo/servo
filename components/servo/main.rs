@@ -26,7 +26,7 @@ extern crate net;
 // Servo common utilitiess
 extern crate util;
 // The window backed by glutin
-extern crate "glutin_app" as app;
+extern crate glutin_app as app;
 extern crate time;
 
 #[cfg(target_os="android")]

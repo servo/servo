@@ -10,7 +10,6 @@ use std::mem::transmute;
 use std::mem::zeroed;
 use std::os::errno;
 use std::os::unix::AsRawFd;
-use std::num::Float;
 use std::fs::File;
 use std::thread;
 use std::sync::mpsc::Sender;

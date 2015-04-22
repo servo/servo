@@ -450,7 +450,7 @@ fn key_location(key: constellation_msg::Key) -> u32 {
 fn key_charcode(key: constellation_msg::Key, mods: constellation_msg::KeyModifiers) -> Option<u32> {
     let key = key_value(key, mods);
     if key.len() == 1 {
-        Some(key.char_at(0) as u32)
+        Some(key.chars().next().unwrap() as u32)
     } else {
         None
     }

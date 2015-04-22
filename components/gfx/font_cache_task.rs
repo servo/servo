@@ -191,7 +191,7 @@ impl FontCache {
             let s = self.local_families.get_mut(family_name).unwrap();
 
             if s.templates.len() == 0 {
-                get_variations_for_family(&family_name, |path| {
+                get_variations_for_family(family_name, |path| {
                     s.add_template(&path, None);
                 });
             }

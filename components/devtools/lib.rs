@@ -11,10 +11,7 @@
 #![crate_type = "rlib"]
 
 #![feature(box_syntax, core, rustc_private)]
-#![feature(collections, std_misc)]
-#![feature(io)]
-#![feature(net)]
-#![feature(old_io)]
+#![feature(collections)]
 
 #![allow(non_snake_case)]
 
@@ -24,7 +21,7 @@ extern crate log;
 extern crate collections;
 extern crate core;
 extern crate devtools_traits;
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 extern crate msg;
 extern crate time;
 extern crate util;
@@ -46,6 +43,7 @@ use util::task::spawn_named;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::error::Error;
 use std::sync::mpsc::{channel, Receiver, Sender, RecvError};
 use std::net::{TcpListener, TcpStream, Shutdown};
 use std::sync::{Arc, Mutex};
@@ -128,7 +126,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
         'outer: loop {
             match stream.read_json_packet() {
-                Ok(json_packet) => {
+                Ok(Some(json_packet)) => {
                     match actors.lock().unwrap().handle_message(json_packet.as_object().unwrap(),
                                                                 &mut stream) {
                         Ok(()) => {},
@@ -138,6 +136,10 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                             break 'outer
                         }
                     }
+                }
+                Ok(None) => {
+                    println!("error: EOF");
+                    break 'outer
                 }
                 Err(e) => {
                     println!("error: {}", e.description());
@@ -244,7 +246,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                           id: PipelineId,
                           actor_pipelines: &HashMap<PipelineId, String>) -> String {
         let actors = actors.lock().unwrap();
-        let ref tab_actor_name = (*actor_pipelines)[id];
+        let ref tab_actor_name = (*actor_pipelines)[&id];
         let tab_actor = actors.find::<TabActor>(tab_actor_name);
         let console_actor_name = tab_actor.console.clone();
         return console_actor_name;

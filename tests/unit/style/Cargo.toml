@@ -26,8 +26,6 @@ git = "https://github.com/servo/rust-geom"
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
 
-[dependencies.cssparser]
-git = "https://github.com/servo/rust-cssparser"
-
 [dependencies]
 url = "*"
+cssparser = "0.3.1"

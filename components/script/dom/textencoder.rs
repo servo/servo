@@ -84,7 +84,7 @@ impl<'a> TextEncoderMethods for JSRef<'a, TextEncoder> {
             let js_object: *mut JSObject = JS_NewUint8Array(cx, length);
 
             let js_object_data: *mut uint8_t = JS_GetUint8ArrayData(js_object, cx);
-            ptr::copy_nonoverlapping(js_object_data, encoded.as_ptr(), length as usize);
+            ptr::copy_nonoverlapping(encoded.as_ptr(), js_object_data, length as usize);
             return js_object;
         }
     }

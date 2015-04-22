@@ -12,10 +12,10 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 
 use util::str::DOMString;
 
+use num::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cmp::{min, max};
-use std::num::ToPrimitive;
 
 #[jstraceable]
 pub enum BlobTypeId {

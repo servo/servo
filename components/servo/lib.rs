@@ -17,7 +17,6 @@
 // The `Browser` is fed events from a generic type that implements the
 // `WindowMethods` trait.
 #![feature(libc, thread_local)]
-#![cfg_attr(not(test), feature(path))]
 
 extern crate compositing;
 extern crate devtools;

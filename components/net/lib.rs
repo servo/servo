@@ -6,9 +6,6 @@
 #![feature(box_syntax)]
 #![feature(collections)]
 #![feature(core)]
-#![feature(io)]
-#![cfg_attr(test, feature(net))]
-#![feature(path)]
 #![feature(path_ext)]
 #![feature(plugin)]
 #![feature(rustc_private)]
@@ -18,7 +15,7 @@
 #![plugin(regex_macros)]
 
 extern crate net_traits;
-extern crate "cookie" as cookie_rs;
+extern crate cookie as cookie_rs;
 extern crate collections;
 extern crate flate2;
 extern crate geom;
@@ -27,7 +24,7 @@ extern crate png;
 #[macro_use]
 extern crate log;
 extern crate openssl;
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 extern crate util;
 extern crate time;
 extern crate url;

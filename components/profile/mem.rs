@@ -9,9 +9,8 @@ use self::system_reporter::SystemReporter;
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::old_io::timer::sleep;
+use std::thread::sleep_ms;
 use std::sync::mpsc::{channel, Receiver};
-use std::time::duration::Duration;
 use util::task::spawn_named;
 
 pub struct Profiler {
@@ -28,11 +27,11 @@ impl Profiler {
 
         // Create the timer thread if a period was provided.
         if let Some(period) = period {
-            let period_ms = Duration::milliseconds((period * 1000f64) as i64);
+            let period_ms = (period * 1000.) as u32;
             let chan = chan.clone();
             spawn_named("Memory profiler timer".to_owned(), move || {
                 loop {
-                    sleep(period_ms);
+                    sleep_ms(period_ms);
                     if chan.send(ProfilerMsg::Print).is_err() {
                         break;
                     }
@@ -444,7 +443,7 @@ mod system_reporter {
         let mut f = option_try!(File::open("/proc/self/statm").ok());
         let mut contents = String::new();
         option_try!(f.read_to_string(&mut contents).ok());
-        let s = option_try!(contents.words().nth(field));
+        let s = option_try!(contents.split_whitespace().nth(field));
         let npages = option_try!(s.parse::<usize>().ok());
         Some(npages * ::std::env::page_size())
     }
@@ -485,7 +484,7 @@ mod system_reporter {
         use std::collections::HashMap;
         use std::collections::hash_map::Entry;
         use std::fs::File;
-        use std::io::{BufReader, BufReadExt};
+        use std::io::{BufReader, BufRead};
 
         // The first line of an entry in /proc/<pid>/smaps looks just like an entry
         // in /proc/<pid>/maps:
