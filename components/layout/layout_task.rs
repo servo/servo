@@ -1226,16 +1226,16 @@ impl FragmentBorderBoxIterator for CollectingFragmentBorderBoxIterator {
 // transparent background color is handled correctly.
 fn get_root_flow_background_color(flow: &mut Flow) -> AzColor {
     if !flow.is_block_like() {
-        return color::transparent_black()
+        return color::transparent()
     }
 
     let block_flow = flow.as_block();
     let kid = match block_flow.base.children.iter_mut().next() {
-        None => return color::transparent_black(),
+        None => return color::transparent(),
         Some(kid) => kid,
     };
     if !kid.is_block_like() {
-        return color::transparent_black()
+        return color::transparent()
     }
 
     let kid_block_flow = kid.as_block();

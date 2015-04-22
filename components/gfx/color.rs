@@ -31,7 +31,7 @@ pub fn black() -> AzColor {
 }
 
 #[inline]
-pub fn transparent_black() -> AzColor {
+pub fn transparent() -> AzColor {
     AzColor { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }
 }
 

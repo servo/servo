@@ -548,7 +548,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             epoch: Epoch(0),
             id: LayerId::null(),
             rect: Rect::zero(),
-            background_color: color::transparent_black(),
+            background_color: color::transparent(),
             scroll_policy: ScrollPolicy::Scrollable,
         };
 
