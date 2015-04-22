@@ -4,8 +4,9 @@
 
 use azure::azure::AzFloat;
 use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
-use azure::azure_hl::{ColorPattern, PathBuilder, JoinStyle, CapStyle, DrawSurfaceOptions, Filter};
+use azure::azure_hl::{ColorPattern, PathBuilder, DrawSurfaceOptions, Filter};
 use azure::azure_hl::{GradientStop, LinearGradientPattern, RadialGradientPattern, ExtendMode};
+use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp};
 use canvas_msg::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -244,6 +245,7 @@ impl<'a> CanvasPaintTask<'a> {
                             Canvas2dMsg::SetMiterLimit(limit) => painter.set_miter_limit(limit),
                             Canvas2dMsg::SetTransform(ref matrix) => painter.set_transform(matrix),
                             Canvas2dMsg::SetGlobalAlpha(alpha) => painter.set_global_alpha(alpha),
+                            Canvas2dMsg::SetGlobalComposition(op) => painter.set_global_composition(op),
                             Canvas2dMsg::GetImageData(dest_rect, canvas_size, chan) => painter.get_image_data(dest_rect, canvas_size, chan),
                             Canvas2dMsg::PutImageData(imagedata, image_data_rect, dirty_rect)
                                 => painter.put_image_data(imagedata, image_data_rect, dirty_rect),
@@ -475,6 +477,10 @@ impl<'a> CanvasPaintTask<'a> {
 
     fn set_global_alpha(&mut self, alpha: f32) {
         self.state.draw_options.alpha = alpha;
+    }
+
+    fn set_global_composition(&mut self, op: CompositionOrBlending) {
+        self.state.draw_options.set_composition_op(op.to_azure_style());
     }
 
     fn create(size: Size2D<i32>) -> DrawTarget {
@@ -712,6 +718,185 @@ impl LineJoinStyle {
             "miter" => Some(LineJoinStyle::Miter),
             _ => None
         }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum CompositionStyle {
+    SrcIn,
+    SrcOut,
+    SrcOver,
+    SrcAtop,
+    DestIn,
+    DestOut,
+    DestOver,
+    DestAtop,
+    Copy,
+    Lighter,
+    Xor,
+}
+
+impl CompositionStyle {
+    fn to_azure_style(&self) -> CompositionOp {
+        match *self {
+            CompositionStyle::SrcIn    => CompositionOp::In,
+            CompositionStyle::SrcOut   => CompositionOp::Out,
+            CompositionStyle::SrcOver  => CompositionOp::Over,
+            CompositionStyle::SrcAtop  => CompositionOp::Atop,
+            CompositionStyle::DestIn   => CompositionOp::DestIn,
+            CompositionStyle::DestOut  => CompositionOp::DestOut,
+            CompositionStyle::DestOver => CompositionOp::DestOver,
+            CompositionStyle::DestAtop => CompositionOp::DestAtop,
+            CompositionStyle::Copy     => CompositionOp::Source,
+            CompositionStyle::Lighter  => CompositionOp::Add,
+            CompositionStyle::Xor      => CompositionOp::Xor,
+        }
+    }
+
+    pub fn from_str(string: &str) -> Option<CompositionStyle> {
+        match string {
+            "source-in"        => Some(CompositionStyle::SrcIn),
+            "source-out"       => Some(CompositionStyle::SrcOut),
+            "source-over"      => Some(CompositionStyle::SrcOver),
+            "source-atop"      => Some(CompositionStyle::SrcAtop),
+            "destination-in"   => Some(CompositionStyle::DestIn),
+            "destination-out"  => Some(CompositionStyle::DestOut),
+            "destination-over" => Some(CompositionStyle::DestOver),
+            "destination-atop" => Some(CompositionStyle::DestAtop),
+            "copy"             => Some(CompositionStyle::Copy),
+            "lighter"          => Some(CompositionStyle::Lighter),
+            "xor"              => Some(CompositionStyle::Xor),
+            _ => None
+        }
+    }
+
+    pub fn to_str(&self) -> &str {
+        match *self {
+            CompositionStyle::SrcIn    => "source-in",
+            CompositionStyle::SrcOut   => "source-out",
+            CompositionStyle::SrcOver  => "source-over",
+            CompositionStyle::SrcAtop  => "source-atop",
+            CompositionStyle::DestIn   => "destination-in",
+            CompositionStyle::DestOut  => "destination-out",
+            CompositionStyle::DestOver => "destination-over",
+            CompositionStyle::DestAtop => "destination-atop",
+            CompositionStyle::Copy     => "copy",
+            CompositionStyle::Lighter  => "lighter",
+            CompositionStyle::Xor      => "xor",
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum BlendingStyle {
+    Multiply,
+    Screen,
+    Overlay,
+    Darken,
+    Lighten,
+    ColorDodge,
+    ColorBurn,
+    HardLight,
+    SoftLight,
+    Difference,
+    Exclusion,
+    Hue,
+    Saturation,
+    Color,
+    Luminosity,
+}
+
+impl BlendingStyle {
+    fn to_azure_style(&self) -> CompositionOp {
+        match *self {
+            BlendingStyle::Multiply   => CompositionOp::Multiply,
+            BlendingStyle::Screen     => CompositionOp::Screen,
+            BlendingStyle::Overlay    => CompositionOp::Overlay,
+            BlendingStyle::Darken     => CompositionOp::Darken,
+            BlendingStyle::Lighten    => CompositionOp::Lighten,
+            BlendingStyle::ColorDodge => CompositionOp::ColorDodge,
+            BlendingStyle::ColorBurn  => CompositionOp::ColorBurn,
+            BlendingStyle::HardLight  => CompositionOp::HardLight,
+            BlendingStyle::SoftLight  => CompositionOp::SoftLight,
+            BlendingStyle::Difference => CompositionOp::Difference,
+            BlendingStyle::Exclusion  => CompositionOp::Exclusion,
+            BlendingStyle::Hue        => CompositionOp::Hue,
+            BlendingStyle::Saturation => CompositionOp::Saturation,
+            BlendingStyle::Color      => CompositionOp::Color,
+            BlendingStyle::Luminosity => CompositionOp::Luminosity,
+        }
+    }
+
+    pub fn from_str(string: &str) -> Option<BlendingStyle> {
+        match string {
+            "multiply"    => Some(BlendingStyle::Multiply),
+            "screen"      => Some(BlendingStyle::Screen),
+            "overlay"     => Some(BlendingStyle::Overlay),
+            "darken"      => Some(BlendingStyle::Darken),
+            "lighten"     => Some(BlendingStyle::Lighten),
+            "color-dodge" => Some(BlendingStyle::ColorDodge),
+            "color-burn"  => Some(BlendingStyle::ColorBurn),
+            "hard-light"  => Some(BlendingStyle::HardLight),
+            "soft-light"  => Some(BlendingStyle::SoftLight),
+            "difference"  => Some(BlendingStyle::Difference),
+            "exclusion"   => Some(BlendingStyle::Exclusion),
+            "hue"         => Some(BlendingStyle::Hue),
+            "saturation"  => Some(BlendingStyle::Saturation),
+            "color"       => Some(BlendingStyle::Color),
+            "luminosity"  => Some(BlendingStyle::Luminosity),
+            _ => None
+        }
+    }
+
+    pub fn to_str(&self) -> &str {
+        match *self {
+            BlendingStyle::Multiply   => "multiply",
+            BlendingStyle::Screen     => "screen",
+            BlendingStyle::Overlay    => "overlay",
+            BlendingStyle::Darken     => "darken",
+            BlendingStyle::Lighten    => "lighten",
+            BlendingStyle::ColorDodge => "color-dodge",
+            BlendingStyle::ColorBurn  => "color-burn",
+            BlendingStyle::HardLight  => "hard-light",
+            BlendingStyle::SoftLight  => "soft-light",
+            BlendingStyle::Difference => "difference",
+            BlendingStyle::Exclusion  => "exclusion",
+            BlendingStyle::Hue        => "hue",
+            BlendingStyle::Saturation => "saturation",
+            BlendingStyle::Color      => "color",
+            BlendingStyle::Luminosity => "luminosity",
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum CompositionOrBlending {
+    Composition(CompositionStyle),
+    Blending(BlendingStyle),
+}
+
+impl CompositionOrBlending {
+    fn to_azure_style(&self) -> CompositionOp {
+        match *self {
+            CompositionOrBlending::Composition(op) => op.to_azure_style(),
+            CompositionOrBlending::Blending(op) => op.to_azure_style(),
+        }
+    }
+
+    pub fn default() -> CompositionOrBlending {
+        CompositionOrBlending::Composition(CompositionStyle::SrcOver)
+    }
+
+    pub fn from_str(string: &str) -> Option<CompositionOrBlending> {
+        if let Some(op) = CompositionStyle::from_str(string) {
+            return Some(CompositionOrBlending::Composition(op));
+        }
+
+        if let Some(op) = BlendingStyle::from_str(string) {
+            return Some(CompositionOrBlending::Blending(op));
+        }
+
+        None
     }
 }
 
