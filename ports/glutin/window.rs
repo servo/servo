@@ -27,7 +27,7 @@ use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 #[cfg(feature = "window")]
 use geom::point::{Point2D, TypedPoint2D};
 #[cfg(feature = "window")]
-use glutin::{ElementState, Event, MouseButton, VirtualKeyCode};
+use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode};
 #[cfg(feature = "window")]
 use msg::constellation_msg::{KeyState, CONTROL, SHIFT, ALT};
 #[cfg(feature = "window")]
@@ -77,7 +77,7 @@ impl Window {
         let mut glutin_window = glutin::WindowBuilder::new()
                             .with_title("Servo".to_string())
                             .with_dimensions(window_size.to_untyped().width, window_size.to_untyped().height)
-                            .with_gl_version(Window::gl_version())
+                            .with_gl(Window::gl_version())
                             .with_visibility(is_foreground)
                             .build()
                             .unwrap();
@@ -119,13 +119,13 @@ impl Window {
     }
 
     #[cfg(not(target_os="android"))]
-    fn gl_version() -> (u32, u32) {
-        (3, 0)
+    fn gl_version() -> GlRequest {
+        GlRequest::Specific(Api::OpenGl, (3, 0))
     }
 
     #[cfg(target_os="android")]
-    fn gl_version() -> (u32, u32) {
-        (2, 0)
+    fn gl_version() -> GlRequest {
+        GlRequest::Specific(Api::OpenGlEs, (2, 0))
     }
 
     #[cfg(not(target_os="android"))]
