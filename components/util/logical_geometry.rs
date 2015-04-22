@@ -47,6 +47,44 @@ impl WritingMode {
     pub fn is_sideways_left(&self) -> bool {
         self.intersects(FLAG_SIDEWAYS_LEFT)
     }
+
+    #[inline]
+    pub fn inline_start_physical_side(&self) -> PhysicalSide {
+        match (self.is_vertical(), self.is_inline_tb(), self.is_bidi_ltr()) {
+            (false, _, true) => PhysicalSide::Left,
+            (false, _, false) => PhysicalSide::Right,
+            (true, true, _) => PhysicalSide::Top,
+            (true, false, _) => PhysicalSide::Bottom,
+        }
+    }
+
+    #[inline]
+    pub fn inline_end_physical_side(&self) -> PhysicalSide {
+        match (self.is_vertical(), self.is_inline_tb(), self.is_bidi_ltr()) {
+            (false, _, true) => PhysicalSide::Right,
+            (false, _, false) => PhysicalSide::Left,
+            (true, true, _) => PhysicalSide::Bottom,
+            (true, false, _) => PhysicalSide::Top,
+        }
+    }
+
+    #[inline]
+    pub fn block_start_physical_side(&self) -> PhysicalSide {
+        match (self.is_vertical(), self.is_vertical_lr()) {
+            (false, _) => PhysicalSide::Top,
+            (true, true) => PhysicalSide::Left,
+            (true, false) => PhysicalSide::Right,
+        }
+    }
+
+    #[inline]
+    pub fn block_end_physical_side(&self) -> PhysicalSide {
+        match (self.is_vertical(), self.is_vertical_lr()) {
+            (false, _) => PhysicalSide::Bottom,
+            (true, true) => PhysicalSide::Right,
+            (true, false) => PhysicalSide::Left,
+        }
+    }
 }
 
 impl Debug for WritingMode {
@@ -965,3 +1003,12 @@ impl<T: Copy + Add<T, Output=T> + Sub<T, Output=T>> Sub<LogicalMargin<T>> for Lo
         }
     }
 }
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum PhysicalSide {
+    Top,
+    Right,
+    Bottom,
+    Left,
+}
+
