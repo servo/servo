@@ -285,7 +285,7 @@ impl ReportsTree {
         }
 
         let mut indent_str = String::new();
-        for _ in range(0, depth) {
+        for _ in 0..depth {
             indent_str.push_str("   ");
         }
 

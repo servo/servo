@@ -154,7 +154,7 @@ fn read_input_device(device_path: &Path,
         let count = read / size_of::<linux_input_event>();
         let events: *mut linux_input_event = unsafe { transmute(buf.as_mut_ptr()) };
         let mut tracking_updated = false;
-        for idx in range(0, count as int) {
+        for idx in 0..(count as int) {
             let event: &linux_input_event = unsafe { transmute(events.offset(idx)) };
             match (event.evt_type, event.code) {
                 (EV_SYN, EV_REPORT) => {

@@ -266,7 +266,7 @@ impl Flow for TableRowFlow {
                 };
 
             // Add in computed inline sizes for any extra columns in the span.
-            for _ in range(1, cell_intrinsic_inline_size.column_span) {
+            for _ in 1..cell_intrinsic_inline_size.column_span {
                 let extra_column_computed_inline_size =
                     match column_computed_inline_size_iterator.next() {
                         Some(column_computed_inline_size) => column_computed_inline_size,

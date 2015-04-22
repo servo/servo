@@ -530,7 +530,7 @@ fn push_alphabetic_representation(mut value: i32, system: &[char], accumulator: 
         value = ((value as usize) / system.len()) as i32;
     }
 
-    for i in range(0, string.len()).rev() {
+    for i in (0..string.len()).rev() {
         accumulator.push(*string.get(i))
     }
 }
