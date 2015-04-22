@@ -39,7 +39,8 @@ pub enum EventTypeId {
     ProgressEvent,
     StorageEvent,
     UIEvent,
-    ErrorEvent
+    ErrorEvent,
+    CloseEvent
 }
 
 #[derive(PartialEq)]
