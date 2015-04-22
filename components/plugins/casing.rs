@@ -11,17 +11,17 @@ use syntax::parse::token;
 
 pub fn expand_lower<'cx>(cx: &'cx mut ExtCtxt, sp: Span, tts: &[ast::TokenTree])
                         -> Box<base::MacResult + 'cx> {
-    expand_cased(cx, sp, tts, |c| { c.to_lowercase() })
+    expand_cased(cx, sp, tts, |s| { s.to_lowercase() })
 }
 
 pub fn expand_upper<'cx>(cx: &'cx mut ExtCtxt, sp: Span, tts: &[ast::TokenTree])
                         -> Box<base::MacResult + 'cx> {
-    expand_cased(cx, sp, tts, |c| { c.to_uppercase() })
+    expand_cased(cx, sp, tts, |s| { s.to_uppercase() })
 }
 
 fn expand_cased<'cx, T>(cx: &'cx mut ExtCtxt, sp: Span, tts: &[ast::TokenTree], transform: T)
                         -> Box<base::MacResult + 'cx>
-    where T: Fn(char) -> char
+    where T: Fn(&str) -> String
 {
     let es = match base::get_exprs_from_tts(cx, sp, tts) {
         Some(e) => e,
@@ -47,8 +47,7 @@ fn expand_cased<'cx, T>(cx: &'cx mut ExtCtxt, sp: Span, tts: &[ast::TokenTree], 
     };
     match (res, it.count()) {
         (Some((s, span)), 0) => {
-            let new_s = s.chars().map(transform).collect::<String>();
-            base::MacEager::expr(cx.expr_str(span, token::intern_and_get_ident(&new_s)))
+            base::MacEager::expr(cx.expr_str(span, token::intern_and_get_ident(&transform(&s))))
         }
         (_, rest) => {
             if rest > 0 {

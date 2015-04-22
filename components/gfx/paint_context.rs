@@ -34,7 +34,6 @@ use png::PixelsByColorType;
 use std::default::Default;
 use std::f32;
 use std::mem;
-use std::num::Float;
 use std::ptr;
 use std::sync::Arc;
 use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};

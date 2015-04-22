@@ -641,7 +641,6 @@ impl<T: Reflectable> Root<T> {
     }
 }
 
-#[unsafe_destructor]
 impl<T: Reflectable> Drop for Root<T> {
     fn drop(&mut self) {
         self.root_list.unroot(self);

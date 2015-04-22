@@ -7,11 +7,12 @@
 #![feature(plugin)]
 #![feature(link_args)]
 #![feature(thread_local)]
-#![feature(unicode)]
 #![feature(core)]
 #![feature(std_misc)]
 #![feature(rustc_private)]
 #![feature(collections)]
+#![feature(negate_unsigned)]
+#![feature(unicode)]
 
 #![allow(non_camel_case_types)]
 
@@ -31,9 +32,9 @@ extern crate glutin_app;
 extern crate js;
 extern crate layers;
 extern crate png;
+extern crate rustc_unicode;
 extern crate script;
 extern crate script_traits;
-extern crate unicode;
 
 extern crate net;
 extern crate msg;
@@ -42,16 +43,21 @@ extern crate style;
 extern crate stb_image;
 
 extern crate libc;
-extern crate "url" as std_url;
+extern crate url as std_url;
 
 #[cfg(target_os="macos")]
 extern crate cgl;
 #[cfg(target_os="macos")]
 extern crate cocoa;
 #[cfg(target_os="macos")]
+extern crate core_foundation;
+#[cfg(target_os="macos")]
 extern crate core_graphics;
 #[cfg(target_os="macos")]
 extern crate core_text;
+#[cfg(target_os="macos")]
+#[macro_use]
+extern crate objc;
 
 // Must come first.
 pub mod macros;

@@ -61,7 +61,6 @@ impl WebGLRenderingContext {
     }
 }
 
-#[unsafe_destructor]
 impl Drop for WebGLRenderingContext {
     fn drop(&mut self) {
         self.renderer.send(CanvasMsg::Common(CanvasCommonMsg::Close)).unwrap();

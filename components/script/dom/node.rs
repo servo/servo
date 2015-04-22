@@ -179,7 +179,6 @@ impl NodeFlags {
     }
 }
 
-#[unsafe_destructor]
 impl Drop for Node {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
@@ -987,8 +986,11 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn child_elements(self) -> ChildElementIterator {
+        fn to_temporary(node: Temporary<Node>) -> Option<Temporary<Element>> {
+            ElementCast::to_temporary(node)
+        }
         self.children()
-            .filter_map(ElementCast::to_temporary as fn(_) -> _)
+            .filter_map(to_temporary as fn(_) -> _)
             .peekable()
     }
 

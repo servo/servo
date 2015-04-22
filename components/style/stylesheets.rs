@@ -18,7 +18,7 @@ use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use media_queries::{Device, MediaQueryList, parse_media_query_list};
 use font_face::{FontFaceRule, parse_font_face_block};
-use util::smallvec::{SmallVec, SmallVec2};
+use util::smallvec::SmallVec2;
 
 
 /// Each style rule has an origin, which determines where it enters the cascade.
@@ -178,7 +178,7 @@ impl<'a> Iterator for Rules<'a> {
     fn next(&mut self) -> Option<&'a CSSRule> {
         while !self.stack.is_empty() {
             let top = self.stack.len() - 1;
-            while let Some(rule) = self.stack.get_mut(top).next() {
+            while let Some(rule) = self.stack[top].next() {
                 // handle conditional group rules
                 match rule {
                     &CSSRule::Media(ref rule) => {

@@ -9,12 +9,10 @@ use net_traits::CookieSource;
 use pub_domains::PUB_DOMAINS;
 
 use cookie_rs;
-use time::{Tm, now, at, Timespec};
+use time::{Tm, now, at, Duration};
 use url::Url;
 use std::borrow::ToOwned;
-use std::i64;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use std::time::Duration;
 use std::str::FromStr;
 
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
@@ -27,7 +25,7 @@ pub struct Cookie {
     pub persistent: bool,
     pub creation_time: Tm,
     pub last_access: Tm,
-    pub expiry_time: Tm,
+    pub expiry_time: Option<Tm>,
 }
 
 impl Cookie {
@@ -36,9 +34,11 @@ impl Cookie {
                        -> Option<Cookie> {
         // Step 3
         let (persistent, expiry_time) = match (&cookie.max_age, &cookie.expires) {
-            (&Some(max_age), _) => (true, at(now().to_timespec() + Duration::seconds(max_age as i64))),
-            (_, &Some(expires)) => (true, expires),
-            _ => (false, at(Timespec::new(i64::MAX, 0)))
+            (&Some(max_age), _) => {
+                (true, Some(at(now().to_timespec() + Duration::seconds(max_age as i64))))
+            }
+            (_, &Some(expires)) => (true, Some(expires)),
+            _ => (false, None)
         };
 
         let url_host = request.host().map(|host| host.serialize()).unwrap_or("".to_owned());
@@ -68,7 +68,7 @@ impl Cookie {
 
         // Step 7
         let mut path = cookie.path.unwrap_or("".to_owned());
-        if path.is_empty() || path.char_at(0) != '/' {
+        if path.is_empty() || path.as_bytes()[0] != b'/' {
             let url_path = request.serialize_path();
             let url_path = url_path.as_ref().map(|path| &**path);
             path = Cookie::default_path(url_path.unwrap_or("")).to_owned();
@@ -117,7 +117,7 @@ impl Cookie {
     pub fn path_match(request_path: &str, cookie_path: &str) -> bool {
         request_path == cookie_path ||
         ( request_path.starts_with(cookie_path) &&
-            ( request_path.ends_with("/") || request_path.char_at(cookie_path.len() - 1) == '/' )
+            ( request_path.ends_with("/") || request_path.as_bytes()[cookie_path.len() - 1] == b'/' )
         )
     }
 
@@ -127,7 +127,7 @@ impl Cookie {
             return true;
         }
         if string.ends_with(domain_string)
-            && string.char_at(string.len()-domain_string.len()-1) == '.'
+            && string.as_bytes()[string.len()-domain_string.len()-1] == b'.'
             && Ipv4Addr::from_str(string).is_err()
             && Ipv6Addr::from_str(string).is_err() {
             return true;

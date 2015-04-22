@@ -44,7 +44,7 @@ impl TaskPool {
             loop {
                 let job = rx.lock().unwrap().recv();
                 match job {
-                    Ok(job) => job.invoke(()),
+                    Ok(job) => job.call_box(()),
                     Err(..) => break,
                 }
             }
@@ -54,6 +54,6 @@ impl TaskPool {
     pub fn execute<F>(&self, job: F)
         where F: FnOnce() + Send + 'static
     {
-        self.tx.send(Thunk::new(job)).unwrap();
+        self.tx.send(Box::new(job)).unwrap();
     }
 }

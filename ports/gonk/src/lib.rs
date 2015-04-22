@@ -4,8 +4,7 @@
 
 #![feature(thread_local)]
 #![feature(box_syntax)]
-#![feature(int_uint)]
-#![feature(path, rustc_private)]
+#![feature(rustc_private)]
 // For FFI
 #![allow(non_snake_case, dead_code)]
 

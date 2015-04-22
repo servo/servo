@@ -18,7 +18,6 @@
 
 extern crate collections;
 extern crate geom;
-extern crate text_writer;
 extern crate url;
 
 #[macro_use]
@@ -28,7 +27,7 @@ extern crate cssparser;
 extern crate matches;
 
 extern crate encoding;
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 extern crate string_cache;
 extern crate selectors;
 

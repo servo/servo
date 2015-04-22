@@ -34,7 +34,7 @@ use style::selector_matching::{Stylist, DeclarationBlock};
 use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
 use util::opts;
-use util::smallvec::{SmallVec, SmallVec16};
+use util::smallvec::SmallVec16;
 use util::vec::ForgetfulSink;
 
 pub struct ApplicableDeclarations {
@@ -689,7 +689,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                         let mut damage = self.cascade_node_pseudo_element(
                             layout_context,
                             parent_style,
-                            applicable_declarations.normal.as_slice(),
+                            &applicable_declarations.normal,
                             &mut layout_data.shared_data.style,
                             applicable_declarations_cache,
                             new_animations_sender,

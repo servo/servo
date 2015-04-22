@@ -10,7 +10,6 @@ use geom::num::Zero;
 
 use std::default::Default;
 use std::i32;
-use std::num::{Float, NumCast, ToPrimitive};
 use std::fmt;
 use std::ops::{Add, Sub, Neg, Mul, Div, Rem};
 
@@ -116,13 +115,13 @@ pub const MAX_AU: Au = Au(i32::MAX);
 
 impl Encodable for Au {
     fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
-        e.emit_f64(to_frac_px(*self))
+        e.emit_f64(self.to_subpx())
     }
 }
 
 impl fmt::Debug for Au {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}px", to_frac_px(*self))
+        write!(f, "{}px", self.to_subpx())
     }}
 
 impl Add for Au {
@@ -188,40 +187,6 @@ impl Neg for Au {
     }
 }
 
-
-impl NumCast for Au {
-    #[inline]
-    fn from<T:ToPrimitive>(n: T) -> Option<Au> {
-        Some(Au(n.to_i32().unwrap()))
-    }
-}
-
-impl ToPrimitive for Au {
-    #[inline]
-    fn to_i64(&self) -> Option<i64> {
-        let Au(s) = *self;
-        Some(s as i64)
-    }
-
-    #[inline]
-    fn to_u64(&self) -> Option<u64> {
-        let Au(s) = *self;
-        Some(s as u64)
-    }
-
-    #[inline]
-    fn to_f32(&self) -> Option<f32> {
-        let Au(s) = *self;
-        s.to_f32()
-    }
-
-    #[inline]
-    fn to_f64(&self) -> Option<f64> {
-        let Au(s) = *self;
-        s.to_f64()
-    }
-}
-
 impl Au {
     /// FIXME(pcwalton): Workaround for lack of cross crate inlining of newtype structs!
     #[inline]
@@ -230,19 +195,19 @@ impl Au {
     }
 
     #[inline]
-    pub fn scale_by(self, factor: f64) -> Au {
+    pub fn scale_by(self, factor: f32) -> Au {
         let Au(s) = self;
-        Au(((s as f64) * factor) as i32)
+        Au(((s as f32) * factor) as i32)
     }
 
     #[inline]
     pub fn from_px(px: isize) -> Au {
-        NumCast::from(px * 60).unwrap()
+        Au((px * 60) as i32)
     }
 
     #[inline]
     pub fn from_page_px(px: Length<PagePx, f32>) -> Au {
-        NumCast::from(px.get() * 60f32).unwrap()
+        Au((px.get() * 60f32) as i32)
     }
 
     /// Rounds this app unit down to the previous (left or top) pixel and returns it.
@@ -297,7 +262,7 @@ impl Au {
 
     #[inline]
     pub fn from_frac_px(px: f64) -> Au {
-        Au((px * 60f64) as i32)
+        Au((px * 60.) as i32)
     }
 
     #[inline]
@@ -317,20 +282,20 @@ impl Au {
 
 // assumes 72 points per inch, and 96 px per inch
 pub fn pt_to_px(pt: f64) -> f64 {
-    pt / 72f64 * 96f64
+    pt / 72. * 96.
 }
 
 // assumes 72 points per inch, and 96 px per inch
 pub fn px_to_pt(px: f64) -> f64 {
-    px / 96f64 * 72f64
+    px / 96. * 72.
 }
 
 pub fn from_frac_px(px: f64) -> Au {
-    Au((px * 60f64) as i32)
+    Au((px * 60.) as i32)
 }
 
 pub fn from_px(px: isize) -> Au {
-    NumCast::from(px * 60).unwrap()
+    Au::from_px(px)
 }
 
 pub fn to_px(au: Au) -> isize {
@@ -338,20 +303,20 @@ pub fn to_px(au: Au) -> isize {
     (a / 60) as isize
 }
 
-pub fn to_frac_px(au: Au) -> f64 {
+pub fn to_frac_px(au: Au) -> f32 {
     let Au(a) = au;
-    (a as f64) / 60f64
+    (a as f32) / 60.
 }
 
 // assumes 72 points per inch, and 96 px per inch
-pub fn from_pt(pt: f64) -> Au {
-    from_px((pt / 72f64 * 96f64) as isize)
+pub fn from_pt(pt: f32) -> Au {
+    from_px((pt / 72. * 96.) as isize)
 }
 
 // assumes 72 points per inch, and 96 px per inch
-pub fn to_pt(au: Au) -> f64 {
+pub fn to_pt(au: Au) -> f32 {
     let Au(a) = au;
-    (a as f64) / 60f64 * 72f64 / 96f64
+    (a as f32) / 60. * 72. / 96.
 }
 
 /// Returns true if the rect contains the given point. Points on the top or left sides of the rect

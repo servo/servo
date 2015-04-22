@@ -101,7 +101,6 @@ pub trait CORSCache {
 
 /// A simple, vector-based CORS Cache
 #[derive(Clone)]
-#[unstable = "This might later be replaced with a HashMap-like entity, though that requires a separate Origin struct"]
 pub struct BasicCORSCache(Vec<CORSCacheEntry>);
 
 impl BasicCORSCache {

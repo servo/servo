@@ -15,7 +15,7 @@ use platform::font_template::FontTemplateData;
 use util::cache::HashCache;
 use util::fnv::FnvHasher;
 use util::geometry::Au;
-use util::smallvec::{SmallVec, SmallVec8};
+use util::smallvec::SmallVec8;
 
 use std::borrow::{self, ToOwned};
 use std::cell::RefCell;
@@ -45,7 +45,7 @@ fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFo
     ScaledFont::new(BackendType::Skia, &cgfont, pt_size.to_subpx() as AzFloat)
 }
 
-static SMALL_CAPS_SCALE_FACTOR: f64 = 0.8;      // Matches FireFox (see gfxFont.h)
+static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8;      // Matches FireFox (see gfxFont.h)
 
 struct LayoutFontCacheEntry {
     family: String,
@@ -160,7 +160,7 @@ impl FontContext {
 
         let mut fonts = SmallVec8::new();
 
-        for family in style.font_family.iter() {
+        for family in style.font_family.0.iter() {
             // GWTODO: Check on real pages if this is faster as Vec() or HashMap().
             let mut cache_hit = false;
             for cached_font_entry in self.layout_font_cache.iter() {

@@ -39,13 +39,13 @@ use util::str::DOMString;
 use util::task_state;
 use util::task_state::IN_HTML_PARSER;
 use std::borrow::Cow;
-use std::old_io::{Writer, IoResult};
+use std::io::{self, Write};
 use url::Url;
 use html5ever::Attribute;
 use html5ever::serialize::{Serializable, Serializer, AttrRef};
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
-use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText};
+use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText, NextParserState};
 use string_cache::QualName;
 
 use hyper::header::ContentType;
@@ -179,10 +179,11 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         script.map(|script| script.mark_already_started());
     }
 
-    fn complete_script(&mut self, node: JS<Node>) {
+    fn complete_script(&mut self, node: JS<Node>) -> NextParserState {
         let node: Root<Node> = node.root();
         let script: Option<JSRef<HTMLScriptElement>> = HTMLScriptElementCast::to_ref(node.r());
         script.map(|script| script.prepare());
+        NextParserState::Continue
     }
 
     fn reparent_children(&mut self, node: JS<Node>, new_parent: JS<Node>) {
@@ -198,8 +199,8 @@ impl<'a> TreeSink for servohtmlparser::Sink {
 }
 
 impl<'a> Serializable for JSRef<'a, Node> {
-    fn serialize<'wr, Wr: Writer>(&self, serializer: &mut Serializer<'wr, Wr>,
-                                  traversal_scope: TraversalScope) -> IoResult<()> {
+    fn serialize<'wr, Wr: Write>(&self, serializer: &mut Serializer<'wr, Wr>,
+                                 traversal_scope: TraversalScope) -> io::Result<()> {
         let node = *self;
         match (traversal_scope, node.type_id()) {
             (_, NodeTypeId::Element(..)) => {

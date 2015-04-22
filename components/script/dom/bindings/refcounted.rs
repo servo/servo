@@ -110,7 +110,6 @@ impl<T: Reflectable> Clone for Trusted<T> {
     }
 }
 
-#[unsafe_destructor]
 impl<T: Reflectable> Drop for Trusted<T> {
     fn drop(&mut self) {
         let mut refcount = self.refcount.lock().unwrap();

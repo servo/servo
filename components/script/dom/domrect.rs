@@ -10,7 +10,6 @@ use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
 use util::geometry::Au;
-use std::num::Float;
 
 #[dom_struct]
 pub struct DOMRect {

@@ -71,11 +71,11 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{NamespaceConstraint, AttrSelector};
-use selectors::smallvec::VecLike;
 use style::legacy::{IntegerAttribute, LengthAttribute};
 use style::legacy::{UnsignedIntegerAttribute};
 use style::node::{TElement, TElementAttributes, TNode};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use util::smallvec::VecLike;
 use url::Url;
 
 /// Allows some convenience methods on generic layout nodes.

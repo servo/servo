@@ -82,7 +82,10 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 
     if opts::get().bubble_inline_sizes_separately {
         let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };
-        root.traverse_postorder(&bubble_inline_sizes);
+        {
+            let root: &mut Flow = root;
+            root.traverse_postorder(&bubble_inline_sizes);
+        }
     }
 
     let assign_inline_sizes = AssignISizes                 { layout_context: &layout_context };

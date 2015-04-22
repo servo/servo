@@ -176,7 +176,7 @@ fn to_snake_case(name: DOMString) -> DOMString {
     for ch in name.chars() {
         if ch.is_uppercase() {
             attr_name.push('\x2d');
-            attr_name.push(ch.to_lowercase());
+            attr_name.extend(ch.to_lowercase());
         } else {
             attr_name.push(ch);
         }

@@ -6,8 +6,7 @@
 #![deny(unused_variables)]
 
 #![feature(box_syntax)]
-#![feature(int_uint)]
-#![feature(core, os, path, io, std_misc)]
+#![feature(convert)]
 // For FFI
 #![allow(non_snake_case, dead_code)]
 
@@ -27,6 +26,7 @@
 extern crate servo;
 extern crate time;
 extern crate util;
+extern crate errno;
 
 extern crate compositing;
 extern crate script_traits;

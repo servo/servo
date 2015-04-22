@@ -69,15 +69,9 @@ pub fn match_lang_ty(cx: &Context, ty: &Ty, value: &str) -> bool {
 pub fn unsafe_context(map: &ast_map::Map, id: ast::NodeId) -> bool {
     match map.find(map.get_parent(id)) {
         Some(ast_map::NodeImplItem(itm)) => {
-            match *itm {
-                ast::MethodImplItem(ref meth) => match meth.node {
-                    ast::MethDecl(_, _, _, _, style, _, _, _) => match style {
-                        ast::Unsafety::Unsafe => true,
-                        _ => false,
-                    },
-                    _ => false,
-                },
-                _ => false,
+            match itm.node {
+                ast::MethodImplItem(ref sig, _) => sig.unsafety == ast::Unsafety::Unsafe,
+                _ => false
             }
         },
         Some(ast_map::NodeItem(itm)) => {

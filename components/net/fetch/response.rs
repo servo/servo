@@ -28,7 +28,6 @@ pub enum TerminationReason {
 
 /// The response body can still be pushed to after fetch
 /// This provides a way to store unfinished response bodies
-#[unstable = "I haven't yet decided exactly how the interface for this will be"]
 #[derive(Clone)]
 pub enum ResponseBody {
     Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
@@ -36,14 +35,12 @@ pub enum ResponseBody {
     Done(Vec<u8>),
 }
 
-#[unstable = "I haven't yet decided exactly how the interface for this will be"]
 pub enum ResponseMsg {
     Chunk(Vec<u8>),
     Finished,
     Errored
 }
 
-#[unstable = "I haven't yet decided exactly how the interface for this will be"]
 pub struct ResponseLoader {
     response: Response,
     chan: Receiver<ResponseMsg>

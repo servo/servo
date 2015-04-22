@@ -4,7 +4,6 @@
 
 use png;
 use stb_image::image as stb_image2;
-use std::iter::range_step;
 use util::vec::byte_swap;
 
 // FIXME: Images must not be copied every frame. Instead we should atomically
@@ -14,7 +13,7 @@ pub type Image = png::Image;
 // TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
 fn byte_swap_and_premultiply(data: &mut [u8]) {
     let length = data.len();
-    for i in range_step(0, length, 4) {
+    for i in (0..length).step_by(4) {
         let r = data[i + 2];
         let g = data[i + 1];
         let b = data[i + 0];

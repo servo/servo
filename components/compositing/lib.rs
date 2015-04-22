@@ -4,10 +4,7 @@
 
 #![feature(box_syntax)]
 #![feature(core)]
-#![feature(io)]
-#![feature(old_io)]
 #![feature(rustc_private)]
-#![feature(std_misc)]
 
 #[macro_use]
 extern crate log;

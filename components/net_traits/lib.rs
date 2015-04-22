@@ -4,8 +4,9 @@
 
 #![feature(box_syntax)]
 #![feature(collections)]
-#![feature(core)]
 #![feature(rustc_private)]
+#![feature(slice_patterns)]
+#![feature(step_by)]
 
 extern crate geom;
 extern crate hyper;
@@ -22,7 +23,6 @@ use hyper::method::Method;
 use hyper::mime::{Mime, Attr};
 use url::Url;
 
-use std::borrow::IntoCow;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 pub mod image_cache_task;
@@ -169,7 +169,7 @@ impl Metadata {
             charset:      None,
             headers: None,
             // https://fetch.spec.whatwg.org/#concept-response-status-message
-            status: Some(RawStatus(200, "OK".into_cow())),
+            status: Some(RawStatus(200, "OK".into())),
         }
     }
 
