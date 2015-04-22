@@ -23,7 +23,7 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
                                        node: OpaqueNode,
                                        old_style: &ComputedValues,
                                        new_style: &mut ComputedValues) {
-    for i in range(0, new_style.get_animation().transition_property.0.len()) {
+    for i in 0..new_style.get_animation().transition_property.0.len() {
         // Create any property animations, if applicable.
         let property_animations = PropertyAnimation::from_transition(i, old_style, new_style);
         for property_animation in property_animations.into_iter() {

@@ -339,7 +339,7 @@ impl<T: Send + 'static> Drop for Deque<T> {
         let a = self.array.load(SeqCst);
         // Free whatever is leftover in the dequeue, and then move the buffer
         // back into the pool.
-        for i in range(t, b) {
+        for i in t..b {
             let _: T = unsafe { (*a).get(i) };
         }
         self.pool.free(unsafe { transmute(a) });
@@ -392,7 +392,7 @@ impl<T: Send> Buffer<T> {
         // casting delta to usize and then adding gives the desired
         // effect.
         let buf = Buffer::new(self.log_size.wrapping_add(delta as usize));
-        for i in range(t, b) {
+        for i in t..b {
             buf.put(i, self.get(i));
         }
         return buf;

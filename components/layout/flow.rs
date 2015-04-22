@@ -1199,7 +1199,7 @@ impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
     /// Dumps the flow tree for debugging, with a prefix to indicate that we're at the given level.
     fn dump_with_level(self, level: u32) {
         let mut indent = String::new();
-        for _ in range(0, level) {
+        for _ in 0..level {
             indent.push_str("| ")
         }
 

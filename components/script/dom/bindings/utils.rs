@@ -473,7 +473,7 @@ pub fn find_enum_string_index(cx: *mut JSContext,
 
         Ok(values.iter().position(|value| {
             value.len() == length as usize &&
-            range(0, length as usize).all(|j| {
+            (0..length as usize).all(|j| {
                 value.as_bytes()[j] as u16 == *chars.offset(j as isize)
             })
         }))

@@ -73,7 +73,7 @@ impl Flow for TableColGroupFlow {
                 SpecificFragmentInfo::TableColumn(col_fragment) => max(col_fragment.span, 1),
                 _ => panic!("non-table-column fragment inside table column?!"),
             };
-            for _ in range(0, span) {
+            for _ in 0..span {
                 self.inline_sizes.push(inline_size)
             }
         }

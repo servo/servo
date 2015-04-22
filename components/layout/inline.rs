@@ -919,7 +919,7 @@ impl InlineFlow {
             }
         }
 
-        for fragment_index in range(line.range.begin(), line.range.end()) {
+        for fragment_index in line.range.begin()..line.range.end() {
             let fragment = fragments.get_mut(fragment_index.to_usize());
             let size = fragment.border_box.size;
             fragment.border_box = LogicalRect::new(fragment.style.writing_mode,
@@ -1008,7 +1008,7 @@ impl InlineFlow {
                                     line_distance_from_flow_block_start: Au,
                                     baseline_distance_from_block_start: Au,
                                     largest_depth_below_baseline: Au) {
-        for fragment_index in range(line.range.begin(), line.range.end()) {
+        for fragment_index in line.range.begin()..line.range.end() {
             // If any of the inline styles say `top` or `bottom`, adjust the vertical align
             // appropriately.
             //
@@ -1224,7 +1224,7 @@ impl Flow for InlineFlow {
         // Now, go through each line and lay out the fragments inside.
         let mut line_distance_from_flow_block_start = Au(0);
         let line_count = self.lines.len();
-        for line_index in range(0, line_count) {
+        for line_index in 0..line_count {
             let line = &mut self.lines[line_index];
 
             // Lay out fragments in the inline direction, and justify them if necessary.
@@ -1248,7 +1248,7 @@ impl Flow for InlineFlow {
             let (mut largest_block_size_for_top_fragments,
                  mut largest_block_size_for_bottom_fragments) = (Au(0), Au(0));
 
-            for fragment_index in range(line.range.begin(), line.range.end()) {
+            for fragment_index in line.range.begin()..line.range.end() {
                 let fragment = &mut self.fragments.fragments[fragment_index.to_usize()];
 
                 let InlineMetrics {

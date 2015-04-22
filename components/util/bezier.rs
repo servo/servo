@@ -59,7 +59,7 @@ impl Bezier {
     fn solve_curve_x(&self, x: f64, epsilon: f64) -> f64 {
         // Fast path: Use Newton's method.
         let mut t = x;
-        for _ in range(0, NEWTON_METHOD_ITERATIONS) {
+        for _ in 0..NEWTON_METHOD_ITERATIONS {
             let x2 = self.sample_curve_x(t);
             if x2.approx_eq(x, epsilon) {
                 return t
