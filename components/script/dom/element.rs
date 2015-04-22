@@ -171,7 +171,8 @@ pub trait RawLayoutElementHelpers {
 
 #[inline]
 #[allow(unsafe_code)]
-unsafe fn get_attr_for_layout(elem: &Element, namespace: &Namespace, name: &Atom) -> Option<LayoutJS<Attr>> {
+pub unsafe fn get_attr_for_layout<'a>(elem: &'a Element, namespace: &Namespace, name: &Atom)
+                                      -> Option<LayoutJS<Attr>> {
     // cast to point to T in RefCell<T> directly
     let attrs = elem.attrs.borrow_for_layout();
     attrs.iter().find(|attr: & &JS<Attr>| {
