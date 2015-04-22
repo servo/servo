@@ -6,13 +6,13 @@ use std::borrow::ToOwned;
 use std::cmp::max;
 
 pub struct MIMEClassifier {
-   image_classifier: GroupedClassifier,
-   audio_video_classifer: GroupedClassifier,
-   scriptable_classifier: GroupedClassifier,
-   plaintext_classifier: GroupedClassifier,
-   archive_classifer: GroupedClassifier,
-   binary_or_plaintext: BinaryOrPlaintextClassifier,
-   feeds_classifier: FeedsClassifier
+    image_classifier: GroupedClassifier,
+    audio_video_classifer: GroupedClassifier,
+    scriptable_classifier: GroupedClassifier,
+    plaintext_classifier: GroupedClassifier,
+    archive_classifer: GroupedClassifier,
+    binary_or_plaintext: BinaryOrPlaintextClassifier,
+    feeds_classifier: FeedsClassifier
 }
 
 impl MIMEClassifier {
@@ -313,7 +313,7 @@ impl MIMEChecker for BinaryOrPlaintextClassifier {
     }
 }
 struct GroupedClassifier {
-   byte_matchers: Vec<Box<MIMEChecker + Send + Sync>>,
+    byte_matchers: Vec<Box<MIMEChecker + Send + Sync>>,
 }
 impl GroupedClassifier {
     fn image_classifer() -> GroupedClassifier {
@@ -406,12 +406,12 @@ impl GroupedClassifier {
     }
 }
 impl MIMEChecker for GroupedClassifier {
-   fn classify(&self,data: &Vec<u8>) -> Option<(String, String)> {
+    fn classify(&self,data: &Vec<u8>) -> Option<(String, String)> {
         self.byte_matchers
             .iter()
             .filter_map(|matcher| matcher.classify(data))
             .next()
-   }
+    }
 }
 
 struct FeedsClassifier;
@@ -840,12 +840,12 @@ impl ByteMatcher {
 
     //The string "<?xml".
     fn text_xml()->ByteMatcher {
-        ByteMatcher{
+        ByteMatcher {
             pattern: b"<?xml",
             mask: b"\xFF\xFF\xFF\xFF\xFF",
             content_type: ("text", "xml"),
             leading_ignore: b"\t\n\x0C\r "
-     }
+        }
     }
     //The string "%PDF-", the PDF signature.
     fn application_pdf()->ByteMatcher {

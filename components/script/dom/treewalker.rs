@@ -540,18 +540,18 @@ impl<'a> TreeWalkerHelpers for JSRef<'a, TreeWalker> {
 impl<'a> Iterator for JSRef<'a, TreeWalker> {
     type Item = JSRef<'a, Node>;
 
-   fn next(&mut self) -> Option<JSRef<'a, Node>> {
-       match self.next_node() {
-           Ok(node) => node.map(|n| n.root().get_unsound_ref_forever()),
-           Err(_) =>
-               // The Err path happens only when a JavaScript
-               // NodeFilter throws an exception. This iterator
-               // is meant for internal use from Rust code, which
-               // will probably be using a native Rust filter,
-               // which cannot produce an Err result.
-               unreachable!()
+    fn next(&mut self) -> Option<JSRef<'a, Node>> {
+        match self.next_node() {
+            Ok(node) => node.map(|n| n.root().get_unsound_ref_forever()),
+            Err(_) =>
+                // The Err path happens only when a JavaScript
+                // NodeFilter throws an exception. This iterator
+                // is meant for internal use from Rust code, which
+                // will probably be using a native Rust filter,
+                // which cannot produce an Err result.
+                unreachable!()
        }
-   }
+    }
 }
 
 #[jstraceable]
