@@ -1,59 +1,87 @@
-
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::CloseEventBinding;
 use dom::bindings::codegen::Bindings::CloseEventBinding::CloseEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding;
+use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
 use dom::bindings::js::{JSRef,Temporary};
-use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
+use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use script_task::{ScriptChan, ScriptMsg, Runnable};
+
+use dom::bindings::utils::reflect_dom_object;
 use std::borrow::ToOwned;
+use dom::bindings::cell::DOMRefCell;
 use std::cell::Cell;
 use util::str::DOMString;
 
 
 #[dom_struct]
 pub struct CloseEvent{
+	event: Event,
 	wasClean: Cell<bool>,
 	code: Cell<u16>,
-	reason: Cell<DOMString>
+	reason: DOMRefCell<DOMString>
+}
+
+#[derive(PartialEq)]
+pub enum Clean {
+    Clean,
+    NotClean
 }
 
 impl CloseEvent{
-	pub fn new_inherited(global: GlobalRef,
-			     clean: bool,
-			     cd: u16,
-			     rsn: DOMString) -> Event{
+	pub fn new_inherited(type_id: EventTypeId) -> CloseEvent{
 		println!("Creating CloseEvent..");
 		CloseEvent{
-			wasClean: Cell::new(clean),
-			code: Cell::new(cd),
-			reason: Cell::new(rsn.to_owned())
+			event: Event::new_inherited(type_id),
+			wasClean: Cell::new(false),
+			code: Cell::new(0),
+			reason: DOMRefCell::new("".to_owned())
 		}
+	}
+
+	pub fn new_uninitialized(global: GlobalRef) -> Temporary<CloseEvent> {
+		reflect_dom_object(box CloseEvent::new_inherited(EventTypeId::CloseEvent),
+				   global,
+				   CloseEventBinding::Wrap)
 	}
 
 	pub fn new(global: GlobalRef,
 		   type_: DOMString,
 		   bubbles: EventBubbles,
-		   cancelable: EventCancelable) -> Temporary<Event> {
-		let ce_root = Event::new_uninitialized(global).root();
-        	ce_root.r().InitEvent(type_,
-				      bubbles == EventBubbles::Bubbles,
-				      cancelable == EventCancelable::Cancelable
-				     );
-	        Temporary::from_rooted(ce_root.r())
+		   cancelable: EventCancelable,
+		   wasClean: bool,
+		   code: u16,
+		   reason: DOMString) -> Temporary<CloseEvent> {
+		let ev = CloseEvent::new_uninitialized(global).root();
+		let event: JSRef<Event> = EventCast::from_ref(ev.r());
+        	event.InitEvent(type_,
+				bubbles == EventBubbles::Bubbles,
+				cancelable == EventCancelable::Cancelable);
+		let ev = ev.r();
+		ev.wasClean.set(wasClean);
+		ev.code.set(code);
+		*ev.reason.borrow_mut() = reason;
+	        Temporary::from_rooted(ev)
 	}
 
 	pub fn Constructor(global: GlobalRef,
 			   type_: DOMString,
-			   init: &EventBinding::EventInit) -> Fallible<Temporary<Event>> {
-        	let bubbles = if init.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
-	        let cancelable = if init.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
-    		Ok(CloseEvent::new(global, type_, bubbles, cancelable))
+			   init: &CloseEventBinding::CloseEventInit) -> Fallible<Temporary<CloseEvent>> {
+		let clean_status = init.wasClean.unwrap();
+		let cd = init.code.unwrap_or(0);
+		let rsn = match init.reason.as_ref() {
+			Some(reason) => reason.clone(),
+			None => "".to_owned(),
+		};
+        	let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
+	        let cancelable = if init.parent.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
+    		Ok(CloseEvent::new(global, type_, bubbles, cancelable, clean_status, cd, rsn))
 	}
 }
 
 impl<'a> CloseEventMethods for JSRef<'a, CloseEvent>{
-
 	fn WasClean(self) -> bool {
 		self.wasClean.get()
 	}
@@ -63,6 +91,7 @@ impl<'a> CloseEventMethods for JSRef<'a, CloseEvent>{
 	}
 
 	fn Reason(self) -> DOMString {
-		self.get()
+		let reason = self.reason.borrow();
+		reason.clone()
 	}
 }

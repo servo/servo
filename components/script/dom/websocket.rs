@@ -20,6 +20,7 @@ use script_task::Runnable;
 use script_task::ScriptMsg;
 use dom::bindings::refcounted::Trusted;
 
+use dom::bindings::cell::DOMRefCell;
 use websocket::{Message, Sender, Receiver};
 use websocket::client::request::Url;
 use websocket::Client;
@@ -43,7 +44,10 @@ pub struct WebSocket {
     global: GlobalField,
 	ready_state: Cell<WebSocketRequestState>,
     failed: Cell<bool>,
-    full: Cell<bool>
+    full: Cell<bool>,
+    clean_close: Cell<bool>,
+    code: Cell<u16>,
+    reason: DOMRefCell<DOMString>
 }
 
 impl WebSocket {
@@ -56,7 +60,10 @@ impl WebSocket {
             global: GlobalField::from_rooted(&global),
 		ready_state: Cell::new(WebSocketRequestState::Connecting),
 	    failed: Cell::new(false),
-	    full: Cell::new(false)
+	    full: Cell::new(false),
+	    clean_close: Cell::new(true),
+	    code: Cell::new(0),
+	    reason: DOMRefCell::new("".to_owned())
         }
 
     }
@@ -163,8 +170,13 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
 		global_root.r().script_chan().send(ScriptMsg::RunnableMsg(close_task)).unwrap();
 	   }
 	   WebSocketRequestState::Open => {//Closing handshake not started - still in open
-		//TODO: Start the closing by setting the code and reason if they exist
-		// Send the close message with the code and reason
+		//Start the closing by setting the code and reason if they exist
+		if(code.is_some()){
+			self.code.set(code.unwrap());
+		}
+		if(reason.is_some()){
+			*self.reason.borrow_mut() = reason.unwrap();
+		}
 		
 		self.ready_state.set(WebSocketRequestState::Closing); //Set state to closing
 
@@ -227,6 +239,7 @@ impl WebSocketTaskHandler {
 	if(ws.r().failed.get()||ws.r().full.get()){ 
 		ws.r().failed.set(false); //Unset failed flag so we don't cause false positives
 		ws.r().full.set(false); //Unset full flag so we don't cause false positives
+		ws.r().clean_close.set(false); //Bad close
 	        let event = Event::new(global.r(),
                               		"error".to_owned(),
                                		EventBubbles::DoesNotBubble,
@@ -235,13 +248,17 @@ impl WebSocketTaskHandler {
 		event.r().fire(target);
 		println!("Fired error event.");
 	}
-
-	//FIX ME event is not up to standards
+	let rsn = ws.r().reason.borrow();
+	//In addition, we also have to fire a close even if error event fired
 	//https://html.spec.whatwg.org/multipage/comms.html#closeWebSocket
         let closed_event = CloseEvent::new(global.r(),
                                		    "close".to_owned(),
 	                             	    EventBubbles::DoesNotBubble,
-					    EventCancelable::Cancelable).root();
+					    EventCancelable::Cancelable,
+					    ws.r().clean_close.get(),
+					    ws.r().code.get(),
+					    rsn.clone()
+					    ).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws.r());
         closed_event.r().set_trusted(true).fire(target);
         println!("Fired close event.");
