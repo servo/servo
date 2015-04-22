@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::WebSocketMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidState, InvalidAccess};
 use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
@@ -149,7 +150,7 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
 	   }
 	}
 	if(reason.is_some()){ //reason defined
-	   if(reason.unwrap().as_bytes().len() > 123) //reason cannot be larger than 123 bytes
+	   if(reason.as_ref().unwrap().as_bytes().len() > 123) //reason cannot be larger than 123 bytes
 	   {
 		return Err(Error::Syntax); //Throw SyntaxError and abort
 	   }
@@ -248,19 +249,23 @@ impl WebSocketTaskHandler {
 		event.r().fire(target);
 		println!("Fired error event.");
 	}
-	let rsn = ws.r().reason.borrow();
+	let ws = ws.r();
+	let rsn = ws.reason.borrow();
+	let rsn_clone = rsn.clone();
 	//In addition, we also have to fire a close even if error event fired
 	//https://html.spec.whatwg.org/multipage/comms.html#closeWebSocket
-        let closed_event = CloseEvent::new(global.r(),
+        let close_event = CloseEvent::new(global.r(),
                                		    "close".to_owned(),
 	                             	    EventBubbles::DoesNotBubble,
 					    EventCancelable::Cancelable,
-					    ws.r().clean_close.get(),
-					    ws.r().code.get(),
-					    rsn.clone()
+					    ws.clean_close.get(),
+					    ws.code.get(),
+					    rsn_clone
 					    ).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws.r());
-        closed_event.r().set_trusted(true).fire(target);
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws);
+	let event: JSRef<Event> = EventCast::from_ref(close_event.r());
+        event.set_trusted(true);
+	event.fire(target);
         println!("Fired close event.");
     }
 }
