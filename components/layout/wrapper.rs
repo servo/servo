@@ -250,7 +250,7 @@ impl<'ln> LayoutNode<'ln> {
 
     fn dump_indent(self, indent: u32) {
         let mut s = String::new();
-        for _ in range(0, indent) {
+        for _ in 0..indent {
             s.push_str("  ");
         }
 

@@ -98,7 +98,7 @@ impl TableFlow {
         let mut total_inline_sizes = IntrinsicISizes::new();
         let mut column_index = 0;
         for child_cell_inline_size in child_cell_inline_sizes.iter() {
-            for _ in range(0, child_cell_inline_size.column_span) {
+            for _ in 0..child_cell_inline_size.column_span {
                 if column_index < parent_inline_sizes.len() {
                     // We already have some intrinsic size information for this column. Merge it in
                     // according to the rules specified in INTRINSIC § 4.

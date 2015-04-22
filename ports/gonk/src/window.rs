@@ -341,7 +341,7 @@ extern fn query(base: *const ANativeWindow,
 extern fn dequeueBuffer(base: *mut ANativeWindow, buf: *mut *mut ANativeWindowBuffer, fence: *mut c_int) -> c_int {
     unsafe {
         let window: &mut GonkNativeWindow = transmute(base);
-        for idx in range(0, window.bufs.len()) {
+        for idx in 0..window.bufs.len() {
             if idx == window.last_idx as uint {
                 continue;
             }
@@ -363,7 +363,7 @@ extern fn dequeueBuffer(base: *mut ANativeWindow, buf: *mut *mut ANativeWindowBu
 extern fn queueBuffer(base: *mut ANativeWindow, buf: *mut ANativeWindowBuffer, fence: c_int) -> c_int {
     unsafe {
         let window: &mut GonkNativeWindow = transmute(base);
-        for idx in range(0, window.bufs.len()) {
+        for idx in 0..window.bufs.len() {
             match window.bufs[idx] {
                 Some(_) => (),
                 None => {
@@ -381,7 +381,7 @@ extern fn queueBuffer(base: *mut ANativeWindow, buf: *mut ANativeWindowBuffer, f
 extern fn cancelBuffer(base: *mut ANativeWindow, buf: *mut ANativeWindowBuffer, fence: c_int) -> c_int {
     unsafe {
         let window: &mut GonkNativeWindow = transmute(base);
-        for idx in range(0, window.bufs.len()) {
+        for idx in 0..window.bufs.len() {
             match window.bufs[idx] {
                 Some(_) => (),
                 None => {

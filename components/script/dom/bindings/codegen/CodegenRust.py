@@ -1049,7 +1049,7 @@ class CGArgumentConverter(CGThing):
 
             variadicConversion = string.Template(
                 "let mut vector: ${seqType} = Vec::with_capacity((${argc} - ${index}) as usize);\n"
-                "for variadicArg in range(${index}, ${argc}) {\n"
+                "for variadicArg in ${index}..${argc} {\n"
                 "${inner}\n"
                 "    vector.push(slot);\n"
                 "}\n"
@@ -5157,7 +5157,7 @@ class CallbackMember(CGNativeMember):
                 successCode="")
         if arg.variadic:
             conversion = string.Template(
-                "for idx in range(0, ${arg}.len()) {\n" +
+                "for idx in 0..${arg}.len() {\n" +
                 CGIndenter(CGGeneric(conversion)).define() + "\n"
                 "}"
                 ).substitute({ "arg": arg.identifier.name })
