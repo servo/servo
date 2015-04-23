@@ -1593,7 +1593,9 @@ fn strip_trailing_whitespace_if_necessary(text_run: &TextRun, range: &mut Range<
     let text = text_run.text.slice_chars(range.begin().to_usize(), range.end().to_usize());
     let mut trailing_whitespace_character_count = 0;
     for ch in text.chars().rev() {
-        if util::str::char_is_whitespace(ch) {
+        // Don't strip trailing newlines, since we use their presence to determine the line flush
+        // mode. (See `Fragment::requires_line_break_afterward_if_wrapping_on_newlines()`.)
+        if util::str::char_is_whitespace(ch) && ch != '\n' {
             trailing_whitespace_character_count += 1
         } else {
             break
