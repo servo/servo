@@ -1436,7 +1436,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                                              self.fragments.fragments[0].node);
         }
 
-        if has_stacking_context {
+        if has_stacking_context && !self.fragments.fragments[0].style().get_effects().filter.is_empty() {
             self.base.display_list_building_result =
                 DisplayListBuildingResult::StackingContext(self.fragments.fragments[0].create_stacking_context(&self.base, display_list, None));
         } else {
