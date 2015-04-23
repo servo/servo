@@ -13,6 +13,7 @@
 // https://dom.spec.whatwg.org/#text
 [Constructor(optional DOMString data = "")]
 interface Text : CharacterData {
-  //[NewObject] Text splitText(unsigned long offset);
+  [NewObject, Throws]
+  Text splitText(unsigned long offset);
   readonly attribute DOMString wholeText;
 };
