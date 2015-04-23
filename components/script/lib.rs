@@ -52,6 +52,7 @@ extern crate style;
 extern crate url;
 extern crate uuid;
 extern crate string_cache;
+extern crate webdriver_traits;
 
 pub mod cors;
 
@@ -67,3 +68,4 @@ pub mod script_task;
 mod timers;
 pub mod textinput;
 mod devtools;
+mod webdriver_handlers;

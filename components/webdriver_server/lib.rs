@@ -17,14 +17,16 @@ extern crate url;
 extern crate util;
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate uuid;
+extern crate webdriver_traits;
 
-use msg::constellation_msg::{ConstellationChan, LoadData};
+use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use std::sync::mpsc::channel;
+use webdriver_traits::WebDriverScriptCommand;
 
 use url::Url;
 use webdriver::command::{WebDriverMessage, WebDriverCommand};
-use webdriver::command::GetParameters;
+use webdriver::command::{GetParameters, JavascriptCommandParameters};
 use webdriver::response::{
     WebDriverResponse, NewSessionResponse, ValueResponse};
 use webdriver::server::{self, WebDriverHandler, Session};
@@ -51,7 +53,7 @@ struct WebdriverSession {
 
 struct Handler {
     session: Option<WebdriverSession>,
-    constellation_chan: ConstellationChan
+    constellation_chan: ConstellationChan,
 }
 
 impl WebdriverSession {
@@ -68,6 +70,14 @@ impl Handler {
             session: None,
             constellation_chan: constellation_chan
         }
+    }
+
+    fn get_root_pipeline(&self) -> PipelineId {
+        let (sender, reciever) = channel();
+        let ConstellationChan(ref const_chan) = self.constellation_chan;
+        const_chan.send(ConstellationMsg::GetRootPipeline(sender)).unwrap();
+
+        reciever.recv().unwrap().unwrap()
     }
 
     fn handle_new_session(&mut self) -> WebDriverResult<WebDriverResponse> {
@@ -92,13 +102,10 @@ impl Handler {
                                                "Invalid URL"))
         };
 
-        let (sender, reciever) = channel();
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::GetRootPipeline(sender)).unwrap();
-
-        let pipeline_id = reciever.recv().unwrap().unwrap();
+        let pipeline_id = self.get_root_pipeline();
 
         let load_data = LoadData::new(url);
+        let ConstellationChan(ref const_chan) = self.constellation_chan;
         const_chan.send(ConstellationMsg::LoadUrl(pipeline_id, load_data)).unwrap();
         //TODO: Now we ought to wait until we get a load event
         Ok(WebDriverResponse::Void)
@@ -110,6 +117,32 @@ impl Handler {
         let handle = self.session.as_ref().unwrap().id.to_string();
         Ok(WebDriverResponse::Generic(ValueResponse::new(handle.to_json())))
     }
+
+    fn handle_execute_script(&self, parameters: &JavascriptCommandParameters)  -> WebDriverResult<WebDriverResponse> {
+        // TODO: This isn't really right because it always runs the script in the
+        // root window
+        let pipeline_id = self.get_root_pipeline();
+
+        let func_body = &parameters.script;
+        let args = &parameters.args;
+        let args_string = "";
+
+        // This is pretty ugly; we really want something that acts like
+        // new Function() and then takes the resulting function and executes
+        // it with a vec of arguments.
+        let script = format!("(function() {{ {} }})({})", func_body, args_string);
+
+        let (sender, reciever) = channel();
+        let ConstellationChan(ref const_chan) = self.constellation_chan;
+        const_chan.send(ConstellationMsg::WebDriverCommandMsg(pipeline_id,
+                                                              WebDriverScriptCommand::EvaluateJS(script, sender))).unwrap();
+
+        match reciever.recv().unwrap() {
+            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
+            Err(_) => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
+                                              "Unsupported return type"))
+        }
+    }
 }
 
 impl WebDriverHandler for Handler {
@@ -119,6 +152,7 @@ impl WebDriverHandler for Handler {
             WebDriverCommand::NewSession => self.handle_new_session(),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
             WebDriverCommand::GetWindowHandle => self.handle_get_window_handle(),
+            WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
             _ => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
                                          "Command not implemented"))
         }
