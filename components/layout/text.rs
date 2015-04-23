@@ -26,7 +26,7 @@ use style::properties::style_structs::Font as FontStyle;
 use util::geometry::Au;
 use util::linked_list::split_off_head;
 use util::logical_geometry::{LogicalSize, WritingMode};
-use util::range::Range;
+use util::range::{Range, RangeIndex};
 use util::smallvec::{SmallVec, SmallVec1};
 
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextFragment`s.
@@ -193,16 +193,25 @@ impl TextRunScanner {
         debug!("TextRunScanner: pushing {} fragment(s)", self.clump.len());
         for (logical_offset, old_fragment) in
                 mem::replace(&mut self.clump, LinkedList::new()).into_iter().enumerate() {
-            let range = *new_ranges.get(logical_offset);
+            let mut range = *new_ranges.get(logical_offset);
             if range.is_empty() {
                 debug!("Elided an `SpecificFragmentInfo::UnscannedText` because it was \
                         zero-length after compression");
                 continue
             }
 
+            let requires_line_break_afterward_if_wrapping_on_newlines =
+                run.text.char_at_reverse(range.end().get() as usize) == '\n';
+            if requires_line_break_afterward_if_wrapping_on_newlines {
+                range.extend_by(CharIndex(-1))
+            }
+
             let text_size = old_fragment.border_box.size;
-            let mut new_text_fragment_info =
-                box ScannedTextFragmentInfo::new(run.clone(), range, text_size);
+            let mut new_text_fragment_info = box ScannedTextFragmentInfo::new(
+                run.clone(),
+                range,
+                text_size,
+                requires_line_break_afterward_if_wrapping_on_newlines);
             let new_metrics = new_text_fragment_info.run.metrics_for_range(&range);
             let bounding_box_size = bounding_box_for_run_metrics(&new_metrics,
                                                                  old_fragment.style.writing_mode);
