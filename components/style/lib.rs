@@ -34,6 +34,7 @@ extern crate selectors;
 #[macro_use]
 extern crate lazy_static;
 
+extern crate num;
 extern crate util;
 
 
