@@ -27,6 +27,14 @@ function testNode(create, type) {
   test(function() {
     var node = create()
     assert_equals(node.data, "test")
+    node.appendData(", append more 資料，測試資料");
+    assert_equals(node.data, "test, append more 資料，測試資料");
+    assert_equals(node.length, 25);
+  }, type + ".appendData(non-ASCII)")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
 
     node.appendData(null)
     assert_equals(node.data, "testnull")
