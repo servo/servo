@@ -12,13 +12,13 @@ use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLAnchorElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, CharacterDataCast};
+use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLTitleElementDerived};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
@@ -31,13 +31,12 @@ use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::reflect_dom_object;
 use dom::bindings::utils::{xml_name_type, validate_and_extract};
 use dom::bindings::utils::XMLName::InvalidXMLName;
-use dom::characterdata::CharacterDataHelpers;
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
-use dom::element::{Element, ElementCreator, AttributeHandlers};
+use dom::element::{Element, ElementCreator, ElementHelpers, AttributeHandlers};
 use dom::element::{ElementTypeId, ActivationElementHelpers, FocusElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
@@ -46,7 +45,6 @@ use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
-use dom::htmltitleelement::HTMLTitleElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::location::Location;
 use dom::mouseevent::MouseEvent;
@@ -1158,66 +1156,84 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         TreeWalker::new(self, root, whatToShow, filter)
     }
 
-    // TODO: Support root SVG namespace: https://github.com/servo/servo/issues/5315
     // https://html.spec.whatwg.org/#document.title
     fn Title(self) -> DOMString {
-        let title_element = self.GetDocumentElement().root().and_then(|root| {
-            NodeCast::from_ref(root.r()).traverse_preorder().find(|node| {
-                node.root().r().type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement))
-            })
+        let title = self.GetDocumentElement().root().and_then(|root| {
+            if root.r().namespace() == &ns!(SVG) && root.r().local_name() == &atom!("svg") {
+                // Step 1.
+                NodeCast::from_ref(root.r()).child_elements().find(|node| {
+                    let node = node.root();
+                    node.r().namespace() == &ns!(SVG) &&
+                    node.r().local_name() == &atom!("title")
+                }).map(NodeCast::from_temporary)
+            } else {
+                // Step 2.
+                NodeCast::from_ref(root.r())
+                         .traverse_preorder()
+                         .find(|node| node.root().r().is_htmltitleelement())
+            }
         }).root();
 
-        let mut title = String::new();
-        if let Some(title_element) = title_element {
-            for child in title_element.r().children() {
-                let child = child.root();
-                if let Some(text) = TextCast::to_ref(child.r()) {
-                    title.push_str(&CharacterDataCast::from_ref(text).data());
-                }
-            }
+        match title {
+            None => DOMString::new(),
+            Some(title) => {
+                // Steps 3-4.
+                let value = Node::collect_text_contents(title.r().children());
+                split_html_space_chars(&value).collect::<Vec<_>>().connect(" ")
+            },
         }
-
-        split_html_space_chars(&title).collect::<Vec<_>>().connect(" ")
     }
 
-    // TODO: Support root SVG namespace: https://github.com/servo/servo/issues/5315
     // https://html.spec.whatwg.org/#document.title
-    fn SetTitle(self, title: DOMString) -> ErrorResult {
-        self.GetDocumentElement().root().map(|root| {
-            let root: JSRef<Node> = NodeCast::from_ref(root.r());
-            let head_node = root.traverse_preorder().find(|child| {
-                child.root().r().type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement))
-            }).root();
-            head_node.r().map(|head| {
-                let title_node = head.children().map(|c| c.root()).find(|child| {
-                    child.r().type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement))
-                });
+    fn SetTitle(self, title: DOMString) {
+        let root = match self.GetDocumentElement() {
+            Some(root) => root,
+            None => return,
+        }.root();
 
-                match title_node {
-                    Some(ref title_node) => {
-                        for title_child in title_node.r().children() {
-                            let title_child = title_child.root();
-                            assert!(title_node.r().RemoveChild(title_child.r()).is_ok());
-                        }
-                        if !title.is_empty() {
-                            let new_text = self.CreateTextNode(title.clone()).root();
-                            assert!(title_node.r().AppendChild(NodeCast::from_ref(new_text.r())).is_ok());
-                        }
-                    },
-                    None => {
-                        let new_title = HTMLTitleElement::new("title".to_owned(), None, self).root();
-                        let new_title: JSRef<Node> = NodeCast::from_ref(new_title.r());
-
-                        if !title.is_empty() {
-                            let new_text = self.CreateTextNode(title.clone()).root();
-                            assert!(new_title.AppendChild(NodeCast::from_ref(new_text.r())).is_ok());
-                        }
-                        assert!(head.AppendChild(new_title).is_ok());
-                    },
-                }
+        let elem = if root.r().namespace() == &ns!(SVG) &&
+                       root.r().local_name() == &atom!("svg") {
+            let elem = NodeCast::from_ref(root.r()).child_elements().find(|node| {
+                let node = node.root();
+                node.r().namespace() == &ns!(SVG) &&
+                node.r().local_name() == &atom!("title")
             });
-        });
-        Ok(())
+            match elem {
+                Some(elem) => NodeCast::from_temporary(elem),
+                None => {
+                    let name = QualName::new(ns!(SVG), atom!("title"));
+                    let elem = Element::create(name, None, self,
+                                               ElementCreator::ScriptCreated);
+                    NodeCast::from_ref(root.r())
+                             .AppendChild(NodeCast::from_ref(elem.root().r()))
+                             .unwrap()
+                }
+            }
+        } else if root.r().namespace() == &ns!(HTML) {
+            let elem = NodeCast::from_ref(root.r())
+                                .traverse_preorder()
+                                .find(|node| node.root().r().is_htmltitleelement());
+            match elem {
+                Some(elem) => elem,
+                None => {
+                    match self.GetHead() {
+                        Some(head) => {
+                            let name = QualName::new(ns!(HTML), atom!("title"));
+                            let elem = Element::create(name, None, self,
+                                                       ElementCreator::ScriptCreated);
+                            NodeCast::from_ref(head.root().r())
+                                     .AppendChild(NodeCast::from_ref(elem.root().r()))
+                                     .unwrap()
+                        },
+                        None => return,
+                    }
+                }
+            }
+        } else {
+            return
+        };
+
+        elem.root().r().SetTextContent(Some(title));
     }
 
     // https://html.spec.whatwg.org/#dom-document-head
