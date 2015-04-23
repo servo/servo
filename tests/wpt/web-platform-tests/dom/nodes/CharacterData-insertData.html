@@ -31,6 +31,16 @@ function testNode(create, type) {
     node.insertData(4, "ing")
     assert_equals(node.data, "testing")
   }, type + ".insertData() at the end")
+
+  test(function() {
+    var node = create()
+    node.data = "This is the character data, append more 資料，測試資料";
+
+    node.insertData(26, " test");
+    assert_equals(node.data, "This is the character data test, append more 資料，測試資料");
+    node.insertData(48, "更多");
+    assert_equals(node.data, "This is the character data test, append more 資料，更多測試資料");
+  }, type + ".insertData() with non-ascii data")
 }
 
 testNode(function() { return document.createTextNode("test") }, "Text")
