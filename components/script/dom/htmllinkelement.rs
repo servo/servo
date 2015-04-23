@@ -8,12 +8,15 @@ use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLLinkElementDerived};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable};
+use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeHandlers, Element};
+use dom::event::{EventBubbles, EventCancelable, Event, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -21,6 +24,7 @@ use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 use layout_interface::{LayoutChan, Msg};
+use script_traits::StylesheetLoadResponder;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use style::media_queries::parse_media_query_list;
 use style::node::TElement;
@@ -153,9 +157,12 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
                 let media = parse_media_query_list(&mut css_parser);
 
                 let doc = window.Document().root();
+                let link_element = Trusted::new(window.get_cx(), self, window.script_chan().clone());
+                let load_dispatcher = StylesheetLoadDispatcher::new(link_element);
+
                 let pending = doc.r().prep_async_load(LoadType::Stylesheet(url.clone()));
                 let LayoutChan(ref layout_chan) = window.layout_chan();
-                layout_chan.send(Msg::LoadStylesheet(url, media, pending)).unwrap();
+                layout_chan.send(Msg::LoadStylesheet(url, media, pending, box load_dispatcher)).unwrap();
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }
@@ -182,5 +189,29 @@ impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
         })
+    }
+}
+
+pub struct StylesheetLoadDispatcher {
+    elem: Trusted<HTMLLinkElement>,
+}
+
+impl StylesheetLoadDispatcher {
+    pub fn new(elem: Trusted<HTMLLinkElement>) -> StylesheetLoadDispatcher {
+        StylesheetLoadDispatcher {
+            elem: elem,
+        }
+    }
+}
+
+impl StylesheetLoadResponder for StylesheetLoadDispatcher {
+    fn respond(self: Box<StylesheetLoadDispatcher>) {
+        let elem = self.elem.to_temporary().root();
+        let window = window_from_node(elem.r()).root();
+        let event = Event::new(GlobalRef::Window(window.r()), "load".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
+        let target = EventTargetCast::from_ref(elem.r());
+        event.r().fire(target);
     }
 }
