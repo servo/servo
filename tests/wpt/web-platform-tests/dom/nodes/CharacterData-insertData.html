@@ -7,22 +7,32 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
-function testNode(node) {
+function testNode(create, type) {
   test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
     assert_throws("INDEX_SIZE_ERR", function() { node.insertData(5, "x") })
     assert_throws("INDEX_SIZE_ERR", function() { node.insertData(5, "") })
+  }, type + ".insertData() out of bounds")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
     node.insertData(2, "X")
     assert_equals(node.data, "teXst")
-  })
+  }, type + ".insertData() in the middle")
+
   test(function() {
-    node.data = "test"
+    var node = create()
     assert_equals(node.data, "test")
+
     node.insertData(4, "ing")
     assert_equals(node.data, "testing")
-  })
+  }, type + ".insertData() at the end")
 }
-test(function() {
-  testNode(document.createTextNode("test"))
-  testNode(document.createComment("test"))
-})
+
+testNode(function() { return document.createTextNode("test") }, "Text")
+testNode(function() { return document.createComment("test") }, "Comment")
 </script>
