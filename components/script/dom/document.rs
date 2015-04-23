@@ -260,7 +260,7 @@ pub trait DocumentHelpers<'a> {
     fn cancel_animation_frame(self, ident: i32);
     /// http://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
     fn invoke_animation_callbacks(self);
-    fn prep_async_load(self, load: LoadType) -> PendingAsyncLoad;
+    fn prepare_async_load(self, load: LoadType) -> PendingAsyncLoad;
     fn load_async(self, load: LoadType) -> Receiver<LoadResponse>;
     fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String>;
     fn finish_load(self, load: LoadType);
@@ -885,9 +885,9 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         }
     }
 
-    fn prep_async_load(self, load: LoadType) -> PendingAsyncLoad {
+    fn prepare_async_load(self, load: LoadType) -> PendingAsyncLoad {
         let mut loader = self.loader.borrow_mut();
-        loader.prep_async_load(load)
+        loader.prepare_async_load(load)
     }
 
     fn load_async(self, load: LoadType) -> Receiver<LoadResponse> {

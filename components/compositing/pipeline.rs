@@ -108,7 +108,7 @@ impl Pipeline {
                                           script_port,
                                           constellation_chan.clone(),
                                           failure.clone(),
-                                          resource_task.clone(),
+                                          resource_task,
                                           storage_task.clone(),
                                           image_cache_task.clone(),
                                           devtools_chan,

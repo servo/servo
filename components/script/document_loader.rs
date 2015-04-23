@@ -56,10 +56,7 @@ impl DocumentLoader {
                          data: Option<NotifierData>,
                          initial_load: Option<Url>,)
                          -> DocumentLoader {
-        let mut initial_loads = vec!();
-        if let Some(load) = initial_load {
-            initial_loads.push(LoadType::PageSource(load));
-        }
+        let initial_loads = initial_load.into_iter().map(LoadType::PageSource).collect();
 
         DocumentLoader {
             resource_task: resource_task,
@@ -70,15 +67,16 @@ impl DocumentLoader {
 
     /// Create a new pending network request, which can be initiated at some point in
     /// the future.
-    pub fn prep_async_load(&mut self, load: LoadType) -> PendingAsyncLoad {
-        self.blocking_loads.push(load.clone());
+    pub fn prepare_async_load(&mut self, load: LoadType) -> PendingAsyncLoad {
+        let url = load.url().clone();
+        self.blocking_loads.push(load);
         let pipeline = self.notifier_data.as_ref().map(|data| data.pipeline);
-        PendingAsyncLoad::new(self.resource_task.clone(), load.url().clone(), pipeline)
+        PendingAsyncLoad::new(self.resource_task.clone(), url, pipeline)
     }
 
     /// Create and initiate a new network request.
     pub fn load_async(&mut self, load: LoadType) -> Receiver<LoadResponse> {
-        let pending = self.prep_async_load(load);
+        let pending = self.prepare_async_load(load);
         pending.load()
     }
 

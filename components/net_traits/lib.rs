@@ -126,13 +126,14 @@ pub enum ControlMsg {
 }
 
 /// Initialized but unsent request. Encapsulates everything necessary to instruct
-/// the resource task to make a new request.
+/// the resource task to make a new request. The `load` method *must* be called before
+/// destruction or the task will panic.
 pub struct PendingAsyncLoad {
     resource_task: ResourceTask,
     url: Url,
     pipeline: Option<PipelineId>,
-    input_chan: Sender<LoadResponse>,
-    input_port: Receiver<LoadResponse>,
+    input_sender: Sender<LoadResponse>,
+    input_receiver: Receiver<LoadResponse>,
     guard: PendingLoadGuard,
 }
 
@@ -155,13 +156,13 @@ impl Drop for PendingLoadGuard {
 impl PendingAsyncLoad {
     pub fn new(resource_task: ResourceTask, url: Url, pipeline: Option<PipelineId>)
                -> PendingAsyncLoad {
-        let (tx, rx) = channel();
+        let (sender, receiver) = channel();
         PendingAsyncLoad {
             resource_task: resource_task,
             url: url,
             pipeline: pipeline,
-            input_chan: tx,
-            input_port: rx,
+            input_sender: sender,
+            input_receiver: receiver,
             guard: PendingLoadGuard { loaded: false, },
         }
     }
@@ -170,8 +171,9 @@ impl PendingAsyncLoad {
     pub fn load(mut self) -> Receiver<LoadResponse> {
         self.guard.neuter();
         let load_data = LoadData::new(self.url, self.pipeline);
-        self.resource_task.send(ControlMsg::Load(load_data, LoadConsumer::Channel(self.input_chan))).unwrap();
-        self.input_port
+        let consumer = LoadConsumer::Channel(self.input_sender);
+        self.resource_task.send(ControlMsg::Load(load_data, consumer)).unwrap();
+        self.input_receiver
     }
 }
 

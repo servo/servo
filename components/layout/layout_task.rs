@@ -610,7 +610,7 @@ impl LayoutTask {
                                                 Some(environment_encoding),
                                                 Origin::Author);
 
-        //TODO: mark critical subresources as blocking load as well
+        //TODO: mark critical subresources as blocking load as well (#5974)
         let ScriptControlChan(ref chan) = self.script_chan;
         chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id, url, responder)).unwrap();
 

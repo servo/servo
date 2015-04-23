@@ -159,7 +159,7 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
                 let link_element = Trusted::new(window.get_cx(), self, window.script_chan().clone());
                 let load_dispatcher = StylesheetLoadDispatcher::new(link_element);
 
-                let pending = doc.r().prep_async_load(LoadType::Stylesheet(url.clone()));
+                let pending = doc.r().prepare_async_load(LoadType::Stylesheet(url.clone()));
                 let LayoutChan(ref layout_chan) = window.layout_chan();
                 layout_chan.send(Msg::LoadStylesheet(url, media, pending, box load_dispatcher)).unwrap();
             }
