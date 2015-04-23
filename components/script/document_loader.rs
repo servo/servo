@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Tracking of pending loads in a document.
-//! https://html.spec.whatwg.org/multipage/syntax.html#the-end
+//! https://html.spec.whatwg.org/multipage/#the-end
 
 use script_task::{ScriptMsg, ScriptChan};
 use msg::constellation_msg::{PipelineId};
