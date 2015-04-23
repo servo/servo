@@ -124,7 +124,6 @@ impl Handler {
         let pipeline_id = self.get_root_pipeline();
 
         let func_body = &parameters.script;
-        let args = &parameters.args;
         let args_string = "";
 
         // This is pretty ugly; we really want something that acts like
