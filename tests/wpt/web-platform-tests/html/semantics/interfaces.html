@@ -28,5 +28,6 @@ function do_test(local_name, iface) {
 
 elements.forEach(function(a) {
   do_test(a[0], a[1]);
+  do_test(a[0].toUpperCase(), a[1]);
 })
 </script>

@@ -134,5 +134,6 @@ var elements = [
   ["dialog", "Dialog"],
   ["figcaption", ""],
   ["summary", ""],
-  ["track", "Track"]
+  ["track", "Track"],
+  ["foo", "Unknown"]
 ];
