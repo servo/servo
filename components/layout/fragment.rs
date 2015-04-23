@@ -16,8 +16,7 @@ use flow_ref::FlowRef;
 use incremental::{self, RestyleDamage};
 use inline::{InlineFragmentContext, InlineMetrics};
 use layout_debug;
-use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
-use model;
+use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use text;
 use opaque_node::OpaqueNodeMethods;
 use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
@@ -1200,13 +1199,17 @@ impl Fragment {
             }
             SpecificFragmentInfo::ScannedText(ref text_fragment_info) => {
                 let range = &text_fragment_info.range;
-                let min_line_inline_size = text_fragment_info.run.min_width_for_range(range);
 
                 // See http://dev.w3.org/csswg/css-sizing/#max-content-inline-size.
                 // TODO: Account for soft wrap opportunities.
                 let max_line_inline_size = text_fragment_info.run
                                                              .metrics_for_range(range)
                                                              .advance_width;
+
+                let min_line_inline_size = match self.style.get_inheritedtext().white_space {
+                    white_space::T::pre | white_space::T::nowrap => max_line_inline_size,
+                    white_space::T::normal => text_fragment_info.run.min_width_for_range(range),
+                };
 
                 result.union_block(&IntrinsicISizes {
                     minimum_inline_size: min_line_inline_size,
