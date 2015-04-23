@@ -56,6 +56,10 @@ pub struct NewLayoutInfo {
     pub load_data: LoadData,
 }
 
+pub trait StylesheetLoadResponder {
+    fn respond(self: Box<Self>);
+}
+
 /// Messages sent from the constellation to the script task
 pub enum ConstellationControlMsg {
     /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
@@ -91,7 +95,7 @@ pub enum ConstellationControlMsg {
     /// Notifies script task that all animations are done
     TickAllAnimations(PipelineId),
     /// Notifies script that a stylesheet has finished loading.
-    StylesheetLoadComplete(PipelineId, Url),
+    StylesheetLoadComplete(PipelineId, Url, Box<StylesheetLoadResponder+Send>),
 }
 
 /// The mouse button involved in the event.

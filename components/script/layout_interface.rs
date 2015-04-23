@@ -15,6 +15,7 @@ use msg::constellation_msg::{PipelineExitType, WindowSizeData};
 use net_traits::PendingAsyncLoad;
 use profile_traits::mem::{Reporter, ReportsChan};
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel, UntrustedNodeAddress};
+use script_traits::StylesheetLoadResponder;
 use std::any::Any;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use style::animation::PropertyAnimation;
@@ -31,7 +32,7 @@ pub enum Msg {
     AddStylesheet(Stylesheet, MediaQueryList),
 
     /// Adds the given stylesheet to the document.
-    LoadStylesheet(Url, MediaQueryList, PendingAsyncLoad),
+    LoadStylesheet(Url, MediaQueryList, PendingAsyncLoad, Box<StylesheetLoadResponder+Send>),
 
     /// Puts a document into quirks mode, causing the quirks mode stylesheet to be loaded.
     SetQuirksMode,

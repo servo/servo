@@ -731,8 +731,10 @@ impl ScriptTask {
                 self.handle_webdriver_msg(pipeline_id, msg),
             ConstellationControlMsg::TickAllAnimations(pipeline_id) =>
                 self.handle_tick_all_animations(pipeline_id),
-            ConstellationControlMsg::StylesheetLoadComplete(id, url) =>
-                self.handle_resource_loaded(id, LoadType::Stylesheet(url)),
+            ConstellationControlMsg::StylesheetLoadComplete(id, url, responder) => {
+                self.handle_resource_loaded(id, LoadType::Stylesheet(url));
+                responder.respond();
+            }
         }
     }
 

@@ -54,7 +54,7 @@ use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC};
 use script::layout_interface::{MouseOverResponse, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
 use script_traits::{ConstellationControlMsg, OpaqueScriptLayoutChannel};
-use script_traits::ScriptControlChan;
+use script_traits::{ScriptControlChan, StylesheetLoadResponder};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::mem::transmute;
@@ -486,8 +486,8 @@ impl LayoutTask {
             Msg::AddStylesheet(sheet, mq) => {
                 self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data)
             }
-            Msg::LoadStylesheet(url, mq, pending) => {
-                self.handle_load_stylesheet(url, mq, pending, possibly_locked_rw_data)
+            Msg::LoadStylesheet(url, mq, pending, link_element) => {
+                self.handle_load_stylesheet(url, mq, pending, link_element, possibly_locked_rw_data)
             }
             Msg::SetQuirksMode => self.handle_set_quirks_mode(possibly_locked_rw_data),
             Msg::GetRPC(response_chan) => {
@@ -593,6 +593,7 @@ impl LayoutTask {
                                   url: Url,
                                   mq: MediaQueryList,
                                   pending: PendingAsyncLoad,
+                                  responder: Box<StylesheetLoadResponder+Send>,
                                   possibly_locked_rw_data:
                                     &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
@@ -611,7 +612,7 @@ impl LayoutTask {
 
         //TODO: mark critical subresources as blocking load as well
         let ScriptControlChan(ref chan) = self.script_chan;
-        chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id, url)).unwrap();
+        chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id, url, responder)).unwrap();
 
         self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data);
     }
