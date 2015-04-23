@@ -635,17 +635,28 @@ pub fn validate_and_extract(namespace: Option<DOMString>, qualified_name: &str)
     // Step 2.
     try!(validate_qualified_name(qualified_name));
 
-    let (prefix, local_name) = if qualified_name.contains(":") {
-        // Step 5.
-        let mut parts = qualified_name.splitn(1, ':');
-        let prefix = parts.next().unwrap();
-        debug_assert!(!prefix.is_empty());
-        let local_name = parts.next().unwrap();
-        debug_assert!(!local_name.contains(":"));
-        (Some(prefix), local_name)
-    } else {
-        (None, qualified_name)
+    let colon = ':';
+
+    // Step 5.
+    let mut parts = qualified_name.splitn(2, colon);
+
+    let (prefix, local_name) = {
+      let maybe_first = parts.next();
+      let maybe_second = parts.next();
+
+      debug_assert!(parts.next().is_none());
+
+      match maybe_second {
+        Some(second) => {
+          debug_assert!(!maybe_first.unwrap().is_empty());
+
+          (maybe_first, second)
+        },
+        None => (maybe_second, maybe_first.unwrap()),
+      }
     };
+
+    debug_assert!(!local_name.contains(colon));
 
     match (namespace, prefix) {
         (ns!(""), Some(_)) => {
