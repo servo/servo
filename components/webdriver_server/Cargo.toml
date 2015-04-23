@@ -13,10 +13,13 @@ path = "../msg"
 [dependencies.util]
 path = "../util"
 
+[dependencies.webdriver_traits]
+path = "../webdriver_traits"
+
 [dependencies.webdriver]
 git = "https://github.com/jgraham/webdriver-rust.git"
 
 [dependencies]
-rustc-serialize="0.3.4"
+rustc-serialize = "0.3.4"
 url = "0.2.16"
 uuid = "0.1.11"

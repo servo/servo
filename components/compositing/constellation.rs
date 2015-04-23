@@ -39,6 +39,7 @@ use util::geometry::PagePx;
 use util::opts;
 use util::task::spawn_named;
 use clipboard::ClipboardContext;
+use webdriver_traits::WebDriverScriptCommand;
 
 /// Maintains the pipelines and navigation context and grants permission to composite.
 pub struct Constellation<LTF, STF> {
@@ -410,6 +411,12 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 };
                 sender.send(result).unwrap();
             }
+            ConstellationMsg::WebDriverCommandMsg(pipeline_id,
+                                                  command) => {
+                debug!("constellation got webdriver command message");
+                self.handle_webdriver_command_msg(pipeline_id,
+                                                  command);
+            }
         }
         true
     }
@@ -751,6 +758,17 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         // Focus parent iframes recursively
         self.focus_parent_pipeline(pipeline_id);
+    }
+
+    fn handle_webdriver_command_msg(&mut self,
+                                    pipeline_id: PipelineId,
+                                    msg: WebDriverScriptCommand) {
+        // Find the script channel for the given parent pipeline,
+        // and pass the event to that script task.
+        let pipeline = self.pipeline(pipeline_id);
+        let control_msg = ConstellationControlMsg::WebDriverCommandMsg(pipeline_id, msg);
+        let ScriptControlChan(ref script_channel) = pipeline.script_chan;
+        script_channel.send(control_msg).unwrap();
     }
 
     fn add_or_replace_pipeline_in_frame_tree(&mut self, frame_change: FrameChange) {
