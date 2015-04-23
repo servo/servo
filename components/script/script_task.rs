@@ -45,6 +45,7 @@ use layout_interface;
 use page::{Page, IterablePage, Frame};
 use timers::TimerId;
 use devtools;
+use webdriver_handlers;
 
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, DevtoolsPageInfo};
 use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
@@ -56,6 +57,7 @@ use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
 use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
 use script_traits::{ConstellationControlMsg, ScriptControlChan};
 use script_traits::ScriptTaskFactory;
+use webdriver_traits::WebDriverScriptCommand;
 use msg::compositor_msg::ReadyState::{FinishedLoading, Loading, PerformingLayout};
 use msg::compositor_msg::{LayerId, ScriptListener};
 use msg::constellation_msg::{ConstellationChan, FocusType};
@@ -727,6 +729,9 @@ impl ScriptTask {
                 self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
             ConstellationControlMsg::FocusIFrameMsg(containing_pipeline_id, subpage_id) =>
                 self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
+            ConstellationControlMsg::WebDriverCommandMsg(pipeline_id, msg) => {
+                self.handle_webdriver_msg(pipeline_id, msg);
+            }
         }
     }
 
@@ -781,6 +786,14 @@ impl ScriptTask {
 
     fn handle_msg_from_image_cache(&self, msg: ImageCacheResult) {
         msg.responder.unwrap().respond(msg.image);
+    }
+
+    fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {
+        let page = self.root_page();
+        match msg {
+            WebDriverScriptCommand::EvaluateJS(script, reply) =>
+                webdriver_handlers::handle_evaluate_js(&page, pipeline_id, script, reply)
+        }
     }
 
     fn handle_resize(&self, id: PipelineId, size: WindowSizeData) {
