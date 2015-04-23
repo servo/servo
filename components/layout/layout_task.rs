@@ -46,16 +46,15 @@ use profile::mem::{self, Report, ReportsChan};
 use profile::time::{self, ProfilerMetadata, profile};
 use profile::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use net_traits::{load_bytes_iter, ResourceTask};
-use net_traits::image_cache_task::{ImageCacheTask, ImageResponseMsg};
-use net_traits::local_image_cache::{ImageResponder, LocalImageCache};
+use net_traits::image_cache_task::{ImageCacheTask, ImageCacheResult, ImageCacheChan};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{LayoutData, Node};
 use script::layout_interface::{Animation, ContentBoxResponse, ContentBoxesResponse};
 use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC};
 use script::layout_interface::{MouseOverResponse, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
-use script_traits::{ConstellationControlMsg, CompositorEvent, OpaqueScriptLayoutChannel};
-use script_traits::{ScriptControlChan, UntrustedNodeAddress};
+use script_traits::{ConstellationControlMsg, OpaqueScriptLayoutChannel};
+use script_traits::ScriptControlChan;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::mem::transmute;
@@ -74,7 +73,7 @@ use util::geometry::{Au, MAX_RECT};
 use util::logical_geometry::LogicalPoint;
 use util::mem::HeapSizeOf;
 use util::opts;
-use util::smallvec::{SmallVec, SmallVec1, VecLike};
+use util::smallvec::SmallVec;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 use util::workqueue::WorkQueue;
@@ -86,8 +85,8 @@ pub struct LayoutTaskData {
     /// The root of the flow tree.
     pub root_flow: Option<FlowRef>,
 
-    /// The local image cache.
-    pub local_image_cache: Arc<Mutex<LocalImageCache<UntrustedNodeAddress>>>,
+    /// The image cache.
+    pub image_cache_task: ImageCacheTask,
 
     /// The channel on which messages can be sent to the constellation.
     pub constellation_chan: ConstellationChan,
@@ -145,6 +144,12 @@ pub struct LayoutTask {
     /// The port on which we receive messages from the constellation
     pub pipeline_port: Receiver<LayoutControlMsg>,
 
+    /// The port on which we receive messages from the image cache
+    image_cache_receiver: Receiver<ImageCacheResult>,
+
+    /// The channel on which the image cache can send messages to ourself.
+    image_cache_sender: ImageCacheChan,
+
     /// The channel on which we or others can send messages to ourselves.
     pub chan: LayoutChan,
 
@@ -169,9 +174,6 @@ pub struct LayoutTask {
     /// The channel on which messages can be sent to the resource task.
     pub resource_task: ResourceTask,
 
-    /// The channel on which messages can be sent to the image cache.
-    pub image_cache_task: ImageCacheTask,
-
     /// Public interface to the font cache task.
     pub font_cache_task: FontCacheTask,
 
@@ -183,26 +185,6 @@ pub struct LayoutTask {
     ///
     /// All the other elements of this struct are read-only.
     pub rw_data: Arc<Mutex<LayoutTaskData>>,
-}
-
-struct LayoutImageResponder {
-    id: PipelineId,
-    script_chan: ScriptControlChan,
-}
-
-impl ImageResponder<UntrustedNodeAddress> for LayoutImageResponder {
-    fn respond(&self) -> Box<Fn(ImageResponseMsg, UntrustedNodeAddress)+Send> {
-        let id = self.id.clone();
-        let script_chan = self.script_chan.clone();
-        box move |_, node_address| {
-            let ScriptControlChan(ref chan) = script_chan;
-            debug!("Dirtying {:p}", node_address.0);
-            let mut nodes = SmallVec1::new();
-            nodes.vec_push(node_address);
-            drop(chan.send(ConstellationControlMsg::SendEvent(
-                id, CompositorEvent::ReflowEvent(nodes))))
-        }
-    }
 }
 
 impl LayoutTaskFactory for LayoutTask {
@@ -218,7 +200,7 @@ impl LayoutTaskFactory for LayoutTask {
               script_chan: ScriptControlChan,
               paint_chan: PaintChan,
               resource_task: ResourceTask,
-              img_cache_task: ImageCacheTask,
+              image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
               memory_profiler_chan: mem::ProfilerChan,
@@ -237,7 +219,7 @@ impl LayoutTaskFactory for LayoutTask {
                                              script_chan,
                                              paint_chan,
                                              resource_task,
-                                             img_cache_task,
+                                             image_cache_task,
                                              font_cache_task,
                                              time_profiler_chan,
                                              memory_profiler_chan);
@@ -295,8 +277,6 @@ impl LayoutTask {
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan)
            -> LayoutTask {
-        let local_image_cache =
-            Arc::new(Mutex::new(LocalImageCache::new(image_cache_task.clone())));
         let screen_size = Size2D(Au(0), Au(0));
         let device = Device::new(
             MediaType::Screen,
@@ -317,6 +297,7 @@ impl LayoutTask {
 
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
+        let (image_cache_sender, image_cache_receiver) = channel();
 
         LayoutTask {
             id: id,
@@ -332,13 +313,14 @@ impl LayoutTask {
             mem_profiler_chan: mem_profiler_chan,
             reporter_name: reporter_name,
             resource_task: resource_task,
-            image_cache_task: image_cache_task.clone(),
             font_cache_task: font_cache_task,
             first_reflow: Cell::new(true),
+            image_cache_receiver: image_cache_receiver,
+            image_cache_sender: ImageCacheChan(image_cache_sender),
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     root_flow: None,
-                    local_image_cache: local_image_cache,
+                    image_cache_task: image_cache_task,
                     constellation_chan: constellation_chan,
                     screen_size: screen_size,
                     stacking_context: None,
@@ -371,7 +353,8 @@ impl LayoutTask {
                                    url: &Url)
                                    -> SharedLayoutContext {
         SharedLayoutContext {
-            image_cache: rw_data.local_image_cache.clone(),
+            image_cache_task: rw_data.image_cache_task.clone(),
+            image_cache_sender: self.image_cache_sender.clone(),
             screen_size: rw_data.screen_size.clone(),
             screen_size_changed: screen_size_changed,
             constellation_chan: rw_data.constellation_chan.clone(),
@@ -393,21 +376,26 @@ impl LayoutTask {
         enum PortToRead {
             Pipeline,
             Script,
+            ImageCache,
         }
 
         let port_to_read = {
             let sel = Select::new();
             let mut port1 = sel.handle(&self.port);
             let mut port2 = sel.handle(&self.pipeline_port);
+            let mut port3 = sel.handle(&self.image_cache_receiver);
             unsafe {
                 port1.add();
                 port2.add();
+                port3.add();
             }
             let ret = sel.wait();
             if ret == port1.id() {
                 PortToRead::Script
             } else if ret == port2.id() {
                 PortToRead::Pipeline
+            } else if ret == port3.id() {
+                PortToRead::ImageCache
             } else {
                 panic!("invalid select result");
             }
@@ -424,10 +412,14 @@ impl LayoutTask {
                                                    possibly_locked_rw_data)
                     }
                 }
-            },
+            }
             PortToRead::Script => {
                 let msg = self.port.recv().unwrap();
                 self.handle_request_helper(msg, possibly_locked_rw_data)
+            }
+            PortToRead::ImageCache => {
+                let _ = self.image_cache_receiver.recv().unwrap();
+                self.repaint(possibly_locked_rw_data)
             }
         }
     }
@@ -456,6 +448,33 @@ impl LayoutTask {
             RWGuard::Used(x) => drop(x),
             RWGuard::Held(x) => *possibly_locked_rw_data = Some(x),
         }
+    }
+
+    /// Repaint the scene, without performing style matching. This is typically
+    /// used when an image arrives asynchronously and triggers a relayout and
+    /// repaint.
+    /// TODO: In the future we could detect if the image size hasn't changed
+    /// since last time and avoid performing a complete layout pass.
+    fn repaint<'a>(&'a self,
+                   possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) -> bool {
+        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+
+        let reflow_info = Reflow {
+            goal: ReflowGoal::ForDisplay,
+            page_clip_rect: MAX_RECT,
+        };
+
+        let mut layout_context = self.build_shared_layout_context(&*rw_data,
+                                                                  false,
+                                                                  None,
+                                                                  &self.url);
+
+        self.perform_post_style_recalc_layout_passes(&reflow_info,
+                                                     &mut *rw_data,
+                                                     &mut layout_context);
+
+
+        true
     }
 
     /// Receives and dispatches messages from other tasks.
@@ -823,12 +842,6 @@ impl LayoutTask {
 
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
 
-        {
-            // Reset the image cache.
-            let mut local_image_cache = rw_data.local_image_cache.lock().unwrap();
-            local_image_cache.next_round(self.make_on_image_available_cb());
-        }
-
         // TODO: Calculate the "actual viewport":
         // http://www.w3.org/TR/css-device-adapt/#actual-viewport
         let viewport_size = data.window_size.initial_viewport;
@@ -1037,24 +1050,6 @@ impl LayoutTask {
         for child in flow::child_iter(flow) {
             LayoutTask::reflow_all_nodes(child);
         }
-    }
-
-    /// When images can't be loaded in time to display they trigger
-    /// this callback in some task somewhere. This will send a message
-    /// to the script task, and ultimately cause the image to be
-    /// re-requested. We probably don't need to go all the way back to
-    /// the script task for this.
-    ///
-    /// FIXME(pcwalton): Rewrite all of this.
-    fn make_on_image_available_cb(&self) -> Box<ImageResponder<UntrustedNodeAddress>+Send> {
-        // This has a crazy signature because the image cache needs to
-        // make multiple copies of the callback, and the dom event
-        // channel is not a copyable type, so this is actually a
-        // little factory to produce callbacks
-        box LayoutImageResponder {
-            id: self.id.clone(),
-            script_chan: self.script_chan.clone(),
-        } as Box<ImageResponder<UntrustedNodeAddress>+Send>
     }
 
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* task

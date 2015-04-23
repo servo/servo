@@ -36,7 +36,7 @@ use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementHelpers};
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
-use dom::node::{self, Node, NodeHelpers, NodeDamage, window_from_node};
+use dom::node::{Node, NodeHelpers, NodeDamage, window_from_node};
 use dom::window::{Window, WindowHelpers, ScriptHelpers, ReflowReason};
 use dom::worker::TrustedWorkerAddress;
 use parse::html::{HTMLInput, parse_html};
@@ -50,7 +50,7 @@ use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, DevtoolsPageInfo
 use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
 use devtools_traits::{TimelineMarker, TimelineMarkerType, TracingMetadata};
 use script_traits::CompositorEvent;
-use script_traits::CompositorEvent::{ResizeEvent, ReflowEvent, ClickEvent};
+use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
 use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
 use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
@@ -64,7 +64,7 @@ use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net_traits::{ResourceTask, ControlMsg, LoadResponse, LoadConsumer};
 use net_traits::LoadData as NetLoadData;
-use net_traits::image_cache_task::ImageCacheTask;
+use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
 use string_cache::Atom;
 use util::geometry::to_frac_px;
@@ -296,6 +296,12 @@ pub struct ScriptTask {
     /// A handle to the compositor for communicating ready state messages.
     compositor: DOMRefCell<Box<ScriptListener+'static>>,
 
+    /// The port on which we receive messages from the image cache
+    image_cache_port: Receiver<ImageCacheResult>,
+
+    /// The channel on which the image cache can send messages to ourself.
+    image_cache_channel: ImageCacheChan,
+
     /// For providing instructions to an optional devtools server.
     devtools_chan: Option<DevtoolsControlChan>,
     /// For receiving commands from an optional devtools server. Will be ignored if
@@ -437,7 +443,7 @@ impl ScriptTask {
                constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
                storage_task: StorageTask,
-               img_cache_task: ImageCacheTask,
+               image_cache_task: ImageCacheTask,
                devtools_chan: Option<DevtoolsControlChan>)
                -> ScriptTask {
         let runtime = ScriptTask::new_rt_and_cx();
@@ -463,11 +469,16 @@ impl ScriptTask {
         }
 
         let (devtools_sender, devtools_receiver) = channel();
+        let (image_cache_channel, image_cache_port) = channel();
+
         ScriptTask {
             page: DOMRefCell::new(None),
             incomplete_loads: DOMRefCell::new(vec!()),
 
-            image_cache_task: img_cache_task,
+            image_cache_task: image_cache_task,
+            image_cache_channel: ImageCacheChan(image_cache_channel),
+            image_cache_port: image_cache_port,
+
             resource_task: resource_task,
             storage_task: storage_task,
 
@@ -558,6 +569,7 @@ impl ScriptTask {
             FromConstellation(ConstellationControlMsg),
             FromScript(ScriptMsg),
             FromDevtools(DevtoolScriptControlMsg),
+            FromImageCache(ImageCacheResult),
         }
 
         // Store new resizes, and gather all other events.
@@ -569,12 +581,14 @@ impl ScriptTask {
             let mut port1 = sel.handle(&self.port);
             let mut port2 = sel.handle(&self.control_port);
             let mut port3 = sel.handle(&self.devtools_port);
+            let mut port4 = sel.handle(&self.image_cache_port);
             unsafe {
                 port1.add();
                 port2.add();
                 if self.devtools_chan.is_some() {
                     port3.add();
                 }
+                port4.add();
             }
             let ret = sel.wait();
             if ret == port1.id() {
@@ -583,6 +597,8 @@ impl ScriptTask {
                 MixedMessage::FromConstellation(self.control_port.recv().unwrap())
             } else if ret == port3.id() {
                 MixedMessage::FromDevtools(self.devtools_port.recv().unwrap())
+            } else if ret == port4.id() {
+                MixedMessage::FromImageCache(self.image_cache_port.recv().unwrap())
             } else {
                 panic!("unexpected select result")
             }
@@ -629,7 +645,10 @@ impl ScriptTask {
             match self.control_port.try_recv() {
                 Err(_) => match self.port.try_recv() {
                     Err(_) => match self.devtools_port.try_recv() {
-                        Err(_) => break,
+                        Err(_) => match self.image_cache_port.try_recv() {
+                            Err(_) => break,
+                            Ok(ev) => event = MixedMessage::FromImageCache(ev),
+                        },
                         Ok(ev) => event = MixedMessage::FromDevtools(ev),
                     },
                     Ok(ev) => event = MixedMessage::FromScript(ev),
@@ -649,6 +668,23 @@ impl ScriptTask {
                 MixedMessage::FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                 MixedMessage::FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
                 MixedMessage::FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
+                MixedMessage::FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
+            }
+        }
+
+        // Issue batched reflows on any pages that require it (e.g. if images loaded)
+        // TODO(gw): In the future we could probably batch other types of reflows
+        // into this loop too, but for now it's only images.
+        let page = self.page.borrow();
+        if let Some(page) = page.as_ref() {
+            for page in page.iter() {
+                let window = page.window().root();
+                let pending_reflows = window.r().get_pending_reflow_count();
+                if pending_reflows > 0 {
+                    window.r().reflow(ReflowGoal::ForDisplay,
+                                      ReflowQueryType::NoQuery,
+                                      ReflowReason::ImageLoaded);
+                }
             }
         }
 
@@ -741,6 +777,10 @@ impl ScriptTask {
             DevtoolScriptControlMsg::DropTimelineMarkers(_pipeline_id, marker_types) =>
                 devtools::handle_drop_timeline_markers(&page, self, marker_types),
         }
+    }
+
+    fn handle_msg_from_image_cache(&self, msg: ImageCacheResult) {
+        msg.responder.unwrap().respond(msg.image);
     }
 
     fn handle_resize(&self, id: PipelineId, size: WindowSizeData) {
@@ -1061,6 +1101,7 @@ impl ScriptTask {
         let window = Window::new(self.js_runtime.cx.clone(),
                                  page.clone(),
                                  self.chan.clone(),
+                                 self.image_cache_channel.clone(),
                                  self.control_chan.clone(),
                                  self.compositor.borrow_mut().dup(),
                                  self.image_cache_task.clone(),
@@ -1207,29 +1248,6 @@ impl ScriptTask {
                 self.handle_resize_event(pipeline_id, new_size);
             }
 
-            ReflowEvent(nodes) => {
-                // FIXME(pcwalton): This event seems to only be used by the image cache task, and
-                // the interaction between it and the image holder is really racy. I think that, in
-                // order to fix this race, we need to rewrite the image cache task to make the
-                // image holder responsible for the lifecycle of image loading instead of having
-                // the image holder and layout task both be observers. Then we can have the DOM
-                // image element observe the state of the image holder and have it send reflows
-                // via the normal dirtying mechanism, and ultimately remove this event.
-                //
-                // See the implementation of `Width()` and `Height()` in `HTMLImageElement` for
-                // fallout of this problem.
-                for node in nodes.iter() {
-                    let node_to_dirty = node::from_untrusted_node_address(self.js_runtime.rt(),
-                                                                          *node).root();
-                    let page = get_page(&self.root_page(), pipeline_id);
-                    let document = page.document().root();
-                    document.r().content_changed(node_to_dirty.r(),
-                                                 NodeDamage::OtherNodeDamage);
-                }
-
-                self.handle_reflow_event(pipeline_id);
-            }
-
             ClickEvent(button, point) => {
                 let _marker;
                 if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
@@ -1330,16 +1348,6 @@ impl ScriptTask {
 
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());
         event.fire(wintarget);
-    }
-
-    fn handle_reflow_event(&self, pipeline_id: PipelineId) {
-        debug!("script got reflow event");
-        let page = get_page(&self.root_page(), pipeline_id);
-        let document = page.document().root();
-        let window = window_from_node(document.r()).root();
-        window.r().reflow(ReflowGoal::ForDisplay,
-                          ReflowQueryType::NoQuery,
-                          ReflowReason::ReceivedReflowEvent);
     }
 
     /// Initiate a non-blocking fetch for a specified resource. Stores the InProgressLoad

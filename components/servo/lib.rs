@@ -46,17 +46,15 @@ use msg::constellation_msg::ConstellationChan;
 
 use script::dom::bindings::codegen::RegisterBindings;
 
-use net::image_cache_task::{ImageCacheTaskFactory, LoadPlaceholder};
+use net::image_cache_task::new_image_cache_task;
 use net::storage_task::StorageTaskFactory;
 use net::resource_task::new_resource_task;
-use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
 
 use gfx::font_cache_task::FontCacheTask;
 use profile::mem;
 use profile::time;
 use util::opts;
-use util::taskpool::TaskPool;
 
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
@@ -88,10 +86,6 @@ impl Browser  {
         // bindings to implement JS proxies.
         RegisterBindings::RegisterProxyHandlers();
 
-        // Use this thread pool to load-balance simple tasks, such as
-        // image decoding.
-        let shared_task_pool = TaskPool::new(8);
-
         // Get both endpoints of a special channel for communication between
         // the client window and the compositor. This channel is unique because
         // messages to client may need to pump a platform-specific event loop
@@ -111,8 +105,7 @@ impl Browser  {
                                                       compositor_proxy.clone_compositor_proxy(),
                                                       time_profiler_chan.clone(),
                                                       devtools_chan,
-                                                      mem_profiler_chan.clone(),
-                                                      shared_task_pool);
+                                                      mem_profiler_chan.clone());
 
         if let Some(port) = opts.webdriver_port {
             webdriver_server::start_server(port, constellation_chan.clone());
@@ -156,24 +149,13 @@ fn create_constellation(opts: opts::Opts,
                         compositor_proxy: Box<CompositorProxy+Send>,
                         time_profiler_chan: time::ProfilerChan,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
-                        mem_profiler_chan: mem::ProfilerChan,
-                        shared_task_pool: TaskPool) -> ConstellationChan {
+                        mem_profiler_chan: mem::ProfilerChan) -> ConstellationChan {
     use std::env;
 
     // Create a Servo instance.
     let resource_task = new_resource_task(opts.user_agent.clone());
 
-    // If we are emitting an output file, then we need to block on
-    // image load or we risk emitting an output file missing the
-    // image.
-    let image_cache_task: ImageCacheTask = if opts.output_file.is_some() {
-        ImageCacheTaskFactory::new_sync(resource_task.clone(), shared_task_pool,
-                                        time_profiler_chan.clone(), LoadPlaceholder::Preload)
-    } else {
-        ImageCacheTaskFactory::new(resource_task.clone(), shared_task_pool,
-                                   time_profiler_chan.clone(), LoadPlaceholder::Preload)
-    };
-
+    let image_cache_task = new_image_cache_task(resource_task.clone());
     let font_cache_task = FontCacheTask::new(resource_task.clone());
     let storage_task: StorageTask = StorageTaskFactory::new();
 
