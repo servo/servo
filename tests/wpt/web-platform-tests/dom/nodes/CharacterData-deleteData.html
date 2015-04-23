@@ -31,6 +31,16 @@ function testNode(create, type) {
     node.deleteData(1, 1)
     assert_equals(node.data, "tst")
   }, type + ".deleteData() in the middle")
+
+  test(function() {
+    var node = create()
+    node.data = "This is the character data test, append more 資料，更多測試資料";
+
+    node.deleteData(40, 5);
+    assert_equals(node.data, "This is the character data test, append 資料，更多測試資料");
+    node.deleteData(45, 2);
+    assert_equals(node.data, "This is the character data test, append 資料，更多資料");
+  }, type + ".deleteData() with non-ascii data")
 }
 
 testNode(function() { return document.createTextNode("test") }, "Text")
