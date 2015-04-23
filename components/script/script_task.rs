@@ -731,8 +731,8 @@ impl ScriptTask {
             ConstellationControlMsg::FocusIFrameMsg(containing_pipeline_id, subpage_id) =>
                 self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
             ConstellationControlMsg::StylesheetLoadComplete(id, url, responder) => {
-                self.handle_resource_loaded(id, LoadType::Stylesheet(url));
                 responder.respond();
+                self.handle_resource_loaded(id, LoadType::Stylesheet(url));
             }
         }
     }
