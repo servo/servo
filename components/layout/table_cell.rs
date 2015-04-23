@@ -8,28 +8,39 @@
 
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
+use css::node_style::StyledNode;
+use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use flow::{Flow, FlowClass};
 use fragment::{Fragment, FragmentBorderBoxIterator};
-use model::{MaybeAuto};
+use model::MaybeAuto;
 use layout_debug;
 use table::InternalTable;
+use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 use wrapper::ThreadSafeLayoutNode;
 
-use geom::{Point2D, Rect};
-use util::geometry::Au;
-use util::logical_geometry::LogicalRect;
+use cssparser::Color;
+use geom::{Point2D, Rect, SideOffsets2D, Size2D};
+use gfx::display_list::DisplayList;
 use std::fmt;
-use style::properties::ComputedValues;
-use style::legacy::UnsignedIntegerAttribute;
 use std::sync::Arc;
+use style::computed_values::{border_collapse, border_top_style};
+use style::legacy::UnsignedIntegerAttribute;
+use style::properties::ComputedValues;
+use util::geometry::Au;
+use util::logical_geometry::{LogicalMargin, LogicalRect, WritingMode};
 
 /// A table formatting context.
 #[derive(RustcEncodable)]
 pub struct TableCellFlow {
     /// Data common to all block flows.
     pub block_flow: BlockFlow,
+
+    /// Border collapse information for the cell.
+    pub collapsed_borders: CollapsedBordersForCell,
+
     /// The column span of this cell.
     pub column_span: u32,
+
     /// Whether this cell is visible. If false, the value of `empty-cells` means that we must not
     /// display this cell.
     pub visible: bool,
@@ -42,6 +53,7 @@ impl TableCellFlow {
                                                   -> TableCellFlow {
         TableCellFlow {
             block_flow: BlockFlow::from_node_and_fragment(node, fragment),
+            collapsed_borders: CollapsedBordersForCell::new(),
             column_span: node.get_unsigned_integer_attribute(UnsignedIntegerAttribute::ColSpan)
                              .unwrap_or(1),
             visible: visible,
@@ -85,6 +97,10 @@ impl Flow for TableCellFlow {
         &mut self.block_flow
     }
 
+    fn as_immutable_block(&self) -> &BlockFlow {
+        &self.block_flow
+    }
+
     /// Minimum/preferred inline-sizes set by this function are used in automatic table layout
     /// calculation.
     fn bubble_inline_sizes(&mut self) {
@@ -120,10 +136,11 @@ impl Flow for TableCellFlow {
         let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
 
         let inline_size_computer = InternalTable;
-
+        let border_collapse = self.block_flow.fragment.style.get_inheritedtable().border_collapse;
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
                                                       layout_context,
-                                                      containing_block_inline_size);
+                                                      containing_block_inline_size,
+                                                      border_collapse);
 
         let inline_start_content_edge =
             self.block_flow.fragment.border_box.start.i +
@@ -140,7 +157,7 @@ impl Flow for TableCellFlow {
                                                                    inline_start_content_edge,
                                                                    inline_end_content_edge,
                                                                    content_inline_size,
-                                                                   None);
+                                                                   |_, _, _, _, _| {});
     }
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
@@ -161,9 +178,22 @@ impl Flow for TableCellFlow {
     }
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        if self.visible {
-            self.block_flow.build_display_list(layout_context)
+        if !self.visible {
+            return
         }
+
+        let border_painting_mode = match self.block_flow
+                                             .fragment
+                                             .style
+                                             .get_inheritedtable()
+                                             .border_collapse {
+            border_collapse::T::separate => BorderPaintingMode::Separate,
+            border_collapse::T::collapse => BorderPaintingMode::Collapse(&self.collapsed_borders),
+        };
+
+        self.block_flow.build_display_list_for_block(box DisplayList::new(),
+                                                     layout_context,
+                                                     border_painting_mode)
     }
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
@@ -194,3 +224,134 @@ impl fmt::Debug for TableCellFlow {
         write!(f, "TableCellFlow: {:?}", self.block_flow)
     }
 }
+
+#[derive(Copy, Clone, Debug, RustcEncodable)]
+pub struct CollapsedBordersForCell {
+    pub inline_start_border: CollapsedBorder,
+    pub inline_end_border: CollapsedBorder,
+    pub block_start_border: CollapsedBorder,
+    pub block_end_border: CollapsedBorder,
+    pub inline_start_width: Au,
+    pub inline_end_width: Au,
+    pub block_start_width: Au,
+    pub block_end_width: Au,
+}
+
+impl CollapsedBordersForCell {
+    fn new() -> CollapsedBordersForCell {
+        CollapsedBordersForCell {
+            inline_start_border: CollapsedBorder::new(),
+            inline_end_border: CollapsedBorder::new(),
+            block_start_border: CollapsedBorder::new(),
+            block_end_border: CollapsedBorder::new(),
+            inline_start_width: Au(0),
+            inline_end_width: Au(0),
+            block_start_width: Au(0),
+            block_end_width: Au(0),
+        }
+    }
+
+    fn should_paint_inline_start_border(&self) -> bool {
+        self.inline_start_border.provenance != CollapsedBorderProvenance::FromPreviousTableCell
+    }
+
+    fn should_paint_inline_end_border(&self) -> bool {
+        self.inline_end_border.provenance != CollapsedBorderProvenance::FromNextTableCell
+    }
+
+    fn should_paint_block_start_border(&self) -> bool {
+        self.block_start_border.provenance != CollapsedBorderProvenance::FromPreviousTableCell
+    }
+
+    fn should_paint_block_end_border(&self) -> bool {
+        self.block_end_border.provenance != CollapsedBorderProvenance::FromNextTableCell
+    }
+
+    pub fn adjust_border_widths_for_painting(&self, border_widths: &mut LogicalMargin<Au>) {
+        border_widths.inline_start = if !self.should_paint_inline_start_border() {
+            Au(0)
+        } else {
+            self.inline_start_border.width
+        };
+        border_widths.inline_end = if !self.should_paint_inline_end_border() {
+            Au(0)
+        } else {
+            self.inline_end_border.width
+        };
+        border_widths.block_start = if !self.should_paint_block_start_border() {
+            Au(0)
+        } else {
+            self.block_start_border.width
+        };
+        border_widths.block_end = if !self.should_paint_block_end_border() {
+            Au(0)
+        } else {
+            self.block_end_border.width
+        }
+    }
+
+    pub fn adjust_border_bounds_for_painting(&self,
+                                             border_bounds: &mut Rect<Au>,
+                                             writing_mode: WritingMode) {
+        let inline_start_divisor = if self.should_paint_inline_start_border() {
+            2
+        } else {
+            -2
+        };
+        let inline_start_offset = self.inline_start_width / 2 + self.inline_start_border.width /
+            inline_start_divisor;
+        let inline_end_divisor = if self.should_paint_inline_end_border() {
+            2
+        } else {
+            -2
+        };
+        let inline_end_offset = self.inline_end_width / 2 + self.inline_end_border.width /
+            inline_end_divisor;
+        let block_start_divisor = if self.should_paint_block_start_border() {
+            2
+        } else {
+            -2
+        };
+        let block_start_offset = self.block_start_width / 2 + self.block_start_border.width /
+            block_start_divisor;
+        let block_end_divisor = if self.should_paint_block_end_border() {
+            2
+        } else {
+            -2
+        };
+        let block_end_offset = self.block_end_width / 2 + self.block_end_border.width /
+            block_end_divisor;
+
+        // FIXME(pcwalton): Get the real container size.
+        let mut logical_bounds =
+            LogicalRect::from_physical(writing_mode, *border_bounds, Size2D(Au(0), Au(0)));
+        logical_bounds.start.i = logical_bounds.start.i - inline_start_offset;
+        logical_bounds.start.b = logical_bounds.start.b - block_start_offset;
+        logical_bounds.size.inline = logical_bounds.size.inline + inline_start_offset +
+            inline_end_offset;
+        logical_bounds.size.block = logical_bounds.size.block + block_start_offset +
+            block_end_offset;
+        *border_bounds = logical_bounds.to_physical(writing_mode, Size2D(Au(0), Au(0)))
+    }
+
+    pub fn adjust_border_colors_and_styles_for_painting(
+            &self,
+            border_colors: &mut SideOffsets2D<Color>,
+            border_styles: &mut SideOffsets2D<border_top_style::T>,
+            writing_mode: WritingMode) {
+        let logical_border_colors = LogicalMargin::new(writing_mode,
+                                                       self.block_start_border.color,
+                                                       self.inline_end_border.color,
+                                                       self.block_end_border.color,
+                                                       self.inline_start_border.color);
+        *border_colors = logical_border_colors.to_physical(writing_mode);
+
+        let logical_border_styles = LogicalMargin::new(writing_mode,
+                                                       self.block_start_border.style,
+                                                       self.inline_end_border.style,
+                                                       self.block_end_border.style,
+                                                       self.inline_start_border.style);
+        *border_styles = logical_border_styles.to_physical(writing_mode);
+    }
+}
+

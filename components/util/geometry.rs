@@ -245,6 +245,20 @@ impl Au {
         NumCast::from(px.get() * 60f32).unwrap()
     }
 
+    /// Rounds this app unit down to the previous (left or top) pixel and returns it.
+    #[inline]
+    pub fn to_prev_px(&self) -> isize {
+        let Au(s) = *self;
+        ((s as f64) / 60f64).floor() as isize
+    }
+
+    /// Rounds this app unit up to the next (right or bottom) pixel and returns it.
+    #[inline]
+    pub fn to_next_px(&self) -> isize {
+        let Au(s) = *self;
+        ((s as f64) / 60f64).ceil() as isize
+    }
+
     #[inline]
     pub fn to_nearest_px(&self) -> isize {
         let Au(s) = *self;

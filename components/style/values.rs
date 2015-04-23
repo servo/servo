@@ -6,16 +6,54 @@
 
 pub use cssparser::RGBA;
 
-
 macro_rules! define_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident ),+,) => {
         define_css_keyword_enum!($name: $( $css => $variant ),+);
     };
     ($name: ident: $( $css: expr => $variant: ident ),+) => {
         #[allow(non_camel_case_types)]
-        #[derive(Clone, Eq, PartialEq, FromPrimitive, Copy, Hash)]
+        #[derive(Clone, Eq, PartialEq, FromPrimitive, Copy, Hash, RustcEncodable)]
         pub enum $name {
             $( $variant ),+
+        }
+
+        impl $name {
+            pub fn parse(input: &mut ::cssparser::Parser) -> Result<$name, ()> {
+                match_ignore_ascii_case! { try!(input.expect_ident()),
+                    $( $css => Ok($name::$variant) ),+
+                    _ => Err(())
+                }
+            }
+        }
+
+        impl ::std::fmt::Debug for $name {
+            #[inline]
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                use cssparser::ToCss;
+                self.fmt_to_css(f)
+            }
+        }
+
+        impl ::cssparser::ToCss for $name {
+            fn to_css<W>(&self, dest: &mut W) -> ::text_writer::Result
+            where W: ::text_writer::TextWriter {
+                match self {
+                    $( &$name::$variant => dest.write_str($css) ),+
+                }
+            }
+        }
+    }
+}
+
+macro_rules! define_numbered_css_keyword_enum {
+    ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
+        define_numbered_css_keyword_enum!($name: $( $css => $variant = $value ),+);
+    };
+    ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+) => {
+        #[allow(non_camel_case_types)]
+        #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, FromPrimitive, Copy, RustcEncodable)]
+        pub enum $name {
+            $( $variant = $value ),+
         }
 
         impl $name {
@@ -850,17 +888,19 @@ pub mod specified {
         })
     }
 
-    define_css_keyword_enum! { BorderStyle:
-        "none" => none,
-        "solid" => solid,
-        "double" => double,
-        "dotted" => dotted,
-        "dashed" => dashed,
-        "hidden" => hidden,
-        "groove" => groove,
-        "ridge" => ridge,
-        "inset" => inset,
-        "outset" => outset,
+    // The integer values here correspond to the border conflict resolution rules in CSS 2.1 §
+    // 17.6.2.1. Higher values override lower values.
+    define_numbered_css_keyword_enum! { BorderStyle:
+        "none" => none = -1,
+        "solid" => solid = 6,
+        "double" => double = 7,
+        "dotted" => dotted = 4,
+        "dashed" => dashed = 5,
+        "hidden" => hidden = -2,
+        "groove" => groove = 1,
+        "ridge" => ridge = 3,
+        "inset" => inset = 0,
+        "outset" => outset = 2,
     }
 
     /// A time in seconds according to CSS-VALUES § 6.2.
