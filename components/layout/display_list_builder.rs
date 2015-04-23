@@ -230,6 +230,14 @@ pub trait FragmentDisplayListBuilding {
                                                   display_list: &mut DisplayList,
                                                   stacking_relative_border_box: &Rect<Au>,
                                                   clip: &ClippingRegion);
+
+    /// Creates a stacking context for associated fragment.
+    fn create_stacking_context(&self,
+                               base_flow: &BaseFlow,
+                               display_list: Box<DisplayList>,
+                               layer: Option<Arc<PaintLayer>>)
+                               -> Arc<StackingContext>;
+
 }
 
 fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> BorderRadii<Au> {
@@ -1017,6 +1025,52 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
+    fn create_stacking_context(&self,
+                               base_flow: &BaseFlow,
+                               display_list: Box<DisplayList>,
+                               layer: Option<Arc<PaintLayer>>)
+                               -> Arc<StackingContext> {
+
+        let border_box = self.stacking_relative_border_box(&base_flow.stacking_relative_position,
+                                                               &base_flow.absolute_position_info
+                                                               .relative_containing_block_size,
+                                                               base_flow.absolute_position_info
+                                                               .relative_containing_block_mode,
+                                                               CoordinateSystem::Parent);
+
+        let transform_origin = self.style().get_effects().transform_origin;
+        let transform_origin =
+            Point2D(model::specified(transform_origin.horizontal,
+                                     border_box.size.width).to_frac32_px(),
+                    model::specified(transform_origin.vertical,
+                                     border_box.size.height).to_frac32_px());
+        let transform = self.style().get_effects().transform
+            .unwrap_or(ComputedMatrix::identity()).to_gfx_matrix(&border_box.size);
+
+        let transform = Matrix2D::identity().translate(transform_origin.x, transform_origin.y)
+            .mul(&transform).translate(-transform_origin.x, -transform_origin.y);
+
+        // FIXME(pcwalton): Is this vertical-writing-direction-safe?
+        let margin = self.margin.to_physical(base_flow.writing_mode);
+        let overflow = base_flow.overflow.translate(&-Point2D(margin.left, Au(0)));
+
+        // Create the filter pipeline.
+        let effects = self.style().get_effects();
+        let mut filters = effects.filter.clone();
+        if effects.opacity != 1.0 {
+            filters.push(Filter::Opacity(effects.opacity))
+        }
+
+        Arc::new(StackingContext::new(display_list,
+                                      &border_box,
+                                      &overflow,
+                                      self.style().get_box().z_index.number_or_zero(),
+                                      &transform,
+                                      filters,
+                                      self.style().get_effects().mix_blend_mode,
+                                      layer))
+    }
+
     #[inline(never)]
     fn finalize_position_and_size_of_iframe(&self,
                                             iframe_fragment: &IframeFragmentInfo,
@@ -1264,7 +1318,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                background_border_level);
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            DisplayListBuildingResult::StackingContext(create_stacking_context(&self.fragment, &self.base, display_list, None))
+            DisplayListBuildingResult::StackingContext(self.fragment.create_stacking_context(&self.base, display_list, None))
         } else {
             DisplayListBuildingResult::Normal(display_list)
         }
@@ -1281,7 +1335,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 !self.base.flags.contains(NEEDS_LAYER) {
             // We didn't need a layer.
             self.base.display_list_building_result =
-                DisplayListBuildingResult::StackingContext(create_stacking_context(&self.fragment, &self.base, display_list, None));
+                DisplayListBuildingResult::StackingContext(self.fragment
+                                                               .create_stacking_context(&self.base, display_list, None));
             return
         }
 
@@ -1292,12 +1347,12 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             ScrollPolicy::Scrollable
         };
 
+
         let transparent = color::transparent();
-        let stacking_context =
-            create_stacking_context(&self.fragment, &self.base, display_list,
-                                    Some(Arc::new(PaintLayer::new(self.layer_id(0),
-                                                                  transparent,
-                                                                  scroll_policy))));
+        let stacking_context = self.fragment.create_stacking_context(&self.base, display_list,
+                                                                     Some(Arc::new(PaintLayer::new(self.layer_id(0),
+                                                                                                   transparent,
+                                                                                                   scroll_policy))));
         self.base.display_list_building_result =
             DisplayListBuildingResult::StackingContext(stacking_context)
     }
@@ -1311,7 +1366,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         display_list.form_float_pseudo_stacking_context();
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            DisplayListBuildingResult::StackingContext(create_stacking_context(&self.fragment, &self.base, display_list, None))
+            DisplayListBuildingResult::StackingContext(self.fragment
+                                                           .create_stacking_context(&self.base, display_list, None))
         } else {
             DisplayListBuildingResult::Normal(display_list)
         }
@@ -1382,10 +1438,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
 
         if has_stacking_context {
             self.base.display_list_building_result =
-                DisplayListBuildingResult::StackingContext(create_stacking_context(&self.fragments.fragments[0],
-                                                                                   &self.base,
-                                                                                   display_list,
-                                                                                   None));
+                DisplayListBuildingResult::StackingContext(self.fragments.fragments[0].create_stacking_context(&self.base, display_list, None));
         } else {
             self.base.display_list_building_result = DisplayListBuildingResult::Normal(display_list);
         }
@@ -1554,50 +1607,4 @@ impl ToGfxColor for RGBA {
     fn to_gfx_color(&self) -> Color {
         color::rgba(self.red, self.green, self.blue, self.alpha)
     }
-}
-
-fn create_stacking_context(fragment: &Fragment,
-                           base_flow: &BaseFlow,
-                           display_list: Box<DisplayList>,
-                           layer: Option<Arc<PaintLayer>>)
-                           -> Arc<StackingContext> {
-
-    let border_box = fragment.stacking_relative_border_box(&base_flow.stacking_relative_position,
-                                                           &base_flow.absolute_position_info
-                                                           .relative_containing_block_size,
-                                                           base_flow.absolute_position_info
-                                                           .relative_containing_block_mode,
-                                                           CoordinateSystem::Parent);
-
-    let transform_origin = fragment.style().get_effects().transform_origin;
-    let transform_origin =
-        Point2D(model::specified(transform_origin.horizontal,
-                                 border_box.size.width).to_frac32_px(),
-                model::specified(transform_origin.vertical,
-                                 border_box.size.height).to_frac32_px());
-    let transform = fragment.style().get_effects().transform
-                    .unwrap_or(ComputedMatrix::identity()).to_gfx_matrix(&border_box.size);
-
-    let transform = Matrix2D::identity().translate(transform_origin.x, transform_origin.y)
-                    .mul(&transform).translate(-transform_origin.x, -transform_origin.y);
-
-    // FIXME(pcwalton): Is this vertical-writing-direction-safe?
-    let margin = fragment.margin.to_physical(base_flow.writing_mode);
-    let overflow = base_flow.overflow.translate(&-Point2D(margin.left, Au(0)));
-
-    // Create the filter pipeline.
-    let effects = fragment.style().get_effects();
-    let mut filters = effects.filter.clone();
-    if effects.opacity != 1.0 {
-        filters.push(Filter::Opacity(effects.opacity))
-    }
-
-    Arc::new(StackingContext::new(display_list,
-                                  &border_box,
-                                  &overflow,
-                                  fragment.style().get_box().z_index.number_or_zero(),
-                                  &transform,
-                                  filters,
-                                  fragment.style().get_effects().mix_blend_mode,
-                                  layer))
 }
