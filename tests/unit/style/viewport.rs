@@ -200,3 +200,74 @@ fn multiple_stylesheets_cascading() {
     assert_declaration_eq!(&declarations[1], User, MinHeight: LengthOrPercentageOrAuto::Length(Length::from_px(200.)), !important);
     assert_declaration_eq!(&declarations[2], Author, Zoom: Zoom::Number(3.), !important);
 }
+
+#[test]
+fn constrain_viewport() {
+    let url = Url::parse("http://localhost").unwrap();
+    let context = ParserContext::new(Origin::Author, &url);
+
+    macro_rules! from_css {
+        ($css:expr) => {
+            &ViewportRule::parse(&mut Parser::new($css), &context).unwrap()
+        }
+    }
+
+    let initial_viewport = TypedSize2D(800., 600.);
+    assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("")),
+               None);
+
+    let initial_viewport = TypedSize2D(800., 600.);
+    assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("width: 320px auto")),
+               Some(ViewportConstraints {
+                   size: initial_viewport,
+
+                   initial_zoom: ScaleFactor::new(1.),
+                   min_zoom: None,
+                   max_zoom: None,
+
+                   user_zoom: UserZoom::Zoom,
+                   orientation: Orientation::Auto
+               }));
+
+    let initial_viewport = TypedSize2D(200., 150.);
+    assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("width: 320px auto")),
+               Some(ViewportConstraints {
+                   size: TypedSize2D(320., 240.),
+
+                   initial_zoom: ScaleFactor::new(1.),
+                   min_zoom: None,
+                   max_zoom: None,
+
+                   user_zoom: UserZoom::Zoom,
+                   orientation: Orientation::Auto
+               }));
+
+    let initial_viewport = TypedSize2D(800., 600.);
+    assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("width: 320px auto")),
+               Some(ViewportConstraints {
+                   size: initial_viewport,
+
+                   initial_zoom: ScaleFactor::new(1.),
+                   min_zoom: None,
+                   max_zoom: None,
+
+                   user_zoom: UserZoom::Zoom,
+                   orientation: Orientation::Auto
+               }));
+
+    let initial_viewport = TypedSize2D(800., 600.);
+    assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("width: 800px; height: 600px;\
+                                                                     zoom: 1;\
+                                                                     user-zoom: zoom;\
+                                                                     orientation: auto;")),
+               Some(ViewportConstraints {
+                   size: initial_viewport,
+
+                   initial_zoom: ScaleFactor::new(1.),
+                   min_zoom: None,
+                   max_zoom: None,
+
+                   user_zoom: UserZoom::Zoom,
+                   orientation: Orientation::Auto
+               }));
+}
