@@ -799,11 +799,11 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
        // If we didn't have a clip rect, the previous display doesn't need rebuilding
        // because it was built for infinite clip (MAX_RECT).
        had_clip_rect
-   }
+    }
 
-   fn set_devtools_wants_updates(self, value: bool) {
-       self.devtools_wants_updates.set(value);
-   }
+    fn set_devtools_wants_updates(self, value: bool) {
+        self.devtools_wants_updates.set(value);
+    }
 
     // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
     fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>> {

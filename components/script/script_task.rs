@@ -818,7 +818,7 @@ impl ScriptTask {
             return;
         }
         panic!("Page rect message sent to nonexistent pipeline");
-     }
+    }
 
     /// Handle a request to load a page in a new child frame of an existing page.
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
