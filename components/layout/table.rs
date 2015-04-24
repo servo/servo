@@ -424,12 +424,12 @@ impl Flow for TableFlow {
             }
         }
 
-        let inline_size_computer = InternalTable;
-        let border_collapse = self.block_flow.fragment.style.get_inheritedtable().border_collapse;
+        let inline_size_computer = InternalTable {
+            border_collapse: self.block_flow.fragment.style.get_inheritedtable().border_collapse,
+        };
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
                                                       layout_context,
-                                                      containing_block_inline_size,
-                                                      border_collapse);
+                                                      containing_block_inline_size);
 
         let inline_start_content_edge = self.block_flow.fragment.border_padding.inline_start;
         let inline_end_content_edge = self.block_flow.fragment.border_padding.inline_end;
@@ -581,21 +581,26 @@ impl fmt::Debug for TableFlow {
 
 /// Table, TableRowGroup, TableRow, TableCell types.
 /// Their inline-sizes are calculated in the same way and do not have margins.
-pub struct InternalTable;
+pub struct InternalTable {
+    pub border_collapse: border_collapse::T,
+}
 
 impl ISizeAndMarginsComputer for InternalTable {
+    fn compute_border_and_padding(&self, block: &mut BlockFlow, containing_block_inline_size: Au) {
+        block.fragment.compute_border_and_padding(containing_block_inline_size,
+                                                  self.border_collapse)
+    }
+
     /// Compute the used value of inline-size, taking care of min-inline-size and max-inline-size.
     ///
     /// CSS Section 10.4: Minimum and Maximum inline-sizes
     fn compute_used_inline_size(&self,
                                 block: &mut BlockFlow,
                                 layout_context: &LayoutContext,
-                                parent_flow_inline_size: Au,
-                                border_collapse: border_collapse::T) {
+                                parent_flow_inline_size: Au) {
         let input = self.compute_inline_size_constraint_inputs(block,
                                                                parent_flow_inline_size,
-                                                               layout_context,
-                                                               border_collapse);
+                                                               layout_context);
         let solution = self.solve_inline_size_constraints(block, &input);
 
         self.set_inline_size_constraint_solutions(block, solution);
@@ -603,7 +608,7 @@ impl ISizeAndMarginsComputer for InternalTable {
 
     /// Solve the inline-size and margins constraints for this block flow.
     fn solve_inline_size_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
-                               -> ISizeConstraintSolution {
+                                     -> ISizeConstraintSolution {
         ISizeConstraintSolution::new(input.available_inline_size, Au(0), Au(0))
     }
 }

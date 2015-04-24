@@ -311,12 +311,12 @@ impl Flow for TableRowFlow {
         let inline_start_content_edge = Au(0);
         let inline_end_content_edge = Au(0);
 
-        let inline_size_computer = InternalTable;
-        let border_collapse = self.block_flow.fragment.style.get_inheritedtable().border_collapse;
+        let inline_size_computer = InternalTable {
+            border_collapse: self.block_flow.fragment.style.get_inheritedtable().border_collapse,
+        };
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
                                                       layout_context,
-                                                      containing_block_inline_size,
-                                                      border_collapse);
+                                                      containing_block_inline_size);
 
         // Spread out the completed inline sizes among columns with spans > 1.
         let mut computed_inline_size_for_cells = Vec::new();
