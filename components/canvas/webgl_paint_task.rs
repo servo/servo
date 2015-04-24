@@ -74,8 +74,28 @@ impl WebGLPaintTask {
                 match port.recv().unwrap() {
                     CanvasMsg::WebGL(message) => {
                         match message {
+                            CanvasWebGLMsg::AttachShader(program_id, shader_id) => painter.attach_shader(program_id, shader_id),
+                            CanvasWebGLMsg::BindBuffer(buffer_type, buffer_id) => painter.bind_buffer(buffer_type, buffer_id),
+                            CanvasWebGLMsg::BufferData(buffer_type, data, usage) => painter.buffer_data(buffer_type, data, usage),
                             CanvasWebGLMsg::Clear(mask) => painter.clear(mask),
                             CanvasWebGLMsg::ClearColor(r, g, b, a) => painter.clear_color(r, g, b, a),
+                            CanvasWebGLMsg::CreateBuffer(chan) => painter.create_buffer(chan),
+                            CanvasWebGLMsg::DrawArrays(mode, first, count) => painter.draw_arrays(mode, first, count),
+                            CanvasWebGLMsg::EnableVertexAttribArray(attrib_id) => painter.enable_vertex_attrib_array(attrib_id),
+                            CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) => painter.get_attrib_location(program_id, name, chan),
+                            CanvasWebGLMsg::GetShaderInfoLog(shader_id, chan) => painter.get_shader_info_log(shader_id, chan),
+                            CanvasWebGLMsg::GetShaderParameter(shader_id, param_id) => painter.get_shader_parameter(shader_id, param_id),
+                            CanvasWebGLMsg::GetUniformLocation(program_id, name, chan) => painter.get_uniform_location(program_id, name, chan),
+                            CanvasWebGLMsg::CompileShader(shader_id) => painter.compile_shader(shader_id),
+                            CanvasWebGLMsg::CreateProgram(chan) => painter.create_program(chan),
+                            CanvasWebGLMsg::CreateShader(shader_type, chan) => painter.create_shader(shader_type, chan),
+                            CanvasWebGLMsg::LinkProgram(program_id) => painter.link_program(program_id),
+                            CanvasWebGLMsg::ShaderSource(shader_id, source) => painter.shader_source(shader_id, source),
+                            CanvasWebGLMsg::Uniform4fv(uniform_id, data) => painter.uniform_4fv(uniform_id, data),
+                            CanvasWebGLMsg::UseProgram(program_id) => painter.use_program(program_id),
+                            CanvasWebGLMsg::VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset) => painter.vertext_attrib_pointer(attrib_id, size, data_type, normalized, stride, offset),
+                            CanvasWebGLMsg::Viewport(x, y, width, height) => painter.viewport(x, y, width, height),
+
                         }
                     },
                     CanvasMsg::Common(message) => {
@@ -93,12 +113,74 @@ impl WebGLPaintTask {
         Ok(chan)
     }
 
+    fn attach_shader(&self, program_id: u32, shader_id: u32) {
+        gl::attach_shader(program_id, shader_id);
+    }
+
+    fn bind_buffer(&self, buffer_type: u32, buffer_id: u32) {
+        gl::bind_buffer(buffer_type, buffer_id);
+    }
+
+    fn buffer_data(&self, buffer_type: u32, data: Vec<f32>, usage: u32) {
+        gl::buffer_data(buffer_type, &data, usage);
+    }
+
     fn clear(&self, mask: u32) {
         gl::clear(mask);
     }
 
     fn clear_color(&self, r: f32, g: f32, b: f32, a: f32) {
         gl::clear_color(r, g, b, a);
+    }
+
+    fn create_buffer(&self, chan: Sender<u32>) {
+        let buffers = gl::gen_buffers(1);
+        chan.send(buffers[0]).unwrap();
+    }
+
+    fn compile_shader(&self, shader_id: u32) {
+        gl::compile_shader(shader_id);
+    }
+
+    fn create_program(&self, chan: Sender<u32>) {
+        let program = gl::create_program();
+        chan.send(program).unwrap();
+    }
+
+    fn create_shader(&self, shader_type: u32, chan: Sender<u32>) {
+        let shader = gl::create_shader(shader_type);
+        chan.send(shader).unwrap();
+    }
+
+    fn draw_arrays(&self, mode: u32, first: i32, count: i32) {
+        gl::draw_arrays(mode, first, count);
+    }
+
+    fn enable_vertex_attrib_array(&self, attrib_id: u32) {
+        gl::enable_vertex_attrib_array(attrib_id);
+    }
+
+    fn get_attrib_location(&self, program_id: u32, name: String, chan: Sender<i32> ) {
+        let attrib_location = gl::get_attrib_location(program_id, name.as_slice());
+        chan.send(attrib_location).unwrap();
+    }
+
+    fn get_shader_info_log(&self, shader_id: u32, chan: Sender<String>) {
+        let info = gl::get_shader_info_log(shader_id);
+        chan.send(info).unwrap();
+    }
+
+    fn get_shader_parameter(&self, shader_id: u32, param_id: u32) {
+        //let info = gl::get_shader_parameter(shader_id, param_id);
+    }
+
+    fn get_uniform_location(&self, program_id: u32, name: String, chan: Sender<u32>) {
+        let uniform_location = gl::get_uniform_location(program_id, name.as_slice());
+        chan.send(uniform_location as u32).unwrap();
+    }
+
+    fn link_program(&self, program_id: u32) {
+        gl::link_program(program_id);
     }
 
     fn send_pixel_contents(&mut self, chan: Sender<Vec<u8>>) {
@@ -112,6 +194,29 @@ impl WebGLPaintTask {
         // rgba -> bgra
         byte_swap(&mut pixels);
         chan.send(pixels).unwrap();
+    }
+
+    fn shader_source(&self, shader_id: u32, source_lines: Vec<String>) {
+        let mut lines: Vec<&[u8]> = source_lines.iter().map(|line| line.as_bytes()).collect();
+        gl::shader_source(shader_id, lines.as_mut_slice());
+    }
+
+    fn uniform_4fv(&self, uniform_id: u32, data: Vec<f32>) {
+        return;
+    }
+
+    fn use_program(&self, program_id: u32) {
+        gl::use_program(program_id);
+    }
+
+
+    fn vertext_attrib_pointer(&self, attrib_id: u32, size: i32, data_type: u32,
+                              normalized: bool, stride: i32, offset: i64) {
+        gl::vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset as u32);
+    }
+
+    fn viewport(&self, x: i32, y: i32, width: i32, height: i32) {
+        gl::viewport(x, y, width, height);
     }
 
     fn recreate(&mut self, size: Size2D<i32>) {
