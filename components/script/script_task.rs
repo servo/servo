@@ -1372,7 +1372,7 @@ impl ScriptTask {
                 preserved_headers: load_data.headers,
                 data: load_data.data,
                 cors: None,
-            }, LoadConsumer::Channel(input_chan))).unwrap();
+            }, LoadConsumer::Channel(input_chan), None)).unwrap();
 
             let load_response = input_port.recv().unwrap();
             script_chan.send(ScriptMsg::PageFetchComplete(id, subpage, load_response)).unwrap();

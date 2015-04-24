@@ -12,7 +12,7 @@ use cookie_storage::CookieStorage;
 use cookie;
 use mime_classifier::MIMEClassifier;
 
-use net_traits::{ControlMsg, LoadData, LoadResponse, LoadConsumer};
+use net_traits::{ControlMsg, LoadData, LoadResponse, LoadConsumer, ResourceId};
 use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction};
 use net_traits::ProgressMsg::Done;
 use util::opts;
@@ -29,7 +29,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::str::FromStr;
 use std::sync::Arc;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::thunk::Invoke;
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
@@ -180,12 +180,38 @@ pub fn replace_hosts(mut load_data: LoadData, host_table: *mut HashMap<String, S
     return load_data;
 }
 
+
+pub struct CancelLoad;
+
+pub struct CancelationListener(Option<Receiver<CancelLoad>>);
+
+impl CancelationListener {
+    pub fn from_receiver(receiver: Option<Receiver<CancelLoad>>) -> CancelationListener {
+        CancelationListener(receiver)
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        match self.0 {
+            Some(ref receiver) => match receiver.try_recv() {
+                Ok(..) => true,
+                Err(e) => match e {
+                    TryRecvError::Empty => false,
+                    _ => true
+                }
+            },
+            None => false
+        }
+    }
+}
+
 struct ResourceManager {
     from_client: Receiver<ControlMsg>,
     user_agent: Option<String>,
     cookie_storage: CookieStorage,
     resource_task: Sender<ControlMsg>,
     mime_classifier: Arc<MIMEClassifier>,
+    resource_id_map: HashMap<ResourceId, Sender<CancelLoad>>,
+    next_resource_id: ResourceId
 }
 
 impl ResourceManager {
@@ -197,17 +223,16 @@ impl ResourceManager {
             cookie_storage: CookieStorage::new(),
             resource_task: resource_task,
             mime_classifier: Arc::new(MIMEClassifier::new()),
+            resource_id_map: HashMap::new(),
+            next_resource_id: ResourceId::new()
         }
     }
-}
 
-
-impl ResourceManager {
     fn start(&mut self) {
         loop {
             match self.from_client.recv().unwrap() {
-              ControlMsg::Load(load_data, consumer) => {
-                self.load(load_data, consumer)
+              ControlMsg::Load(load_data, consumer, resource) => {
+                self.load(load_data, consumer, resource)
               }
               ControlMsg::SetCookiesForUrl(request, cookie_list, source) => {
                 let header = Header::parse_header(&[cookie_list.into_bytes()]);
@@ -222,6 +247,9 @@ impl ResourceManager {
               ControlMsg::GetCookiesForUrl(url, consumer, source) => {
                 consumer.send(self.cookie_storage.cookies_for_url(&url, source)).unwrap();
               }
+              ControlMsg::Cancel(resource_id) => {
+                self.resource_id_map.get(&resource_id).unwrap().send(CancelLoad).unwrap();
+              },
               ControlMsg::Exit => {
                 break
               }
@@ -229,7 +257,7 @@ impl ResourceManager {
         }
     }
 
-    fn load(&mut self, mut load_data: LoadData, consumer: LoadConsumer) {
+    fn load(&mut self, mut load_data: LoadData, consumer: LoadConsumer, resource_sender: Option<Sender<ResourceId>>) {
         unsafe {
             if let Some(host_table) = HOST_TABLE {
                 load_data = replace_hosts(load_data, host_table);
@@ -238,10 +266,10 @@ impl ResourceManager {
 
         self.user_agent.as_ref().map(|ua| load_data.headers.set(UserAgent(ua.clone())));
 
-        fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
-                        -> Box<Invoke<(LoadData, LoadConsumer, Arc<MIMEClassifier>)> + Send> {
-            box move |(load_data, senders, classifier)| {
-                factory(load_data, senders, classifier)
+        fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>, CancelationListener))
+                     -> Box<Invoke<(LoadData, LoadConsumer, Arc<MIMEClassifier>, CancelationListener)> + Send> {
+            box move |(load_data, senders, classifier, cancel_receiver)| {
+               factory(load_data, senders, classifier, cancel_receiver)
             }
         }
 
@@ -259,6 +287,21 @@ impl ResourceManager {
         };
         debug!("resource_task: loading url: {}", load_data.url.serialize());
 
-        loader.invoke((load_data, consumer, self.mime_classifier.clone()));
+        let cancelation_receiver = match resource_sender {
+            Some(sender) => {
+                let resource_id = self.next_resource_id.increment();
+                let (cancel_sender, cancel_receiver) = channel();
+
+                self.resource_id_map.insert(resource_id, cancel_sender);
+                sender.send(resource_id).unwrap();
+
+                Some(cancel_receiver)
+            },
+            None => None
+        };
+
+        let cancelation_listener = CancelationListener::from_receiver(cancelation_receiver);
+
+        loader.invoke((load_data, consumer, self.mime_classifier.clone(), cancelation_listener));
     }
 }

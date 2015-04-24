@@ -7,6 +7,7 @@ extern crate hyper;
 use net_traits::LoadConsumer::Channel;
 use net_traits::LoadData;
 use net_traits::ProgressMsg::{Payload, Done};
+use net::resource_task::CancelationListener;
 use self::hyper::header::ContentType;
 use self::hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 
@@ -20,7 +21,8 @@ fn assert_parse(url:          &'static str,
     use net::data_loader::load;
 
     let (start_chan, start_port) = channel();
-    load(LoadData::new(Url::parse(url).unwrap()), Channel(start_chan));
+    let cancelation_listener = CancelationListener::from_receiver(None);
+    load(LoadData::new(Url::parse(url).unwrap()), Channel(start_chan), cancelation_listener);
 
     let response = start_port.recv().unwrap();
     assert_eq!(&response.metadata.content_type, &content_type);

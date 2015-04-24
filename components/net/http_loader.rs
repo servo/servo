@@ -5,7 +5,7 @@
 use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer};
 use net_traits::ProgressMsg::{Payload, Done};
 use mime_classifier::MIMEClassifier;
-use resource_task::{start_sending_opt, start_sending_sniffed_opt};
+use resource_task::{start_sending_opt, start_sending_sniffed_opt, CancelationListener};
 
 use log;
 use std::collections::HashSet;
@@ -32,9 +32,9 @@ use url::{Url, UrlParser};
 use std::borrow::ToOwned;
 
 pub fn factory(cookies_chan: Sender<ControlMsg>)
-               -> Box<Invoke<(LoadData, LoadConsumer, Arc<MIMEClassifier>)> + Send> {
-    box move |(load_data, senders, classifier)| {
-        spawn_named("http_loader".to_owned(), move || load(load_data, senders, classifier, cookies_chan))
+               -> Box<Invoke<(LoadData, LoadConsumer, Arc<MIMEClassifier>, CancelationListener)> + Send> {
+    box move |(load_data, senders, classifier, cancel_receiver)| {
+        spawn_named("http_loader".to_owned(), move || load(load_data, senders, classifier, cookies_chan, cancel_receiver))
     }
 }
 
@@ -66,7 +66,8 @@ fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     }
 }
 
-fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>, cookies_chan: Sender<ControlMsg>) {
+fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>,
+        cookies_chan: Sender<ControlMsg>, cancel_receiver: CancelationListener) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -140,7 +141,7 @@ reason: \"certificate verify failed\" }]";
                 let mut image = resources_dir_path();
                 image.push("badcert.html");
                 let load_data = LoadData::new(Url::from_file_path(&*image).unwrap());
-                file_loader::factory(load_data, start_chan, classifier);
+                file_loader::factory(load_data, start_chan, classifier, cancel_receiver);
                 return;
             },
             Err(e) => {
@@ -184,6 +185,10 @@ reason: \"certificate verify failed\" }]";
                 info!(" - {}", header);
             }
             info!("{:?}", load_data.data);
+        }
+
+        if cancel_receiver.is_cancelled() {
+            return;
         }
 
         // Avoid automatically sending request body if a redirect has occurred.
@@ -316,6 +321,10 @@ reason: \"certificate verify failed\" }]";
                     }
                 }
             }
+        }
+
+        if cancel_receiver.is_cancelled() {
+            return;
         }
 
         match encoding_str {
