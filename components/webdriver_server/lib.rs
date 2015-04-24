@@ -12,6 +12,7 @@ extern crate log;
 
 extern crate webdriver;
 extern crate msg;
+extern crate png;
 extern crate url;
 extern crate util;
 extern crate rustc_serialize;
@@ -35,8 +36,11 @@ use uuid::Uuid;
 
 use std::borrow::ToOwned;
 use rustc_serialize::json::{Json, ToJson};
+use rustc_serialize::base64::{Config, ToBase64, CharacterSet, Newline};
 use std::collections::BTreeMap;
 use std::net::SocketAddr;
+
+use std::thread::sleep_ms;
 
 pub fn start_server(port: u16, constellation_chan: ConstellationChan) {
     let handler = Handler::new(constellation_chan);
@@ -171,6 +175,46 @@ impl Handler {
                                               "Unsupported return type"))
         }
     }
+
+
+    fn handle_take_screenshot(&self) -> WebDriverResult<WebDriverResponse> {
+        let mut img = None;
+
+        let interval = 20;
+        let iterations = 30_000 / interval;
+
+        for _ in 0..iterations {
+            let (sender, reciever) = channel();
+            let ConstellationChan(ref const_chan) = self.constellation_chan;
+            const_chan.send(ConstellationMsg::CompositePng(sender)).unwrap();
+
+            if let Some(x) = reciever.recv().unwrap() {
+                img = Some(x);
+                break;
+            };
+
+            sleep_ms(interval)
+        }
+
+        if img.is_none() {
+            return Err(WebDriverError::new(ErrorStatus::Timeout,
+                                           "Taking screenshot timed out"));
+        }
+
+        let img_vec = match png::to_vec(&mut img.unwrap()) {
+           Ok(x) => x,
+           Err(_) => return Err(WebDriverError::new(ErrorStatus::UnknownError,
+                                                    "Taking screenshot failed"))
+        };
+        let config = Config {
+            char_set:CharacterSet::Standard,
+            newline: Newline::LF,
+            pad: true,
+            line_length: None
+        };
+        let encoded = img_vec.to_base64(config);
+        Ok(WebDriverResponse::Generic(ValueResponse::new(encoded.to_json())))
+    }
 }
 
 impl WebDriverHandler for Handler {
@@ -185,6 +229,7 @@ impl WebDriverHandler for Handler {
             WebDriverCommand::GetWindowHandle => self.handle_get_window_handle(),
             WebDriverCommand::GetWindowHandles => self.handle_get_window_handles(),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
+            WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
             _ => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
                                          "Command not implemented"))
         }

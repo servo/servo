@@ -23,6 +23,7 @@ use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use profile_traits::mem;
 use profile_traits::time;
+use png;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::fmt::{Error, Formatter, Debug};
 use std::rc::Rc;
@@ -218,6 +219,8 @@ pub enum Msg {
     KeyEvent(Key, KeyState, KeyModifiers),
     /// Changes the cursor.
     SetCursor(Cursor),
+    /// Composite to a PNG file and return the Image over a passed channel.
+    CreatePng(Sender<Option<png::Image>>),
     /// Informs the compositor that the paint task for the given pipeline has exited.
     PaintTaskExited(PipelineId),
     /// Alerts the compositor that the viewport has been constrained in some manner
@@ -247,6 +250,7 @@ impl Debug for Msg {
             Msg::RecompositeAfterScroll => write!(f, "RecompositeAfterScroll"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),
             Msg::SetCursor(..) => write!(f, "SetCursor"),
+            Msg::CreatePng(..) => write!(f, "CreatePng"),
             Msg::PaintTaskExited(..) => write!(f, "PaintTaskExited"),
             Msg::ViewportConstrained(..) => write!(f, "ViewportConstrained"),
         }
