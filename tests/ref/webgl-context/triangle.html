@@ -10,9 +10,12 @@
 </div>
 <script id="vertexshader" type="x-shader">
    attribute vec2 aVertexPosition;
+   attribute vec4 aAltColour;
+   varying vec4 aVertexColor;
 
    void main() {
-   gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+      aVertexColor = aAltColour;
+      gl_Position = vec4(aVertexPosition, 0.0, 1.0);
    }
 </script>
 <script id="fragmentshader" type="x-shader">
@@ -20,10 +23,12 @@
    precision highp float;
    #endif
 
+   varying vec4 aVertexColor;
    uniform vec4 uColor;
 
    void main() {
-   gl_FragColor = uColor;
+      gl_FragColor = uColor;
+      gl_FragColor = aVertexColor;
    }
 </script>
 <script type="text/javascript">
@@ -69,7 +74,10 @@
 
    // Setup Geometry
    var vertices = new Float32Array([
-       -0.5,-0.5, 0.5,-0.5, 0.0,0.5  // Triangle-Coordinates
+       -0.5,-0.5, 0.5,-0.5, 0.0,0.5,  // Triangle-Coordinates
+       1.0, 0.0, 0.0, 1.0,
+       0.0, 1.0, 0.0, 1.0,
+       0.0, 0.0, 1.0, 1.0,
    ]);
 
    vbuffer = gl.createBuffer();
@@ -77,7 +85,7 @@
    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
    itemSize = 2; // we have 2 coordinates (x,y)
-   numItems = vertices.length / itemSize; // number of triangles
+   numItems = vertices.length / itemSize; // number of vertices
 
    // Viewport
    gl.viewport(0, 0, canvas.width, canvas.height);
@@ -98,8 +106,12 @@
    gl.enableVertexAttribArray(program.aVertexPosition);
    gl.vertexAttribPointer(program.aVertexPosition, itemSize, gl.FLOAT, false, 0, 0);
 
+   program.aAltColour = gl.getAttribLocation(program, "aAltColour");
+   gl.enableVertexAttribArray(program.aAltColour);
+   gl.vertexAttribPointer(program.aAltColour, 4, gl.FLOAT, false, 0, 24);
+
    // Draw
-   gl.drawArrays(gl.TRIANGLES, 0, numItems);
+   gl.drawArrays(gl.TRIANGLES, 0, 3);
 </script>
 </body>
 </html>

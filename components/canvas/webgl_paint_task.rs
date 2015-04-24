@@ -11,6 +11,7 @@ use gleam::gl::types::{GLsizei};
 use util::task::spawn_named;
 
 use std::borrow::ToOwned;
+use std::slice::bytes::copy_memory;
 use std::sync::mpsc::{channel, Sender};
 use util::vec::byte_swap;
 use offscreen_gl_context::{GLContext, GLContextAttributes};
@@ -186,10 +187,22 @@ impl WebGLPaintTask {
     fn send_pixel_contents(&mut self, chan: Sender<Vec<u8>>) {
         // FIXME(#5652, dmarcos) Instead of a readback strategy we have
         // to layerize the canvas
+        let width = self.size.width as usize;
+        let height = self.size.height as usize;
         let mut pixels = gl::read_pixels(0, 0,
-                                     self.size.width as gl::GLsizei,
-                                     self.size.height as gl::GLsizei,
-                                     gl::RGBA, gl::UNSIGNED_BYTE);
+                                         self.size.width as gl::GLsizei,
+                                         self.size.height as gl::GLsizei,
+                                         gl::RGBA, gl::UNSIGNED_BYTE);
+        // flip image vertically (texture is upside down)
+        let orig_pixels = pixels.clone();
+        let stride = width * 4;
+        for y in 0..height {
+            let dst_start = y * stride;
+            let src_start = (height - y - 1) * stride;
+            let src_slice = &orig_pixels[src_start .. src_start + stride];
+            copy_memory(&mut pixels[dst_start .. dst_start + stride],
+                        &src_slice[..stride]);
+        }
 
         // rgba -> bgra
         byte_swap(&mut pixels);
