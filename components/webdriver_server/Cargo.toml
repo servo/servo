@@ -19,6 +19,9 @@ path = "../webdriver_traits"
 [dependencies.webdriver]
 git = "https://github.com/jgraham/webdriver-rust.git"
 
+[dependencies.png]
+git = "https://github.com/servo/rust-png"
+
 [dependencies]
 rustc-serialize = "0.3.4"
 url = "0.2.16"
