@@ -2043,7 +2043,6 @@ pub trait ISizeAndMarginsComputer {
         let mut computed_inline_size = self.initial_computed_inline_size(block,
                                                                          parent_flow_inline_size,
                                                                          layout_context);
-
         let style = block.fragment.style();
         match (computed_inline_size, style.get_box().box_sizing) {
             (MaybeAuto::Specified(size), box_sizing::T::border_box) => {
@@ -2143,12 +2142,12 @@ pub trait ISizeAndMarginsComputer {
     fn initial_computed_inline_size(&self,
                                     block: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    ctx: &LayoutContext)
+                                    layout_context: &LayoutContext)
                                     -> MaybeAuto {
         MaybeAuto::from_style(block.fragment().style().content_inline_size(),
                               self.containing_block_inline_size(block,
                                                                 parent_flow_inline_size,
-                                                                ctx))
+                                                                layout_context))
     }
 
     fn containing_block_inline_size(&self,
@@ -2248,32 +2247,49 @@ pub trait ISizeAndMarginsComputer {
             match (inline_start_margin, computed_inline_size, inline_end_margin) {
                 // If all have a computed value other than 'auto', the system is
                 // over-constrained so we discard the end margin.
-                (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(inline_size), MaybeAuto::Specified(margin_end)) => {
+                (MaybeAuto::Specified(margin_start),
+                 MaybeAuto::Specified(inline_size),
+                 MaybeAuto::Specified(margin_end)) => {
                     if parent_has_same_direction {
                         (margin_start, inline_size, available_inline_size -
                          (margin_start + inline_size))
                     } else {
-                        (available_inline_size - (margin_end + inline_size), inline_size, margin_end)
+                        (available_inline_size - (margin_end + inline_size),
+                         inline_size,
+                         margin_end)
                     }
                 }
                 // If exactly one value is 'auto', solve for it
-                (MaybeAuto::Auto, MaybeAuto::Specified(inline_size), MaybeAuto::Specified(margin_end)) =>
+                (MaybeAuto::Auto,
+                 MaybeAuto::Specified(inline_size),
+                 MaybeAuto::Specified(margin_end)) =>
                     (available_inline_size - (inline_size + margin_end), inline_size, margin_end),
-                (MaybeAuto::Specified(margin_start), MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) =>
-                    (margin_start, available_inline_size - (margin_start + margin_end),
-                     margin_end),
-                (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(inline_size), MaybeAuto::Auto) =>
-                    (margin_start, inline_size, available_inline_size -
-                     (margin_start + inline_size)),
+                (MaybeAuto::Specified(margin_start),
+                 MaybeAuto::Auto,
+                 MaybeAuto::Specified(margin_end)) => {
+                    (margin_start,
+                     available_inline_size - (margin_start + margin_end),
+                     margin_end)
+                }
+                (MaybeAuto::Specified(margin_start),
+                 MaybeAuto::Specified(inline_size),
+                 MaybeAuto::Auto) => {
+                    (margin_start,
+                     inline_size,
+                     available_inline_size - (margin_start + inline_size))
+                }
 
                 // If inline-size is set to 'auto', any other 'auto' value becomes '0',
                 // and inline-size is solved for
-                (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) =>
-                    (Au::new(0), available_inline_size - margin_end, margin_end),
-                (MaybeAuto::Specified(margin_start), MaybeAuto::Auto, MaybeAuto::Auto) =>
-                    (margin_start, available_inline_size - margin_start, Au::new(0)),
-                (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Auto) =>
-                    (Au::new(0), available_inline_size, Au::new(0)),
+                (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) => {
+                    (Au(0), available_inline_size - margin_end, margin_end)
+                }
+                (MaybeAuto::Specified(margin_start), MaybeAuto::Auto, MaybeAuto::Auto) => {
+                    (margin_start, available_inline_size - margin_start, Au(0))
+                }
+                (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Auto) => {
+                    (Au(0), available_inline_size, Au(0))
+                }
 
                 // If inline-start and inline-end margins are auto, they become equal
                 (MaybeAuto::Auto, MaybeAuto::Specified(inline_size), MaybeAuto::Auto) => {
