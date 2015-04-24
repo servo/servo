@@ -119,7 +119,7 @@ impl<'a> Eq for ApplicableDeclarationsCacheQuery<'a> {}
 
 impl<'a> PartialEq<ApplicableDeclarationsCacheEntry> for ApplicableDeclarationsCacheQuery<'a> {
     fn eq(&self, other: &ApplicableDeclarationsCacheEntry) -> bool {
-        let other_as_query = ApplicableDeclarationsCacheQuery::new(other.declarations.as_slice());
+        let other_as_query = ApplicableDeclarationsCacheQuery::new(&other.declarations);
         self.eq(&other_as_query)
     }
 }
@@ -279,7 +279,7 @@ impl StyleSharingCandidate {
         match (&self.class, element.get_attr(&ns!(""), &atom!("class"))) {
             (&None, Some(_)) | (&Some(_), None) => return false,
             (&Some(ref this_class), Some(element_class)) if
-                    element_class != this_class.as_slice() => {
+                    element_class != &**this_class => {
                 return false
             }
             (&Some(_), Some(_)) | (&None, None) => {}

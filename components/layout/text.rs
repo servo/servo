@@ -142,7 +142,7 @@ impl TextRunScanner {
                 };
 
                 let old_length = CharIndex(run_text.chars().count() as isize);
-                last_whitespace = util::transform_text(in_fragment.as_slice(),
+                last_whitespace = util::transform_text(&in_fragment,
                                                        compression,
                                                        last_whitespace,
                                                        &mut run_text);

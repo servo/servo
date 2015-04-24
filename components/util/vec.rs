@@ -11,8 +11,8 @@ pub trait Comparator<K,T> {
     fn compare(&self, key: &K, value: &T) -> Ordering;
 }
 
-pub trait BinarySearchMethods<'a, T: Ord + PartialOrd + PartialEq> {
-    fn binary_search_(&self, key: &T) -> Option<&'a T>;
+pub trait BinarySearchMethods<T: Ord + PartialOrd + PartialEq> {
+    fn binary_search_(&self, key: &T) -> Option<&T>;
     fn binary_search_index(&self, key: &T) -> Option<usize>;
 }
 
@@ -20,8 +20,8 @@ pub trait FullBinarySearchMethods<T> {
     fn binary_search_index_by<K,C:Comparator<K,T>>(&self, key: &K, cmp: C) -> Option<usize>;
 }
 
-impl<'a, T: Ord + PartialOrd + PartialEq> BinarySearchMethods<'a, T> for &'a [T] {
-    fn binary_search_(&self, key: &T) -> Option<&'a T> {
+impl<T: Ord + PartialOrd + PartialEq> BinarySearchMethods<T> for [T] {
+    fn binary_search_(&self, key: &T) -> Option<&T> {
         self.binary_search_index(key).map(|i| &self[i])
     }
 
@@ -30,7 +30,7 @@ impl<'a, T: Ord + PartialOrd + PartialEq> BinarySearchMethods<'a, T> for &'a [T]
     }
 }
 
-impl<'a, T> FullBinarySearchMethods<T> for &'a [T] {
+impl<T> FullBinarySearchMethods<T> for [T] {
     fn binary_search_index_by<K,C:Comparator<K,T>>(&self, key: &K, cmp: C) -> Option<usize> {
         if self.len() == 0 {
             return None;

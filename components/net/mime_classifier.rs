@@ -28,7 +28,7 @@ impl MIMEClassifier {
               return self.sniff_unknown_type(!no_sniff, data);
             }
             Some((ref media_type, ref media_subtype)) => {
-                match (media_type.as_slice(), media_subtype.as_slice()) {
+                match (&**media_type, &**media_subtype) {
                     ("uknown", "unknown") | ("application", "uknown") | ("*", "*") => {
                         return self.sniff_unknown_type(!no_sniff,data);
                     }
@@ -50,14 +50,14 @@ impl MIMEClassifier {
                                        .or(supplied_type.clone());
                          }
 
-                         if media_type.as_slice() == "image" {
+                         if &**media_type == "image" {
                            let tp = self.image_classifier.classify(data);
                            if tp.is_some() {
                                return tp;
                            }
                          }
 
-                         match (media_type.as_slice(), media_subtype.as_slice()) {
+                         match (&**media_type, &**media_subtype) {
                              ("audio", _) | ("video", _) | ("application", "ogg") => {
                                  let tp = self.audio_video_classifer.classify(data);
                                  if tp.is_some() {

@@ -8,7 +8,6 @@ use platform::font_list::get_variations_for_family;
 use platform::font_list::get_last_resort_font_families;
 use platform::font_context::FontContextHandle;
 
-use collections::str::Str;
 use font_template::{FontTemplate, FontTemplateDescriptor};
 use net_traits::{ResourceTask, load_whole_resource};
 use platform::font_template::FontTemplateData;
@@ -106,7 +105,7 @@ fn add_generic_font(generic_fonts: &mut HashMap<LowercaseString, LowercaseString
                     generic_name: &str, mapped_name: &str) {
     let opt_system_default = get_system_default_family(generic_name);
     let family_name = match opt_system_default {
-        Some(system_default) => LowercaseString::new(system_default.as_slice()),
+        Some(system_default) => LowercaseString::new(&system_default),
         None => LowercaseString::new(mapped_name),
     };
     generic_fonts.insert(LowercaseString::new(generic_name), family_name);
@@ -119,7 +118,7 @@ impl FontCache {
 
             match msg {
                 Command::GetFontTemplate(family, descriptor, result) => {
-                    let family = LowercaseString::new(family.as_slice());
+                    let family = LowercaseString::new(&family);
                     let maybe_font_template = self.get_font_template(&family, &descriptor);
                     result.send(Reply::GetFontTemplateReply(maybe_font_template)).unwrap();
                 }
@@ -128,7 +127,7 @@ impl FontCache {
                     result.send(Reply::GetFontTemplateReply(Some(font_template))).unwrap();
                 }
                 Command::AddWebFont(family_name, src, result) => {
-                    let family_name = LowercaseString::new(family_name.as_slice());
+                    let family_name = LowercaseString::new(&family_name);
                     if !self.web_families.contains_key(&family_name) {
                         let family = FontFamily::new();
                         self.web_families.insert(family_name.clone(), family);
@@ -141,7 +140,7 @@ impl FontCache {
                             match maybe_resource {
                                 Ok((_, bytes)) => {
                                     let family = &mut self.web_families[family_name];
-                                    family.add_template(url.to_string().as_slice(), Some(bytes));
+                                    family.add_template(&url.to_string(), Some(bytes));
                                 },
                                 Err(_) => {
                                     debug!("Failed to load web font: family={:?} url={}", family_name, url);
@@ -150,8 +149,8 @@ impl FontCache {
                         }
                         Source::Local(ref local_family_name) => {
                             let family = &mut self.web_families[family_name];
-                            get_variations_for_family(local_family_name.as_slice(), |path| {
-                                family.add_template(path.as_slice(), None);
+                            get_variations_for_family(&local_family_name, |path| {
+                                family.add_template(&path, None);
                             });
                         }
                     }
@@ -168,7 +167,7 @@ impl FontCache {
     fn refresh_local_families(&mut self) {
         self.local_families.clear();
         get_available_families(|family_name| {
-            let family_name = LowercaseString::new(family_name.as_slice());
+            let family_name = LowercaseString::new(&family_name);
             if !self.local_families.contains_key(&family_name) {
                 let family = FontFamily::new();
                 self.local_families.insert(family_name, family);
@@ -188,12 +187,12 @@ impl FontCache {
         // TODO(Issue #188): look up localized font family names if canonical name not found
         // look up canonical name
         if self.local_families.contains_key(family_name) {
-            debug!("FontList: Found font family with name={}", family_name.as_slice());
+            debug!("FontList: Found font family with name={}", &**family_name);
             let s = &mut self.local_families[*family_name];
 
             if s.templates.len() == 0 {
-                get_variations_for_family(family_name.as_slice(), |path| {
-                    s.add_template(path.as_slice(), None);
+                get_variations_for_family(&family_name, |path| {
+                    s.add_template(&path, None);
                 });
             }
 
@@ -206,7 +205,7 @@ impl FontCache {
 
             None
         } else {
-            debug!("FontList: Couldn't find font family with name={}", family_name.as_slice());
+            debug!("FontList: Couldn't find font family with name={}", &**family_name);
             None
         }
     }
@@ -237,7 +236,7 @@ impl FontCache {
         let last_resort = get_last_resort_font_families();
 
         for family in last_resort.iter() {
-            let family = LowercaseString::new(family.as_slice());
+            let family = LowercaseString::new(family);
             let maybe_font_in_family = self.find_font_in_local_family(&family, desc);
             if maybe_font_in_family.is_some() {
                 return maybe_font_in_family.unwrap();

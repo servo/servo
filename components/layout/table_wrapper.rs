@@ -324,7 +324,7 @@ impl Flow for TableWrapperFlow {
             }
             Some(ref assigned_column_inline_sizes) => {
                 let info = ChildInlineSizeInfo {
-                    column_computed_inline_sizes: assigned_column_inline_sizes.as_slice(),
+                    column_computed_inline_sizes: &assigned_column_inline_sizes,
                     spacing: self.block_flow.fragment.style().get_inheritedtable().border_spacing,
                 };
                 self.block_flow

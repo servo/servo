@@ -158,7 +158,7 @@ impl FontTemplate {
         }
 
         assert!(self.strong_ref.is_none());
-        let template_data = Arc::new(FontTemplateData::new(self.identifier.as_slice(), None));
+        let template_data = Arc::new(FontTemplateData::new(&self.identifier, None));
         self.weak_ref = Some(template_data.downgrade());
         template_data
     }
