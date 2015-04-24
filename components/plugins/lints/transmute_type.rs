@@ -32,10 +32,10 @@ impl LintPass for TransmutePass {
                            && args.len() == 1 {
                             let tcx = cx.tcx;
                             cx.span_lint(TRANSMUTE_TYPE_LINT, ex.span,
-                                         format!("Transmute to {} from {} detected",
+                                         &format!("Transmute to {} from {} detected",
                                                  expr_ty(tcx, ex).repr(tcx),
                                                  expr_ty(tcx, &**args.get(0).unwrap()).repr(tcx)
-                                        ).as_slice());
+                                        ));
                         }
                     }
                     _ => {}

@@ -1384,7 +1384,7 @@ impl Flow for InlineFlow {
             kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
         }
 
-        self.base.position.size.block = match self.lines.as_slice().last() {
+        self.base.position.size.block = match self.lines.last() {
             Some(ref last_line) => last_line.bounds.start.b + last_line.bounds.size.block,
             None => Au(0),
         };

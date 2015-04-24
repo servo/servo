@@ -1019,9 +1019,9 @@ pub mod longhands {
                         try!(dest.write_str(" "));
                     }
                     first = false;
-                    try!(Token::QuotedString(pair.0.as_slice().into_cow()).to_css(dest));
+                    try!(Token::QuotedString((*pair.0).into_cow()).to_css(dest));
                     try!(dest.write_str(" "));
-                    try!(Token::QuotedString(pair.1.as_slice().into_cow()).to_css(dest));
+                    try!(Token::QuotedString((*pair.1).into_cow()).to_css(dest));
                 }
                 Ok(())
             }
@@ -1381,12 +1381,10 @@ pub mod longhands {
             if let Ok(value) = input.try(|input| {
                 match input.next() {
                     Err(_) => Err(()),
-                    Ok(Token::Ident(ref ident)) if ident.as_slice()
-                                                        .eq_ignore_ascii_case("cover") => {
+                    Ok(Token::Ident(ref ident)) if ident.eq_ignore_ascii_case("cover") => {
                         Ok(SpecifiedValue::Cover)
                     }
-                    Ok(Token::Ident(ref ident)) if ident.as_slice()
-                                                        .eq_ignore_ascii_case("contain") => {
+                    Ok(Token::Ident(ref ident)) if ident.eq_ignore_ascii_case("contain") => {
                         Ok(SpecifiedValue::Contain)
                     }
                     Ok(_) => Err(()),

@@ -150,7 +150,7 @@ impl LintPass for UnrootedPass {
             ty::ty_enum(did, _) => {
                 if ty::has_attr(cx.tcx, did, "must_root") {
                     cx.span_lint(UNROOTED_MUST_ROOT, expr.span,
-                                 format!("Expression of type {} must be rooted", t.repr(cx.tcx)).as_slice());
+                                 &format!("Expression of type {} must be rooted", t.repr(cx.tcx)));
                 }
             }
             _ => {}

@@ -233,7 +233,7 @@ impl ImageCache {
             ResponseAction::HeadersAvailable(_) => {}
             ResponseAction::DataAvailable(data) => {
                 let pending_load = self.pending_loads.get_mut(&msg.url).unwrap();
-                pending_load.bytes.push_all(data.as_slice());
+                pending_load.bytes.push_all(&data);
             }
             ResponseAction::ResponseComplete(result) => {
                 match result {
@@ -246,7 +246,7 @@ impl ImageCache {
                         let sender = self.decoder_sender.clone();
 
                         self.task_pool.execute(move || {
-                            let image = load_from_memory(bytes.as_slice());
+                            let image = load_from_memory(&bytes);
                             let msg = DecoderMsg {
                                 url: url,
                                 image: image

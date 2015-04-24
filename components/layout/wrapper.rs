@@ -254,7 +254,7 @@ impl<'ln> LayoutNode<'ln> {
             s.push_str("  ");
         }
 
-        s.push_str(self.debug_str().as_slice());
+        s.push_str(&self.debug_str());
         println!("{}", s);
 
         for kid in self.children() {

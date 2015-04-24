@@ -24,7 +24,7 @@ pub fn get_variations_for_family<F>(family_name: &str, mut callback: F) where F:
     debug!("Looking for faces of family: {}", family_name);
 
     let family_collection =
-        core_text::font_collection::create_for_family(family_name.as_slice());
+        core_text::font_collection::create_for_family(family_name);
     match family_collection {
         Some(family_collection) => {
             let family_descriptors = family_collection.get_descriptors();
