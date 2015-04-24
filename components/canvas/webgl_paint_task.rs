@@ -202,13 +202,12 @@ impl WebGLPaintTask {
     }
 
     fn uniform_4fv(&self, uniform_id: u32, data: Vec<f32>) {
-        return;
+        gl::uniform_4f(uniform_id as i32, data[0], data[1], data[2], data[3]);
     }
 
     fn use_program(&self, program_id: u32) {
         gl::use_program(program_id);
     }
-
 
     fn vertext_attrib_pointer(&self, attrib_id: u32, size: i32, data_type: u32,
                               normalized: bool, stride: i32, offset: i64) {

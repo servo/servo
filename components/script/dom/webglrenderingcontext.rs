@@ -90,11 +90,11 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
             let mut length = 0;
             let mut ptr = ptr::null_mut();
             let buffer_data = JS_GetObjectAsArrayBufferView(cx, data, &mut length, &mut ptr);
-            let data_f32 = JS_GetFloat32ArrayData(buffer_data, cx);
-            let data_vec_length = length / 4;
             if buffer_data.is_null() {
                 panic!("Argument data to WebGLRenderingContext.bufferdata is not an Float32Array")
             }
+            let data_f32 = JS_GetFloat32ArrayData(buffer_data, cx);
+            let data_vec_length = length / 4;
             data_vec = Vec::from_raw_buf(data_f32, data_vec_length as usize);
         }
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferData(target, data_vec, usage))).unwrap()
@@ -195,17 +195,11 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
         if uniform.is_none() || data.is_none() {
             return;
         }
-        let data_vec;
+        let data_vec: Vec<f32>;
         unsafe {
-            let mut length = 0;
-            let mut ptr = ptr::null_mut();
-            let buffer_data = JS_GetObjectAsArrayBufferView(cx, data.unwrap(), &mut length, &mut ptr);
-            let data_f32 = JS_GetFloat32ArrayData(buffer_data, cx);
-            let data_vec_length = length / 4;
-            if buffer_data.is_null() {
-                 panic!("Argument data to WebGLRenderingContext.Uniform4v is not an Float32Array")
-            }
-            data_vec = Vec::from_raw_buf(data_f32, data_vec_length as usize);
+            let data_f32 = JS_GetFloat32ArrayData(data.unwrap(), cx);
+            //let data_f32 = static_cast<f32*>(data.unwrap());
+            data_vec = Vec::from_raw_buf(data_f32, 4);
         }
         let uniform_id = uniform.unwrap().get_id();
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4fv(uniform_id, data_vec))).unwrap()
