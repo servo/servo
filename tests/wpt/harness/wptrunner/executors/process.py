@@ -9,7 +9,8 @@ class ProcessTestExecutor(TestExecutor):
     def __init__(self, *args, **kwargs):
         TestExecutor.__init__(self, *args, **kwargs)
         self.binary = self.browser.binary
-        self.interactive = self.browser.interactive
+        self.interactive = (False if self.debug_info is None
+                            else self.debug_info.interactive)
 
     def setup(self, runner):
         self.runner = runner

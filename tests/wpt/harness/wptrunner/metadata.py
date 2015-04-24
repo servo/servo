@@ -186,7 +186,7 @@ def write_new_expected(metadata_path, expected_map):
             if not os.path.exists(dir):
                 os.makedirs(dir)
             with open(path, "w") as f:
-                f.write(manifest_str.encode("utf8"))
+                f.write(manifest_str)
 
 
 class ExpectedUpdater(object):

@@ -41,6 +41,18 @@ def get_free_port(start_port, exclude=None):
         finally:
             s.close()
 
+def browser_command(binary, args, debug_info):
+    if debug_info:
+        if debug_info.requiresEscapedArgs:
+            args = [item.replace("&", "\\&") for item in args]
+        debug_args = [debug_info.path] + debug_info.args
+    else:
+        debug_args = []
+
+    command = [binary] + args
+
+    return debug_args, command
+
 
 class BrowserError(Exception):
     pass

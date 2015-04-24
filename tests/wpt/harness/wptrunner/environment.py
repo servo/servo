@@ -5,6 +5,7 @@
 import json
 import os
 import multiprocessing
+import signal
 import socket
 import sys
 import time
@@ -17,6 +18,15 @@ here = os.path.split(__file__)[0]
 
 serve = None
 sslutils = None
+
+
+hostnames = ["web-platform.test",
+             "www.web-platform.test",
+             "www1.web-platform.test",
+             "www2.web-platform.test",
+             "xn--n8j6ds53lwwkrqhv28a.web-platform.test",
+             "xn--lve-6lad.web-platform.test"]
+
 
 def do_delayed_imports(logger, test_paths):
     global serve, sslutils
@@ -90,7 +100,7 @@ class StaticHandler(object):
 
 
 class TestEnvironment(object):
-    def __init__(self, test_paths, ssl_env, pause_after_test, options):
+    def __init__(self, test_paths, ssl_env, pause_after_test, debug_info, options):
         """Context manager that owns the test environment i.e. the http and
         websockets servers"""
         self.test_paths = test_paths
@@ -100,10 +110,12 @@ class TestEnvironment(object):
         self.external_config = None
         self.pause_after_test = pause_after_test
         self.test_server_port = options.pop("test_server_port", True)
+        self.debug_info = debug_info
         self.options = options if options is not None else {}
 
         self.cache_manager = multiprocessing.Manager()
         self.routes = self.get_routes()
+
 
     def __enter__(self):
         self.ssl_env.__enter__()
@@ -113,15 +125,24 @@ class TestEnvironment(object):
         serve.set_computed_defaults(self.config)
         self.external_config, self.servers = serve.start(self.config, self.ssl_env,
                                                          self.routes)
+        if self.options.get("supports_debugger") and self.debug_info and self.debug_info.interactive:
+            self.ignore_interrupts()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.process_interrupts()
         self.cache_manager.__exit__(exc_type, exc_val, exc_tb)
         self.ssl_env.__exit__(exc_type, exc_val, exc_tb)
 
         for scheme, servers in self.servers.iteritems():
             for port, server in servers:
                 server.kill()
+
+    def ignore_interrupts(self):
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+    def process_interrupts(self):
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     def load_config(self):
         default_config_path = os.path.join(serve_path(self.test_paths), "config.default.json")
