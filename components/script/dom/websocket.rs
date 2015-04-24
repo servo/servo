@@ -22,12 +22,19 @@ use script_task::ScriptMsg;
 use dom::bindings::refcounted::Trusted;
 
 use dom::bindings::cell::DOMRefCell;
-use websocket::{Message, Sender, Receiver};
+use dom::bindings::trace::JSTraceable;
+use js::jsapi::JSTracer;
+use websocket::Message;
+use websocket::client::sender::Sender;
+use websocket::client::receiver::Receiver;
+use websocket::stream::WebSocketStream;
 use websocket::client::request::Url;
 use websocket::Client;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::borrow::ToOwned;
+use websocket::dataframe::DataFrame;
 use std::sync::mpsc::channel;
+
 
 #[derive(PartialEq, Copy)]
 #[jstraceable]
@@ -38,12 +45,17 @@ enum WebSocketRequestState {
     Closed = 3,
 }
 
+no_jsmanaged_fields!(Sender<WebSocketStream>);
+no_jsmanaged_fields!(Receiver<WebSocketStream>);
+
 #[dom_struct]
 pub struct WebSocket {
     eventtarget: EventTarget,
     url: DOMString,
     global: GlobalField,
 	ready_state: Cell<WebSocketRequestState>,
+	sender: RefCell<Option<Sender<WebSocketStream> > >,
+	receiver: RefCell<Option<Receiver<WebSocketStream> > >,
     failed: Cell<bool>,
     full: Cell<bool>,
     clean_close: Cell<bool>,
@@ -61,6 +73,8 @@ impl WebSocket {
             global: GlobalField::from_rooted(&global),
 		ready_state: Cell::new(WebSocketRequestState::Connecting),
 	    failed: Cell::new(false),
+	    sender: RefCell::new(None),
+	    receiver: RefCell::new(None),
 	    full: Cell::new(false),
 	    clean_close: Cell::new(true),
 	    code: Cell::new(0),
@@ -215,21 +229,32 @@ impl WebSocketTaskHandler {
     fn dispatch_open(&self) {
     	println!("Trying to connect.");
     	let ws = self.addr.to_temporary().root();
-		let parsed_url = Url::parse(ws.r().url.as_slice()).unwrap();
+    	let ws = ws.r();
+		let parsed_url = Url::parse(ws.url.as_slice()).unwrap();
    		let request = Client::connect(parsed_url).unwrap();
 		let response = request.send().unwrap();
 		response.validate().unwrap();
 		println!("Successful connection.");
 		//TODO: Check to see if ready_state is Closing or Closed and failed = true - means we failed the websocket
 		//if so return without setting any states
-    	let global = ws.r().global.root();
-        let event = Event::new(global.r(),
+	if(((ws.ready_state.get() == WebSocketRequestState::Closed) || (ws.ready_state.get() == WebSocketRequestState::Closing)) && ws.failed.get()) {
+		//Do nothing else. Let the close finish.
+	}
+	else {
+		let (mut temp_sender, mut temp_receiver) = response.begin().split();
+		let mut other_sender = ws.sender.borrow_mut();
+		let mut other_receiver = ws.receiver.borrow_mut();
+		*other_sender = Some(temp_sender);
+		*other_receiver = Some(temp_receiver);
+    		let global = ws.global.root();
+        	let event = Event::new(global.r(),
                                "open".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws.r());
-        event.r().fire(target);
-        println!("Fired open event.");
+        	let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws);
+        	event.r().fire(target);
+        	println!("Fired open event.");
+        	}
     }
     fn dispatch_close(&self) {
     	let ws = self.addr.to_temporary().root();
