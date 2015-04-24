@@ -11,6 +11,7 @@ use geom::scale_factor::ScaleFactor;
 use hyper::header::Headers;
 use hyper::method::Method;
 use layers::geometry::DevicePixel;
+use png;
 use util::cursor::Cursor;
 use util::geometry::{PagePx, ViewportPx};
 use std::sync::mpsc::{channel, Sender, Receiver};
@@ -233,8 +234,11 @@ pub enum Msg {
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(Sender<String>),
     // Dispatch a webdriver command
-    WebDriverCommandMsg(PipelineId, WebDriverScriptCommand)
+    WebDriverCommandMsg(PipelineId, WebDriverScriptCommand),
+    // Create a PNG of the window contents
+    CompositePng(Sender<Option<png::Image>>)
 }
+
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
 pub enum MozBrowserEvent {

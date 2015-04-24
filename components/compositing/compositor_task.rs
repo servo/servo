@@ -21,6 +21,7 @@ use msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
 use msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
 use msg::constellation_msg::{ConstellationChan, PipelineId};
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
+use png;
 use profile::mem;
 use profile::time;
 use std::sync::mpsc::{channel, Sender, Receiver};
@@ -217,6 +218,8 @@ pub enum Msg {
     KeyEvent(Key, KeyState, KeyModifiers),
     /// Changes the cursor.
     SetCursor(Cursor),
+    //
+    CreatePng(Sender<Option<png::Image>>),
     /// Informs the compositor that the paint task for the given pipeline has exited.
     PaintTaskExited(PipelineId),
 }
@@ -244,6 +247,7 @@ impl Debug for Msg {
             Msg::RecompositeAfterScroll => write!(f, "RecompositeAfterScroll"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),
             Msg::SetCursor(..) => write!(f, "SetCursor"),
+            Msg::CreatePng(..) => write!(f, "CreatePng"),
             Msg::PaintTaskExited(..) => write!(f, "PaintTaskExited"),
         }
     }
