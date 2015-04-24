@@ -598,17 +598,26 @@ pub struct ScannedTextFragmentInfo {
     /// so that we can restore the range to its original value (before line breaking occurred) when
     /// performing incremental reflow.
     pub range_end_including_stripped_whitespace: CharIndex,
+
+    /// Whether a line break is required after this fragment if wrapping on newlines (e.g. if
+    /// `white-space: pre` is in effect).
+    pub requires_line_break_afterward_if_wrapping_on_newlines: bool,
 }
 
 impl ScannedTextFragmentInfo {
     /// Creates the information specific to a scanned text fragment from a range and a text run.
-    pub fn new(run: Arc<Box<TextRun>>, range: Range<CharIndex>, content_size: LogicalSize<Au>)
+    pub fn new(run: Arc<Box<TextRun>>,
+               range: Range<CharIndex>,
+               content_size: LogicalSize<Au>,
+               requires_line_break_afterward_if_wrapping_on_newlines: bool)
                -> ScannedTextFragmentInfo {
         ScannedTextFragmentInfo {
             run: run,
             range: range,
             content_size: content_size,
             range_end_including_stripped_whitespace: range.end(),
+            requires_line_break_afterward_if_wrapping_on_newlines:
+                requires_line_break_afterward_if_wrapping_on_newlines,
         }
     }
 }
@@ -801,7 +810,13 @@ impl Fragment {
         let size = LogicalSize::new(self.style.writing_mode,
                                     split.inline_size,
                                     self.border_box.size.block);
-        let info = box ScannedTextFragmentInfo::new(text_run, split.range, size);
+        let requires_line_break_afterward_if_wrapping_on_newlines =
+            self.requires_line_break_afterward_if_wrapping_on_newlines();
+        let info = box ScannedTextFragmentInfo::new(
+            text_run,
+            split.range,
+            size,
+            requires_line_break_afterward_if_wrapping_on_newlines);
         self.transform(size, SpecificFragmentInfo::ScannedText(info))
     }
 
@@ -1417,7 +1432,9 @@ impl Fragment {
             // The advance is more than the remaining inline-size, so split here. First, check to
             // see if we're going to overflow the line. If so, perform a best-effort split.
             let mut remaining_range = slice.text_run_range();
-            if inline_start_range.is_empty() {
+            let split_is_empty = inline_start_range.is_empty() &&
+                    !self.requires_line_break_afterward_if_wrapping_on_newlines();
+            if split_is_empty {
                 // We're going to overflow the line.
                 overflowing = true;
                 inline_start_range = slice.text_run_range();
@@ -1439,7 +1456,7 @@ impl Fragment {
 
             // If we failed to find a suitable split point, we're on the verge of overflowing the
             // line.
-            if inline_start_range.is_empty() || overflowing {
+            if split_is_empty || overflowing {
                 // If we've been instructed to retry at character boundaries (probably via
                 // `overflow-wrap: break-word`), do so.
                 if flags.contains(RETRY_AT_CHARACTER_BOUNDARIES) {
@@ -1464,7 +1481,9 @@ impl Fragment {
             break
         }
 
-        let inline_start = if !inline_start_range.is_empty() {
+        let split_is_empty = inline_start_range.is_empty() &&
+                !self.requires_line_break_afterward_if_wrapping_on_newlines();
+        let inline_start = if !split_is_empty {
             Some(SplitInfo::new(inline_start_range, &**text_fragment_info))
         } else {
             None
@@ -1490,6 +1509,9 @@ impl Fragment {
                 this_info.range.extend_to(other_info.range_end_including_stripped_whitespace);
                 this_info.content_size.inline =
                     this_info.run.metrics_for_range(&this_info.range).advance_width;
+                this_info.requires_line_break_afterward_if_wrapping_on_newlines =
+                    this_info.requires_line_break_afterward_if_wrapping_on_newlines ||
+                    other_info.requires_line_break_afterward_if_wrapping_on_newlines;
                 self.border_box.size.inline = this_info.content_size.inline +
                     self.border_padding.inline_start_end();
             }
@@ -1920,10 +1942,7 @@ impl Fragment {
     pub fn requires_line_break_afterward_if_wrapping_on_newlines(&self) -> bool {
         match self.specific {
             SpecificFragmentInfo::ScannedText(ref scanned_text) => {
-                !scanned_text.range.is_empty() &&
-                    scanned_text.run.text.char_at_reverse(scanned_text.range
-                                                                      .end()
-                                                                      .get() as usize) == '\n'
+                scanned_text.requires_line_break_afterward_if_wrapping_on_newlines
             }
             _ => false,
         }
