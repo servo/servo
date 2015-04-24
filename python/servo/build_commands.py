@@ -19,7 +19,7 @@ def is_headless_build():
 
 # Function to generate desktop notification once build is completed & limit exceeded!
 def notify(elapsed):
-    if elapsed < 300:
+    if elapsed < 30:
         return
 
     if sys.platform.startswith('linux'):
