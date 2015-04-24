@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
+use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLMetaElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
@@ -11,6 +12,7 @@ use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
+use string_cache::Atom;
 
 #[dom_struct]
 pub struct HTMLMetaElement {
@@ -37,3 +39,16 @@ impl HTMLMetaElement {
     }
 }
 
+impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
+    // https://html.spec.whatwg.org/multipage/#dom-meta-name
+    make_getter!(Name, "name");
+
+    // https://html.spec.whatwg.org/multipage/#dom-meta-name
+    make_setter!(SetName, "name");
+
+    // https://html.spec.whatwg.org/multipage/#dom-meta-content
+    make_getter!(Content, "content");
+
+    // https://html.spec.whatwg.org/multipage/#dom-meta-content
+    make_setter!(SetContent, "content");
+}
