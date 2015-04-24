@@ -5,12 +5,13 @@
 #![allow(unsafe_code, unrooted_must_root)]
 
 use dom::attr::AttrHelpers;
+use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentTypeCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLScriptElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, NodeCast};
-use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
+use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, TextCast};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
 use dom::bindings::js::RootedReference;
 use dom::bindings::trace::RootedVec;
@@ -126,6 +127,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
             None => return Err(new_node),
         };
 
+        // FIXME: Merge adjacent text nodes.
         let child = self.get_or_create(new_node).root();
         assert!(parent.r().InsertBefore(child.r(), Some(sibling.r())).is_ok());
         Ok(())
@@ -141,11 +143,32 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     }
 
     fn append(&mut self, parent: JS<Node>, child: NodeOrText<JS<Node>>) {
+        // FIXME(#3701): Use a simpler algorithm
         let parent: Root<Node> = parent.root();
-        let child = self.get_or_create(child).root();
-
-        // FIXME(#3701): Use a simpler algorithm and merge adjacent text nodes
-        assert!(parent.r().AppendChild(child.r()).is_ok());
+        match child {
+            AppendNode(n) => {
+                let node = Temporary::new(n).root();
+                assert!(parent.r().AppendChild(node.r()).is_ok());
+            },
+            AppendText(t) => {
+                match parent.r().GetLastChild() {
+                    // Append to an existing text node if possible.
+                    Some(ref prev_sibling) if prev_sibling.root().r().is_text() => {
+                        let node = prev_sibling.root();
+                        let text = TextCast::to_ref(node.r()).unwrap();
+                        let data = CharacterDataCast::from_ref(text);
+                        data.AppendData(t);
+                    },
+                    // Otherwise, insert a new text node.
+                    _ => {
+                        let doc = self.document.root();
+                        let text = Text::new(t, doc.r());
+                        let node = NodeCast::from_temporary(text).root();
+                        assert!(parent.r().AppendChild(node.r()).is_ok());
+                    }
+                }
+            }
+        }
     }
 
     fn append_doctype_to_document(&mut self, name: String, public_id: String, system_id: String) {
