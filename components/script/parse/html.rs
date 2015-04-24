@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentTypeCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLScriptElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, NodeCast};
-use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, TextCast};
+use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
 use dom::bindings::js::RootedReference;
 use dom::bindings::trace::RootedVec;
@@ -155,8 +155,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
                     // Append to an existing text node if possible.
                     Some(ref prev_sibling) if prev_sibling.root().r().is_text() => {
                         let node = prev_sibling.root();
-                        let text = TextCast::to_ref(node.r()).unwrap();
-                        let data = CharacterDataCast::from_ref(text);
+                        let data = CharacterDataCast::to_ref(node.r()).unwrap();
                         data.AppendData(t);
                     },
                     // Otherwise, insert a new text node.
