@@ -622,51 +622,44 @@ impl BlockFlow {
     /// Compute the actual inline size and position for this block.
     pub fn compute_used_inline_size(&mut self,
                                     layout_context: &LayoutContext,
-                                    containing_block_inline_size: Au,
-                                    border_collapse: border_collapse::T) {
+                                    containing_block_inline_size: Au) {
         let block_type = self.block_type();
         match block_type {
             BlockType::AbsoluteReplaced => {
                 let inline_size_computer = AbsoluteReplaced;
                 inline_size_computer.compute_used_inline_size(self,
                                                               layout_context,
-                                                              containing_block_inline_size,
-                                                              border_collapse);
+                                                              containing_block_inline_size);
             }
             BlockType::AbsoluteNonReplaced => {
                 let inline_size_computer = AbsoluteNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
                                                               layout_context,
-                                                              containing_block_inline_size,
-                                                              border_collapse);
+                                                              containing_block_inline_size);
             }
             BlockType::FloatReplaced => {
                 let inline_size_computer = FloatReplaced;
                 inline_size_computer.compute_used_inline_size(self,
                                                               layout_context,
-                                                              containing_block_inline_size,
-                                                              border_collapse);
+                                                              containing_block_inline_size);
             }
             BlockType::FloatNonReplaced => {
                 let inline_size_computer = FloatNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
                                                               layout_context,
-                                                              containing_block_inline_size,
-                                                              border_collapse);
+                                                              containing_block_inline_size);
             }
             BlockType::Replaced => {
                 let inline_size_computer = BlockReplaced;
                 inline_size_computer.compute_used_inline_size(self,
                                                               layout_context,
-                                                              containing_block_inline_size,
-                                                              border_collapse);
+                                                              containing_block_inline_size);
             }
             BlockType::NonReplaced => {
                 let inline_size_computer = BlockNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
                                                               layout_context,
-                                                              containing_block_inline_size,
-                                                              border_collapse);
+                                                              containing_block_inline_size);
             }
         }
     }
@@ -1201,13 +1194,9 @@ impl BlockFlow {
     /// Compute inline size based using the `block_container_inline_size` set by the parent flow.
     ///
     /// This is run in the `AssignISizes` traversal.
-    fn propagate_and_compute_used_inline_size(&mut self,
-                                              layout_context: &LayoutContext,
-                                              border_collapse: border_collapse::T) {
+    fn propagate_and_compute_used_inline_size(&mut self, layout_context: &LayoutContext) {
         let containing_block_inline_size = self.base.block_container_inline_size;
-        self.compute_used_inline_size(layout_context,
-                                      containing_block_inline_size,
-                                      border_collapse);
+        self.compute_used_inline_size(layout_context, containing_block_inline_size);
         if self.base.flags.is_float() {
             self.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size
         }
@@ -1589,8 +1578,7 @@ impl Flow for BlockFlow {
 
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
         // Now compute the real value.
-        let border_collapse = self.fragment.style.get_inheritedtable().border_collapse;
-        self.propagate_and_compute_used_inline_size(layout_context, border_collapse);
+        self.propagate_and_compute_used_inline_size(layout_context);
 
         // Formatting contexts are never impacted by floats.
         match self.formatting_context_type() {
@@ -2041,6 +2029,12 @@ impl ISizeConstraintSolution {
 //
 // CSS Section 10.3
 pub trait ISizeAndMarginsComputer {
+    /// Instructs the fragment to compute its border and padding.
+    fn compute_border_and_padding(&self, block: &mut BlockFlow, containing_block_inline_size: Au) {
+        block.fragment.compute_border_and_padding(containing_block_inline_size,
+                                                  border_collapse::T::separate);
+    }
+
     /// Compute the inputs for the ISize constraint equation.
     ///
     /// This is called only once to compute the initial inputs. For calculations involving
@@ -2048,15 +2042,14 @@ pub trait ISizeAndMarginsComputer {
     fn compute_inline_size_constraint_inputs(&self,
                                              block: &mut BlockFlow,
                                              parent_flow_inline_size: Au,
-                                             layout_context: &LayoutContext,
-                                             border_collapse: border_collapse::T)
+                                             layout_context: &LayoutContext)
                                              -> ISizeConstraintInput {
         let containing_block_inline_size =
             self.containing_block_inline_size(block, parent_flow_inline_size, layout_context);
 
         block.fragment.compute_block_direction_margins(containing_block_inline_size);
         block.fragment.compute_inline_direction_margins(containing_block_inline_size);
-        block.fragment.compute_border_and_padding(containing_block_inline_size, border_collapse);
+        self.compute_border_and_padding(block, containing_block_inline_size);
 
         let mut computed_inline_size = self.initial_computed_inline_size(block,
                                                                          parent_flow_inline_size,
@@ -2183,12 +2176,10 @@ pub trait ISizeAndMarginsComputer {
     fn compute_used_inline_size(&self,
                                 block: &mut BlockFlow,
                                 layout_context: &LayoutContext,
-                                parent_flow_inline_size: Au,
-                                border_collapse: border_collapse::T) {
+                                parent_flow_inline_size: Au) {
         let mut input = self.compute_inline_size_constraint_inputs(block,
                                                                    parent_flow_inline_size,
-                                                                   layout_context,
-                                                                   border_collapse);
+                                                                   layout_context);
 
         let containing_block_inline_size =
             self.containing_block_inline_size(block, parent_flow_inline_size, layout_context);

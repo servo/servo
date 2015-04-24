@@ -135,12 +135,12 @@ impl Flow for TableCellFlow {
         // The position was set to the column inline-size by the parent flow, table row flow.
         let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
 
-        let inline_size_computer = InternalTable;
-        let border_collapse = self.block_flow.fragment.style.get_inheritedtable().border_collapse;
+        let inline_size_computer = InternalTable {
+            border_collapse: self.block_flow.fragment.style.get_inheritedtable().border_collapse,
+        };
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
                                                       layout_context,
-                                                      containing_block_inline_size,
-                                                      border_collapse);
+                                                      containing_block_inline_size);
 
         let inline_start_content_edge =
             self.block_flow.fragment.border_box.start.i +

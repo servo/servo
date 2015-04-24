@@ -13,13 +13,14 @@
 
 #![deny(unsafe_code)]
 
-use block::{BlockFlow, BlockNonReplaced, FloatNonReplaced, ISizeAndMarginsComputer};
-use block::{MarginsMayCollapseFlag};
+use block::{BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
+use block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
 use context::LayoutContext;
 use floats::FloatKind;
 use flow::{FlowClass, Flow, ImmutableFlowUtils};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
 use fragment::{Fragment, FragmentBorderBoxIterator};
+use model::MaybeAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use table_row;
 use wrapper::ThreadSafeLayoutNode;
@@ -31,7 +32,7 @@ use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
 use std::sync::Arc;
-use style::computed_values::table_layout;
+use style::computed_values::{border_collapse, table_layout};
 use style::properties::ComputedValues;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -55,8 +56,7 @@ pub struct TableWrapperFlow {
 }
 
 impl TableWrapperFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
-                                  fragment: Fragment)
+    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment)
                                   -> TableWrapperFlow {
         let mut block_flow = BlockFlow::from_node_and_fragment(node, fragment);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
@@ -90,6 +90,21 @@ impl TableWrapperFlow {
         }
     }
 
+    fn border_padding_and_spacing(&mut self) -> (Au, Au) {
+        let (mut table_border_padding, mut spacing) = (Au(0), Au(0));
+        for kid in self.block_flow.base.child_iter() {
+            if kid.is_table() {
+                let kid_table = kid.as_table();
+                let spacing_per_cell = kid_table.spacing().horizontal;
+                spacing = spacing_per_cell * (self.column_intrinsic_inline_sizes.len() as i32 + 1);
+                table_border_padding =
+                    kid_table.block_flow.fragment.border_padding.inline_start_end();
+                break
+            }
+        }
+        (table_border_padding, spacing)
+    }
+
     /// Calculates table column sizes for automatic layout per INTRINSIC § 4.3.
     fn calculate_table_column_sizes_for_automatic_layout(
             &mut self,
@@ -100,20 +115,13 @@ impl TableWrapperFlow {
         // when normally the child computes it itself. But it has to be this way because the
         // padding will affect where we place the child. This is an odd artifact of the way that
         // tables are separated into table flows and table wrapper flows.
-        //
-        // FIXME(pcwalton): Handle `border-collapse` correctly.
-        let mut available_inline_size = self.block_flow.fragment.border_box.size.inline;
-        let (mut table_border_padding, mut spacing) = (Au(0), Au(0));
+        let available_inline_size = self.block_flow.fragment.border_box.size.inline;
         for kid in self.block_flow.base.child_iter() {
             if !kid.is_table() {
                 continue
             }
 
             let kid_table = kid.as_table();
-            let spacing_per_cell = kid_table.spacing().horizontal;
-            spacing = spacing_per_cell * (self.column_intrinsic_inline_sizes.len() as i32 + 1);
-            available_inline_size = self.block_flow.fragment.border_box.size.inline;
-
             let kid_block_flow = &mut kid_table.block_flow;
             kid_block_flow.fragment
                           .compute_border_and_padding(available_inline_size,
@@ -124,9 +132,10 @@ impl TableWrapperFlow {
                                                           .border_collapse);
             kid_block_flow.fragment.compute_block_direction_margins(available_inline_size);
             kid_block_flow.fragment.compute_inline_direction_margins(available_inline_size);
-            table_border_padding = kid_block_flow.fragment.border_padding.inline_start_end();
             break
         }
+
+        let (table_border_padding, spacing) = self.border_padding_and_spacing();
 
         // FIXME(pcwalton, spec): INTRINSIC § 8 does not properly define how to compute this, but
         // says "the basic idea is the same as the shrink-to-fit width that CSS2.1 defines". So we
@@ -201,37 +210,55 @@ impl TableWrapperFlow {
             table_border_padding + spacing + self.block_flow.fragment.margin.inline_start_end();
     }
 
-    fn compute_used_inline_size(&mut self,
-                                layout_context: &LayoutContext,
-                                parent_flow_inline_size: Au) {
-        // Delegate to the appropriate inline size computer to find the constraint inputs.
-        let border_collapse = self.block_flow.fragment.style.get_inheritedtable().border_collapse;
-        let input = if self.block_flow.base.flags.is_float() {
-            FloatNonReplaced.compute_inline_size_constraint_inputs(&mut self.block_flow,
-                                                                   parent_flow_inline_size,
-                                                                   layout_context,
-                                                                   border_collapse)
-        } else {
-            BlockNonReplaced.compute_inline_size_constraint_inputs(&mut self.block_flow,
-                                                                   parent_flow_inline_size,
-                                                                   layout_context,
-                                                                   border_collapse)
-        };
+    fn compute_used_inline_size(
+            &mut self,
+            layout_context: &LayoutContext,
+            parent_flow_inline_size: Au,
+            intermediate_column_inline_sizes: &[IntermediateColumnInlineSize]) {
+        let (border_padding, spacing) = self.border_padding_and_spacing();
+        let minimum_width_of_all_columns =
+            intermediate_column_inline_sizes.iter()
+                                            .fold(border_padding + spacing,
+                                                  |accumulator, intermediate_column_inline_sizes| {
+                accumulator + intermediate_column_inline_sizes.size
+            });
 
-        // Delegate to the appropriate inline size computer to write the constraint solutions in.
+        // Delegate to the appropriate inline size computer to find the constraint inputs and write
+        // the constraint solutions in.
+        let border_collapse = self.block_flow.fragment.style.get_inheritedtable().border_collapse;
         if self.block_flow.base.flags.is_float() {
-            let solution = FloatNonReplaced.solve_inline_size_constraints(&mut self.block_flow,
-                                                                          &input);
-            FloatNonReplaced.set_inline_size_constraint_solutions(&mut self.block_flow, solution);
-            FloatNonReplaced.set_inline_position_of_flow_if_necessary(&mut self.block_flow,
+            let inline_size_computer = FloatedTable {
+                minimum_width_of_all_columns: minimum_width_of_all_columns,
+                border_collapse: border_collapse,
+            };
+            let input =
+                inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
+                                                                           parent_flow_inline_size,
+                                                                           layout_context);
+
+            let solution = inline_size_computer.solve_inline_size_constraints(&mut self.block_flow,
+                                                                              &input);
+            inline_size_computer.set_inline_size_constraint_solutions(&mut self.block_flow,
                                                                       solution);
-        } else {
-            let solution = BlockNonReplaced.solve_inline_size_constraints(&mut self.block_flow,
-                                                                          &input);
-            BlockNonReplaced.set_inline_size_constraint_solutions(&mut self.block_flow, solution);
-            BlockNonReplaced.set_inline_position_of_flow_if_necessary(&mut self.block_flow,
-                                                                      solution);
+            inline_size_computer.set_inline_position_of_flow_if_necessary(&mut self.block_flow,
+                                                                          solution);
+            return
         }
+
+        let inline_size_computer = Table {
+            minimum_width_of_all_columns: minimum_width_of_all_columns,
+            border_collapse: border_collapse,
+        };
+        let input =
+            inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
+                                                                       parent_flow_inline_size,
+                                                                       layout_context);
+
+        let solution = inline_size_computer.solve_inline_size_constraints(&mut self.block_flow,
+                                                                          &input);
+        inline_size_computer.set_inline_size_constraint_solutions(&mut self.block_flow, solution);
+        inline_size_computer.set_inline_position_of_flow_if_necessary(&mut self.block_flow,
+                                                                      solution);
     }
 }
 
@@ -294,14 +321,13 @@ impl Flow for TableWrapperFlow {
                 containing_block_inline_size;
         }
 
-        self.compute_used_inline_size(layout_context, containing_block_inline_size);
+        self.compute_used_inline_size(layout_context,
+                                      containing_block_inline_size,
+                                      intermediate_column_inline_sizes.as_slice());
 
-        match self.table_layout {
-            TableLayout::Fixed => {}
-            TableLayout::Auto => {
-                self.calculate_table_column_sizes_for_automatic_layout(
-                    &mut intermediate_column_inline_sizes)
-            }
+        if let TableLayout::Auto = self.table_layout {
+            self.calculate_table_column_sizes_for_automatic_layout(
+                &mut intermediate_column_inline_sizes)
         }
 
         let inline_start_content_edge = self.block_flow.fragment.border_box.start.i;
@@ -677,5 +703,88 @@ impl ExcessInlineSizeDistributionInfo {
 struct IntermediateColumnInlineSize {
     size: Au,
     percentage: f64,
+}
+
+fn initial_computed_inline_size(block: &mut BlockFlow,
+                                containing_block_inline_size: Au,
+                                minimum_width_of_all_columns: Au)
+                                -> MaybeAuto {
+    let inline_size_from_style = MaybeAuto::from_style(block.fragment.style.content_inline_size(),
+                                                       containing_block_inline_size);
+    match inline_size_from_style {
+        MaybeAuto::Auto => {
+            MaybeAuto::Specified(Au::max(containing_block_inline_size,
+                                         minimum_width_of_all_columns))
+        }
+        MaybeAuto::Specified(inline_size_from_style) => {
+            MaybeAuto::Specified(Au::max(inline_size_from_style, minimum_width_of_all_columns))
+        }
+    }
+}
+
+struct Table {
+    minimum_width_of_all_columns: Au,
+    border_collapse: border_collapse::T,
+}
+
+impl ISizeAndMarginsComputer for Table {
+    fn compute_border_and_padding(&self, block: &mut BlockFlow, containing_block_inline_size: Au) {
+        block.fragment.compute_border_and_padding(containing_block_inline_size,
+                                                  self.border_collapse)
+    }
+
+    fn initial_computed_inline_size(&self,
+                                    block: &mut BlockFlow,
+                                    parent_flow_inline_size: Au,
+                                    layout_context: &LayoutContext)
+                                    -> MaybeAuto {
+        let containing_block_inline_size =
+            self.containing_block_inline_size(block,
+                                              parent_flow_inline_size,
+                                              layout_context);
+        initial_computed_inline_size(block,
+                                     containing_block_inline_size,
+                                     self.minimum_width_of_all_columns)
+    }
+
+    fn solve_inline_size_constraints(&self,
+                                     block: &mut BlockFlow,
+                                     input: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution {
+        self.solve_block_inline_size_constraints(block, input)
+    }
+}
+
+struct FloatedTable {
+    minimum_width_of_all_columns: Au,
+    border_collapse: border_collapse::T,
+}
+
+impl ISizeAndMarginsComputer for FloatedTable {
+    fn compute_border_and_padding(&self, block: &mut BlockFlow, containing_block_inline_size: Au) {
+        block.fragment.compute_border_and_padding(containing_block_inline_size,
+                                                  self.border_collapse)
+    }
+
+    fn initial_computed_inline_size(&self,
+                                    block: &mut BlockFlow,
+                                    parent_flow_inline_size: Au,
+                                    layout_context: &LayoutContext)
+                                    -> MaybeAuto {
+        let containing_block_inline_size =
+            self.containing_block_inline_size(block,
+                                              parent_flow_inline_size,
+                                              layout_context);
+        initial_computed_inline_size(block,
+                                     containing_block_inline_size,
+                                     self.minimum_width_of_all_columns)
+    }
+
+    fn solve_inline_size_constraints(&self,
+                                     block: &mut BlockFlow,
+                                     input: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution {
+        FloatNonReplaced.solve_inline_size_constraints(block, input)
+    }
 }
 
