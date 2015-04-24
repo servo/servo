@@ -756,6 +756,7 @@ dependencies = [
  "hyper 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "style 0.0.1",
  "url 0.2.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
@@ -934,7 +935,7 @@ dependencies = [
 [[package]]
 name = "png"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-png#811e4d339441dd34fb087fc895e1619ba882933f"
+source = "git+https://github.com/servo/rust-png#06ec44beafa103ad84a663784257b0e3df8cb1fd"
 dependencies = [
  "gcc 0.3.4 (git+https://github.com/alexcrichton/gcc-rs)",
  "libc 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -944,7 +945,7 @@ dependencies = [
 [[package]]
 name = "png-sys"
 version = "1.6.16"
-source = "git+https://github.com/servo/rust-png#811e4d339441dd34fb087fc895e1619ba882933f"
+source = "git+https://github.com/servo/rust-png#06ec44beafa103ad84a663784257b0e3df8cb1fd"
 
 [[package]]
 name = "profile"
@@ -1272,6 +1273,7 @@ name = "webdriver_server"
 version = "0.0.1"
 dependencies = [
  "msg 0.0.1",
+ "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "rustc-serialize 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
