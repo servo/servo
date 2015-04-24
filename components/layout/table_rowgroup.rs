@@ -111,7 +111,7 @@ impl Flow for TableRowGroupFlow {
                                                       containing_block_inline_size);
 
         let info = ChildInlineSizeInfo {
-            column_computed_inline_sizes: self.column_computed_inline_sizes.as_slice(),
+            column_computed_inline_sizes: &self.column_computed_inline_sizes,
             spacing: self.spacing,
         };
         self.block_flow.propagate_assigned_inline_size_to_children(layout_context,

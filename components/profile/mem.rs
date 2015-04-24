@@ -592,7 +592,7 @@ mod system_reporter {
             };
             if looking_for == LookingFor::Segment {
                 // Look for a segment info line.
-                let cap = match seg_re.captures(line.as_slice()) {
+                let cap = match seg_re.captures(&line) {
                     Some(cap) => cap,
                     None => continue,
                 };
@@ -617,7 +617,7 @@ mod system_reporter {
                 looking_for = LookingFor::Rss;
             } else {
                 // Look for an "Rss:" line.
-                let cap = match rss_re.captures(line.as_slice()) {
+                let cap = match rss_re.captures(&line) {
                     Some(cap) => cap,
                     None => continue,
                 };

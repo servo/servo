@@ -169,7 +169,7 @@ impl TableFlow {
             TableLayout::Auto => {
                 computation.union_block(&TableFlow::update_automatic_column_inline_sizes(
                     column_inline_sizes,
-                    row.cell_intrinsic_inline_sizes.as_slice()))
+                    &row.cell_intrinsic_inline_sizes))
             }
         }
     }
@@ -348,7 +348,7 @@ impl Flow for TableFlow {
         self.block_flow.base.flags.remove(IMPACTED_BY_RIGHT_FLOATS);
 
         let info = ChildInlineSizeInfo {
-            column_computed_inline_sizes: self.column_computed_inline_sizes.as_slice(),
+            column_computed_inline_sizes: &self.column_computed_inline_sizes,
             spacing: spacing_per_cell,
         };
         self.block_flow.propagate_assigned_inline_size_to_children(layout_context,

@@ -22,9 +22,9 @@ pub fn match_ty_unwrap<'a>(ty: &'a Ty, segments: &[&str]) -> Option<&'a [P<Ty>]>
             // however the more efficient way is to simply reverse the iterators and zip them
             // which will compare them in reverse until one of them runs out of segments
             if seg.iter().rev().zip(segments.iter().rev()).all(|(a,b)| a.identifier.as_str() == *b) {
-                match seg.as_slice().last() {
+                match seg.last() {
                     Some(&PathSegment {parameters: AngleBracketedParameters(ref a), ..}) => {
-                        Some(a.types.as_slice())
+                        Some(&a.types)
                     }
                     _ => None
                 }

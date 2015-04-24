@@ -888,7 +888,7 @@ pub mod specified {
         pub fn parse(input: &mut Parser) -> Result<Time,()> {
             match input.next() {
                 Ok(Token::Dimension(ref value, ref unit)) => {
-                    Time::parse_dimension(value.value, unit.as_slice())
+                    Time::parse_dimension(value.value, &unit)
                 }
                 _ => Err(()),
             }
