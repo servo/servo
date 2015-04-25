@@ -76,3 +76,16 @@ class MachCommands(CommandBase):
              category='devenv')
     def rust_root(self):
         print(self.config["tools"]["rust-root"])
+
+    @Command('grep',
+             description='`git grep` for selected directories.',
+             category='devenv')
+    @CommandArgument(
+        'params', default=None, nargs='...',
+        help="Command-line arguments to be passed through to `git grep`")
+    def grep(self, params):
+        if not params:
+            params = []
+        grep_paths = [path.join(self.context.topdir, 'components'),
+                      path.join(self.context.topdir, 'ports')]
+        return subprocess.call(["git"] + ["grep"] + params + ['--'] + grep_paths, env=self.build_env())
