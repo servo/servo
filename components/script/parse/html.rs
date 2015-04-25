@@ -215,7 +215,7 @@ impl<'a> Serializable for JSRef<'a, Node> {
                         (qname, value)
                     }).collect::<Vec<_>>();
                     let attr_refs = attrs.iter().map(|&(ref qname, ref value)| {
-                        let ar: AttrRef = (&qname, value.as_slice());
+                        let ar: AttrRef = (&qname, &**value);
                         ar
                     });
                     try!(serializer.start_elem(name.clone(), attr_refs));

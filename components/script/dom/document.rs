@@ -377,7 +377,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                     // FIXME(https://github.com/rust-lang/rust/issues/23338)
                     let attr = attr.r();
                     let value = attr.value();
-                    value.as_slice() == fragid.as_slice()
+                    &**value == &*fragid
                 })
             };
             let doc_node: JSRef<Node> = NodeCast::from_ref(self);
@@ -1324,7 +1324,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 // FIXME(https://github.com/rust-lang/rust/issues/23338)
                 let attr = attr.r();
                 let value = attr.value();
-                value.as_slice() == name.as_slice()
+                &**value == &*name
             })
         })
     }

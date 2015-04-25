@@ -85,12 +85,12 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(&ns!(""), &atom!("src")).root().and_then(|src| {
             let url = src.r().value();
-            if url.as_slice().is_empty() {
+            if url.is_empty() {
                 None
             } else {
                 let window = window_from_node(self).root();
                 UrlParser::new().base_url(&window.r().get_url())
-                    .parse(url.as_slice()).ok()
+                    .parse(&url).ok()
             }
         })
     }
