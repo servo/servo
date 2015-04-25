@@ -344,12 +344,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             s.handle_event(event);
         }
 
-        if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
+        if &*event.Type() == "click" && !event.DefaultPrevented() {
             //TODO: set the editing position for text inputs
 
             let doc = document_from_node(*self).root();
             doc.r().request_focus(ElementCast::from_ref(*self));
-        } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() {
+        } else if &*event.Type() == "keydown" && !event.DefaultPrevented() {
             let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
             keyevent.map(|kevent| {
                 match self.textinput.borrow_mut().handle_keydown(kevent) {

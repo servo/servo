@@ -51,7 +51,7 @@ impl HTMLOptionElement {
 
 fn collect_text(node: &JSRef<Node>, value: &mut DOMString) {
     let elem: JSRef<Element> = ElementCast::to_ref(*node).unwrap();
-    let svg_script = *elem.namespace() == ns!(SVG) && elem.local_name().as_slice() == "script";
+    let svg_script = *elem.namespace() == ns!(SVG) && elem.local_name() == &atom!("script");
     let html_script = node.is_htmlscriptelement();
     if svg_script || html_script {
         return;
@@ -60,7 +60,7 @@ fn collect_text(node: &JSRef<Node>, value: &mut DOMString) {
             let child = child.root();
             if child.r().is_text() {
                 let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(child.r()).unwrap();
-                value.push_str(characterdata.Data().as_slice());
+                value.push_str(&characterdata.Data());
             } else {
                 collect_text(&child.r(), value);
             }
@@ -83,7 +83,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let mut content = String::new();
         collect_text(&node, &mut content);
-        let v: Vec<&str> = split_html_space_chars(content.as_slice()).collect();
+        let v: Vec<&str> = split_html_space_chars(&content).collect();
         v.connect(" ")
     }
 

@@ -89,7 +89,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
             s.after_set_attr(attr);
         }
 
-        let name = attr.local_name().as_slice();
+        let name = attr.local_name();
         if name.starts_with("on") {
             static FORWARDED_EVENTS: &'static [&'static str] =
                 &["onfocus", "onload", "onscroll", "onafterprint", "onbeforeprint",
@@ -101,7 +101,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
                                         window.r().get_url(),
                                         window.r().reflector().get_jsobject());
             let evtarget: JSRef<EventTarget> =
-                if FORWARDED_EVENTS.iter().any(|&event| name == event) {
+                if FORWARDED_EVENTS.iter().any(|&event| &**name == event) {
                     EventTargetCast::from_ref(window.r())
                 } else {
                     EventTargetCast::from_ref(*self)

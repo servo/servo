@@ -72,7 +72,7 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
     fn Assert(self, condition: bool, message: Option<DOMString>) {
         if !condition {
             let message = match message {
-                Some(ref message) => message.as_slice(),
+                Some(ref message) => &**message,
                 None => "no message",
             };
             println!("Assertion failed: {}", message);

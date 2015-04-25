@@ -122,7 +122,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
         let mut urls = Vec::with_capacity(url_strings.len());
         for url in url_strings.into_iter() {
             let url = UrlParser::new().base_url(&self.worker_url)
-                                      .parse(url.as_slice());
+                                      .parse(&url);
             match url {
                 Ok(url) => urls.push(url),
                 Err(_) => return Err(Syntax),

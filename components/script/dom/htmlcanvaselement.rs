@@ -22,7 +22,6 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{WebGLRenderingContext, LayoutCanvasWebGLRenderingContextHelpers};
-use dom::webglrenderingcontext::WebGLRenderingContext;
 
 use util::str::{DOMString, parse_unsigned_integer};
 
@@ -169,7 +168,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
     }
 
     fn GetContext(self, id: DOMString) -> Option<CanvasRenderingContext2DOrWebGLRenderingContext> {
-        match id.as_slice() {
+        match &*id {
             "2d" => {
                 let context_2d = self.context_2d.or_init(|| {
                     let window = window_from_node(self).root();
@@ -216,13 +215,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
 
         if recreate {
            self.recreate_contexts();
-        }
-        if recreate {
-            let (w, h) = (self.width.get() as i32, self.height.get() as i32);
-            match self.context_3d.get() {
-                Some(context) => context.root().r().recreate(Size2D(w, h)),
-                None => ()
-            }
         }
     }
 

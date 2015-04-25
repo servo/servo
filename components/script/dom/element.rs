@@ -477,7 +477,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
         if self.namespace != ns!(HTML) {
             return false
         }
-        match self.local_name.as_slice() {
+        match &*self.local_name {
             /* List of void elements from
             https://html.spec.whatwg.org/multipage/#html-fragment-serialisation-algorithm */
             "area" | "base" | "basefont" | "bgsound" | "br" | "col" | "embed" |
@@ -752,7 +752,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let name = match prefix {
             None => qname.local.clone(),
             Some(ref prefix) => {
-                let name = format!("{}:{}", *prefix, qname.local.as_slice());
+                let name = format!("{}:{}", *prefix, &*qname.local);
                 Atom::from_slice(&name)
             },
         };
@@ -761,7 +761,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_attribute(self, name: &Atom, value: AttrValue) {
-        assert!(name.as_slice() == name.to_ascii_lowercase());
+        assert!(&**name == name.to_ascii_lowercase());
         assert!(!name.contains(":"));
 
         self.do_set_attribute(name.clone(), value, name.clone(),
@@ -883,7 +883,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_atomic_attribute(self, local_name: &Atom, value: DOMString) {
-        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        assert!(&**local_name == local_name.to_ascii_lowercase());
         let value = AttrValue::from_atomic(value);
         self.set_attribute(local_name, value);
     }
@@ -909,7 +909,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn get_url_attribute(self, local_name: &Atom) -> DOMString {
-        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        assert!(&**local_name == local_name.to_ascii_lowercase());
         if !self.has_attribute(local_name) {
             return "".to_owned();
         }
@@ -934,7 +934,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
     fn set_string_attribute(self, local_name: &Atom, value: DOMString) {
-        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::String(value));
     }
 
@@ -950,12 +950,12 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_tokenlist_attribute(self, local_name: &Atom, value: DOMString) {
-        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::from_serialized_tokenlist(value));
     }
 
     fn set_atomic_tokenlist_attribute(self, local_name: &Atom, tokens: Vec<Atom>) {
-        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens));
     }
 
@@ -976,7 +976,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
     fn set_uint_attribute(self, local_name: &Atom, value: u32) {
-        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::UInt(value.to_string(), value));
     }
 }
@@ -986,13 +986,13 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn GetNamespaceURI(self) -> Option<DOMString> {
         match self.namespace {
             ns!("") => None,
-            Namespace(ref ns) => Some(ns.as_slice().to_owned())
+            Namespace(ref ns) => Some((**ns).to_owned())
         }
     }
 
     // https://dom.spec.whatwg.org/#dom-element-localname
     fn LocalName(self) -> DOMString {
-        self.local_name.as_slice().to_owned()
+        (*self.local_name).to_owned()
     }
 
     // https://dom.spec.whatwg.org/#dom-element-prefix
@@ -1004,11 +1004,9 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn TagName(self) -> DOMString {
         let qualified_name = match self.prefix {
             Some(ref prefix) => {
-                (format!("{}:{}",
-                         prefix.as_slice(),
-                         self.local_name.as_slice())).into_cow()
+                (format!("{}:{}", &**prefix, &*self.local_name)).into_cow()
             },
-            None => self.local_name.as_slice().into_cow()
+            None => self.local_name.into_cow()
         };
         if self.html_element_in_html_document() {
             qualified_name.to_ascii_uppercase()

@@ -544,7 +544,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
             s.push_str("    ");
         }
 
-        s.push_str(self.debug_str().as_slice());
+        s.push_str(&*self.debug_str());
         debug!("{:?}", s);
 
         // FIXME: this should have a pure version?
@@ -888,7 +888,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         // Step 1.
-        match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
+        match parse_author_origin_selector_list_from_str(&selectors) {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
@@ -909,7 +909,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     unsafe fn query_selector_iter(self, selectors: DOMString)
                                   -> Fallible<QuerySelectorIterator> {
         // Step 1.
-        match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
+        match parse_author_origin_selector_list_from_str(&selectors) {
             // Step 2.
             Err(()) => Err(Syntax),
             // Step 3.
@@ -1734,7 +1734,7 @@ impl Node {
                     local: element.local_name().clone()
                 };
                 let element = Element::create(name,
-                    element.prefix().as_ref().map(|p| p.as_slice().to_owned()),
+                    element.prefix().as_ref().map(|p| (**p).to_owned()),
                     document.r(), ElementCreator::ScriptCreated);
                 NodeCast::from_temporary(element)
             },

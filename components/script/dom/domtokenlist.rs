@@ -81,7 +81,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
             let attr = attr.r();
             let value = attr.value();
             value.tokens().and_then(|tokens| {
-                tokens.get(index as usize).map(|token| token.as_slice().to_owned())
+                tokens.get(index as usize).map(|token| (**token).to_owned())
             })
         })
     }
