@@ -2616,7 +2616,11 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
         CGAbstractMethod.__init__(self, descriptor, name, "JSBool", args, extern=True)
 
     def definition_body(self):
-        return self.generate_code()
+        preamble = CGGeneric("""\
+let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
+let global = global.root();
+""")
+        return CGList([preamble, self.generate_code()])
 
     def generate_code(self):
         assert False  # Override me
@@ -2674,7 +2678,7 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
     def generate_code(self):
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
                                                         self.method)
-        return CGMethodCall([], nativeName, True, self.descriptor, self.method)
+        return CGMethodCall(["global.r()"], nativeName, True, self.descriptor, self.method)
 
 
 class CGGenericGetter(CGAbstractBindingMethod):
@@ -2748,7 +2752,7 @@ class CGStaticGetter(CGAbstractStaticBindingMethod):
     def generate_code(self):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
-        return CGGetterCall([], self.attr.type, nativeName, self.descriptor,
+        return CGGetterCall(["global.r()"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
 
 
@@ -2827,7 +2831,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
             "    throw_type_error(cx, \"Not enough arguments to %s setter.\");\n"
             "    return 0;\n"
             "}" % self.attr.identifier.name)
-        call = CGSetterCall([], self.attr.type, nativeName, self.descriptor,
+        call = CGSetterCall(["global.r()"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
         return CGList([checkForArg, call])
 
