@@ -70,6 +70,13 @@ impl AttrValue {
             _ => None
         }
     }
+
+    pub fn atom<'a>(&'a self) -> Option<&'a Atom> {
+        match *self {
+            AttrValue::Atom(ref value) => Some(value),
+            _ => None
+        }
+    }
 }
 
 impl Str for AttrValue {
