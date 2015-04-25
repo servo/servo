@@ -1365,7 +1365,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 let doc = document_from_node(*self).root();
                 let base_url = doc.r().url();
                 let value = attr.value();
-                let style = Some(parse_style_attribute(value.as_slice(), &base_url));
+                let style = Some(parse_style_attribute(&value, &base_url));
                 *self.style_attribute.borrow_mut() = style;
 
                 if node.is_in_doc() {
@@ -1384,8 +1384,8 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 let value = attr.value();
                 if node.is_in_doc() {
                     let doc = document_from_node(*self).root();
-                    if !value.as_slice().is_empty() {
-                        let value = Atom::from_slice(value.as_slice());
+                    if !value.is_empty() {
+                        let value = value.atom().unwrap().clone();
                         doc.r().register_named_element(*self, value);
                     }
                     doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
@@ -1422,8 +1422,8 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 let value = attr.value();
                 if node.is_in_doc() {
                     let doc = document_from_node(*self).root();
-                    if !value.as_slice().is_empty() {
-                        let value = Atom::from_slice(value.as_slice());
+                    if !value.is_empty() {
+                        let value = value.atom().unwrap().clone();
                         doc.r().unregister_named_element(*self, value);
                     }
                     doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
@@ -1496,8 +1496,8 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
             // This transmute is used to cheat the lifetime restriction.
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
-            let value = attr.value();
-            unsafe { mem::transmute(value.as_slice()) }
+            let value: &str = &**attr.value();
+            unsafe { mem::transmute(value) }
         })
     }
     #[allow(unsafe_code)]
@@ -1505,9 +1505,9 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
         self.get_attributes(local_name).into_iter().map(|attr| attr.root()).map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
-            let value = attr.value();
+            let value: &str = &**attr.value();
             // This transmute is used to cheat the lifetime restriction.
-            unsafe { mem::transmute(value.as_slice()) }
+            unsafe { mem::transmute(value) }
         }).collect()
     }
     fn get_link(self) -> Option<&'a str> {

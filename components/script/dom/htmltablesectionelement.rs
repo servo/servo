@@ -72,7 +72,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableSectionElement> {
 
         match attr.local_name() {
             &atom!("bgcolor") => {
-                self.background_color.set(str::parse_legacy_color(attr.value().as_slice()).ok());
+                self.background_color.set(str::parse_legacy_color(&attr.value()).ok());
             },
             _ => ()
         }

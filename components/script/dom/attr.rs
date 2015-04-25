@@ -23,6 +23,7 @@ use string_cache::{Atom, Namespace};
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::mem;
+use std::ops::Deref;
 
 pub enum AttrSettingType {
     FirstSetAttr,
@@ -70,10 +71,19 @@ impl AttrValue {
             _ => None
         }
     }
+
+    pub fn atom<'a>(&'a self) -> Option<&'a Atom> {
+        match *self {
+            AttrValue::Atom(ref value) => Some(value),
+            _ => None
+        }
+    }
 }
 
-impl Str for AttrValue {
-    fn as_slice<'a>(&'a self) -> &'a str {
+impl Deref for AttrValue {
+    type Target = str;
+
+    fn deref<'a>(&'a self) -> &'a str {
         match *self {
             AttrValue::String(ref value) |
                 AttrValue::TokenList(ref value, _) |
@@ -144,7 +154,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 
     // https://dom.spec.whatwg.org/#dom-attr-value
     fn Value(self) -> DOMString {
-        self.value().as_slice().to_owned()
+        (**self.value()).to_owned()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
@@ -292,7 +302,7 @@ impl AttrHelpersForLayout for Attr {
     unsafe fn value_ref_forever(&self) -> &'static str {
         // This transmute is used to cheat the lifetime restriction.
         let value = mem::transmute::<&AttrValue, &AttrValue>(self.value.borrow_for_layout());
-        value.as_slice()
+        &**value
     }
 
     #[inline]

@@ -479,7 +479,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             }
             &atom!("type") => {
                 let value = attr.value();
-                self.input_type.set(match value.as_slice() {
+                self.input_type.set(match &**value {
                     "button" => InputType::InputButton,
                     "submit" => InputType::InputSubmit,
                     "reset" => InputType::InputReset,
@@ -497,18 +497,18 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             }
             &atom!("value") => {
                 if !self.value_changed.get() {
-                    self.textinput.borrow_mut().set_content(attr.value().as_slice().to_owned());
+                    self.textinput.borrow_mut().set_content((**attr.value()).to_owned());
                 }
             }
             &atom!("name") => {
                 if self.input_type.get() == InputType::InputRadio {
                     let value = attr.value();
-                    self.radio_group_updated(Some(value.as_slice()));
+                    self.radio_group_updated(Some(&value));
                 }
             }
             _ if attr.local_name() == &Atom::from_slice("placeholder") => {
                 let value = attr.value();
-                let stripped = value.as_slice().chars()
+                let stripped = value.chars()
                     .filter(|&c| c != '\n' && c != '\r')
                     .collect::<String>();
                 *self.placeholder.borrow_mut() = stripped;

@@ -130,18 +130,17 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
 
         match attr.local_name() {
             &atom!("bgcolor") => {
-                self.background_color.set(str::parse_legacy_color(attr.value().as_slice()).ok())
+                self.background_color.set(str::parse_legacy_color(&attr.value()).ok())
             }
             &atom!("border") => {
                 // According to HTML5 § 14.3.9, invalid values map to 1px.
                 self.border.set(Some(str::parse_unsigned_integer(attr.value()
-                                                                     .as_slice()
                                                                      .chars()).unwrap_or(1)))
             }
             &atom!("cellspacing") => {
-                self.cellspacing.set(str::parse_unsigned_integer(attr.value().as_slice().chars()))
+                self.cellspacing.set(str::parse_unsigned_integer(attr.value().chars()))
             }
-            &atom!("width") => self.width.set(str::parse_length(attr.value().as_slice())),
+            &atom!("width") => self.width.set(str::parse_length(&attr.value())),
             _ => ()
         }
     }
