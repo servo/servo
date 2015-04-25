@@ -1385,7 +1385,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 if node.is_in_doc() {
                     let doc = document_from_node(*self).root();
                     if !value.as_slice().is_empty() {
-                        let value = Atom::from_slice(value.as_slice());
+                        let value = value.atom().unwrap().clone();
                         doc.r().register_named_element(*self, value);
                     }
                     doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
@@ -1423,7 +1423,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 if node.is_in_doc() {
                     let doc = document_from_node(*self).root();
                     if !value.as_slice().is_empty() {
-                        let value = Atom::from_slice(value.as_slice());
+                        let value = value.atom().unwrap().clone();
                         doc.r().unregister_named_element(*self, value);
                     }
                     doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
