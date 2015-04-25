@@ -2254,7 +2254,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 other_element.attrs().iter().map(|attr| attr.root()).any(|other_attr| {
                     (*attr.r().namespace() == *other_attr.r().namespace()) &&
                     (attr.r().local_name() == other_attr.r().local_name()) &&
-                    (attr.r().value().as_slice() == other_attr.r().value().as_slice())
+                    (**attr.r().value() == **other_attr.r().value())
                 })
             })
         }
@@ -2520,7 +2520,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
                         // FIXME(https://github.com/rust-lang/rust/issues/23338)
                         let attr = attr.r();
                         let value = attr.value();
-                        test(value.as_slice())
+                        test(&value)
                     })
             },
             NamespaceConstraint::Any => {
@@ -2530,7 +2530,7 @@ impl<'a> style::node::TNode<'a> for JSRef<'a, Node> {
                         // FIXME(https://github.com/rust-lang/rust/issues/23338)
                         let attr = attr.r();
                         let value = attr.value();
-                        test(value.as_slice())
+                        test(&value)
                     })
             }
         }

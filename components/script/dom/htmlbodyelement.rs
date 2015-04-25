@@ -108,12 +108,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
                 };
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   &name[2..],
-                                                  attr.value().as_slice().to_owned());
+                                                  (**attr.value()).to_owned());
         }
 
         match attr.local_name() {
             &atom!("bgcolor") => {
-                self.background_color.set(str::parse_legacy_color(attr.value().as_slice()).ok())
+                self.background_color.set(str::parse_legacy_color(&attr.value()).ok())
             }
             _ => {}
         }

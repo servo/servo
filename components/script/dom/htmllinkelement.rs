@@ -63,7 +63,7 @@ fn get_attr(element: JSRef<Element>, local_name: &Atom) -> Option<String> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let e = e.r();
         let value = e.value();
-        value.as_slice().to_owned()
+        (**value).to_owned()
     })
 }
 
@@ -99,7 +99,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
         match (rel, attr.local_name()) {
             (ref rel, &atom!("href")) | (ref rel, &atom!("media")) => {
                 if is_stylesheet(rel) {
-                    self.handle_stylesheet_url(attr.value().as_slice());
+                    self.handle_stylesheet_url(&attr.value());
                 }
             }
             (_, _) => ()
