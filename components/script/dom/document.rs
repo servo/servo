@@ -1120,7 +1120,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn CreateEvent(self, interface: DOMString) -> Fallible<Temporary<Event>> {
         let window = self.window.root();
 
-        match interface.to_ascii_lowercase().as_slice() {
+        match &*interface.to_ascii_lowercase() {
             "uievents" | "uievent" => Ok(EventCast::from_temporary(
                 UIEvent::new_uninitialized(window.r()))),
             "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(

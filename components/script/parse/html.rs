@@ -244,7 +244,7 @@ impl<'a> Serializable for JSRef<'a, Node> {
 
             (IncludeNode, NodeTypeId::DocumentType) => {
                 let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
-                serializer.write_doctype(doctype.name().as_slice())
+                serializer.write_doctype(&doctype.name())
             },
 
             (IncludeNode, NodeTypeId::Text) => {
@@ -290,7 +290,7 @@ pub fn parse_html(document: JSRef<Document>,
             match msg {
                 ProgressMsg::Payload(data) => {
                     // FIXME: use Vec<u8> (html5ever #34)
-                    let data = UTF_8.decode(data.as_slice(), DecoderTrap::Replace).unwrap();
+                    let data = UTF_8.decode(&data, DecoderTrap::Replace).unwrap();
                     parser.parse_chunk(data);
                 }
                 ProgressMsg::Done(Err(err)) => {

@@ -335,7 +335,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                 let mut modes = SandboxAllowance::AllowNothing as u8;
                 if let Some(ref tokens) = attr.value().tokens() {
                     for token in tokens.iter() {
-                        modes |= match token.as_slice().to_ascii_lowercase().as_slice() {
+                        modes |= match &*token.to_ascii_lowercase() {
                             "allow-same-origin" => SandboxAllowance::AllowSameOrigin,
                             "allow-forms" => SandboxAllowance::AllowForms,
                             "allow-pointer-lock" => SandboxAllowance::AllowPointerLock,

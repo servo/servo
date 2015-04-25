@@ -168,7 +168,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
     }
 
     fn GetContext(self, id: DOMString) -> Option<CanvasRenderingContext2DOrWebGLRenderingContext> {
-        match id.as_slice() {
+        match &*id {
            "2d" => {
                let context_2d = self.context_2d.or_init(|| {
                    let window = window_from_node(self).root();

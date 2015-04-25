@@ -85,7 +85,7 @@ macro_rules! make_url_or_base_getter(
             use std::ascii::AsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             let url = element.get_url_attribute(&Atom::from_slice($htmlname));
-            match url.as_slice() {
+            match &*url {
                 "" => {
                     let window = window_from_node(self).root();
                     window.r().get_url().serialize()
@@ -112,14 +112,14 @@ macro_rules! make_enumerated_getter(
             let val = element.get_string_attribute(&Atom::from_slice($htmlname))
                              .into_ascii_lowercase();
             // https://html.spec.whatwg.org/multipage/#attr-fs-method
-            match val.as_slice() {
+            match &*val {
                 $($choices)|+ => val,
                 _ => $default.to_owned()
             }
         }
     );
     ($attr:ident, $default:expr, $(($choices: pat))|+) => {
-        make_enumerated_getter!($attr, to_lower!(stringify!($attr)).as_slice(), $default, $(($choices))|+);
+        make_enumerated_getter!($attr, &to_lower!(stringify!($attr)), $default, $(($choices))|+);
     }
 );
 

@@ -186,7 +186,7 @@ fn to_snake_case(name: DOMString) -> DOMString {
 
 impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
     fn set_custom_attr(self, name: DOMString, value: DOMString) -> ErrorResult {
-        if name.as_slice().chars()
+        if name.chars()
                .skip_while(|&ch| ch != '\u{2d}')
                .nth(1).map_or(false, |ch| ch >= 'a' && ch <= 'z') {
             return Err(Syntax);

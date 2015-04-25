@@ -83,7 +83,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
         let ty = elem.get_string_attribute(&atom!("type")).into_ascii_lowercase();
         // https://html.spec.whatwg.org/multipage/#attr-button-type
-        match ty.as_slice() {
+        match &*ty {
             "reset" | "button" | "menu" => ty,
             _ => "submit".to_owned()
         }

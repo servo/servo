@@ -20,7 +20,7 @@ impl UrlHelper {
     pub fn Search(url: &Url) -> USVString {
         USVString(match url.query {
             None => "".to_owned(),
-            Some(ref query) if query.as_slice() == "" => "".to_owned(),
+            Some(ref query) if query.is_empty() => "".to_owned(),
             Some(ref query) => format!("?{}", query)
         })
     }
@@ -29,7 +29,7 @@ impl UrlHelper {
     pub fn Hash(url: &Url) -> USVString {
         USVString(match url.fragment {
             None => "".to_owned(),
-            Some(ref hash) if hash.as_slice() == "" => "".to_owned(),
+            Some(ref hash) if hash.is_empty() => "".to_owned(),
             Some(ref hash) => format!("#{}", hash)
         })
     }

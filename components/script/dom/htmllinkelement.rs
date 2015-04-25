@@ -70,8 +70,8 @@ fn get_attr(element: JSRef<Element>, local_name: &Atom) -> Option<String> {
 fn is_stylesheet(value: &Option<String>) -> bool {
     match *value {
         Some(ref value) => {
-            value.as_slice().split(HTML_SPACE_CHARACTERS.as_slice())
-                .any(|s| s.as_slice().eq_ignore_ascii_case("stylesheet"))
+            value.split(HTML_SPACE_CHARACTERS)
+                .any(|s| s.eq_ignore_ascii_case("stylesheet"))
         },
         None => false,
     }
@@ -126,7 +126,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
 
             match (rel, href) {
                 (ref rel, Some(ref href)) if is_stylesheet(rel) => {
-                    self.handle_stylesheet_url(href.as_slice());
+                    self.handle_stylesheet_url(href);
                 }
                 _ => {}
             }
