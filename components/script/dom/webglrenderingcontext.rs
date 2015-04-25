@@ -17,7 +17,7 @@ use dom::webgluniformlocation::{WebGLUniformLocation, WebGLUniformLocationHelper
 use geom::size::Size2D;
 use js::jsapi::{JSContext, JSObject};
 use js::jsfriendapi::bindgen::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
-use js::jsval::{JSVal, NullValue};
+use js::jsval::{JSVal, NullValue, Int32Value};
 use std::ptr;
 use std::sync::mpsc::{channel, Sender};
 use util::str::DOMString;
@@ -165,8 +165,9 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
             return NullValue();
         }
         let shader_id = shader.unwrap().get_id();
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderParameter(shader_id, param_id))).unwrap();
-        NullValue()
+        let (sender, receiver) = channel::<i32>();
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, sender))).unwrap();
+        Int32Value(receiver.recv().unwrap())
     }
 
     fn GetUniformLocation(self, program: Option<JSRef<WebGLProgram>>, name: DOMString) -> Option<Temporary<WebGLUniformLocation>> {
@@ -198,7 +199,6 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
         let data_vec: Vec<f32>;
         unsafe {
             let data_f32 = JS_GetFloat32ArrayData(data.unwrap(), cx);
-            //let data_f32 = static_cast<f32*>(data.unwrap());
             data_vec = Vec::from_raw_buf(data_f32, 4);
         }
         let uniform_id = uniform.unwrap().get_id();

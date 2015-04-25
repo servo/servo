@@ -65,7 +65,7 @@ pub enum CanvasWebGLMsg {
     EnableVertexAttribArray(u32),
     GetAttribLocation(u32, String, Sender<i32>),
     GetShaderInfoLog(u32, Sender<String>),
-    GetShaderParameter(u32, u32),
+    GetShaderParameter(u32, u32, Sender<i32>),
     GetUniformLocation(u32, String, Sender<u32>),
     LinkProgram(u32),
     ShaderSource(u32, Vec<String>),

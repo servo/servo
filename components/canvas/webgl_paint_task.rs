@@ -85,7 +85,7 @@ impl WebGLPaintTask {
                             CanvasWebGLMsg::EnableVertexAttribArray(attrib_id) => painter.enable_vertex_attrib_array(attrib_id),
                             CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) => painter.get_attrib_location(program_id, name, chan),
                             CanvasWebGLMsg::GetShaderInfoLog(shader_id, chan) => painter.get_shader_info_log(shader_id, chan),
-                            CanvasWebGLMsg::GetShaderParameter(shader_id, param_id) => painter.get_shader_parameter(shader_id, param_id),
+                            CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, chan) => painter.get_shader_parameter(shader_id, param_id, chan),
                             CanvasWebGLMsg::GetUniformLocation(program_id, name, chan) => painter.get_uniform_location(program_id, name, chan),
                             CanvasWebGLMsg::CompileShader(shader_id) => painter.compile_shader(shader_id),
                             CanvasWebGLMsg::CreateProgram(chan) => painter.create_program(chan),
@@ -96,7 +96,6 @@ impl WebGLPaintTask {
                             CanvasWebGLMsg::UseProgram(program_id) => painter.use_program(program_id),
                             CanvasWebGLMsg::VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset) => painter.vertext_attrib_pointer(attrib_id, size, data_type, normalized, stride, offset),
                             CanvasWebGLMsg::Viewport(x, y, width, height) => painter.viewport(x, y, width, height),
-
                         }
                     },
                     CanvasMsg::Common(message) => {
@@ -171,8 +170,9 @@ impl WebGLPaintTask {
         chan.send(info).unwrap();
     }
 
-    fn get_shader_parameter(&self, shader_id: u32, param_id: u32) {
-        //let info = gl::get_shader_parameter(shader_id, param_id);
+    fn get_shader_parameter(&self, shader_id: u32, param_id: u32, chan: Sender<i32>) {
+        let parameter = gl::get_shader_iv(shader_id, param_id);
+        chan.send(parameter as i32).unwrap();
     }
 
     fn get_uniform_location(&self, program_id: u32, name: String, chan: Sender<u32>) {
