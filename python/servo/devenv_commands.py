@@ -1,5 +1,5 @@
 from __future__ import print_function, unicode_literals
-from os import path, getcwd
+from os import path, getcwd, listdir
 
 import subprocess
 
@@ -86,6 +86,15 @@ class MachCommands(CommandBase):
     def grep(self, params):
         if not params:
             params = []
-        grep_paths = [path.join(self.context.topdir, 'components'),
-                      path.join(self.context.topdir, 'ports')]
+        # get all directories under tests/
+        tests_dirs = listdir('tests')
+        # Remove 'wpt' from obtained dir list
+        tests_dirs = filter(lambda dir: dir != 'wpt', tests_dirs)
+        # Set of directories in project root
+        root_dirs = ['components', 'ports', 'python', 'etc', 'resources']
+        # Generate absolute paths for directories in tests/ and project-root/
+        tests_dirs_abs = [self.context.topdir + '/tests/' + s for s in tests_dirs]
+        root_dirs_abs = [self.context.topdir + '/' + s for s in root_dirs]
+        # Absolute paths for all directories to be considered
+        grep_paths = root_dirs_abs + tests_dirs_abs
         return subprocess.call(["git"] + ["grep"] + params + ['--'] + grep_paths, env=self.build_env())
