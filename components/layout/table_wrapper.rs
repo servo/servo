@@ -288,7 +288,7 @@ impl Flow for TableWrapperFlow {
             TableLayout::Fixed => {}
             TableLayout::Auto => {
                 self.calculate_table_column_sizes_for_automatic_layout(
-                    intermediate_column_inline_sizes.as_mut_slice())
+                    &mut intermediate_column_inline_sizes)
             }
         }
 

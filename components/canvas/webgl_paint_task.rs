@@ -100,7 +100,7 @@ impl WebGLPaintTask {
                                     gl::RGBA, gl::UNSIGNED_BYTE);
 
         // rgba -> bgra
-        byte_swap(pixels.as_mut_slice());
+        byte_swap(&mut pixels);
         chan.send(pixels).unwrap();
     }
 

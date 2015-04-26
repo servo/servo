@@ -139,7 +139,7 @@ fn read_input_device(device_path: &Path,
     // XXX: Need to use the real dimensions of the screen
     let screen_dist = dist(0, 480, 854, 0);
     loop {
-        let read = match device.read(buf.as_mut_slice()) {
+        let read = match device.read(&mut buf) {
             Ok(count) => {
                 assert!(count % size_of::<linux_input_event>() == 0,
                         "Unexpected input device read length!");
