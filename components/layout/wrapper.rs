@@ -70,11 +70,13 @@ use std::sync::mpsc::Sender;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
+use selectors::matching::DeclarationBlock;
 use selectors::parser::{NamespaceConstraint, AttrSelector};
+use selectors::smallvec::VecLike;
 use style::legacy::{IntegerAttribute, LengthAttribute, SimpleColorAttribute};
 use style::legacy::{UnsignedIntegerAttribute};
 use style::node::{TElement, TElementAttributes, TNode};
-use style::properties::PropertyDeclarationBlock;
+use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use url::Url;
 
 /// Allows some convenience methods on generic layout nodes.
@@ -659,6 +661,14 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
 }
 
 impl<'le> TElementAttributes for LayoutElement<'le> {
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
+        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
+    {
+        unsafe {
+            self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
+        }
+    }
+
     fn get_length_attribute(self, length_attribute: LengthAttribute) -> LengthOrPercentageOrAuto {
         unsafe {
             self.element.get_length_attribute_for_layout(length_attribute)

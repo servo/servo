@@ -108,6 +108,14 @@ impl PresentationalHintSynthesis for Stylist {
                                                                    N::Element: TElementAttributes,
                                                                    V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {
         let element = node.as_element();
+
+        let length = matching_rules_list.vec_len();
+        element.synthesize_presentational_hints_for_legacy_attributes(matching_rules_list);
+        if matching_rules_list.vec_len() != length {
+            // Never share style for elements with preshints
+            *shareable = false;
+        }
+
         match element.get_local_name() {
             name if *name == atom!("td") => {
                 match element.get_length_attribute(LengthAttribute::Width) {

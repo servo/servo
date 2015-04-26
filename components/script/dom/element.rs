@@ -68,8 +68,9 @@ use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
 use html5ever::tree_builder::{NoQuirks, LimitedQuirks, Quirks};
-use selectors::matching::matches;
+use selectors::matching::{matches, DeclarationBlock};
 use selectors::parser::parse_author_origin_selector_list_from_str;
+use selectors::smallvec::VecLike;
 use string_cache::{Atom, Namespace, QualName};
 use url::UrlParser;
 
@@ -155,6 +156,9 @@ pub trait RawLayoutElementHelpers {
     unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &Atom) -> Option<Atom>;
     unsafe fn has_class_for_layout(&self, name: &Atom) -> bool;
     unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]>;
+
+    unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, &mut V)
+        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
     unsafe fn get_length_attribute_for_layout(&self, length_attribute: LengthAttribute)
                                               -> LengthOrPercentageOrAuto;
     unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
@@ -225,6 +229,11 @@ impl RawLayoutElementHelpers for Element {
         get_attr_for_layout(self, &ns!(""), &atom!("class")).map(|attr| {
             (*attr.unsafe_get()).value_tokens_forever().unwrap()
         })
+    }
+
+    unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _: &mut V)
+        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
+    {
     }
 
     #[inline]

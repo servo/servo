@@ -27,7 +27,7 @@ use std::slice::Iter;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use string_cache::{Atom, Namespace};
-use style::node::{TElement, TNode};
+use style::node::{TElement, TElementAttributes, TNode};
 use style::properties::{ComputedValues, cascade};
 use style::selector_matching::{Stylist, DeclarationBlock};
 use util::arc_ptr_eq;
@@ -287,6 +287,12 @@ impl StyleSharingCandidate {
 
         if *element.get_namespace() != self.namespace {
             return false
+        }
+
+        let mut matching_rules = vec![];
+        element.synthesize_presentational_hints_for_legacy_attributes(&mut matching_rules);
+        if !matching_rules.is_empty() {
+            return false;
         }
 
         // FIXME(pcwalton): It's probably faster to iterate over all the element's attributes and

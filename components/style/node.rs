@@ -7,11 +7,16 @@
 
 use cssparser::RGBA;
 use legacy::{IntegerAttribute, LengthAttribute, SimpleColorAttribute, UnsignedIntegerAttribute};
+use properties::PropertyDeclaration;
 use util::str::LengthOrPercentageOrAuto;
 
+use selectors::matching::DeclarationBlock;
+use selectors::smallvec::VecLike;
 pub use selectors::tree::{TNode, TElement};
 
 pub trait TElementAttributes : Copy {
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(self, &mut V)
+        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
     fn get_length_attribute(self, attribute: LengthAttribute) -> LengthOrPercentageOrAuto;
     fn get_integer_attribute(self, attribute: IntegerAttribute) -> Option<i32>;
     fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute) -> Option<u32>;
