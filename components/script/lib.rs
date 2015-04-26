@@ -21,6 +21,7 @@
 #![feature(nonzero)]
 #![feature(plugin)]
 #![feature(ref_slice)]
+#![feature(result_expect)]
 #![feature(rc_unique)]
 #![feature(str_utf16)]
 #![feature(unicode)]

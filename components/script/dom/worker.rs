@@ -28,12 +28,17 @@ use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use util::str::DOMString;
 
 use ipc_channel::ipc;
-use js::jsapi::{JSContext, HandleValue, RootedValue};
-use js::jsapi::{JSAutoRequest, JSAutoCompartment};
+use js::jsapi::{JSContext, JSRuntime, HandleValue, RootedValue};
+use js::jsapi::{JSAutoRequest, JSAutoCompartment, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
+use js::rust::Runtime;
 use url::UrlParser;
 
 use std::borrow::ToOwned;
+use std::cell::Cell;
+use std::ptr;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Sender};
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
@@ -46,19 +51,25 @@ pub struct Worker {
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
     sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+    closing: Arc<AtomicBool>,
+    rt: Cell<SharedRt>
 }
 
 impl Worker {
-    fn new_inherited(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Worker {
+    fn new_inherited(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+                     closing: Arc<AtomicBool>) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::Worker),
             global: GlobalField::from_rooted(&global),
             sender: sender,
+            closing: closing,
+            rt: Cell::new(SharedRt::null())
         }
     }
 
-    pub fn new(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Root<Worker> {
-        reflect_dom_object(box Worker::new_inherited(global, sender),
+    pub fn new(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+               closing: Arc<AtomicBool>) -> Root<Worker> {
+        reflect_dom_object(box Worker::new_inherited(global, sender, closing),
                            global,
                            WorkerBinding::Wrap)
     }
@@ -75,7 +86,8 @@ impl Worker {
         let constellation_chan = global.constellation_chan();
 
         let (sender, receiver) = channel();
-        let worker = Worker::new(global, sender.clone());
+        let closing = Arc::new(AtomicBool::new(false));
+        let worker = Worker::new(global, sender.clone(), closing.clone());
         let worker_ref = Trusted::new(global.get_cx(), worker.r(), global.script_chan());
         let worker_id = global.get_next_worker_id();
 
@@ -103,10 +115,16 @@ impl Worker {
             devtools_sender: optional_sender,
             constellation_chan: constellation_chan,
             worker_id: worker_id,
+            closing: closing,
         };
+
+        // temporary channel to get a SharedRt from the worker task
+        let (rt_sender, rt_receiver) = channel();
         DedicatedWorkerGlobalScope::run_worker_scope(
             init, worker_url, global.pipeline(), devtools_receiver, worker_ref,
-            global.script_chan(), sender, receiver);
+            global.script_chan(), sender, receiver, rt_sender);
+        // block until the JSRuntime arrives
+        worker.rt.set(rt_receiver.recv().expect("Error receiving runtime from worker task"));
 
         Ok(worker)
     }
@@ -114,6 +132,10 @@ impl Worker {
     pub fn handle_message(address: TrustedWorkerAddress,
                           data: StructuredCloneData) {
         let worker = address.root();
+
+        if worker.closing.load(Ordering::SeqCst) {
+            return;
+        }
 
         let global = worker.r().global.root();
         let target = EventTargetCast::from_ref(worker.r());
@@ -139,6 +161,11 @@ impl Worker {
     pub fn handle_error_message(address: TrustedWorkerAddress, message: DOMString,
                                 filename: DOMString, lineno: u32, colno: u32) {
         let worker = address.root();
+
+        if worker.closing.load(Ordering::SeqCst) {
+            return;
+        }
+
         let global = worker.r().global.root();
         let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
         let target = EventTargetCast::from_ref(worker.r());
@@ -157,6 +184,16 @@ impl<'a> WorkerMethods for &'a Worker {
         let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
         self.sender.send((address, ScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
+    }
+
+
+    // https://html.spec.whatwg.org/multipage/#terminate-a-worker
+    fn Terminate(self) {
+        if self.closing.swap(true, Ordering::SeqCst) {
+            return;
+        }
+
+        self.rt.get().request_interrupt();
     }
 
     event_handler!(message, GetOnmessage, SetOnmessage);
@@ -229,3 +266,40 @@ impl Runnable for WorkerErrorHandler {
         Worker::handle_error_message(this.addr, this.msg, this.file_name, this.line_num, this.col_num);
     }
 }
+
+#[allow(raw_pointer_derive)]
+#[derive(Copy, Clone)]
+pub struct SharedRt {
+    rt: *mut JSRuntime
+}
+
+impl SharedRt {
+    pub fn new(rt: &Runtime) -> SharedRt {
+        SharedRt {
+            rt: rt.rt()
+        }
+    }
+
+    pub fn null() -> SharedRt {
+        SharedRt {
+            rt: ptr::null_mut()
+        }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn request_interrupt(&self) {
+        assert!(!self.rt.is_null());
+
+        unsafe {
+            JS_RequestInterruptCallback(self.rt);
+        }
+    }
+}
+
+impl JSTraceable for SharedRt {
+    fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
+    }
+}
+
+#[allow(unsafe_code)]
+unsafe impl Send for SharedRt {}
