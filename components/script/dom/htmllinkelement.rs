@@ -60,7 +60,7 @@ impl HTMLLinkElement {
 
 fn get_attr(element: JSRef<Element>, local_name: &Atom) -> Option<String> {
     let elem = element.get_attribute(&ns!(""), local_name).root();
-    elem.map(|e| {
+    elem.as_ref().map(|e| {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let e = e.r();
         let value = e.value();

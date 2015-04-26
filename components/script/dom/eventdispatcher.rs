@@ -115,7 +115,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
     /* default action */
     let target = event.GetTarget().root();
     match target {
-        Some(target) => {
+        Some(ref target) => {
             let node: Option<JSRef<Node>> = NodeCast::to_ref(target.r());
             match node {
                 Some(node) => {

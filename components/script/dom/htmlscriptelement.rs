@@ -223,7 +223,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         }
 
         // Step 13.
-        if let Some(charset) = element.get_attribute(&ns!(""), &Atom::from_slice("charset")).root() {
+        if let Some(ref charset) = element.get_attribute(&ns!(""), &Atom::from_slice("charset")).root() {
             if let Some(encodingRef) = encoding_from_whatwg_label(&charset.r().Value()) {
                 *self.block_character_encoding.borrow_mut() = encodingRef;
             }
@@ -236,7 +236,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
 
         let load = match element.get_attribute(&ns!(""), &atom!("src")).root() {
             // Step 14.
-            Some(src) => {
+            Some(ref src) => {
                 // Step 14.1
                 let src = src.r().Value();
 

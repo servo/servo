@@ -966,7 +966,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }));
         let attribute = self.get_attribute(&ns!(""), local_name).root();
         match attribute {
-            Some(attribute) => {
+            Some(ref attribute) => {
                 match *attribute.r().value() {
                     AttrValue::UInt(_, value) => value,
                     _ => panic!("Expected an AttrValue::UInt: \
@@ -1460,7 +1460,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         if !tree_in_doc { return; }
 
-        if let Some(attr) = self.get_attribute(&ns!(""), &atom!("id")).root() {
+        if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("id")).root() {
             let doc = document_from_node(*self).root();
             let value = attr.r().Value();
             if !value.is_empty() {
@@ -1477,7 +1477,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         if !tree_in_doc { return; }
 
-        if let Some(attr) = self.get_attribute(&ns!(""), &atom!("id")).root() {
+        if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("id")).root() {
             let doc = document_from_node(*self).root();
             let value = attr.r().Value();
             if !value.is_empty() {
@@ -1699,7 +1699,7 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
         // Step 4
         let e = self.nearest_activable_element().root();
         match e {
-            Some(el) => match el.r().as_maybe_activatable() {
+            Some(ref el) => match el.r().as_maybe_activatable() {
                 Some(elem) => {
                     // Step 5-6
                     elem.pre_click_activation();
