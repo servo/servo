@@ -291,7 +291,7 @@ impl TextInput {
             }
             return Selection::NotSelected
         }
-        match event.Key().as_slice() {
+        match &*event.Key() {
            "a" if is_control_key(event) => {
                 self.select_all();
                 KeyReaction::Nothing
@@ -304,7 +304,7 @@ impl TextInput {
                     contents = Some(rx.recv().unwrap());
                 }
                 if let Some(contents) = contents {
-                    self.insert_string(contents.as_slice());
+                    self.insert_string(&contents);
                 }
                 KeyReaction::DispatchInput
             },

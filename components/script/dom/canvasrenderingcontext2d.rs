@@ -264,10 +264,7 @@ impl CanvasRenderingContext2D {
         };
         // Pixels come from cache in BGRA order and drawImage expects RGBA so we
         // have to swap the color values
-        {
-            let mut pixel_colors = image_data.as_mut_slice();
-            byte_swap(pixel_colors);
-        }
+        byte_swap(&mut image_data);
         return Some((image_data, image_size));
     }
 

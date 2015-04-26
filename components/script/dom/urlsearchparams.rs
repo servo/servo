@@ -116,10 +116,9 @@ pub trait URLSearchParamsHelpers {
 impl URLSearchParamsHelpers for URLSearchParams {
     fn serialize(&self, encoding: Option<EncodingRef>) -> Vec<u8> {
         // https://url.spec.whatwg.org/#concept-urlencoded-serializer
-        fn serialize_string(value: &DOMString, encoding: EncodingRef) -> Vec<u8> {
+        fn serialize_string(value: &str, encoding: EncodingRef) -> Vec<u8> {
             // https://url.spec.whatwg.org/#concept-urlencoded-byte-serializer
 
-            let value = value.as_slice();
             // XXXManishearth should this be a strict encoding? Can unwrap()ing the result fail?
             let value = encoding.encode(value, EncoderTrap::Replace).unwrap();
 

@@ -112,7 +112,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
             count
         };
         let mut data = self.data.borrow().slice_chars(0, offset as usize).to_owned();
-        data.push_str(arg.as_slice());
+        data.push_str(&arg);
         data.push_str(&self.data.borrow().slice_chars((offset + count) as usize, length as usize));
         *self.data.borrow_mut() = data;
         // FIXME: Once we have `Range`, we should implement step7 to step11

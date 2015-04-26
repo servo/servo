@@ -516,7 +516,7 @@ impl<'a> CanvasPaintTask<'a> {
         let mut dest_data = self.read_pixels(dest_rect, canvas_size);
 
         // bgra -> rgba
-        byte_swap(dest_data.as_mut_slice());
+        byte_swap(&mut dest_data);
         chan.send(dest_data).unwrap();
     }
 
@@ -530,7 +530,7 @@ impl<'a> CanvasPaintTask<'a> {
 
         assert!(image_data_rect.size.width * image_data_rect.size.height * 4.0 == imagedata.len() as f64);
         // rgba -> bgra
-        byte_swap(imagedata.as_mut_slice());
+        byte_swap(&mut imagedata);
 
         let image_rect = Rect(Point2D(0f64, 0f64),
                                Size2D(image_data_rect.size.width, image_data_rect.size.height));

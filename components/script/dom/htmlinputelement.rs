@@ -372,7 +372,7 @@ fn in_same_group<'a,'b>(other: JSRef<'a, HTMLInputElement>,
     other_owner.equals(owner) &&
     // TODO should be a unicode compatibility caseless match
     match (other.get_radio_group_name(), group) {
-        (Some(ref s1), Some(s2)) => s1.as_slice() == s2,
+        (Some(ref s1), Some(s2)) => &**s1 == s2,
         (None, None) => true,
         _ => false
     }
@@ -410,7 +410,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
             broadcast_radio_checked(self,
                                     self.get_radio_group_name()
                                         .as_ref()
-                                        .map(|group| group.as_slice()));
+                                        .map(|group| &**group));
         }
         //TODO: dispatch change event
     }
@@ -492,7 +492,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 if self.input_type.get() == InputType::InputRadio {
                     self.radio_group_updated(self.get_radio_group_name()
                                                  .as_ref()
-                                                 .map(|group| group.as_slice()));
+                                                 .map(|group| &**group));
                 }
             }
             &atom!("value") => {
@@ -543,7 +543,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                     broadcast_radio_checked(*self,
                                             self.get_radio_group_name()
                                                 .as_ref()
-                                                .map(|group| group.as_slice()));
+                                                .map(|group| &**group));
                 }
                 self.input_type.set(InputType::InputText);
             }
@@ -598,7 +598,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             s.handle_event(event);
         }
 
-        if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
+        if &*event.Type() == "click" && !event.DefaultPrevented() {
             match self.input_type.get() {
                 InputType::InputRadio => self.update_checked_state(true, true),
                 _ => {}
@@ -611,7 +611,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
 
             let doc = document_from_node(*self).root();
             doc.r().request_focus(ElementCast::from_ref(*self));
-        } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() &&
+        } else if &*event.Type() == "keydown" && !event.DefaultPrevented() &&
             (self.input_type.get() == InputType::InputText ||
              self.input_type.get() == InputType::InputPassword) {
                 let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
@@ -690,7 +690,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                                 .filter_map(HTMLInputElementCast::to_temporary)
                                 .map(|t| t.root())
                                 .find(|r| {
-                                    in_same_group(r.r(), owner.r(), group.as_ref().map(|gr| gr.as_slice())) &&
+                                    in_same_group(r.r(), owner.r(), group.as_ref().map(|gr| &**gr)) &&
                                     r.r().Checked()
                                 })
                     };

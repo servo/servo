@@ -42,9 +42,9 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
     //FIXME: The "callback this value" should be currentTarget
 
     /* capturing */
-    for cur_target in chain.as_slice().iter().rev() {
+    for cur_target in chain.iter().rev() {
         let cur_target = cur_target.root();
-        let stopped = match cur_target.r().get_listeners_for(type_.as_slice(), ListenerPhase::Capturing) {
+        let stopped = match cur_target.r().get_listeners_for(&type_, ListenerPhase::Capturing) {
             Some(listeners) => {
                 event.set_current_target(cur_target.r());
                 for listener in listeners.iter() {
@@ -71,7 +71,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
         event.set_phase(EventPhase::AtTarget);
         event.set_current_target(target.clone());
 
-        let opt_listeners = target.get_listeners(type_.as_slice());
+        let opt_listeners = target.get_listeners(&type_);
         for listeners in opt_listeners.iter() {
             for listener in listeners.iter() {
                 // Explicitly drop any exception on the floor.
@@ -90,7 +90,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
 
         for cur_target in chain.iter() {
             let cur_target = cur_target.root();
-            let stopped = match cur_target.r().get_listeners_for(type_.as_slice(), ListenerPhase::Bubbling) {
+            let stopped = match cur_target.r().get_listeners_for(&type_, ListenerPhase::Bubbling) {
                 Some(listeners) => {
                     event.set_current_target(cur_target.r());
                     for listener in listeners.iter() {
