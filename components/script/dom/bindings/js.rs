@@ -64,7 +64,6 @@ use std::cell::{Cell, UnsafeCell};
 use std::default::Default;
 use std::intrinsics::return_address;
 use std::marker::PhantomData;
-use std::mem;
 use std::ops::Deref;
 
 /// An unrooted, JS-owned value. Must not be held across a GC.
@@ -428,13 +427,6 @@ impl<T: Reflectable> LayoutJS<T> {
     /// this is unsafe is what necessitates the layout wrappers.)
     pub unsafe fn unsafe_get(&self) -> *const T {
         *self.ptr
-    }
-}
-
-impl<From> LayoutJS<From> {
-    /// Return `self` as a `LayoutJS` of another type.
-    pub unsafe fn transmute_copy<To>(&self) -> LayoutJS<To> {
-        mem::transmute_copy(self)
     }
 }
 

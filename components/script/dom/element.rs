@@ -389,7 +389,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if (*self.unsafe_get()).namespace != ns!(HTML) {
             return false
         }
-        let node: LayoutJS<Node> = self.transmute_copy();
+        let node = NodeCast::from_layout_js(&self);
         node.owner_doc_for_layout().is_html_document_for_layout()
     }
 
