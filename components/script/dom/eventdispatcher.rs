@@ -128,12 +128,6 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
         None => {}
     }
 
-    // Root ordering restrictions mean we need to unroot the chain entries
-    // in the same order they were rooted.
-    while chain.len() > 0 {
-        let _ = chain.pop();
-    }
-
     event.set_dispatching(false);
     event.set_phase(EventPhase::None);
     event.clear_current_target();
