@@ -56,7 +56,7 @@ enum ReadResult {
 fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     let mut buf = vec![0; 1024];
 
-    match reader.read(buf.as_mut_slice()) {
+    match reader.read(&mut buf) {
         Ok(len) if len > 0 => {
             unsafe { buf.set_len(len); }
             Ok(ReadResult::Payload(buf))
