@@ -138,6 +138,14 @@ impl DedicatedWorkerGlobalScope {
             own_sender, receiver);
         DedicatedWorkerGlobalScopeBinding::Wrap(cx.ptr, scope)
     }
+
+    fn get_closing(&self) -> bool {
+        WorkerGlobalScopeCast::from_actual(self).get_closing()
+    }
+
+    fn set_closing(&self, closing: bool) {
+        WorkerGlobalScopeCast::from_actual(self).set_closing(closing)
+    }
 }
 
 impl DedicatedWorkerGlobalScope {
@@ -187,6 +195,10 @@ impl DedicatedWorkerGlobalScope {
                     Ok((linked_worker, msg)) => {
                         let _ar = AutoWorkerReset::new(global.r(), linked_worker);
                         global.r().handle_event(msg);
+
+                        if global.r().get_closing() {
+                            break
+                        }
                     }
                     Err(_) => break,
                 }
@@ -250,11 +262,14 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
             ScriptMsg::RefcountCleanup(addr) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 LiveDOMReferences::cleanup(scope.get_cx(), addr);
-            }
+            },
             ScriptMsg::FireTimer(TimerSource::FromWorker, timer_id) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 scope.handle_fire_timer(timer_id);
-            }
+            },
+            ScriptMsg::Terminate => {
+                self.set_closing(true);
+            },
             _ => panic!("Unexpected message"),
         }
     }
@@ -273,11 +288,16 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
-        let data = try!(StructuredCloneData::write(cx, message));
-        let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(ScriptMsg::RunnableMsg(
-            box WorkerMessageHandler::new(worker, data))).unwrap();
-        Ok(())
+        match self.get_closing() {
+            false => {
+                let data = try!(StructuredCloneData::write(cx, message));
+                let worker = self.worker.borrow().as_ref().unwrap().clone();
+                self.parent_sender.send(ScriptMsg::RunnableMsg(
+                    box WorkerMessageHandler::new(worker, data))).unwrap();
+                Ok(())
+            },
+            true => Ok(())
+        }
     }
 
     event_handler!(message, GetOnmessage, SetOnmessage);

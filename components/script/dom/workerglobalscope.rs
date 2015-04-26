@@ -45,6 +45,7 @@ pub enum WorkerGlobalScopeTypeId {
 pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
     worker_url: Url,
+    closing: Cell<bool>,
     js_context: Rc<Cx>,
     next_worker_id: Cell<WorkerId>,
     resource_task: ResourceTask,
@@ -65,6 +66,7 @@ impl WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WorkerGlobalScope(type_id)),
             next_worker_id: Cell::new(WorkerId(0)),
             worker_url: worker_url,
+            closing: Cell::new(false),
             js_context: cx,
             resource_task: resource_task,
             location: Default::default(),
@@ -101,6 +103,16 @@ impl WorkerGlobalScope {
         let WorkerId(id_num) = worker_id;
         self.next_worker_id.set(WorkerId(id_num + 1));
         worker_id
+    }
+
+    // set_closing and get_closing should only be used from self and
+    // DedicatedWorkerGlobalScope.
+    pub fn get_closing(&self) -> bool {
+        self.closing.get()
+    }
+
+    pub fn set_closing(&self, closing: bool) {
+        self.closing.set(closing);
     }
 }
 

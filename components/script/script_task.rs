@@ -184,6 +184,9 @@ pub enum ScriptMsg {
     /// Message sent through Worker.postMessage (only dispatched to
     /// DedicatedWorkerGlobalScope).
     DOMMessage(StructuredCloneData),
+    /// Message sent by Worker.terminate (dispatched to either
+    /// WorkerGlobalScope or DedicatedGlobalScope)
+    Terminate,
     /// Generic message that encapsulates event handling.
     RunnableMsg(Box<Runnable+Send>),
     /// Generic message for running tasks in the ScriptTask
@@ -747,8 +750,6 @@ impl ScriptTask {
                 panic!("Worker timeouts must not be sent to script task"),
             ScriptMsg::ExitWindow(id) =>
                 self.handle_exit_window_msg(id),
-            ScriptMsg::DOMMessage(..) =>
-                panic!("unexpected message"),
             ScriptMsg::RunnableMsg(runnable) =>
                 runnable.handler(),
             ScriptMsg::MainThreadRunnableMsg(runnable) =>
@@ -757,6 +758,7 @@ impl ScriptTask {
                 LiveDOMReferences::cleanup(self.get_cx(), addr),
             ScriptMsg::PageFetchComplete(id, subpage, response) =>
                 self.handle_page_fetch_complete(id, subpage, response),
+            _ => panic!("unexpected message"),
         }
     }
 
