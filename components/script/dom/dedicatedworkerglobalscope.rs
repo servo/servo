@@ -149,6 +149,14 @@ impl DedicatedWorkerGlobalScope {
             parent_sender, own_sender, receiver);
         DedicatedWorkerGlobalScopeBinding::Wrap(runtime.cx(), scope)
     }
+
+    fn get_closing(&self) -> bool {
+        WorkerGlobalScopeCast::from_actual(self).get_closing()
+    }
+
+    fn set_closing(&self, closing: bool) {
+        WorkerGlobalScopeCast::from_actual(self).set_closing(closing)
+    }
 }
 
 impl DedicatedWorkerGlobalScope {
@@ -217,6 +225,10 @@ impl DedicatedWorkerGlobalScope {
                     Ok((linked_worker, msg)) => {
                         let _ar = AutoWorkerReset::new(global.r(), linked_worker);
                         global.r().handle_event(msg);
+
+                        if global.r().get_closing() {
+                            break
+                        }
                     }
                     Err(_) => break,
                 }
@@ -293,18 +305,21 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
             },
             ScriptMsg::RefcountCleanup(addr) => {
                 LiveDOMReferences::cleanup(addr);
-            }
+            },
             ScriptMsg::FireTimer(TimerSource::FromWorker, timer_id) => {
                 let scope = WorkerGlobalScopeCast::from_ref(self);
                 scope.handle_fire_timer(timer_id);
-            }
+            },
             ScriptMsg::CollectReports(reports_chan) => {
                 let scope = WorkerGlobalScopeCast::from_ref(self);
                 let cx = scope.get_cx();
                 let path_seg = format!("url({})", scope.get_url());
                 let reports = ScriptTask::get_reports(cx, path_seg);
                 reports_chan.send(reports);
-            }
+            },
+            ScriptMsg::Terminate => {
+                self.set_closing(true);
+            },
             _ => panic!("Unexpected message"),
         }
     }
@@ -323,6 +338,10 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
 impl<'a> DedicatedWorkerGlobalScopeMethods for &'a DedicatedWorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
     fn PostMessage(self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
+        if self.get_closing() {
+            return Ok(());
+        }
+
         let data = try!(StructuredCloneData::write(cx, message));
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         self.parent_sender.send(ScriptMsg::RunnableMsg(
