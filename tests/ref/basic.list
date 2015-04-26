@@ -98,6 +98,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == box_sizing_border_box_a.html box_sizing_border_box_ref.html
 == box_sizing_sanity_check_a.html box_sizing_sanity_check_ref.html
 == br.html br-ref.html
+== button_is_inline_block.html button_is_inline_block_ref.html
 == canvas_as_block_element_a.html canvas_as_block_element_ref.html
 == case-insensitive-font-family.html case-insensitive-font-family-ref.html
 == clear_generated_content_table_a.html clear_generated_content_table_ref.html
