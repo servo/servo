@@ -164,7 +164,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 
         #[allow(unsafe_code)]
         unsafe fn get_raw_attr_value(input: LayoutJS<HTMLInputElement>) -> Option<String> {
-            let elem: LayoutJS<Element> = input.transmute_copy();
+            let elem = ElementCast::from_layout_js(&input);
             (*elem.unsafe_get()).get_attr_val_for_layout(&ns!(""), &atom!("value"))
                                 .map(|s| s.to_owned())
         }
