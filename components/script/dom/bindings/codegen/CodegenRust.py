@@ -4492,6 +4492,7 @@ class CGDictionary(CGThing):
                        for m in self.memberInfo]
 
         return (string.Template(
+                "#[no_move]\n" +
                 "pub struct ${selfName} {\n" +
                 "${inheritance}" +
                 "\n".join(memberDecls) + "\n" +

@@ -1195,7 +1195,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
         match title {
             None => DOMString::new(),
-            Some(title) => {
+            Some(ref title) => {
                 // Steps 3-4.
                 let value = Node::collect_text_contents(title.r().children());
                 split_html_space_chars(&value).collect::<Vec<_>>().connect(" ")
@@ -1310,9 +1310,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             return Ok(());
         }
 
-        match (self.get_html_element().root(), old_body) {
+        match (self.get_html_element().root(), &old_body) {
             // Step 3.
-            (Some(ref root), Some(ref child)) => {
+            (Some(ref root), &Some(ref child)) => {
                 let root: JSRef<Node> = NodeCast::from_ref(root.r());
                 let child: JSRef<Node> = NodeCast::from_ref(child.r());
                 let new_body: JSRef<Node> = NodeCast::from_ref(new_body);
@@ -1323,7 +1323,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             (None, _) => return Err(HierarchyRequest),
 
             // Step 5.
-            (Some(ref root), None) => {
+            (Some(ref root), &None) => {
                 let root: JSRef<Node> = NodeCast::from_ref(root.r());
                 let new_body: JSRef<Node> = NodeCast::from_ref(new_body);
                 assert!(root.AppendChild(new_body).is_ok());

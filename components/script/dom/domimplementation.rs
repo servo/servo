@@ -92,7 +92,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
             // Step 5.
             match maybe_elem.root() {
                 None => (),
-                Some(elem) => {
+                Some(ref elem) => {
                     assert!(doc_node.AppendChild(NodeCast::from_ref(elem.r())).is_ok())
                 }
             }
