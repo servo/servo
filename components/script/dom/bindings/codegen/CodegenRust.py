@@ -3745,6 +3745,14 @@ class CGProxyNamedGetter(CGProxySpecialOperation):
         self.templateValues = templateValues
         CGProxySpecialOperation.__init__(self, descriptor, 'NamedGetter')
 
+class CGProxyNamedPresenceChecker(CGProxyNamedGetter):
+    """
+    Class to generate a call that checks whether a named property exists.
+    For now, we just delegate to CGProxyNamedGetter
+    """
+    def __init__(self, descriptor):
+        CGProxyNamedGetter.__init__(self, descriptor)
+
 class CGProxyNamedSetter(CGProxySpecialOperation):
     """
     Class to generate a call to a named setter.
@@ -3911,21 +3919,28 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "    let this = Unrooted::from_raw(this);\n" +
                     "    let this = this.root();\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() +
+                    "    return true;\n" +
+                    "} else {\n" +
+                    "    return false;\n" +
                     "}\n")
-        elif self.descriptor.operations['NamedGetter']:
-            set += ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
-                    "    let name = jsid_to_str(cx, id);\n" +
-                    "    let this = UnwrapProxy(proxy);\n" +
-                    "    let this = Unrooted::from_raw(this);\n" +
-                    "    let this = this.root();\n" +
-                    CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
-                    "    if (found) {\n"
-                    "        return false;\n" +
-                    "        //return ThrowErrorMessage(cx, MSG_NO_PROPERTY_SETTER, \"%s\");\n" +
-                    "    }\n" +
-                    "    return true;\n"
-                    "}\n") % (self.descriptor.name)
-        return set + """return proxyhandler::define_property(%s);""" % ", ".join(a.name for a in self.args)
+        else:
+            if self.descriptor.operations['NamedGetter']:
+                set += ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
+                        "    let name = jsid_to_str(cx, id);\n" +
+                        "    let this = UnwrapProxy(proxy);\n" +
+                        "    let this = Unrooted::from_raw(this);\n" +
+                        "    let this = this.root();\n" +
+                        CGProxyNamedPresenceChecker(self.descriptor).define() +
+                        "    if (found) {\n" +
+                        "        //return js::IsInNonStrictPropertySet(cx)\n" +
+                        "        //       ? opresult.succeed()\n" +
+                        "        //       : ThrowErrorMessage(cx, MSG_NO_NAMED_SETTER, \"${name}\");\n" +
+                        "        return true;\n" +
+                        "    }\n" +
+                        "}"
+                    ) % (self.descriptor.name, self.descriptor.name)
+            set += "return proxyhandler::define_property(%s);" % ", ".join(a.name for a in self.args)
+        return set
 
     def definition_body(self):
         return CGGeneric(self.getBody())
