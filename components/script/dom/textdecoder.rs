@@ -66,16 +66,16 @@ impl TextDecoder {
     fn serialize(mut self, stream: &[u8]) -> &[u8] {
         match self.encoding.name() {
             "utf-8" | "utf-16be" | "utf-16le" if (!self.ignoreBOM && !self.BOMseen) => {
-                match stream.get(0) {
-                    Some(token) => {
+                match (stream.get(0), stream.get(1)) {
+                    (Some(token1), Some(token2)) => {
                         self.BOMseen = true;
-                        if *token == 0xFEFF {
-                            stream.slice_from(1)
+                        if *token1 == 0xFE && *token2 == 0xFF {
+                            &stream[1..]
                         } else {
                             stream
                         }
                     },
-                    None => stream
+                    (_, _) => stream
                 }
             },
             _ => stream
