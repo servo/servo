@@ -298,7 +298,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         }
 
         let parent = self.parent_node().root();
-        parent.as_ref().map(|parent| vtable_for(&parent.r()).child_inserted(self));
+        parent.r().map(|parent| vtable_for(&parent).child_inserted(self));
         document.r().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
     }
 

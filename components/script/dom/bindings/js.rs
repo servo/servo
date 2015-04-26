@@ -577,6 +577,7 @@ impl<T: Assignable<U>, U: Reflectable> TemporaryPushable<T> for Vec<JS<U>> {
 ///
 /// See also [*Exact Stack Rooting - Storing a GCPointer on the CStack*]
 /// (https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Internals/GC/Exact_Stack_Rooting).
+#[no_move]
 pub struct RootCollection {
     roots: UnsafeCell<RootedVec<*mut JSObject>>,
 }

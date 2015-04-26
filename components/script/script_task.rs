@@ -937,7 +937,7 @@ impl ScriptTask {
             self.find_iframe(doc.r(), old_subpage_id)
         }).root();
 
-        frame_element.as_ref().unwrap().r().update_subpage_id(new_subpage_id);
+        frame_element.r().unwrap().update_subpage_id(new_subpage_id);
     }
 
     /// Handles a notification that reflow completed.
