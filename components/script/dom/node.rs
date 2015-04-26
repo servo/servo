@@ -24,9 +24,10 @@ use dom::bindings::conversions;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, LayoutJS, RootedReference, Temporary, Root, Unrooted};
-use dom::bindings::js::{TemporaryPushable, OptionalRootedRootable};
-use dom::bindings::js::{ResultRootable, OptionalRootable, MutNullableJS};
+use dom::bindings::js::{JS, JSRef, LayoutJS, OptionalRootable};
+use dom::bindings::js::{OptionalRootedRootable, MutNullableHeap};
+use dom::bindings::js::{ResultRootable, Root, RootedReference, Temporary};
+use dom::bindings::js::{TemporaryPushable, Unrooted};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
@@ -85,25 +86,25 @@ pub struct Node {
     type_id: NodeTypeId,
 
     /// The parent of this node.
-    parent_node: MutNullableJS<Node>,
+    parent_node: MutNullableHeap<JS<Node>>,
 
     /// The first child of this node.
-    first_child: MutNullableJS<Node>,
+    first_child: MutNullableHeap<JS<Node>>,
 
     /// The last child of this node.
-    last_child: MutNullableJS<Node>,
+    last_child: MutNullableHeap<JS<Node>>,
 
     /// The next sibling of this node.
-    next_sibling: MutNullableJS<Node>,
+    next_sibling: MutNullableHeap<JS<Node>>,
 
     /// The previous sibling of this node.
-    prev_sibling: MutNullableJS<Node>,
+    prev_sibling: MutNullableHeap<JS<Node>>,
 
     /// The document that this node belongs to.
-    owner_doc: MutNullableJS<Document>,
+    owner_doc: MutNullableHeap<JS<Document>>,
 
     /// The live list of children return by .childNodes.
-    child_list: MutNullableJS<NodeList>,
+    child_list: MutNullableHeap<JS<NodeList>>,
 
     /// A bitfield of flags for node items.
     flags: Cell<NodeFlags>,
@@ -328,31 +329,31 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
                 match before.prev_sibling().root() {
                     None => {
                         assert!(Some(*before) == self.first_child().root().r());
-                        self.first_child.assign(Some(new_child));
+                        self.first_child.set(Some(JS::from_rooted(new_child)));
                     },
                     Some(prev_sibling) => {
-                        prev_sibling.r().next_sibling.assign(Some(new_child));
-                        new_child.prev_sibling.assign(Some(prev_sibling.r()));
+                        prev_sibling.r().next_sibling.set(Some(JS::from_rooted(new_child)));
+                        new_child.prev_sibling.set(Some(JS::from_rooted(prev_sibling.r())));
                     },
                 }
-                before.prev_sibling.assign(Some(new_child));
-                new_child.next_sibling.assign(Some(*before));
+                before.prev_sibling.set(Some(JS::from_rooted(new_child)));
+                new_child.next_sibling.set(Some(JS::from_rooted(*before)));
             },
             None => {
                 match self.last_child().root() {
-                    None => self.first_child.assign(Some(new_child)),
+                    None => self.first_child.set(Some(JS::from_rooted(new_child))),
                     Some(last_child) => {
                         assert!(last_child.r().next_sibling().is_none());
-                        last_child.r().next_sibling.assign(Some(new_child));
-                        new_child.prev_sibling.assign(Some(last_child.r()));
+                        last_child.r().next_sibling.set(Some(JS::from_rooted(new_child)));
+                        new_child.prev_sibling.set(Some(JS::from_rooted(last_child.r())));
                     }
                 }
 
-                self.last_child.assign(Some(new_child));
+                self.last_child.set(Some(JS::from_rooted(new_child)));
             },
         }
 
-        new_child.parent_node.assign(Some(self));
+        new_child.parent_node.set(Some(JS::from_rooted(self)));
     }
 
     /// Removes the given child from this node's list of children.
@@ -363,25 +364,25 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
 
         match child.prev_sibling.get().root() {
             None => {
-                self.first_child.assign(child.next_sibling.get());
+                self.first_child.set(child.next_sibling.get());
             }
             Some(prev_sibling) => {
-                prev_sibling.r().next_sibling.assign(child.next_sibling.get());
+                prev_sibling.r().next_sibling.set(child.next_sibling.get());
             }
         }
 
         match child.next_sibling.get().root() {
             None => {
-                self.last_child.assign(child.prev_sibling.get());
+                self.last_child.set(child.prev_sibling.get());
             }
             Some(next_sibling) => {
-                next_sibling.r().prev_sibling.assign(child.prev_sibling.get());
+                next_sibling.r().prev_sibling.set(child.prev_sibling.get());
             }
         }
 
-        child.prev_sibling.clear();
-        child.next_sibling.clear();
-        child.parent_node.clear();
+        child.prev_sibling.set(None);
+        child.next_sibling.set(None);
+        child.parent_node.set(None);
     }
 }
 
@@ -569,25 +570,25 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn parent_node(self) -> Option<Temporary<Node>> {
-        self.parent_node.get()
+        self.parent_node.get().map(Temporary::new)
     }
 
     fn first_child(self) -> Option<Temporary<Node>> {
-        self.first_child.get()
+        self.first_child.get().map(Temporary::new)
     }
 
     fn last_child(self) -> Option<Temporary<Node>> {
-        self.last_child.get()
+        self.last_child.get().map(Temporary::new)
     }
 
     /// Returns the previous sibling of this node. Fails if this node is borrowed mutably.
     fn prev_sibling(self) -> Option<Temporary<Node>> {
-        self.prev_sibling.get()
+        self.prev_sibling.get().map(Temporary::new)
     }
 
     /// Returns the next sibling of this node. Fails if this node is borrowed mutably.
     fn next_sibling(self) -> Option<Temporary<Node>> {
-        self.next_sibling.get()
+        self.next_sibling.get().map(Temporary::new)
     }
 
     #[inline]
@@ -946,11 +947,11 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn owner_doc(self) -> Temporary<Document> {
-        self.owner_doc.get().unwrap()
+        Temporary::new(self.owner_doc.get().unwrap())
     }
 
     fn set_owner_doc(self, document: JSRef<Document>) {
-        self.owner_doc.assign(Some(document.clone()));
+        self.owner_doc.set(Some(JS::from_rooted(document)));
     }
 
     fn is_in_html_doc(self) -> bool {
@@ -959,7 +960,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     fn children(self) -> NodeSiblingIterator {
         NodeSiblingIterator {
-            current: self.first_child.get(),
+            current: self.first_child(),
         }
     }
 
@@ -1346,7 +1347,7 @@ impl Node {
             last_child: Default::default(),
             next_sibling: Default::default(),
             prev_sibling: Default::default(),
-            owner_doc: MutNullableJS::new(doc),
+            owner_doc: MutNullableHeap::new(doc.map(JS::from_rooted)),
             child_list: Default::default(),
             flags: Cell::new(NodeFlags::new(type_id)),
 
@@ -1872,7 +1873,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // https://dom.spec.whatwg.org/#dom-node-parentnode
     fn GetParentNode(self) -> Option<Temporary<Node>> {
-        self.parent_node.get()
+        self.parent_node.get().map(Temporary::new)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-parentelement
@@ -1902,22 +1903,22 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // https://dom.spec.whatwg.org/#dom-node-firstchild
     fn GetFirstChild(self) -> Option<Temporary<Node>> {
-        self.first_child.get()
+        self.first_child.get().map(Temporary::new)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-lastchild
     fn GetLastChild(self) -> Option<Temporary<Node>> {
-        self.last_child.get()
+        self.last_child.get().map(Temporary::new)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-previoussibling
     fn GetPreviousSibling(self) -> Option<Temporary<Node>> {
-        self.prev_sibling.get()
+        self.prev_sibling.get().map(Temporary::new)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-nextsibling
     fn GetNextSibling(self) -> Option<Temporary<Node>> {
-        self.next_sibling.get()
+        self.next_sibling.get().map(Temporary::new)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue

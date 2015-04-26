@@ -27,8 +27,9 @@ use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
 use dom::bindings::error::Error::NoModificationAllowed;
-use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
-use dom::bindings::js::{OptionalRootable, RootedReference};
+use dom::bindings::js::{JS, JSRef, LayoutJS, MutNullableHeap};
+use dom::bindings::js::{OptionalRootable, RootedReference, Temporary};
+use dom::bindings::js::TemporaryPushable;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{xml_name_type, validate_and_extract};
 use dom::bindings::utils::XMLName::InvalidXMLName;
@@ -88,8 +89,8 @@ pub struct Element {
     prefix: Option<DOMString>,
     attrs: DOMRefCell<Vec<JS<Attr>>>,
     style_attribute: DOMRefCell<Option<PropertyDeclarationBlock>>,
-    attr_list: MutNullableJS<NamedNodeMap>,
-    class_list: MutNullableJS<DOMTokenList>,
+    attr_list: MutNullableHeap<JS<NamedNodeMap>>,
+    class_list: MutNullableHeap<JS<DOMTokenList>>,
 }
 
 impl ElementDerived for EventTarget {

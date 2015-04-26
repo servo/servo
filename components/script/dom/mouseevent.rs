@@ -8,7 +8,8 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, MouseEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{MutNullableJS, JSRef, RootedReference, Temporary};
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, RootedReference};
+use dom::bindings::js::Temporary;
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -30,7 +31,7 @@ pub struct MouseEvent {
     alt_key: Cell<bool>,
     meta_key: Cell<bool>,
     button: Cell<i16>,
-    related_target: MutNullableJS<EventTarget>
+    related_target: MutNullableHeap<JS<EventTarget>>,
 }
 
 impl MouseEventDerived for Event {
@@ -142,7 +143,7 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
     }
 
     fn GetRelatedTarget(self) -> Option<Temporary<EventTarget>> {
-        self.related_target.get()
+        self.related_target.get().map(Temporary::new)
     }
 
     fn InitMouseEvent(self,
@@ -177,7 +178,7 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
         self.shift_key.set(shiftKeyArg);
         self.meta_key.set(metaKeyArg);
         self.button.set(buttonArg);
-        self.related_target.assign(relatedTargetArg);
+        self.related_target.set(relatedTargetArg.map(JS::from_rooted));
     }
 }
 

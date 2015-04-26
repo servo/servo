@@ -339,54 +339,50 @@ impl<T: HeapGCValue+Copy> MutHeap<T> {
     }
 }
 
-/// A mutable `JS<T>` value, with nullability represented by an enclosing
-/// Option wrapper. Must be used in place of traditional internal mutability
-/// to ensure that the proper GC barriers are enforced.
+/// A mutable holder for GC-managed values such as `JSval` and `JS<T>`, with
+/// nullability represented by an enclosing Option wrapper. Must be used in
+/// place of traditional internal mutability to ensure that the proper GC
+/// barriers are enforced.
 #[must_root]
 #[jstraceable]
-pub struct MutNullableJS<T: Reflectable> {
-    ptr: Cell<Option<JS<T>>>
+pub struct MutNullableHeap<T: HeapGCValue+Copy> {
+    ptr: Cell<Option<T>>
 }
 
-impl<U: Reflectable> MutNullableJS<U> {
-    /// Create a new `MutNullableJS`
-    pub fn new<T: Assignable<U>>(initial: Option<T>) -> MutNullableJS<U> {
-        MutNullableJS {
-            ptr: Cell::new(initial.map(|initial| {
-                unsafe { initial.get_js() }
-            }))
+impl<T: HeapGCValue+Copy> MutNullableHeap<T> {
+    /// Create a new `MutNullableHeap`.
+    pub fn new(initial: Option<T>) -> MutNullableHeap<T> {
+        MutNullableHeap {
+            ptr: Cell::new(initial)
         }
     }
-}
 
-impl<T: Reflectable> Default for MutNullableJS<T> {
-    fn default() -> MutNullableJS<T> {
-        MutNullableJS {
-            ptr: Cell::new(None)
-        }
-    }
-}
-
-impl<T: Reflectable> MutNullableJS<T> {
-    /// Store an unrooted value in this field. This is safe under the
-    /// assumption that `MutNullableJS<T>` values are only used as fields in
-    /// DOM types that are reachable in the GC graph, so this unrooted value
-    /// becomes transitively rooted for the lifetime of its new owner.
-    pub fn assign<U: Assignable<T>>(&self, val: Option<U>) {
-        self.ptr.set(val.map(|val| {
-            unsafe { val.get_js() }
-        }));
-    }
-
-    /// Set the inner value to null, without making API users jump through
-    /// useless type-ascription hoops.
-    pub fn clear(&self) {
-        self.assign(None::<JS<T>>);
+    /// Set this `MutNullableHeap` to the given value, calling write barriers
+    /// as appropriate.
+    pub fn set(&self, val: Option<T>) {
+        self.ptr.set(val);
     }
 
     /// Retrieve a copy of the current optional inner value.
-    pub fn get(&self) -> Option<Temporary<T>> {
-        self.ptr.get().map(Temporary::new)
+    pub fn get(&self) -> Option<T> {
+        self.ptr.get()
+    }
+}
+
+impl<T: Reflectable> MutNullableHeap<JS<T>> {
+    /// Retrieve a copy of the current inner value. If it is `None`, it is
+    /// initialized with the result of `cb` first.
+    pub fn or_init<F>(&self, cb: F) -> Temporary<T>
+        where F: FnOnce() -> Temporary<T>
+    {
+        match self.get() {
+            Some(inner) => Temporary::new(inner),
+            None => {
+                let inner = cb();
+                self.set(Some(JS::from_rooted(inner.clone())));
+                inner
+            },
+        }
     }
 
     /// Retrieve a copy of the inner optional `JS<T>` as `LayoutJS<T>`.
@@ -394,19 +390,12 @@ impl<T: Reflectable> MutNullableJS<T> {
     pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
         self.ptr.get().map(|js| js.to_layout())
     }
+}
 
-    /// Retrieve a copy of the current inner value. If it is `None`, it is
-    /// initialized with the result of `cb` first.
-    pub fn or_init<F>(&self, cb: F) -> Temporary<T>
-        where F: FnOnce() -> Temporary<T>
-    {
-        match self.get() {
-            Some(inner) => inner,
-            None => {
-                let inner = cb();
-                self.assign(Some(inner.clone()));
-                inner
-            },
+impl<T: HeapGCValue+Copy> Default for MutNullableHeap<T> {
+    fn default() -> MutNullableHeap<T> {
+        MutNullableHeap {
+            ptr: Cell::new(None)
         }
     }
 }
