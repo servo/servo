@@ -841,7 +841,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 .find(|r| r.r().form_owner() == owner);
         }
         match submit_button {
-            Some(button) => {
+            Some(ref button) => {
                 if button.r().is_instance_activatable() {
                     button.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey)
                 }

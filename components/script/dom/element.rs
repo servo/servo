@@ -728,7 +728,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_attributes(self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>) {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let attrs = self.attrs.borrow();
-        for attr in attrs.iter().map(|attr| attr.root()) {
+        for ref attr in attrs.iter().map(|attr| attr.root()) {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let attr_local_name = attr.local_name();
