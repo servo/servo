@@ -64,7 +64,6 @@ use std::cell::{Cell, UnsafeCell};
 use std::default::Default;
 use std::intrinsics::return_address;
 use std::marker::PhantomData;
-use std::mem;
 use std::ops::Deref;
 
 /// An unrooted, JS-owned value. Must not be held across a GC.
