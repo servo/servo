@@ -5453,7 +5453,7 @@ impl ${name}Cast {
     #[inline(always)]
     pub fn to_ref<'a, T: ${toBound}+Reflectable>(base: JSRef<'a, T>) -> Option<JSRef<'a, ${name}>> {
         match base.${checkFn}() {
-            true => unsafe { Some(base.transmute()) },
+            true => Some(unsafe { mem::transmute(base) }),
             false => None
         }
     }
@@ -5461,7 +5461,7 @@ impl ${name}Cast {
     #[inline(always)]
     pub fn to_borrowed_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a JSRef<'b, T>) -> Option<&'a JSRef<'b, ${name}>> {
         match base.${checkFn}() {
-            true => unsafe { Some(base.transmute_borrowed()) },
+            true => Some(unsafe { mem::transmute(base) }),
             false => None
         }
     }
@@ -5482,19 +5482,19 @@ impl ${name}Cast {
         let base = base.root();
         let base = base.r();
         match base.${checkFn}() {
-            true => Some(Temporary::from_rooted(unsafe { base.transmute() })),
+            true => Some(Temporary::from_rooted(unsafe { mem::transmute(base) })),
             false => None
         }
     }
 
     #[inline(always)]
     pub fn from_ref<'a, T: ${fromBound}+Reflectable>(derived: JSRef<'a, T>) -> JSRef<'a, ${name}> {
-        unsafe { derived.transmute() }
+        unsafe { mem::transmute(derived) }
     }
 
     #[inline(always)]
     pub fn from_borrowed_ref<'a, 'b, T: ${fromBound}+Reflectable>(derived: &'a JSRef<'b, T>) -> &'a JSRef<'b, ${name}> {
-        unsafe { derived.transmute_borrowed() }
+        unsafe { mem::transmute(derived) }
     }
 
     #[inline(always)]
@@ -5505,7 +5505,7 @@ impl ${name}Cast {
 
     #[inline(always)]
     pub fn from_temporary<T: ${fromBound}+Reflectable>(derived: Temporary<T>) -> Temporary<${name}> {
-        unsafe { derived.transmute() }
+        unsafe { mem::transmute(derived) }
     }
 
     #[inline(always)]

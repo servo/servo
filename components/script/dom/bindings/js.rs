@@ -438,13 +438,6 @@ impl<T: Reflectable> LayoutJS<T> {
     }
 }
 
-impl<From> JS<From> {
-    /// Return `self` as a `JS` of another type.
-    pub unsafe fn transmute_copy<To>(&self) -> JS<To> {
-        mem::transmute_copy(self)
-    }
-}
-
 impl<From> LayoutJS<From> {
     /// Return `self` as a `LayoutJS` of another type.
     pub unsafe fn transmute_copy<To>(&self) -> LayoutJS<To> {
@@ -748,18 +741,6 @@ impl<'a, 'b, T> PartialEq<JSRef<'b, T>> for JSRef<'a, T> {
 }
 
 impl<'a,T> JSRef<'a,T> {
-    /// Return `self` as a `JSRef` of another type.
-    //XXXjdm It would be lovely if this could be private.
-    pub unsafe fn transmute<To>(self) -> JSRef<'a, To> {
-        mem::transmute(self)
-    }
-
-    /// Return `self` as a borrowed reference to a `JSRef` of another type.
-    // FIXME(zwarich): It would be nice to get rid of this entirely.
-    pub unsafe fn transmute_borrowed<'b, To>(&'b self) -> &'b JSRef<'a, To> {
-        mem::transmute(self)
-    }
-
     /// Return an unrooted `JS<T>` for the inner pointer.
     pub fn unrooted(&self) -> JS<T> {
         JS {
