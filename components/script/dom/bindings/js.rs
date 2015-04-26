@@ -186,13 +186,6 @@ impl<T: Reflectable> Temporary<T> {
     unsafe fn inner(&self) -> JS<T> {
         self.inner.clone()
     }
-
-    /// Returns `self` as a `Temporary` of another type. For use by
-    /// `InheritTypes` only.
-    //XXXjdm It would be lovely if this could be private.
-    pub unsafe fn transmute<To>(self) -> Temporary<To> {
-        mem::transmute(self)
-    }
 }
 
 /// A traced reference to a DOM object. Must only be used as a field in other

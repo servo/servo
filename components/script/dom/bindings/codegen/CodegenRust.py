@@ -5479,10 +5479,8 @@ impl ${name}Cast {
 
     #[inline(always)]
     pub fn to_temporary<T: ${toBound}+Reflectable>(base: Temporary<T>) -> Option<Temporary<${name}>> {
-        let base = base.root();
-        let base = base.r();
-        match base.${checkFn}() {
-            true => Some(Temporary::from_rooted(unsafe { mem::transmute(base) })),
+        match base.root().r().${checkFn}() {
+            true => Some(unsafe { mem::transmute(base) }),
             false => None
         }
     }
