@@ -54,22 +54,25 @@ use dom::node::{document_from_node, NodeDamage};
 use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
+
 use devtools_traits::AttrInfo;
-use style::legacy::{SimpleColorAttribute, UnsignedIntegerAttribute, IntegerAttribute, LengthAttribute};
-use selectors::matching::matches;
-use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
-use selectors::parser::parse_author_origin_selector_list_from_str;
 use style;
+use style::legacy::{SimpleColorAttribute, UnsignedIntegerAttribute, IntegerAttribute, LengthAttribute};
+use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
 use util::namespace;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
+use cssparser::RGBA;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
 use html5ever::tree_builder::{NoQuirks, LimitedQuirks, Quirks};
+use selectors::matching::matches;
+use selectors::parser::parse_author_origin_selector_list_from_str;
+use string_cache::{Atom, Namespace, QualName};
+use url::UrlParser;
 
-use cssparser::RGBA;
 use std::ascii::AsciiExt;
 use std::borrow::{IntoCow, ToOwned};
 use std::cell::{Ref, RefMut};
@@ -77,8 +80,6 @@ use std::default::Default;
 use std::mem;
 use std::old_io::{MemWriter, Writer};
 use std::sync::Arc;
-use string_cache::{Atom, Namespace, QualName};
-use url::UrlParser;
 
 #[dom_struct]
 pub struct Element {
