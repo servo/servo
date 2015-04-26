@@ -9,20 +9,21 @@ use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::ErrorResult;
-use dom::bindings::global::GlobalRef;
+use dom::bindings::global::{GlobalRef, global_root_from_context};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::structuredclone::StructuredCloneData;
+use dom::bindings::trace::JSTraceable;
 use dom::messageevent::MessageEvent;
-use dom::worker::{SimpleWorkerErrorHandler, TrustedWorkerAddress, WorkerMessageHandler};
+use dom::worker::{SimpleWorkerErrorHandler, SharedRt, TrustedWorkerAddress, WorkerMessageHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{HandleValue, JSContext, RootedValue};
-use js::jsapi::{JSAutoCompartment, JSAutoRequest};
+use js::jsapi::{HandleValue, JS_SetInterruptCallback};
+use js::jsapi::{JSAutoCompartment, JSAutoRequest, JSContext, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
@@ -33,6 +34,7 @@ use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_
 use script_traits::{TimerEvent, TimerSource};
 use std::mem::replace;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
+use std::sync::{Arc, Mutex};
 use url::Url;
 use util::str::DOMString;
 use util::thread::spawn_named;
@@ -206,10 +208,12 @@ impl DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScopeBinding::Wrap(cx, scope)
     }
 
+    #[allow(unsafe_code)]
     pub fn run_worker_scope(init: WorkerGlobalScopeInit,
                             worker_url: Url,
                             id: PipelineId,
                             from_devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
+                            main_thread_rt: Arc<Mutex<Option<SharedRt>>>,
                             worker: TrustedWorkerAddress,
                             parent_sender: Box<ScriptChan + Send>,
                             own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
@@ -237,6 +241,7 @@ impl DedicatedWorkerGlobalScope {
             };
 
             let runtime = new_rt_and_cx();
+            *main_thread_rt.lock().unwrap() = Some(SharedRt::new(&runtime));
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
             ROUTER.route_ipc_receiver_to_mpsc_sender(from_devtools_receiver, devtools_mpsc_chan);
@@ -257,6 +262,15 @@ impl DedicatedWorkerGlobalScope {
             // registration (#6631), so we instead use a random number and cross our fingers.
             let scope = global.upcast::<WorkerGlobalScope>();
 
+            unsafe {
+                // Handle interrupt requests
+                JS_SetInterruptCallback(scope.runtime(), Some(interrupt_callback));
+            }
+
+            if scope.is_closing() {
+                return;
+            }
+
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
                 scope.execute_script(DOMString::from(source));
@@ -265,6 +279,9 @@ impl DedicatedWorkerGlobalScope {
             let reporter_name = format!("worker-reporter-{}", random::<u64>());
             scope.mem_profiler_chan().run_with_memory_reporting(|| {
                 while let Ok(event) = global.receive_event() {
+                    if scope.is_closing() {
+                        break;
+                    }
                     global.handle_event(event);
                 }
             }, reporter_name, parent_sender, CommonScriptMsg::CollectReports);
@@ -385,6 +402,19 @@ impl DedicatedWorkerGlobalScope {
             },
         }
     }
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
+    let global = global_root_from_context(cx);
+    let worker = match global.r() {
+        GlobalRef::Worker(w) => w,
+        _ => panic!("global for worker is not a worker scope")
+    };
+    assert!(worker.is::<DedicatedWorkerGlobalScope>());
+
+    // A false response causes the script to terminate
+    !worker.is_closing()
 }
 
 impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
