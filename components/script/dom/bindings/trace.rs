@@ -38,6 +38,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::utils::WindowProxyHandler;
+use dom::worker::SharedRt;
 use encoding::types::EncodingRef;
 use euclid::length::Length as EuclidLength;
 use euclid::matrix2d::Matrix2D;
@@ -319,6 +320,7 @@ no_jsmanaged_fields!(AttrIdentifier);
 no_jsmanaged_fields!(AttrValue);
 no_jsmanaged_fields!(ElementSnapshot);
 no_jsmanaged_fields!(HttpsState);
+no_jsmanaged_fields!(SharedRt);
 no_jsmanaged_fields!(TouchpadPressurePhase);
 
 impl JSTraceable for ConstellationChan<ScriptMsg> {
