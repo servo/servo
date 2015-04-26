@@ -71,7 +71,7 @@ use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
 use selectors::parser::{NamespaceConstraint, AttrSelector};
-use style::legacy::{IntegerAttribute, LengthAttribute, SimpleColorAttribute};
+use style::legacy::{IntegerAttribute, LengthAttribute, SimpleColorAttribute, UrlAttribute};
 use style::legacy::{UnsignedIntegerAttribute};
 use style::node::{TElement, TElementAttributes, TNode};
 use style::properties::PropertyDeclarationBlock;
@@ -680,6 +680,12 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
     fn get_simple_color_attribute(self, attribute: SimpleColorAttribute) -> Option<RGBA> {
         unsafe {
             self.element.get_simple_color_attribute_for_layout(attribute)
+        }
+    }
+
+    fn get_url_attribute(self, attribute: UrlAttribute) -> Option<Url> {
+        unsafe {
+            self.element.get_url_attribute_for_layout(attribute)
         }
     }
 }

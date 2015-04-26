@@ -7,7 +7,9 @@
 
 use cssparser::RGBA;
 use legacy::{IntegerAttribute, LengthAttribute, SimpleColorAttribute, UnsignedIntegerAttribute};
+use legacy::UrlAttribute;
 use util::str::LengthOrPercentageOrAuto;
+use url::Url;
 
 pub use selectors::tree::{TNode, TElement};
 
@@ -16,4 +18,5 @@ pub trait TElementAttributes : Copy {
     fn get_integer_attribute(self, attribute: IntegerAttribute) -> Option<i32>;
     fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute) -> Option<u32>;
     fn get_simple_color_attribute(self, attribute: SimpleColorAttribute) -> Option<RGBA>;
+    fn get_url_attribute(self, attribute: UrlAttribute) -> Option<Url>;
 }

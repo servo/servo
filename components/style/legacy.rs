@@ -14,7 +14,7 @@ use values::specified::CSSColor;
 use values::{CSSFloat, specified};
 use properties::DeclaredValue::SpecifiedValue;
 use properties::PropertyDeclaration;
-use properties::longhands::{self, border_spacing};
+use properties::longhands::{self, border_spacing, background_image};
 use selector_matching::Stylist;
 
 use cssparser::Color;
@@ -55,6 +55,12 @@ pub enum SimpleColorAttribute {
     /// `<body bgcolor>`
     BgColor,
 }
+
+pub enum UrlAttribute {
+    /// `<body background>`
+    Background,
+}
+
 
 /// Extension methods for `Stylist` that cause rules to be synthesized for legacy attributes.
 pub trait PresentationalHintSynthesis {
@@ -159,12 +165,26 @@ impl PresentationalHintSynthesis for Stylist {
                     }
                 }
             }
-            name if *name == atom!("body") || *name == atom!("tr") || *name == atom!("thead") ||
-                    *name == atom!("tbody") || *name == atom!("tfoot") => {
+            name if *name == atom!("body") => {
                 self.synthesize_presentational_hint_for_legacy_background_color_attribute(
-                    element,
-                    matching_rules_list,
-                    shareable);
+                                    element,
+                                    matching_rules_list,
+                                    shareable);
+                if let Some(url) = element.get_url_attribute(UrlAttribute::Background) {
+                    matching_rules_list.vec_push(from_declaration(
+                            PropertyDeclaration::BackgroundImage(
+                                SpecifiedValue(
+                                    background_image::SpecifiedValue(
+                                        Some(specified::Image::Url(url)))))));
+                    *shareable = false
+                }
+            }
+            name if *name == atom!("tr") || *name == atom!("thead") || *name == atom!("tbody") ||
+                    *name == atom!("tfoot") => {
+                self.synthesize_presentational_hint_for_legacy_background_color_attribute(
+                                    element,
+                                    matching_rules_list,
+                                    shareable);
             }
             name if *name == atom!("input") => {
                 // FIXME(pcwalton): More use of atoms, please!

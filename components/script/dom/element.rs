@@ -56,6 +56,7 @@ use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use devtools_traits::AttrInfo;
 use style::legacy::{SimpleColorAttribute, UnsignedIntegerAttribute, IntegerAttribute, LengthAttribute};
+use style::legacy::{UrlAttribute};
 use selectors::matching::matches;
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
 use selectors::parser::parse_author_origin_selector_list_from_str;
@@ -78,7 +79,7 @@ use std::mem;
 use std::old_io::{MemWriter, Writer};
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, QualName};
-use url::UrlParser;
+use url::{Url, UrlParser};
 
 #[dom_struct]
 pub struct Element {
@@ -164,6 +165,8 @@ pub trait RawLayoutElementHelpers {
                                                         -> Option<u32>;
     unsafe fn get_simple_color_attribute_for_layout(&self, attribute: SimpleColorAttribute)
                                                     -> Option<RGBA>;
+    unsafe fn get_url_attribute_for_layout(&self, attribute: UrlAttribute)
+                                                    -> Option<Url>;
     fn local_name<'a>(&'a self) -> &'a Atom;
     fn namespace<'a>(&'a self) -> &'a Namespace;
     fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>>;
@@ -353,6 +356,21 @@ impl RawLayoutElementHelpers for Element {
                 } else if self.is_htmltablesectionelement() {
                     let this: &HTMLTableSectionElement = mem::transmute(self);
                     this.get_background_color()
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    #[inline]
+    #[allow(unrooted_must_root)]
+    unsafe fn get_url_attribute_for_layout(&self, attribute: UrlAttribute) -> Option<Url> {
+        match attribute {
+            UrlAttribute::Background => {
+                if self.is_htmlbodyelement() {
+                    let this: &HTMLBodyElement = mem::transmute(self);
+                    this.get_background()
                 } else {
                     None
                 }
