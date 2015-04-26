@@ -23,6 +23,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCel
 use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTextAreaElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLTableDataCellElementDerived;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
@@ -57,12 +58,14 @@ use dom::virtualmethods::{VirtualMethods, vtable_for};
 
 use devtools_traits::AttrInfo;
 use style;
-use style::legacy::{SimpleColorAttribute, UnsignedIntegerAttribute, IntegerAttribute, LengthAttribute};
+use style::legacy::{UnsignedIntegerAttribute, IntegerAttribute, LengthAttribute, from_declaration};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
+use style::properties::DeclaredValue::SpecifiedValue;
+use style::values::specified::CSSColor;
 use util::namespace;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
-use cssparser::RGBA;
+use cssparser::Color;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
@@ -167,8 +170,7 @@ pub trait RawLayoutElementHelpers {
     unsafe fn get_indeterminate_state_for_layout(&self) -> bool;
     unsafe fn get_unsigned_integer_attribute_for_layout(&self, attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32>;
-    unsafe fn get_simple_color_attribute_for_layout(&self, attribute: SimpleColorAttribute)
-                                                    -> Option<RGBA>;
+
     fn local_name<'a>(&'a self) -> &'a Atom;
     fn namespace<'a>(&'a self) -> &'a Namespace;
     fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>>;
@@ -231,9 +233,33 @@ impl RawLayoutElementHelpers for Element {
         })
     }
 
-    unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _: &mut V)
+    unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
+        let bgcolor = if self.is_htmlbodyelement() {
+            let this: &HTMLBodyElement = mem::transmute(self);
+            this.get_background_color()
+        } else if self.is_htmltableelement() {
+            let this: &HTMLTableElement = mem::transmute(self);
+            this.get_background_color()
+        } else if self.is_htmltabledatacellelement() {
+            let this: &HTMLTableCellElement = mem::transmute(self);
+            this.get_background_color()
+        } else if self.is_htmltablerowelement() {
+            let this: &HTMLTableRowElement = mem::transmute(self);
+            this.get_background_color()
+        } else if self.is_htmltablesectionelement() {
+            let this: &HTMLTableSectionElement = mem::transmute(self);
+            this.get_background_color()
+        } else {
+            None
+        };
+
+        if let Some(color) = bgcolor {
+            hints.vec_push(from_declaration(
+                PropertyDeclaration::BackgroundColor(SpecifiedValue(
+                    CSSColor { parsed: Color::RGBA(color), authored: None }))));
+        }
     }
 
     #[inline]
@@ -336,34 +362,6 @@ impl RawLayoutElementHelpers for Element {
                 } else {
                     // Don't panic since `display` can cause this to be called on arbitrary
                     // elements.
-                    None
-                }
-            }
-        }
-    }
-
-    #[inline]
-    #[allow(unrooted_must_root)]
-    unsafe fn get_simple_color_attribute_for_layout(&self, attribute: SimpleColorAttribute)
-                                                    -> Option<RGBA> {
-        match attribute {
-            SimpleColorAttribute::BgColor => {
-                if self.is_htmlbodyelement() {
-                    let this: &HTMLBodyElement = mem::transmute(self);
-                    this.get_background_color()
-                } else if self.is_htmltableelement() {
-                    let this: &HTMLTableElement = mem::transmute(self);
-                    this.get_background_color()
-                } else if self.is_htmltablecellelement() {
-                    let this: &HTMLTableCellElement = mem::transmute(self);
-                    this.get_background_color()
-                } else if self.is_htmltablerowelement() {
-                    let this: &HTMLTableRowElement = mem::transmute(self);
-                    this.get_background_color()
-                } else if self.is_htmltablesectionelement() {
-                    let this: &HTMLTableSectionElement = mem::transmute(self);
-                    this.get_background_color()
-                } else {
                     None
                 }
             }

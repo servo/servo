@@ -39,7 +39,6 @@ use incremental::RestyleDamage;
 use data::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
 use opaque_node::OpaqueNodeMethods;
 
-use cssparser::RGBA;
 use gfx::display_list::OpaqueNode;
 use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLCanvasElementCast};
@@ -73,7 +72,7 @@ use style::computed_values::{content, display, white_space};
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{NamespaceConstraint, AttrSelector};
 use selectors::smallvec::VecLike;
-use style::legacy::{IntegerAttribute, LengthAttribute, SimpleColorAttribute};
+use style::legacy::{IntegerAttribute, LengthAttribute};
 use style::legacy::{UnsignedIntegerAttribute};
 use style::node::{TElement, TElementAttributes, TNode};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
@@ -684,12 +683,6 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
     fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute) -> Option<u32> {
         unsafe {
             self.element.get_unsigned_integer_attribute_for_layout(attribute)
-        }
-    }
-
-    fn get_simple_color_attribute(self, attribute: SimpleColorAttribute) -> Option<RGBA> {
-        unsafe {
-            self.element.get_simple_color_attribute_for_layout(attribute)
         }
     }
 }

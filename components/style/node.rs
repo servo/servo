@@ -5,8 +5,7 @@
 //! Traits that nodes must implement. Breaks the otherwise-cyclic dependency between layout and
 //! style.
 
-use cssparser::RGBA;
-use legacy::{IntegerAttribute, LengthAttribute, SimpleColorAttribute, UnsignedIntegerAttribute};
+use legacy::{IntegerAttribute, LengthAttribute, UnsignedIntegerAttribute};
 use properties::PropertyDeclaration;
 use util::str::LengthOrPercentageOrAuto;
 
@@ -20,5 +19,4 @@ pub trait TElementAttributes : Copy {
     fn get_length_attribute(self, attribute: LengthAttribute) -> LengthOrPercentageOrAuto;
     fn get_integer_attribute(self, attribute: IntegerAttribute) -> Option<i32>;
     fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute) -> Option<u32>;
-    fn get_simple_color_attribute(self, attribute: SimpleColorAttribute) -> Option<RGBA>;
 }
