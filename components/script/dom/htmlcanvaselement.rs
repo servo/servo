@@ -11,7 +11,8 @@ use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRenderingContext;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{MutNullableJS, JSRef, LayoutJS, Temporary, Unrooted};
+use dom::bindings::js::{JS, JSRef, LayoutJS, MutNullableHeap, Temporary};
+use dom::bindings::js::Unrooted;
 use dom::bindings::utils::{Reflectable};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
@@ -37,8 +38,8 @@ const DEFAULT_HEIGHT: u32 = 150;
 #[dom_struct]
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
-    context_2d: MutNullableJS<CanvasRenderingContext2D>,
-    context_webgl: MutNullableJS<WebGLRenderingContext>,
+    context_2d: MutNullableHeap<JS<CanvasRenderingContext2D>>,
+    context_webgl: MutNullableHeap<JS<WebGLRenderingContext>>,
     width: Cell<u32>,
     height: Cell<u32>,
 }

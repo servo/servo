@@ -24,8 +24,10 @@ use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
 use dom::bindings::error::Error::HierarchyRequest;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
-use dom::bindings::js::{OptionalRootable, RootedReference};
+use dom::bindings::js::{JS, JSRef, LayoutJS, MutNullableHeap};
+use dom::bindings::js::{OptionalRootable, OptionalRootedRootable};
+use dom::bindings::js::{RootedReference, Temporary};
+use dom::bindings::js::TemporaryPushable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::reflect_dom_object;
@@ -102,28 +104,28 @@ pub struct Document {
     node: Node,
     window: JS<Window>,
     idmap: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
-    implementation: MutNullableJS<DOMImplementation>,
-    location: MutNullableJS<Location>,
+    implementation: MutNullableHeap<JS<DOMImplementation>>,
+    location: MutNullableHeap<JS<Location>>,
     content_type: DOMString,
     last_modified: Option<DOMString>,
     encoding_name: DOMRefCell<DOMString>,
     is_html_document: bool,
     url: Url,
     quirks_mode: Cell<QuirksMode>,
-    images: MutNullableJS<HTMLCollection>,
-    embeds: MutNullableJS<HTMLCollection>,
-    links: MutNullableJS<HTMLCollection>,
-    forms: MutNullableJS<HTMLCollection>,
-    scripts: MutNullableJS<HTMLCollection>,
-    anchors: MutNullableJS<HTMLCollection>,
-    applets: MutNullableJS<HTMLCollection>,
+    images: MutNullableHeap<JS<HTMLCollection>>,
+    embeds: MutNullableHeap<JS<HTMLCollection>>,
+    links: MutNullableHeap<JS<HTMLCollection>>,
+    forms: MutNullableHeap<JS<HTMLCollection>>,
+    scripts: MutNullableHeap<JS<HTMLCollection>>,
+    anchors: MutNullableHeap<JS<HTMLCollection>>,
+    applets: MutNullableHeap<JS<HTMLCollection>>,
     ready_state: Cell<DocumentReadyState>,
     /// The element that has most recently requested focus for itself.
-    possibly_focused: MutNullableJS<Element>,
+    possibly_focused: MutNullableHeap<JS<Element>>,
     /// The element that currently has the document focus context.
-    focused: MutNullableJS<Element>,
+    focused: MutNullableHeap<JS<Element>>,
     /// The script element that is currently executing.
-    current_script: MutNullableJS<HTMLScriptElement>,
+    current_script: MutNullableHeap<JS<HTMLScriptElement>>,
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: Cell<bool>,
@@ -440,19 +442,19 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     /// Return the element that currently has focus.
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#events-focusevent-doc-focus
     fn get_focused_element(self) -> Option<Temporary<Element>> {
-        self.focused.get()
+        self.focused.get().map(Temporary::new)
     }
 
     /// Initiate a new round of checking for elements requesting focus. The last element to call
     /// `request_focus` before `commit_focus_transaction` is called will receive focus.
     fn begin_focus_transaction(self) {
-        self.possibly_focused.clear();
+        self.possibly_focused.set(None);
     }
 
     /// Request that the given element receive focus once the current transaction is complete.
     fn request_focus(self, elem: JSRef<Element>) {
         if elem.is_focusable_area() {
-            self.possibly_focused.assign(Some(elem))
+            self.possibly_focused.set(Some(JS::from_rooted(elem)))
         }
     }
 
@@ -466,7 +468,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             node.set_focus_state(false);
         }
 
-        self.focused.assign(self.possibly_focused.get());
+        self.focused.set(self.possibly_focused.get());
 
         if let Some(ref elem) = self.focused.get().root() {
             let node: JSRef<Node> = NodeCast::from_ref(elem.r());
@@ -741,7 +743,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     }
 
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>) {
-        self.current_script.assign(script);
+        self.current_script.set(script.map(JS::from_rooted));
     }
 
     fn trigger_mozbrowser_event(self, event: MozBrowserEvent) {
@@ -1250,7 +1252,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // https://html.spec.whatwg.org/#dom-document-currentscript
     fn GetCurrentScript(self) -> Option<Temporary<HTMLScriptElement>> {
-        self.current_script.get()
+        self.current_script.get().map(Temporary::new)
     }
 
     // https://html.spec.whatwg.org/#dom-document-body

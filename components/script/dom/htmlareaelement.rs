@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::ElementCast;
-use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
@@ -24,7 +24,7 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct HTMLAreaElement {
     htmlelement: HTMLElement,
-    rel_list: MutNullableJS<DOMTokenList>,
+    rel_list: MutNullableHeap<JS<DOMTokenList>>,
 }
 
 impl HTMLAreaElementDerived for EventTarget {

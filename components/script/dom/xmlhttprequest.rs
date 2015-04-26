@@ -14,7 +14,8 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidState, InvalidAccess};
 use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
-use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRootable};
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
+use dom::bindings::js::OptionalRootedRootable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
@@ -125,7 +126,7 @@ pub struct XMLHttpRequest {
     status_text: DOMRefCell<ByteString>,
     response: DOMRefCell<ByteString>,
     response_type: Cell<XMLHttpRequestResponseType>,
-    response_xml: MutNullableJS<Document>,
+    response_xml: MutNullableHeap<JS<Document>>,
     response_headers: DOMRefCell<Headers>,
 
     // Associated concepts
@@ -710,7 +711,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
     fn GetResponseXML(self) -> Option<Temporary<Document>> {
-        self.response_xml.get()
+        self.response_xml.get().map(Temporary::new)
     }
 }
 

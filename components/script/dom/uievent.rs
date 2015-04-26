@@ -8,7 +8,8 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{MutNullableJS, JSRef, RootedReference, Temporary};
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, RootedReference};
+use dom::bindings::js::Temporary;
 
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
@@ -22,7 +23,7 @@ use std::default::Default;
 #[dom_struct]
 pub struct UIEvent {
     event: Event,
-    view: MutNullableJS<Window>,
+    view: MutNullableHeap<JS<Window>>,
     detail: Cell<i32>
 }
 
@@ -73,7 +74,7 @@ impl UIEvent {
 impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-UIEvent-view
     fn GetView(self) -> Option<Temporary<Window>> {
-        self.view.get()
+        self.view.get().map(Temporary::new)
     }
 
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-UIEvent-detail
@@ -93,7 +94,7 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
         }
 
         event.InitEvent(type_, can_bubble, cancelable);
-        self.view.assign(view);
+        self.view.set(view.map(JS::from_rooted));
         self.detail.set(detail);
     }
 }

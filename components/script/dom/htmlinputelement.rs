@@ -14,8 +14,9 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInp
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Comparable, JSRef, LayoutJS, Root, Temporary, OptionalRootable};
-use dom::bindings::js::{ResultRootable, RootedReference, MutNullableJS};
+use dom::bindings::js::{Comparable, JS, JSRef, LayoutJS, MutNullableHeap};
+use dom::bindings::js::{OptionalRootable, OptionalRootedRootable};
+use dom::bindings::js::{ResultRootable, Root, RootedReference, Temporary};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, Element};
 use dom::element::{RawLayoutElementHelpers, ActivationElementHelpers};
@@ -80,7 +81,7 @@ struct InputActivationState {
     indeterminate: bool,
     checked: bool,
     checked_changed: bool,
-    checked_radio: MutNullableJS<HTMLInputElement>,
+    checked_radio: MutNullableHeap<JS<HTMLInputElement>>,
     // In case mutability changed
     was_mutable: bool,
     // In case the type changed
@@ -694,7 +695,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                                     r.r().Checked()
                                 })
                     };
-                    cache.checked_radio.assign(checked_member.r());
+                    cache.checked_radio.set(checked_member.r().map(JS::from_rooted));
                     cache.checked_changed = self.checked_changed.get();
                     self.SetChecked(true);
                 }
