@@ -759,6 +759,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "plugins"
 version = "0.0.1"
+dependencies = [
+ "tenacious 0.0.1 (git+https://github.com/Manishearth/rust-tenacious.git)",
+]
 
 [[package]]
 name = "pnacl-build-helper"
@@ -959,6 +962,11 @@ dependencies = [
 [[package]]
 name = "task_info"
 version = "0.0.1"
+
+[[package]]
+name = "tenacious"
+version = "0.0.1"
+source = "git+https://github.com/Manishearth/rust-tenacious.git#f47093c600b8cc1b29f89759eea6c18920584f71"
 
 [[package]]
 name = "text_writer"
