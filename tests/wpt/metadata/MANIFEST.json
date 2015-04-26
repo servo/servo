@@ -1768,6 +1768,46 @@
         "url": "/html/rendering/bindings/the-select-element-0/option-label.html"
       },
       {
+        "path": "html/rendering/bindings/the-textarea-element-0/cols-default.html",
+        "references": [
+          [
+            "/html/rendering/bindings/the-textarea-element-0/textarea-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/bindings/the-textarea-element-0/cols-default.html"
+      },
+      {
+        "path": "html/rendering/bindings/the-textarea-element-0/cols-zero.html",
+        "references": [
+          [
+            "/html/rendering/bindings/the-textarea-element-0/textarea-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/bindings/the-textarea-element-0/cols-zero.html"
+      },
+      {
+        "path": "html/rendering/bindings/the-textarea-element-0/rows-default.html",
+        "references": [
+          [
+            "/html/rendering/bindings/the-textarea-element-0/textarea-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/bindings/the-textarea-element-0/rows-default.html"
+      },
+      {
+        "path": "html/rendering/bindings/the-textarea-element-0/rows-zero.html",
+        "references": [
+          [
+            "/html/rendering/bindings/the-textarea-element-0/textarea-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/bindings/the-textarea-element-0/rows-zero.html"
+      },
+      {
         "path": "html/rendering/non-replaced-elements/flow-content-0/figure.html",
         "references": [
           [
@@ -11764,6 +11804,10 @@
         "url": "/html/dom/documents/dom-tree-accessors/document.title-08.html"
       },
       {
+        "path": "html/dom/documents/dom-tree-accessors/document.title-09.html",
+        "url": "/html/dom/documents/dom-tree-accessors/document.title-09.html"
+      },
+      {
         "path": "html/dom/documents/dom-tree-accessors/nameditem-01.html",
         "url": "/html/dom/documents/dom-tree-accessors/nameditem-01.html"
       },
@@ -21482,6 +21526,54 @@
         "url": "/html/rendering/bindings/the-select-element-0/option-label.html"
       }
     ],
+    "html/rendering/bindings/the-textarea-element-0/cols-default.html": [
+      {
+        "path": "html/rendering/bindings/the-textarea-element-0/cols-default.html",
+        "references": [
+          [
+            "/html/rendering/bindings/the-textarea-element-0/textarea-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/bindings/the-textarea-element-0/cols-default.html"
+      }
+    ],
+    "html/rendering/bindings/the-textarea-element-0/cols-zero.html": [
+      {
+        "path": "html/rendering/bindings/the-textarea-element-0/cols-zero.html",
+        "references": [
+          [
+            "/html/rendering/bindings/the-textarea-element-0/textarea-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/bindings/the-textarea-element-0/cols-zero.html"
+      }
+    ],
+    "html/rendering/bindings/the-textarea-element-0/rows-default.html": [
+      {
+        "path": "html/rendering/bindings/the-textarea-element-0/rows-default.html",
+        "references": [
+          [
+            "/html/rendering/bindings/the-textarea-element-0/textarea-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/bindings/the-textarea-element-0/rows-default.html"
+      }
+    ],
+    "html/rendering/bindings/the-textarea-element-0/rows-zero.html": [
+      {
+        "path": "html/rendering/bindings/the-textarea-element-0/rows-zero.html",
+        "references": [
+          [
+            "/html/rendering/bindings/the-textarea-element-0/textarea-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/bindings/the-textarea-element-0/rows-zero.html"
+      }
+    ],
     "html/rendering/non-replaced-elements/flow-content-0/figure.html": [
       {
         "path": "html/rendering/non-replaced-elements/flow-content-0/figure.html",
@@ -25203,7 +25295,7 @@
       }
     ]
   },
-  "rev": "000905d008db2538360020335bc2dbba16d322b5",
+  "rev": "acdb8bf3e4714528b6b5f9ff038dc80ee4fb7dcf",
   "url_base": "/",
   "version": 2
 }

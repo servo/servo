@@ -7,8 +7,8 @@
 var invalidLabel = "invalid-invalidLabel"
 
 test(function() {
-    assert_throws({name: 'RangeError'}, function() { new TextEncoder(invalidLabel); });
-    assert_throws({name: 'RangeError'}, function() { new TextDecoder(invalidLabel); });
+    assert_throws(new RangeError(), function() { new TextEncoder(invalidLabel); });
+    assert_throws(new RangeError(), function() { new TextDecoder(invalidLabel); });
 }, 'Invalid label "' + invalidLabel + '" should be rejected by API.');
 
 </script>

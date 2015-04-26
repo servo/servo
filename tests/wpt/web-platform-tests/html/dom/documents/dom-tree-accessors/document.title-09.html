@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#document.title">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+
+function newSVGDocument() {
+  return document.implementation.createDocument(SVG_NAMESPACE, "svg");
+}
+
+test(function() {
+  var doc = newSVGDocument();
+  assert_equals(doc.title, "");
+  var child = doc.createElementNS(SVG_NAMESPACE, "x-child");
+  doc.documentElement.appendChild(child);
+  doc.title = "foo";
+  var lastChild = doc.documentElement.lastChild;
+  assert_equals(lastChild.namespaceURI, SVG_NAMESPACE);
+  assert_equals(lastChild.localName, "title");
+  assert_equals(lastChild.textContent, "foo");
+  assert_equals(doc.title, "foo");
+}, "No title element in SVG document");
+
+test(function() {
+  var doc = newSVGDocument();
+  var title = doc.createElementNS(SVG_NAMESPACE, "title");
+  title.textContent = "foo";
+  doc.documentElement.appendChild(title)
+  assert_equals(doc.title, "foo");
+  doc.title += "bar";
+  assert_equals(title.textContent, "foobar");
+  assert_equals(title.childNodes.length, 1);
+  assert_true(title.childNodes[0] instanceof Text);
+  assert_equals(doc.title, "foobar");
+  doc.title = "";
+  assert_equals(title.textContent, "");
+  assert_equals(doc.title, "");
+  assert_equals(title.childNodes.length, 0);
+}, "Title element in SVG document");
+
+test(function() {
+  var doc = newSVGDocument();
+  var title = doc.createElementNS(SVG_NAMESPACE, "title");
+  title.textContent = "foo";
+  var child = doc.createElementNS(SVG_NAMESPACE, "x-child");
+  child.appendChild(title);
+  doc.documentElement.appendChild(child);
+  assert_equals(doc.title, "");
+}, "Title element not child of SVG root");
+
+test(function() {
+  var doc = newSVGDocument();
+  var title = doc.createElement("title");
+  title.textContent = "foo";
+  doc.documentElement.appendChild(title);
+  assert_equals(doc.title, "");
+}, "Title element not in SVG namespace");
+</script>
