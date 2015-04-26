@@ -186,7 +186,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                     let mut temporary_counter = Counter::new();
                     let counter = self.traversal
                                       .counters
-                                      .get(counter_name.as_slice())
+                                      .get(&*counter_name)
                                       .unwrap_or(&mut temporary_counter);
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
@@ -200,13 +200,13 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                     let mut temporary_counter = Counter::new();
                     let counter = self.traversal
                                       .counters
-                                      .get(counter_name.as_slice())
+                                      .get(&*counter_name)
                                       .unwrap_or(&mut temporary_counter);
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
                                               fragment.style.clone(),
                                               counter_style,
-                                              RenderingMode::All(separator.as_slice()));
+                                              RenderingMode::All(&separator));
                 }
                 GeneratedContentInfo::ContentItem(ContentItem::OpenQuote) => {
                     new_info = Some(render_text(self.traversal.layout_context,
@@ -530,7 +530,7 @@ fn push_alphabetic_representation(mut value: i32, system: &[char], accumulator: 
         value = ((value as usize) / system.len()) as i32;
     }
 
-    for i in range(0, string.len()).rev() {
+    for i in (0..string.len()).rev() {
         accumulator.push(*string.get(i))
     }
 }

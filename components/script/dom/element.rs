@@ -389,7 +389,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if (*self.unsafe_get()).namespace != ns!(HTML) {
             return false
         }
-        let node: LayoutJS<Node> = self.transmute_copy();
+        let node = NodeCast::from_layout_js(&self);
         node.owner_doc_for_layout().is_html_document_for_layout()
     }
 
@@ -435,7 +435,6 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
         &self.extended_deref().local_name
     }
 
-    // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn parsed_name(self, name: DOMString) -> DOMString {
         if self.html_element_in_html_document() {
             name.to_ascii_lowercase()
@@ -478,7 +477,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
         if self.namespace != ns!(HTML) {
             return false
         }
-        match self.local_name.as_slice() {
+        match &*self.local_name {
             /* List of void elements from
             https://html.spec.whatwg.org/multipage/#html-fragment-serialisation-algorithm */
             "area" | "base" | "basefont" | "bgsound" | "br" | "col" | "embed" |
@@ -664,7 +663,7 @@ pub trait AttributeHandlers {
                      -> Option<Temporary<Attr>>;
     /// Returns the first attribute with any namespace and given case-sensitive
     /// name, if any.
-    fn get_attribute_by_name(self, name: &Atom) -> Option<Temporary<Attr>>;
+    fn get_attribute_by_name(self, name: DOMString) -> Option<Temporary<Attr>>;
     fn get_attributes(self, local_name: &Atom)
                       -> Vec<Temporary<Attr>>;
     fn set_attribute_from_parser(self,
@@ -715,7 +714,9 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             .map(|x| Temporary::from_rooted(x.r()))
     }
 
-    fn get_attribute_by_name(self, name: &Atom) -> Option<Temporary<Attr>> {
+    // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
+    fn get_attribute_by_name(self, name: DOMString) -> Option<Temporary<Attr>> {
+        let name = &Atom::from_slice(&self.parsed_name(name));
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let attrs = self.attrs.borrow();
         attrs.iter().map(|attr| attr.root())
@@ -723,7 +724,6 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
              .map(|x| Temporary::from_rooted(x.r()))
     }
 
-    // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn get_attributes(self, local_name: &Atom) -> Vec<Temporary<Attr>> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let attrs = self.attrs.borrow();
@@ -752,7 +752,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let name = match prefix {
             None => qname.local.clone(),
             Some(ref prefix) => {
-                let name = format!("{}:{}", *prefix, qname.local.as_slice());
+                let name = format!("{}:{}", *prefix, &*qname.local);
                 Atom::from_slice(&name)
             },
         };
@@ -761,7 +761,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_attribute(self, name: &Atom, value: AttrValue) {
-        assert!(name.as_slice() == name.to_ascii_lowercase());
+        assert!(&**name == name.to_ascii_lowercase());
         assert!(!name.contains(":"));
 
         self.do_set_attribute(name.clone(), value, name.clone(),
@@ -883,7 +883,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_atomic_attribute(self, local_name: &Atom, value: DOMString) {
-        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        assert!(&**local_name == local_name.to_ascii_lowercase());
         let value = AttrValue::from_atomic(value);
         self.set_attribute(local_name, value);
     }
@@ -909,7 +909,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn get_url_attribute(self, local_name: &Atom) -> DOMString {
-        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        assert!(&**local_name == local_name.to_ascii_lowercase());
         if !self.has_attribute(local_name) {
             return "".to_owned();
         }
@@ -934,7 +934,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
     fn set_string_attribute(self, local_name: &Atom, value: DOMString) {
-        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::String(value));
     }
 
@@ -950,12 +950,12 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_tokenlist_attribute(self, local_name: &Atom, value: DOMString) {
-        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::from_serialized_tokenlist(value));
     }
 
     fn set_atomic_tokenlist_attribute(self, local_name: &Atom, tokens: Vec<Atom>) {
-        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens));
     }
 
@@ -976,7 +976,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
     fn set_uint_attribute(self, local_name: &Atom, value: u32) {
-        assert!(local_name.as_slice() == local_name.to_ascii_lowercase());
+        assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::UInt(value.to_string(), value));
     }
 }
@@ -986,13 +986,13 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn GetNamespaceURI(self) -> Option<DOMString> {
         match self.namespace {
             ns!("") => None,
-            Namespace(ref ns) => Some(ns.as_slice().to_owned())
+            Namespace(ref ns) => Some((**ns).to_owned())
         }
     }
 
     // https://dom.spec.whatwg.org/#dom-element-localname
     fn LocalName(self) -> DOMString {
-        self.local_name.as_slice().to_owned()
+        (*self.local_name).to_owned()
     }
 
     // https://dom.spec.whatwg.org/#dom-element-prefix
@@ -1004,11 +1004,9 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn TagName(self) -> DOMString {
         let qualified_name = match self.prefix {
             Some(ref prefix) => {
-                (format!("{}:{}",
-                         prefix.as_slice(),
-                         self.local_name.as_slice())).into_cow()
+                (format!("{}:{}", &**prefix, &*self.local_name)).into_cow()
             },
-            None => self.local_name.as_slice().into_cow()
+            None => self.local_name.into_cow()
         };
         if self.html_element_in_html_document() {
             qualified_name.to_ascii_uppercase()
@@ -1056,8 +1054,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // https://dom.spec.whatwg.org/#dom-element-getattribute
     fn GetAttribute(self, name: DOMString) -> Option<DOMString> {
-        let name = self.parsed_name(name);
-        self.get_attribute_by_name(&Atom::from_slice(&name)).root()
+        self.get_attribute_by_name(name).root()
                      .map(|s| s.r().Value())
     }
 
@@ -1366,7 +1363,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 let doc = document_from_node(*self).root();
                 let base_url = doc.r().url();
                 let value = attr.value();
-                let style = Some(parse_style_attribute(value.as_slice(), &base_url));
+                let style = Some(parse_style_attribute(&value, &base_url));
                 *self.style_attribute.borrow_mut() = style;
 
                 if node.is_in_doc() {
@@ -1385,8 +1382,8 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 let value = attr.value();
                 if node.is_in_doc() {
                     let doc = document_from_node(*self).root();
-                    if !value.as_slice().is_empty() {
-                        let value = Atom::from_slice(value.as_slice());
+                    if !value.is_empty() {
+                        let value = value.atom().unwrap().clone();
                         doc.r().register_named_element(*self, value);
                     }
                     doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
@@ -1423,8 +1420,8 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 let value = attr.value();
                 if node.is_in_doc() {
                     let doc = document_from_node(*self).root();
-                    if !value.as_slice().is_empty() {
-                        let value = Atom::from_slice(value.as_slice());
+                    if !value.is_empty() {
+                        let value = value.atom().unwrap().clone();
                         doc.r().unregister_named_element(*self, value);
                     }
                     doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
@@ -1497,8 +1494,8 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
             // This transmute is used to cheat the lifetime restriction.
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
-            let value = attr.value();
-            unsafe { mem::transmute(value.as_slice()) }
+            let value: &str = &**attr.value();
+            unsafe { mem::transmute(value) }
         })
     }
     #[allow(unsafe_code)]
@@ -1506,9 +1503,9 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
         self.get_attributes(local_name).into_iter().map(|attr| attr.root()).map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
-            let value = attr.value();
+            let value: &str = &**attr.value();
             // This transmute is used to cheat the lifetime restriction.
-            unsafe { mem::transmute(value.as_slice()) }
+            unsafe { mem::transmute(value) }
         }).collect()
     }
     fn get_link(self) -> Option<&'a str> {

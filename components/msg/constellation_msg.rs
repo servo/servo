@@ -14,6 +14,7 @@ use layers::geometry::DevicePixel;
 use util::cursor::Cursor;
 use util::geometry::{PagePx, ViewportPx};
 use std::sync::mpsc::{channel, Sender, Receiver};
+use webdriver_traits::WebDriverScriptCommand;
 use url::Url;
 
 #[derive(Clone)]
@@ -229,6 +230,10 @@ pub enum Msg {
     GetRootPipeline(Sender<Option<PipelineId>>),
     /// Notifies the constellation that this frame has received focus.
     FocusMsg(PipelineId),
+    /// Requests that the constellation retrieve the current contents of the clipboard
+    GetClipboardContents(Sender<String>),
+    // Dispatch a webdriver command
+    WebDriverCommandMsg(PipelineId, WebDriverScriptCommand)
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events

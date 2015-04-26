@@ -238,7 +238,7 @@ impl TimerManager {
                 let _ = function.Call_(this, data.args, Report);
             }
             TimerCallback::StringTimerCallback(code_str) => {
-                this.evaluate_js_on_global_with_result(code_str.as_slice());
+                this.evaluate_js_on_global_with_result(&code_str);
             }
         };
 

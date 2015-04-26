@@ -48,11 +48,11 @@ fn expand_cased<'cx, T>(cx: &'cx mut ExtCtxt, sp: Span, tts: &[ast::TokenTree], 
     match (res, it.count()) {
         (Some((s, span)), 0) => {
             let new_s = s.chars().map(transform).collect::<String>();
-            base::MacEager::expr(cx.expr_str(span, token::intern_and_get_ident(new_s.as_slice())))
+            base::MacEager::expr(cx.expr_str(span, token::intern_and_get_ident(&new_s)))
         }
         (_, rest) => {
             if rest > 0 {
-                cx.span_err(sp, format!("expected 1 argument, found {}", rest+1).as_slice());
+                cx.span_err(sp, &format!("expected 1 argument, found {}", rest+1));
             }
             base::DummyResult::expr(sp)
         }

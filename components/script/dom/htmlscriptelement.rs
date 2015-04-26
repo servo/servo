@@ -414,7 +414,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             },
             Some(ref s) => {
                 debug!("script type={}", *s);
-                SCRIPT_JS_MIMES.contains(&s.to_ascii_lowercase().as_slice().trim_matches(HTML_SPACE_CHARACTERS))
+                SCRIPT_JS_MIMES.contains(&s.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS))
             },
             None => {
                 debug!("no script type");
@@ -427,7 +427,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                     },
                     Some(ref s) => {
                         debug!("script language={}", *s);
-                        SCRIPT_JS_MIMES.contains(&format!("text/{}", s).to_ascii_lowercase().as_slice())
+                        SCRIPT_JS_MIMES.contains(&&*format!("text/{}", s).to_ascii_lowercase())
                     },
                     None => {
                         debug!("no script type or language, inferring js");

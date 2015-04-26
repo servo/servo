@@ -16,8 +16,7 @@ use flow_ref::FlowRef;
 use incremental::{self, RestyleDamage};
 use inline::{InlineFragmentContext, InlineMetrics};
 use layout_debug;
-use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
-use model;
+use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use text;
 use opaque_node::OpaqueNodeMethods;
 use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
@@ -28,8 +27,7 @@ use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
-use net_traits::image::holder::ImageHolder;
-use net_traits::local_image_cache::LocalImageCache;
+use net_traits::image::base::Image;
 use rustc_serialize::{Encodable, Encoder};
 use script_traits::UntrustedNodeAddress;
 use std::borrow::ToOwned;
@@ -297,7 +295,7 @@ impl CanvasFragmentInfo {
 pub struct ImageFragmentInfo {
     /// The image held within this fragment.
     pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
-    pub image: ImageHolder<UntrustedNodeAddress>,
+    pub image: Option<Arc<Image>>,
 }
 
 impl ImageFragmentInfo {
@@ -306,8 +304,8 @@ impl ImageFragmentInfo {
     /// FIXME(pcwalton): The fact that image fragments store the cache in the fragment makes little
     /// sense to me.
     pub fn new(node: &ThreadSafeLayoutNode,
-               image_url: Url,
-               local_image_cache: Arc<Mutex<LocalImageCache<UntrustedNodeAddress>>>)
+               url: Option<Url>,
+               layout_context: &LayoutContext)
                -> ImageFragmentInfo {
         fn convert_length(node: &ThreadSafeLayoutNode, name: &Atom) -> Option<Au> {
             let element = node.as_element();
@@ -316,32 +314,42 @@ impl ImageFragmentInfo {
                    .map(|pixels| Au::from_px(pixels))
         }
 
+        let image = url.and_then(|url| layout_context.get_or_request_image(url));
+
         ImageFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
                 convert_length(node, &atom!("width")),
                 convert_length(node, &atom!("height"))),
-            image: ImageHolder::new(image_url, local_image_cache)
+            image: image,
         }
     }
 
     /// Returns the original inline-size of the image.
     pub fn image_inline_size(&mut self) -> Au {
-        let size = self.image.get_size(self.replaced_image_fragment_info.for_node).unwrap_or(Size2D::zero());
-        Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical {
-            size.height
-        } else {
-            size.width
-        } as isize)
+        match self.image {
+            Some(ref image) => {
+                Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical {
+                    image.height
+                } else {
+                    image.width
+                } as isize)
+            }
+            None => Au(0)
+        }
     }
 
     /// Returns the original block-size of the image.
     pub fn image_block_size(&mut self) -> Au {
-        let size = self.image.get_size(self.replaced_image_fragment_info.for_node).unwrap_or(Size2D::zero());
-        Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical {
-            size.width
-        } else {
-            size.height
-        } as isize)
+        match self.image {
+            Some(ref image) => {
+                Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical {
+                    image.width
+                } else {
+                    image.height
+                } as isize)
+            }
+            None => Au(0)
+        }
     }
 
     /// Tile an image
@@ -590,17 +598,26 @@ pub struct ScannedTextFragmentInfo {
     /// so that we can restore the range to its original value (before line breaking occurred) when
     /// performing incremental reflow.
     pub range_end_including_stripped_whitespace: CharIndex,
+
+    /// Whether a line break is required after this fragment if wrapping on newlines (e.g. if
+    /// `white-space: pre` is in effect).
+    pub requires_line_break_afterward_if_wrapping_on_newlines: bool,
 }
 
 impl ScannedTextFragmentInfo {
     /// Creates the information specific to a scanned text fragment from a range and a text run.
-    pub fn new(run: Arc<Box<TextRun>>, range: Range<CharIndex>, content_size: LogicalSize<Au>)
+    pub fn new(run: Arc<Box<TextRun>>,
+               range: Range<CharIndex>,
+               content_size: LogicalSize<Au>,
+               requires_line_break_afterward_if_wrapping_on_newlines: bool)
                -> ScannedTextFragmentInfo {
         ScannedTextFragmentInfo {
             run: run,
             range: range,
             content_size: content_size,
             range_end_including_stripped_whitespace: range.end(),
+            requires_line_break_afterward_if_wrapping_on_newlines:
+                requires_line_break_afterward_if_wrapping_on_newlines,
         }
     }
 }
@@ -793,7 +810,13 @@ impl Fragment {
         let size = LogicalSize::new(self.style.writing_mode,
                                     split.inline_size,
                                     self.border_box.size.block);
-        let info = box ScannedTextFragmentInfo::new(text_run, split.range, size);
+        let requires_line_break_afterward_if_wrapping_on_newlines =
+            self.requires_line_break_afterward_if_wrapping_on_newlines();
+        let info = box ScannedTextFragmentInfo::new(
+            text_run,
+            split.range,
+            size,
+            requires_line_break_afterward_if_wrapping_on_newlines);
         self.transform(size, SpecificFragmentInfo::ScannedText(info))
     }
 
@@ -1191,13 +1214,17 @@ impl Fragment {
             }
             SpecificFragmentInfo::ScannedText(ref text_fragment_info) => {
                 let range = &text_fragment_info.range;
-                let min_line_inline_size = text_fragment_info.run.min_width_for_range(range);
 
                 // See http://dev.w3.org/csswg/css-sizing/#max-content-inline-size.
                 // TODO: Account for soft wrap opportunities.
                 let max_line_inline_size = text_fragment_info.run
                                                              .metrics_for_range(range)
                                                              .advance_width;
+
+                let min_line_inline_size = match self.style.get_inheritedtext().white_space {
+                    white_space::T::pre | white_space::T::nowrap => max_line_inline_size,
+                    white_space::T::normal => text_fragment_info.run.min_width_for_range(range),
+                };
 
                 result.union_block(&IntrinsicISizes {
                     minimum_inline_size: min_line_inline_size,
@@ -1405,7 +1432,9 @@ impl Fragment {
             // The advance is more than the remaining inline-size, so split here. First, check to
             // see if we're going to overflow the line. If so, perform a best-effort split.
             let mut remaining_range = slice.text_run_range();
-            if inline_start_range.is_empty() {
+            let split_is_empty = inline_start_range.is_empty() &&
+                    !self.requires_line_break_afterward_if_wrapping_on_newlines();
+            if split_is_empty {
                 // We're going to overflow the line.
                 overflowing = true;
                 inline_start_range = slice.text_run_range();
@@ -1427,7 +1456,7 @@ impl Fragment {
 
             // If we failed to find a suitable split point, we're on the verge of overflowing the
             // line.
-            if inline_start_range.is_empty() || overflowing {
+            if split_is_empty || overflowing {
                 // If we've been instructed to retry at character boundaries (probably via
                 // `overflow-wrap: break-word`), do so.
                 if flags.contains(RETRY_AT_CHARACTER_BOUNDARIES) {
@@ -1452,7 +1481,9 @@ impl Fragment {
             break
         }
 
-        let inline_start = if !inline_start_range.is_empty() {
+        let split_is_empty = inline_start_range.is_empty() &&
+                !self.requires_line_break_afterward_if_wrapping_on_newlines();
+        let inline_start = if !split_is_empty {
             Some(SplitInfo::new(inline_start_range, &**text_fragment_info))
         } else {
             None
@@ -1478,6 +1509,9 @@ impl Fragment {
                 this_info.range.extend_to(other_info.range_end_including_stripped_whitespace);
                 this_info.content_size.inline =
                     this_info.run.metrics_for_range(&this_info.range).advance_width;
+                this_info.requires_line_break_afterward_if_wrapping_on_newlines =
+                    this_info.requires_line_break_afterward_if_wrapping_on_newlines ||
+                    other_info.requires_line_break_afterward_if_wrapping_on_newlines;
                 self.border_box.size.inline = this_info.content_size.inline +
                     self.border_padding.inline_start_end();
             }
@@ -1494,7 +1528,7 @@ impl Fragment {
         }
         match self.specific {
             SpecificFragmentInfo::UnscannedText(ref text_fragment_info) => {
-                util::str::is_whitespace(text_fragment_info.text.as_slice())
+                util::str::is_whitespace(&text_fragment_info.text)
             }
             _ => false,
         }
@@ -1908,10 +1942,7 @@ impl Fragment {
     pub fn requires_line_break_afterward_if_wrapping_on_newlines(&self) -> bool {
         match self.specific {
             SpecificFragmentInfo::ScannedText(ref scanned_text) => {
-                !scanned_text.range.is_empty() &&
-                    scanned_text.run.text.char_at_reverse(scanned_text.range
-                                                                      .end()
-                                                                      .get() as usize) == '\n'
+                scanned_text.requires_line_break_afterward_if_wrapping_on_newlines
             }
             _ => false,
         }

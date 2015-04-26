@@ -186,7 +186,7 @@ fn to_snake_case(name: DOMString) -> DOMString {
 
 impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
     fn set_custom_attr(self, name: DOMString, value: DOMString) -> ErrorResult {
-        if name.as_slice().chars()
+        if name.chars()
                .skip_while(|&ch| ch != '\u{2d}')
                .nth(1).map_or(false, |ch| ch >= 'a' && ch <= 'z') {
             return Err(Syntax);
@@ -203,7 +203,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let value = attr.value();
-            value.as_slice().to_owned()
+            (**value).to_owned()
         })
     }
 
@@ -234,7 +234,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
             let evtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   &name[2..],
-                                                  attr.value().as_slice().to_owned());
+                                                  (**attr.value()).to_owned());
         }
     }
 }

@@ -3,117 +3,92 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use image::base::Image;
-use LoadConsumer::Channel;
-use {ControlMsg, LoadData, ProgressMsg, ResourceTask};
 use url::Url;
-
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender};
 
-pub enum Msg {
-    /// Tell the cache that we may need a particular image soon. Must be posted
-    /// before Decode
-    Prefetch(Url),
+/// This is optionally passed to the image cache when requesting
+/// and image, and returned to the specified event loop when the
+/// image load completes. It is typically used to trigger a reflow
+/// and/or repaint.
+pub trait ImageResponder : Send {
+    fn respond(&self, Option<Arc<Image>>);
+}
 
-    /// Tell the cache to decode an image. Must be posted before GetImage/WaitForImage
-    Decode(Url),
+/// The current state of an image in the cache.
+#[derive(PartialEq, Copy)]
+pub enum ImageState {
+    Pending,
+    LoadError,
+    NotRequested,
+}
 
-    /// Request an Image object for a URL. If the image is not is not immediately
-    /// available then ImageNotReady is returned.
-    GetImage(Url, Sender<ImageResponseMsg>),
+/// Channel for sending commands to the image cache.
+#[derive(Clone)]
+pub struct ImageCacheChan(pub Sender<ImageCacheResult>);
 
-    /// Wait for an image to become available (or fail to load).
-    WaitForImage(Url, Sender<ImageResponseMsg>),
+/// The result of an image cache command that is returned to the
+/// caller.
+pub struct ImageCacheResult {
+    pub responder: Option<Box<ImageResponder>>,
+    pub image: Option<Arc<Image>>,
+}
+
+/// Commands that the image cache understands.
+pub enum ImageCacheCommand {
+    /// Request an image asynchronously from the cache. Supply a channel
+    /// to receive the result, and optionally an image responder
+    /// that is passed to the result channel.
+    RequestImage(Url, ImageCacheChan, Option<Box<ImageResponder>>),
+
+    /// Synchronously check the state of an image in the cache.
+    /// TODO(gw): Profile this on some real world sites and see
+    /// if it's worth caching the results of this locally in each
+    /// layout / paint task.
+    GetImageIfAvailable(Url, Sender<Result<Arc<Image>, ImageState>>),
 
     /// Clients must wait for a response before shutting down the ResourceTask
     Exit(Sender<()>),
-
-    /// Used by the prefetch tasks to post back image binaries
-    StorePrefetchedImageData(Url, Result<Vec<u8>, ()>),
-
-    /// Used by the decoder tasks to post decoded images back to the cache
-    StoreImage(Url, Option<Arc<Image>>),
-
-    /// For testing
-    WaitForStore(Sender<()>),
-
-    /// For testing
-    WaitForStorePrefetched(Sender<()>),
 }
 
-#[derive(Clone)]
-pub enum ImageResponseMsg {
-    ImageReady(Arc<Image>),
-    ImageNotReady,
-    ImageFailed
-}
-
-impl PartialEq for ImageResponseMsg {
-    fn eq(&self, other: &ImageResponseMsg) -> bool {
-        match (self, other) {
-            (&ImageResponseMsg::ImageReady(..), &ImageResponseMsg::ImageReady(..)) => panic!("unimplemented comparison"),
-            (&ImageResponseMsg::ImageNotReady, &ImageResponseMsg::ImageNotReady) => true,
-            (&ImageResponseMsg::ImageFailed, &ImageResponseMsg::ImageFailed) => true,
-
-            (&ImageResponseMsg::ImageReady(..), _) | (&ImageResponseMsg::ImageNotReady, _) | (&ImageResponseMsg::ImageFailed, _) => false
-        }
-    }
-}
-
+/// The client side of the image cache task. This can be safely cloned
+/// and passed to different tasks.
 #[derive(Clone)]
 pub struct ImageCacheTask {
-    pub chan: Sender<Msg>,
+    chan: Sender<ImageCacheCommand>,
 }
 
+/// The public API for the image cache task.
 impl ImageCacheTask {
-    pub fn send(&self, msg: Msg) {
+
+    /// Construct a new image cache
+    pub fn new(chan: Sender<ImageCacheCommand>) -> ImageCacheTask {
+        ImageCacheTask {
+            chan: chan,
+        }
+    }
+
+    /// Asynchronously request and image. See ImageCacheCommand::RequestImage.
+    pub fn request_image(&self,
+                         url: Url,
+                         result_chan: ImageCacheChan,
+                         responder: Option<Box<ImageResponder>>) {
+        let msg = ImageCacheCommand::RequestImage(url, result_chan, responder);
         self.chan.send(msg).unwrap();
     }
-}
 
-pub trait ImageCacheTaskClient {
-    fn exit(&self);
-}
+    /// Get the current state of an image. See ImageCacheCommand::GetImageIfAvailable.
+    pub fn get_image_if_available(&self, url: Url) -> Result<Arc<Image>, ImageState> {
+        let (sender, receiver) = channel();
+        let msg = ImageCacheCommand::GetImageIfAvailable(url, sender);
+        self.chan.send(msg).unwrap();
+        receiver.recv().unwrap()
+    }
 
-impl ImageCacheTaskClient for ImageCacheTask {
-    fn exit(&self) {
+    /// Shutdown the image cache task.
+    pub fn exit(&self) {
         let (response_chan, response_port) = channel();
-        self.send(Msg::Exit(response_chan));
+        self.chan.send(ImageCacheCommand::Exit(response_chan)).unwrap();
         response_port.recv().unwrap();
     }
 }
-
-pub fn load_image_data(url: Url, resource_task: ResourceTask, placeholder: &[u8]) -> Result<Vec<u8>, ()> {
-    let (response_chan, response_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url.clone()), Channel(response_chan))).unwrap();
-
-    let mut image_data = vec!();
-
-    let progress_port = response_port.recv().unwrap().progress_port;
-    loop {
-        match progress_port.recv().unwrap() {
-            ProgressMsg::Payload(data) => {
-                image_data.push_all(&data);
-            }
-            ProgressMsg::Done(Ok(..)) => {
-                return Ok(image_data);
-            }
-            ProgressMsg::Done(Err(..)) => {
-                // Failure to load the requested image will return the
-                // placeholder instead. In case it failed to load at init(),
-                // we still recover and return Err() but nothing will be drawn.
-                if placeholder.len() != 0 {
-                    debug!("image_cache_task: failed to load {:?}, use placeholder instead.", url);
-                    // Clean in case there was an error after started loading the image.
-                    image_data.clear();
-                    image_data.push_all(&placeholder);
-                    return Ok(image_data);
-                } else {
-                    debug!("image_cache_task: invalid placeholder.");
-                    return Err(());
-                }
-            }
-        }
-    }
-}
-

@@ -50,7 +50,7 @@ impl TextEncoder {
     // https://encoding.spec.whatwg.org/#dom-textencoder
     pub fn Constructor(global: GlobalRef,
                        label: DOMString) -> Fallible<Temporary<TextEncoder>> {
-        let encoding = match encoding_from_whatwg_label(label.trim().as_slice().to_ascii_lowercase().as_slice()) {
+        let encoding = match encoding_from_whatwg_label(&label.trim().to_ascii_lowercase()) {
             Some(enc) => enc,
             None => {
                 debug!("Encoding Label Not Supported");
@@ -80,7 +80,7 @@ impl<'a> TextEncoderMethods for JSRef<'a, TextEncoder> {
     #[allow(unsafe_code)]
     fn Encode(self, cx: *mut JSContext, input: USVString) -> *mut JSObject {
         unsafe {
-            let output = self.encoder.encode(input.0.as_slice(), EncoderTrap::Strict).unwrap();
+            let output = self.encoder.encode(&input.0, EncoderTrap::Strict).unwrap();
             let length = output.len() as u32;
             let js_object: *mut JSObject = JS_NewUint8Array(cx, length);
 

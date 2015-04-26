@@ -114,6 +114,8 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
     let mut actor_pipelines: HashMap<PipelineId, String> = HashMap::new();
 
+    let mut actor_workers: HashMap<(PipelineId, WorkerId), String> = HashMap::new();
+
 
     /// Process the input from a single devtools client until EOF.
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
@@ -152,12 +154,11 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                          ids: (PipelineId, Option<WorkerId>),
                          scriptSender: Sender<DevtoolScriptControlMsg>,
                          actor_pipelines: &mut HashMap<PipelineId, String>,
+                         actor_workers: &mut HashMap<(PipelineId, WorkerId), String>,
                          page_info: DevtoolsPageInfo) {
         let mut actors = actors.lock().unwrap();
 
         let (pipeline, worker_id) = ids;
-
-        let mut actor_workers: HashMap<(PipelineId, WorkerId), String> = HashMap::new();
 
         //TODO: move all this actor creation into a constructor method on TabActor
         let (tab, console, inspector, timeline) = {
@@ -269,7 +270,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
             Ok(DevtoolsControlMsg::ServerExitMsg) | Err(RecvError) => break,
             Ok(DevtoolsControlMsg::NewGlobal(ids, scriptSender, pageinfo)) =>
                 handle_new_global(actors.clone(), ids, scriptSender, &mut actor_pipelines,
-                                  pageinfo),
+                                  &mut actor_workers, pageinfo),
             Ok(DevtoolsControlMsg::SendConsoleMessage(id, console_message)) =>
                 handle_console_message(actors.clone(), id, console_message,
                                        &actor_pipelines),

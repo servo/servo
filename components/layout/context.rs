@@ -13,17 +13,18 @@ use gfx::display_list::OpaqueNode;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::font_context::FontContext;
 use msg::constellation_msg::ConstellationChan;
+use net_traits::image::base::Image;
+use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageState};
 use script::layout_interface::{Animation, LayoutChan};
-use script_traits::UntrustedNodeAddress;
-use net_traits::local_image_cache::LocalImageCache;
 use std::boxed;
 use std::cell::Cell;
 use std::ptr;
-use std::sync::mpsc::Sender;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use std::sync::mpsc::{channel, Sender};
 use style::selector_matching::Stylist;
 use url::Url;
 use util::geometry::Au;
+use util::opts;
 
 struct LocalLayoutContext {
     font_context: FontContext,
@@ -55,8 +56,11 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
 
 /// Layout information shared among all workers. This must be thread-safe.
 pub struct SharedLayoutContext {
-    /// The local image cache.
-    pub image_cache: Arc<Mutex<LocalImageCache<UntrustedNodeAddress>>>,
+    /// The shared image cache task.
+    pub image_cache_task: ImageCacheTask,
+
+    /// A channel for the image cache to send responses to.
+    pub image_cache_sender: ImageCacheChan,
 
     /// The current screen size.
     pub screen_size: Size2D<Au>,
@@ -137,6 +141,44 @@ impl<'a> LayoutContext<'a> {
         unsafe {
             let cached_context = &mut *self.cached_local_layout_context;
             &mut cached_context.style_sharing_candidate_cache
+        }
+    }
+
+    pub fn get_or_request_image(&self, url: Url) -> Option<Arc<Image>> {
+        // See if the image is already available
+        let result = self.shared.image_cache_task.get_image_if_available(url.clone());
+
+        match result {
+            Ok(image) => Some(image),
+            Err(state) => {
+                // If we are emitting an output file, then we need to block on
+                // image load or we risk emitting an output file missing the image.
+                let is_sync = opts::get().output_file.is_some();
+
+                match (state, is_sync) {
+                    // Image failed to load, so just return nothing
+                    (ImageState::LoadError, _) => None,
+                    // Not loaded, test mode - load the image synchronously
+                    (_, true) => {
+                        let (sync_tx, sync_rx) = channel();
+                        self.shared.image_cache_task.request_image(url,
+                                                                   ImageCacheChan(sync_tx),
+                                                                   None);
+                        sync_rx.recv().unwrap().image
+                    }
+                    // Not yet requested, async mode - request image from the cache
+                    (ImageState::NotRequested, false) => {
+                        self.shared.image_cache_task.request_image(url,
+                                                                   self.shared.image_cache_sender.clone(),
+                                                                   None);
+                        None
+                    }
+                    // Image has been requested, is still pending. Return no image
+                    // for this paint loop. When the image loads it will trigger
+                    // a reflow and/or repaint.
+                    (ImageState::Pending, false) => None,
+                }
+            }
         }
     }
 }

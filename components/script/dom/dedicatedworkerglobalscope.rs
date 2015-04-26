@@ -167,15 +167,15 @@ impl DedicatedWorkerGlobalScope {
                 }
             };
 
-            let (_js_runtime, js_context) = ScriptTask::new_rt_and_cx();
+            let runtime = ScriptTask::new_rt_and_cx();
             let global = DedicatedWorkerGlobalScope::new(
-                worker_url, id, devtools_chan, js_context.clone(), resource_task,
+                worker_url, id, devtools_chan, runtime.cx.clone(), resource_task,
                 parent_sender, own_sender, receiver).root();
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
 
-                match js_context.evaluate_script(
+                match runtime.cx.evaluate_script(
                     global.r().reflector().get_jsobject(), source, url.serialize(), 1) {
                     Ok(_) => (),
                     Err(_) => println!("evaluate_script failed")

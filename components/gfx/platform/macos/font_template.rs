@@ -26,7 +26,7 @@ impl FontTemplateData {
     pub fn new(identifier: &str, font_data: Option<Vec<u8>>) -> FontTemplateData {
         let ctfont = match font_data {
             Some(ref bytes) => {
-                let fontprov = CGDataProvider::from_buffer(bytes.as_slice());
+                let fontprov = CGDataProvider::from_buffer(bytes);
                 let cgfont_result = CGFont::from_data_provider(fontprov);
                 match cgfont_result {
                     Ok(cgfont) => Some(core_text::font::new_from_CGFont(&cgfont, 0.0)),
@@ -34,7 +34,7 @@ impl FontTemplateData {
                 }
             },
             None => {
-                Some(core_text::font::new_from_name(identifier.as_slice(), 0.0).unwrap())
+                Some(core_text::font::new_from_name(&identifier, 0.0).unwrap())
             }
         };
 

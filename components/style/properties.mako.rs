@@ -608,7 +608,7 @@ pub mod longhands {
         /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
         /// | <percentage> | <length>
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            input.try(specified::LengthOrPercentage::parse_non_negative)
+            input.try(specified::LengthOrPercentage::parse)
             .map(SpecifiedValue::LengthOrPercentage)
             .or_else(|()| {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
@@ -1019,9 +1019,9 @@ pub mod longhands {
                         try!(dest.write_str(" "));
                     }
                     first = false;
-                    try!(Token::QuotedString(pair.0.as_slice().into_cow()).to_css(dest));
+                    try!(Token::QuotedString((*pair.0).into_cow()).to_css(dest));
                     try!(dest.write_str(" "));
-                    try!(Token::QuotedString(pair.1.as_slice().into_cow()).to_css(dest));
+                    try!(Token::QuotedString((*pair.1).into_cow()).to_css(dest));
                 }
                 Ok(())
             }
@@ -1381,12 +1381,10 @@ pub mod longhands {
             if let Ok(value) = input.try(|input| {
                 match input.next() {
                     Err(_) => Err(()),
-                    Ok(Token::Ident(ref ident)) if ident.as_slice()
-                                                        .eq_ignore_ascii_case("cover") => {
+                    Ok(Token::Ident(ref ident)) if ident.eq_ignore_ascii_case("cover") => {
                         Ok(SpecifiedValue::Cover)
                     }
-                    Ok(Token::Ident(ref ident)) if ident.as_slice()
-                                                        .eq_ignore_ascii_case("contain") => {
+                    Ok(Token::Ident(ref ident)) if ident.eq_ignore_ascii_case("contain") => {
                         Ok(SpecifiedValue::Contain)
                     }
                     Ok(_) => Err(()),
@@ -5497,9 +5495,7 @@ macro_rules! css_properties_accessors {
     ($macro_name: ident) => {
         $macro_name! {
             % for property in SHORTHANDS + LONGHANDS:
-                ## Servo internal CSS properties are not accessible.
-                ## FIXME: Add BinaryName WebIDL annotation (#4435).
-                % if property.derived_from is None and property.name != "float":
+                % if property.derived_from is None:
                     % if property != LONGHANDS[-1]:
                         [${property.camel_case}, Set${property.camel_case}, "${property.name}"],
                     % else:

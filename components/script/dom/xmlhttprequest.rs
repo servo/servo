@@ -252,7 +252,7 @@ impl XMLHttpRequest {
             }
 
             fn data_available(&self, payload: Vec<u8>) {
-                self.buf.borrow_mut().push_all(payload.as_slice());
+                self.buf.borrow_mut().push_all(&payload);
                 let xhr = self.xhr.to_temporary().root();
                 xhr.r().process_data_available(self.gen_id, self.buf.borrow().clone());
             }
@@ -297,7 +297,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             // since methods like "patch" or "PaTcH" will be considered extension methods
             // despite the there being a rust-http method variant for them
             let upper = s.to_ascii_uppercase();
-            match upper.as_slice() {
+            match &*upper {
                 "DELETE" | "GET" | "HEAD" | "OPTIONS" |
                 "POST" | "PUT" | "CONNECT" | "TRACE" |
                 "TRACK" => upper.parse().ok(),
@@ -308,7 +308,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         match maybe_method {
             // Step 4
             Some(Method::Connect) | Some(Method::Trace) => Err(Security),
-            Some(Method::Extension(ref t)) if t.as_slice() == "TRACK" => Err(Security),
+            Some(Method::Extension(ref t)) if &**t == "TRACK" => Err(Security),
             Some(parsed_method) => {
                 // Step 3
                 if !method.is_token() {
@@ -319,7 +319,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
                 // Step 6
                 let base = self.global.root().r().get_url();
-                let parsed_url = match UrlParser::new().base_url(&base).parse(url.as_slice()) {
+                let parsed_url = match UrlParser::new().base_url(&base).parse(&url) {
                     Ok(parsed) => parsed,
                     Err(_) => return Err(Syntax) // Step 7
                 };
@@ -562,14 +562,14 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         match cors_request {
             Ok(None) => {
                 let mut buf = String::new();
-                buf.push_str(referer_url.scheme.as_slice());
-                buf.push_str("://".as_slice());
-                referer_url.serialize_host().map(|ref h| buf.push_str(h.as_slice()));
+                buf.push_str(&referer_url.scheme);
+                buf.push_str("://");
+                referer_url.serialize_host().map(|ref h| buf.push_str(h));
                 referer_url.port().as_ref().map(|&p| {
-                    buf.push_str(":".as_slice());
-                    buf.push_str(p.to_string().as_slice());
+                    buf.push_str(":");
+                    buf.push_str(&p.to_string());
                 });
-                referer_url.serialize_path().map(|ref h| buf.push_str(h.as_slice()));
+                referer_url.serialize_path().map(|ref h| buf.push_str(h));
                 self.request_headers.borrow_mut().set_raw("Referer".to_owned(), vec![buf.into_bytes()]);
             },
             Ok(Some(ref req)) => self.insert_trusted_header("origin".to_owned(),
@@ -678,7 +678,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             _ if self.ready_state.get() != XMLHttpRequestState::Done => NullValue(),
             Json => {
                 let decoded = UTF_8.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().to_owned();
-                let decoded: Vec<u16> = decoded.as_slice().utf16_units().collect();
+                let decoded: Vec<u16> = decoded.utf16_units().collect();
                 let mut vp = UndefinedValue();
                 unsafe {
                     if JS_ParseJSON(cx, decoded.as_ptr(), decoded.len() as u32, &mut vp) == 0 {
@@ -1015,7 +1015,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
             Some(&ContentType(mime::Mime(_, _, ref params))) => {
                 for &(ref name, ref value) in params.iter() {
                     if name == &mime::Attr::Charset {
-                        encoding = encoding_from_whatwg_label(value.to_string().as_slice()).unwrap_or(encoding);
+                        encoding = encoding_from_whatwg_label(&value.to_string()).unwrap_or(encoding);
                     }
                 }
             },
@@ -1127,7 +1127,7 @@ impl Extractable for SendParam {
         // https://fetch.spec.whatwg.org/#concept-fetchbodyinit-extract
         let encoding = UTF_8 as EncodingRef;
         match *self {
-            eString(ref s) => encoding.encode(s.as_slice(), EncoderTrap::Replace).unwrap(),
+            eString(ref s) => encoding.encode(s, EncoderTrap::Replace).unwrap(),
             eURLSearchParams(ref usp) => usp.root().r().serialize(None) // Default encoding is UTF8
         }
     }

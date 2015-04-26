@@ -23,7 +23,12 @@ from node import *
 
 
 class ParseError(Exception):
-    pass
+    def __init__(self, filename, line, detail):
+        self.line = line
+        self.filename = filename
+        self.detail = detail
+        self.message = "%s: %s line %s" % (self.detail, self.filename, self.line)
+        Exception.__init__(self, self.message)
 
 eol = object
 group_start = object
@@ -41,7 +46,7 @@ operators = ["==", "!=", "not", "and", "or"]
 
 
 def decode(byte_str):
-    return byte_str.decode("string_escape").decode("utf8")
+    return byte_str.decode("utf8")
 
 
 def precedence(operator_node):
@@ -50,7 +55,7 @@ def precedence(operator_node):
 
 class TokenTypes(object):
     def __init__(self):
-        for type in ["group_start", "group_end", "paren", "separator", "ident", "string", "number", "eof"]:
+        for type in ["group_start", "group_end", "paren", "list_start", "list_end", "separator", "ident", "string", "number", "eof"]:
             setattr(self, type, type)
 
 token_types = TokenTypes()
@@ -70,18 +75,27 @@ class Tokenizer(object):
         self.reset()
         if type(stream) in types.StringTypes:
             stream = StringIO(stream)
+        if not hasattr(stream, "name"):
+            self.filename = ""
+        else:
+            self.filename = stream.name
 
+        self.next_line_state = self.line_start_state
         for i, line in enumerate(stream):
-            self.state = self.line_start_state
+            self.state = self.next_line_state
+            assert self.state is not None
+            states = []
+            self.next_line_state = None
             self.line_number = i + 1
             self.index = 0
             self.line = line.rstrip()
-            if self.line:
-                while self.state != self.eol_state:
-                    tokens = self.state()
-                    if tokens:
-                        for token in tokens:
-                            yield token
+            while self.state != self.eol_state:
+                states.append(self.state)
+                tokens = self.state()
+                if tokens:
+                    for token in tokens:
+                        yield token
+            self.state()
         while True:
             yield (token_types.eof, None)
 
@@ -102,11 +116,14 @@ class Tokenizer(object):
             self.consume()
 
     def eol_state(self):
-        pass
+        if self.next_line_state is None:
+            self.next_line_state = self.line_start_state
 
     def line_start_state(self):
         self.skip_whitespace()
-        assert self.char() != eol
+        if self.char() == eol:
+            self.state = self.eol_state
+            return
         if self.index > self.indent_levels[-1]:
             self.indent_levels.append(self.index)
             yield (token_types.group_start, None)
@@ -119,7 +136,7 @@ class Tokenizer(object):
                 # it must always be a heading or key next so we go back to data_line_state
                 self.next_state = self.data_line_state
             if self.index != self.indent_levels[-1]:
-                raise ParseError("Unexpected indent")
+                raise ParseError(self.filename, self.line_number, "Unexpected indent")
 
         self.state = self.next_state
 
@@ -132,57 +149,44 @@ class Tokenizer(object):
             self.state = self.key_state
 
     def heading_state(self):
-        index_0 = self.index
-        skip_indexes = []
+        rv = ""
         while True:
             c = self.char()
             if c == "\\":
-                self.consume()
-                c = self.char()
-                if c == eol:
-                    raise ParseError("Unexpected EOL in heading")
-                elif c == "]":
-                    skip_indexes.append(self.index - 1)
-                self.consume()
+                rv += self.consume_escape()
             elif c == "]":
                 break
             elif c == eol:
-                raise ParseError("EOL in heading")
+                raise ParseError(self.filename, self.line_number, "EOL in heading")
             else:
+                rv += c
                 self.consume()
 
-        self.state = self.line_end_state
-        index_1 = self.index
-        parts = []
-        min_index = index_0
-        for index in skip_indexes:
-            parts.append(self.line[min_index:index])
-            min_index = index + 1
-        parts.append(self.line[min_index:index_1])
-        yield (token_types.string, decode("".join(parts)))
+        yield (token_types.string, decode(rv))
         yield (token_types.paren, "]")
         self.consume()
         self.state = self.line_end_state
         self.next_state = self.data_line_state
 
     def key_state(self):
-        index_0 = self.index
+        rv = ""
         while True:
             c = self.char()
             if c == " ":
-                index_1 = self.index
                 self.skip_whitespace()
                 if self.char() != ":":
-                    raise ParseError("Space in key name")
+                    raise ParseError(self.filename, self.line_number, "Space in key name")
                 break
             elif c == ":":
-                index_1 = self.index
                 break
             elif c == eol:
-                raise ParseError("EOL in key name (missing ':'?)")
+                raise ParseError(self.filename, self.line_number, "EOL in key name (missing ':'?)")
+            elif c == "\\":
+                rv += self.consume_escape()
             else:
+                rv += c
                 self.consume()
-        yield (token_types.string, decode(self.line[index_0:index_1]))
+        yield (token_types.string, decode(rv))
         yield (token_types.separator, ":")
         self.consume()
         self.state = self.after_key_state
@@ -196,39 +200,115 @@ class Tokenizer(object):
         elif c == eol:
             self.next_state = self.expr_or_value_state
             self.state = self.eol_state
+        elif c == "[":
+            self.state = self.list_start_state
         else:
             self.state = self.value_state
 
+    def list_start_state(self):
+        yield (token_types.list_start, "[")
+        self.consume()
+        self.state = self.list_value_start_state
+
+    def list_value_start_state(self):
+        self.skip_whitespace()
+        if self.char() == "]":
+            self.state = self.list_end_state
+        elif self.char() in ("'", '"'):
+            quote_char = self.char()
+            self.consume()
+            yield (token_types.string, self.consume_string(quote_char))
+            self.skip_whitespace()
+            if self.char() == "]":
+                self.state = self.list_end_state
+            elif self.char() != ",":
+                raise ParseError(self.filename, self.line_number, "Junk after quoted string")
+            self.consume()
+        elif self.char() == "#":
+            self.state = self.comment_state
+            self.next_line_state = self.list_value_start_state
+        elif self.char() == eol:
+            self.next_line_state = self.list_value_start_state
+            self.state = self.eol_state
+        elif self.char() == ",":
+            raise ParseError(self.filename, self.line_number, "List item started with separator")
+        else:
+            self.state = self.list_value_state
+
+    def list_value_state(self):
+        rv = ""
+        spaces = 0
+        while True:
+            c = self.char()
+            if c == "\\":
+                escape = self.consume_escape()
+                rv += escape
+            elif c == eol:
+                raise ParseError(self.filename, self.line_number, "EOL in list value")
+            elif c == "#":
+                raise ParseError(self.filename, self.line_number, "EOL in list value (comment)")
+            elif c == ",":
+                self.state = self.list_value_start_state
+                self.consume()
+                break
+            elif c == " ":
+                spaces += 1
+                self.consume()
+            elif c == "]":
+                self.state = self.list_end_state
+                self.consume()
+                break
+            else:
+                rv += " " * spaces
+                spaces = 0
+                rv += c
+                self.consume()
+
+        if rv:
+            yield (token_types.string, decode(rv))
+
+    def list_end_state(self):
+        self.consume()
+        yield (token_types.list_end, "]")
+        self.state = self.line_end_state
+
     def value_state(self):
         self.skip_whitespace()
-        index_0 = self.index
         if self.char() in ("'", '"'):
             quote_char = self.char()
             self.consume()
-            yield (token_types.string, decode(self.read_string(quote_char)))
+            yield (token_types.string, self.consume_string(quote_char))
+            if self.char() == "#":
+                self.state = self.comment_state
+            else:
+                self.state = self.line_end_state
         else:
-            index_1 = self.index
+            rv = ""
+            spaces = 0
             while True:
                 c = self.char()
                 if c == "\\":
-                    self.consume()
-                    if self.char() == eol:
-                        raise ParseError("EOL in character escape")
+                    rv += self.consume_escape()
                 elif c == "#":
                     self.state = self.comment_state
                     break
                 elif c == " ":
                     # prevent whitespace before comments from being included in the value
-                    pass
+                    spaces += 1
+                    self.consume()
                 elif c == eol:
+                    self.state = self.line_end_state
                     break
                 else:
-                    index_1 = self.index
-                self.consume()
-            yield (token_types.string, decode(self.line[index_0:index_1 + 1]))
-        self.state = self.line_end_state
+                    rv += " " * spaces
+                    spaces = 0
+                    rv += c
+                    self.consume()
+            yield (token_types.string, decode(rv))
 
     def comment_state(self):
+        while self.char() is not eol:
+            self.consume()
         self.state = self.eol_state
 
     def line_end_state(self):
@@ -239,26 +319,24 @@ class Tokenizer(object):
         elif c == eol:
             self.state = self.eol_state
         else:
-            raise ParseError("Junk before EOL c")
+            raise ParseError(self.filename, self.line_number, "Junk before EOL %s" % c)
 
-    def read_string(self, quote_char):
-        index_0 = self.index
+    def consume_string(self, quote_char):
+        rv = ""
         while True:
             c = self.char()
             if c == "\\":
-                self.consume()
-                if self.char == eol:
-                    raise ParseError("EOL following quote")
-                self.consume()
+                rv += self.consume_escape()
             elif c == quote_char:
+                self.consume()
                 break
             elif c == eol:
-                raise ParseError("EOL in quoted string")
+                raise ParseError(self.filename, self.line_number, "EOL in quoted string")
             else:
+                rv += c
                 self.consume()
-        rv = self.line[index_0:self.index]
-        self.consume()
-        return rv
+
+        return decode(rv)
 
     def expr_or_value_state(self):
         if self.peek(3) == "if ":
@@ -270,12 +348,12 @@ class Tokenizer(object):
         self.skip_whitespace()
         c = self.char()
         if c == eol:
-            raise ParseError("EOL in expression")
+            raise ParseError(self.filename, self.line_number, "EOL in expression")
         elif c in "'\"":
             self.consume()
-            yield (token_types.string, decode(self.read_string(c)))
+            yield (token_types.string, self.consume_string(c))
         elif c == "#":
-            raise ParseError("Comment before end of expression")
+            raise ParseError(self.filename, self.line_number, "Comment before end of expression")
         elif c == ":":
             yield (token_types.separator, c)
             self.consume()
@@ -315,7 +393,7 @@ class Tokenizer(object):
                 self.consume()
             elif c == ".":
                 if seen_dot:
-                    raise ParseError("Invalid number")
+                    raise ParseError(self.filename, self.line_number, "Invalid number")
                 self.consume()
                 seen_dot = True
             elif c in parens:
@@ -327,7 +405,7 @@ class Tokenizer(object):
             elif c == ":":
                 break
             else:
-                raise ParseError("Invalid character in number")
+                raise ParseError(self.filename, self.line_number, "Invalid character in number")
 
         self.state = self.expr_state
         yield (token_types.number, self.line[index_0:self.index])
@@ -352,6 +430,44 @@ class Tokenizer(object):
                 self.consume()
         self.state = self.expr_state
         yield (token_types.ident, self.line[index_0:self.index])
+
+    def consume_escape(self):
+        assert self.char() == "\\"
+        self.consume()
+        c = self.char()
+        self.consume()
+        if c == "x":
+            return self.decode_escape(2)
+        elif c == "u":
+            return self.decode_escape(4)
+        elif c == "U":
+            return self.decode_escape(6)
+        elif c in ["a", "b", "f", "n", "r", "t", "v"]:
+            return eval("'\%s'" % c)
+        elif c is eol:
+            raise ParseError(self.filename, self.line_number, "EOL in escape")
+        else:
+            return c
+
+    def decode_escape(self, length):
+        value = 0
+        for i in xrange(length):
+            c = self.char()
+            value *= 16
+            value += self.escape_value(c)
+            self.consume()
+
+        return unichr(value).encode("utf8")
+
+    def escape_value(self, c):
+        if '0' <= c <= '9':
+            return ord(c) - ord('0')
+        elif 'a' <= c <= 'f':
+            return ord(c) - ord('a') + 10
+        elif 'A' <= c <= 'F':
+            return ord(c) - ord('A') + 10
+        else:
+            raise ParseError(self.filename, self.line_number, "Invalid character escape")
 
 
 class Parser(object):
@@ -417,7 +533,10 @@ class Parser(object):
             self.expect(token_types.group_end)
 
     def value_block(self):
-        if self.token[0] == token_types.string:
+        if self.token[0] == token_types.list_start:
+            self.consume()
+            self.list_value()
+        elif self.token[0] == token_types.string:
             self.value()
         elif self.token[0] == token_types.group_start:
             self.consume()
@@ -427,6 +546,13 @@ class Parser(object):
             self.eof_or_end_group()
         else:
             raise ParseError
+
+    def list_value(self):
+        self.tree.append(ListNode())
+        while self.token[0] == token_types.string:
+            self.value()
+        self.expect(token_types.list_end)
+        self.tree.pop()
 
     def expression_values(self):
         while self.token == (token_types.ident, "if"):
@@ -446,7 +572,7 @@ class Parser(object):
         self.tree.pop()
 
     def expr_start(self):
-        self.expr_builder = ExpressionBuilder()
+        self.expr_builder = ExpressionBuilder(self.tokenizer)
         self.expr_builders.append(self.expr_builder)
         self.expr()
         expression = self.expr_builder.finish()
@@ -486,14 +612,14 @@ class Parser(object):
             self.expr_builder.push_operator(UnaryOperatorNode(self.token[1]))
             self.consume()
         else:
-            raise ParseError()
+            raise ParseError(self.filename, self.tokenizer.line_number, "Expected unary operator")
 
     def expr_bin_op(self):
         if self.token[1] in binary_operators:
             self.expr_builder.push_operator(BinaryOperatorNode(self.token[1]))
             self.consume()
         else:
-            raise ParseError()
+            raise ParseError(self.filename, self.tokenizer.line_number, "Expected binary operator")
 
     def expr_value(self):
         node_type = {token_types.string: StringNode,
@@ -528,9 +654,10 @@ class Treebuilder(object):
 
 
 class ExpressionBuilder(object):
-    def __init__(self):
+    def __init__(self, tokenizer):
         self.operands = []
         self.operators = [None]
+        self.tokenizer = tokenizer
 
     def finish(self):
         while self.operators[-1] is not None:
@@ -546,7 +673,8 @@ class ExpressionBuilder(object):
         while self.operators[-1] is not None:
             self.pop_operator()
             if not self.operators:
-                raise ParseError("Unbalanced parens")
+                raise ParseError(self.tokenizer.filename, self.tokenizer.line,
+                                 "Unbalanced parens")
 
         assert self.operators.pop() is None
 

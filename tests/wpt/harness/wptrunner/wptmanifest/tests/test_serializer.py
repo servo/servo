@@ -15,12 +15,12 @@ class TokenizerTest(unittest.TestCase):
         self.parser = parser.Parser()
 
     def serialize(self, input_str):
-        return self.serializer.serialize(self.parser.parse(StringIO(input_str)))
+        return self.serializer.serialize(self.parser.parse(input_str))
 
     def compare(self, input_str, expected=None):
         if expected is None:
             expected = input_str
-
+        expected = expected.encode("utf8")
         actual = self.serialize(input_str)
         self.assertEquals(actual, expected)
 
@@ -114,11 +114,98 @@ class TokenizerTest(unittest.TestCase):
 
 [Heading 2]
   other_key: other_value
-"""
-                     )
+""")
 
     def test_11(self):
         self.compare("""key:
   if not a and b and c and d: true
-"""
-                     )
+""")
+
+    def test_12(self):
+        self.compare("""[Heading 1]
+  key: [a:1, b:2]
+""")
+
+    def test_13(self):
+        self.compare("""key: [a:1, "b:#"]
+""")
+
+    def test_14(self):
+        self.compare("""key: [","]
+""")
+
+    def test_15(self):
+        self.compare("""key: ,
+""")
+
+    def test_16(self):
+        self.compare("""key: ["]", b]
+""")
+
+    def test_17(self):
+        self.compare("""key: ]
+""")
+
+    def test_18(self):
+        self.compare("""key: \]
+        """, """key: ]
+""")
+
+    def test_escape_0(self):
+        self.compare(r"""k\t\:y: \a\b\f\n\r\t\v""",
+                     r"""k\t\:y: \x07\x08\x0c\n\r\t\x0b
+""")
+
+    def test_escape_1(self):
+        self.compare(r"""k\x00: \x12A\x45""",
+                     r"""k\x00: \x12AE
+""")
+
+    def test_escape_2(self):
+        self.compare(r"""k\u0045y: \u1234A\uABc6""",
+                     u"""kEy: \u1234A\uabc6
+""")
+
+    def test_escape_3(self):
+        self.compare(r"""k\u0045y: \u1234A\uABc6""",
+                     u"""kEy: \u1234A\uabc6
+""")
+
+    def test_escape_4(self):
+        self.compare(r"""key: '\u1234A\uABc6'""",
+                     u"""key: \u1234A\uabc6
+""")
+
+    def test_escape_5(self):
+        self.compare(r"""key: [\u1234A\uABc6]""",
+                     u"""key: [\u1234A\uabc6]
+""")
+
+    def test_escape_6(self):
+        self.compare(r"""key: [\u1234A\uABc6\,]""",
+                     u"""key: ["\u1234A\uabc6,"]
+""")
+
+    def test_escape_7(self):
+        self.compare(r"""key: [\,\]\#]""",
+                     r"""key: [",]#"]
+""")
+
+    def test_escape_8(self):
+        self.compare(r"""key: \#""",
+                     r"""key: "#"
+""")
+
+    def test_escape_9(self):
+        self.compare(r"""key: \U10FFFFabc""",
+                     u"""key: \U0010FFFFabc
+""")
+
+    def test_escape_10(self):
+        self.compare(r"""key: \u10FFab""",
+                     u"""key: \u10FFab
+""")
+
+    def test_escape_11(self):
+        self.compare(r"""key: \\ab
+""")

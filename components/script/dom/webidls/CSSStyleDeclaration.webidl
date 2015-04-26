@@ -84,7 +84,7 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString boxShadow;
   [TreatNullAs=EmptyString] attribute DOMString textShadow;
 
-  //[TreatNullAs=EmptyString] attribute DOMString float; //XXXjdm need BinaryName annotation
+  [TreatNullAs=EmptyString] attribute DOMString _float;
 
   [TreatNullAs=EmptyString] attribute DOMString clear;
 

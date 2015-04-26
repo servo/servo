@@ -50,7 +50,7 @@ interface CanvasRenderingContext2D {
 
   // compositing
   attribute unrestricted double globalAlpha; // (default 1.0)
-  //         attribute DOMString globalCompositeOperation; // (default source-over)
+  attribute DOMString globalCompositeOperation; // (default source-over)
 
   // image smoothing
            attribute boolean imageSmoothingEnabled; // (default true)
@@ -90,7 +90,7 @@ interface CanvasRenderingContext2D {
   //boolean drawCustomFocusRing(Path2D path, Element element);
   //void scrollPathIntoView();
   //void scrollPathIntoView(Path2D path);
-  //void clip(optional CanvasWindingRule fillRule = "nonzero");
+  void clip(optional CanvasWindingRule fillRule = "nonzero");
   //void clip(Path2D path, optional CanvasWindingRule fillRule = "nonzero");
   //void resetClip();
   //boolean isPointInPath(unrestricted double x, unrestricted double y, optional CanvasWindingRule fillRule = "nonzero");
@@ -171,7 +171,7 @@ interface CanvasPathMethods {
              unrestricted double radius);
 // NOT IMPLEMENTED  [LenientFloat] void arcTo(double x1, double y1, double x2, double y2, double radiusX, double radiusY, double rotation);
 
-  //void rect(double x, double y, double w, double h);
+  void rect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
 
   [Throws]
   void arc(double x, double y, double radius, double startAngle, double endAngle, optional boolean anticlockwise = false);

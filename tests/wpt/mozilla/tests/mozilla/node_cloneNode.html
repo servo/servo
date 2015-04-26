@@ -183,7 +183,10 @@
             }, "implementation.createDocumentType");
 
             test(function() {
-                // FIXME: https://github.com/mozilla/servo/issues/1509
+                var doc = document.implementation.createDocument(null, null);
+                var copy = doc.cloneNode();
+                check_copy(doc, copy, Document);
+                assert_equals(doc.contentType, copy.contentType);
             }, "implementation.createDocument");
 
             test(function() {

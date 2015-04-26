@@ -165,11 +165,11 @@ class SeleniumRun(object):
 
 class SeleniumTestharnessExecutor(TestharnessExecutor):
     def __init__(self, browser, server_config, timeout_multiplier=1,
-                 close_after_done=True, capabilities=None, debug_args=None):
+                 close_after_done=True, capabilities=None, debug_info=None):
         """Selenium-based executor for testharness.js tests"""
         TestharnessExecutor.__init__(self, browser, server_config,
                                      timeout_multiplier=timeout_multiplier,
-                                     debug_args=debug_args)
+                                     debug_info=debug_info)
         self.protocol = SeleniumProtocol(self, browser, capabilities)
         with open(os.path.join(here, "testharness_webdriver.js")) as f:
             self.script = f.read()
@@ -206,14 +206,14 @@ class SeleniumTestharnessExecutor(TestharnessExecutor):
 class SeleniumRefTestExecutor(RefTestExecutor):
     def __init__(self, browser, server_config, timeout_multiplier=1,
                  screenshot_cache=None, close_after_done=True,
-                 debug_args=None, capabilities=None):
+                 debug_info=None, capabilities=None):
         """Selenium WebDriver-based executor for reftests"""
         RefTestExecutor.__init__(self,
                                  browser,
                                  server_config,
                                  screenshot_cache=screenshot_cache,
                                  timeout_multiplier=timeout_multiplier,
-                                 debug_args=debug_args)
+                                 debug_info=debug_info)
         self.protocol = SeleniumProtocol(self, browser,
                                          capabilities=capabilities)
         self.implementation = RefTestImplementation(self)

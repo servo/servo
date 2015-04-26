@@ -20,6 +20,7 @@ from mozprofile import FirefoxProfile, Preferences
 from .base import get_free_port, BrowserError, Browser, ExecutorBrowser
 from ..executors.executormarionette import MarionetteTestharnessExecutor
 from ..hosts import HostsFile, HostsLine
+from ..environment import hostnames
 
 here = os.path.split(__file__)[0]
 
@@ -115,13 +116,6 @@ class B2GBrowser(Browser):
         self.logger.debug("Device runner started")
 
     def setup_hosts(self):
-        hostnames = ["web-platform.test",
-                     "www.web-platform.test",
-                     "www1.web-platform.test",
-                     "www2.web-platform.test",
-                     "xn--n8j6ds53lwwkrqhv28a.web-platform.test",
-                     "xn--lve-6lad.web-platform.test"]
-
         host_ip = moznetwork.get_ip()
 
         temp_dir = tempfile.mkdtemp()

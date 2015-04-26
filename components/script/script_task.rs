@@ -36,7 +36,7 @@ use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementHelpers};
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
-use dom::node::{self, Node, NodeHelpers, NodeDamage, window_from_node};
+use dom::node::{Node, NodeHelpers, NodeDamage, window_from_node};
 use dom::window::{Window, WindowHelpers, ScriptHelpers, ReflowReason};
 use dom::worker::TrustedWorkerAddress;
 use parse::html::{HTMLInput, parse_html};
@@ -45,17 +45,19 @@ use layout_interface;
 use page::{Page, IterablePage, Frame};
 use timers::TimerId;
 use devtools;
+use webdriver_handlers;
 
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, DevtoolsPageInfo};
 use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
 use devtools_traits::{TimelineMarker, TimelineMarkerType, TracingMetadata};
 use script_traits::CompositorEvent;
-use script_traits::CompositorEvent::{ResizeEvent, ReflowEvent, ClickEvent};
+use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
 use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
 use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
 use script_traits::{ConstellationControlMsg, ScriptControlChan};
 use script_traits::ScriptTaskFactory;
+use webdriver_traits::WebDriverScriptCommand;
 use msg::compositor_msg::ReadyState::{FinishedLoading, Loading, PerformingLayout};
 use msg::compositor_msg::{LayerId, ScriptListener};
 use msg::constellation_msg::{ConstellationChan, FocusType};
@@ -64,7 +66,7 @@ use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net_traits::{ResourceTask, ControlMsg, LoadResponse, LoadConsumer};
 use net_traits::LoadData as NetLoadData;
-use net_traits::image_cache_task::ImageCacheTask;
+use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
 use string_cache::Atom;
 use util::geometry::to_frac_px;
@@ -79,8 +81,7 @@ use hyper::header::{LastModified, Headers};
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetExtraGCRootsTracer};
 use js::jsapi::{JSContext, JSRuntime, JSObject, JSTracer};
 use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
-use js::rust::{Runtime, Cx, RtUtils};
-use js;
+use js::rust::{Runtime, RtUtils};
 use url::Url;
 
 use libc;
@@ -297,6 +298,12 @@ pub struct ScriptTask {
     /// A handle to the compositor for communicating ready state messages.
     compositor: DOMRefCell<Box<ScriptListener+'static>>,
 
+    /// The port on which we receive messages from the image cache
+    image_cache_port: Receiver<ImageCacheResult>,
+
+    /// The channel on which the image cache can send messages to ourself.
+    image_cache_channel: ImageCacheChan,
+
     /// For providing instructions to an optional devtools server.
     devtools_chan: Option<DevtoolsControlChan>,
     /// For receiving commands from an optional devtools server. Will be ignored if
@@ -309,9 +316,7 @@ pub struct ScriptTask {
     devtools_marker_sender: RefCell<Option<Sender<TimelineMarker>>>,
 
     /// The JavaScript runtime.
-    js_runtime: js::rust::rt,
-    /// The JSContext.
-    js_context: Rc<Cx>,
+    js_runtime: Runtime,
 
     mouse_over_targets: DOMRefCell<Vec<JS<Node>>>
 }
@@ -440,10 +445,10 @@ impl ScriptTask {
                constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
                storage_task: StorageTask,
-               img_cache_task: ImageCacheTask,
+               image_cache_task: ImageCacheTask,
                devtools_chan: Option<DevtoolsControlChan>)
                -> ScriptTask {
-        let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
+        let runtime = ScriptTask::new_rt_and_cx();
         let wrap_for_same_compartment = wrap_for_same_compartment as
             unsafe extern "C" fn(*mut JSContext, *mut JSObject) -> *mut JSObject;
         let pre_wrap = pre_wrap as
@@ -455,22 +460,27 @@ impl ScriptTask {
             // and JSCompartment::wrap crashes if that happens. The only way
             // to retrieve the default callback is as the result of
             // JS_SetWrapObjectCallbacks, which is why we call it twice.
-            let callback = JS_SetWrapObjectCallbacks((*js_runtime).ptr,
+            let callback = JS_SetWrapObjectCallbacks(runtime.rt(),
                                                      None,
                                                      Some(wrap_for_same_compartment),
                                                      None);
-            JS_SetWrapObjectCallbacks((*js_runtime).ptr,
+            JS_SetWrapObjectCallbacks(runtime.rt(),
                                       callback,
                                       Some(wrap_for_same_compartment),
                                       Some(pre_wrap));
         }
 
         let (devtools_sender, devtools_receiver) = channel();
+        let (image_cache_channel, image_cache_port) = channel();
+
         ScriptTask {
             page: DOMRefCell::new(None),
             incomplete_loads: DOMRefCell::new(vec!()),
 
-            image_cache_task: img_cache_task,
+            image_cache_task: image_cache_task,
+            image_cache_channel: ImageCacheChan(image_cache_channel),
+            image_cache_port: image_cache_port,
+
             resource_task: resource_task,
             storage_task: storage_task,
 
@@ -486,13 +496,12 @@ impl ScriptTask {
             devtools_markers: RefCell::new(HashSet::new()),
             devtools_marker_sender: RefCell::new(None),
 
-            js_runtime: js_runtime,
-            js_context: js_context,
+            js_runtime: runtime,
             mouse_over_targets: DOMRefCell::new(vec!())
         }
     }
 
-    pub fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
+    pub fn new_rt_and_cx() -> Runtime {
         LiveDOMReferences::initialize();
         let runtime = Runtime::new();
 
@@ -508,7 +517,7 @@ impl ScriptTask {
             }
         }
 
-        (runtime.rt, runtime.cx)
+        runtime
     }
 
     // Return the root page in the frame tree. Panics if it doesn't exist.
@@ -517,7 +526,7 @@ impl ScriptTask {
     }
 
     pub fn get_cx(&self) -> *mut JSContext {
-        self.js_context.ptr
+        self.js_runtime.cx()
     }
 
     /// Starts the script task. After calling this method, the script task will loop receiving
@@ -562,6 +571,7 @@ impl ScriptTask {
             FromConstellation(ConstellationControlMsg),
             FromScript(ScriptMsg),
             FromDevtools(DevtoolScriptControlMsg),
+            FromImageCache(ImageCacheResult),
         }
 
         // Store new resizes, and gather all other events.
@@ -573,12 +583,14 @@ impl ScriptTask {
             let mut port1 = sel.handle(&self.port);
             let mut port2 = sel.handle(&self.control_port);
             let mut port3 = sel.handle(&self.devtools_port);
+            let mut port4 = sel.handle(&self.image_cache_port);
             unsafe {
                 port1.add();
                 port2.add();
                 if self.devtools_chan.is_some() {
                     port3.add();
                 }
+                port4.add();
             }
             let ret = sel.wait();
             if ret == port1.id() {
@@ -587,6 +599,8 @@ impl ScriptTask {
                 MixedMessage::FromConstellation(self.control_port.recv().unwrap())
             } else if ret == port3.id() {
                 MixedMessage::FromDevtools(self.devtools_port.recv().unwrap())
+            } else if ret == port4.id() {
+                MixedMessage::FromImageCache(self.image_cache_port.recv().unwrap())
             } else {
                 panic!("unexpected select result")
             }
@@ -633,7 +647,10 @@ impl ScriptTask {
             match self.control_port.try_recv() {
                 Err(_) => match self.port.try_recv() {
                     Err(_) => match self.devtools_port.try_recv() {
-                        Err(_) => break,
+                        Err(_) => match self.image_cache_port.try_recv() {
+                            Err(_) => break,
+                            Ok(ev) => event = MixedMessage::FromImageCache(ev),
+                        },
                         Ok(ev) => event = MixedMessage::FromDevtools(ev),
                     },
                     Ok(ev) => event = MixedMessage::FromScript(ev),
@@ -653,6 +670,23 @@ impl ScriptTask {
                 MixedMessage::FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                 MixedMessage::FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
                 MixedMessage::FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
+                MixedMessage::FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
+            }
+        }
+
+        // Issue batched reflows on any pages that require it (e.g. if images loaded)
+        // TODO(gw): In the future we could probably batch other types of reflows
+        // into this loop too, but for now it's only images.
+        let page = self.page.borrow();
+        if let Some(page) = page.as_ref() {
+            for page in page.iter() {
+                let window = page.window().root();
+                let pending_reflows = window.r().get_pending_reflow_count();
+                if pending_reflows > 0 {
+                    window.r().reflow(ReflowGoal::ForDisplay,
+                                      ReflowQueryType::NoQuery,
+                                      ReflowReason::ImageLoaded);
+                }
             }
         }
 
@@ -695,6 +729,9 @@ impl ScriptTask {
                 self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
             ConstellationControlMsg::FocusIFrameMsg(containing_pipeline_id, subpage_id) =>
                 self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
+            ConstellationControlMsg::WebDriverCommandMsg(pipeline_id, msg) => {
+                self.handle_webdriver_msg(pipeline_id, msg);
+            }
         }
     }
 
@@ -747,6 +784,18 @@ impl ScriptTask {
         }
     }
 
+    fn handle_msg_from_image_cache(&self, msg: ImageCacheResult) {
+        msg.responder.unwrap().respond(msg.image);
+    }
+
+    fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {
+        let page = self.root_page();
+        match msg {
+            WebDriverScriptCommand::EvaluateJS(script, reply) =>
+                webdriver_handlers::handle_evaluate_js(&page, pipeline_id, script, reply)
+        }
+    }
+
     fn handle_resize(&self, id: PipelineId, size: WindowSizeData) {
         let page = self.page.borrow();
         if let Some(ref page) = page.as_ref() {
@@ -782,7 +831,7 @@ impl ScriptTask {
             return;
         }
         panic!("Page rect message sent to nonexistent pipeline");
-     }
+    }
 
     /// Handle a request to load a page in a new child frame of an existing page.
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
@@ -1062,9 +1111,10 @@ impl ScriptTask {
         let mut page_remover = AutoPageRemover::new(self, page_to_remove);
 
         // Create the window and document objects.
-        let window = Window::new(self.js_context.clone(),
+        let window = Window::new(self.js_runtime.cx.clone(),
                                  page.clone(),
                                  self.chan.clone(),
+                                 self.image_cache_channel.clone(),
                                  self.control_chan.clone(),
                                  self.compositor.borrow_mut().dup(),
                                  self.image_cache_task.clone(),
@@ -1211,29 +1261,6 @@ impl ScriptTask {
                 self.handle_resize_event(pipeline_id, new_size);
             }
 
-            ReflowEvent(nodes) => {
-                // FIXME(pcwalton): This event seems to only be used by the image cache task, and
-                // the interaction between it and the image holder is really racy. I think that, in
-                // order to fix this race, we need to rewrite the image cache task to make the
-                // image holder responsible for the lifecycle of image loading instead of having
-                // the image holder and layout task both be observers. Then we can have the DOM
-                // image element observe the state of the image holder and have it send reflows
-                // via the normal dirtying mechanism, and ultimately remove this event.
-                //
-                // See the implementation of `Width()` and `Height()` in `HTMLImageElement` for
-                // fallout of this problem.
-                for node in nodes.iter() {
-                    let node_to_dirty = node::from_untrusted_node_address(self.js_runtime.ptr,
-                                                                          *node).root();
-                    let page = get_page(&self.root_page(), pipeline_id);
-                    let document = page.document().root();
-                    document.r().content_changed(node_to_dirty.r(),
-                                                 NodeDamage::OtherNodeDamage);
-                }
-
-                self.handle_reflow_event(pipeline_id);
-            }
-
             ClickEvent(button, point) => {
                 let _marker;
                 if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
@@ -1241,7 +1268,7 @@ impl ScriptTask {
                 }
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document().root();
-                document.r().handle_click_event(self.js_runtime.ptr, button, point);
+                document.r().handle_click_event(self.js_runtime.rt(), button, point);
             }
 
             MouseDownEvent(..) => {}
@@ -1256,7 +1283,7 @@ impl ScriptTask {
                 let mut mouse_over_targets = RootedVec::new();
                 mouse_over_targets.append(&mut *self.mouse_over_targets.borrow_mut());
 
-                document.r().handle_mouse_move_event(self.js_runtime.ptr, point, &mut mouse_over_targets);
+                document.r().handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
                 *self.mouse_over_targets.borrow_mut() = mouse_over_targets.clone();
             }
 
@@ -1334,16 +1361,6 @@ impl ScriptTask {
 
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());
         event.fire(wintarget);
-    }
-
-    fn handle_reflow_event(&self, pipeline_id: PipelineId) {
-        debug!("script got reflow event");
-        let page = get_page(&self.root_page(), pipeline_id);
-        let document = page.document().root();
-        let window = window_from_node(document.r()).root();
-        window.r().reflow(ReflowGoal::ForDisplay,
-                          ReflowQueryType::NoQuery,
-                          ReflowReason::ReceivedReflowEvent);
     }
 
     /// Initiate a non-blocking fetch for a specified resource. Stores the InProgressLoad

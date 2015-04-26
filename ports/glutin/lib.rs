@@ -6,6 +6,7 @@
 
 #![feature(int_uint)]
 #![feature(box_syntax)]
+#![cfg_attr(all(feature = "window", target_os = "linux"), feature(old_io, std_misc))]
 
 #[macro_use] extern crate bitflags;
 #[cfg(target_os="macos")]

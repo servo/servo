@@ -69,7 +69,7 @@ impl CORSRequest {
            referer.port() == destination.port() {
             return Ok(None); // Not cross-origin, proceed with a normal fetch
         }
-        match destination.scheme.as_slice() {
+        match &*destination.scheme {
             // TODO: If the request's same origin data url flag is set (which isn't the case for XHR)
             // we can fetch a data URL normally. about:blank can also be fetched by XHR
             "http" | "https" => {
@@ -221,7 +221,7 @@ impl CORSRequest {
         // Substeps 1-3 (parsing rules: https://fetch.spec.whatwg.org/#http-new-header-syntax)
         let methods_substep4 = [self.method.clone()];
         let mut methods = match response.headers.get() {
-            Some(&AccessControlAllowMethods(ref v)) => v.as_slice(),
+            Some(&AccessControlAllowMethods(ref v)) => &**v,
             _ => return error
         };
         let headers = match response.headers.get() {
@@ -420,7 +420,7 @@ impl CORSCache {
 fn is_simple_header(h: &HeaderView) -> bool {
     //FIXME: use h.is::<HeaderType>() when AcceptLanguage and
     //ContentLanguage headers exist
-    match h.name().to_ascii_lowercase().as_slice() {
+    match &*h.name().to_ascii_lowercase() {
         "accept" | "accept-language" | "content-language" => true,
         "content-type" => match h.value() {
             Some(&ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) |

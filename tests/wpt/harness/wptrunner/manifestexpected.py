@@ -107,6 +107,15 @@ class TestNode(ManifestItem):
         except KeyError:
             return False
 
+    def prefs(self):
+        try:
+            prefs = self.get("prefs")
+            if type(prefs) in (str, unicode):
+                prefs = [prefs]
+            return [item.split(":", 1) for item in prefs]
+        except KeyError:
+            return []
+
     def append(self, node):
         """Add a subtest to the current test
 

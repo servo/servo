@@ -101,17 +101,26 @@ class MachCommands(CommandBase):
     @Command('test-unit',
              description='Run unit tests',
              category='testing')
+    @CommandArgument('--package', '-p', default=None, help="Specific package to test")
     @CommandArgument('test_name', nargs=argparse.REMAINDER,
                      help="Only run tests that match this pattern")
-    def test_unit(self, test_name=None, component=None, package=None):
+    def test_unit(self, test_name=None, package=None):
         if test_name is None:
             test_name = []
 
         self.ensure_bootstrapped()
 
-        return 0 != subprocess.call(
-            ["cargo", "test", "-p", "unit_tests"]
-            + test_name, env=self.build_env(), cwd=self.servo_crate())
+        if package:
+            packages = [package]
+        else:
+            packages = os.listdir(path.join(self.context.topdir, "tests", "unit"))
+
+        for crate in packages:
+            result = subprocess.call(
+                ["cargo", "test", "-p", "%s_tests" % crate] + test_name,
+                env=self.build_env(), cwd=self.servo_crate())
+            if result != 0:
+                return result
 
     @Command('test-ref',
              description='Run the reference tests',

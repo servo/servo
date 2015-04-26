@@ -14,9 +14,9 @@ interface HTMLImageElement : HTMLElement {
            attribute boolean isMap;
            attribute unsigned long width;
            attribute unsigned long height;
-  //readonly attribute unsigned long naturalWidth;
-  //readonly attribute unsigned long naturalHeight;
-  //readonly attribute boolean complete;
+  readonly attribute unsigned long naturalWidth;
+  readonly attribute unsigned long naturalHeight;
+  readonly attribute boolean complete;
 
   // also has obsolete members
 };

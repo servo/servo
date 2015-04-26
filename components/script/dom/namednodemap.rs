@@ -52,7 +52,7 @@ impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
         let attrs = owner.attrs();
-        attrs.as_slice().get(index as usize).map(|x| Temporary::new(x.clone()))
+        attrs.get(index as usize).map(|x| Temporary::new(x.clone()))
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditem
@@ -60,8 +60,7 @@ impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
-        let name = owner.parsed_name(name);
-        owner.get_attribute_by_name(&Atom::from_slice(&name))
+        owner.get_attribute_by_name(name)
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditemns
