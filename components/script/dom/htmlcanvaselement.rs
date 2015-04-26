@@ -170,6 +170,11 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
     fn GetContext(self, id: DOMString) -> Option<CanvasRenderingContext2DOrWebGLRenderingContext> {
         match &*id {
             "2d" => {
+                if self.context_webgl.get().is_some() {
+                    debug!("Trying to get a 2d context for a canvas with an already initialized WebGL context");
+                    return None;
+                }
+
                 let context_2d = self.context_2d.or_init(|| {
                     let window = window_from_node(self).root();
                     let size = self.get_size();
@@ -178,14 +183,22 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
                 Some(CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(Unrooted::from_temporary(context_2d)))
             }
             "webgl" | "experimental-webgl" => {
-                let context_webgl = self.context_webgl.or_init(|| {
+                if self.context_2d.get().is_some() {
+                    debug!("Trying to get a WebGL context for a canvas with an already initialized 2d context");
+                    return None;
+                }
+
+                if !self.context_webgl.get().is_some() {
                     let window = window_from_node(self).root();
                     let size = self.get_size();
-                    WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, size)
-                });
-                Some(CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(Unrooted::from_temporary(context_webgl)))
+
+                    self.context_webgl.assign(WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, size))
+                }
+
+                self.context_webgl.get().map( |ctx|
+                    CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(Unrooted::from_temporary(ctx)))
             }
-            _ => return None
+            _ => None
         }
     }
 }

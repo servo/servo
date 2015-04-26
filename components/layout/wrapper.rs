@@ -197,7 +197,7 @@ impl<'a> PartialEq for LayoutNode<'a> {
 impl<'ln> TLayoutNode for LayoutNode<'ln> {
     unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
-            node: node.transmute_copy(),
+            node: *node,
             chain: self.chain,
         }
     }
@@ -728,10 +728,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     /// Creates a new layout node with the same lifetime as this layout node.
     unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> ThreadSafeLayoutNode<'ln> {
         ThreadSafeLayoutNode {
-            node: LayoutNode {
-                node: node.transmute_copy(),
-                chain: self.node.chain,
-            },
+            node: self.node.new_with_this_lifetime(node),
             pseudo: PseudoElementType::Normal,
         }
     }

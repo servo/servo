@@ -5471,7 +5471,7 @@ impl ${name}Cast {
     pub fn to_layout_js<T: ${toBound}+Reflectable>(base: &LayoutJS<T>) -> Option<LayoutJS<${name}>> {
         unsafe {
             match (*base.unsafe_get()).${checkFn}() {
-                true => Some(base.transmute_copy()),
+                true => Some(mem::transmute_copy(base)),
                 false => None
             }
         }
@@ -5498,7 +5498,7 @@ impl ${name}Cast {
     #[inline(always)]
     #[allow(unrooted_must_root)]
     pub fn from_layout_js<T: ${fromBound}+Reflectable>(derived: &LayoutJS<T>) -> LayoutJS<${name}> {
-        unsafe { derived.transmute_copy() }
+        unsafe { mem::transmute_copy(derived) }
     }
 
     #[inline(always)]
