@@ -70,7 +70,7 @@ impl TextDecoder {
                     (Some(token1), Some(token2)) => {
                         self.BOMseen = true;
                         if *token1 == 0xFE && *token2 == 0xFF {
-                            &stream[1..]
+                            &stream[2..]
                         } else {
                             stream
                         }
