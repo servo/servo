@@ -21,11 +21,14 @@ use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
 use ipc_channel::ipc;
-use js::jsapi::{HandleValue, JSContext, RootedValue};
-use js::jsapi::{JSAutoCompartment, JSAutoRequest};
+use js::jsapi::{HandleValue, JSContext, JSRuntime, RootedValue};
+use js::jsapi::{JSAutoCompartment, JSAutoRequest, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
+use js::rust::Runtime;
 use script_thread::{Runnable, ScriptChan};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
+use std::sync::{Arc, Mutex};
 use util::str::DOMString;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
@@ -38,21 +41,26 @@ pub struct Worker {
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
     sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+    closing: Arc<AtomicBool>,
+    #[ignore_heap_size_of = "Defined in rust-mozjs"]
+    runtime: Arc<Mutex<Option<SharedRt>>>
 }
 
 impl Worker {
-    fn new_inherited(sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>)
-                     -> Worker {
+    fn new_inherited(sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+                     closing: Arc<AtomicBool>) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(),
             sender: sender,
+            closing: closing,
+            runtime: Arc::new(Mutex::new(None))
         }
     }
 
     pub fn new(global: GlobalRef,
-               sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>)
-               -> Root<Worker> {
-        reflect_dom_object(box Worker::new_inherited(sender),
+               sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+               closing: Arc<AtomicBool>) -> Root<Worker> {
+        reflect_dom_object(box Worker::new_inherited(sender, closing),
                            global,
                            WorkerBinding::Wrap)
     }
@@ -70,7 +78,8 @@ impl Worker {
         let scheduler_chan = global.scheduler_chan();
 
         let (sender, receiver) = channel();
-        let worker = Worker::new(global, sender.clone());
+        let closing = Arc::new(AtomicBool::new(false));
+        let worker = Worker::new(global, sender.clone(), closing.clone());
         let worker_ref = Trusted::new(worker.r(), global.script_chan());
         let worker_id = global.get_next_worker_id();
 
@@ -99,17 +108,27 @@ impl Worker {
             constellation_chan: constellation_chan,
             scheduler_chan: scheduler_chan,
             worker_id: worker_id,
+            closing: closing,
         };
+
         DedicatedWorkerGlobalScope::run_worker_scope(
-            init, worker_url, global.pipeline(), devtools_receiver, worker_ref,
+            init, worker_url, global.pipeline(), devtools_receiver, worker.runtime.clone(), worker_ref,
             global.script_chan(), sender, receiver);
 
         Ok(worker)
     }
 
+    pub fn is_closing(&self) -> bool {
+        self.closing.load(Ordering::SeqCst)
+    }
+
     pub fn handle_message(address: TrustedWorkerAddress,
                           data: StructuredCloneData) {
         let worker = address.root();
+
+        if worker.is_closing() {
+            return;
+        }
 
         let global = worker.r().global();
         let target = worker.upcast();
@@ -128,6 +147,11 @@ impl Worker {
     pub fn handle_error_message(address: TrustedWorkerAddress, message: DOMString,
                                 filename: DOMString, lineno: u32, colno: u32) {
         let worker = address.root();
+
+        if worker.is_closing() {
+            return;
+        }
+
         let global = worker.r().global();
         let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
         let errorevent = ErrorEvent::new(global.r(), atom!("error"),
@@ -144,6 +168,24 @@ impl WorkerMethods for Worker {
         let address = Trusted::new(self, self.global().r().script_chan());
         self.sender.send((address, WorkerScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#terminate-a-worker
+    fn Terminate(&self) {
+        // Step 1
+        if self.closing.swap(true, Ordering::SeqCst) {
+            return;
+        }
+
+        // Step 4
+        match self.runtime.lock() {
+            Ok(guard) => if let Some(runtime) = *guard {
+                runtime.request_interrupt();
+            },
+            Err(poisoned) => if let Some(runtime) = *poisoned.into_inner() {
+                runtime.request_interrupt();
+            }
+        };
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-worker-onmessage
@@ -220,3 +262,26 @@ impl Runnable for WorkerErrorHandler {
         Worker::handle_error_message(this.addr, this.msg, this.file_name, this.line_num, this.col_num);
     }
 }
+
+#[derive(Copy, Clone)]
+pub struct SharedRt {
+    rt: *mut JSRuntime
+}
+
+impl SharedRt {
+    pub fn new(rt: &Runtime) -> SharedRt {
+        SharedRt {
+            rt: rt.rt()
+        }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn request_interrupt(&self) {
+        unsafe {
+            JS_RequestInterruptCallback(self.rt);
+        }
+    }
+}
+
+#[allow(unsafe_code)]
+unsafe impl Send for SharedRt {}
