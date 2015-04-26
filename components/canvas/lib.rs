@@ -5,6 +5,7 @@
 #![feature(collections)]
 #![feature(core)]
 #![feature(std_misc)]
+#![feature(rustc_private)]
 
 extern crate azure;
 extern crate cssparser;
@@ -12,8 +13,11 @@ extern crate geom;
 extern crate gfx;
 extern crate util;
 extern crate gleam;
-extern crate msg;
+extern crate offscreen_gl_context;
 extern crate glutin;
+
+#[macro_use]
+extern crate log;
 
 pub mod canvas_paint_task;
 pub mod webgl_paint_task;

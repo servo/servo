@@ -14,12 +14,11 @@ html, body {
 <body>
 <canvas id="canvas" width="640" height="480"></canvas>
 <script type="text/javascript">
+var canvas = document.getElementById("canvas"),
+	gl = canvas.getContext("experimental-webgl");
 
-var gl = document.getElementById("canvas").getContext("webgl");
-
-gl.clearColor(1.0, 0.0, 0.0, 1.0);
+gl.clearColor(1.0, 0.0, 0.0, 1);
 gl.clear(gl.COLOR_BUFFER_BIT);
-
 </script>
 </body>
 </html>
