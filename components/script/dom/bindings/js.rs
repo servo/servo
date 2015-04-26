@@ -438,13 +438,6 @@ impl<T: Reflectable> LayoutJS<T> {
     }
 }
 
-impl<From> LayoutJS<From> {
-    /// Return `self` as a `LayoutJS` of another type.
-    pub unsafe fn transmute_copy<To>(&self) -> LayoutJS<To> {
-        mem::transmute_copy(self)
-    }
-}
-
 /// Get an `Option<JSRef<T>>` out of an `Option<Root<T>>`
 pub trait RootedReference<T> {
     /// Obtain a safe optional reference to the wrapped JS owned-value that

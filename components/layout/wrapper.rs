@@ -197,7 +197,7 @@ impl<'a> PartialEq for LayoutNode<'a> {
 impl<'ln> TLayoutNode for LayoutNode<'ln> {
     unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
-            node: node.transmute_copy(),
+            node: mem::transmute_copy(node),
             chain: self.chain,
         }
     }
@@ -729,7 +729,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> ThreadSafeLayoutNode<'ln> {
         ThreadSafeLayoutNode {
             node: LayoutNode {
-                node: node.transmute_copy(),
+                node: mem::transmute_copy(node),
                 chain: self.node.chain,
             },
             pseudo: PseudoElementType::Normal,
