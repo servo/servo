@@ -25,6 +25,7 @@ use ipc_channel::ipc::IpcSender;
 use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::jsapi::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
+use js::jsapi::{JS_GetRuntime, JS_GetRuntimePrivate};
 use url::Url;
 
 /// A freely-copyable reference to a rooted global object.
@@ -231,9 +232,8 @@ impl GlobalField {
 
 /// Returns the global object of the realm that the given JS object was created in.
 #[allow(unrooted_must_root)]
-pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalRoot {
+pub fn global_object_for_js_global(global: *mut JSObject) -> GlobalRoot {
     unsafe {
-        let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
         match native_from_reflector_jsmanaged(global) {
@@ -247,5 +247,25 @@ pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalRoot {
         }
 
         panic!("found DOM global that doesn't unwrap to Window or WorkerGlobalScope")
+    }
+}
+
+/// Returns the global object of the realm that the given JS object was created in.
+#[allow(unrooted_must_root)]
+pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalRoot {
+    unsafe {
+        let global = GetGlobalForObjectCrossCompartment(obj);
+        global_object_for_js_global(global)
+    }
+}
+
+/// Returns the global object for the given JSContext
+#[allow(unrooted_must_root)]
+pub fn global_object_for_js_context(cx: *mut JSContext) -> GlobalRoot {
+    unsafe {
+        let rt = JS_GetRuntime(cx);
+        let global = JS_GetRuntimePrivate(rt) as *mut JSObject;
+        assert!(!global.is_null());
+        global_object_for_js_global(global)
     }
 }

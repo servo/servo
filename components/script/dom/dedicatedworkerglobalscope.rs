@@ -11,15 +11,16 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::error::ErrorResult;
-use dom::bindings::global::GlobalRef;
+use dom::bindings::global::{GlobalRef, global_object_for_js_context};
 use dom::bindings::js::{RootCollection, Root};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;
+use dom::bindings::trace::JSTraceable;
 use dom::errorevent::ErrorEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, WorkerErrorHandler};
+use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, WorkerErrorHandler, SharedRt};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::{WorkerGlobalScopeTypeId, WorkerGlobalScopeInit};
 use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource, ScriptPort};
@@ -34,13 +35,14 @@ use util::task_state::{SCRIPT, IN_WORKER};
 
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{JSContext, RootedValue, HandleValue};
-use js::jsapi::{JSAutoRequest, JSAutoCompartment};
+use js::jsapi::{JSContext, JS_SetInterruptCallback, RootedValue, HandleValue};
+use js::jsapi::{JSAutoRequest, JSAutoCompartment, JS_SetRuntimePrivate};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
+use libc::c_void;
+use rand::random;
 use url::Url;
 
-use rand::random;
 use std::mem::replace;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, Receiver, channel, Select, RecvError};
@@ -147,6 +149,7 @@ impl DedicatedWorkerGlobalScope {
 }
 
 impl DedicatedWorkerGlobalScope {
+    #[allow(unsafe_code)]
     pub fn run_worker_scope(init: WorkerGlobalScopeInit,
                             worker_url: Url,
                             id: PipelineId,
@@ -154,13 +157,18 @@ impl DedicatedWorkerGlobalScope {
                             worker: TrustedWorkerAddress,
                             parent_sender: Box<ScriptChan+Send>,
                             own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
-                            receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>) {
+                            receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>,
+                            rt_sender: Sender<SharedRt>) {
         let serialized_worker_url = worker_url.serialize();
         spawn_named(format!("WebWorker for {}", serialized_worker_url), move || {
             task_state::initialize(SCRIPT | IN_WORKER);
 
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
+
+            let runtime = Rc::new(ScriptTask::new_rt_and_cx());
+            // Send JSRuntime ref to main thread for interrupt scheduling
+            rt_sender.send(SharedRt::new(&runtime)).unwrap();
 
             let (url, source) = match load_whole_resource(&init.resource_task, worker_url) {
                 Err(_) => {
@@ -174,8 +182,6 @@ impl DedicatedWorkerGlobalScope {
                 }
             };
 
-            let runtime = Rc::new(ScriptTask::new_rt_and_cx());
-
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
             ROUTER.route_ipc_receiver_to_mpsc_sender(devtools_ipc_port, devtools_mpsc_chan);
 
@@ -186,6 +192,20 @@ impl DedicatedWorkerGlobalScope {
             // registration (#6631), so we instead use a random number and cross our fingers.
             let scope = WorkerGlobalScopeCast::from_ref(global.r());
 
+            unsafe {
+                // Worker's global scope is stored in the JSRuntime private
+                JS_SetRuntimePrivate(runtime.rt(),
+                    global.r().reflector().get_jsobject().get() as *mut c_void);
+
+                // Handle interrupt requests
+                JS_SetInterruptCallback(runtime.rt(),
+                    Some(interrupt_callback as unsafe extern "C" fn(*mut JSContext) -> u8));
+            }
+
+            if scope.get_closing() {
+                return;
+            }
+
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
                 scope.execute_script(source);
@@ -194,11 +214,30 @@ impl DedicatedWorkerGlobalScope {
             let reporter_name = format!("worker-reporter-{}", random::<u64>());
             scope.mem_profiler_chan().run_with_memory_reporting(|| {
                 while let Ok(event) = global.receive_event() {
+                    if scope.get_closing() {
+                        break;
+                    }
                     global.handle_event(event);
                 }
+
+                scope.clear_timers();
             }, reporter_name, parent_sender, ScriptMsg::CollectReports);
         });
     }
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> u8 {
+    // get global for context
+    let global = global_object_for_js_context(cx);
+    let global = match global.r() {
+        GlobalRef::Worker(w) => w,
+        _ => panic!("global for worker is not a worker scope")
+    };
+    assert!(global.is_dedicatedworkerglobalscope());
+
+    // A false response causes the script to terminate
+    !global.get_closing() as u8
 }
 
 pub trait DedicatedWorkerGlobalScopeHelpers {
@@ -334,6 +373,10 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
 impl<'a> DedicatedWorkerGlobalScopeMethods for &'a DedicatedWorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
     fn PostMessage(self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
+        if WorkerGlobalScopeCast::from_ref(self).get_closing() {
+            return Ok(());
+        }
+
         let data = try!(StructuredCloneData::write(cx, message));
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         self.parent_sender.send(ScriptMsg::RunnableMsg(
