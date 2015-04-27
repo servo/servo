@@ -339,7 +339,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
         match idmap.entry(id) {
             Vacant(entry) => {
-                entry.insert(vec!(element.unrooted()));
+                entry.insert(vec![JS::from_rooted(element)]);
             }
             Occupied(entry) => {
                 let elements = entry.into_mut();
@@ -872,7 +872,7 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
             for node in NodeCast::from_ref(root.r()).traverse_preorder() {
                 let node = node.root();
                 if callback(node.r()) {
-                    nodes.push(node.r().unrooted());
+                    nodes.push(JS::from_rooted(node.r()));
                 }
             }
         };
