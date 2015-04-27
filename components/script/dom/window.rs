@@ -14,7 +14,7 @@ use dom::bindings::error::{report_pending_exception, Fallible};
 use dom::bindings::error::Error::InvalidCharacter;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, MutNullableHeap, OptionalRootable};
-use dom::bindings::js::{RootedReference, Temporary};
+use dom::bindings::js::{Rootable, RootedReference, Temporary};
 use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;

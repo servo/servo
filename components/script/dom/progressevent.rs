@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::ProgressEventBinding::ProgressEventMethods
 use dom::bindings::codegen::InheritTypes::{EventCast, ProgressEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Rootable, Temporary};
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use util::str::DOMString;

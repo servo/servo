@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JSRef, Temporary, RootedReference};
+use dom::bindings::js::{JSRef, Temporary, Rootable, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};

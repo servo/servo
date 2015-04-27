@@ -8,7 +8,7 @@
 //! code that works in workers as well as window scopes.
 
 use dom::bindings::conversions::native_from_reflector_jsmanaged;
-use dom::bindings::js::{JS, JSRef, Root, Unrooted};
+use dom::bindings::js::{JS, JSRef, Rootable, Root, Unrooted};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::window::{self, WindowHelpers};

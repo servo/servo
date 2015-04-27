@@ -31,17 +31,18 @@
 //!   the self value will not be collected for the duration of the method call.
 //!
 //! Both `Temporary<T>` and `JS<T>` do not allow access to their inner value
-//! without explicitly creating a stack-based root via the `root` method. This
-//! returns a `Root<T>`, which causes the JS-owned value to be uncollectable
-//! for the duration of the `Root` object's lifetime. A `JSRef<T>` can be
-//! obtained from a `Root<T>` by calling the `r` method. These `JSRef<T>`
-//! values are not allowed to outlive their originating `Root<T>`, to ensure
-//! that all interactions with the enclosed value only occur when said value is
-//! uncollectable, and will cause static lifetime errors if misused.
+//! without explicitly creating a stack-based root via the `root` method
+//! through the `Rootable<T>` trait. This returns a `Root<T>`, which causes the
+//! JS-owned value to be uncollectable for the duration of the `Root` object's
+//! lifetime. A `JSRef<T>` can be obtained from a `Root<T>` by calling the `r`
+//! method. These `JSRef<T>` values are not allowed to outlive their
+//! originating `Root<T>`, to ensure that all interactions with the enclosed
+//! value only occur when said value is uncollectable, and will cause static
+//! lifetime errors if misused.
 //!
 //! Other miscellaneous helper traits:
 //!
-//! - `OptionalRootable` and `OptionalRootedRootable`: make rooting `Option`
+//! - `OptionalRootable` and `OptionalOptionalRootable`: make rooting `Option`
 //!   values easy via a `root` method
 //! - `ResultRootable`: make rooting successful `Result` values easy
 //! - `TemporaryPushable`: allows mutating vectors of `JS<T>` with new elements
@@ -108,9 +109,11 @@ impl<T: Reflectable> Unrooted<T> {
     pub unsafe fn unsafe_get(&self) -> *const T {
         *self.ptr
     }
+}
 
+impl<T: Reflectable> Rootable<T> for Unrooted<T> {
     /// Create a stack-bounded root for this value.
-    pub fn root(self) -> Root<T> {
+    fn root(&self) -> Root<T> {
         STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
             unsafe {
@@ -172,18 +175,15 @@ impl<T: Reflectable> Temporary<T> {
         Temporary::new(JS::from_rooted(root))
     }
 
-    /// Create a stack-bounded root for this value.
-    pub fn root(&self) -> Root<T> {
-        STACK_ROOTS.with(|ref collection| {
-            let RootCollectionPtr(collection) = collection.get().unwrap();
-            unsafe {
-                Root::new(&*collection, self.inner.ptr)
-            }
-        })
-    }
-
     unsafe fn inner(&self) -> JS<T> {
         self.inner.clone()
+    }
+}
+
+impl<T: Reflectable> Rootable<T> for Temporary<T> {
+    /// Create a stack-bounded root for this value.
+    fn root(&self) -> Root<T> {
+        self.inner.root()
     }
 }
 
@@ -264,9 +264,9 @@ impl LayoutJS<Node> {
     }
 }
 
-impl<T: Reflectable> JS<T> {
+impl<T: Reflectable> Rootable<T> for JS<T> {
     /// Root this JS-owned value to prevent its collection as garbage.
-    pub fn root(&self) -> Root<T> {
+    fn root(&self) -> Root<T> {
         STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
             unsafe {
@@ -475,12 +475,12 @@ impl<T: Reflectable> Assignable<T> for Temporary<T> {
 /// Root a rootable `Option` type (used for `Option<Temporary<T>>`)
 pub trait OptionalRootable<T> {
     /// Root the inner value, if it exists.
-    fn root(self) -> Option<Root<T>>;
+    fn root(&self) -> Option<Root<T>>;
 }
 
-impl<T: Reflectable> OptionalRootable<T> for Option<Temporary<T>> {
-    fn root(self) -> Option<Root<T>> {
-        self.map(|inner| inner.root())
+impl<T: Reflectable, U: Rootable<T>> OptionalRootable<T> for Option<U> {
+    fn root(&self) -> Option<Root<T>> {
+        self.as_ref().map(|inner| inner.root())
     }
 }
 
@@ -496,42 +496,17 @@ impl<'a, T: Reflectable> OptionalUnrootable<T> for Option<JSRef<'a, T>> {
     }
 }
 
-/// Root a rootable `Option` type (used for `Option<JS<T>>`)
-pub trait OptionalRootedRootable<T> {
-    /// Root the inner value, if it exists.
-    fn root(&self) -> Option<Root<T>>;
-}
-
-impl<T: Reflectable> OptionalRootedRootable<T> for Option<JS<T>> {
-    fn root(&self) -> Option<Root<T>> {
-        self.as_ref().map(|inner| inner.root())
-    }
-}
-
-impl<T: Reflectable> OptionalRootedRootable<T> for Option<Unrooted<T>> {
-    fn root(&self) -> Option<Root<T>> {
-        self.as_ref().map(|inner| inner.root())
-    }
-}
-
 /// Root a rootable `Option<Option>` type (used for `Option<Option<JS<T>>>`)
-pub trait OptionalOptionalRootedRootable<T> {
+pub trait OptionalOptionalRootable<T> {
     /// Root the inner value, if it exists.
     fn root(&self) -> Option<Option<Root<T>>>;
 }
 
-impl<T: Reflectable> OptionalOptionalRootedRootable<T> for Option<Option<JS<T>>> {
+impl<T: Reflectable, U: OptionalRootable<T>> OptionalOptionalRootable<T> for Option<U> {
     fn root(&self) -> Option<Option<Root<T>>> {
         self.as_ref().map(|inner| inner.root())
     }
 }
-
-impl<T: Reflectable> OptionalOptionalRootedRootable<T> for Option<Option<Unrooted<T>>> {
-    fn root(&self) -> Option<Option<Root<T>>> {
-        self.as_ref().map(|inner| inner.root())
-    }
-}
-
 
 /// Root a rootable `Result` type (any of `Temporary<T>` or `JS<T>`)
 pub trait ResultRootable<T,U> {
@@ -539,17 +514,18 @@ pub trait ResultRootable<T,U> {
     fn root(self) -> Result<Root<T>, U>;
 }
 
-impl<T: Reflectable, U> ResultRootable<T, U> for Result<Temporary<T>, U> {
+impl<T: Reflectable, U, V: Rootable<T>> ResultRootable<T, U> for Result<V, U> {
     fn root(self) -> Result<Root<T>, U> {
         self.map(|inner| inner.root())
     }
 }
 
-impl<T: Reflectable, U> ResultRootable<T, U> for Result<JS<T>, U> {
-    fn root(self) -> Result<Root<T>, U> {
-        self.map(|inner| inner.root())
-    }
+/// Root a rootable type.
+pub trait Rootable<T> {
+    /// Root the value.
+    fn root(&self) -> Root<T>;
 }
+
 
 /// Provides a facility to push unrooted values onto lists of rooted values.
 /// This is safe under the assumption that said lists are reachable via the GC

@@ -5,7 +5,7 @@
 use webdriver_traits::{EvaluateJSReply};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
-use dom::bindings::js::OptionalRootable;
+use dom::bindings::js::{OptionalRootable, Rootable};
 use dom::window::ScriptHelpers;
 use dom::document::DocumentHelpers;
 use page::Page;

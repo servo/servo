@@ -5,7 +5,7 @@
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast};
-use dom::bindings::js::{JS, JSRef, OptionalRootable};
+use dom::bindings::js::{JS, JSRef, OptionalRootable, Rootable};
 use dom::bindings::trace::RootedVec;
 use dom::eventtarget::{EventTarget, ListenerPhase};
 use dom::event::{Event, EventPhase};

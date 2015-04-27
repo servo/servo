@@ -11,7 +11,7 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast, HTMLE
 use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Rootable, Temporary};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::element::{AttributeHandlers, Element, ElementHelpers};
