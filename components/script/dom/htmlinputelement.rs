@@ -15,7 +15,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInp
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Comparable, JS, JSRef, LayoutJS, MutNullableHeap};
+use dom::bindings::js::{JS, JSRef, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{OptionalRootable, ResultRootable, Root, Rootable};
 use dom::bindings::js::{RootedReference, Temporary};
 use dom::document::{Document, DocumentHelpers};
@@ -371,7 +371,7 @@ fn in_same_group<'a,'b>(other: JSRef<'a, HTMLInputElement>,
     let other_owner = other_owner.r();
     other.input_type.get() == InputType::InputRadio &&
     // TODO Both a and b are in the same home subtree.
-    other_owner.equals(owner) &&
+    other_owner == owner &&
     // TODO should be a unicode compatibility caseless match
     match (other.get_radio_group_name(), group) {
         (Some(ref s1), Some(s2)) => &**s1 == s2,
