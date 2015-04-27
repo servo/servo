@@ -8,16 +8,17 @@
  * https://www.whatwg.org/specs/web-apps/current-work/#the-document-object
  */
 
-/* https://dom.spec.whatwg.org/#interface-document */
+// https://dom.spec.whatwg.org/#interface-document
 [Constructor]
 interface Document : Node {
+  [SameObject]
   readonly attribute DOMImplementation implementation;
   readonly attribute DOMString URL;
   readonly attribute Element? activeElement;
   readonly attribute DOMString documentURI;
   readonly attribute DOMString compatMode;
   readonly attribute DOMString characterSet;
-  readonly attribute DOMString inputEncoding;
+  readonly attribute DOMString inputEncoding; // legacy alias of .characterSet
   readonly attribute DOMString contentType;
 
   readonly attribute DocumentType? doctype;
@@ -66,35 +67,86 @@ Document implements ParentNode;
 
 enum DocumentReadyState { "loading", "interactive", "complete" };
 
-/* https://www.whatwg.org/specs/web-apps/current-work/#the-document-object */
-partial interface Document {
+// https://www.whatwg.org/specs/web-apps/current-work/#the-document-object
+// [OverrideBuiltins]
+partial /*sealed*/ interface Document {
   // resource metadata management
-  readonly attribute DocumentReadyState readyState;
-  readonly attribute DOMString lastModified;
-  readonly attribute Location location;
+  // [PutForwards=href, Unforgeable]
+  readonly attribute Location/*?*/ location;
+  // attribute DOMString domain;
+  // readonly attribute DOMString referrer;
   [Throws]
   attribute DOMString cookie;
+  readonly attribute DOMString lastModified;
+  readonly attribute DocumentReadyState readyState;
 
   // DOM tree accessors
+  // getter object (DOMString name);
            attribute DOMString title;
            [SetterThrows]
            attribute HTMLElement? body;
   readonly attribute HTMLHeadElement? head;
+  [SameObject]
   readonly attribute HTMLCollection images;
+  [SameObject]
   readonly attribute HTMLCollection embeds;
+  [SameObject]
   readonly attribute HTMLCollection plugins;
+  [SameObject]
   readonly attribute HTMLCollection links;
+  [SameObject]
   readonly attribute HTMLCollection forms;
+  [SameObject]
   readonly attribute HTMLCollection scripts;
-  readonly attribute HTMLCollection anchors;
-  readonly attribute HTMLCollection applets;
   NodeList getElementsByName(DOMString elementName);
+  // NodeList getItems(optional DOMString typeNames = ""); // microdata
+  // [SameObject]
+  // readonly attribute DOMElementMap cssElementMap;
   readonly attribute HTMLScriptElement? currentScript;
+
+  // dynamic markup insertion
+  // Document open(optional DOMString type = "text/html", optional DOMString replace = "");
+  // WindowProxy open(DOMString url, DOMString name, DOMString features, optional boolean replace = false);
+  // void close();
+  // void write(DOMString... text);
+  // void writeln(DOMString... text);
+
+  // user interaction
+  readonly attribute Window/*Proxy?*/ defaultView;
+  // readonly attribute Element? activeElement;
+  // boolean hasFocus();
+  // attribute DOMString designMode;
+  // boolean execCommand(DOMString commandId, optional boolean showUI = false, optional DOMString value = "");
+  // boolean queryCommandEnabled(DOMString commandId);
+  // boolean queryCommandIndeterm(DOMString commandId);
+  // boolean queryCommandState(DOMString commandId);
+  // boolean queryCommandSupported(DOMString commandId);
+  // DOMString queryCommandValue(DOMString commandId);
+  // readonly attribute HTMLCollection commands;
 
   // special event handler IDL attributes that only apply to Document objects
   [LenientThis] attribute EventHandler onreadystatechange;
 
-  // user interaction
-  readonly attribute Window defaultView;
+  // also has obsolete members
 };
 Document implements GlobalEventHandlers;
+
+// https://html.spec.whatwg.org/#Document-partial
+partial interface Document {
+  // [TreatNullAs=EmptyString] attribute DOMString fgColor;
+  // [TreatNullAs=EmptyString] attribute DOMString linkColor;
+  // [TreatNullAs=EmptyString] attribute DOMString vlinkColor;
+  // [TreatNullAs=EmptyString] attribute DOMString alinkColor;
+  [TreatNullAs=EmptyString] attribute DOMString bgColor;
+
+  [SameObject]
+  readonly attribute HTMLCollection anchors;
+  [SameObject]
+  readonly attribute HTMLCollection applets;
+
+  // void clear();
+  // void captureEvents();
+  // void releaseEvents();
+
+  // readonly attribute HTMLAllCollection all;
+};

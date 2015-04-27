@@ -19,6 +19,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
 use cssparser::RGBA;
+use string_cache::Atom;
 use util::str::{self, DOMString};
 
 use std::borrow::ToOwned;
@@ -57,6 +58,11 @@ impl HTMLBodyElement {
 }
 
 impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
+
+    // https://html.spec.whatwg.org/#dom-body-bgcolor
+    make_getter!(BgColor, "bgcolor");
+    make_setter!(SetBgColor, "bgcolor");
+
     fn GetOnunload(self) -> Option<EventHandlerNonNull> {
         let win = window_from_node(self).root();
         win.r().GetOnunload()
