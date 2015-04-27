@@ -137,7 +137,7 @@ partial interface Document {
   // [TreatNullAs=EmptyString] attribute DOMString linkColor;
   // [TreatNullAs=EmptyString] attribute DOMString vlinkColor;
   // [TreatNullAs=EmptyString] attribute DOMString alinkColor;
-  // [TreatNullAs=EmptyString] attribute DOMString bgColor;
+  [TreatNullAs=EmptyString] attribute DOMString bgColor;
 
   [SameObject]
   readonly attribute HTMLCollection anchors;

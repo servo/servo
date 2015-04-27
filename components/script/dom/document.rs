@@ -11,8 +11,8 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
-use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLBodyElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLHeadElementCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLAnchorElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletElementDerived};
@@ -226,6 +226,8 @@ pub trait DocumentHelpers<'a> {
         modifiers: KeyModifiers, compositor: &mut Box<ScriptListener+'static>);
     fn node_from_nodes_and_strings(self, nodes: Vec<NodeOrString>)
                                    -> Fallible<Temporary<Node>>;
+    fn get_body_attribute(self, local_name: &Atom) -> DOMString;
+    fn set_body_attribute(self, local_name: &Atom, value: DOMString);
 
     /// Handles a mouse-move event coming from the compositor.
     fn handle_mouse_move_event(self,
@@ -739,6 +741,21 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                 }
             }
             Ok(Temporary::from_rooted(fragment.r()))
+        }
+    }
+
+    fn get_body_attribute(self, local_name: &Atom) -> DOMString {
+        match self.GetBody().and_then(HTMLBodyElementCast::to_temporary).root() {
+            Some(ref body) => {
+                ElementCast::from_ref(body.r()).get_string_attribute(local_name)
+            },
+            None => "".to_owned()
+        }
+    }
+
+    fn set_body_attribute(self, local_name: &Atom, value: DOMString) {
+        if let Some(ref body) = self.GetBody().and_then(HTMLBodyElementCast::to_temporary).root() {
+            ElementCast::from_ref(body.r()).set_string_attribute(local_name, value);
         }
     }
 
@@ -1491,6 +1508,14 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         let window = self.window.root();
         let _ = window.r().resource_task().send(SetCookiesForUrl(url, cookie, NonHTTP));
         Ok(())
+    }
+
+    fn BgColor(self) -> DOMString {
+        self.get_body_attribute(&atom!("bgcolor"))
+    }
+
+    fn SetBgColor(self, value: DOMString) {
+        self.set_body_attribute(&atom!("bgcolor"), value)
     }
 
     global_event_handlers!();
