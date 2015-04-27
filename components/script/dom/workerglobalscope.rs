@@ -8,7 +8,7 @@ use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeCast;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{Syntax, Network, JSFailed};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
 use dom::bindings::utils::Reflectable;
 use dom::console::Console;
 use dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, DedicatedWorkerGlobalScopeHelpers};
@@ -48,9 +48,9 @@ pub struct WorkerGlobalScope {
     js_context: Rc<Cx>,
     next_worker_id: Cell<WorkerId>,
     resource_task: ResourceTask,
-    location: MutNullableJS<WorkerLocation>,
-    navigator: MutNullableJS<WorkerNavigator>,
-    console: MutNullableJS<Console>,
+    location: MutNullableHeap<JS<WorkerLocation>>,
+    navigator: MutNullableHeap<JS<WorkerNavigator>>,
+    console: MutNullableHeap<JS<Console>>,
     timers: TimerManager,
     devtools_chan: Option<DevtoolsControlChan>,
 }

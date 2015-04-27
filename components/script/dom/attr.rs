@@ -6,7 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, MutNullableJS, Temporary};
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
 use dom::bindings::js::{OptionalRootable, OptionalRootedRootable};
 use dom::bindings::js::RootedReference;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -104,7 +104,7 @@ pub struct Attr {
     prefix: Option<DOMString>,
 
     /// the element that owns this attribute.
-    owner: MutNullableJS<Element>,
+    owner: MutNullableHeap<JS<Element>>,
 }
 
 impl Attr {
@@ -117,7 +117,7 @@ impl Attr {
             name: name,
             namespace: namespace,
             prefix: prefix,
-            owner: MutNullableJS::new(owner),
+            owner: MutNullableHeap::new(owner.map(JS::from_rooted)),
         }
     }
 
@@ -271,11 +271,11 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
             }
             (old, new) => assert!(old == new)
         }
-        self.owner.assign(owner)
+        self.owner.set(owner.map(JS::from_rooted))
     }
 
     fn owner(self) -> Option<Temporary<Element>> {
-        self.owner.get()
+        self.owner.get().map(Temporary::new)
     }
 
     fn summarize(self) -> AttrInfo {

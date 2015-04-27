@@ -8,7 +8,8 @@ use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
-use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable};
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
+use dom::bindings::js::OptionalRootable;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeHandlers, Element};
@@ -33,7 +34,7 @@ use string_cache::Atom;
 #[dom_struct]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
-    rel_list: MutNullableJS<DOMTokenList>,
+    rel_list: MutNullableHeap<JS<DOMTokenList>>,
 }
 
 impl HTMLLinkElementDerived for EventTarget {

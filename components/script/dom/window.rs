@@ -13,7 +13,8 @@ use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::error::{report_pending_exception, Fallible};
 use dom::bindings::error::Error::InvalidCharacter;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable, RootedReference};
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, OptionalRootable};
+use dom::bindings::js::{RootedReference, Temporary};
 use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
@@ -87,19 +88,19 @@ pub struct Window {
     eventtarget: EventTarget,
     script_chan: Box<ScriptChan+Send>,
     control_chan: ScriptControlChan,
-    console: MutNullableJS<Console>,
-    navigator: MutNullableJS<Navigator>,
+    console: MutNullableHeap<JS<Console>>,
+    navigator: MutNullableHeap<JS<Navigator>>,
     image_cache_task: ImageCacheTask,
     image_cache_chan: ImageCacheChan,
     compositor: DOMRefCell<Box<ScriptListener+'static>>,
     browser_context: DOMRefCell<Option<BrowserContext>>,
     page: Rc<Page>,
-    performance: MutNullableJS<Performance>,
+    performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
     navigation_start_precise: f64,
-    screen: MutNullableJS<Screen>,
-    session_storage: MutNullableJS<Storage>,
-    local_storage: MutNullableJS<Storage>,
+    screen: MutNullableHeap<JS<Screen>>,
+    session_storage: MutNullableHeap<JS<Storage>>,
+    local_storage: MutNullableHeap<JS<Storage>>,
     timers: TimerManager,
 
     next_worker_id: Cell<WorkerId>,
