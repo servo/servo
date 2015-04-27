@@ -14,16 +14,16 @@ use url::Url;
 
 #[test]
 fn test_exit() {
-    let resource_task = new_resource_task(None);
+    let resource_task = new_resource_task(None, None);
     resource_task.send(ControlMsg::Exit).unwrap();
 }
 
 #[test]
 fn test_bad_scheme() {
-    let resource_task = new_resource_task(None);
+    let resource_task = new_resource_task(None, None);
     let (start_chan, start) = channel();
     let url = Url::parse("bogus://whatever").unwrap();
-    resource_task.send(ControlMsg::Load(LoadData::new(url), LoadConsumer::Channel(start_chan))).unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(url, None), LoadConsumer::Channel(start_chan))).unwrap();
     let response = start.recv().unwrap();
     match response.progress_port.recv().unwrap() {
       ProgressMsg::Done(result) => { assert!(result.is_err()) }
@@ -170,10 +170,10 @@ fn test_replace_hosts() {
     let port = listener.local_addr().unwrap().port();
 
     //Start the resource task and make a request to our TCP server
-    let resource_task = new_resource_task(None);
+    let resource_task = new_resource_task(None, None);
     let (start_chan, _) = channel();
     let url = Url::parse(&format!("http://foo.bar.com:{}", port)).unwrap();
-    resource_task.send(ControlMsg::Load(replace_hosts(LoadData::new(url), host_table), LoadConsumer::Channel(start_chan))).unwrap();
+    resource_task.send(ControlMsg::Load(replace_hosts(LoadData::new(url, None), host_table), LoadConsumer::Channel(start_chan))).unwrap();
 
     match listener.accept() {
         Ok(..) => assert!(true, "received request"),
