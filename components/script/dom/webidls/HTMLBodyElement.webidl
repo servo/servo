@@ -3,9 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmlbodyelement
+// https://html.spec.whatwg.org/#the-body-element
 interface HTMLBodyElement : HTMLElement {
-
   // also has obsolete members
 };
 HTMLBodyElement implements WindowEventHandlers;
@@ -16,6 +15,6 @@ partial interface HTMLBodyElement {
   //[TreatNullAs=EmptyString] attribute DOMString link;
   //[TreatNullAs=EmptyString] attribute DOMString vLink;
   //[TreatNullAs=EmptyString] attribute DOMString aLink;
-  //[TreatNullAs=EmptyString] attribute DOMString bgColor;
+    [TreatNullAs=EmptyString] attribute DOMString bgColor;
   //                          attribute DOMString background;
 };
