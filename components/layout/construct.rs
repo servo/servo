@@ -319,15 +319,7 @@ impl<'a> FlowConstructor<'a> {
             child.finish();
             *child = new_child
         }
-        if child.is_table_row() {
-            let fragment = Fragment::new(child_node, SpecificFragmentInfo::TableRow);
-            let mut new_child =
-                FlowRef::new(box TableRowGroupFlow::from_node_and_fragment(child_node, fragment));
-            new_child.add_new_child(child.clone());
-            child.finish();
-            *child = new_child
-        }
-        if child.is_table_rowgroup() {
+        if child.is_table_row() || child.is_table_rowgroup() {
             let fragment = Fragment::new(child_node, SpecificFragmentInfo::Table);
             let mut new_child = FlowRef::new(box TableFlow::from_node_and_fragment(child_node,
                                                                                    fragment));
