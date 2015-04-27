@@ -32,6 +32,7 @@ extern crate "rustc-serialize" as rustc_serialize;
 extern crate util;
 extern crate time;
 extern crate url;
+extern crate uuid;
 
 extern crate regex;
 

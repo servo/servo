@@ -33,8 +33,7 @@ extern crate hyper;
 
 use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
-use actors::network_event::NetworkEventActor;
-use actors::network_event::{HttpRequest};
+use actors::network_event::{NetworkEventActor, EventActor, ResponseStartMsg};
 use actors::worker::WorkerActor;
 use actors::inspector::InspectorActor;
 use actors::root::RootActor;
@@ -42,7 +41,7 @@ use actors::tab::TabActor;
 use actors::timeline::TimelineActor;
 use protocol::JsonPacketStream;
 
-use devtools_traits::{ConsoleMessage, DevtoolsControlMsg};
+use devtools_traits::{ConsoleMessage, DevtoolsControlMsg, NetworkEvent};
 use devtools_traits::{DevtoolsPageInfo, DevtoolScriptControlMsg};
 use msg::constellation_msg::{PipelineId, WorkerId};
 use util::task::spawn_named;
@@ -50,6 +49,7 @@ use util::task::spawn_named;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::sync::mpsc::{channel, Receiver, Sender, RecvError};
 use std::net::{TcpListener, TcpStream, Shutdown};
 use std::sync::{Arc, Mutex};
@@ -101,12 +101,11 @@ struct NetworkEventMsg {
 }
 
 #[derive(RustcEncodable)]
-struct EventActor {
-    actor: NetworkEventActor,
-    url: String,
-    method: String,
-    startedDateTime: String,
-    isXHR: String,
+struct NetworkEventUpdateMsg {
+    from: String,
+    __type__: String,
+    updateType: String,
+    response: ResponseStartMsg,
 }
 
 /// Spin up a devtools server that listens for connections on the specified port.
@@ -140,6 +139,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
     let mut accepted_connections: Vec<TcpStream> = Vec::new();
 
     let mut actor_pipelines: HashMap<PipelineId, String> = HashMap::new();
+    let mut actor_requests: HashMap<String, String> = HashMap::new();
 
     let mut actor_workers: HashMap<(PipelineId, WorkerId), String> = HashMap::new();
 
@@ -277,46 +277,72 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         return console_actor_name;
     }
 
-    fn handle_network_event(actors: Arc<Mutex<ActorRegistry>>,
-                            connections: RefCell<Vec<TcpStream>>,
-                            url: Url,
-                            method: Method,
-                            headers: Headers,
-                            body: Option<Vec<u8>>) {
-
-        //println!("handle_network_event");
+    fn find_first_console_actor(actors: Arc<Mutex<ActorRegistry>>) -> String {
+        let actors = actors.lock().unwrap();
+        let root = actors.find::<RootActor>("root");
+        let ref tab_actor_name = root.tabs[0];
+        let tab_actor = actors.find::<TabActor>(tab_actor_name);
+        let console_actor_name = tab_actor.console.clone();
+        return console_actor_name;
+    }
+    
+    fn find_network_event_actor(actors: Arc<Mutex<ActorRegistry>>,
+                                  actor_requests: &mut HashMap<String, String>,
+                                  request_id: String) -> String {
         let mut actors = actors.lock().unwrap();
+        match (*actor_requests).entry(request_id) {
+            Occupied(name) => {
+                name.into_mut().clone()
+            }
+            Vacant(entry) => {
+                println!("not found");
+                let actor_name = actors.new_name("netevent");
+                let actor = NetworkEventActor::new(actor_name.clone());
+                entry.insert(actor_name.clone());
+                actors.register(box actor);
+                actor_name
+            }
+        }
+    }
 
-        /* TODO: Maintain a HashMap that maps request/response ID to actor name.
-         * Check if the map contains the ID of the request/response message.
-         * If no actor exists, create a new one.
-         * Store to stream(s) to the actor and retrieve them.
-         */
+    fn handle_network_event(actors: Arc<Mutex<ActorRegistry>>,
+                            mut accepted_connections: Vec<TcpStream>,
+                            actor_requests: &mut HashMap<String, String>,
+                            request_id: String,
+                            network_event: NetworkEvent) {
 
-        let actor = NetworkEventActor {
-            name: actors.new_name("network_event"),
-            request: HttpRequest {
-                url: url.clone(),
-                //method: method.clone(),
-                //headers: headers.clone(),
-                body: body.clone()
-                },
-        };
+        let console_actor_name = find_first_console_actor(actors.clone());
+        let netevent_actor_name = find_network_event_actor(actors.clone(), actor_requests, request_id.clone());
+        let mut actors = actors.lock().unwrap();
+        let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
 
-        let msg = NetworkEventMsg {
-            from: actor.name.clone(),
-            __type__: "networkEvent".to_string(),
-            eventActor: EventActor {
-                actor: actor,
-                url: url.serialize(),
-                method: "".to_string(),
-                startedDateTime: "".to_string(),
-                isXHR: "false".to_string(),
-            },
-        };
+        match network_event {
+            NetworkEvent::HttpRequest(..) => {
+                actor.addEvent(network_event);
+                let msg = NetworkEventMsg {
+                    from: console_actor_name,
+                    __type__: "networkEvent".to_string(),
+                    eventActor: actor.get_event_actor(),
+                };
+                for stream in accepted_connections.iter_mut() {
+                    stream.write_json_packet(&msg);
+                }
+            }
 
-        for stream in connections.borrow_mut().iter_mut() {
-            stream.write_json_packet(&msg);
+            NetworkEvent::HttpResponse(..) => {
+                println!("Network event response");
+                actor.addEvent(network_event);
+                let msg = NetworkEventUpdateMsg {
+                    from: netevent_actor_name,
+                    __type__: "networkEventUpdate".to_string(),
+                    updateType: "responseStart".to_string(),
+                    response: actor.get_response_start()
+                };
+
+                for stream in accepted_connections.iter_mut() {
+                    stream.write_json_packet(&msg);
+                }
+            }
         }
     }
 
@@ -345,14 +371,14 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 handle_console_message(actors.clone(), id, console_message,
                                        &actor_pipelines),
 
-            Ok(DevtoolsControlMsg::HttpRequest(url, method, headers, body)) => {
-                //println!("run_server: HttpRequest");
-                let connections = RefCell::new(Vec::<TcpStream>::new());                 
-                let mut stream = accepted_connections.get_mut(0).unwrap();
-                connections.borrow_mut().push(stream.try_clone().unwrap());
-                handle_network_event(actors.clone(), connections, url, method, headers, body);
+            Ok(DevtoolsControlMsg::NetworkEventMessage(request_id, network_event)) => {
+                // copy the accepted_connections vector
+                let mut connections = Vec::<TcpStream>::new();
+                for stream in accepted_connections.iter() {
+                    connections.push(stream.try_clone().unwrap());
+                }
+                handle_network_event(actors.clone(), connections, &mut actor_requests, request_id, network_event);
             }
-            _ => break,
         }
     }
 
