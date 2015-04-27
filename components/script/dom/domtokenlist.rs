@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
+use dom::bindings::js::{JS, JSRef, OptionalRootable, Rootable, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::window_from_node;

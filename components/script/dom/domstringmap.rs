@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::DOMStringMapBinding;
 use dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::node::window_from_node;
 use dom::htmlelement::{HTMLElement, HTMLElementCustomAttributeHelpers};

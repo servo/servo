@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::PerformanceBinding;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::performancetiming::{PerformanceTiming, PerformanceTimingHelpers};

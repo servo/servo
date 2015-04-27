@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, CustomEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary, MutHeap};
+use dom::bindings::js::{JSRef, MutHeap, Rootable, Temporary};
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use js::jsapi::JSContext;

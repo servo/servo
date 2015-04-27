@@ -5,7 +5,7 @@
 use devtools_traits::{EvaluateJSReply, NodeInfo, Modification, TimelineMarker, TimelineMarkerType};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
-use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
+use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary};
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::DOMRectBinding::{DOMRectMethods};

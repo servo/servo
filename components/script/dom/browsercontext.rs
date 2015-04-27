@@ -5,8 +5,8 @@
 use dom::bindings::conversions::native_from_reflector_jsmanaged;
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::js::{JS, JSRef, Temporary, Root};
-use dom::bindings::js::{OptionalRootable, OptionalRootedRootable, ResultRootable};
-use dom::bindings::js::{OptionalRootedReference, OptionalOptionalRootedRootable};
+use dom::bindings::js::{OptionalRootable, OptionalOptionalRootable};
+use dom::bindings::js::{ResultRootable, Rootable};
 use dom::bindings::proxyhandler::{get_property_descriptor, fill_property_descriptor};
 use dom::bindings::utils::{Reflectable, WindowProxyHandler};
 use dom::bindings::utils::get_array_index_from_id;

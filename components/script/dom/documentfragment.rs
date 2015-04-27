@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::DocumentFragmentDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Rootable, Temporary};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::document::Document;

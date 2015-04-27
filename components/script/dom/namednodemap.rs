@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{AttributeHandlers, Element, ElementHelpers};
 use dom::window::Window;

@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, ErrorEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary, MutHeap};
+use dom::bindings::js::{JSRef, MutHeap, Rootable, Temporary};
 use js::jsapi::JSContext;
 use dom::bindings::trace::JSTraceable;
 

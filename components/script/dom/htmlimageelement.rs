@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCast, HTMLElementCast, HTMLImageElementDerived};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, LayoutJS, Temporary};
+use dom::bindings::js::{JSRef, LayoutJS, Rootable, Temporary};
 use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;

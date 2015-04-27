@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyEle
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Rootable, Temporary};
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::element::ElementTypeId;

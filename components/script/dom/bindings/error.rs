@@ -6,6 +6,7 @@
 
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::js::Rootable;
 use dom::domexception::{DOMException, DOMErrorName};
 
 use util::str::DOMString;

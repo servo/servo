@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::NodeListBinding;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::node::{Node, NodeHelpers};

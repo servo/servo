@@ -13,7 +13,8 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLEle
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, LayoutJS, Temporary, OptionalRootable};
+use dom::bindings::js::{JSRef, LayoutJS, OptionalRootable, Rootable};
+use dom::bindings::js::Temporary;
 use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};

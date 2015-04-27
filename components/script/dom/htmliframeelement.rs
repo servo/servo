@@ -14,7 +14,7 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::NotSupported;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
+use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary};
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::Element;

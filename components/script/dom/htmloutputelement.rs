@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLOutputElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Rootable, Temporary};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;

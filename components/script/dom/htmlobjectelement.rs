@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Rootable, Temporary};
 use dom::document::Document;
 use dom::element::Element;
 use dom::element::AttributeHandlers;

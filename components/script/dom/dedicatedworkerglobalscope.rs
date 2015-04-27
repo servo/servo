@@ -11,7 +11,7 @@ use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary, RootCollection};
+use dom::bindings::js::{JSRef, RootCollection, Rootable, Temporary};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;

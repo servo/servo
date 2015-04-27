@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::EventBinding;
 use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, Rootable, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use util::str::DOMString;

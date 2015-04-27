@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, KeyboardEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary, RootedReference};
+use dom::bindings::js::{JSRef, Temporary, Rootable, RootedReference};
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::event::{Event, EventTypeId};
 use dom::uievent::UIEvent;

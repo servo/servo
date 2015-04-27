@@ -16,8 +16,8 @@ use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSet
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Comparable, JS, JSRef, LayoutJS, MutNullableHeap};
-use dom::bindings::js::{OptionalRootable, OptionalRootedRootable};
-use dom::bindings::js::{ResultRootable, Root, RootedReference, Temporary};
+use dom::bindings::js::{OptionalRootable, ResultRootable, Root, Rootable};
+use dom::bindings::js::{RootedReference, Temporary};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, Element};
 use dom::element::{RawLayoutElementHelpers, ActivationElementHelpers};

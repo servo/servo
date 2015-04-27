@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::HTMLCollectionBinding;
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers, ElementHelpers};

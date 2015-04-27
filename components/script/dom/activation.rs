@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
-use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
+use dom::bindings::js::{JSRef, Temporary, OptionalRootable, Rootable};
 use dom::element::{Element, ActivationElementHelpers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
