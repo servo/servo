@@ -45,12 +45,15 @@ use layout_debug;
 use model::{IntrinsicISizes, MarginCollapseInfo};
 use model::{MaybeAuto, CollapsibleMargins, specified, specified_or_none};
 use table;
-use wrapper::ThreadSafeLayoutNode;
+use wrapper::{ThreadSafeLayoutNode, TLayoutNode};
 
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{ClippingRegion, DisplayList};
 use msg::compositor_msg::LayerId;
 use rustc_serialize::{Encoder, Encodable};
+use script::dom::htmlelement::HTMLElementTypeId;
+use script::dom::element::ElementTypeId;
+use script::dom::node::NodeTypeId;
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
@@ -551,6 +554,9 @@ bitflags! {
     flags BlockFlowFlags: u8 {
         #[doc="If this is set, then this block flow is the root flow."]
         const IS_ROOT = 0x01,
+
+        #[doc="If this is set, then this block flow is an inline block."]
+        const IS_INLINE_BLOCK = 0x02,
     }
 }
 
@@ -560,9 +566,25 @@ impl Encodable for BlockFlowFlags {
     }
 }
 
+impl BlockFlowFlags {
+    fn new(node: &ThreadSafeLayoutNode, fragment: &Fragment) -> BlockFlowFlags {
+        let mut flags = BlockFlowFlags::empty();
+
+        // See https://html.spec.whatwg.org/multipage/#the-button-element-2
+        if node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                  HTMLElementTypeId::HTMLButtonElement))) ||
+                             fragment.style().get_box().display == display::T::inline_block {
+            flags.insert(IS_INLINE_BLOCK);
+        }
+
+        flags
+    }
+}
+
 impl BlockFlow {
     pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment) -> BlockFlow {
         let writing_mode = node.style().writing_mode;
+        let flags = BlockFlowFlags::new(node, &fragment);
         BlockFlow {
             base: BaseFlow::new(Some((*node).clone()),
                                 writing_mode,
@@ -571,7 +593,7 @@ impl BlockFlow {
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
             float: None,
-            flags: BlockFlowFlags::empty(),
+            flags: flags,
         }
     }
 
@@ -580,6 +602,7 @@ impl BlockFlow {
                                         float_kind: FloatKind)
                                         -> BlockFlow {
         let writing_mode = node.style().writing_mode;
+        let flags = BlockFlowFlags::new(node, &fragment);
         BlockFlow {
             base: BaseFlow::new(Some((*node).clone()),
                                 writing_mode,
@@ -588,7 +611,7 @@ impl BlockFlow {
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
             float: Some(box FloatedBlockInfo::new(float_kind)),
-            flags: BlockFlowFlags::empty(),
+            flags: flags,
         }
     }
 
@@ -1438,7 +1461,7 @@ impl BlockFlow {
     }
 
     fn is_inline_block(&self) -> bool {
-        self.fragment.style().get_box().display == display::T::inline_block
+        self.flags.contains(IS_INLINE_BLOCK)
     }
 
     /// Computes the content portion (only) of the intrinsic inline sizes of this flow. This is
