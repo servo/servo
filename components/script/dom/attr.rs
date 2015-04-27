@@ -274,7 +274,7 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     }
 
     fn owner(self) -> Option<Temporary<Element>> {
-        self.owner.get().map(Temporary::new)
+        self.owner.get().map(Temporary::from_rooted)
     }
 
     fn summarize(self) -> AttrInfo {

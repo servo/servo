@@ -153,14 +153,6 @@ impl<T> PartialEq for Temporary<T> {
 }
 
 impl<T: Reflectable> Temporary<T> {
-    /// Create a new `Temporary` value from a JS-owned value.
-    pub fn new(inner: JS<T>) -> Temporary<T> {
-        Temporary {
-            inner: inner,
-            _js_ptr: inner.reflector().get_jsobject(),
-        }
-    }
-
     /// Create a new `Temporary` value from an unrooted value.
     #[allow(unrooted_must_root)]
     pub fn from_unrooted(unrooted: Unrooted<T>) -> Temporary<T> {
@@ -171,8 +163,8 @@ impl<T: Reflectable> Temporary<T> {
     }
 
     /// Create a new `Temporary` value from a rooted value.
-    pub fn from_rooted<'a>(root: JSRef<'a, T>) -> Temporary<T> {
-        Temporary::new(JS::from_rooted(root))
+    pub fn from_rooted<U: Assignable<T>>(root: U) -> Temporary<T> {
+        Temporary::from_rooted(JS::from_rooted(root))
     }
 }
 
@@ -372,7 +364,7 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
         where F: FnOnce() -> Temporary<T>
     {
         match self.get() {
-            Some(inner) => Temporary::new(inner),
+            Some(inner) => Temporary::from_rooted(inner),
             None => {
                 let inner = cb();
                 self.set(Some(JS::from_rooted(inner.clone())));

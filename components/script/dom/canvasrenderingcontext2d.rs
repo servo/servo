@@ -326,7 +326,7 @@ impl LayoutCanvasRenderingContext2DHelpers for LayoutJS<CanvasRenderingContext2D
 impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D> {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-canvas
     fn Canvas(self) -> Temporary<HTMLCanvasElement> {
-        Temporary::new(self.canvas)
+        Temporary::from_rooted(self.canvas)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-save

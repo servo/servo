@@ -188,12 +188,12 @@ impl<'a> EventMethods for JSRef<'a, Event> {
 
     // https://dom.spec.whatwg.org/#dom-event-target
     fn GetTarget(self) -> Option<Temporary<EventTarget>> {
-        self.target.get().map(Temporary::new)
+        self.target.get().map(Temporary::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-currenttarget
     fn GetCurrentTarget(self) -> Option<Temporary<EventTarget>> {
-        self.current_target.get().map(Temporary::new)
+        self.current_target.get().map(Temporary::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-defaultprevented
