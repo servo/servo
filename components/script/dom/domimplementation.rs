@@ -159,7 +159,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     }
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-hasfeature
-    fn HasFeature(self, _feature: DOMString, _version: DOMString) -> bool {
+    fn HasFeature(self) -> bool {
         true
     }
 }
