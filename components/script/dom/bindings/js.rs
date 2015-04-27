@@ -163,8 +163,13 @@ impl<T: Reflectable> Temporary<T> {
     }
 
     /// Create a new `Temporary` value from a rooted value.
+    #[allow(unrooted_must_root)]
     pub fn from_rooted<U: Assignable<T>>(root: U) -> Temporary<T> {
-        Temporary::from_rooted(JS::from_rooted(root))
+        let inner = JS::from_rooted(root);
+        Temporary {
+            inner: inner,
+            _js_ptr: inner.reflector().get_jsobject(),
+        }
     }
 }
 
