@@ -174,10 +174,6 @@ impl<T: Reflectable> Temporary<T> {
     pub fn from_rooted<'a>(root: JSRef<'a, T>) -> Temporary<T> {
         Temporary::new(JS::from_rooted(root))
     }
-
-    unsafe fn inner(&self) -> JS<T> {
-        self.inner.clone()
-    }
 }
 
 impl<T: Reflectable> Rootable<T> for Temporary<T> {
@@ -406,7 +402,7 @@ impl<T: Reflectable> JS<T> {
     /// are reachable in the GC graph, so this unrooted value becomes
     /// transitively rooted for the lifetime of its new owner.
     pub fn assign(&mut self, val: Temporary<T>) {
-        *self = unsafe { val.inner() };
+        *self = val.inner.clone();
     }
 }
 
@@ -461,13 +457,15 @@ impl<T> Assignable<T> for JS<T> {
 
 impl<'a, T: Reflectable> Assignable<T> for JSRef<'a, T> {
     unsafe fn get_js(&self) -> JS<T> {
-        self.unrooted()
+        JS {
+            ptr: self.ptr
+        }
     }
 }
 
 impl<T: Reflectable> Assignable<T> for Temporary<T> {
     unsafe fn get_js(&self) -> JS<T> {
-        self.inner()
+        self.inner.clone()
     }
 }
 
@@ -481,18 +479,6 @@ pub trait OptionalRootable<T> {
 impl<T: Reflectable, U: Rootable<T>> OptionalRootable<T> for Option<U> {
     fn root(&self) -> Option<Root<T>> {
         self.as_ref().map(|inner| inner.root())
-    }
-}
-
-/// Return an unrooted type for storing in optional DOM fields
-pub trait OptionalUnrootable<T> {
-    /// Returns a `JS<T>` for the inner value, if it exists.
-    fn unrooted(&self) -> Option<JS<T>>;
-}
-
-impl<'a, T: Reflectable> OptionalUnrootable<T> for Option<JSRef<'a, T>> {
-    fn unrooted(&self) -> Option<JS<T>> {
-        self.as_ref().map(|inner| JS::from_rooted(*inner))
     }
 }
 
@@ -689,15 +675,6 @@ impl<'a, T> Clone for JSRef<'a, T> {
 impl<'a, 'b, T> PartialEq<JSRef<'b, T>> for JSRef<'a, T> {
     fn eq(&self, other: &JSRef<T>) -> bool {
         self.ptr == other.ptr
-    }
-}
-
-impl<'a,T> JSRef<'a,T> {
-    /// Return an unrooted `JS<T>` for the inner pointer.
-    pub fn unrooted(&self) -> JS<T> {
-        JS {
-            ptr: self.ptr
-        }
     }
 }
 
