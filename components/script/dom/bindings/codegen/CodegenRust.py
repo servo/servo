@@ -4918,9 +4918,6 @@ class CGCallback(CGClass):
         args.append(Argument("ExceptionHandling", "aExceptionHandling",
                              "ReportExceptions"))
 
-        args[0] = Argument(args[0].argType, args[0].name, args[0].default)
-        method.args[2] = args[0]
-
         # And now insert our template argument.
         argsWithoutThis = list(args)
         args.insert(0, Argument("JSRef<T>",  "thisObj"))
@@ -5235,7 +5232,7 @@ class CallbackMethod(CallbackMember):
             replacements["argv"] = "argv.as_mut_ptr()"
             replacements["argc"] = "argc"
         else:
-            replacements["argv"] = "nullptr"
+            replacements["argv"] = "ptr::null_mut()"
             replacements["argc"] = "0"
         return string.Template("${getCallable}"
                 "let ok = unsafe {\n"

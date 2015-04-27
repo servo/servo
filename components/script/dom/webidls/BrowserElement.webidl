@@ -4,7 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-//callback BrowserElementNextPaintEventCallback = void ();
+callback BrowserElementNextPaintEventCallback = void ();
 
 //dictionary BrowserElementDownloadOptions {
 //  DOMString? filename;
