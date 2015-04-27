@@ -28,8 +28,8 @@ extern crate "rustc-serialize" as rustc_serialize;
 extern crate msg;
 extern crate time;
 extern crate util;
-extern crate url;
 extern crate hyper;
+extern crate url;
 
 use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
@@ -54,12 +54,6 @@ use std::sync::mpsc::{channel, Receiver, Sender, RecvError};
 use std::net::{TcpListener, TcpStream, Shutdown};
 use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
-
-use url::Url;
-
-use hyper::header::Headers;
-use hyper::http::RawStatus;
-use hyper::method::Method;
 
 mod actor;
 /// Corresponds to http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/

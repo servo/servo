@@ -10,20 +10,8 @@ extern crate url;
 
 use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketStream;
-
-use devtools_traits::DevtoolScriptControlMsg;
-use msg::constellation_msg::PipelineId;
-use devtools_traits::{DevtoolsControlMsg, NetworkEvent};
-
-use collections::BTreeMap;
-use core::cell::RefCell;
-use std::fmt;
-use rustc_serialize::json::{self, Json, ToJson};
+use rustc_serialize::json;
 use std::net::TcpStream;
-use std::num::Float;
-use std::sync::mpsc::{channel, Sender};
-use std::borrow::IntoCow;
-
 use url::Url;
 use hyper::header::Headers;
 use hyper::http::RawStatus;
