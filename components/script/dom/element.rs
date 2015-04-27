@@ -120,7 +120,7 @@ pub enum ElementCreator {
 // Element methods
 //
 impl Element {
-    pub fn create(name: QualName, prefix: Option<DOMString>,
+    pub fn create(name: QualName, prefix: Option<Atom>,
                   document: JSRef<Document>, creator: ElementCreator)
                   -> Temporary<Element> {
         create_element(name, prefix, document, creator)
@@ -670,12 +670,12 @@ pub trait AttributeHandlers {
     fn set_attribute_from_parser(self,
                                  name: QualName,
                                  value: DOMString,
-                                 prefix: Option<DOMString>);
+                                 prefix: Option<Atom>);
     fn set_attribute(self, name: &Atom, value: AttrValue);
     fn set_custom_attribute(self, name: DOMString, value: DOMString) -> ErrorResult;
     fn do_set_attribute<F>(self, local_name: Atom, value: AttrValue,
                            name: Atom, namespace: Namespace,
-                           prefix: Option<DOMString>, cb: F)
+                           prefix: Option<Atom>, cb: F)
         where F: Fn(JSRef<Attr>) -> bool;
     fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue;
@@ -743,7 +743,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn set_attribute_from_parser(self,
                                  qname: QualName,
                                  value: DOMString,
-                                 prefix: Option<DOMString>) {
+                                 prefix: Option<Atom>) {
         // Don't set if the attribute already exists, so we can handle add_attrs_if_missing
         if self.attrs.borrow().iter().map(|attr| attr.root())
                 .any(|a| *a.r().local_name() == qname.local && *a.r().namespace() == qname.ns) {
@@ -753,7 +753,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let name = match prefix {
             None => qname.local.clone(),
             Some(ref prefix) => {
-                let name = format!("{}:{}", *prefix, &*qname.local);
+                let name = format!("{}:{}", &**prefix, &*qname.local);
                 Atom::from_slice(&name)
             },
         };
@@ -791,7 +791,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                            value: AttrValue,
                            name: Atom,
                            namespace: Namespace,
-                           prefix: Option<DOMString>,
+                           prefix: Option<Atom>,
                            cb: F)
         where F: Fn(JSRef<Attr>) -> bool
     {
@@ -1099,8 +1099,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         let qualified_name = Atom::from_slice(&qualified_name);
         let value = self.parse_attribute(&namespace, &local_name, value);
         self.do_set_attribute(local_name.clone(), value, qualified_name,
-                              namespace.clone(), prefix.map(|s| s.to_owned()),
-                              |attr| {
+                              namespace.clone(), prefix, |attr| {
             *attr.local_name() == local_name &&
             *attr.namespace() == namespace
         });

@@ -101,7 +101,7 @@ pub struct Attr {
     value: DOMRefCell<AttrValue>,
     name: Atom,
     namespace: Namespace,
-    prefix: Option<DOMString>,
+    prefix: Option<Atom>,
 
     /// the element that owns this attribute.
     owner: MutNullableHeap<JS<Element>>,
@@ -109,7 +109,7 @@ pub struct Attr {
 
 impl Attr {
     fn new_inherited(local_name: Atom, value: AttrValue, name: Atom, namespace: Namespace,
-                     prefix: Option<DOMString>, owner: Option<JSRef<Element>>) -> Attr {
+                     prefix: Option<Atom>, owner: Option<JSRef<Element>>) -> Attr {
         Attr {
             reflector_: Reflector::new(),
             local_name: local_name,
@@ -123,7 +123,7 @@ impl Attr {
 
     pub fn new(window: JSRef<Window>, local_name: Atom, value: AttrValue,
                name: Atom, namespace: Namespace,
-               prefix: Option<DOMString>, owner: Option<JSRef<Element>>) -> Temporary<Attr> {
+               prefix: Option<Atom>, owner: Option<JSRef<Element>>) -> Temporary<Attr> {
         reflect_dom_object(
             box Attr::new_inherited(local_name, value, name, namespace, prefix, owner),
             GlobalRef::Window(window),
@@ -141,7 +141,7 @@ impl Attr {
     }
 
     #[inline]
-    pub fn prefix<'a>(&'a self) -> &'a Option<DOMString> {
+    pub fn prefix<'a>(&'a self) -> &'a Option<Atom> {
         &self.prefix
     }
 }
@@ -205,7 +205,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 
     // https://dom.spec.whatwg.org/#dom-attr-prefix
     fn GetPrefix(self) -> Option<DOMString> {
-        self.prefix.clone()
+        self.prefix().as_ref().map(|p| (**p).to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-ownerelement
