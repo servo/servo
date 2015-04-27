@@ -627,6 +627,7 @@ impl<'a> FocusElementHelpers for JSRef<'a, Element> {
         if node.get_flag(TABINDEX) {
             return true;
         }
+        // https://html.spec.whatwg.org/multipage/#specially-focusable
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
