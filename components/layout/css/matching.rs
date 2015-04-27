@@ -20,7 +20,6 @@ use selectors::bloom::BloomFilter;
 use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use selectors::parser::PseudoElement;
-use selectors::smallvec::VecLike;
 use std::borrow::ToOwned;
 use std::hash::{Hash, Hasher};
 use std::mem;
@@ -35,6 +34,7 @@ use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
 use util::opts;
 use util::smallvec::{SmallVec, SmallVec16};
+use util::vec::ForgetfulSink;
 
 pub struct ApplicableDeclarations {
     pub normal: SmallVec16<DeclarationBlock>,
@@ -290,29 +290,9 @@ impl StyleSharingCandidate {
             return false
         }
 
-        struct RulesSink {
-            empty: bool,
-        }
-        impl<T> VecLike<T> for RulesSink {
-            #[inline]
-            fn vec_len(&self) -> usize {
-                unreachable!()
-            }
-
-            #[inline]
-            fn vec_push(&mut self, _value: T) {
-                self.empty = false;
-            }
-
-            #[inline]
-            fn vec_slice_mut<'a>(&'a mut self, _start: usize, _end: usize)
-                                 -> &'a mut [T] {
-                unreachable!()
-            }
-        }
-        let mut matching_rules = RulesSink { empty: true };
+        let mut matching_rules = ForgetfulSink::new();
         element.synthesize_presentational_hints_for_legacy_attributes(&mut matching_rules);
-        if !matching_rules.empty {
+        if !matching_rules.is_empty() {
             return false;
         }
 
