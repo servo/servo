@@ -841,7 +841,9 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         }
         match submit_button {
             Some(button) => {
-                button.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey)
+                if button.r().is_instance_activatable() {
+                    button.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey)
+                }
             }
             None => {
                 unsafe {
