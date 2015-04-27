@@ -86,6 +86,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == border_radius_overlapping_a.html border_radius_overlapping_ref.html
 == border_spacing_a.html border_spacing_ref.html
 == border_spacing_auto_layout_a.html border_spacing_ref.html
+== border_spacing_empty_table.html border_spacing_empty_table_ref.html
 == border_spacing_fixed_layout_a.html border_spacing_ref.html
 == border_style_none_a.html border_style_none_b.html
 == borders_a.html borders_b.html

@@ -95,8 +95,7 @@ impl TableWrapperFlow {
         for kid in self.block_flow.base.child_iter() {
             if kid.is_table() {
                 let kid_table = kid.as_table();
-                let spacing_per_cell = kid_table.spacing().horizontal;
-                spacing = spacing_per_cell * (self.column_intrinsic_inline_sizes.len() as i32 + 1);
+                spacing = kid_table.total_horizontal_spacing();
                 table_border_padding =
                     kid_table.block_flow.fragment.border_padding.inline_start_end();
                 break

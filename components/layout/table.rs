@@ -202,6 +202,14 @@ impl TableFlow {
             }
         }
     }
+
+    pub fn total_horizontal_spacing(&self) -> Au {
+        let num_columns = self.column_intrinsic_inline_sizes.len();
+        if num_columns == 0 {
+            return Au(0);
+        }
+        self.spacing().horizontal * (num_columns as i32 + 1)
+    }
 }
 
 impl Flow for TableFlow {
@@ -396,9 +404,8 @@ impl Flow for TableFlow {
             }
         }
 
-        let spacing = self.spacing().horizontal *
-            (self.column_intrinsic_inline_sizes.len() as i32 + 1);
-        computation.surrounding_size = computation.surrounding_size + spacing;
+        computation.surrounding_size = computation.surrounding_size +
+                                       self.total_horizontal_spacing();
 
         self.block_flow.base.intrinsic_inline_sizes = computation.finish()
     }
@@ -435,8 +442,7 @@ impl Flow for TableFlow {
         let inline_end_content_edge = self.block_flow.fragment.border_padding.inline_end;
         let padding_and_borders = self.block_flow.fragment.border_padding.inline_start_end();
         let spacing_per_cell = self.spacing();
-        let spacing = spacing_per_cell.horizontal *
-            (self.column_intrinsic_inline_sizes.len() as i32 + 1);
+        let spacing = self.total_horizontal_spacing();
         let content_inline_size =
             self.block_flow.fragment.border_box.size.inline - padding_and_borders - spacing;
 
@@ -785,6 +791,7 @@ impl TableLikeFlow for BlockFlow {
             // Our current border-box position.
             let block_start_border_padding = self.fragment.border_padding.block_start;
             let mut current_block_offset = block_start_border_padding;
+            let mut has_rows = false;
 
             // At this point, `current_block_offset` is at the content edge of our box. Now iterate
             // over children.
@@ -795,6 +802,7 @@ impl TableLikeFlow for BlockFlow {
 
                 // Account for spacing or collapsed borders.
                 if kid.is_table_row() {
+                    has_rows = true;
                     let child_table_row = kid.as_table_row();
                     current_block_offset = current_block_offset +
                         match self.fragment.style.get_inheritedtable().border_collapse {
@@ -843,7 +851,7 @@ impl TableLikeFlow for BlockFlow {
 
             // Take border, padding, and spacing into account.
             let block_end_offset = self.fragment.border_padding.block_end +
-                block_direction_spacing;
+                if has_rows { block_direction_spacing } else { Au(0) };
             current_block_offset = current_block_offset + block_end_offset;
 
             // Now that `current_block_offset` is at the block-end of the border box, compute the
