@@ -44,7 +44,7 @@ impl CanvasGradient {
 
 impl<'a> CanvasGradientMethods for JSRef<'a, CanvasGradient> {
     // https://html.spec.whatwg.org/multipage/#dom-canvasgradient-addcolorstop
-    fn AddColorStop(self, offset: Finite<f32>, color: String) {
+    fn AddColorStop(self, offset: Finite<f64>, color: String) {
         let default_black = RGBA {
             red: 0.0,
             green: 0.0,
