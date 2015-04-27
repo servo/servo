@@ -74,7 +74,7 @@ impl UIEvent {
 impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-UIEvent-view
     fn GetView(self) -> Option<Temporary<Window>> {
-        self.view.get().map(Temporary::new)
+        self.view.get().map(Temporary::from_rooted)
     }
 
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-UIEvent-detail

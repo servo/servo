@@ -45,7 +45,7 @@ impl Performance {
 
 impl<'a> PerformanceMethods for JSRef<'a, Performance> {
     fn Timing(self) -> Temporary<PerformanceTiming> {
-        Temporary::new(self.timing.clone())
+        Temporary::from_rooted(self.timing.clone())
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now

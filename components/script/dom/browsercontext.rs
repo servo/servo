@@ -50,7 +50,7 @@ impl BrowserContext {
     }
 
     pub fn active_document(&self) -> Temporary<Document> {
-        Temporary::new(self.history[self.active_index].document.clone())
+        Temporary::from_rooted(self.history[self.active_index].document.clone())
     }
 
     pub fn active_window(&self) -> Temporary<Window> {
@@ -59,7 +59,7 @@ impl BrowserContext {
     }
 
     pub fn frame_element(&self) -> Option<Temporary<Element>> {
-        self.frame_element.map(Temporary::new)
+        self.frame_element.map(Temporary::from_rooted)
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {

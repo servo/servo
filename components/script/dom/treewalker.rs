@@ -64,7 +64,7 @@ impl TreeWalker {
 impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
     // https://dom.spec.whatwg.org/#dom-treewalker-root
     fn Root(self) -> Temporary<Node> {
-        Temporary::new(self.root_node)
+        Temporary::from_rooted(self.root_node)
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-whattoshow
@@ -83,7 +83,7 @@ impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
 
     // https://dom.spec.whatwg.org/#dom-treewalker-currentnode
     fn CurrentNode(self) -> Temporary<Node> {
-        Temporary::new(self.current_node.get())
+        Temporary::from_rooted(self.current_node.get())
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-currentnode

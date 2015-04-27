@@ -463,7 +463,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
     // https://xhr.spec.whatwg.org/#the-upload-attribute
     fn Upload(self) -> Temporary<XMLHttpRequestUpload> {
-        Temporary::new(self.upload)
+        Temporary::from_rooted(self.upload)
     }
 
     // https://xhr.spec.whatwg.org/#the-send()-method
@@ -711,7 +711,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
     fn GetResponseXML(self) -> Option<Temporary<Document>> {
-        self.response_xml.get().map(Temporary::new)
+        self.response_xml.get().map(Temporary::from_rooted)
     }
 }
 

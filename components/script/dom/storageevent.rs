@@ -108,7 +108,7 @@ impl<'a> StorageEventMethods for JSRef<'a, StorageEvent> {
     }
 
     fn GetStorageArea(self) -> Option<Temporary<Storage>> {
-        self.storageArea.get().map(Temporary::new)
+        self.storageArea.get().map(Temporary::from_rooted)
     }
 
 }

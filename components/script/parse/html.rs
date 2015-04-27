@@ -63,7 +63,7 @@ trait SinkHelpers {
 impl SinkHelpers for servohtmlparser::Sink {
     fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Temporary<Node> {
         match child {
-            AppendNode(n) => Temporary::new(n),
+            AppendNode(n) => Temporary::from_rooted(n),
             AppendText(t) => {
                 let doc = self.document.root();
                 let text = Text::new(t, doc.r());

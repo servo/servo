@@ -143,7 +143,7 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
     }
 
     fn GetRelatedTarget(self) -> Option<Temporary<EventTarget>> {
-        self.related_target.get().map(Temporary::new)
+        self.related_target.get().map(Temporary::from_rooted)
     }
 
     fn InitMouseEvent(self,
