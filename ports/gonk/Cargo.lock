@@ -59,7 +59,7 @@ dependencies = [
  "gfx 0.0.1",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
  "glutin 0.0.7 (git+https://github.com/servo/glutin?branch=servo)",
- "msg 0.0.1",
+ "offscreen_gl_context 0.0.1 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
  "util 0.0.1",
 ]
 
@@ -677,6 +677,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "malloc_buf 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "offscreen_gl_context"
+version = "0.0.1"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#9547d416019b15e0e59dc5176f5b1a14e14b44ca"
+dependencies = [
+ "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
 
 [[package]]

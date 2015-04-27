@@ -34,7 +34,7 @@ version = "0.0.1"
 [[package]]
 name = "android_glue"
 version = "0.0.1"
-source = "git+https://github.com/tomaka/android-rs-glue#5a68056599fb498b0cf3715fd359894825e3b856"
+source = "git+https://github.com/tomaka/android-rs-glue#fa1eaa1d1857e0fa93832c5c8db5dc8bbcbc1eba"
 
 [[package]]
 name = "azure"
@@ -67,7 +67,7 @@ dependencies = [
  "gfx 0.0.1",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
  "glutin 0.0.7 (git+https://github.com/servo/glutin?branch=servo)",
- "msg 0.0.1",
+ "offscreen_gl_context 0.0.1 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
  "util 0.0.1",
 ]
 
@@ -318,7 +318,7 @@ name = "gdi32-sys"
 version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "winapi 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -517,7 +517,7 @@ name = "kernel32-sys"
 version = "0.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "winapi 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -707,6 +707,19 @@ dependencies = [
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "url 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
+]
+
+[[package]]
+name = "offscreen_gl_context"
+version = "0.0.1"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#9547d416019b15e0e59dc5176f5b1a14e14b44ca"
+dependencies = [
+ "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
+ "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
 
 [[package]]
@@ -1000,7 +1013,7 @@ name = "user32-sys"
 version = "0.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "winapi 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1081,11 +1094,6 @@ version = "0.0.1"
 dependencies = [
  "rustc-serialize 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
-
-[[package]]
-name = "winapi"
-version = "0.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "winapi"
