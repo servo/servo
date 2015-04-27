@@ -94,7 +94,9 @@ impl WebGLPaintTask {
                             CanvasWebGLMsg::ShaderSource(shader_id, source) => painter.shader_source(shader_id, source),
                             CanvasWebGLMsg::Uniform4fv(uniform_id, data) => painter.uniform_4fv(uniform_id, data),
                             CanvasWebGLMsg::UseProgram(program_id) => painter.use_program(program_id),
-                            CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) => painter.vertext_attrib_pointer_f32(attrib_id, size, normalized, stride, offset),
+                            CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) => {
+                                painter.vertext_attrib_pointer_f32(attrib_id, size, normalized, stride, offset);
+                            },
                             CanvasWebGLMsg::Viewport(x, y, width, height) => painter.viewport(x, y, width, height),
                         }
                     },
