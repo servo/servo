@@ -4482,38 +4482,49 @@ class CGDictionary(CGThing):
 
     def struct(self):
         d = self.dictionary
+        struct = {}
         if d.parent:
-            inheritance = "    pub parent: %s::%s,\n" % (self.makeModuleName(d.parent),
-                                                         self.makeClassName(d.parent))
-        else:
-            inheritance = ""
-        memberDecls = ["    pub %s: %s," %
-                       (self.makeMemberName(m[0].identifier.name), self.getMemberType(m))
-                       for m in self.memberInfo]
+            code = "    pub parent: %s::%s," % (self.makeModuleName(d.parent),
+                                                self.makeClassName(d.parent))
+            struct['parent'] = code
 
-        return (string.Template(
-                "pub struct ${selfName} {\n" +
-                "${inheritance}" +
-                "\n".join(memberDecls) + "\n" +
-                "}").substitute( { "selfName": self.makeClassName(d),
-                                    "inheritance": inheritance }))
+        for m in self.memberInfo:
+            memberName = self.makeMemberName(m[0].identifier.name)
+            code = "    pub %s: %s," % (memberName, self.getMemberType(m))
+            struct[memberName] = code
+
+        # Sort the field declarations by attribute name to ensure a well-defined
+        # ordering for declaration and definition. This is required to avoid FIFO
+        # rooting problems during object destruction.
+        code = [ x[1] for x in sorted(struct.items(), key=lambda x: x[0]) ]
+
+        template = \
+            "pub struct ${selfName} {\n" +\
+                "\n".join(code) + "\n" +\
+            "}"
+
+        return string.Template(template).substitute({"selfName": self.makeClassName(d)})
 
     def impl(self):
         d = self.dictionary
+        struct = {}
         if d.parent:
-            initParent = "parent: try!(%s::%s::new(cx, val)),\n" % (
+            code = "parent: try!(%s::%s::new(cx, val)),\n" % (
                 self.makeModuleName(d.parent),
                 self.makeClassName(d.parent))
-        else:
-            initParent = ""
+            struct['parent'] = CGIndenter(CGGeneric(code), indentLevel=12).define()
 
-        def memberInit(memberInfo):
-            member, _ = memberInfo
-            name = self.makeMemberName(member.identifier.name)
+        for memberInfo in self.memberInfo:
+            name = self.makeMemberName(memberInfo[0].identifier.name)
             conversion = self.getMemberConversion(memberInfo)
-            return CGGeneric("%s: %s,\n" % (name, conversion.define()))
+            gc_generic = CGGeneric("%s: %s,\n" % (name, conversion.define()))
+            struct[name] = CGIndenter(gc_generic, indentLevel=12).define()
 
-        memberInits = CGList([memberInit(m) for m in self.memberInfo])
+        # Sort the field declarations by attribute name to ensure a well-defined
+        # ordering for declaration and definition. This is required to avoid FIFO
+        # rooting problems during object destruction. Note: this is the reverse of the
+        # ordering for the struct declaration.
+        code = [ x[1] for x in sorted(struct.items(), key=lambda x: x[0], reverse=True) ]
 
         return string.Template(
             "impl ${selfName} {\n"
@@ -4530,14 +4541,12 @@ class CGDictionary(CGThing):
             "            return Err(());\n"
             "        };\n"
             "        Ok(${selfName} {\n"
-            "${initParent}"
-            "${initMembers}"
+            "${code}"
             "        })\n"
             "    }\n"
             "}").substitute({
                 "selfName": self.makeClassName(d),
-                "initParent": CGIndenter(CGGeneric(initParent), indentLevel=12).define(),
-                "initMembers": CGIndenter(memberInits, indentLevel=12).define(),
+                "code": "\n".join(code),
                 })
 
     @staticmethod

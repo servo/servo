@@ -1,0 +1,13 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // Testing issue 5107, which panics on rooting FIFO violation.
+  var a = new MouseEvent("type", {view: window, relatedTarget: document});
+  assert_not_equals(a, null);
+});
+</script>
+</head>
+</html>
