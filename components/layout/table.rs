@@ -284,14 +284,12 @@ impl Flow for TableFlow {
                                 NextBlockCollapsedBorders::FromNextRow(
                                     &next_sibling.as_immutable_table_rowgroup()
                                                  .preliminary_collapsed_borders
-                                                 .block_start
-                                                 .as_slice())
+                                                 .block_start)
                             } else {
                                 NextBlockCollapsedBorders::FromNextRow(
                                     &next_sibling.as_immutable_table_row()
                                                  .preliminary_collapsed_borders
-                                                 .block_start
-                                                 .as_slice())
+                                                 .block_start)
                             }
                         }
                         None => {
@@ -352,14 +350,12 @@ impl Flow for TableFlow {
                                         NextBlockCollapsedBorders::FromNextRow(
                                             &grandkid_next_sibling.as_immutable_table_rowgroup()
                                                                   .preliminary_collapsed_borders
-                                                                  .block_start
-                                                                  .as_slice())
+                                                                  .block_start)
                                     } else {
                                         NextBlockCollapsedBorders::FromNextRow(
                                             &grandkid_next_sibling.as_immutable_table_row()
                                                                   .preliminary_collapsed_borders
-                                                                  .block_start
-                                                                  .as_slice())
+                                                                  .block_start)
                                     }
                                 }
                                 None => {
@@ -483,9 +479,9 @@ impl Flow for TableFlow {
         self.block_flow.base.flags.remove(IMPACTED_BY_LEFT_FLOATS);
         self.block_flow.base.flags.remove(IMPACTED_BY_RIGHT_FLOATS);
 
-        let column_computed_inline_sizes = self.column_computed_inline_sizes.as_slice();
+        let column_computed_inline_sizes = &self.column_computed_inline_sizes;
         let collapsed_inline_direction_border_widths_for_table =
-            self.collapsed_inline_direction_border_widths_for_table.as_slice();
+            &self.collapsed_inline_direction_border_widths_for_table;
         let mut collapsed_block_direction_border_widths_for_table =
             self.collapsed_block_direction_border_widths_for_table.iter().peekable();
         self.block_flow.propagate_assigned_inline_size_to_children(layout_context,
@@ -509,12 +505,12 @@ impl Flow for TableFlow {
             if child_flow.is_table_row() {
                 let child_table_row = child_flow.as_table_row();
                 child_table_row.populate_collapsed_border_spacing(
-                    collapsed_inline_direction_border_widths_for_table.as_slice(),
+                    collapsed_inline_direction_border_widths_for_table,
                     &mut collapsed_block_direction_border_widths_for_table);
             } else if child_flow.is_table_rowgroup() {
                 let child_table_rowgroup = child_flow.as_table_rowgroup();
                 child_table_rowgroup.populate_collapsed_border_spacing(
-                    collapsed_inline_direction_border_widths_for_table.as_slice(),
+                    collapsed_inline_direction_border_widths_for_table,
                     &mut collapsed_block_direction_border_widths_for_table);
             }
         })

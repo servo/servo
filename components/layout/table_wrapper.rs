@@ -351,7 +351,7 @@ impl Flow for TableWrapperFlow {
                         child_index,
                         content_inline_size,
                         writing_mode,
-                        assigned_column_inline_sizes.as_slice(),
+                        assigned_column_inline_sizes,
                         &border_spacing,
                         &None,
                         inline_start_margin_edge)

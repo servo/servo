@@ -158,10 +158,10 @@ impl Flow for TableRowGroupFlow {
                                                       containing_block_inline_size,
                                                       border_collapse);
 
-        let column_computed_inline_sizes = self.column_computed_inline_sizes.as_slice();
+        let column_computed_inline_sizes = &self.column_computed_inline_sizes;
         let border_spacing = self.spacing;
         let collapsed_inline_direction_border_widths_for_table =
-            self.collapsed_inline_direction_border_widths_for_table.as_slice();
+            &self.collapsed_inline_direction_border_widths_for_table;
         let mut collapsed_block_direction_border_widths_for_table =
             self.collapsed_block_direction_border_widths_for_table.iter().peekable();
         self.block_flow.propagate_assigned_inline_size_to_children(layout_context,
@@ -186,7 +186,7 @@ impl Flow for TableRowGroupFlow {
             if border_collapse == border_collapse::T::collapse {
                 let child_table_row = child_flow.as_table_row();
                 child_table_row.populate_collapsed_border_spacing(
-                    collapsed_inline_direction_border_widths_for_table.as_slice(),
+                    collapsed_inline_direction_border_widths_for_table,
                     &mut collapsed_block_direction_border_widths_for_table);
             }
         });

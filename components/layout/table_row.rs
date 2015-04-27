@@ -380,7 +380,7 @@ impl Flow for TableRowFlow {
                 child_index,
                 content_inline_size,
                 writing_mode,
-                computed_inline_size_for_cells.as_slice(),
+                &computed_inline_size_for_cells,
                 &spacing,
                 &border_collapse_info,
                 inline_start_margin_edge)
