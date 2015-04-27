@@ -1164,40 +1164,7 @@ impl ScriptTask {
         };
 
         parse_html(document.r(), parse_input, &final_url, None);
-
-        document.r().set_ready_state(DocumentReadyState::Interactive);
-        self.compositor.borrow_mut().set_ready_state(incomplete.pipeline_id, PerformingLayout);
-
-        // Kick off the initial reflow of the page.
-        debug!("kicking off initial reflow of {:?}", final_url);
-        document.r().content_changed(NodeCast::from_ref(document.r()),
-                                     NodeDamage::OtherNodeDamage);
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
-
-        // No more reflow required
-        page.set_reflow_status(false);
-
-        // https://html.spec.whatwg.org/multipage/#the-end step 4
-        let addr: Trusted<Document> = Trusted::new(self.get_cx(), document.r(), self.chan.clone());
-        let handler = box DocumentProgressHandler::new(addr.clone(), DocumentProgressTask::DOMContentLoaded);
-        self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
-
-        // We have no concept of a document loader right now, so just dispatch the
-        // "load" event as soon as we've finished executing all scripts parsed during
-        // the initial load.
-
-        // https://html.spec.whatwg.org/multipage/#the-end step 7
-        let handler = box DocumentProgressHandler::new(addr, DocumentProgressTask::Load);
-        self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
-
-        window.r().set_fragment_name(final_url.fragment.clone());
-
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::LoadComplete).unwrap();
-
-        // Notify devtools that a new script global exists.
-        self.notify_devtools(document.r().Title(), final_url, (incomplete.pipeline_id, None));
-
+        self.handle_parsing_complete(incomplete.pipeline_id);
         page_remover.neuter();
     }
 
@@ -1412,6 +1379,51 @@ impl ScriptTask {
     pub fn drop_devtools_timeline_markers(&self) {
         self.devtools_markers.borrow_mut().clear();
         *self.devtools_marker_sender.borrow_mut() = None;
+    }
+
+    fn handle_parsing_complete(&self, id: PipelineId) {
+        let parent_page = self.root_page();
+        let page = match parent_page.find(id) {
+            Some(page) => page,
+            None => return,
+        };
+
+        let document = page.document().root();
+        let final_url = document.r().url();
+
+        document.r().set_ready_state(DocumentReadyState::Interactive);
+        self.compositor.borrow_mut().set_ready_state(id, PerformingLayout);
+
+        // Kick off the initial reflow of the page.
+        debug!("kicking off initial reflow of {:?}", final_url);
+        document.r().content_changed(NodeCast::from_ref(document.r()),
+                                     NodeDamage::OtherNodeDamage);
+        let window = window_from_node(document.r()).root();
+        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
+
+        // No more reflow required
+        page.set_reflow_status(false);
+
+        // https://html.spec.whatwg.org/multipage/#the-end step 4
+        let addr: Trusted<Document> = Trusted::new(self.get_cx(), document.r(), self.chan.clone());
+        let handler = box DocumentProgressHandler::new(addr.clone(), DocumentProgressTask::DOMContentLoaded);
+        self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
+
+        // We have no concept of a document loader right now, so just dispatch the
+        // "load" event as soon as we've finished executing all scripts parsed during
+        // the initial load.
+
+        // https://html.spec.whatwg.org/multipage/#the-end step 7
+        let handler = box DocumentProgressHandler::new(addr, DocumentProgressTask::Load);
+        self.chan.send(ScriptMsg::RunnableMsg(handler)).unwrap();
+
+        window.r().set_fragment_name(final_url.fragment.clone());
+
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(ConstellationMsg::LoadComplete).unwrap();
+
+        // Notify devtools that a new script global exists.
+        self.notify_devtools(document.r().Title(), final_url, (id, None));
     }
 }
 
