@@ -514,7 +514,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
         }
 
-        let mut load_data = LoadData::new(self.request_url.borrow().clone().unwrap());
+        let mut load_data = LoadData::new(self.request_url.borrow().clone().unwrap(), None);
         load_data.data = extracted;
 
         #[inline]

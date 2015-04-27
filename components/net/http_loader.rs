@@ -142,7 +142,7 @@ reason: \"certificate verify failed\" }]";
             ) => {
                 let mut image = resources_dir_path();
                 image.push("badcert.html");
-                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap());
+                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
                 file_loader::factory(load_data, start_chan, classifier);
                 return;
             },
@@ -199,13 +199,14 @@ reason: \"certificate verify failed\" }]";
             info!("{:?}", load_data.data);
         }
 
+        // Send an HttpRequest message to devtools with a unique request_id
+        // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the message
         let request_id = uuid::Uuid::new_v4().to_simple_string();
-        let net_event = NetworkEvent::HttpRequest(
-            load_data.url.clone(),
-            load_data.method.clone(),
-            load_data.headers.clone(),
-            load_data.data.clone()            
-        );
+        let net_event = NetworkEvent::HttpRequest(load_data.url.clone(),
+                                                  load_data.method.clone(),
+                                                  load_data.headers.clone(),
+                                                  load_data.data.clone()            
+                                                  );
         devtools_chan.as_ref().map(|chan| chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id.clone(), net_event)));
 
         // Avoid automatically sending request body if a redirect has occurred.
@@ -340,7 +341,9 @@ reason: \"certificate verify failed\" }]";
             }
         }
 
-        println!("Http loader Response");
+        // Send an HttpResponse message to devtools with the corresponding request_id
+        // TODO: Send this message only if load_data has a pipeline_id that is not None
+        //       Is this the appropriate time to send the HttpResponse message?
         let net_event_response = NetworkEvent::HttpResponse(metadata.headers.clone(), metadata.status.clone(), None);
         devtools_chan.as_ref().map(|chan| chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id, net_event_response)));
 
