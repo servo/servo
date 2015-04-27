@@ -504,7 +504,10 @@ interface WebGLRenderingContextBase
 
     // typedef (ArrayBuffer or ArrayBufferView) BufferDataSource;
     //void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
-    // ORIGINAL: void bufferData(GLenum target, BufferDataSource? data, GLenum usage);
+    // FIXME(dmarcos) The function below is the original function in the webIdl:
+    // void bufferData(GLenum target, BufferDataSource? data, GLenum usage);
+    // The Code genearator doesn't handle BufferDataSource so we're using 'optional object'
+    // in the meantime
     void bufferData(GLenum target, optional object data, GLenum usage);
     //void bufferSubData(GLenum target, GLintptr offset, BufferDataSource? data);
 
@@ -668,7 +671,10 @@ interface WebGLRenderingContextBase
     //void uniform3iv(WebGLUniformLocation? location, Int32Array v);
     //void uniform3iv(WebGLUniformLocation? location, sequence<long> v);
     //void uniform4f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
-    // ORIGINAL: void uniform4fv(WebGLUniformLocation? location, Float32Array v);
+    // FIXME(dmarcos) The function below is the original function in the webIdl:
+    // void uniform4fv(WebGLUniformLocation? location, Float32Array v);
+    // The Code genearator doesn't handle BufferDataSource so we're using 'optional object'
+    // in the meantime
     void uniform4fv(WebGLUniformLocation? location, optional object v);
     //void uniform4fv(WebGLUniformLocation? location, sequence<GLfloat> v);
     //void uniform4i(WebGLUniformLocation? location, GLint x, GLint y, GLint z, GLint w);
