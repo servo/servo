@@ -10,11 +10,11 @@
 </div>
 <script id="vertexshader" type="x-shader">
    attribute vec2 aVertexPosition;
-   attribute vec4 aAltColour;
+   attribute vec4 aColour;
    varying vec4 aVertexColor;
 
    void main() {
-      aVertexColor = aAltColour;
+      aVertexColor = aColour;
       gl_Position = vec4(aVertexPosition, 0.0, 1.0);
    }
 </script>
@@ -24,10 +24,8 @@
    #endif
 
    varying vec4 aVertexColor;
-   uniform vec4 uColor;
 
    void main() {
-      gl_FragColor = uColor;
       gl_FragColor = aVertexColor;
    }
 </script>
@@ -95,20 +93,13 @@
    // Setup Geometry
    gl.useProgram(program);
 
-   var colors = new Float32Array([
-       1.0, 0.0, 0.0, 1.0
-   ]);
-
-   program.uColor = gl.getUniformLocation(program, "uColor");
-   gl.uniform4fv(program.uColor, colors);
-
    program.aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
    gl.enableVertexAttribArray(program.aVertexPosition);
    gl.vertexAttribPointer(program.aVertexPosition, itemSize, gl.FLOAT, false, 0, 0);
 
-   program.aAltColour = gl.getAttribLocation(program, "aAltColour");
-   gl.enableVertexAttribArray(program.aAltColour);
-   gl.vertexAttribPointer(program.aAltColour, 4, gl.FLOAT, false, 0, 24);
+   program.aColour = gl.getAttribLocation(program, "aColour");
+   gl.enableVertexAttribArray(program.aColour);
+   gl.vertexAttribPointer(program.aColour, 4, gl.FLOAT, false, 0, 24);
 
    // Draw
    gl.drawArrays(gl.TRIANGLES, 0, 3);

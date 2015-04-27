@@ -71,7 +71,7 @@ pub enum CanvasWebGLMsg {
     ShaderSource(u32, Vec<String>),
     Uniform4fv(u32, Vec<f32>),
     UseProgram(u32),
-    VertexAttribPointer(u32, i32, u32, bool, i32, i64),
+    VertexAttribPointer2f(u32, i32, bool, i32, i64),
     Viewport(i32, i32, i32, i32),
 }
 

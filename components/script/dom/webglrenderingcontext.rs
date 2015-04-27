@@ -5,7 +5,7 @@
 use canvas::webgl_paint_task::WebGLPaintTask;
 use canvas::canvas_msg::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding;
-use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{ WebGLRenderingContextMethods, WebGLRenderingContextConstants};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -212,8 +212,14 @@ impl<'a> WebGLRenderingContextMethods for JSRef<'a, WebGLRenderingContext> {
 
     fn VertexAttribPointer(self, attrib_id: u32, size: i32, data_type: u32,
                            normalized: bool, stride: i32, offset: i64) -> (){
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::VertexAttribPointer(
-            attrib_id, size, data_type, normalized, stride, offset))).unwrap()
+        match data_type {
+            WebGLRenderingContextConstants::FLOAT => {
+                self.renderer.send(
+                    CanvasMsg::WebGL(CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset))).unwrap()
+            }
+            _ => panic!("VertexAttribPointer: Data Type not supported")
+        }
+
     }
 
     fn Viewport(self, x: i32, y: i32, width: i32, height: i32) -> () {
