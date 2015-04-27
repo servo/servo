@@ -401,7 +401,6 @@ impl VecRootableType for *mut JSObject {
 /// A vector of items that are rooted for the lifetime
 /// of this struct
 #[allow(unrooted_must_root)]
-#[jstraceable]
 pub struct RootedVec<T> {
     v: Vec<T>
 }
