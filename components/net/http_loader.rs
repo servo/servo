@@ -12,7 +12,7 @@ use std::collections::HashSet;
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hyper::client::Request;
-use hyper::header::{AcceptEncoding, ContentLength, ContentType, Host, Location};
+use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
 use hyper::HttpError;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -166,6 +166,16 @@ reason: \"certificate verify failed\" }]";
         }
 
         req.headers_mut().set(host);
+
+        if !req.headers().has::<Accept>() {
+            let accept = Accept(vec![
+                qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+                qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
+                QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
+                QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
+            ]);
+            req.headers_mut().set(accept);
+        }
 
         let (tx, rx) = channel();
         cookies_chan.send(ControlMsg::GetCookiesForUrl(url.clone(), tx, CookieSource::HTTP)).unwrap();
