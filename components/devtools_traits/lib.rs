@@ -47,8 +47,7 @@ pub enum DevtoolsControlMsg {
     NewGlobal((PipelineId, Option<WorkerId>), Sender<DevtoolScriptControlMsg>, DevtoolsPageInfo),
     SendConsoleMessage(PipelineId, ConsoleMessage),
     ServerExitMsg,
-    HttpRequest(Url, Method, Headers, Option<Vec<u8>>),
-    HttpResponse(Option<Headers>, RawStatus, Vec<u8>)
+    NetworkEventMessage(String, NetworkEvent),
 }
 
 /// Serialized JS return values
@@ -150,6 +149,12 @@ pub enum ConsoleMessage {
     // Log: message, filename, line number, column number
     LogMessage(String, String, u32, u32),
     //WarnMessage(String),
+}
+
+#[derive(Clone)]
+pub enum NetworkEvent {
+    HttpRequest(Url, Method, Headers, Option<Vec<u8>>),
+    HttpResponse(Option<Headers>, Option<RawStatus>, Option<Vec<u8>>)
 }
 
 impl TimelineMarker {

@@ -4,7 +4,7 @@
 
 use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer};
 use net_traits::ProgressMsg::{Payload, Done};
-use devtools_traits::{DevtoolsControlMsg};
+use devtools_traits::{DevtoolsControlMsg, NetworkEvent};
 use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 
@@ -29,6 +29,7 @@ use util::resource_files::resources_dir_path;
 use util::opts;
 use url::{Url, UrlParser};
 
+use uuid;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 
@@ -199,16 +200,14 @@ reason: \"certificate verify failed\" }]))";
             info!("{:?}", load_data.data);
         }
 
-/*
-        match devtools_chan {
-            Some(chan) => chan.send(DevtoolsControlMsg::HttpRequest(load_data.url.clone(), load_data.method.clone(), load_data.headers.clone(), load_data.data.clone())).unwrap(),
-            None => {}
-        }
-*/
-
-        println!("load");
-        devtools_chan.as_ref().map(|chan| chan.send(DevtoolsControlMsg::HttpRequest(load_data.url.clone(), load_data.method.clone(), load_data.headers.clone(), load_data.data.clone())).unwrap());
-
+        let request_id = uuid::Uuid::new_v4().to_simple_string();
+        let net_event = NetworkEvent::HttpRequest(
+            load_data.url.clone(),
+            load_data.method.clone(),
+            load_data.headers.clone(),
+            load_data.data.clone()            
+        );
+        devtools_chan.as_ref().map(|chan| chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id.clone(), net_event)));
 
         // Avoid automatically sending request body if a redirect has occurred.
         let writer = match load_data.data {
@@ -341,6 +340,10 @@ reason: \"certificate verify failed\" }]))";
                 }
             }
         }
+
+        println!("Http loader Response");
+        let net_event_response = NetworkEvent::HttpResponse(metadata.headers.clone(), metadata.status.clone(), None);
+        devtools_chan.as_ref().map(|chan| chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id, net_event_response)));
 
         match encoding_str {
             Some(encoding) => {

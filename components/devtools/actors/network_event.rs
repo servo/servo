@@ -14,31 +14,68 @@ use protocol::JsonPacketStream;
 
 use devtools_traits::DevtoolScriptControlMsg;
 use msg::constellation_msg::PipelineId;
+use devtools_traits::{DevtoolsControlMsg, NetworkEvent};
 
 use collections::BTreeMap;
 use core::cell::RefCell;
+use std::fmt;
 use rustc_serialize::json::{self, Json, ToJson};
 use std::net::TcpStream;
 use std::num::Float;
 use std::sync::mpsc::{channel, Sender};
+use std::borrow::IntoCow;
 
 use url::Url;
 use hyper::header::Headers;
 use hyper::http::RawStatus;
 use hyper::method::Method;
 
-#[derive(RustcEncodable)]
-pub struct HttpRequest {
-    pub url: Url,
-    //method: Method,
-    //headers: Headers,
-    pub body: Option<Vec<u8>>,
+struct HttpRequest {
+    url: String,
+    method: Method,
+    headers: Headers,
+    body: Option<Vec<u8>>,
+}
+
+struct HttpResponse {
+    headers: Option<Headers>,
+    status: Option<RawStatus>,
+    body: Option<Vec<u8>>
 }
 
 #[derive(RustcEncodable)]
+struct GetRequestHeadersReply {
+    from: String,
+    headers: String,
+    headerSize: u8,
+    rawHeaders: String
+}
+
+#[derive(RustcEncodable)]
+pub struct EventActor {
+    pub actor: String,
+    pub url: String,
+    pub method: String,
+    pub startedDateTime: String,
+    pub isXHR: String,
+    pub private: String
+}
+
+#[derive(RustcEncodable)]
+pub struct ResponseStartMsg {
+    pub httpVersion: String,
+    pub remoteAddress: String,
+    pub remotePort: u8,
+    pub status: String,
+    pub statusText: String,
+    pub headersSize: u8,
+    pub discardResponseBody: bool,
+}
+
 pub struct NetworkEventActor {
     pub name: String,
-    pub request: HttpRequest,
+    request: HttpRequest,
+    response: HttpResponse,
 }
 
 impl Actor for NetworkEventActor {
@@ -54,15 +91,101 @@ impl Actor for NetworkEventActor {
         Ok(match msg_type {
 
             "getRequestHeaders" => {
-                //stream.write_json_packet(&msg);
+                println!("getRequestHeaders");
+                let msg = GetRequestHeadersReply {
+                    from: self.name(),
+                    headers: "headers".to_string(),
+                    headerSize: 10,
+                    rawHeaders: "Raw headers".to_string(),                    
+                };
+                stream.write_json_packet(&msg);
                 true
             }
 
             "getRequestCookies" => {
+                println!("getRequestCookies");
+                true
+            }
+            
+            "getRequestPostData" => {
+                println!("getRequestPostData");
+                true
+            }
+
+            "getResponseHeaders" => {
+                println!("getResponseHeaders");
+                true
+            }
+
+            "getResponseCookies" => {
+                println!("getResponseCookies");
+                true
+            }
+
+            "getResponseContent" => {
+                println!("getResponseContent");
                 true
             }
 
             _ => false
         })
+    }
+}
+
+impl NetworkEventActor {
+    pub fn new(name: String) -> NetworkEventActor {
+        NetworkEventActor {
+            name: name,
+            request: HttpRequest {
+                url: String::new(),
+                method: Method::Get,
+                headers: Headers::new(),
+                body: None
+            },
+            response: HttpResponse {
+                headers: None,
+                status: None,
+                body: None,
+            }
+        } 
+    }
+
+    pub fn addEvent(&mut self, network_event: NetworkEvent) {
+        match network_event {
+            NetworkEvent::HttpRequest(url, method, headers, body) => {
+                self.request.url = url.serialize();
+                self.request.method = method.clone();
+                self.request.headers = headers.clone();
+                self.request.body = body;
+            }    
+            NetworkEvent::HttpResponse(headers, status, body) => {
+                self.response.headers = headers.clone();
+                self.response.status = status.clone();
+                self.response.body = body.clone();
+            }
+        }
+    }
+
+    pub fn get_event_actor(&self) -> EventActor {
+        EventActor {
+            actor: self.name(),
+            url: self.request.url.clone(),
+            method: format!("{}", self.request.method),
+            startedDateTime: "2015-04-22T20:47:08.545Z".to_string(),
+            isXHR: "false".to_string(),
+            private: "false".to_string(),
+        }
+    }
+
+    pub fn get_response_start(&self) -> ResponseStartMsg {
+        ResponseStartMsg {
+            httpVersion: "HTTP/1.1".to_string(),
+            remoteAddress: "63.245.217.43".to_string(),
+            remotePort: 443,
+            status: "200".to_string(),
+            statusText: "OK".to_string(),
+            headersSize: 337,
+            discardResponseBody: true
+        }
     }
 }
