@@ -20,11 +20,13 @@ use floats::FloatKind;
 use flow::{FlowClass, Flow, ImmutableFlowUtils};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
 use fragment::{Fragment, FragmentBorderBoxIterator};
-use table::{ChildInlineSizeInfo, ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
+use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
+use table_row;
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
 use util::geometry::Au;
+use util::logical_geometry::LogicalRect;
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
@@ -98,25 +100,32 @@ impl TableWrapperFlow {
         // when normally the child computes it itself. But it has to be this way because the
         // padding will affect where we place the child. This is an odd artifact of the way that
         // tables are separated into table flows and table wrapper flows.
+        //
+        // FIXME(pcwalton): Handle `border-collapse` correctly.
         let mut available_inline_size = self.block_flow.fragment.border_box.size.inline;
         let (mut table_border_padding, mut spacing) = (Au(0), Au(0));
         for kid in self.block_flow.base.child_iter() {
-            if kid.is_table() {
-                let kid_block = kid.as_block();
-                let spacing_per_cell = kid_block.fragment
-                                                .style()
-                                                .get_inheritedtable()
-                                                .border_spacing
-                                                .horizontal;
-                spacing = spacing_per_cell * (self.column_intrinsic_inline_sizes.len() as i32 + 1);
-                available_inline_size = self.block_flow.fragment.border_box.size.inline;
-
-                kid_block.fragment.compute_border_and_padding(available_inline_size);
-                kid_block.fragment.compute_block_direction_margins(available_inline_size);
-                kid_block.fragment.compute_inline_direction_margins(available_inline_size);
-                table_border_padding = kid_block.fragment.border_padding.inline_start_end();
-                break
+            if !kid.is_table() {
+                continue
             }
+
+            let kid_table = kid.as_table();
+            let spacing_per_cell = kid_table.spacing().horizontal;
+            spacing = spacing_per_cell * (self.column_intrinsic_inline_sizes.len() as i32 + 1);
+            available_inline_size = self.block_flow.fragment.border_box.size.inline;
+
+            let kid_block_flow = &mut kid_table.block_flow;
+            kid_block_flow.fragment
+                          .compute_border_and_padding(available_inline_size,
+                                                      self.block_flow
+                                                          .fragment
+                                                          .style
+                                                          .get_inheritedtable()
+                                                          .border_collapse);
+            kid_block_flow.fragment.compute_block_direction_margins(available_inline_size);
+            kid_block_flow.fragment.compute_inline_direction_margins(available_inline_size);
+            table_border_padding = kid_block_flow.fragment.border_padding.inline_start_end();
+            break
         }
 
         // FIXME(pcwalton, spec): INTRINSIC § 8 does not properly define how to compute this, but
@@ -196,14 +205,17 @@ impl TableWrapperFlow {
                                 layout_context: &LayoutContext,
                                 parent_flow_inline_size: Au) {
         // Delegate to the appropriate inline size computer to find the constraint inputs.
+        let border_collapse = self.block_flow.fragment.style.get_inheritedtable().border_collapse;
         let input = if self.block_flow.base.flags.is_float() {
             FloatNonReplaced.compute_inline_size_constraint_inputs(&mut self.block_flow,
                                                                    parent_flow_inline_size,
-                                                                   layout_context)
+                                                                   layout_context,
+                                                                   border_collapse)
         } else {
             BlockNonReplaced.compute_inline_size_constraint_inputs(&mut self.block_flow,
                                                                    parent_flow_inline_size,
-                                                                   layout_context)
+                                                                   layout_context,
+                                                                   border_collapse)
         };
 
         // Delegate to the appropriate inline size computer to write the constraint solutions in.
@@ -313,26 +325,37 @@ impl Flow for TableWrapperFlow {
             }
         };
 
+        let border_spacing = self.block_flow.fragment.style().get_inheritedtable().border_spacing;
         match assigned_column_inline_sizes {
             None => {
-                self.block_flow.propagate_assigned_inline_size_to_children(
-                    layout_context,
-                    inline_start_content_edge,
-                    inline_end_content_edge,
-                    content_inline_size,
-                    None)
-            }
-            Some(ref assigned_column_inline_sizes) => {
-                let info = ChildInlineSizeInfo {
-                    column_computed_inline_sizes: &assigned_column_inline_sizes,
-                    spacing: self.block_flow.fragment.style().get_inheritedtable().border_spacing,
-                };
                 self.block_flow
                     .propagate_assigned_inline_size_to_children(layout_context,
                                                                 inline_start_content_edge,
                                                                 inline_end_content_edge,
                                                                 content_inline_size,
-                                                                Some(info));
+                                                                |_, _, _, _, _| {})
+            }
+            Some(ref assigned_column_inline_sizes) => {
+                self.block_flow
+                    .propagate_assigned_inline_size_to_children(layout_context,
+                                                                inline_start_content_edge,
+                                                                inline_end_content_edge,
+                                                                content_inline_size,
+                                                                |child_flow,
+                                                                 child_index,
+                                                                 content_inline_size,
+                                                                 writing_mode,
+                                                                 inline_start_margin_edge| {
+                    table_row::propagate_column_inline_sizes_to_child(
+                        child_flow,
+                        child_index,
+                        content_inline_size,
+                        writing_mode,
+                        assigned_column_inline_sizes,
+                        &border_spacing,
+                        &None,
+                        inline_start_margin_edge)
+                })
             }
         }
 
@@ -367,6 +390,10 @@ impl Flow for TableWrapperFlow {
 
     fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
+    }
+
+    fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
+        self.block_flow.generated_containing_block_rect()
     }
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {

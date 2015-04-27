@@ -15,7 +15,7 @@ use layout_debug;
 use model::IntrinsicISizesContribution;
 use text;
 
-use collections::{VecDeque};
+use collections::VecDeque;
 use geom::{Point2D, Rect};
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
@@ -1197,7 +1197,8 @@ impl Flow for InlineFlow {
         {
             let this = &mut *self;
             for fragment in this.fragments.fragments.iter_mut() {
-                fragment.compute_border_and_padding(inline_size);
+                let border_collapse = fragment.style.get_inheritedtable().border_collapse;
+                fragment.compute_border_and_padding(inline_size, border_collapse);
                 fragment.compute_block_direction_margins(inline_size);
                 fragment.compute_inline_direction_margins(inline_size);
                 fragment.assign_replaced_inline_size_if_necessary(inline_size);
