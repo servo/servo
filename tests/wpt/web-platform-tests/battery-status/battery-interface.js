@@ -144,13 +144,6 @@
       assert_equals(battery.onchargingchange, null, desc);
     }, 'onchargingchange: treat array as null');
 
-    test(function() {
-      var desc = 'onchargingchange did not treat noncallable host object as null';
-      battery.onchargingchange = function() {};
-      battery.onchargingchange = Node;
-      assert_equals(battery.onchargingchange, null, desc);
-    }, 'onchargingchange: treat non-callable host object as null');
-
     // attribute EventHandler onchargingtimechange;
 
     test(function() {
@@ -213,13 +206,6 @@
       battery.onchargingtimechange = [];
       assert_equals(battery.onchargingtimechange, null, desc);
     }, 'onchargingtimechange: treat array as null');
-
-    test(function() {
-      var desc = 'onchargingtimechange did not treat noncallable host object as null';
-      battery.onchargingtimechange = function() {};
-      battery.onchargingtimechange = Node;
-      assert_equals(battery.onchargingtimechange, null, desc);
-    }, 'onchargingtimechange: treat non-callable host object as null');
 
     // attribute EventHandler ondischargingtimechange;
 
@@ -284,13 +270,6 @@
       assert_equals(battery.ondischargingtimechange, null, desc);
     }, 'ondischargingtimechange: treat array as null');
 
-    test(function() {
-      var desc = 'ondischargingtimechange did not treat noncallable host object as null';
-      battery.ondischargingtimechange = function() {};
-      battery.ondischargingtimechange = Node;
-      assert_equals(battery.ondischargingtimechange, null, desc);
-    }, 'ondischargingtimechange: treat non-callable host object as null');
-
     // attribute EventHandler onlevelchange;
 
     test(function() {
@@ -353,13 +332,6 @@
       battery.onlevelchange = [];
       assert_equals(battery.onlevelchange, null, desc);
     }, 'onlevelchange: treat array as null');
-
-    test(function() {
-      var desc = 'onlevelchange did not treat noncallable host object as null';
-      battery.onlevelchange = function() {};
-      battery.onlevelchange = Node;
-      assert_equals(battery.onlevelchange, null, desc);
-    }, 'onlevelchange: treat non-callable host object as null');
 
     done();
 

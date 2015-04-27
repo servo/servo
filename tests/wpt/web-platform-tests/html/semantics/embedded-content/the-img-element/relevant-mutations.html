@@ -107,10 +107,9 @@ function t(desc, func, expect) {
     var img = document.querySelector('[data-desc="' + desc + '"]');
     img.onload = img.onerror = this.unreached_func('update the image data was run');
     if (expect == 'timeout') {
-      setTimeout(this.step_func_done(), 250);
+      setTimeout(this.step_func_done(), 1000);
     } else {
       img['on' + expect] = this.step_func_done(function() {});
-      setTimeout(this.unreached_func('update the image data was not run'), 250)
     }
     func.call(this, img);
   }, desc);

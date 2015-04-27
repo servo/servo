@@ -9,7 +9,7 @@
 <script>
 async_test(function() {
   var worker = new Worker('helper-redirect.py?fail');
-  worker.onmessage = this.step_func(function(e) {
+  worker.onmessage = this.step_func_done(function(e) {
     assert_equals(e.data[0], location.href.replace(/\/[^\/]+$/, '/post-location-members.js?a'));
     assert_equals(e.data[1], location.protocol);
     assert_equals(e.data[2], location.host);
