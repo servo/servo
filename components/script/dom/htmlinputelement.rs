@@ -8,6 +8,7 @@ use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInputElementCast, NodeCast};
@@ -617,8 +618,16 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
              self.input_type.get() == InputType::InputPassword) {
                 let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
                 keyevent.map(|keyevent| {
-                    match self.textinput.borrow_mut().handle_keydown(keyevent) {
-                        TriggerDefaultAction => (),
+                    // This can't be inlined, as holding on to textinput.borrow_mut()
+                    // during self.implicit_submission will cause a panic.
+                    let action = self.textinput.borrow_mut().handle_keydown(keyevent);
+                    match action {
+                        TriggerDefaultAction => {
+                            self.implicit_submission(keyevent.CtrlKey(),
+                                                     keyevent.ShiftKey(),
+                                                     keyevent.AltKey(),
+                                                     keyevent.MetaKey());
+                        },
                         DispatchInput => {
                             self.value_changed.set(true);
                             self.force_relayout();
@@ -813,18 +822,57 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         let doc = document_from_node(*self).root();
         let node: JSRef<Node> = NodeCast::from_ref(doc.r());
         let owner = self.form_owner();
+        let form = match owner {
+            None => return,
+            Some(ref f) => f.root()
+        };
+
         let elem: JSRef<Element> = ElementCast::from_ref(*self);
-        if owner.is_none() || elem.click_in_progress() {
+        if elem.click_in_progress() {
             return;
         }
         // This is safe because we are stopping after finding the first element
         // and only then performing actions which may modify the DOM tree
+        let submit_button;
         unsafe {
-            node.query_selector_iter("input[type=submit]".to_owned()).unwrap()
+            submit_button = node.query_selector_iter("input[type=submit]".to_owned()).unwrap()
                 .filter_map(HTMLInputElementCast::to_temporary)
                 .map(|t| t.root())
-                .find(|r| r.r().form_owner() == owner)
-                .map(|s| s.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
+                .find(|r| r.r().form_owner() == owner);
+        }
+        match submit_button {
+            Some(button) => {
+                if button.r().is_instance_activatable() {
+                    button.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey)
+                }
+            }
+            None => {
+                unsafe {
+                    // Safe because we don't perform any DOM modification
+                    // until we're done with the iterator.
+                    let inputs = node.query_selector_iter("input".to_owned()).unwrap()
+                        .filter_map(HTMLInputElementCast::to_temporary)
+                        .filter(|input| {
+                            let input = input.root();
+                            input.r().form_owner() == owner && match input.r().Type().as_slice() {
+                                "text" | "search" | "url" | "tel" |
+                                "email" | "password" | "datetime" |
+                                "date" | "month" | "week" | "time" |
+                                "datetime-local" | "number"
+                                  => true,
+                                _ => false
+                            }
+                        });
+
+                    if inputs.skip(1).next().is_some() {
+                        // lazily test for > 1 submission-blocking inputs
+                        return;
+                    }
+                }
+
+                form.r().submit(SubmittedFrom::NotFromFormSubmitMethod,
+                                FormSubmitter::FormElement(form.r()));
+            }
         }
     }
 }

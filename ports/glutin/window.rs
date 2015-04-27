@@ -151,17 +151,19 @@ impl Window {
                         (_, VirtualKeyCode::LAlt) => self.toggle_modifier(LEFT_ALT),
                         (_, VirtualKeyCode::RAlt) => self.toggle_modifier(RIGHT_ALT),
                         (ElementState::Pressed, VirtualKeyCode::Escape) => return true,
-                        (ElementState::Pressed, key_code) => {
+                        (_, key_code) => {
                             match Window::glutin_key_to_script_key(key_code) {
                                 Ok(key) => {
-                                    let state = KeyState::Pressed;
+                                    let state = match element_state {
+                                        ElementState::Pressed => KeyState::Pressed,
+                                        ElementState::Released => KeyState::Released,
+                                    };
                                     let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
                                     self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
                                 }
                                 _ => {}
                             }
                         }
-                        (_, _) => {}
                     }
                 }
             }
