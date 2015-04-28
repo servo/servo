@@ -14,8 +14,8 @@
 interface NodeIterator {
   [Constant]
   readonly attribute Node root;
-  // [Pure]
-  // readonly attribute Node? referenceNode;
+  [Pure]
+  readonly attribute Node? referenceNode;
   // [Pure]
   // readonly attribute boolean pointerBeforeReferenceNode;
   [Constant]
@@ -23,10 +23,10 @@ interface NodeIterator {
   [Constant]
   readonly attribute NodeFilter? filter;
 
-  // [Throws]
-  // Node? nextNode();
-  // [Throws]
-  // Node? previousNode();
+  [Throws]
+  Node? nextNode();
+  [Throws]
+  Node? previousNode();
 
   // void detach();
 };
