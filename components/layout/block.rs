@@ -622,51 +622,44 @@ impl BlockFlow {
     /// Compute the actual inline size and position for this block.
     pub fn compute_used_inline_size(&mut self,
                                     layout_context: &LayoutContext,
-                                    containing_block_inline_size: Au,
-                                    border_collapse: border_collapse::T) {
+                                    containing_block_inline_size: Au) {
         let block_type = self.block_type();
         match block_type {
             BlockType::AbsoluteReplaced => {
                 let inline_size_computer = AbsoluteReplaced;
                 inline_size_computer.compute_used_inline_size(self,
                                                               layout_context,
-                                                              containing_block_inline_size,
-                                                              border_collapse);
+                                                              containing_block_inline_size);
             }
             BlockType::AbsoluteNonReplaced => {
                 let inline_size_computer = AbsoluteNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
                                                               layout_context,
-                                                              containing_block_inline_size,
-                                                              border_collapse);
+                                                              containing_block_inline_size);
             }
             BlockType::FloatReplaced => {
                 let inline_size_computer = FloatReplaced;
                 inline_size_computer.compute_used_inline_size(self,
                                                               layout_context,
-                                                              containing_block_inline_size,
-                                                              border_collapse);
+                                                              containing_block_inline_size);
             }
             BlockType::FloatNonReplaced => {
                 let inline_size_computer = FloatNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
                                                               layout_context,
-                                                              containing_block_inline_size,
-                                                              border_collapse);
+                                                              containing_block_inline_size);
             }
             BlockType::Replaced => {
                 let inline_size_computer = BlockReplaced;
                 inline_size_computer.compute_used_inline_size(self,
                                                               layout_context,
-                                                              containing_block_inline_size,
-                                                              border_collapse);
+                                                              containing_block_inline_size);
             }
             BlockType::NonReplaced => {
                 let inline_size_computer = BlockNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
                                                               layout_context,
-                                                              containing_block_inline_size,
-                                                              border_collapse);
+                                                              containing_block_inline_size);
             }
         }
     }
@@ -1201,13 +1194,9 @@ impl BlockFlow {
     /// Compute inline size based using the `block_container_inline_size` set by the parent flow.
     ///
     /// This is run in the `AssignISizes` traversal.
-    fn propagate_and_compute_used_inline_size(&mut self,
-                                              layout_context: &LayoutContext,
-                                              border_collapse: border_collapse::T) {
+    fn propagate_and_compute_used_inline_size(&mut self, layout_context: &LayoutContext) {
         let containing_block_inline_size = self.base.block_container_inline_size;
-        self.compute_used_inline_size(layout_context,
-                                      containing_block_inline_size,
-                                      border_collapse);
+        self.compute_used_inline_size(layout_context, containing_block_inline_size);
         if self.base.flags.is_float() {
             self.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size
         }
@@ -1589,8 +1578,7 @@ impl Flow for BlockFlow {
 
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
         // Now compute the real value.
-        let border_collapse = self.fragment.style.get_inheritedtable().border_collapse;
-        self.propagate_and_compute_used_inline_size(layout_context, border_collapse);
+        self.propagate_and_compute_used_inline_size(layout_context);
 
         // Formatting contexts are never impacted by floats.
         match self.formatting_context_type() {
@@ -2041,6 +2029,12 @@ impl ISizeConstraintSolution {
 //
 // CSS Section 10.3
 pub trait ISizeAndMarginsComputer {
+    /// Instructs the fragment to compute its border and padding.
+    fn compute_border_and_padding(&self, block: &mut BlockFlow, containing_block_inline_size: Au) {
+        block.fragment.compute_border_and_padding(containing_block_inline_size,
+                                                  border_collapse::T::separate);
+    }
+
     /// Compute the inputs for the ISize constraint equation.
     ///
     /// This is called only once to compute the initial inputs. For calculations involving
@@ -2048,20 +2042,18 @@ pub trait ISizeAndMarginsComputer {
     fn compute_inline_size_constraint_inputs(&self,
                                              block: &mut BlockFlow,
                                              parent_flow_inline_size: Au,
-                                             layout_context: &LayoutContext,
-                                             border_collapse: border_collapse::T)
+                                             layout_context: &LayoutContext)
                                              -> ISizeConstraintInput {
         let containing_block_inline_size =
             self.containing_block_inline_size(block, parent_flow_inline_size, layout_context);
 
         block.fragment.compute_block_direction_margins(containing_block_inline_size);
         block.fragment.compute_inline_direction_margins(containing_block_inline_size);
-        block.fragment.compute_border_and_padding(containing_block_inline_size, border_collapse);
+        self.compute_border_and_padding(block, containing_block_inline_size);
 
         let mut computed_inline_size = self.initial_computed_inline_size(block,
                                                                          parent_flow_inline_size,
                                                                          layout_context);
-
         let style = block.fragment.style();
         match (computed_inline_size, style.get_box().box_sizing) {
             (MaybeAuto::Specified(size), box_sizing::T::border_box) => {
@@ -2161,12 +2153,12 @@ pub trait ISizeAndMarginsComputer {
     fn initial_computed_inline_size(&self,
                                     block: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    ctx: &LayoutContext)
+                                    layout_context: &LayoutContext)
                                     -> MaybeAuto {
         MaybeAuto::from_style(block.fragment().style().content_inline_size(),
                               self.containing_block_inline_size(block,
                                                                 parent_flow_inline_size,
-                                                                ctx))
+                                                                layout_context))
     }
 
     fn containing_block_inline_size(&self,
@@ -2183,12 +2175,10 @@ pub trait ISizeAndMarginsComputer {
     fn compute_used_inline_size(&self,
                                 block: &mut BlockFlow,
                                 layout_context: &LayoutContext,
-                                parent_flow_inline_size: Au,
-                                border_collapse: border_collapse::T) {
+                                parent_flow_inline_size: Au) {
         let mut input = self.compute_inline_size_constraint_inputs(block,
                                                                    parent_flow_inline_size,
-                                                                   layout_context,
-                                                                   border_collapse);
+                                                                   layout_context);
 
         let containing_block_inline_size =
             self.containing_block_inline_size(block, parent_flow_inline_size, layout_context);
@@ -2268,32 +2258,49 @@ pub trait ISizeAndMarginsComputer {
             match (inline_start_margin, computed_inline_size, inline_end_margin) {
                 // If all have a computed value other than 'auto', the system is
                 // over-constrained so we discard the end margin.
-                (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(inline_size), MaybeAuto::Specified(margin_end)) => {
+                (MaybeAuto::Specified(margin_start),
+                 MaybeAuto::Specified(inline_size),
+                 MaybeAuto::Specified(margin_end)) => {
                     if parent_has_same_direction {
                         (margin_start, inline_size, available_inline_size -
                          (margin_start + inline_size))
                     } else {
-                        (available_inline_size - (margin_end + inline_size), inline_size, margin_end)
+                        (available_inline_size - (margin_end + inline_size),
+                         inline_size,
+                         margin_end)
                     }
                 }
                 // If exactly one value is 'auto', solve for it
-                (MaybeAuto::Auto, MaybeAuto::Specified(inline_size), MaybeAuto::Specified(margin_end)) =>
+                (MaybeAuto::Auto,
+                 MaybeAuto::Specified(inline_size),
+                 MaybeAuto::Specified(margin_end)) =>
                     (available_inline_size - (inline_size + margin_end), inline_size, margin_end),
-                (MaybeAuto::Specified(margin_start), MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) =>
-                    (margin_start, available_inline_size - (margin_start + margin_end),
-                     margin_end),
-                (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(inline_size), MaybeAuto::Auto) =>
-                    (margin_start, inline_size, available_inline_size -
-                     (margin_start + inline_size)),
+                (MaybeAuto::Specified(margin_start),
+                 MaybeAuto::Auto,
+                 MaybeAuto::Specified(margin_end)) => {
+                    (margin_start,
+                     available_inline_size - (margin_start + margin_end),
+                     margin_end)
+                }
+                (MaybeAuto::Specified(margin_start),
+                 MaybeAuto::Specified(inline_size),
+                 MaybeAuto::Auto) => {
+                    (margin_start,
+                     inline_size,
+                     available_inline_size - (margin_start + inline_size))
+                }
 
                 // If inline-size is set to 'auto', any other 'auto' value becomes '0',
                 // and inline-size is solved for
-                (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) =>
-                    (Au::new(0), available_inline_size - margin_end, margin_end),
-                (MaybeAuto::Specified(margin_start), MaybeAuto::Auto, MaybeAuto::Auto) =>
-                    (margin_start, available_inline_size - margin_start, Au::new(0)),
-                (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Auto) =>
-                    (Au::new(0), available_inline_size, Au::new(0)),
+                (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) => {
+                    (Au(0), available_inline_size - margin_end, margin_end)
+                }
+                (MaybeAuto::Specified(margin_start), MaybeAuto::Auto, MaybeAuto::Auto) => {
+                    (margin_start, available_inline_size - margin_start, Au(0))
+                }
+                (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Auto) => {
+                    (Au(0), available_inline_size, Au(0))
+                }
 
                 // If inline-start and inline-end margins are auto, they become equal
                 (MaybeAuto::Auto, MaybeAuto::Specified(inline_size), MaybeAuto::Auto) => {

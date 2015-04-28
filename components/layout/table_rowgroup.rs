@@ -151,12 +151,13 @@ impl Flow for TableRowGroupFlow {
         let (inline_start_content_edge, inline_end_content_edge) = (Au(0), Au(0));
         let content_inline_size = containing_block_inline_size;
 
-        let inline_size_computer = InternalTable;
         let border_collapse = self.block_flow.fragment.style.get_inheritedtable().border_collapse;
+        let inline_size_computer = InternalTable {
+            border_collapse: border_collapse,
+        };
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
                                                       layout_context,
-                                                      containing_block_inline_size,
-                                                      border_collapse);
+                                                      containing_block_inline_size);
 
         let column_computed_inline_sizes = &self.column_computed_inline_sizes;
         let border_spacing = self.spacing;
