@@ -1227,19 +1227,6 @@ impl BlockFlow {
         let mut inline_end_floats_impact_child =
             self.base.flags.contains(IMPACTED_BY_RIGHT_FLOATS);
 
-        let absolute_static_i_offset = if self.is_positioned() {
-            // This flow is the containing block. The static inline offset will be the inline-start
-            // padding edge.
-            self.fragment.border_padding.inline_start
-                - self.fragment.style().logical_border_width().inline_start
-        } else {
-            // For kids, the inline-start margin edge will be at our inline-start content edge. The
-            // current static offset is at our inline-start margin edge. So move in to the
-            // inline-start content edge.
-            self.base.absolute_static_i_offset + inline_start_content_edge
-        };
-
-        let fixed_static_i_offset = self.base.fixed_static_i_offset + inline_start_content_edge;
         let flags = self.base.flags.clone();
 
         // Remember the inline-sizes of the last left and right floats, if there were any. These
@@ -1291,8 +1278,6 @@ impl BlockFlow {
             {
                 let kid_base = flow::mut_base(kid);
                 kid_base.block_container_explicit_block_size = explicit_content_size;
-                kid_base.absolute_static_i_offset = absolute_static_i_offset;
-                kid_base.fixed_static_i_offset = fixed_static_i_offset;
             }
 
             // Determine float impaction, and update the inline size speculations if necessary.

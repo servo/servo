@@ -790,20 +790,11 @@ pub struct BaseFlow {
     /// depend on content heights).  Used for computing percentage values for `height`.
     pub block_container_explicit_block_size: Option<Au>,
 
-    /// Offset wrt the nearest positioned ancestor - aka the Containing Block
-    /// for any absolutely positioned elements.
-    pub absolute_static_i_offset: Au,
-
-    /// Offset wrt the Initial Containing Block.
-    pub fixed_static_i_offset: Au,
-
     /// Reference to the Containing Block, if this flow is absolutely positioned.
     pub absolute_cb: ContainingBlockLink,
 
     /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
     /// confused with absolutely-positioned flows).
-    ///
-    /// FIXME(pcwalton): Merge with `absolute_static_i_offset` and `fixed_static_i_offset` above?
     pub absolute_position_info: AbsolutePositionInfo,
 
     /// The clipping region for this flow and its descendants, in layer coordinates.
@@ -968,8 +959,6 @@ impl BaseFlow {
             collapsible_margins: CollapsibleMargins::new(),
             stacking_relative_position: Point2D::zero(),
             abs_descendants: Descendants::new(),
-            absolute_static_i_offset: Au(0),
-            fixed_static_i_offset: Au(0),
             block_container_inline_size: Au(0),
             block_container_writing_mode: writing_mode,
             block_container_explicit_block_size: None,
