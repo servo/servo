@@ -9,27 +9,7 @@
   <script>
   test(function() {
     var a = document.getElementsByTagName('p')[0].childNodes[0];
-    assert_equals(a.data, "This is the character data");
-    // append test utf8
-    a.appendData(", append more 資料，測試資料");
-    assert_equals(a.data, "This is the character data, append more 資料，測試資料");
-
-    // length test utf8
-    assert_equals(a.length, 47);
-
-    // insert test non-utf8
-    a.insertData(26, " test");
-    assert_equals(a.data, "This is the character data test, append more 資料，測試資料");
-    // insert test utf8
-    a.insertData(48, "更多");
-    assert_equals(a.data, "This is the character data test, append more 資料，更多測試資料");
-
-    // delete test non-utf8
-    a.deleteData(40, 5);
-    assert_equals(a.data, "This is the character data test, append 資料，更多測試資料");
-    // delete test utf8
-    a.deleteData(45, 2);
-    assert_equals(a.data, "This is the character data test, append 資料，更多資料");
+    a.data = "This is the character data test, append 資料，更多資料";
 
     // replace test non-utf8
     a.replaceData(33, 6, "other");

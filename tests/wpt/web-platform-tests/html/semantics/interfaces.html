@@ -9,22 +9,25 @@
 <script src=interfaces.js></script>
 <div id="log"></div>
 <script>
-test(function() {
-  elements.forEach(function(a) {
-    test(function() {
-      var e = document.createElement(a[0]), i = "HTML" + a[1] + "Element";
-      assert_class_string(e, i,
-                          "Element " + a[0] + " should have " + i +
-                          " as its primary interface.");
-      assert_true(e instanceof window[i],
-                  "Element " + a[0] + " should implement " + i + ".");
-      assert_true(e instanceof HTMLElement,
-                  "Element " + a[0] + " should implement HTMLElement.");
-      assert_true(e instanceof Element,
-                  "Element " + a[0] + " should implement Element.");
-      assert_true(e instanceof Node,
-                  "Element " + a[0] + " should implement Node.");
-    }, "Interfaces for " + a[0])
-  })
+function do_test(local_name, iface) {
+  test(function() {
+    var e = document.createElement(local_name), i = "HTML" + iface + "Element";
+    assert_class_string(e, i,
+                        "Element " + local_name + " should have " + i +
+                        " as its primary interface.");
+    assert_true(e instanceof window[i],
+                "Element " + local_name + " should implement " + i + ".");
+    assert_true(e instanceof HTMLElement,
+                "Element " + local_name + " should implement HTMLElement.");
+    assert_true(e instanceof Element,
+                "Element " + local_name + " should implement Element.");
+    assert_true(e instanceof Node,
+                "Element " + local_name + " should implement Node.");
+  }, "Interfaces for " + local_name);
+}
+
+elements.forEach(function(a) {
+  do_test(a[0], a[1]);
+  do_test(a[0].toUpperCase(), a[1]);
 })
 </script>
