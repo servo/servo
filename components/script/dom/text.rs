@@ -12,7 +12,7 @@ use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, OptionalRootable, RootedReference, Temporary};
-use dom::characterdata::{CharacterData, CharacterDataHelpers};
+use dom::characterdata::{CharacterData, CharacterDataHelpers, CharacterDataTypeId};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
@@ -26,14 +26,14 @@ pub struct Text {
 
 impl TextDerived for EventTarget {
     fn is_text(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Text)
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::CharacterData(CharacterDataTypeId::Text))
     }
 }
 
 impl Text {
     fn new_inherited(text: DOMString, document: JSRef<Document>) -> Text {
         Text {
-            characterdata: CharacterData::new_inherited(NodeTypeId::Text, text, document)
+            characterdata: CharacterData::new_inherited(CharacterDataTypeId::Text, text, document)
         }
     }
 
