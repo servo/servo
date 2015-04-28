@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLDialogElementBinding;
+use dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLDialogElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
@@ -10,7 +11,9 @@ use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
+
 use util::str::DOMString;
+use string_cache::Atom;
 
 #[dom_struct]
 pub struct HTMLDialogElement {
@@ -26,7 +29,7 @@ impl HTMLDialogElementDerived for EventTarget {
 impl HTMLDialogElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLDialogElement {
         HTMLDialogElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLDialogElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLDialogElement, localName, prefix, document),
         }
     }
 
@@ -37,3 +40,16 @@ impl HTMLDialogElement {
     }
 }
 
+impl<'a> HTMLDialogElementMethods for JSRef<'a, HTMLDialogElement> {
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-dialog-open
+    make_bool_getter!(Open);
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-dialog-open
+    make_bool_setter!(SetOpen, "open");
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-dialog-returnvalue
+    make_getter!(ReturnValue);
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-dialog-returnvalue
+    make_setter!(SetReturnValue, "returnvalue");
+}
