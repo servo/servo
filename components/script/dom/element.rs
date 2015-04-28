@@ -62,7 +62,9 @@ use style;
 use style::legacy::{UnsignedIntegerAttribute, IntegerAttribute, LengthAttribute, from_declaration};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
 use style::properties::DeclaredValue::SpecifiedValue;
-use style::values::specified::CSSColor;
+use style::properties::longhands::border_spacing;
+use style::values::specified::{self, CSSColor};
+use util::geometry::Au;
 use util::namespace;
 use util::smallvec::VecLike;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
@@ -260,6 +262,24 @@ impl RawLayoutElementHelpers for Element {
                 PropertyDeclaration::BackgroundColor(SpecifiedValue(
                     CSSColor { parsed: Color::RGBA(color), authored: None }))));
         }
+
+
+        let cellspacing = if self.is_htmltableelement() {
+            let this: &HTMLTableElement = mem::transmute(self);
+            this.get_cellspacing()
+        } else {
+            None
+        };
+
+        if let Some(cellspacing) = cellspacing {
+            let width_value = specified::Length::Absolute(Au::from_px(cellspacing as i32));
+            hints.push(from_declaration(
+                PropertyDeclaration::BorderSpacing(SpecifiedValue(
+                    border_spacing::SpecifiedValue {
+                        horizontal: width_value,
+                        vertical: width_value,
+                    }))));
+        }
     }
 
     #[inline]
@@ -342,16 +362,6 @@ impl RawLayoutElementHelpers for Element {
                 } else {
                     // Don't panic since `:-servo-nonzero-border` can cause this to be called on
                     // arbitrary elements.
-                    None
-                }
-            }
-            UnsignedIntegerAttribute::CellSpacing => {
-                if self.is_htmltableelement() {
-                    let this: &HTMLTableElement = mem::transmute(self);
-                    this.get_cellspacing()
-                } else {
-                    // Don't panic since `display` can cause this to be called on arbitrary
-                    // elements.
                     None
                 }
             }

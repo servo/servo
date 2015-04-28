@@ -13,7 +13,7 @@ use node::TElementAttributes;
 use values::{CSSFloat, specified};
 use properties::DeclaredValue::SpecifiedValue;
 use properties::PropertyDeclaration;
-use properties::longhands::{self, border_spacing};
+use properties::longhands;
 use selector_matching::Stylist;
 
 use util::geometry::Au;
@@ -41,8 +41,6 @@ pub enum IntegerAttribute {
 pub enum UnsignedIntegerAttribute {
     /// `<td border>`
     Border,
-    /// `<table cellspacing>`
-    CellSpacing,
     /// `<td colspan>`
     ColSpan,
 }
@@ -123,21 +121,6 @@ impl PresentationalHintSynthesis for Stylist {
                     element,
                     matching_rules_list,
                     shareable);
-                match element.get_unsigned_integer_attribute(
-                        UnsignedIntegerAttribute::CellSpacing) {
-                    None => {}
-                    Some(length) => {
-                        let width_value = specified::Length::Absolute(Au::from_px(length as i32));
-                        matching_rules_list.push(from_declaration(
-                                PropertyDeclaration::BorderSpacing(
-                                    SpecifiedValue(
-                                        border_spacing::SpecifiedValue {
-                                            horizontal: width_value,
-                                            vertical: width_value,
-                                        }))));
-                        *shareable = false
-                    }
-                }
             }
             name if *name == atom!("input") => {
                 // FIXME(pcwalton): More use of atoms, please!
