@@ -138,14 +138,6 @@ impl DedicatedWorkerGlobalScope {
             own_sender, receiver);
         DedicatedWorkerGlobalScopeBinding::Wrap(cx.ptr, scope)
     }
-
-    fn get_closing(&self) -> bool {
-        WorkerGlobalScopeCast::from_actual(self).get_closing()
-    }
-
-    fn set_closing(&self, closing: bool) {
-        WorkerGlobalScopeCast::from_actual(self).set_closing(closing)
-    }
 }
 
 impl DedicatedWorkerGlobalScope {
@@ -196,7 +188,7 @@ impl DedicatedWorkerGlobalScope {
                         let _ar = AutoWorkerReset::new(global.r(), linked_worker);
                         global.r().handle_event(msg);
 
-                        if global.r().get_closing() {
+                        if WorkerGlobalScopeCast::from_ref(global.r()).get_closing() {
                             break
                         }
                     }
@@ -268,7 +260,7 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
                 scope.handle_fire_timer(timer_id);
             },
             ScriptMsg::Terminate => {
-                self.set_closing(true);
+                WorkerGlobalScopeCast::from_ref(self).set_closing(true);
             },
             _ => panic!("Unexpected message"),
         }
@@ -288,16 +280,11 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
-        match self.get_closing() {
-            false => {
-                let data = try!(StructuredCloneData::write(cx, message));
-                let worker = self.worker.borrow().as_ref().unwrap().clone();
-                self.parent_sender.send(ScriptMsg::RunnableMsg(
-                    box WorkerMessageHandler::new(worker, data))).unwrap();
-                Ok(())
-            },
-            true => Ok(())
-        }
+        let data = try!(StructuredCloneData::write(cx, message));
+        let worker = self.worker.borrow().as_ref().unwrap().clone();
+        self.parent_sender.send(ScriptMsg::RunnableMsg(
+            box WorkerMessageHandler::new(worker, data))).unwrap();
+        Ok(())
     }
 
     event_handler!(message, GetOnmessage, SetOnmessage);

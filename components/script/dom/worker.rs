@@ -20,7 +20,7 @@ use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use script_task::{ScriptChan, ScriptMsg, Runnable};
+use script_task::{ScriptTask, ScriptChan, ScriptMsg, Runnable};
 
 use devtools_traits::{DevtoolsControlMsg, DevtoolsPageInfo};
 
@@ -28,6 +28,7 @@ use util::str::DOMString;
 
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, UndefinedValue};
+use js::rust::Runtime;
 use url::UrlParser;
 
 use std::borrow::ToOwned;
