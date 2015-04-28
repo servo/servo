@@ -13,7 +13,7 @@ use util::str::DOMString;
 use std::borrow::ToOwned;
 
 #[repr(u16)]
-#[derive(Copy, Debug)]
+#[derive(Copy, Clone, Debug)]
 #[jstraceable]
 pub enum DOMErrorName {
     IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR,

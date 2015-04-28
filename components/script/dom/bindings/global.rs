@@ -25,7 +25,7 @@ use js::jsapi::{JS_GetClass};
 use url::Url;
 
 /// A freely-copyable reference to a rooted global object.
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum GlobalRef<'a> {
     /// A reference to a `Window` object.
     Window(JSRef<'a, window::Window>),

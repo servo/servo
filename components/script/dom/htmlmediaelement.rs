@@ -38,7 +38,7 @@ impl HTMLMediaElement {
     }
 }
 
-#[derive(Copy, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 #[jstraceable]
 pub enum HTMLMediaElementTypeId {
     HTMLAudioElement,

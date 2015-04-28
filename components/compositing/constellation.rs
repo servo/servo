@@ -170,7 +170,7 @@ pub struct SendableFrameTree {
     pub children: Vec<SendableFrameTree>,
 }
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 enum ExitPipelineMode {
     Normal,
     Force,

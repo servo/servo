@@ -133,13 +133,13 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     }
 }
 
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum SubmittedFrom {
     FromFormSubmitMethod,
     NotFromFormSubmitMethod
 }
 
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum ResetFrom {
     FromFormResetMethod,
     NotFromFormResetMethod
@@ -407,21 +407,21 @@ pub struct FormDatum {
     pub value: DOMString
 }
 
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum FormEncType {
     TextPlainEncoded,
     UrlEncoded,
     FormDataEncoded
 }
 
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum FormMethod {
     FormGet,
     FormPost,
     FormDialog
 }
 
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum FormSubmitter<'a> {
     FormElement(JSRef<'a, HTMLFormElement>),
     InputElement(JSRef<'a, HTMLInputElement>),

@@ -192,7 +192,7 @@ impl Metadata {
 }
 
 /// The creator of a given cookie
-#[derive(PartialEq, Copy)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum CookieSource {
     /// An HTTP API
     HTTP,

@@ -16,7 +16,7 @@ pub trait ImageResponder : Send {
 }
 
 /// The current state of an image in the cache.
-#[derive(PartialEq, Copy)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum ImageState {
     Pending,
     LoadError,

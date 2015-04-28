@@ -21,14 +21,14 @@ use util::geometry::Au;
 use util::str::LengthOrPercentageOrAuto;
 
 /// Legacy presentational attributes that take a length as defined in HTML5 § 2.4.4.4.
-#[derive(Copy, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum LengthAttribute {
     /// `<td width>`
     Width,
 }
 
 /// Legacy presentational attributes that take an integer as defined in HTML5 § 2.4.4.2.
-#[derive(Copy, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum IntegerAttribute {
     /// `<input size>`
     Size,
@@ -37,7 +37,7 @@ pub enum IntegerAttribute {
 }
 
 /// Legacy presentational attributes that take a nonnegative integer as defined in HTML5 § 2.4.4.2.
-#[derive(Copy, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum UnsignedIntegerAttribute {
     /// `<td border>`
     Border,

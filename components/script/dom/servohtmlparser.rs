@@ -33,7 +33,7 @@ pub struct Sink {
 
 /// FragmentContext is used only to pass this group of related values
 /// into functions.
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct FragmentContext<'a> {
     pub context_elem: JSRef<'a, Node>,
     pub form_elem: Option<JSRef<'a, Node>>,

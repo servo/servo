@@ -27,7 +27,7 @@ impl ConstellationChan {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum IFrameSandboxState {
     IFrameSandboxed,
     IFrameUnsandboxed
@@ -40,7 +40,7 @@ pub struct Failure {
     pub parent_info: Option<(PipelineId, SubpageId)>,
 }
 
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
@@ -196,7 +196,7 @@ bitflags! {
 }
 
 /// Specifies the type of focus event that is sent to a pipeline
-#[derive(Copy, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum FocusType {
     Element,    // The first focus message - focus the element itself
     Parent,     // Focusing a parent element (an iframe)
@@ -342,7 +342,7 @@ pub struct SubpageId(pub u32);
 
 // The type of pipeline exit. During complete shutdowns, pipelines do not have to
 // release resources automatically released on process termination.
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum PipelineExitType {
     PipelineOnly,
     Complete,

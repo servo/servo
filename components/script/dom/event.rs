@@ -19,7 +19,7 @@ use std::default::Default;
 use time;
 
 #[jstraceable]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 #[repr(u16)]
 pub enum EventPhase {
     None      = EventConstants::NONE,

@@ -57,7 +57,7 @@ pub struct PaintContext<'a> {
     pub transient_clip: Option<ClippingRegion>,
 }
 
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 enum Direction {
     Top,
     Left,
@@ -65,7 +65,7 @@ enum Direction {
     Bottom
 }
 
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 enum DashSize {
     DottedBorder = 1,
     DashedBorder = 3

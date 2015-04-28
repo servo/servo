@@ -29,7 +29,7 @@ use std::time::duration::Duration;
 
 #[derive(PartialEq, Eq)]
 #[jstraceable]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct TimerId(i32);
 
 #[jstraceable]
