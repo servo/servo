@@ -11,7 +11,7 @@ use rustc_serialize::json::{Json, ToJson};
 use std::sync::mpsc::Sender;
 
 pub enum WebDriverScriptCommand {
-    EvaluateJS(String, Sender<Result<EvaluateJSReply, ()>>),
+    ExecuteScript(String, Sender<Result<EvaluateJSReply, ()>>),
     FindElementCSS(String, Sender<Result<Option<String>, ()>>),
     FindElementsCSS(String, Sender<Result<Vec<String>, ()>>),
     GetActiveElement(Sender<Option<String>>),
@@ -40,3 +40,5 @@ impl ToJson for EvaluateJSReply {
         }
     }
 }
+
+pub struct LoadComplete;

@@ -19,7 +19,7 @@ extern crate rustc_serialize;
 extern crate uuid;
 extern crate webdriver_traits;
 
-use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, NavigationDirection};
+use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, NavigationDirection, WebDriverCommandMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use std::sync::mpsc::channel;
 use webdriver_traits::WebDriverScriptCommand;
@@ -111,10 +111,16 @@ impl Handler {
 
         let pipeline_id = self.get_root_pipeline();
 
+        let (sender, reciever) = channel();
+
         let load_data = LoadData::new(url);
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::LoadUrl(pipeline_id, load_data)).unwrap();
-        //TODO: Now we ought to wait until we get a load event
+        let cmd_msg = WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, sender);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+
+        //Wait to get a load event
+        reciever.recv().unwrap();
+
         Ok(WebDriverResponse::Void)
     }
 
@@ -135,8 +141,9 @@ impl Handler {
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id,
-                                                           WebDriverScriptCommand::GetTitle(sender))).unwrap();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id,
+                                                         WebDriverScriptCommand::GetTitle(sender));
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         let value = reciever.recv().unwrap();
         Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json())))
     }
@@ -166,7 +173,8 @@ impl Handler {
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::FindElementCSS(parameters.value.clone(), sender);
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match reciever.recv().unwrap() {
             Ok(value) => {
                 Ok(WebDriverResponse::Generic(ValueResponse::new(value.map(|x| WebElement::new(x).to_json()).to_json())))
@@ -187,7 +195,8 @@ impl Handler {
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender);
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match reciever.recv().unwrap() {
             Ok(value) => {
                 let resp_value: Vec<Json> = value.into_iter().map(
@@ -205,7 +214,8 @@ impl Handler {
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::GetElementText(element.id.clone(), sender);
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match reciever.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
             Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
@@ -219,7 +229,8 @@ impl Handler {
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::GetActiveElement(sender);
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         let value = reciever.recv().unwrap().map(|x| WebElement::new(x).to_json());
         Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json())))
     }
@@ -230,7 +241,8 @@ impl Handler {
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd = WebDriverScriptCommand::GetElementTagName(element.id.clone(), sender);
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         match reciever.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
             Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
@@ -253,8 +265,9 @@ impl Handler {
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id,
-                                                           WebDriverScriptCommand::EvaluateJS(script, sender))).unwrap();
+        let cmd = WebDriverScriptCommand::ExecuteScript(script, sender);
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
         match reciever.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
@@ -273,7 +286,8 @@ impl Handler {
         for _ in 0..iterations {
             let (sender, reciever) = channel();
             let ConstellationChan(ref const_chan) = self.constellation_chan;
-            const_chan.send(ConstellationMsg::CompositePng(sender)).unwrap();
+            let cmd_msg = WebDriverCommandMsg::TakeScreenshot(sender);
+            const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
             if let Some(x) = reciever.recv().unwrap() {
                 img = Some(x);

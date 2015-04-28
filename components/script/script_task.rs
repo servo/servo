@@ -726,7 +726,7 @@ impl ScriptTask {
                 self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
             ConstellationControlMsg::FocusIFrame(containing_pipeline_id, subpage_id) =>
                 self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
-            ConstellationControlMsg::WebDriverCommand(pipeline_id, msg) =>
+            ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) =>
                 self.handle_webdriver_msg(pipeline_id, msg),
             ConstellationControlMsg::TickAllAnimations(pipeline_id) =>
                 self.handle_tick_all_animations(pipeline_id),
@@ -801,8 +801,8 @@ impl ScriptTask {
     fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {
         let page = self.root_page();
         match msg {
-            WebDriverScriptCommand::EvaluateJS(script, reply) =>
-                webdriver_handlers::handle_evaluate_js(&page, pipeline_id, script, reply),
+            WebDriverScriptCommand::ExecuteScript(script, reply) =>
+                webdriver_handlers::handle_execute_script(&page, pipeline_id, script, reply),
             WebDriverScriptCommand::FindElementCSS(selector, reply) =>
                 webdriver_handlers::handle_find_element_css(&page, pipeline_id, selector, reply),
             WebDriverScriptCommand::FindElementsCSS(selector, reply) =>
