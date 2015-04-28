@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use selectors::smallvec::VecLike;
+
 use std::cmp::{PartialOrd, PartialEq, Ordering};
 use std::iter::range_step;
 
@@ -70,5 +72,39 @@ pub fn byte_swap(data: &mut [u8]) {
         let r = data[i + 2];
         data[i + 2] = data[i + 0];
         data[i + 0] = r;
+    }
+}
+
+/// A `VecLike` that only tracks whether or not something was ever pushed to it.
+pub struct ForgetfulSink {
+    empty: bool,
+}
+
+impl ForgetfulSink {
+    pub fn new() -> ForgetfulSink {
+        ForgetfulSink {
+            empty: true,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.empty
+    }
+}
+
+impl<T> VecLike<T> for ForgetfulSink {
+    #[inline]
+    fn vec_len(&self) -> usize {
+        unreachable!()
+    }
+
+    #[inline]
+    fn vec_push(&mut self, _value: T) {
+        self.empty = false;
+    }
+
+    #[inline]
+    fn vec_slice_mut<'a>(&'a mut self, _start: usize, _end: usize) -> &'a mut [T] {
+        unreachable!()
     }
 }

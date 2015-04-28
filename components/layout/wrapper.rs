@@ -39,7 +39,6 @@ use incremental::RestyleDamage;
 use data::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
 use opaque_node::OpaqueNodeMethods;
 
-use cssparser::RGBA;
 use gfx::display_list::OpaqueNode;
 use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLCanvasElementCast};
@@ -70,11 +69,13 @@ use std::sync::mpsc::Sender;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
+use selectors::matching::DeclarationBlock;
 use selectors::parser::{NamespaceConstraint, AttrSelector};
-use style::legacy::{IntegerAttribute, LengthAttribute, SimpleColorAttribute};
+use selectors::smallvec::VecLike;
+use style::legacy::{IntegerAttribute, LengthAttribute};
 use style::legacy::{UnsignedIntegerAttribute};
 use style::node::{TElement, TElementAttributes, TNode};
-use style::properties::PropertyDeclarationBlock;
+use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use url::Url;
 
 /// Allows some convenience methods on generic layout nodes.
@@ -659,6 +660,14 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
 }
 
 impl<'le> TElementAttributes for LayoutElement<'le> {
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
+        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
+    {
+        unsafe {
+            self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
+        }
+    }
+
     fn get_length_attribute(self, length_attribute: LengthAttribute) -> LengthOrPercentageOrAuto {
         unsafe {
             self.element.get_length_attribute_for_layout(length_attribute)
@@ -674,12 +683,6 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
     fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute) -> Option<u32> {
         unsafe {
             self.element.get_unsigned_integer_attribute_for_layout(attribute)
-        }
-    }
-
-    fn get_simple_color_attribute(self, attribute: SimpleColorAttribute) -> Option<RGBA> {
-        unsafe {
-            self.element.get_simple_color_attribute_for_layout(attribute)
         }
     }
 }
