@@ -16,7 +16,7 @@ pub struct MediaQueryList {
     pub media_queries: Vec<MediaQuery>
 }
 
-#[derive(PartialEq, Eq, Copy, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum Range<T> {
     Min(T),
     Max(T),
@@ -59,14 +59,14 @@ impl<T: Ord> Range<T> {
 }
 
 /// http://dev.w3.org/csswg/mediaqueries-3/#media1
-#[derive(PartialEq, Copy, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum Expression {
     /// http://dev.w3.org/csswg/mediaqueries-3/#width
     Width(Range<specified::Length>),
 }
 
 /// http://dev.w3.org/csswg/mediaqueries-3/#media0
-#[derive(PartialEq, Eq, Copy, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum Qualifier {
     Only,
     Not,
@@ -91,13 +91,13 @@ impl MediaQuery {
 }
 
 /// http://dev.w3.org/csswg/mediaqueries-3/#media0
-#[derive(PartialEq, Eq, Copy, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum MediaQueryType {
     All,  // Always true
     MediaType(MediaType),
 }
 
-#[derive(PartialEq, Eq, Copy, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum MediaType {
     Screen,
     Print,

@@ -4685,7 +4685,7 @@ fn deduplicate_property_declarations(declarations: Vec<PropertyDeclaration>)
 }
 
 
-#[derive(Copy, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum CSSWideKeyword {
     InitialKeyword,
     InheritKeyword,
@@ -4732,7 +4732,7 @@ pub enum PropertyDeclaration {
 }
 
 
-#[derive(Eq, PartialEq, Copy)]
+#[derive(Eq, PartialEq, Copy, Clone)]
 pub enum PropertyDeclarationParseResult {
     UnknownProperty,
     ExperimentalProperty,

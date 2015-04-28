@@ -1584,7 +1584,7 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
 }
 
 // A helper data structure for gradients.
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 struct StopRun {
     start_offset: f32,
     end_offset: f32,

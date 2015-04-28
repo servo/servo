@@ -17,14 +17,14 @@ use std::default::Default;
 use std::num::SignedInt;
 use std::sync::mpsc::channel;
 
-#[derive(Copy, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Selection {
     Selected,
     NotSelected
 }
 
 #[jstraceable]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct TextPoint {
     /// 0-based line number
     pub line: usize,

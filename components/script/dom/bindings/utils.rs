@@ -129,7 +129,7 @@ pub struct NativePropertyHooks {
 }
 
 /// The struct that holds inheritance information for DOM object reflectors.
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing
     /// derivedness.
@@ -147,6 +147,9 @@ pub struct DOMJSClass {
     pub base: js::Class,
     /// Associated data for DOM object reflectors.
     pub dom_class: DOMClass
+}
+impl Clone for DOMJSClass {
+    fn clone(&self) -> DOMJSClass { *self }
 }
 unsafe impl Sync for DOMJSClass {}
 

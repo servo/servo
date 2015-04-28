@@ -242,11 +242,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
         let value = attr.value();
         let recreate = match attr.local_name() {
             &atom!("width") => {
-                self.width.set(parse_unsigned_integer(value.as_slice().chars()).unwrap_or(DEFAULT_WIDTH));
+                self.width.set(parse_unsigned_integer(value.chars()).unwrap_or(DEFAULT_WIDTH));
                 true
             }
             &atom!("height") => {
-                self.height.set(parse_unsigned_integer(value.as_slice().chars()).unwrap_or(DEFAULT_HEIGHT));
+                self.height.set(parse_unsigned_integer(value.chars()).unwrap_or(DEFAULT_HEIGHT));
                 true
             }
             _ => false,

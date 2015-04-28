@@ -66,7 +66,7 @@ impl Encodable for TableRowFlow {
 }
 
 /// Information about the column inline size and span for each cell.
-#[derive(RustcEncodable, Copy)]
+#[derive(RustcEncodable, Copy, Clone)]
 pub struct CellIntrinsicInlineSize {
     /// Inline sizes that this cell contributes to the column.
     pub column_size: ColumnIntrinsicInlineSize,

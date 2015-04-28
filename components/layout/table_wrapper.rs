@@ -37,7 +37,7 @@ use style::properties::ComputedValues;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 
-#[derive(Copy, RustcEncodable, Debug)]
+#[derive(Copy, Clone, RustcEncodable, Debug)]
 pub enum TableLayout {
     Fixed,
     Auto
@@ -565,7 +565,7 @@ impl<'a> Add for &'a AutoLayoutCandidateGuess {
 
 /// The `CSSFloat` member specifies the weight of the smaller of the two guesses, on a scale from
 /// 0.0 to 1.0.
-#[derive(Copy, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 enum SelectedAutoLayoutCandidateGuess {
     UseMinimumGuess,
     InterpolateBetweenMinimumGuessAndMinimumPercentageGuess(CSSFloat),

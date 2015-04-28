@@ -29,7 +29,7 @@ use std::cell::Cell;
 use string_cache::Atom;
 
 #[jstraceable]
-#[derive(PartialEq, Copy)]
+#[derive(PartialEq, Copy, Clone)]
 #[allow(dead_code)]
 enum ButtonType {
     ButtonSubmit,

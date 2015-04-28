@@ -29,7 +29,7 @@ impl FloatKind {
 }
 
 /// The kind of clearance: left, right, or both.
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum ClearType {
     Left,
     Right,

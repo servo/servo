@@ -34,7 +34,7 @@ use std::rc::Rc;
 use std::cell::Cell;
 use url::{Url, UrlParser};
 
-#[derive(Copy, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 #[jstraceable]
 pub enum WorkerGlobalScopeTypeId {
     DedicatedGlobalScope,

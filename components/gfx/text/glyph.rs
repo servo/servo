@@ -87,7 +87,7 @@ impl GlyphEntry {
 pub type GlyphId = u32;
 
 // TODO: unify with bit flags?
-#[derive(PartialEq, Copy)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum BreakType {
     None,
     Normal,
@@ -415,7 +415,7 @@ impl<'a> DetailedGlyphStore {
 
 // This struct is used by GlyphStore clients to provide new glyph data.
 // It should be allocated on the stack and passed by reference to GlyphStore.
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct GlyphData {
     id: GlyphId,
     advance: Au,
@@ -449,7 +449,7 @@ impl GlyphData {
 // through glyphs (either for a particular TextRun offset, or all glyphs).
 // Rather than eagerly assembling and copying glyph data, it only retrieves
 // values as they are needed from the GlyphStore, using provided offsets.
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum GlyphInfo<'a> {
     Simple(&'a GlyphStore, CharIndex),
     Detail(&'a GlyphStore, CharIndex, u16),

@@ -693,7 +693,7 @@ pub type DescendantOffsetIter<'a> = Zip<DescendantIter<'a>, IterMut<'a, Au>>;
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
 /// confused with absolutely-positioned flows).
-#[derive(RustcEncodable, Copy)]
+#[derive(RustcEncodable, Copy, Clone)]
 pub struct AbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
     pub relative_containing_block_size: LogicalSize<Au>,

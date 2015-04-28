@@ -312,7 +312,7 @@ struct TopLevelRuleParser<'a> {
     state: Cell<State>,
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd, Copy)]
+#[derive(Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
 enum State {
     Start = 1,
     Imports = 2,

@@ -65,7 +65,7 @@ static FONT_SUPERSCRIPT_OFFSET_RATIO: f64 = 0.34;
 /// with a float or a horizontal wall of the containing block. The block-start
 /// inline-start corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
-#[derive(RustcEncodable, Debug, Copy)]
+#[derive(RustcEncodable, Debug, Copy, Clone)]
 pub struct Line {
     /// A range of line indices that describe line breaks.
     ///

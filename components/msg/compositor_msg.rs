@@ -33,7 +33,7 @@ pub enum ReadyState {
 }
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
-#[derive(PartialEq, Eq, Debug, Copy)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub struct Epoch(pub u32);
 
 impl Epoch {
@@ -71,7 +71,7 @@ pub enum ScrollPolicy {
 
 /// All layer-specific information that the painting task sends to the compositor other than the
 /// buffer contents of the layer itself.
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct LayerMetadata {
     /// An opaque ID. This is usually the address of the flow and index of the box within it.
     pub id: LayerId,

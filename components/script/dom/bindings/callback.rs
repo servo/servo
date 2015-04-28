@@ -16,7 +16,7 @@ use std::ffi::CString;
 use std::ptr;
 
 /// The exception handling used for a call.
-#[derive(Copy, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum ExceptionHandling {
     /// Report any exception and don't throw it to the caller code.
     Report,
