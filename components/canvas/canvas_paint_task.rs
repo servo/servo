@@ -149,7 +149,7 @@ impl<'a> CanvasPaintTask<'a> {
         }
         let image_rect = Rect(Point2D(0f64, 0f64), image_size);
         // rgba -> bgra
-        byte_swap(imagedata.as_mut_slice());
+        byte_swap(&mut imagedata);
         self.write_pixels(&imagedata, image_size, image_rect, dest_rect, smoothing_enabled);
     }
 

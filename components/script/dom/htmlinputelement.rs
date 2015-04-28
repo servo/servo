@@ -854,7 +854,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                         .filter_map(HTMLInputElementCast::to_temporary)
                         .filter(|input| {
                             let input = input.root();
-                            input.r().form_owner() == owner && match input.r().Type().as_slice() {
+                            input.r().form_owner() == owner && match &*input.r().Type() {
                                 "text" | "search" | "url" | "tel" |
                                 "email" | "password" | "datetime" |
                                 "date" | "month" | "week" | "time" |
