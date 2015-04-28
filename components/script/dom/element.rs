@@ -280,6 +280,33 @@ impl RawLayoutElementHelpers for Element {
                         vertical: width_value,
                     }))));
         }
+
+
+        let size = if self.is_htmlinputelement() {
+            // FIXME(pcwalton): More use of atoms, please!
+            // FIXME(Ms2ger): this is nonsense! Invalid values also end up as
+            //                a text field
+            match self.get_attr_val_for_layout(&ns!(""), &atom!("type")) {
+                Some("text") | Some("password") => {
+                    let this: &HTMLInputElement = mem::transmute(self);
+                    match this.get_size_for_layout() {
+                        0 => None,
+                        s => Some(s as i32),
+                    }
+                }
+                _ => None
+            }
+        } else {
+            None
+        };
+
+        if let Some(size) = size {
+            let value = specified::Length::ServoCharacterWidth(
+                specified::CharacterWidth(size));
+            hints.push(from_declaration(
+                PropertyDeclaration::Width(SpecifiedValue(
+                    specified::LengthOrPercentageOrAuto::Length(value)))));
+        }
     }
 
     #[inline]
@@ -304,13 +331,6 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
                                                -> Option<i32> {
         match integer_attribute {
-            IntegerAttribute::Size => {
-                if !self.is_htmlinputelement() {
-                    panic!("I'm not a form input!")
-                }
-                let this: &HTMLInputElement = mem::transmute(self);
-                Some(this.get_size_for_layout() as i32)
-            }
             IntegerAttribute::Cols => {
                 if !self.is_htmltextareaelement() {
                     panic!("I'm not a textarea element!")

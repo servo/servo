@@ -30,8 +30,6 @@ pub enum LengthAttribute {
 /// Legacy presentational attributes that take an integer as defined in HTML5 § 2.4.4.2.
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum IntegerAttribute {
-    /// `<input size>`
-    Size,
     Cols,
     Rows,
 }
@@ -121,25 +119,6 @@ impl PresentationalHintSynthesis for Stylist {
                     element,
                     matching_rules_list,
                     shareable);
-            }
-            name if *name == atom!("input") => {
-                // FIXME(pcwalton): More use of atoms, please!
-                match element.get_attr(&ns!(""), &atom!("type")) {
-                    Some("text") | Some("password") => {
-                        match element.get_integer_attribute(IntegerAttribute::Size) {
-                            Some(value) if value != 0 => {
-                                let value = specified::Length::ServoCharacterWidth(
-                                    specified::CharacterWidth(value));
-                                matching_rules_list.push(from_declaration(
-                                        PropertyDeclaration::Width(SpecifiedValue(
-                                            specified::LengthOrPercentageOrAuto::Length(value)))));
-                                *shareable = false
-                            }
-                            Some(_) | None => {}
-                        }
-                    }
-                    _ => {}
-                };
             }
             name if *name == atom!("textarea") => {
                 match element.get_integer_attribute(IntegerAttribute::Cols) {
