@@ -760,7 +760,9 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
         let next_block = next_block.push_or_mutate(i, *this_block_border);
         match next_block_borders {
             NextBlockCollapsedBorders::FromNextRow(next_block_borders) => {
-                next_block.combine(&next_block_borders[i]);
+                if next_block_borders.len() > i {
+                    next_block.combine(&next_block_borders[i])
+                }
             }
             NextBlockCollapsedBorders::FromTable(ref next_block_borders) => {
                 next_block.combine(next_block_borders);
