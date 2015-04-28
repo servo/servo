@@ -5,16 +5,20 @@
 use dom::bindings::codegen::Bindings::NodeIteratorBinding;
 use dom::bindings::codegen::Bindings::NodeIteratorBinding::NodeIteratorMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
+use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::MutNullableJS;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::{Node};
+use std::default::Default;
 
 #[dom_struct]
 pub struct NodeIterator {
     reflector_: Reflector,
     root_node: JS<Node>,
+    reference_node: MutNullableJS<Node>,
     what_to_show: u32,
     filter: Filter
 }
@@ -26,6 +30,7 @@ impl NodeIterator {
         NodeIterator {
             reflector_: Reflector::new(),
             root_node: JS::from_rooted(root_node),
+            reference_node: Default::default(),
             what_to_show: what_to_show,
             filter: filter
         }
@@ -73,7 +78,45 @@ impl<'a> NodeIteratorMethods for JSRef<'a, NodeIterator> {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-nodeiterator-referencenode
+    fn GetReferenceNode(self) -> Option<Temporary<Node>> {
+        self.reference_node.get()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-nodeiterator-previousnode
+    fn PreviousNode(self) -> Fallible<Option<Temporary<Node>>> {
+        self.prev_node()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-nodeiterator-nextnode
+    fn NextNode(self) -> Fallible<Option<Temporary<Node>>> {
+        self.next_node()
+    }
 }
+
+/*
+trait PrivateNodeIteratorHelpers {
+    //fn accept_node(self, node: JSRef<Node>) -> Fallible<u16>;
+}
+*/
+pub trait NodeIteratorHelpers {
+    fn next_node(self) -> Fallible<Option<Temporary<Node>>>;
+    fn prev_node(self) -> Fallible<Option<Temporary<Node>>>;
+}
+
+impl<'a> NodeIteratorHelpers for JSRef<'a, NodeIterator> {
+    // https://dom.spec.whatwg.org/#dom-nodeiterator-nextnode
+    fn next_node(self) -> Fallible<Option<Temporary<Node>>> {
+        Ok(None)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-nodeiterator-previousnode
+    fn prev_node(self) -> Fallible<Option<Temporary<Node>>> {
+        Ok(None)
+    }
+
+}
+
 
 #[jstraceable]
 pub enum Filter {
