@@ -45,7 +45,7 @@ use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLCa
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast, TextCast};
 use script::dom::bindings::js::LayoutJS;
-use script::dom::characterdata::LayoutCharacterDataHelpers;
+use script::dom::characterdata::{CharacterDataTypeId, LayoutCharacterDataHelpers};
 use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlelement::HTMLElementTypeId;
@@ -1048,7 +1048,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// `empty_cells` per CSS 2.1 § 17.6.1.1.
     pub fn is_content(&self) -> bool {
         match self.type_id() {
-            Some(NodeTypeId::Element(..)) | Some(NodeTypeId::Text(..)) => true,
+            Some(NodeTypeId::Element(..)) | Some(NodeTypeId::CharacterData(CharacterDataTypeId::Text(..))) => true,
             _ => false
         }
     }

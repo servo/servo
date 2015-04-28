@@ -14,6 +14,7 @@ use incremental::{self, RestyleDamage};
 use opaque_node::OpaqueNodeMethods;
 use wrapper::{LayoutElement, LayoutNode, TLayoutNode};
 
+use script::dom::characterdata::CharacterDataTypeId;
 use script::dom::node::NodeTypeId;
 use script::layout_interface::Animation;
 use selectors::bloom::BloomFilter;
@@ -676,7 +677,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             &mut None => panic!("no layout data"),
             &mut Some(ref mut layout_data) => {
                 match self.type_id() {
-                    Some(NodeTypeId::Text) => {
+                    Some(NodeTypeId::CharacterData(CharacterDataTypeId::Text)) => {
                         // Text nodes get a copy of the parent style. This ensures
                         // that during fragment construction any non-inherited
                         // CSS properties (such as vertical-align) are correctly

@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::ProcessingInstructionBinding;
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::characterdata::CharacterData;
+use dom::characterdata::{CharacterData, CharacterDataTypeId};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::node::{Node, NodeTypeId};
@@ -21,14 +21,14 @@ pub struct ProcessingInstruction {
 
 impl ProcessingInstructionDerived for EventTarget {
     fn is_processinginstruction(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::ProcessingInstruction)
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction))
     }
 }
 
 impl ProcessingInstruction {
     fn new_inherited(target: DOMString, data: DOMString, document: JSRef<Document>) -> ProcessingInstruction {
         ProcessingInstruction {
-            characterdata: CharacterData::new_inherited(NodeTypeId::ProcessingInstruction, data, document),
+            characterdata: CharacterData::new_inherited(CharacterDataTypeId::ProcessingInstruction, data, document),
             target: target
         }
     }

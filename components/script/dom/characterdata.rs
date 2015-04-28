@@ -33,18 +33,16 @@ pub struct CharacterData {
 impl CharacterDataDerived for EventTarget {
     fn is_characterdata(&self) -> bool {
         match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Text) |
-            EventTargetTypeId::Node(NodeTypeId::Comment) |
-            EventTargetTypeId::Node(NodeTypeId::ProcessingInstruction) => true,
+            EventTargetTypeId::Node(NodeTypeId::CharacterData(_)) => true,
             _ => false
         }
     }
 }
 
 impl CharacterData {
-    pub fn new_inherited(id: NodeTypeId, data: DOMString, document: JSRef<Document>) -> CharacterData {
+    pub fn new_inherited(id: CharacterDataTypeId, data: DOMString, document: JSRef<Document>) -> CharacterData {
         CharacterData {
-            node: Node::new_inherited(id, document),
+            node: Node::new_inherited(NodeTypeId::CharacterData(id), document),
             data: DOMRefCell::new(data),
         }
     }
@@ -151,6 +149,15 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
         NodeCast::from_ref(self).following_siblings()
                                 .filter_map(ElementCast::to_temporary).next()
     }
+}
+
+/// The different types of CharacterData.
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[jstraceable]
+pub enum CharacterDataTypeId {
+    Comment,
+    Text,
+    ProcessingInstruction,
 }
 
 pub trait CharacterDataHelpers<'a> {
