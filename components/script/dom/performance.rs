@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::PerformanceBinding;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::performancetiming::{PerformanceTiming, PerformanceTimingHelpers};
@@ -45,7 +45,7 @@ impl Performance {
 
 impl<'a> PerformanceMethods for JSRef<'a, Performance> {
     fn Timing(self) -> Temporary<PerformanceTiming> {
-        Temporary::new(self.timing.clone())
+        Temporary::from_rooted(self.timing.clone())
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now

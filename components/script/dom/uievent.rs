@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, RootedReference};
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, Rootable, RootedReference};
 use dom::bindings::js::Temporary;
 
 use dom::bindings::utils::reflect_dom_object;
@@ -74,7 +74,7 @@ impl UIEvent {
 impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-UIEvent-view
     fn GetView(self) -> Option<Temporary<Window>> {
-        self.view.get().map(Temporary::new)
+        self.view.get().map(Temporary::from_rooted)
     }
 
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-UIEvent-detail

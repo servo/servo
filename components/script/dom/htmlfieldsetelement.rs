@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDerived};
-use dom::bindings::js::{JSRef, Temporary, RootedReference};
+use dom::bindings::js::{JSRef, Rootable, RootedReference, Temporary};
 use dom::document::Document;
 use dom::element::{AttributeHandlers, Element, ElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};

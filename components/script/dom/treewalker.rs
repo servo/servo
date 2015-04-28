@@ -10,7 +10,8 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, OptionalRootable, Temporary, MutHeap};
+use dom::bindings::js::{JS, JSRef, MutHeap, OptionalRootable, Rootable};
+use dom::bindings::js::Temporary;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::{Node, NodeHelpers};
@@ -63,7 +64,7 @@ impl TreeWalker {
 impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
     // https://dom.spec.whatwg.org/#dom-treewalker-root
     fn Root(self) -> Temporary<Node> {
-        Temporary::new(self.root_node)
+        Temporary::from_rooted(self.root_node)
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-whattoshow
@@ -82,7 +83,7 @@ impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
 
     // https://dom.spec.whatwg.org/#dom-treewalker-currentnode
     fn CurrentNode(self) -> Temporary<Node> {
-        Temporary::new(self.current_node.get())
+        Temporary::from_rooted(self.current_node.get())
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-currentnode

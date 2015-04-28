@@ -31,17 +31,18 @@
 //!   the self value will not be collected for the duration of the method call.
 //!
 //! Both `Temporary<T>` and `JS<T>` do not allow access to their inner value
-//! without explicitly creating a stack-based root via the `root` method. This
-//! returns a `Root<T>`, which causes the JS-owned value to be uncollectable
-//! for the duration of the `Root` object's lifetime. A `JSRef<T>` can be
-//! obtained from a `Root<T>` by calling the `r` method. These `JSRef<T>`
-//! values are not allowed to outlive their originating `Root<T>`, to ensure
-//! that all interactions with the enclosed value only occur when said value is
-//! uncollectable, and will cause static lifetime errors if misused.
+//! without explicitly creating a stack-based root via the `root` method
+//! through the `Rootable<T>` trait. This returns a `Root<T>`, which causes the
+//! JS-owned value to be uncollectable for the duration of the `Root` object's
+//! lifetime. A `JSRef<T>` can be obtained from a `Root<T>` by calling the `r`
+//! method. These `JSRef<T>` values are not allowed to outlive their
+//! originating `Root<T>`, to ensure that all interactions with the enclosed
+//! value only occur when said value is uncollectable, and will cause static
+//! lifetime errors if misused.
 //!
 //! Other miscellaneous helper traits:
 //!
-//! - `OptionalRootable` and `OptionalRootedRootable`: make rooting `Option`
+//! - `OptionalRootable` and `OptionalOptionalRootable`: make rooting `Option`
 //!   values easy via a `root` method
 //! - `ResultRootable`: make rooting successful `Result` values easy
 //! - `TemporaryPushable`: allows mutating vectors of `JS<T>` with new elements
@@ -108,9 +109,11 @@ impl<T: Reflectable> Unrooted<T> {
     pub unsafe fn unsafe_get(&self) -> *const T {
         *self.ptr
     }
+}
 
+impl<T: Reflectable> Rootable<T> for Unrooted<T> {
     /// Create a stack-bounded root for this value.
-    pub fn root(self) -> Root<T> {
+    fn root(&self) -> Root<T> {
         STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
             unsafe {
@@ -150,14 +153,6 @@ impl<T> PartialEq for Temporary<T> {
 }
 
 impl<T: Reflectable> Temporary<T> {
-    /// Create a new `Temporary` value from a JS-owned value.
-    pub fn new(inner: JS<T>) -> Temporary<T> {
-        Temporary {
-            inner: inner,
-            _js_ptr: inner.reflector().get_jsobject(),
-        }
-    }
-
     /// Create a new `Temporary` value from an unrooted value.
     #[allow(unrooted_must_root)]
     pub fn from_unrooted(unrooted: Unrooted<T>) -> Temporary<T> {
@@ -168,22 +163,20 @@ impl<T: Reflectable> Temporary<T> {
     }
 
     /// Create a new `Temporary` value from a rooted value.
-    pub fn from_rooted<'a>(root: JSRef<'a, T>) -> Temporary<T> {
-        Temporary::new(JS::from_rooted(root))
+    #[allow(unrooted_must_root)]
+    pub fn from_rooted<U: Assignable<T>>(root: U) -> Temporary<T> {
+        let inner = JS::from_rooted(root);
+        Temporary {
+            inner: inner,
+            _js_ptr: inner.reflector().get_jsobject(),
+        }
     }
+}
 
+impl<T: Reflectable> Rootable<T> for Temporary<T> {
     /// Create a stack-bounded root for this value.
-    pub fn root(&self) -> Root<T> {
-        STACK_ROOTS.with(|ref collection| {
-            let RootCollectionPtr(collection) = collection.get().unwrap();
-            unsafe {
-                Root::new(&*collection, self.inner.ptr)
-            }
-        })
-    }
-
-    unsafe fn inner(&self) -> JS<T> {
-        self.inner.clone()
+    fn root(&self) -> Root<T> {
+        self.inner.root()
     }
 }
 
@@ -264,9 +257,9 @@ impl LayoutJS<Node> {
     }
 }
 
-impl<T: Reflectable> JS<T> {
+impl<T: Reflectable> Rootable<T> for JS<T> {
     /// Root this JS-owned value to prevent its collection as garbage.
-    pub fn root(&self) -> Root<T> {
+    fn root(&self) -> Root<T> {
         STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
             unsafe {
@@ -376,7 +369,7 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
         where F: FnOnce() -> Temporary<T>
     {
         match self.get() {
-            Some(inner) => Temporary::new(inner),
+            Some(inner) => Temporary::from_rooted(inner),
             None => {
                 let inner = cb();
                 self.set(Some(JS::from_rooted(inner.clone())));
@@ -406,7 +399,7 @@ impl<T: Reflectable> JS<T> {
     /// are reachable in the GC graph, so this unrooted value becomes
     /// transitively rooted for the lifetime of its new owner.
     pub fn assign(&mut self, val: Temporary<T>) {
-        *self = unsafe { val.inner() };
+        *self = val.inner.clone();
     }
 }
 
@@ -461,13 +454,15 @@ impl<T> Assignable<T> for JS<T> {
 
 impl<'a, T: Reflectable> Assignable<T> for JSRef<'a, T> {
     unsafe fn get_js(&self) -> JS<T> {
-        self.unrooted()
+        JS {
+            ptr: self.ptr
+        }
     }
 }
 
 impl<T: Reflectable> Assignable<T> for Temporary<T> {
     unsafe fn get_js(&self) -> JS<T> {
-        self.inner()
+        self.inner.clone()
     }
 }
 
@@ -475,63 +470,26 @@ impl<T: Reflectable> Assignable<T> for Temporary<T> {
 /// Root a rootable `Option` type (used for `Option<Temporary<T>>`)
 pub trait OptionalRootable<T> {
     /// Root the inner value, if it exists.
-    fn root(self) -> Option<Root<T>>;
-}
-
-impl<T: Reflectable> OptionalRootable<T> for Option<Temporary<T>> {
-    fn root(self) -> Option<Root<T>> {
-        self.map(|inner| inner.root())
-    }
-}
-
-/// Return an unrooted type for storing in optional DOM fields
-pub trait OptionalUnrootable<T> {
-    /// Returns a `JS<T>` for the inner value, if it exists.
-    fn unrooted(&self) -> Option<JS<T>>;
-}
-
-impl<'a, T: Reflectable> OptionalUnrootable<T> for Option<JSRef<'a, T>> {
-    fn unrooted(&self) -> Option<JS<T>> {
-        self.as_ref().map(|inner| JS::from_rooted(*inner))
-    }
-}
-
-/// Root a rootable `Option` type (used for `Option<JS<T>>`)
-pub trait OptionalRootedRootable<T> {
-    /// Root the inner value, if it exists.
     fn root(&self) -> Option<Root<T>>;
 }
 
-impl<T: Reflectable> OptionalRootedRootable<T> for Option<JS<T>> {
-    fn root(&self) -> Option<Root<T>> {
-        self.as_ref().map(|inner| inner.root())
-    }
-}
-
-impl<T: Reflectable> OptionalRootedRootable<T> for Option<Unrooted<T>> {
+impl<T: Reflectable, U: Rootable<T>> OptionalRootable<T> for Option<U> {
     fn root(&self) -> Option<Root<T>> {
         self.as_ref().map(|inner| inner.root())
     }
 }
 
 /// Root a rootable `Option<Option>` type (used for `Option<Option<JS<T>>>`)
-pub trait OptionalOptionalRootedRootable<T> {
+pub trait OptionalOptionalRootable<T> {
     /// Root the inner value, if it exists.
     fn root(&self) -> Option<Option<Root<T>>>;
 }
 
-impl<T: Reflectable> OptionalOptionalRootedRootable<T> for Option<Option<JS<T>>> {
+impl<T: Reflectable, U: OptionalRootable<T>> OptionalOptionalRootable<T> for Option<U> {
     fn root(&self) -> Option<Option<Root<T>>> {
         self.as_ref().map(|inner| inner.root())
     }
 }
-
-impl<T: Reflectable> OptionalOptionalRootedRootable<T> for Option<Option<Unrooted<T>>> {
-    fn root(&self) -> Option<Option<Root<T>>> {
-        self.as_ref().map(|inner| inner.root())
-    }
-}
-
 
 /// Root a rootable `Result` type (any of `Temporary<T>` or `JS<T>`)
 pub trait ResultRootable<T,U> {
@@ -539,17 +497,18 @@ pub trait ResultRootable<T,U> {
     fn root(self) -> Result<Root<T>, U>;
 }
 
-impl<T: Reflectable, U> ResultRootable<T, U> for Result<Temporary<T>, U> {
+impl<T: Reflectable, U, V: Rootable<T>> ResultRootable<T, U> for Result<V, U> {
     fn root(self) -> Result<Root<T>, U> {
         self.map(|inner| inner.root())
     }
 }
 
-impl<T: Reflectable, U> ResultRootable<T, U> for Result<JS<T>, U> {
-    fn root(self) -> Result<Root<T>, U> {
-        self.map(|inner| inner.root())
-    }
+/// Root a rootable type.
+pub trait Rootable<T> {
+    /// Root the value.
+    fn root(&self) -> Root<T>;
 }
+
 
 /// Provides a facility to push unrooted values onto lists of rooted values.
 /// This is safe under the assumption that said lists are reachable via the GC
@@ -716,15 +675,6 @@ impl<'a, 'b, T> PartialEq<JSRef<'b, T>> for JSRef<'a, T> {
     }
 }
 
-impl<'a,T> JSRef<'a,T> {
-    /// Return an unrooted `JS<T>` for the inner pointer.
-    pub fn unrooted(&self) -> JS<T> {
-        JS {
-            ptr: self.ptr
-        }
-    }
-}
-
 impl<'a, T: Reflectable> JSRef<'a, T> {
     /// Returns the inner pointer directly.
     pub fn extended_deref(self) -> &'a T {
@@ -737,27 +687,5 @@ impl<'a, T: Reflectable> JSRef<'a, T> {
 impl<'a, T: Reflectable> Reflectable for JSRef<'a, T> {
     fn reflector<'b>(&'b self) -> &'b Reflector {
         (**self).reflector()
-    }
-}
-
-/// A trait for comparing smart pointers ignoring the lifetimes
-pub trait Comparable<T> {
-    /// Returns whether the other value points to the same object.
-    fn equals(&self, other: T) -> bool;
-}
-
-impl<'a, 'b, T> Comparable<JSRef<'a, T>> for JSRef<'b, T> {
-    fn equals(&self, other: JSRef<'a, T>) -> bool {
-        self.ptr == other.ptr
-    }
-}
-
-impl<'a, 'b, T> Comparable<Option<JSRef<'a, T>>> for Option<JSRef<'b, T>> {
-    fn equals(&self, other: Option<JSRef<'a, T>>) -> bool {
-        match (*self, other) {
-            (Some(x), Some(y)) => x.ptr == y.ptr,
-            (None, None) => true,
-            _ => false
-        }
     }
 }

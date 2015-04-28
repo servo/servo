@@ -11,8 +11,8 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentTypeCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLScriptElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
-use dom::bindings::js::RootedReference;
+use dom::bindings::js::{JS, JSRef, OptionalRootable, Root, Rootable};
+use dom::bindings::js::{RootedReference, Temporary};
 use dom::bindings::trace::RootedVec;
 use dom::characterdata::CharacterDataHelpers;
 use dom::comment::Comment;
@@ -63,7 +63,7 @@ trait SinkHelpers {
 impl SinkHelpers for servohtmlparser::Sink {
     fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Temporary<Node> {
         match child {
-            AppendNode(n) => Temporary::new(n),
+            AppendNode(n) => Temporary::from_rooted(n),
             AppendText(t) => {
                 let doc = self.document.root();
                 let text = Text::new(t, doc.r());

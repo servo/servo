@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElemen
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFormElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast, HTMLFormElementCast};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
+use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};

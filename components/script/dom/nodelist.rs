@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::NodeListBinding;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::node::{Node, NodeHelpers};
@@ -64,7 +64,7 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
     fn Item(self, index: u32) -> Option<Temporary<Node>> {
         match self.list_type {
             _ if index >= self.Length() => None,
-            NodeListType::Simple(ref elems) => Some(Temporary::new(elems[index as usize].clone())),
+            NodeListType::Simple(ref elems) => Some(Temporary::from_rooted(elems[index as usize].clone())),
             NodeListType::Children(ref node) => {
                 let node = node.root();
                 node.r().children().nth(index as usize)

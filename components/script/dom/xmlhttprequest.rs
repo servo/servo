@@ -14,8 +14,8 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidState, InvalidAccess};
 use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
-use dom::bindings::js::OptionalRootedRootable;
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, OptionalRootable};
+use dom::bindings::js::{Rootable, Temporary};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
@@ -463,7 +463,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
     // https://xhr.spec.whatwg.org/#the-upload-attribute
     fn Upload(self) -> Temporary<XMLHttpRequestUpload> {
-        Temporary::new(self.upload)
+        Temporary::from_rooted(self.upload)
     }
 
     // https://xhr.spec.whatwg.org/#the-send()-method
@@ -711,7 +711,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
     fn GetResponseXML(self) -> Option<Temporary<Document>> {
-        self.response_xml.get().map(Temporary::new)
+        self.response_xml.get().map(Temporary::from_rooted)
     }
 }
 

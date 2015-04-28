@@ -11,7 +11,8 @@ use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRenderingContext;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, LayoutJS, MutNullableHeap, Temporary};
+use dom::bindings::js::{JS, JSRef, LayoutJS, MutNullableHeap, Rootable};
+use dom::bindings::js::Temporary;
 use dom::bindings::js::Unrooted;
 use dom::bindings::utils::{Reflectable};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
@@ -128,7 +129,7 @@ impl<'a> HTMLCanvasElementHelpers for JSRef<'a, HTMLCanvasElement> {
         let context = self.GetContext(String::from_str("2d"));
         match context.unwrap() {
             CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(context) => {
-              Temporary::new(context.root().r().unrooted())
+              Temporary::from_unrooted(context)
             }
             _ => panic!("Wrong Context Type: Expected 2d context"),
         }
@@ -138,8 +139,8 @@ impl<'a> HTMLCanvasElementHelpers for JSRef<'a, HTMLCanvasElement> {
         let context = self.GetContext(String::from_str("webgl"));
         match context.unwrap() {
             CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(context) => {
-              return Temporary::new(context.root().r().unrooted());
-            }
+              Temporary::from_unrooted(context)
+            },
             _ => panic!("Wrong Context Type: Expected webgl context"),
         }
     }

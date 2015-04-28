@@ -16,7 +16,8 @@ use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLScriptE
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, RootedReference};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Rootable};
+use dom::bindings::js::RootedReference;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
 use dom::document::{Document, DocumentHelpers};

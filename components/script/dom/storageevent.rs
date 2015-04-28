@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::StorageEventBinding::{StorageEventMethods}
 use dom::bindings::codegen::InheritTypes::{EventCast};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, RootedReference};
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, Rootable, RootedReference};
 use dom::bindings::js::Temporary;
 use dom::bindings::utils::{reflect_dom_object};
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
@@ -108,7 +108,7 @@ impl<'a> StorageEventMethods for JSRef<'a, StorageEvent> {
     }
 
     fn GetStorageArea(self) -> Option<Temporary<Storage>> {
-        self.storageArea.get().map(Temporary::new)
+        self.storageArea.get().map(Temporary::from_rooted)
     }
 
 }

@@ -43,7 +43,7 @@ impl<'a> DOMRectListMethods for JSRef<'a, DOMRectList> {
     fn Item(self, index: u32) -> Option<Temporary<DOMRect>> {
         let rects = &self.rects;
         if index < rects.len() as u32 {
-            Some(Temporary::new(rects[index as usize].clone()))
+            Some(Temporary::from_rooted(rects[index as usize].clone()))
         } else {
             None
         }

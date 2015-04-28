@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, Rootable, Temporary};
 use dom::bindings::js::{OptionalRootable, RootedReference};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;

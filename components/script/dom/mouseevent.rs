@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, MouseEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, RootedReference};
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, Rootable, RootedReference};
 use dom::bindings::js::Temporary;
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
@@ -143,7 +143,7 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
     }
 
     fn GetRelatedTarget(self) -> Option<Temporary<EventTarget>> {
-        self.related_target.get().map(Temporary::new)
+        self.related_target.get().map(Temporary::from_rooted)
     }
 
     fn InitMouseEvent(self,

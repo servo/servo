@@ -25,8 +25,8 @@ use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
 use dom::bindings::error::Error::HierarchyRequest;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, LayoutJS, MutNullableHeap};
-use dom::bindings::js::{OptionalRootable, OptionalRootedRootable};
-use dom::bindings::js::{RootedReference, Temporary};
+use dom::bindings::js::{OptionalRootable, Rootable, RootedReference};
+use dom::bindings::js::Temporary;
 use dom::bindings::js::TemporaryPushable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::RootedVec;
@@ -242,7 +242,7 @@ pub trait DocumentHelpers<'a> {
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     #[inline]
     fn window(self) -> Temporary<Window> {
-        Temporary::new(self.window)
+        Temporary::from_rooted(self.window)
     }
 
     #[inline]
@@ -341,7 +341,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
         match idmap.entry(id) {
             Vacant(entry) => {
-                entry.insert(vec!(element.unrooted()));
+                entry.insert(vec![JS::from_rooted(element)]);
             }
             Occupied(entry) => {
                 let elements = entry.into_mut();
@@ -444,7 +444,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     /// Return the element that currently has focus.
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#events-focusevent-doc-focus
     fn get_focused_element(self) -> Option<Temporary<Element>> {
-        self.focused.get().map(Temporary::new)
+        self.focused.get().map(Temporary::from_rooted)
     }
 
     /// Initiate a new round of checking for elements requesting focus. The last element to call
@@ -889,7 +889,7 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
             for node in NodeCast::from_ref(root.r()).traverse_preorder() {
                 let node = node.root();
                 if callback(node.r()) {
-                    nodes.push(node.r().unrooted());
+                    nodes.push(JS::from_rooted(node.r()));
                 }
             }
         };
@@ -1019,7 +1019,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         let id = Atom::from_slice(&id);
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let idmap = self.idmap.borrow();
-        idmap.get(&id).map(|ref elements| Temporary::new((*elements)[0].clone()))
+        idmap.get(&id).map(|ref elements| Temporary::from_rooted((*elements)[0].clone()))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelement
@@ -1269,7 +1269,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // https://html.spec.whatwg.org/#dom-document-currentscript
     fn GetCurrentScript(self) -> Option<Temporary<HTMLScriptElement>> {
-        self.current_script.get().map(Temporary::new)
+        self.current_script.get().map(Temporary::from_rooted)
     }
 
     // https://html.spec.whatwg.org/#dom-document-body
@@ -1481,7 +1481,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-defaultview
     fn DefaultView(self) -> Temporary<Window> {
-        Temporary::new(self.window)
+        Temporary::from_rooted(self.window)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie

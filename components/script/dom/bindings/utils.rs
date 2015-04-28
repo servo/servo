@@ -9,7 +9,7 @@ use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::{native_from_reflector_jsmanaged, is_dom_class};
 use dom::bindings::error::{Error, ErrorResult, Fallible, throw_type_error};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Temporary, Root};
+use dom::bindings::js::{Temporary, Root, Rootable};
 use dom::browsercontext;
 use dom::window;
 use util::namespace;

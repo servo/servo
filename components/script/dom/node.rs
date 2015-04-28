@@ -24,10 +24,10 @@ use dom::bindings::conversions;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, LayoutJS, OptionalRootable};
-use dom::bindings::js::{OptionalRootedRootable, MutNullableHeap};
-use dom::bindings::js::{ResultRootable, Root, RootedReference, Temporary};
-use dom::bindings::js::{TemporaryPushable, Unrooted};
+use dom::bindings::js::{JS, JSRef, LayoutJS, MutNullableHeap};
+use dom::bindings::js::{OptionalRootable, ResultRootable, Root, Rootable};
+use dom::bindings::js::{RootedReference, Temporary, TemporaryPushable};
+use dom::bindings::js::Unrooted;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
@@ -570,25 +570,25 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn parent_node(self) -> Option<Temporary<Node>> {
-        self.parent_node.get().map(Temporary::new)
+        self.parent_node.get().map(Temporary::from_rooted)
     }
 
     fn first_child(self) -> Option<Temporary<Node>> {
-        self.first_child.get().map(Temporary::new)
+        self.first_child.get().map(Temporary::from_rooted)
     }
 
     fn last_child(self) -> Option<Temporary<Node>> {
-        self.last_child.get().map(Temporary::new)
+        self.last_child.get().map(Temporary::from_rooted)
     }
 
     /// Returns the previous sibling of this node. Fails if this node is borrowed mutably.
     fn prev_sibling(self) -> Option<Temporary<Node>> {
-        self.prev_sibling.get().map(Temporary::new)
+        self.prev_sibling.get().map(Temporary::from_rooted)
     }
 
     /// Returns the next sibling of this node. Fails if this node is borrowed mutably.
     fn next_sibling(self) -> Option<Temporary<Node>> {
-        self.next_sibling.get().map(Temporary::new)
+        self.next_sibling.get().map(Temporary::from_rooted)
     }
 
     #[inline]
@@ -947,7 +947,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn owner_doc(self) -> Temporary<Document> {
-        Temporary::new(self.owner_doc.get().unwrap())
+        Temporary::from_rooted(self.owner_doc.get().unwrap())
     }
 
     fn set_owner_doc(self, document: JSRef<Document>) {
@@ -1873,7 +1873,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // https://dom.spec.whatwg.org/#dom-node-parentnode
     fn GetParentNode(self) -> Option<Temporary<Node>> {
-        self.parent_node.get().map(Temporary::new)
+        self.parent_node.get().map(Temporary::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-parentelement
@@ -1903,22 +1903,22 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // https://dom.spec.whatwg.org/#dom-node-firstchild
     fn GetFirstChild(self) -> Option<Temporary<Node>> {
-        self.first_child.get().map(Temporary::new)
+        self.first_child.get().map(Temporary::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-lastchild
     fn GetLastChild(self) -> Option<Temporary<Node>> {
-        self.last_child.get().map(Temporary::new)
+        self.last_child.get().map(Temporary::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-previoussibling
     fn GetPreviousSibling(self) -> Option<Temporary<Node>> {
-        self.prev_sibling.get().map(Temporary::new)
+        self.prev_sibling.get().map(Temporary::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-nextsibling
     fn GetNextSibling(self) -> Option<Temporary<Node>> {
-        self.next_sibling.get().map(Temporary::new)
+        self.next_sibling.get().map(Temporary::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue

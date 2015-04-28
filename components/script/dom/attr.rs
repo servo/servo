@@ -7,8 +7,7 @@ use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
-use dom::bindings::js::{OptionalRootable, OptionalRootedRootable};
-use dom::bindings::js::RootedReference;
+use dom::bindings::js::{OptionalRootable, Rootable, RootedReference};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::Node;
@@ -275,7 +274,7 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     }
 
     fn owner(self) -> Option<Temporary<Element>> {
-        self.owner.get().map(Temporary::new)
+        self.owner.get().map(Temporary::from_rooted)
     }
 
     fn summarize(self) -> AttrInfo {
