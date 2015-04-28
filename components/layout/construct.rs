@@ -302,6 +302,41 @@ impl<'a> FlowConstructor<'a> {
         Fragment::new(node, specific_fragment_info)
     }
 
+    /// Generates anonymous table objects per CSS 2.1 § 17.2.1.
+    fn generate_anonymous_table_flows_if_necessary(&mut self,
+                                                   flow: &mut FlowRef,
+                                                   child: &mut FlowRef,
+                                                   child_node: &ThreadSafeLayoutNode) {
+        if !flow.is_block_flow() {
+            return
+        }
+
+        if child.is_table_cell() {
+            let fragment = Fragment::new(child_node, SpecificFragmentInfo::TableRow);
+            let mut new_child = FlowRef::new(box TableRowFlow::from_node_and_fragment(child_node,
+                                                                                      fragment));
+            new_child.add_new_child(child.clone());
+            child.finish();
+            *child = new_child
+        }
+        if child.is_table_row() || child.is_table_rowgroup() {
+            let fragment = Fragment::new(child_node, SpecificFragmentInfo::Table);
+            let mut new_child = FlowRef::new(box TableFlow::from_node_and_fragment(child_node,
+                                                                                   fragment));
+            new_child.add_new_child(child.clone());
+            child.finish();
+            *child = new_child
+        }
+        if child.is_table() {
+            let fragment = Fragment::new(child_node, SpecificFragmentInfo::TableWrapper);
+            let mut new_child =
+                FlowRef::new(box TableWrapperFlow::from_node_and_fragment(child_node, fragment));
+            new_child.add_new_child(child.clone());
+            child.finish();
+            *child = new_child
+        }
+    }
+
     /// Creates an inline flow from a set of inline fragments, then adds it as a child of the given
     /// flow or pushes it onto the given flow list.
     ///
@@ -393,12 +428,13 @@ impl<'a> FlowConstructor<'a> {
                                                            first_fragment: &mut bool) {
         match kid.swap_out_construction_result() {
             ConstructionResult::None => {}
-            ConstructionResult::Flow(kid_flow, kid_abs_descendants) => {
+            ConstructionResult::Flow(mut kid_flow, kid_abs_descendants) => {
                 // If kid_flow is TableCaptionFlow, kid_flow should be added under
                 // TableWrapperFlow.
                 if flow.is_table() && kid_flow.is_table_caption() {
-                    self.set_flow_construction_result(&kid, ConstructionResult::Flow(kid_flow,
-                                                                            Descendants::new()))
+                    self.set_flow_construction_result(&kid,
+                                                      ConstructionResult::Flow(kid_flow,
+                                                                               Descendants::new()))
                 } else if flow.need_anonymous_flow(&*kid_flow) {
                     consecutive_siblings.push(kid_flow)
                 } else {
@@ -417,6 +453,7 @@ impl<'a> FlowConstructor<'a> {
                         let consecutive_siblings = mem::replace(consecutive_siblings, vec!());
                         self.generate_anonymous_missing_child(consecutive_siblings, flow, node);
                     }
+                    self.generate_anonymous_table_flows_if_necessary(flow, &mut kid_flow, &kid);
                     flow.add_new_child(kid_flow);
                 }
                 abs_descendants.push_descendants(kid_abs_descendants);
