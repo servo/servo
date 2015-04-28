@@ -103,6 +103,9 @@ pub trait PaintListener {
 
     fn paint_msg_discarded(&mut self);
     fn set_paint_state(&mut self, PipelineId, PaintState);
+
+    // Notification that the paint task wants to exit.
+    fn notify_paint_task_exiting(&mut self, pipeline_id: PipelineId);
 }
 
 /// The interface used by the script task to tell the compositor to update its ready state,

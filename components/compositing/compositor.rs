@@ -380,9 +380,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::PaintTaskExited(pipeline_id), ShutdownState::NotShuttingDown) => {
-                if self.pipeline_details.remove(&pipeline_id).is_none() {
-                    panic!("Saw PaintTaskExited message from an unknown pipeline!");
-                }
+                self.remove_pipeline_root_layer(pipeline_id);
             }
 
             // When we are shutting_down, we need to avoid performing operations
@@ -587,6 +585,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             panic!("Tried to create or update layer for unknown pipeline")
         }
         self.find_layer_with_pipeline_and_layer_id(pipeline_id, LayerId::null())
+    }
+
+    fn remove_pipeline_root_layer(&mut self, pipeline_id: PipelineId) {
+        if let Some(ref root_layer) = self.scene.root {
+            // Remove all the compositor layers for this pipeline
+            // and send any owned buffers back to the paint task.
+            root_layer.remove_root_layer_with_pipeline_id(self, pipeline_id);
+
+            if self.pipeline_details.remove(&pipeline_id).is_none() {
+                panic!("Saw PaintTaskExited message from an unknown pipeline!");
+            }
+        }
     }
 
     fn update_layer_if_exists(&mut self, properties: LayerProperties) -> bool {

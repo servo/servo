@@ -162,6 +162,10 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
     fn set_paint_state(&mut self, pipeline_id: PipelineId, paint_state: PaintState) {
         self.send(Msg::ChangePaintState(pipeline_id, paint_state))
     }
+
+    fn notify_paint_task_exiting(&mut self, pipeline_id: PipelineId) {
+        self.send(Msg::PaintTaskExited(pipeline_id))
+    }
 }
 
 /// Messages from the painting task and the constellation task to the compositor task.
