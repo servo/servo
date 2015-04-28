@@ -298,7 +298,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         }
 
         let parent = self.parent_node().root();
-        parent.map(|parent| vtable_for(&parent.r()).child_inserted(self));
+        parent.r().map(|parent| vtable_for(&parent).child_inserted(self));
         document.r().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
     }
 
@@ -331,7 +331,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
                         assert!(Some(*before) == self.first_child().root().r());
                         self.first_child.set(Some(JS::from_rooted(new_child)));
                     },
-                    Some(prev_sibling) => {
+                    Some(ref prev_sibling) => {
                         prev_sibling.r().next_sibling.set(Some(JS::from_rooted(new_child)));
                         new_child.prev_sibling.set(Some(JS::from_rooted(prev_sibling.r())));
                     },
@@ -342,7 +342,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
             None => {
                 match self.last_child().root() {
                     None => self.first_child.set(Some(JS::from_rooted(new_child))),
-                    Some(last_child) => {
+                    Some(ref last_child) => {
                         assert!(last_child.r().next_sibling().is_none());
                         last_child.r().next_sibling.set(Some(JS::from_rooted(new_child)));
                         new_child.prev_sibling.set(Some(JS::from_rooted(last_child.r())));
@@ -366,7 +366,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
             None => {
                 self.first_child.set(child.next_sibling.get());
             }
-            Some(prev_sibling) => {
+            Some(ref prev_sibling) => {
                 prev_sibling.r().next_sibling.set(child.next_sibling.get());
             }
         }
@@ -375,7 +375,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
             None => {
                 self.last_child.set(child.prev_sibling.get());
             }
-            Some(next_sibling) => {
+            Some(ref next_sibling) => {
                 next_sibling.r().prev_sibling.set(child.prev_sibling.get());
             }
         }
@@ -978,7 +978,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     fn remove_self(self) {
         match self.parent_node().root() {
-            Some(parent) => parent.r().remove_child(self),
+            Some(ref parent) => parent.r().remove_child(self),
             None => ()
         }
     }
@@ -1377,7 +1377,7 @@ impl Node {
     pub fn adopt(node: JSRef<Node>, document: JSRef<Document>) {
         // Step 1.
         match node.parent_node().root() {
-            Some(parent) => {
+            Some(ref parent) => {
                 Node::remove(node, parent.r(), SuppressObserver::Unsuppressed);
             }
             None => (),
@@ -1773,7 +1773,7 @@ impl Node {
 
                 // FIXME: https://github.com/mozilla/servo/issues/1737
                 let window = document.window().root();
-                for attr in node_elem.attrs().iter().map(|attr| attr.root()) {
+                for ref attr in node_elem.attrs().iter().map(|attr| attr.root()) {
                     copy_elem.attrs_mut().push_unrooted(
                         &Attr::new(window.r(),
                                    attr.r().local_name().clone(), attr.r().value().clone(),
@@ -2581,7 +2581,7 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
                           .map(|child| child.root())
                           .find(|child| child.r().is_htmllegendelement())
             {
-                Some(legend) => {
+                Some(ref legend) => {
                     // XXXabinader: should we save previous ancestor to avoid this iteration?
                     if self.ancestors().any(|ancestor| ancestor.root().r() == legend.r()) { continue; }
                 },

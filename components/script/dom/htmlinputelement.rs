@@ -354,7 +354,7 @@ fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&
                 .map(|t| t.root())
                 .filter(|r| in_same_group(r.r(), owner, group) && broadcaster != r.r())
         };
-        for r in iter {
+        for ref r in iter {
             if r.r().Checked() {
                 r.r().SetChecked(false);
             }
@@ -743,7 +743,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                     let old_checked: Option<Root<HTMLInputElement>> = cache.checked_radio.get().root();
                     let name = self.get_radio_group_name();
                     match old_checked {
-                        Some(o) => {
+                        Some(ref o) => {
                             // Avoiding iterating through the whole tree here, instead
                             // we can check if the conditions for radio group siblings apply
                             if name == o.r().get_radio_group_name() && // TODO should be compatibility caseless
@@ -841,7 +841,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 .find(|r| r.r().form_owner() == owner);
         }
         match submit_button {
-            Some(button) => {
+            Some(ref button) => {
                 if button.r().is_instance_activatable() {
                     button.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey)
                 }

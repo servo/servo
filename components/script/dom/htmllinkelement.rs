@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMet
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
-use dom::bindings::js::OptionalRootable;
+use dom::bindings::js::{OptionalRootable, RootedReference};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeHandlers, Element};
@@ -60,9 +60,7 @@ impl HTMLLinkElement {
 
 fn get_attr(element: JSRef<Element>, local_name: &Atom) -> Option<String> {
     let elem = element.get_attribute(&ns!(""), local_name).root();
-    elem.map(|e| {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let e = e.r();
+    elem.r().map(|e| {
         let value = e.value();
         (**value).to_owned()
     })

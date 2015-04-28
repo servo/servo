@@ -94,7 +94,7 @@ impl<'a> TextMethods for JSRef<'a, Text> {
         let nodes = first.r().inclusively_following_siblings().map(|node| node.root())
                              .take_while(|node| node.r().is_text());
         let mut text = DOMString::new();
-        for node in nodes {
+        for ref node in nodes {
             let cdata = CharacterDataCast::to_ref(node.r()).unwrap();
             text.push_str(&cdata.data());
         }

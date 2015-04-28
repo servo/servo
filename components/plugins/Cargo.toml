@@ -7,3 +7,6 @@ authors = ["The Servo Project Developers"]
 name = "plugins"
 path = "lib.rs"
 plugin = true
+
+[dependencies.tenacious]
+git = "https://github.com/Manishearth/rust-tenacious.git"

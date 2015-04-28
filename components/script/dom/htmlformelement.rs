@@ -522,7 +522,7 @@ pub trait FormControl<'a> : Copy + Sized {
             let doc = document_from_node(elem).root();
             let owner = doc.r().GetElementById(owner).root();
             match owner {
-                Some(o) => {
+                Some(ref o) => {
                     let maybe_form: Option<JSRef<HTMLFormElement>> = HTMLFormElementCast::to_ref(o.r());
                     if maybe_form.is_some() {
                         return maybe_form.map(Temporary::from_rooted);

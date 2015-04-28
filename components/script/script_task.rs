@@ -900,7 +900,7 @@ impl ScriptTask {
         let doc = page.document().root();
         let frame_element = self.find_iframe(doc.r(), subpage_id).root();
 
-        if let Some(frame_element) = frame_element {
+        if let Some(ref frame_element) = frame_element {
             let element: JSRef<Element> = ElementCast::from_ref(frame_element.r());
             doc.r().begin_focus_transaction();
             doc.r().request_focus(element);
@@ -921,7 +921,7 @@ impl ScriptTask {
             self.find_iframe(doc.r(), subpage_id)
         }).root();
 
-        if let Some(frame_element) = frame_element {
+        if let Some(ref frame_element) = frame_element {
             frame_element.r().dispatch_mozbrowser_event(event);
         }
     }
@@ -937,7 +937,7 @@ impl ScriptTask {
             self.find_iframe(doc.r(), old_subpage_id)
         }).root();
 
-        frame_element.unwrap().r().update_subpage_id(new_subpage_id);
+        frame_element.r().unwrap().update_subpage_id(new_subpage_id);
     }
 
     /// Handles a notification that reflow completed.
@@ -1295,7 +1295,7 @@ impl ScriptTask {
         let page = get_page(&self.root_page(), pipeline_id);
         let document = page.document().root();
         match document.r().find_fragment_node(fragment).root() {
-            Some(node) => {
+            Some(ref node) => {
                 self.scroll_fragment_point(pipeline_id, node.r());
             }
             None => {}
@@ -1314,7 +1314,7 @@ impl ScriptTask {
                                       .and_then(|name| document.r().find_fragment_node(name))
                                       .root();
         match fragment_node {
-            Some(node) => self.scroll_fragment_point(pipeline_id, node.r()),
+            Some(ref node) => self.scroll_fragment_point(pipeline_id, node.r()),
             None => {}
         }
 
