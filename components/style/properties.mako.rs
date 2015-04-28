@@ -1730,8 +1730,7 @@ pub mod longhands {
 
     ${new_style_struct("InheritedText", is_inherited=True)}
 
-    // TODO: initial value should be 'start' (CSS Text Level 3, direction-dependent.)
-    ${single_keyword("text-align", "left right center justify")}
+    ${single_keyword("text-align", "start end left right center justify")}
 
     <%self:longhand name="letter-spacing">
         use values::computed::{ToComputedValue, Context};

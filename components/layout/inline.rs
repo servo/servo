@@ -908,12 +908,12 @@ impl InlineFlow {
             text_align::T::justify if !is_last_line && text_justify != text_justify::T::none => {
                 InlineFlow::justify_inline_fragments(fragments, line, slack_inline_size)
             }
-            text_align::T::left | text_align::T::justify => {}
+            text_align::T::left | text_align::T::justify | text_align::T::start => {}
             text_align::T::center => {
                 inline_start_position_for_fragment = inline_start_position_for_fragment +
                     slack_inline_size.scale_by(0.5)
             }
-            text_align::T::right => {
+            text_align::T::right | text_align::T::end => {
                 inline_start_position_for_fragment = inline_start_position_for_fragment +
                     slack_inline_size
             }
