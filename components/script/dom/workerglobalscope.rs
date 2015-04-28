@@ -114,15 +114,6 @@ impl WorkerGlobalScope {
         worker_id
     }
 
-    // set_closing and get_closing should only be used from self and
-    // DedicatedWorkerGlobalScope.
-    pub fn get_closing(&self) -> bool {
-        self.closing.get()
-    }
-
-    pub fn set_closing(&self, closing: bool) {
-        self.closing.set(closing);
-    }
 }
 
 impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
@@ -244,6 +235,9 @@ pub trait WorkerGlobalScopeHelpers {
     fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>);
     fn process_event(self, msg: ScriptMsg);
     fn get_cx(self) -> *mut JSContext;
+    fn get_closing(self) -> bool;
+    fn set_closing(self, closing: bool);
+
 }
 
 impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
@@ -289,6 +283,16 @@ impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
 
     fn get_cx(self) -> *mut JSContext {
         self.runtime.cx()
+    }
+
+    // set_closing and get_closing should only be used from self and
+    // DedicatedWorkerGlobalScope.
+    fn get_closing(self) -> bool {
+        self.closing.get()
+    }
+
+    fn set_closing(self, closing: bool) {
+        self.closing.set(closing);
     }
 }
 

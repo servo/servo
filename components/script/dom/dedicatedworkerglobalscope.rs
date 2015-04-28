@@ -149,14 +149,6 @@ impl DedicatedWorkerGlobalScope {
             parent_sender, own_sender, receiver);
         DedicatedWorkerGlobalScopeBinding::Wrap(runtime.cx(), scope)
     }
-
-    fn get_closing(&self) -> bool {
-        WorkerGlobalScopeCast::from_actual(self).get_closing()
-    }
-
-    fn set_closing(&self, closing: bool) {
-        WorkerGlobalScopeCast::from_actual(self).set_closing(closing)
-    }
 }
 
 impl DedicatedWorkerGlobalScope {
@@ -226,7 +218,7 @@ impl DedicatedWorkerGlobalScope {
                         let _ar = AutoWorkerReset::new(global.r(), linked_worker);
                         global.r().handle_event(msg);
 
-                        if global.r().get_closing() {
+                        if WorkerGlobalScopeCast::from_ref(global.r()).get_closing() {
                             break
                         }
                     }
@@ -318,7 +310,7 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
                 reports_chan.send(reports);
             },
             ScriptMsg::Terminate => {
-                self.set_closing(true);
+                WorkerGlobalScopeCast::from_ref(self).set_closing(true);
             },
             _ => panic!("Unexpected message"),
         }

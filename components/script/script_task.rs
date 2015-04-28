@@ -190,8 +190,7 @@ pub enum ScriptMsg {
     /// Message sent through Worker.postMessage (only dispatched to
     /// DedicatedWorkerGlobalScope).
     DOMMessage(StructuredCloneData),
-    /// Message sent by Worker.terminate (dispatched to either
-    /// WorkerGlobalScope or DedicatedGlobalScope)
+    /// Message sent by Worker.terminate (dispatched to DedicatedGlobalScope)
     Terminate,
     /// Generic message that encapsulates event handling.
     RunnableMsg(Box<Runnable+Send>),
