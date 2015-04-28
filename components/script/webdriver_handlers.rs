@@ -35,7 +35,7 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     None
 }
 
-pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<Result<EvaluateJSReply, ()>>) {
+pub fn handle_execute_script(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<Result<EvaluateJSReply, ()>>) {
     let page = get_page(&*page, pipeline);
     let window = page.window().root();
     let cx = window.r().get_cx();
