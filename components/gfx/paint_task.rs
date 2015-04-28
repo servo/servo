@@ -208,6 +208,11 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                         continue;
                     }
 
+                    // If waiting to exit, ignore any more paint commands
+                    if waiting_for_compositor_buffers_to_exit {
+                        continue;
+                    }
+
                     self.initialize_layers();
                 }
                 Msg::Paint(requests, frame_tree_id) => {
@@ -215,6 +220,11 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
                         c.send(ConstellationMsg::PainterReady(self.id)).unwrap();
+                        continue;
+                    }
+
+                    // If waiting to exit, ignore any more paint commands
+                    if waiting_for_compositor_buffers_to_exit {
                         continue;
                     }
 
@@ -237,7 +247,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     self.compositor.assign_painted_buffers(self.id, self.current_epoch.unwrap(), replies, frame_tree_id);
                 }
                 Msg::UnusedBuffer(unused_buffers) => {
-                    debug!("PaintTask: Received {} unused buffers", unused_buffers.len());
+                    debug!("PaintTask {:?}: Received {} unused buffers", self.id, unused_buffers.len());
                     self.used_buffer_count -= unused_buffers.len();
 
                     for buffer in unused_buffers.into_iter().rev() {
@@ -261,6 +271,13 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     self.paint_permission = false;
                 }
                 Msg::Exit(response_channel, exit_type) => {
+                    // Ask the compositor to return any used buffers it
+                    // is holding for this paint task. This previously was
+                    // sent from the constellation. However, it needs to be sent
+                    // from here to avoid a race condition with the paint
+                    // messages above.
+                    self.compositor.notify_paint_task_exiting(self.id);
+
                     let should_wait_for_compositor_buffers = match exit_type {
                         PipelineExitType::Complete => false,
                         PipelineExitType::PipelineOnly => self.used_buffer_count != 0
@@ -275,7 +292,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     // If we own buffers in the compositor and we are not exiting completely, wait
                     // for the compositor to return buffers, so that we can release them properly.
                     // When doing a complete exit, the compositor lets all buffers leak.
-                    println!("PaintTask: Saw ExitMsg, {} buffers in use", self.used_buffer_count);
+                    println!("PaintTask {:?}: Saw ExitMsg, {} buffers in use", self.id, self.used_buffer_count);
                     waiting_for_compositor_buffers_to_exit = true;
                     exit_response_channel = response_channel;
                 }

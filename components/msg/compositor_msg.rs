@@ -93,6 +93,8 @@ pub trait PaintListener {
                               replies: Vec<(LayerId, Box<LayerBufferSet>)>,
                               frame_tree_id: FrameTreeId);
 
+    // Notification that the paint task wants to exit.
+    fn notify_paint_task_exiting(&mut self, pipeline_id: PipelineId);
 }
 
 /// The interface used by the script task to tell the compositor to update its ready state,

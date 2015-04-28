@@ -89,6 +89,14 @@ pub trait CompositorLayer {
     /// painter to be destroyed or reused.
     fn clear_all_tiles<Window>(&self, compositor: &IOCompositor<Window>) where Window: WindowMethods;
 
+    /// Removes the root layer (and any children) for a given pipeline from the
+    /// compositor. Buffers that the compositor is holding are returned to the
+    /// owning paint task.
+    fn remove_root_layer_with_pipeline_id<Window>(&self,
+                                                  compositor: &IOCompositor<Window>,
+                                                  pipeline_id: PipelineId)
+                                                  where Window: WindowMethods;
+
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
     /// painter. You must call this only when the paint task is destined to be going down;
     /// otherwise, you will leak tiles.
@@ -245,6 +253,31 @@ impl CompositorLayer for Layer<CompositorData> {
         self.clear(compositor);
         for kid in self.children().iter() {
             kid.clear_all_tiles(compositor);
+        }
+    }
+
+    fn remove_root_layer_with_pipeline_id<Window>(&self,
+                                                  compositor: &IOCompositor<Window>,
+                                                  pipeline_id: PipelineId)
+                                                  where Window: WindowMethods {
+        // Find the child that is the root layer for this pipeline.
+        let index = self.children().iter().position(|kid| {
+            let extra_data = kid.extra_data.borrow();
+            extra_data.pipeline_id == pipeline_id && extra_data.id == LayerId::null()
+        });
+
+        match index {
+            Some(index) => {
+                // Remove the root layer, and return buffers to the paint task
+                let child = self.children().remove(index);
+                child.clear_all_tiles(compositor);
+            }
+            None => {
+                // Wasn't found, recurse into child layers
+                for kid in self.children().iter() {
+                    kid.remove_root_layer_with_pipeline_id(compositor, pipeline_id);
+                }
+            }
         }
     }
 

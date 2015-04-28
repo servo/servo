@@ -244,6 +244,8 @@ pub enum Msg {
     CompositePng(Sender<Option<png::Image>>),
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
+    /// Notification that this iframe should be removed.
+    RemoveIFrame(PipelineId, SubpageId),
 }
 
 #[derive(Clone, Eq, PartialEq)]
