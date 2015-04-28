@@ -452,7 +452,7 @@ impl BoundaryPoint {
     }
 
     pub fn node(&self) -> Temporary<Node> {
-        Temporary::new(self.node.get())
+        Temporary::from_rooted(self.node.get())
     }
 
     pub fn offset(&self) -> u32 {
