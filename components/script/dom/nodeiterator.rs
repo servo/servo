@@ -7,18 +7,16 @@ use dom::bindings::codegen::Bindings::NodeIteratorBinding::NodeIteratorMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::js::MutNullableJS;
+use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary, Rootable};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::{Node};
-use std::default::Default;
 
 #[dom_struct]
 pub struct NodeIterator {
     reflector_: Reflector,
     root_node: JS<Node>,
-    reference_node: MutNullableJS<Node>,
+    reference_node: MutNullableHeap<JS<Node>>,
     what_to_show: u32,
     filter: Filter
 }
@@ -30,7 +28,7 @@ impl NodeIterator {
         NodeIterator {
             reflector_: Reflector::new(),
             root_node: JS::from_rooted(root_node),
-            reference_node: Default::default(),
+            reference_node: MutNullableHeap::new(Some(JS::from_rooted(root_node))),
             what_to_show: what_to_show,
             filter: filter
         }
@@ -61,7 +59,7 @@ impl NodeIterator {
 impl<'a> NodeIteratorMethods for JSRef<'a, NodeIterator> {
     // https://dom.spec.whatwg.org/#dom-nodeiterator-root
     fn Root(self) -> Temporary<Node> {
-        Temporary::new(self.root_node)
+        Temporary::from_rooted(self.root_node)
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-whattoshow
@@ -80,7 +78,7 @@ impl<'a> NodeIteratorMethods for JSRef<'a, NodeIterator> {
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-referencenode
     fn GetReferenceNode(self) -> Option<Temporary<Node>> {
-        self.reference_node.get()
+        self.reference_node.get().map(Temporary::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-previousnode
