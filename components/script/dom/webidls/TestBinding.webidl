@@ -112,6 +112,9 @@ interface TestBinding {
            attribute (Event or DOMString)? union2AttributeNullable;
   [BinaryName="BinaryRenamedAttribute"] attribute DOMString attrToBinaryRename;
 
+  [PutForwards=booleanAttribute]
+  readonly attribute TestBinding forwardedAttribute;
+
   [BinaryName="BinaryRenamedMethod"] void methToBinaryRename();
   void receiveVoid();
   boolean receiveBoolean();
