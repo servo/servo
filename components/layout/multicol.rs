@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! CSS table formatting contexts.
+//! CSS Multi-column layout http://dev.w3.org/csswg/css-multicol/
 
 #![deny(unsafe_code)]
 
 use block::BlockFlow;
 use context::LayoutContext;
+use floats::FloatKind;
 use flow::{FlowClass, Flow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use wrapper::ThreadSafeLayoutNode;
@@ -19,26 +20,27 @@ use std::fmt;
 use style::properties::ComputedValues;
 use std::sync::Arc;
 
-/// A table formatting context.
-pub struct TableCaptionFlow {
+pub struct MulticolFlow {
     pub block_flow: BlockFlow,
 }
 
-impl TableCaptionFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment)
-                                  -> TableCaptionFlow {
-        TableCaptionFlow {
-            block_flow: BlockFlow::from_node_and_fragment(node, fragment, None)
+impl MulticolFlow {
+    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
+                                  fragment: Fragment,
+                                  float_kind: Option<FloatKind>)
+                                  -> MulticolFlow {
+        MulticolFlow {
+            block_flow: BlockFlow::from_node_and_fragment(node, fragment, float_kind)
         }
     }
 }
 
-impl Flow for TableCaptionFlow {
+impl Flow for MulticolFlow {
     fn class(&self) -> FlowClass {
-        FlowClass::TableCaption
+        FlowClass::Multicol
     }
 
-    fn as_table_caption<'a>(&'a mut self) -> &'a mut TableCaptionFlow {
+    fn as_multicol<'a>(&'a mut self) -> &'a mut MulticolFlow {
         self
     }
 
@@ -46,21 +48,18 @@ impl Flow for TableCaptionFlow {
         &mut self.block_flow
     }
 
-    fn as_immutable_block(&self) -> &BlockFlow {
-        &self.block_flow
-    }
-
     fn bubble_inline_sizes(&mut self) {
+        // FIXME(SimonSapin) http://dev.w3.org/csswg/css-sizing/#multicol-intrinsic
         self.block_flow.bubble_inline_sizes();
     }
 
     fn assign_inline_sizes(&mut self, ctx: &LayoutContext) {
-        debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_caption");
+        debug!("assign_inline_sizes({}): assigning inline_size for flow", "multicol");
         self.block_flow.assign_inline_sizes(ctx);
     }
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
-        debug!("assign_block_size: assigning block_size for table_caption");
+        debug!("assign_block_size: assigning block_size for multicol");
         self.block_flow.assign_block_size(ctx);
     }
 
@@ -77,7 +76,7 @@ impl Flow for TableCaptionFlow {
     }
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        debug!("build_display_list_table_caption: same process as block flow");
+        debug!("build_display_list_multicol: same process as block flow");
         self.block_flow.build_display_list(layout_context)
     }
 
@@ -104,9 +103,8 @@ impl Flow for TableCaptionFlow {
     }
 }
 
-impl fmt::Debug for TableCaptionFlow {
+impl fmt::Debug for MulticolFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "TableCaptionFlow: {:?}", self.block_flow)
+        write!(f, "MulticolFlow: {:?}", self.block_flow)
     }
 }
-

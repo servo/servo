@@ -60,11 +60,12 @@ class Longhand(object):
             self.derived_from = [ to_rust_ident(name) for name in derived_from ]
 
 class Shorthand(object):
-    def __init__(self, name, sub_properties):
+    def __init__(self, name, sub_properties, experimental=False):
         self.name = name
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
         self.derived_from = None
+        self.experimental = experimental
         self.sub_properties = [LONGHANDS_BY_NAME[s] for s in sub_properties]
 
 class StyleStruct(object):
@@ -2177,6 +2178,167 @@ pub mod longhands {
     // TODO(pcwalton): SVG-only values.
     ${single_keyword("pointer-events", "auto none")}
 
+
+    ${new_style_struct("Column", is_inherited=False)}
+
+    <%self:longhand name="column-width" experimental="True">
+        use values::computed::{ToComputedValue, Context};
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
+        #[derive(Clone, Copy, PartialEq)]
+        pub enum SpecifiedValue {
+            Auto,
+            Specified(specified::Length),
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                match *self {
+                    SpecifiedValue::Auto => dest.write_str("auto"),
+                    SpecifiedValue::Specified(l) => l.to_css(dest),
+                }
+            }
+        }
+
+        pub mod computed_value {
+            use util::geometry::Au;
+            pub type T = Option<Au>;
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            None
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                match *self {
+                    SpecifiedValue::Auto => None,
+                    SpecifiedValue::Specified(l) => Some(l.to_computed_value(context))
+                }
+            }
+        }
+
+        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+                Ok(SpecifiedValue::Auto)
+            } else {
+                specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
+            }
+        }
+    </%self:longhand>
+
+    <%self:longhand name="column-count" experimental="True">
+        use values::computed::{ToComputedValue, Context};
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
+        #[derive(Clone, Copy, PartialEq)]
+        pub enum SpecifiedValue {
+            Auto,
+            Specified(u32),
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                match *self {
+                    SpecifiedValue::Auto => dest.write_str("auto"),
+                    SpecifiedValue::Specified(count) => write!(dest, "{}", count),
+                }
+            }
+        }
+
+        pub mod computed_value {
+            pub type T = Option<u32>;
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            None
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, _context: &Context) -> computed_value::T {
+                match *self {
+                    SpecifiedValue::Auto => None,
+                    SpecifiedValue::Specified(count) => Some(count)
+                }
+            }
+        }
+
+        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+                Ok(SpecifiedValue::Auto)
+            } else {
+                use std::u32;
+                let count = try!(input.expect_integer());
+                // Zero is invalid
+                if count <= 0 || count > (u32::MAX as i64) {
+                    return Err(())
+                }
+                Ok(SpecifiedValue::Specified(count as u32))
+            }
+        }
+    </%self:longhand>
+
+    <%self:longhand name="column-gap" experimental="True">
+        use values::computed::{ToComputedValue, Context};
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
+        #[derive(Clone, Copy, PartialEq)]
+        pub enum SpecifiedValue {
+            Normal,
+            Specified(specified::Length),
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                match *self {
+                    SpecifiedValue::Normal => dest.write_str("normal"),
+                    SpecifiedValue::Specified(l) => l.to_css(dest),
+                }
+            }
+        }
+
+        pub mod computed_value {
+            use util::geometry::Au;
+            pub type T = Option<Au>;
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            None
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                match *self {
+                    SpecifiedValue::Normal => None,
+                    SpecifiedValue::Specified(l) => Some(l.to_computed_value(context))
+                }
+            }
+        }
+
+        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+                Ok(SpecifiedValue::Normal)
+            } else {
+                specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
+            }
+        }
+    </%self:longhand>
+
     // Box-shadow, etc.
     ${new_style_struct("Effects", is_inherited=False)}
 
@@ -3952,9 +4114,9 @@ pub mod shorthands {
     use parser::ParserContext;
     use values::specified;
 
-    <%def name="shorthand(name, sub_properties)">
+    <%def name="shorthand(name, sub_properties, experimental=False)">
     <%
-        shorthand = Shorthand(name, sub_properties.split())
+        shorthand = Shorthand(name, sub_properties.split(), experimental=experimental)
         SHORTHANDS.append(shorthand)
     %>
         pub mod ${shorthand.ident} {
@@ -4439,6 +4601,47 @@ pub mod shorthands {
         }
     </%self:shorthand>
 
+    <%self:shorthand name="columns" sub_properties="column-count column-width" experimental="True">
+        use properties::longhands::{column_count, column_width};
+        let mut column_count = None;
+        let mut column_width = None;
+        let mut autos = 0;
+
+        loop {
+            if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+                // Leave the options to None, 'auto' is the initial value.
+                autos += 1;
+                continue
+            }
+
+            if column_count.is_none() {
+                if let Ok(value) = input.try(|input| column_count::parse(context, input)) {
+                    column_count = Some(value);
+                    continue
+                }
+            }
+
+            if column_width.is_none() {
+                if let Ok(value) = input.try(|input| column_width::parse(context, input)) {
+                    column_width = Some(value);
+                    continue
+                }
+            }
+
+            break
+        }
+
+        let values = autos + column_count.iter().len() + column_width.iter().len();
+        if values == 0 || values > 2 {
+            Err(())
+        } else {
+            Ok(Longhands {
+                column_count: column_count,
+                column_width: column_width,
+            })
+        }
+    </%self:shorthand>
+
     <%self:shorthand name="overflow" sub_properties="overflow-x overflow-y">
         use properties::longhands::{overflow_x, overflow_y};
 
@@ -4802,6 +5005,11 @@ impl PropertyDeclaration {
             % endfor
             % for shorthand in SHORTHANDS:
                 "${shorthand.name}" => {
+                    % if shorthand.experimental:
+                        if !::util::opts::experimental_enabled() {
+                            return PropertyDeclarationParseResult::ExperimentalProperty
+                        }
+                    % endif
                     match input.try(CSSWideKeyword::parse) {
                         Ok(CSSWideKeyword::InheritKeyword) => {
                             % for sub_property in shorthand.sub_properties:
@@ -4984,6 +5192,12 @@ impl ComputedValues {
             position_style.bottom,
             position_style.left,
         ))
+    }
+
+    #[inline]
+    pub fn is_multicol(&self) -> bool {
+        let style = self.get_column();
+        style.column_count.is_some() || style.column_width.is_some()
     }
 
     #[inline]

@@ -562,33 +562,20 @@ impl Encodable for BlockFlowFlags {
 }
 
 impl BlockFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment) -> BlockFlow {
+    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode,
+                                  fragment: Fragment,
+                                  float_kind: Option<FloatKind>)
+                                  -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()),
-                                writing_mode,
-                                ForceNonfloatedFlag::ForceNonfloated),
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, match float_kind {
+                Some(_) => ForceNonfloatedFlag::FloatIfNecessary,
+                None => ForceNonfloatedFlag::ForceNonfloated,
+            }),
             fragment: fragment,
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
-            float: None,
-            flags: BlockFlowFlags::empty(),
-        }
-    }
-
-    pub fn float_from_node_and_fragment(node: &ThreadSafeLayoutNode,
-                                        fragment: Fragment,
-                                        float_kind: FloatKind)
-                                        -> BlockFlow {
-        let writing_mode = node.style().writing_mode;
-        BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()),
-                                writing_mode,
-                                ForceNonfloatedFlag::FloatIfNecessary),
-            fragment: fragment,
-            inline_size_of_preceding_left_floats: Au(0),
-            inline_size_of_preceding_right_floats: Au(0),
-            float: Some(box FloatedBlockInfo::new(float_kind)),
+            float: float_kind.map(|kind| box FloatedBlockInfo::new(kind)),
             flags: BlockFlowFlags::empty(),
         }
     }
@@ -1379,7 +1366,8 @@ impl BlockFlow {
                 FormattingContextType::Other
             }
             _ if style.get_box().overflow_x != overflow_x::T::visible ||
-                    style.get_box().overflow_y != overflow_y::T(overflow_x::T::visible) => {
+                    style.get_box().overflow_y != overflow_y::T(overflow_x::T::visible) ||
+                    style.is_multicol() => {
                 FormattingContextType::Block
             }
             _ => FormattingContextType::None,

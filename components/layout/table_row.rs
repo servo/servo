@@ -79,7 +79,7 @@ impl TableRowFlow {
     pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment)
                                   -> TableRowFlow {
         TableRowFlow {
-            block_flow: BlockFlow::from_node_and_fragment(node, fragment),
+            block_flow: BlockFlow::from_node_and_fragment(node, fragment, None),
             cell_intrinsic_inline_sizes: Vec::new(),
             column_computed_inline_sizes: Vec::new(),
             spacing: border_spacing::T {

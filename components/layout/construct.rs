@@ -33,6 +33,7 @@ use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo};
 use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
 use inline::InlineFlow;
 use list_item::{ListItemFlow, ListStyleTypeContent};
+use multicol::MulticolFlow;
 use opaque_node::OpaqueNodeMethods;
 use parallel;
 use table::TableFlow;
@@ -330,7 +331,7 @@ impl<'a> FlowConstructor<'a> {
         if child.is_table() {
             let fragment = Fragment::new(child_node, SpecificFragmentInfo::TableWrapper);
             let mut new_child =
-                FlowRef::new(box TableWrapperFlow::from_node_and_fragment(child_node, fragment));
+                FlowRef::new(box TableWrapperFlow::from_node_and_fragment(child_node, fragment, None));
             new_child.add_new_child(child.clone());
             child.finish();
             *child = new_child
@@ -601,7 +602,7 @@ impl<'a> FlowConstructor<'a> {
     ///
     /// FIXME(pcwalton): It is not clear to me that there isn't a cleaner way to handle
     /// `<textarea>`.
-    fn build_flow_for_block(&mut self, flow: FlowRef, node: &ThreadSafeLayoutNode)
+    fn build_flow_for_block_like(&mut self, flow: FlowRef, node: &ThreadSafeLayoutNode)
                             -> ConstructionResult {
         let mut initial_fragments = LinkedList::new();
         if node.get_pseudo_element_type() != PseudoElementType::Normal ||
@@ -653,21 +654,15 @@ impl<'a> FlowConstructor<'a> {
     /// Builds a flow for a node with `display: block`. This yields a `BlockFlow` with possibly
     /// other `BlockFlow`s or `InlineFlow`s underneath it, depending on whether {ib} splits needed
     /// to happen.
-    fn build_flow_for_nonfloated_block(&mut self, node: &ThreadSafeLayoutNode)
-                                       -> ConstructionResult {
-        let flow = box BlockFlow::from_node_and_fragment(node, self.build_fragment_for_block(node))
-            as Box<Flow>;
-        self.build_flow_for_block(FlowRef::new(flow), node)
-    }
-
-    /// Builds the flow for a node with `float: {left|right}`. This yields a float `BlockFlow` with
-    /// a `BlockFlow` underneath it.
-    fn build_flow_for_floated_block(&mut self, node: &ThreadSafeLayoutNode, float_kind: FloatKind)
-                                    -> ConstructionResult {
+    fn build_flow_for_block(&mut self, node: &ThreadSafeLayoutNode, float_kind: Option<FloatKind>)
+                            -> ConstructionResult {
         let fragment = self.build_fragment_for_block(node);
-        let flow = box BlockFlow::float_from_node_and_fragment(node, fragment, float_kind) as
-            Box<Flow>;
-        self.build_flow_for_block(FlowRef::new(flow), node)
+        let flow = if node.style().is_multicol() {
+            box MulticolFlow::from_node_and_fragment(node, fragment, float_kind) as Box<Flow>
+        } else {
+            box BlockFlow::from_node_and_fragment(node, fragment, float_kind) as Box<Flow>
+        };
+        self.build_flow_for_block_like(FlowRef::new(flow), node)
     }
 
     /// Concatenates the fragments of kids, adding in our own borders/padding/margins if necessary.
@@ -814,7 +809,7 @@ impl<'a> FlowConstructor<'a> {
 
     fn build_fragment_for_inline_block(&mut self, node: &ThreadSafeLayoutNode)
                                        -> ConstructionResult {
-        let block_flow_result = self.build_flow_for_nonfloated_block(node);
+        let block_flow_result = self.build_flow_for_block(node, None);
         let (block_flow, abs_descendants) = match block_flow_result {
             ConstructionResult::Flow(block_flow, abs_descendants) => (block_flow, abs_descendants),
             _ => unreachable!()
@@ -840,7 +835,7 @@ impl<'a> FlowConstructor<'a> {
     /// hypothetical box is inline.
     fn build_fragment_for_absolutely_positioned_inline(&mut self, node: &ThreadSafeLayoutNode)
                                                        -> ConstructionResult {
-        let block_flow_result = self.build_flow_for_nonfloated_block(node);
+        let block_flow_result = self.build_flow_for_block(node, None);
         let (block_flow, abs_descendants) = match block_flow_result {
             ConstructionResult::Flow(block_flow, abs_descendants) => (block_flow, abs_descendants),
             _ => unreachable!()
@@ -934,13 +929,8 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_table_wrapper(&mut self, node: &ThreadSafeLayoutNode, float_value: float::T)
                                     -> ConstructionResult {
         let fragment = Fragment::new(node, SpecificFragmentInfo::TableWrapper);
-        let wrapper_flow = match float_value {
-            float::T::none => box TableWrapperFlow::from_node_and_fragment(node, fragment),
-            _ => {
-                let float_kind = FloatKind::from_property(float_value);
-                box TableWrapperFlow::float_from_node_and_fragment(node, fragment, float_kind)
-            }
-        };
+        let wrapper_flow = box TableWrapperFlow::from_node_and_fragment(
+            node, fragment, FloatKind::from_property(float_value));
         let mut wrapper_flow = FlowRef::new(wrapper_flow as Box<Flow>);
 
         let table_fragment = Fragment::new(node, SpecificFragmentInfo::Table);
@@ -948,7 +938,7 @@ impl<'a> FlowConstructor<'a> {
         let table_flow = FlowRef::new(table_flow as Box<Flow>);
 
         // First populate the table flow with its children.
-        let construction_result = self.build_flow_for_block(table_flow, node);
+        let construction_result = self.build_flow_for_block_like(table_flow, node);
 
         let mut abs_descendants = Descendants::new();
         let mut fixed_descendants = Descendants::new();
@@ -1003,7 +993,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_table_caption(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
         let fragment = self.build_fragment_for_block(node);
         let flow = box TableCaptionFlow::from_node_and_fragment(node, fragment) as Box<Flow>;
-        self.build_flow_for_block(FlowRef::new(flow), node)
+        self.build_flow_for_block_like(FlowRef::new(flow), node)
     }
 
     /// Builds a flow for a node with `display: table-row-group`. This yields a `TableRowGroupFlow`
@@ -1013,7 +1003,7 @@ impl<'a> FlowConstructor<'a> {
         let fragment = Fragment::new(node, SpecificFragmentInfo::TableRow);
         let flow = box TableRowGroupFlow::from_node_and_fragment(node, fragment);
         let flow = flow as Box<Flow>;
-        self.build_flow_for_block(FlowRef::new(flow), node)
+        self.build_flow_for_block_like(FlowRef::new(flow), node)
     }
 
     /// Builds a flow for a node with `display: table-row`. This yields a `TableRowFlow` with
@@ -1021,7 +1011,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_table_row(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
         let fragment = Fragment::new(node, SpecificFragmentInfo::TableRow);
         let flow = box TableRowFlow::from_node_and_fragment(node, fragment) as Box<Flow>;
-        self.build_flow_for_block(FlowRef::new(flow), node)
+        self.build_flow_for_block_like(FlowRef::new(flow), node)
     }
 
     /// Builds a flow for a node with `display: table-cell`. This yields a `TableCellFlow` with
@@ -1042,17 +1032,14 @@ impl<'a> FlowConstructor<'a> {
 
         let flow = box TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide)
             as Box<Flow>;
-        self.build_flow_for_block(FlowRef::new(flow), node)
+        self.build_flow_for_block_like(FlowRef::new(flow), node)
     }
 
     /// Builds a flow for a node with `display: list-item`. This yields a `ListItemFlow` with
     /// possibly other `BlockFlow`s or `InlineFlow`s underneath it.
     fn build_flow_for_list_item(&mut self, node: &ThreadSafeLayoutNode, flotation: float::T)
                                 -> ConstructionResult {
-        let flotation = match flotation {
-            float::T::none => None,
-            flotation => Some(FloatKind::from_property(flotation)),
-        };
+        let flotation = FloatKind::from_property(flotation);
         let marker_fragment = match node.style().get_list().list_style_image {
             Some(ref url) => {
                 let image_info = box ImageFragmentInfo::new(node,
@@ -1289,7 +1276,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // below.
             (display::T::block, _, position::T::absolute) |
             (_, _, position::T::fixed) => {
-                let construction_result = self.build_flow_for_nonfloated_block(node);
+                let construction_result = self.build_flow_for_block(node, None);
                 self.set_flow_construction_result(node, construction_result)
             }
 
@@ -1364,15 +1351,9 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // TODO(pcwalton): Make this only trigger for blocks and handle the other `display`
             // properties separately.
 
-            (_, float::T::none, _) => {
-                let construction_result = self.build_flow_for_nonfloated_block(node);
-                self.set_flow_construction_result(node, construction_result)
-            }
-
-            // Floated flows contribute float flow construction results.
             (_, float_value, _) => {
                 let float_kind = FloatKind::from_property(float_value);
-                let construction_result = self.build_flow_for_floated_block(node, float_kind);
+                let construction_result = self.build_flow_for_block(node, float_kind);
                 self.set_flow_construction_result(node, construction_result)
             }
         }
