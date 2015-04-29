@@ -76,12 +76,25 @@ impl Handler {
         }
     }
 
-    fn get_root_pipeline(&self) -> PipelineId {
-        let (sender, reciever) = channel();
-        let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::GetRootPipeline(sender)).unwrap();
+    fn get_root_pipeline(&self) -> WebDriverResult<PipelineId> {
+        let interval = Duration::milliseconds(20);
+        let iterations = 30_000 / interval.num_milliseconds();
 
-        reciever.recv().unwrap().unwrap()
+        for _ in 0..iterations {
+            let (sender, reciever) = channel();
+            let ConstellationChan(ref const_chan) = self.constellation_chan;
+            const_chan.send(ConstellationMsg::GetRootPipeline(sender)).unwrap();
+
+
+            if let Some(x) = reciever.recv().unwrap() {
+                return Ok(x);
+            };
+
+            sleep(interval)
+        };
+
+        Err(WebDriverError::new(ErrorStatus::Timeout,
+                                "Failed to get root window handle"))
     }
 
     fn handle_new_session(&mut self) -> WebDriverResult<WebDriverResponse> {
@@ -109,7 +122,7 @@ impl Handler {
                                                "Invalid URL"))
         };
 
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_root_pipeline());
 
         let (sender, reciever) = channel();
 
