@@ -22,12 +22,12 @@ cache_test(function(cache) {
 cache_test(function(cache) {
     return assert_promise_rejects(
       cache.add('javascript://this-is-not-http-mmkay'),
-      'NetworkError',
-      'Cache.add should throw a NetworkError for non-HTTP/HTTPS URLs.');
+      new TypeError(),
+      'Cache.add should throw a TypeError for non-HTTP/HTTPS URLs.');
   }, 'Cache.add called with non-HTTP/HTTPS URL');
 
 cache_test(function(cache) {
-    var request = new Request('../resources/simple.txt', {method: 'POST', body: 'Hello'});
+    var request = new Request('../resources/simple.txt');
     return cache.add(request)
       .then(function(result) {
           assert_equals(result, undefined,
@@ -36,28 +36,18 @@ cache_test(function(cache) {
   }, 'Cache.add called with Request object');
 
 cache_test(function(cache) {
-    var request = new Request('../resources/simple.txt', {method: 'POST', body: 'Hello'});
-    return request.text()
-      .then(function() {
-          assert_false(request.bodyUsed);
-        })
-      .then(function() {
-          return cache.add(request);
-        });
-  }, 'Cache.add called with Request object with a used body');
-
-cache_test(function(cache) {
-    var request = new Request('../resources/simple.txt', {method: 'POST', body: 'Hello'});
+    var request = new Request('../resources/simple.txt');
     return cache.add(request)
       .then(function(result) {
           assert_equals(result, undefined,
                         'Cache.add should resolve with undefined on success.');
         })
       .then(function() {
-          return assert_promise_rejects(
-            cache.add(request),
-            new TypeError(),
-            'Cache.add should throw TypeError if same request is added twice.');
+          return cache.add(request);
+        })
+      .then(function(result) {
+          assert_equals(result, undefined,
+                        'Cache.add should resolve with undefined on success.');
         });
   }, 'Cache.add called twice with the same Request object');
 
@@ -137,8 +127,8 @@ cache_test(function(cache) {
     var request = new Request('../resources/simple.txt');
     return assert_promise_rejects(
       cache.addAll([request, request]),
-      new TypeError(),
-      'Cache.addAll should throw TypeError if the same request is added ' +
+      'InvalidStateError',
+      'Cache.addAll should throw InvalidStateError if the same request is added ' +
       'twice.');
   }, 'Cache.addAll called with the same Request object specified twice');
 

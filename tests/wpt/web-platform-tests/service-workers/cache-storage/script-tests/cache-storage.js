@@ -106,6 +106,7 @@ promise_test(function(t) {
 
 promise_test(function(t) {
     var cache_name = 'cache-storage/open';
+    var url = '../resources/simple.txt';
     var cache;
     return self.caches.delete(cache_name)
       .then(function() {
@@ -115,21 +116,26 @@ promise_test(function(t) {
           cache = result;
         })
       .then(function() {
-          return self.caches.open(cache_name);
-        })
-      .then(function(result) {
-          assert_equals(result, cache,
-                        'CacheStorage.open should return the named Cache ' +
-                        'object if it exists.');
+          return cache.add('../resources/simple.txt');
         })
       .then(function() {
           return self.caches.open(cache_name);
         })
       .then(function(result) {
-          assert_equals(result, cache,
-                        'CacheStorage.open should return the same ' +
-                        'instance of an existing Cache object.');
-        });
+          assert_true(result instanceof Cache,
+                      'CacheStorage.open should return a Cache object');
+          assert_not_equals(result, cache,
+                            'CacheStorage.open should return a new Cache ' +
+                            'object each time its called.');
+          return Promise.all([cache.keys(), result.keys()]);
+        })
+      .then(function(results) {
+          var expected_urls = results[0].map(function(r) { return r.url });
+          var actual_urls = results[1].map(function(r) { return r.url });
+          assert_array_equals(actual_urls, expected_urls,
+                              'CacheStorage.open should return a new Cache ' +
+                              'object for the same backing store.');
+        })
   }, 'CacheStorage.open with existing cache');
 
 promise_test(function(t) {

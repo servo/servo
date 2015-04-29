@@ -181,32 +181,6 @@ prepopulated_cache_test(simple_entries, function(cache, entries) {
         });
   }, 'Cache.match with new Request');
 
-cache_test(function(cache) {
-    var request = new Request('https://example.com/foo', {
-        method: 'POST',
-        body: 'Hello world!'
-      });
-    var response = new Response('Booyah!', {
-        status: 200,
-        headers: {'Content-Type': 'text/plain'}
-      });
-
-    return cache.put(request.clone(), response.clone())
-      .then(function() {
-          assert_false(
-            request.bodyUsed,
-            '[https://fetch.spec.whatwg.org/#concept-body-used-flag] ' +
-            'Request.bodyUsed flag should be initially false.');
-        })
-      .then(function() {
-          return cache.match(request);
-        })
-      .then(function(result) {
-          assert_false(request.bodyUsed,
-                       'Cache.match should not consume Request body.');
-        });
-  }, 'Cache.match with Request containing non-empty body');
-
 prepopulated_cache_test(simple_entries, function(cache, entries) {
     return cache.matchAll(entries.a.request,
                           {ignoreSearch: true})
@@ -463,6 +437,15 @@ cache_test(function(cache) {
                         'valid body each time it is called.');
         });
   }, 'Cache.match invoked multiple times for the same Request/Response');
+
+prepopulated_cache_test(simple_entries, function(cache, entries) {
+    var request = new Request(entries.a.request, { method: 'POST' });
+    return cache.match(request)
+      .then(function(result) {
+          assert_equals(result, undefined,
+                        'Cache.match should not find a match');
+        });
+  }, 'Cache.match with POST Request');
 
 // Helpers ---
 

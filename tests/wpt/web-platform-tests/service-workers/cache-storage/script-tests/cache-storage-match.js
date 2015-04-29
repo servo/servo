@@ -111,8 +111,11 @@ promise_test(function(test) {
           return self.caches.match(transaction.request, {cacheName: 'foo'});
         })
       .then(function(response) {
-          assert_equals(response, undefined,
-                        'The response should not be found.');
+          assert_unreached('The match with bad cache name should reject.');
+        })
+      .catch(function(err) {
+          assert_equals(err.name, 'NotFoundError',
+                        'The match should reject with NotFoundError.');
           return self.caches.has('foo');
         })
       .then(function(has_foo) {

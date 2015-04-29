@@ -23,7 +23,7 @@ function wait_for_message(id) {
         self.addEventListener('message', function listener(e) {
             if (e.data.id === id) {
                 resolve(e.data);
-                self.removeEventListener(listener);
+                self.removeEventListener('message', listener);
             }
         });
     });

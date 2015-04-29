@@ -13,6 +13,9 @@
 <script src="support.js"></script>
 
 <script>
+    // Transaction may fire window.onerror in some implementations.
+    setup({allow_uncaught_exception:true});
+
     var db,
       events = [],
       t = async_test(document.title, {timeout: 10000})
