@@ -2785,6 +2785,24 @@ class CGGenericSetter(CGAbstractBindingMethod):
                 "*vp = UndefinedValue();\n"
                 "return 1;")
 
+# class CGForwardedSetter(CGAbstractExternMethod):
+#     """
+#     A class for generating the code for a specialized attribute setter
+#     that the JIT can call with lower overhead.
+#     """
+#     def __init__(self, descriptor, attr):
+#         self.attr = attr
+#         name = 'set_' + attr.identifier.name
+#         args = [ Argument('*mut JSContext', 'cx'),
+#                  Argument('JSHandleObject', '_obj'),
+#                  Argument('*const %s' % descriptor.concreteType, 'this'),
+#                  Argument('*mut JSVal', 'argv')]
+#         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
+
+#     def definition_body(self):
+#         getCall = CGSpecializedGetter(self.descriptor, self.attr)
+#         return getCall.definition_body().child.cgRoot
+
 class CGSpecializedSetter(CGAbstractExternMethod):
     """
     A class for generating the code for a specialized attribute setter
@@ -2800,10 +2818,12 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
     def definition_body(self):
-        nativeName = CGSpecializedSetter.makeNativeName(self.descriptor,
-                                                        self.attr)
-        return CGWrapper(CGSetterCall([], self.attr.type, nativeName,
-                                      self.descriptor, self.attr),
+        attr = self.attr
+        nativeName = CGSpecializedSetter.makeNativeName(self.descriptor, attr)
+        if attr.putForwards:
+            attr = attr.putForwards
+        return CGWrapper(CGSetterCall([], attr.type, nativeName,
+                                      self.descriptor, attr),
                          pre="let this = Unrooted::from_raw(this);\n"
                              "let this = this.root();\n")
 
@@ -4230,11 +4250,11 @@ class CGInterfaceTrait(CGThing):
                     for idx, (rettype, arguments) in enumerate(m.signatures()):
                         arguments = method_arguments(descriptor, rettype, arguments)
                         rettype = return_type(descriptor, rettype, infallible)
-                        yield name + ('_' * idx), arguments, rettype
+                        yield name + ('_' * idx), arguments, rettype, None
                 elif m.isAttr() and not m.isStatic():
                     name = CGSpecializedGetter.makeNativeName(descriptor, m)
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m, getter=True)
-                    yield name, attribute_arguments(typeNeedsCx(m.type, True)), return_type(descriptor, m.type, infallible)
+                    yield name, attribute_arguments(typeNeedsCx(m.type, True)), return_type(descriptor, m.type, infallible), None
 
                     if not m.readonly:
                         name = CGSpecializedSetter.makeNativeName(descriptor, m)
@@ -4243,7 +4263,20 @@ class CGInterfaceTrait(CGThing):
                             rettype = "()"
                         else:
                             rettype = "ErrorResult"
-                        yield name, attribute_arguments(typeNeedsCx(m.type, False), m.type), rettype
+                        yield name, attribute_arguments(typeNeedsCx(m.type, False), m.type), rettype, None
+                    elif m.putForwards:
+                        name = CGSpecializedSetter.makeNativeName(descriptor, m)
+                        infallible = 'infallible' in descriptor.getExtendedAttributes(m.setterAttr, setter=True)
+                        if infallible:
+                            rettype = "()"
+                        else:
+                            rettype = "ErrorResult"
+                        getterName = CGGeneric(CGSpecializedGetter.makeNativeName(descriptor, m))
+                        getterCall = CGWrapper(getterName, pre="let %s = self." % m.identifier.name, post="().root();")
+                        setterName = CGGeneric(CGSpecializedSetter.makeNativeName(descriptor, m.putForwards))
+                        setterCall = CGWrapper(setterName, pre=m.identifier.name + ".r().", post="(value)")
+                        body = CGList([getterCall, setterCall], "\n")
+                        yield name, [("value", argument_type(descriptor, m.setterAttr.type))], rettype, body
 
             if descriptor.proxy:
                 for name, operation in descriptor.operations.iteritems():
@@ -4259,18 +4292,27 @@ class CGInterfaceTrait(CGThing):
                     else:
                         arguments = method_arguments(descriptor, rettype, arguments)
                     rettype = return_type(descriptor, rettype, infallible)
-                    yield name, arguments, rettype
+                    yield name, arguments, rettype, None
 
         def fmt(arguments):
             return "".join(", %s: %s" % argument for argument in arguments)
 
+        def item(name, arguments, rettype, body):
+            if body is None:
+                body = CGGeneric(";")
+            else:
+                body = CGWrapper(CGIndenter(body), pre=" {\n", post="\n}")
+            return CGWrapper(body,
+                             pre="fn %s(self%s) -> %s" % (name, fmt(arguments), rettype),
+                             post="\n")
+
         methods = [
-            CGGeneric("fn %s(self%s) -> %s;\n" % (name, fmt(arguments), rettype))
-            for name, arguments, rettype in members()
+            item(name, arguments, rettype, body)
+            for name, arguments, rettype, body in members()
         ]
         if methods:
             self.cgRoot = CGWrapper(CGIndenter(CGList(methods, "")),
-                                    pre="pub trait %sMethods {\n" % descriptor.interface.identifier.name,
+                                    pre="pub trait %sMethods: Sized {\n" % descriptor.interface.identifier.name,
                                     post="}")
         else:
             self.cgRoot = CGGeneric("")
@@ -4331,6 +4373,9 @@ class CGDescriptor(CGThing):
                             hasLenientSetter = True
                         else:
                             hasSetter = True
+                elif m.putForwards:
+                    cgThings.append(CGSpecializedSetter(descriptor, m))
+                    hasSetter = True
 
                 if (not m.isStatic() and
                     not descriptor.interface.isCallback()):

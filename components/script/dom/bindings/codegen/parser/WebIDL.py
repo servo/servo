@@ -989,41 +989,45 @@ class IDLInterface(IDLObjectWithScope, IDLExposureMixins):
             # Check that PutForwards refers to another attribute and that no
             # cycles exist in forwarded assignments.
             if member.isAttr():
-                iface = self
                 attr = member
                 putForwards = attr.getExtendedAttribute("PutForwards")
-                if putForwards and self.isCallback():
-                    raise WebIDLError("[PutForwards] used on an attribute "
-                                      "on interface %s which is a callback "
-                                      "interface" % self.identifier.name,
-                                      [self.location, member.location])
+                if putForwards:
+                    if self.isCallback():
+                        raise WebIDLError("[PutForwards] used on an attribute "
+                                          "on interface %s which is a callback "
+                                          "interface" % self.identifier.name,
+                                          [self.location, member.location])
+                    iface = self
+                    setterAttr = None
+                    firstForwarded = None
+                    while putForwards is not None:
+                        forwardedIface = attr.type.unroll().inner
+                        forwardedAttr = None
 
-                while putForwards is not None:
-                    forwardIface = attr.type.unroll().inner
-                    fowardAttr = None
-
-                    for forwardedMember in forwardIface.members:
-                        if (not forwardedMember.isAttr() or
-                            forwardedMember.identifier.name != putForwards[0]):
-                            continue
-                        if forwardedMember == member:
+                        forwardedAttr = forwardedIface.findAttr(putForwards[0])
+                        if forwardedAttr is None:
+                            raise WebIDLError("Attribute %s on %s forwards to "
+                                              "missing attribute %s" %
+                                  (attr.identifier.name, iface, putForwards),
+                                  [attr.location])
+                        if forwardedAttr == member:
                             raise WebIDLError("Cycle detected in forwarded "
                                               "assignments for attribute %s on "
                                               "%s" %
                                               (member.identifier.name, self),
                                               [member.location])
-                        fowardAttr = forwardedMember
-                        break
-
-                    if fowardAttr is None:
-                        raise WebIDLError("Attribute %s on %s forwards to "
-                                          "missing attribute %s" %
-                              (attr.identifier.name, iface, putForwards),
-                              [attr.location])
-
-                    iface = forwardIface
-                    attr = fowardAttr
-                    putForwards = attr.getExtendedAttribute("PutForwards")
+                        if firstForwarded is None:
+                            firstForwarded = forwardedAttr
+                        iface = forwardedIface
+                        attr = forwardedAttr
+                        putForwards = attr.getExtendedAttribute("PutForwards")
+                    if attr.readonly:
+                        raise WebIDLError("Cannot forward to readonly attribute "
+                                          "%s on %s" %
+                                          (attr.identifier.name, iface),
+                                          [member.location])
+                    member.setterAttr = attr
+                    member.putForwards = firstForwarded
 
         if (self.getExtendedAttribute("Pref") and
             self._exposureGlobalNames != set([self.parentScope.primaryGlobalName])):
@@ -1046,6 +1050,12 @@ class IDLInterface(IDLObjectWithScope, IDLExposureMixins):
             raise WebIDLError("Interface with no interface object is "
                               "exposed conditionally",
                               [self.location])
+
+    def findAttr(self, name):
+        for member in self.members:
+            if (member.isAttr() and member.identifier.name == name):
+                return member
+        return None
 
     def isInterface(self):
         return True
@@ -3199,6 +3209,8 @@ class IDLAttribute(IDLInterfaceMember):
         self.slotIndex = None
         self.dependsOn = "Everything"
         self.affects = "Everything"
+        self.setterAttr = None
+        self.putForwards = None
 
         if static and identifier.name == "prototype":
             raise WebIDLError("The identifier of a static attribute must not be 'prototype'",
@@ -3280,6 +3292,16 @@ class IDLAttribute(IDLInterfaceMember):
                                   "sequence-valued, dictionary-valued, and "
                                   "MozMap-valued attributes",
                                   [self.location])
+        if (self.putForwards and
+            (self.getExtendedAttribute("Throws") or
+             self.getExtendedAttribute("GetterThrows") or
+             self.getExtendedAttribute("SetterThrows"))):
+            raise WebIDLError("Forwarded setters can't decide for themselves "
+                              "whether they can throw or not.",
+                              [self.location])
+        if (self.putForwards and self.nullable):
+            raise WebIDLError("Forwarded attributes can't be nullable.",
+                              [self.location])
         if not self.type.unroll().isExposedInAllOf(self.exposureSet):
             raise WebIDLError("Attribute returns a type that is not exposed "
                               "everywhere where the attribute is exposed",
