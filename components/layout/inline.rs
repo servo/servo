@@ -895,10 +895,17 @@ impl InlineFlow {
         let slack_inline_size = max(Au(0), line.green_zone.inline - line.bounds.size.inline);
 
         // Compute the value we're going to use for `text-justify`.
-        let text_justify = if fragments.fragments.is_empty() {
+        if fragments.fragments.is_empty() {
             return
-        } else {
-            fragments.fragments[0].style().get_inheritedtext().text_justify
+        }
+        let text_justify = fragments.fragments[0].style().get_inheritedtext().text_justify;
+
+        // Translate `left` and `right` to logical directions.
+        let is_ltr = fragments.fragments[0].style().writing_mode.is_bidi_ltr();
+        let line_align = match (line_align, is_ltr) {
+            (text_align::T::left, true) | (text_align::T::right, false) => text_align::T::start,
+            (text_align::T::left, false) | (text_align::T::right, true) => text_align::T::end,
+            _ => line_align
         };
 
         // Set the fragment inline positions based on that alignment, and justify the text if
@@ -908,15 +915,16 @@ impl InlineFlow {
             text_align::T::justify if !is_last_line && text_justify != text_justify::T::none => {
                 InlineFlow::justify_inline_fragments(fragments, line, slack_inline_size)
             }
-            text_align::T::left | text_align::T::justify => {}
+            text_align::T::justify | text_align::T::start => {}
             text_align::T::center => {
                 inline_start_position_for_fragment = inline_start_position_for_fragment +
                     slack_inline_size.scale_by(0.5)
             }
-            text_align::T::right => {
+            text_align::T::end => {
                 inline_start_position_for_fragment = inline_start_position_for_fragment +
                     slack_inline_size
             }
+            text_align::T::left | text_align::T::right => unreachable!()
         }
 
         for fragment_index in line.range.begin()..line.range.end() {
