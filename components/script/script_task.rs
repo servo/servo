@@ -316,7 +316,7 @@ pub struct ScriptTask {
     /// The JavaScript runtime.
     js_runtime: Rc<Runtime>,
 
-    mouse_over_targets: DOMRefCell<Vec<JS<Node>>>
+    mouse_over_targets: DOMRefCell<Vec<JS<Node>>>,
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
@@ -814,7 +814,9 @@ impl ScriptTask {
             WebDriverScriptCommand::GetElementText(node_id, reply) =>
                 webdriver_handlers::handle_get_text(&page, pipeline_id, node_id, reply),
             WebDriverScriptCommand::GetTitle(reply) =>
-                webdriver_handlers::handle_get_title(&page, pipeline_id, reply)
+                webdriver_handlers::handle_get_title(&page, pipeline_id, reply),
+            WebDriverScriptCommand::ExecuteAsyncScript(script, reply) =>
+                webdriver_handlers::handle_execute_async_script(&page, pipeline_id, script, reply),
         }
     }
 

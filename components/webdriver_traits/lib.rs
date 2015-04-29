@@ -12,6 +12,7 @@ use std::sync::mpsc::Sender;
 
 pub enum WebDriverScriptCommand {
     ExecuteScript(String, Sender<Result<EvaluateJSReply, ()>>),
+    ExecuteAsyncScript(String, Sender<Result<EvaluateJSReply, ()>>),
     FindElementCSS(String, Sender<Result<Option<String>, ()>>),
     FindElementsCSS(String, Sender<Result<Vec<String>, ()>>),
     GetActiveElement(Sender<Option<String>>),
