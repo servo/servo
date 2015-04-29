@@ -106,6 +106,11 @@ impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
         self.data.borrow_mut().insert(name, vec!(value));
         self.update_steps();
     }
+
+    // https://url.spec.whatwg.org/#stringification-behavior
+    fn Stringifier(self) -> DOMString {
+        DOMString::from_utf8(self.serialize(None)).unwrap()
+    }
 }
 
 pub trait URLSearchParamsHelpers {

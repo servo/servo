@@ -159,4 +159,9 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
             }
         }
     }
+
+    // https://dom.spec.whatwg.org/#stringification-behavior
+    fn Stringifier(self) -> DOMString {
+        self.element.root().r().get_string_attribute(&self.local_name)
+    }
 }
