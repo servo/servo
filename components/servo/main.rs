@@ -15,9 +15,12 @@
 //!
 //! [glutin]: https://github.com/tomaka/glutin
 
+// The Servo engine
 #![feature(start)]
 
-// The Servo engine
+#[cfg(target_os="android")]
+extern crate libc;
+
 extern crate servo;
 // Window graphics compositing and message dispatch
 extern crate compositing;

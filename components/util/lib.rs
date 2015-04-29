@@ -10,6 +10,7 @@
 #![feature(hash)]
 #![feature(io)]
 #![feature(optin_builtin_traits)]
+#![feature(old_io)]
 #![feature(path)]
 #![cfg_attr(not(target_os = "android"), feature(path_ext))]
 #![feature(plugin)]

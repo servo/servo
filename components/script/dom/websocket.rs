@@ -104,7 +104,6 @@ impl WebSocket {
 }
 
 impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
-    // https://html.spec.whatwg.org/#dom-websocket-url
 	event_handler!(open, GetOnopen, SetOnopen);
 	event_handler!(close, GetOnclose, SetOnclose);
 	event_handler!(error, GetOnerror, SetOnerror);
@@ -154,7 +153,7 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
 		return Err(Error::Syntax); //Throw SyntaxError and abort
 	   }
 	}
-	//TODO:
+
 	match self.ready_state.get() { //Returns the value of the cell
 	   WebSocketRequestState::Closing => {} //Do nothing
 	   WebSocketRequestState::Closed => {} //Do nothing
@@ -213,6 +212,7 @@ impl WebSocketTaskHandler {
     }
 
     fn dispatch_open(&self) {
+	//Still todo: Implement returning and setting exit states based on spec.
     	println!("Trying to connect.");
     	let ws = self.addr.to_temporary().root();
     	let ws = ws.r();
@@ -221,7 +221,7 @@ impl WebSocketTaskHandler {
 		let response = request.send().unwrap();
 		response.validate().unwrap();
 		println!("Successful connection.");
-		//TODO: Check to see if ready_state is Closing or Closed and failed = true - means we failed the websocket
+		//Check to see if ready_state is Closing or Closed and failed = true - means we failed the websocket
 		//if so return without setting any states
 	if(((ws.ready_state.get() == WebSocketRequestState::Closed) || (ws.ready_state.get() == WebSocketRequestState::Closing)) && ws.failed.get()) {
 		//Do nothing else. Let the close finish.
