@@ -38,7 +38,8 @@ pub enum EventTypeId {
     MouseEvent,
     ProgressEvent,
     UIEvent,
-    ErrorEvent
+    ErrorEvent,
+    CloseEvent
 }
 
 #[derive(PartialEq)]
