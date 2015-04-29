@@ -14,7 +14,7 @@ use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
 use dom::bindings::js::{JS, JSRef, OptionalRootable, Root, Rootable};
 use dom::bindings::js::{RootedReference, Temporary};
 use dom::bindings::trace::RootedVec;
-use dom::characterdata::CharacterDataHelpers;
+use dom::characterdata::{CharacterDataHelpers, CharacterDataTypeId};
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers};
 use dom::document::{DocumentSource, IsHTMLDocument};
@@ -247,17 +247,17 @@ impl<'a> Serializable for JSRef<'a, Node> {
                 serializer.write_doctype(&doctype.name())
             },
 
-            (IncludeNode, NodeTypeId::Text) => {
+            (IncludeNode, NodeTypeId::CharacterData(CharacterDataTypeId::Text)) => {
                 let cdata = CharacterDataCast::to_ref(node).unwrap();
                 serializer.write_text(&cdata.data())
             },
 
-            (IncludeNode, NodeTypeId::Comment) => {
+            (IncludeNode, NodeTypeId::CharacterData(CharacterDataTypeId::Comment)) => {
                 let cdata = CharacterDataCast::to_ref(node).unwrap();
                 serializer.write_comment(&cdata.data())
             },
 
-            (IncludeNode, NodeTypeId::ProcessingInstruction) => {
+            (IncludeNode, NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction)) => {
                 let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
                 let data = CharacterDataCast::from_ref(pi).data();
                 serializer.write_processing_instruction(&pi.target(), &data)

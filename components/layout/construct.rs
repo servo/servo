@@ -47,6 +47,7 @@ use text::TextRunScanner;
 use wrapper::{PostorderNodeMutTraversal, PseudoElementType, TLayoutNode, ThreadSafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
+use script::dom::characterdata::CharacterDataTypeId;
 use script::dom::element::ElementTypeId;
 use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlobjectelement::is_image_data;
@@ -789,7 +790,7 @@ impl<'a> FlowConstructor<'a> {
         // fragment that needs to be generated for this inline node.
         let mut fragments = LinkedList::new();
         match (node.get_pseudo_element_type(), node.type_id()) {
-            (_, Some(NodeTypeId::Text)) => {
+            (_, Some(NodeTypeId::CharacterData(CharacterDataTypeId::Text))) => {
                 self.create_fragments_for_node_text_content(&mut fragments, node, &style)
             }
             (PseudoElementType::Normal, _) => {
@@ -1239,12 +1240,12 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
                 };
                 (munged_display, style.get_box().float, style.get_box().position)
             }
-            Some(NodeTypeId::Text) => (display::T::inline, float::T::none, position::T::static_),
-            Some(NodeTypeId::Comment) |
+            Some(NodeTypeId::CharacterData(CharacterDataTypeId::Text)) => (display::T::inline, float::T::none, position::T::static_),
+            Some(NodeTypeId::CharacterData(CharacterDataTypeId::Comment)) |
+            Some(NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction)) |
             Some(NodeTypeId::DocumentType) |
             Some(NodeTypeId::DocumentFragment) |
-            Some(NodeTypeId::Document) |
-            Some(NodeTypeId::ProcessingInstruction) => {
+            Some(NodeTypeId::Document) => {
                 (display::T::none, float::T::none, position::T::static_)
             }
         };
@@ -1382,9 +1383,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
     fn is_replaced_content(&self) -> bool {
         match self.type_id() {
             None |
-            Some(NodeTypeId::Text) |
-            Some(NodeTypeId::ProcessingInstruction) |
-            Some(NodeTypeId::Comment) |
+            Some(NodeTypeId::CharacterData(_)) |
             Some(NodeTypeId::DocumentType) |
             Some(NodeTypeId::DocumentFragment) |
             Some(NodeTypeId::Document) |

@@ -8,7 +8,7 @@ use dom::bindings::codegen::InheritTypes::CommentDerived;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Rootable, Temporary};
-use dom::characterdata::CharacterData;
+use dom::characterdata::{CharacterData, CharacterDataTypeId};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::node::{Node, NodeTypeId};
@@ -22,14 +22,14 @@ pub struct Comment {
 
 impl CommentDerived for EventTarget {
     fn is_comment(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Comment)
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::CharacterData(CharacterDataTypeId::Comment))
     }
 }
 
 impl Comment {
     fn new_inherited(text: DOMString, document: JSRef<Document>) -> Comment {
         Comment {
-            characterdata: CharacterData::new_inherited(NodeTypeId::Comment, text, document)
+            characterdata: CharacterData::new_inherited(CharacterDataTypeId::Comment, text, document)
         }
     }
 

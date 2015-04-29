@@ -31,7 +31,7 @@ use dom::bindings::js::Unrooted;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
-use dom::characterdata::{CharacterData, CharacterDataHelpers};
+use dom::characterdata::{CharacterData, CharacterDataHelpers, CharacterDataTypeId};
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument, DocumentSource};
 use dom::documentfragment::DocumentFragment;
@@ -269,13 +269,11 @@ impl LayoutDataRef {
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[jstraceable]
 pub enum NodeTypeId {
+    CharacterData(CharacterDataTypeId),
     DocumentType,
     DocumentFragment,
-    Comment,
     Document,
     Element(ElementTypeId),
-    Text,
-    ProcessingInstruction,
 }
 
 trait PrivateNodeHelpers {
@@ -616,7 +614,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     #[inline]
     fn is_text(self) -> bool {
-        self.type_id == NodeTypeId::Text
+        self.type_id == NodeTypeId::CharacterData(CharacterDataTypeId::Text)
     }
 
     fn get_flag(self, flag: NodeFlags) -> bool {
@@ -1420,7 +1418,7 @@ impl Node {
 
         // Step 4-5.
         match node.type_id() {
-            NodeTypeId::Text => {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
                 if parent.is_document() {
                     return Err(HierarchyRequest);
                 }
@@ -1432,8 +1430,8 @@ impl Node {
             },
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(_) |
-            NodeTypeId::ProcessingInstruction |
-            NodeTypeId::Comment => (),
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => (),
             NodeTypeId::Document => return Err(HierarchyRequest)
         }
 
@@ -1507,9 +1505,7 @@ impl Node {
                             },
                         }
                     },
-                    NodeTypeId::Text |
-                    NodeTypeId::ProcessingInstruction |
-                    NodeTypeId::Comment => (),
+                    NodeTypeId::CharacterData(_) => (),
                     NodeTypeId::Document => unreachable!(),
                 }
             },
@@ -1711,7 +1707,7 @@ impl Node {
                 let doc_fragment = DocumentFragment::new(document.r());
                 NodeCast::from_temporary(doc_fragment)
             },
-            NodeTypeId::Comment => {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
                 let cdata = CharacterDataCast::to_ref(node).unwrap();
                 let comment = Comment::new(cdata.Data(), document.r());
                 NodeCast::from_temporary(comment)
@@ -1739,12 +1735,12 @@ impl Node {
                     document.r(), ElementCreator::ScriptCreated);
                 NodeCast::from_temporary(element)
             },
-            NodeTypeId::Text => {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
                 let cdata = CharacterDataCast::to_ref(node).unwrap();
                 let text = Text::new(cdata.Data(), document.r());
                 NodeCast::from_temporary(text)
             },
-            NodeTypeId::ProcessingInstruction => {
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
                 let pi = ProcessingInstruction::new(pi.Target(),
                                                     CharacterDataCast::from_ref(pi).Data(), document.r());
@@ -1819,13 +1815,13 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     // https://dom.spec.whatwg.org/#dom-node-nodetype
     fn NodeType(self) -> u16 {
         match self.type_id {
-            NodeTypeId::Element(_)            => NodeConstants::ELEMENT_NODE,
-            NodeTypeId::Text                  => NodeConstants::TEXT_NODE,
-            NodeTypeId::ProcessingInstruction => NodeConstants::PROCESSING_INSTRUCTION_NODE,
-            NodeTypeId::Comment               => NodeConstants::COMMENT_NODE,
-            NodeTypeId::Document              => NodeConstants::DOCUMENT_NODE,
-            NodeTypeId::DocumentType          => NodeConstants::DOCUMENT_TYPE_NODE,
-            NodeTypeId::DocumentFragment      => NodeConstants::DOCUMENT_FRAGMENT_NODE,
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text)                  => NodeConstants::TEXT_NODE,
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => NodeConstants::PROCESSING_INSTRUCTION_NODE,
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment)               => NodeConstants::COMMENT_NODE,
+            NodeTypeId::Document                                                  => NodeConstants::DOCUMENT_NODE,
+            NodeTypeId::DocumentType                                              => NodeConstants::DOCUMENT_TYPE_NODE,
+            NodeTypeId::DocumentFragment                                          => NodeConstants::DOCUMENT_FRAGMENT_NODE,
+            NodeTypeId::Element(_)                                                => NodeConstants::ELEMENT_NODE,
         }
     }
 
@@ -1836,13 +1832,13 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 let elem: JSRef<Element> = ElementCast::to_ref(self).unwrap();
                 elem.TagName()
             }
-            NodeTypeId::Text => "#text".to_owned(),
-            NodeTypeId::ProcessingInstruction => {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => "#text".to_owned(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 let processing_instruction: JSRef<ProcessingInstruction> =
                     ProcessingInstructionCast::to_ref(self).unwrap();
                 processing_instruction.Target()
             }
-            NodeTypeId::Comment => "#comment".to_owned(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => "#comment".to_owned(),
             NodeTypeId::DocumentType => {
                 let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(self).unwrap();
                 doctype.name().clone()
@@ -1861,10 +1857,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     // https://dom.spec.whatwg.org/#dom-node-ownerdocument
     fn GetOwnerDocument(self) -> Option<Temporary<Document>> {
         match self.type_id {
+            NodeTypeId::CharacterData(..) |
             NodeTypeId::Element(..) |
-            NodeTypeId::Comment |
-            NodeTypeId::Text |
-            NodeTypeId::ProcessingInstruction |
             NodeTypeId::DocumentType |
             NodeTypeId::DocumentFragment => Some(self.owner_doc()),
             NodeTypeId::Document => None
@@ -1924,9 +1918,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn GetNodeValue(self) -> Option<DOMString> {
         match self.type_id {
-            NodeTypeId::Comment |
-            NodeTypeId::Text |
-            NodeTypeId::ProcessingInstruction => {
+            NodeTypeId::CharacterData(..) => {
                 let chardata: JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
                 Some(chardata.Data())
             }
@@ -1939,9 +1931,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn SetNodeValue(self, val: Option<DOMString>) {
         match self.type_id {
-            NodeTypeId::Comment |
-            NodeTypeId::Text |
-            NodeTypeId::ProcessingInstruction => {
+            NodeTypeId::CharacterData(..) => {
                 self.SetTextContent(val)
             }
             _ => {}
@@ -1956,9 +1946,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 let content = Node::collect_text_contents(self.traverse_preorder());
                 Some(content)
             }
-            NodeTypeId::Comment |
-            NodeTypeId::Text |
-            NodeTypeId::ProcessingInstruction => {
+            NodeTypeId::CharacterData(..) => {
                 let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
                 Some(characterdata.Data())
             }
@@ -1986,9 +1974,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 // Step 3.
                 Node::replace_all(node.r(), self);
             }
-            NodeTypeId::Comment |
-            NodeTypeId::Text |
-            NodeTypeId::ProcessingInstruction => {
+            NodeTypeId::CharacterData(..) => {
                 let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
                 characterdata.SetData(value);
 
@@ -2034,14 +2020,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
         // Step 4-5.
         match node.type_id() {
-            NodeTypeId::Text if self.is_document() => return Err(HierarchyRequest),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) if self.is_document() => return Err(HierarchyRequest),
             NodeTypeId::DocumentType if !self.is_document() => return Err(HierarchyRequest),
             NodeTypeId::DocumentFragment |
             NodeTypeId::DocumentType |
             NodeTypeId::Element(..) |
-            NodeTypeId::Text |
-            NodeTypeId::ProcessingInstruction |
-            NodeTypeId::Comment => (),
+            NodeTypeId::CharacterData(..) => (),
             NodeTypeId::Document => return Err(HierarchyRequest)
         }
 
@@ -2107,9 +2091,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                             return Err(HierarchyRequest);
                         }
                     },
-                    NodeTypeId::Text |
-                    NodeTypeId::ProcessingInstruction |
-                    NodeTypeId::Comment => (),
+                    NodeTypeId::CharacterData(..) => (),
                     NodeTypeId::Document => unreachable!()
                 }
             },
@@ -2269,9 +2251,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 // Step 3.
                 NodeTypeId::DocumentType if !is_equal_doctype(this, node) => return false,
                 NodeTypeId::Element(..) if !is_equal_element(this, node) => return false,
-                NodeTypeId::ProcessingInstruction if !is_equal_processinginstruction(this, node) => return false,
-                NodeTypeId::Text |
-                NodeTypeId::Comment if !is_equal_characterdata(this, node) => return false,
+                NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) if !is_equal_processinginstruction(this, node) => return false,
+                NodeTypeId::CharacterData(CharacterDataTypeId::Text) |
+                NodeTypeId::CharacterData(CharacterDataTypeId::Comment) if !is_equal_characterdata(this, node) => return false,
                 // Step 4.
                 NodeTypeId::Element(..) if !is_equal_element_attrs(this, node) => return false,
                 _ => ()
