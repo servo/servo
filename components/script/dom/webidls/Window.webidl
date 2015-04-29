@@ -56,6 +56,9 @@
 
   //void postMessage(any message, DOMString targetOrigin, optional sequence<Transferable> transfer);
 
+  // Shouldn't be public, but just to make things work for now
+  void webdriverCallback(optional any result);
+
   // also has obsolete members
 };
 Window implements GlobalEventHandlers;

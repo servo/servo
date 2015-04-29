@@ -21,8 +21,8 @@ extern crate webdriver_traits;
 
 use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, NavigationDirection, WebDriverCommandMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use std::sync::mpsc::channel;
-use webdriver_traits::WebDriverScriptCommand;
+use std::sync::mpsc::{channel, Receiver};
+use webdriver_traits::{WebDriverScriptCommand, EvaluateJSReply};
 
 use url::Url;
 use webdriver::command::{WebDriverMessage, WebDriverCommand};
@@ -77,8 +77,8 @@ impl Handler {
     }
 
     fn get_root_pipeline(&self) -> WebDriverResult<PipelineId> {
-        let interval = Duration::milliseconds(20);
-        let iterations = 30_000 / interval.num_milliseconds();
+        let interval = 20;
+        let iterations = 30_000 / interval;
 
         for _ in 0..iterations {
             let (sender, reciever) = channel();
@@ -90,7 +90,7 @@ impl Handler {
                 return Ok(x);
             };
 
-            sleep(interval)
+            sleep_ms(interval)
         };
 
         Err(WebDriverError::new(ErrorStatus::Timeout,
@@ -150,7 +150,7 @@ impl Handler {
     }
 
     fn handle_get_title(&self) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_root_pipeline());
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
@@ -176,7 +176,7 @@ impl Handler {
     }
 
     fn handle_find_element(&self, parameters: &LocatorParameters) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_root_pipeline());
 
         if parameters.using != LocatorStrategy::CSSSelector {
             return Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
@@ -198,7 +198,7 @@ impl Handler {
     }
 
     fn handle_find_elements(&self, parameters: &LocatorParameters) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_root_pipeline());
 
         if parameters.using != LocatorStrategy::CSSSelector {
             return Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
@@ -222,7 +222,7 @@ impl Handler {
     }
 
     fn handle_get_element_text(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_root_pipeline());
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
@@ -237,7 +237,7 @@ impl Handler {
     }
 
     fn handle_get_active_element(&self) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_root_pipeline());
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
@@ -249,7 +249,7 @@ impl Handler {
     }
 
     fn handle_get_element_tag_name(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_root_pipeline());
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
@@ -263,11 +263,7 @@ impl Handler {
         }
     }
 
-    fn handle_execute_script(&self, parameters: &JavascriptCommandParameters)  -> WebDriverResult<WebDriverResponse> {
-        // TODO: This isn't really right because it always runs the script in the
-        // root window
-        let pipeline_id = self.get_root_pipeline();
-
+    fn handle_execute_script(&self, parameters: &JavascriptCommandParameters) -> WebDriverResult<WebDriverResponse> {
         let func_body = &parameters.script;
         let args_string = "";
 
@@ -277,9 +273,31 @@ impl Handler {
         let script = format!("(function() {{ {} }})({})", func_body, args_string);
 
         let (sender, reciever) = channel();
+        let command = WebDriverScriptCommand::ExecuteScript(script, sender);
+        self.execute_script(command, reciever)
+    }
+
+    fn handle_execute_async_script(&self, parameters: &JavascriptCommandParameters) -> WebDriverResult<WebDriverResponse> {
+        let func_body = &parameters.script;
+        let args_string = "window.webdriverCallback";
+
+        // This is pretty ugly; we really want something that acts like
+        // new Function() and then takes the resulting function and executes
+        // it with a vec of arguments.
+        let script = format!("(function(callback) {{ {} }})({})", func_body, args_string);
+
+        let (sender, reciever) = channel();
+        let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
+        self.execute_script(command, reciever)
+    }
+
+    fn execute_script(&self, command: WebDriverScriptCommand, reciever: Receiver<Result<EvaluateJSReply, ()>>) -> WebDriverResult<WebDriverResponse> {
+        // TODO: This isn't really right because it always runs the script in the
+        // root window
+        let pipeline_id = try!(self.get_root_pipeline());
+
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        let cmd = WebDriverScriptCommand::ExecuteScript(script, sender);
-        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, command);
         const_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
         match reciever.recv().unwrap() {
@@ -348,6 +366,7 @@ impl WebDriverHandler for Handler {
             WebDriverCommand::GetElementText(ref element) => self.handle_get_element_text(element),
             WebDriverCommand::GetElementTagName(ref element) => self.handle_get_element_tag_name(element),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
+            WebDriverCommand::ExecuteAsyncScript(ref x) => self.handle_execute_async_script(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
             _ => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
                                          "Command not implemented"))
