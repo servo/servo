@@ -72,13 +72,13 @@ pub enum ConstellationControlMsg {
     /// Notifies script task that a url should be loaded in this iframe.
     Navigate(PipelineId, SubpageId, LoadData),
     /// Requests the script task forward a mozbrowser event to an iframe it owns
-    MozBrowserEventMsg(PipelineId, SubpageId, MozBrowserEvent),
+    MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
     /// Updates the current subpage id of a given iframe
     UpdateSubpageId(PipelineId, SubpageId, SubpageId),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
-    FocusIFrameMsg(PipelineId, SubpageId),
+    FocusIFrame(PipelineId, SubpageId),
     // Passes a webdriver command to the script task for execution
-    WebDriverCommandMsg(PipelineId, WebDriverScriptCommand)
+    WebDriverCommand(PipelineId, WebDriverScriptCommand)
 }
 
 /// The mouse button involved in the event.

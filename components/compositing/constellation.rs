@@ -385,9 +385,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got get-pipeline-title message");
                 self.handle_get_pipeline_title_msg(pipeline_id);
             }
-            ConstellationMsg::MozBrowserEventMsg(pipeline_id,
-                                                 subpage_id,
-                                                 event) => {
+            ConstellationMsg::MozBrowserEvent(pipeline_id,
+                                              subpage_id,
+                                              event) => {
                 debug!("constellation got mozbrowser event message");
                 self.handle_mozbrowser_event_msg(pipeline_id,
                                                  subpage_id,
@@ -397,7 +397,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got get root pipeline message");
                 self.handle_get_root_pipeline(resp_chan);
             }
-            ConstellationMsg::FocusMsg(pipeline_id) => {
+            ConstellationMsg::Focus(pipeline_id) => {
                 debug!("constellation got focus message");
                 self.handle_focus_msg(pipeline_id);
             }
@@ -411,8 +411,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 };
                 sender.send(result).unwrap();
             }
-            ConstellationMsg::WebDriverCommandMsg(pipeline_id,
-                                                  command) => {
+            ConstellationMsg::WebDriverCommand(pipeline_id,
+                                               command) => {
                 debug!("constellation got webdriver command message");
                 self.handle_webdriver_command_msg(pipeline_id,
                                                   command);
@@ -569,7 +569,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.pipeline(pipeline_id)
             .layout_chan
             .0
-            .send(LayoutControlMsg::TickAnimationsMsg)
+            .send(LayoutControlMsg::TickAnimations)
             .unwrap();
     }
 
@@ -745,7 +745,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         if let Some((containing_pipeline_id, subpage_id)) = self.pipeline(pipeline_id).parent_info {
             let pipeline = self.pipeline(containing_pipeline_id);
             let ScriptControlChan(ref script_channel) = pipeline.script_chan;
-            let event = ConstellationControlMsg::FocusIFrameMsg(containing_pipeline_id,
+            let event = ConstellationControlMsg::FocusIFrame(containing_pipeline_id,
                                                                 subpage_id);
             script_channel.send(event).unwrap();
 
@@ -766,7 +766,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script task.
         let pipeline = self.pipeline(pipeline_id);
-        let control_msg = ConstellationControlMsg::WebDriverCommandMsg(pipeline_id, msg);
+        let control_msg = ConstellationControlMsg::WebDriverCommand(pipeline_id, msg);
         let ScriptControlChan(ref script_channel) = pipeline.script_chan;
         script_channel.send(control_msg).unwrap();
     }

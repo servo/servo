@@ -718,9 +718,9 @@ impl ScriptTask {
                 self.handle_freeze_msg(pipeline_id),
             ConstellationControlMsg::Thaw(pipeline_id) =>
                 self.handle_thaw_msg(pipeline_id),
-            ConstellationControlMsg::MozBrowserEventMsg(parent_pipeline_id,
-                                                        subpage_id,
-                                                        event) =>
+            ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
+                                                     subpage_id,
+                                                     event) =>
                 self.handle_mozbrowser_event_msg(parent_pipeline_id,
                                                  subpage_id,
                                                  event),
@@ -728,9 +728,9 @@ impl ScriptTask {
                                                      old_subpage_id,
                                                      new_subpage_id) =>
                 self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
-            ConstellationControlMsg::FocusIFrameMsg(containing_pipeline_id, subpage_id) =>
+            ConstellationControlMsg::FocusIFrame(containing_pipeline_id, subpage_id) =>
                 self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
-            ConstellationControlMsg::WebDriverCommandMsg(pipeline_id, msg) => {
+            ConstellationControlMsg::WebDriverCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg);
             }
         }

@@ -221,7 +221,7 @@ pub enum Msg {
     /// Requests that the constellation inform the compositor of the a cursor change.
     SetCursor(Cursor),
     /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
-    MozBrowserEventMsg(PipelineId, SubpageId, MozBrowserEvent),
+    MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
     /// Indicates whether this pipeline is currently running animations.
     ChangeRunningAnimationsState(PipelineId, bool),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
@@ -229,11 +229,11 @@ pub enum Msg {
     // Request that the constellation send the current root pipeline id over a provided channel
     GetRootPipeline(Sender<Option<PipelineId>>),
     /// Notifies the constellation that this frame has received focus.
-    FocusMsg(PipelineId),
+    Focus(PipelineId),
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(Sender<String>),
     // Dispatch a webdriver command
-    WebDriverCommandMsg(PipelineId, WebDriverScriptCommand)
+    WebDriverCommand(PipelineId, WebDriverScriptCommand)
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
