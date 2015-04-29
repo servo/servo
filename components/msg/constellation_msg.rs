@@ -221,7 +221,7 @@ pub enum Msg {
     /// Requests that the constellation inform the compositor of the a cursor change.
     SetCursor(Cursor),
     /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
-    MozBrowserEventMsg(PipelineId, SubpageId, MozBrowserEvent),
+    MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
     /// Indicates whether this pipeline is currently running animations.
     ChangeRunningAnimationsState(PipelineId, bool),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.

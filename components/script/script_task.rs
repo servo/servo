@@ -718,7 +718,7 @@ impl ScriptTask {
                 self.handle_freeze_msg(pipeline_id),
             ConstellationControlMsg::Thaw(pipeline_id) =>
                 self.handle_thaw_msg(pipeline_id),
-            ConstellationControlMsg::MozBrowserEventMsg(parent_pipeline_id,
+            ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
                                                         subpage_id,
                                                         event) =>
                 self.handle_mozbrowser_event_msg(parent_pipeline_id,

@@ -385,7 +385,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got get-pipeline-title message");
                 self.handle_get_pipeline_title_msg(pipeline_id);
             }
-            ConstellationMsg::MozBrowserEventMsg(pipeline_id,
+            ConstellationMsg::MozBrowserEvent(pipeline_id,
                                                  subpage_id,
                                                  event) => {
                 debug!("constellation got mozbrowser event message");
