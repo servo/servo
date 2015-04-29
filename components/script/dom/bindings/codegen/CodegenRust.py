@@ -1224,11 +1224,11 @@ class PropertyDefiner:
                  ",\n".join(specs) + "\n" +
                  "];\n") % (name, specType))
 
-# The length of a method is the maximum of the lengths of the
+# The length of a method is the minimum of the lengths of the
 # argument lists of all its overloads.
 def methodLength(method):
     signatures = method.signatures()
-    return max([len(arguments) for (retType, arguments) in signatures])
+    return min(len([arg for arg in arguments if not arg.optional and not arg.variadic]) for (_, arguments) in signatures)
 
 class MethodDefiner(PropertyDefiner):
     """
