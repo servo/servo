@@ -1335,7 +1335,7 @@ class AttrDefiner(PropertyDefiner):
                        "native" : accessor})
 
         def setter(attr):
-            if attr.readonly:
+            if attr.readonly and not attr.putForwards:
                 return "JSStrictPropertyOpWrapper {op: None, info: 0 as *const JSJitInfo}"
 
             if self.static:
@@ -2889,7 +2889,7 @@ class CGMemberJITInfo(CGThing):
             getter = ("get_%s" % self.member.identifier.name)
             getterinfal = "infallible" in self.descriptor.getExtendedAttributes(self.member, getter=True)
             result = self.defineJitInfo(getterinfo, getter, getterinfal)
-            if not self.member.readonly:
+            if not self.member.readonly or self.member.putForwards:
                 setterinfo = ("%s_setterinfo" % self.member.identifier.name)
                 setter = ("set_%s" % self.member.identifier.name)
                 # Setters are always fallible, since they have to do a typed unwrap.
