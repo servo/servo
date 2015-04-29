@@ -404,10 +404,10 @@ impl LayoutTask {
         match port_to_read {
             PortToRead::Pipeline => {
                 match self.pipeline_port.recv().unwrap() {
-                    LayoutControlMsg::TickAnimationsMsg => {
+                    LayoutControlMsg::TickAnimations => {
                         self.handle_request_helper(Msg::TickAnimations, possibly_locked_rw_data)
                     }
-                    LayoutControlMsg::ExitNowMsg(exit_type) => {
+                    LayoutControlMsg::ExitNow(exit_type) => {
                         self.handle_request_helper(Msg::ExitNow(exit_type),
                                                    possibly_locked_rw_data)
                     }
@@ -516,7 +516,7 @@ impl LayoutTask {
                 return false
             },
             Msg::ExitNow(exit_type) => {
-                debug!("layout: ExitNowMsg received");
+                debug!("layout: ExitNow received");
                 self.exit_now(possibly_locked_rw_data, exit_type);
                 return false
             }
@@ -542,7 +542,7 @@ impl LayoutTask {
     }
 
     /// Enters a quiescent state in which no new messages except for
-    /// `layout_interface::Msg::ReapLayoutData` will be processed until an `ExitNowMsg` is
+    /// `layout_interface::Msg::ReapLayoutData` will be processed until an `ExitNow` is
     /// received. A pong is immediately sent on the given response channel.
     fn prepare_to_exit<'a>(&'a self,
                            response_chan: Sender<()>,
@@ -561,7 +561,7 @@ impl LayoutTask {
                     break
                 }
                 _ => {
-                    panic!("layout: message that wasn't `ExitNowMsg` received after \
+                    panic!("layout: message that wasn't `ExitNow` received after \
                            `PrepareToExitMsg`")
                 }
             }

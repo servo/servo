@@ -28,8 +28,8 @@ use std::sync::mpsc::{Sender, Receiver};
 
 /// Messages sent to the layout task from the constellation
 pub enum LayoutControlMsg {
-    ExitNowMsg(PipelineExitType),
-    TickAnimationsMsg,
+    ExitNow(PipelineExitType),
+    TickAnimations,
 }
 
 /// A channel wrapper for constellation messages

@@ -728,9 +728,9 @@ impl ScriptTask {
                                                      old_subpage_id,
                                                      new_subpage_id) =>
                 self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
-            ConstellationControlMsg::FocusIFrameMsg(containing_pipeline_id, subpage_id) =>
+            ConstellationControlMsg::FocusIFrame(containing_pipeline_id, subpage_id) =>
                 self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
-            ConstellationControlMsg::WebDriverCommandMsg(pipeline_id, msg) => {
+            ConstellationControlMsg::WebDriverCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg);
             }
         }

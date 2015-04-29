@@ -481,7 +481,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             if focus_type == FocusType::Element {
                 let window = self.window.root();
                 let ConstellationChan(ref chan) = window.r().constellation_chan();
-                let event = ConstellationMsg::FocusMsg(window.r().pipeline());
+                let event = ConstellationMsg::Focus(window.r().pipeline());
                 chan.send(event).unwrap();
             }
         }
