@@ -386,8 +386,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 self.handle_get_pipeline_title_msg(pipeline_id);
             }
             ConstellationMsg::MozBrowserEvent(pipeline_id,
-                                                 subpage_id,
-                                                 event) => {
+                                              subpage_id,
+                                              event) => {
                 debug!("constellation got mozbrowser event message");
                 self.handle_mozbrowser_event_msg(pipeline_id,
                                                  subpage_id,
@@ -412,7 +412,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 sender.send(result).unwrap();
             }
             ConstellationMsg::WebDriverCommand(pipeline_id,
-                                                  command) => {
+                                               command) => {
                 debug!("constellation got webdriver command message");
                 self.handle_webdriver_command_msg(pipeline_id,
                                                   command);

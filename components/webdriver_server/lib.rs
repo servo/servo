@@ -134,7 +134,7 @@ impl Handler {
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id,
-                                                              WebDriverScriptCommand::EvaluateJS(script, sender))).unwrap();
+                                                           WebDriverScriptCommand::EvaluateJS(script, sender))).unwrap();
 
         match reciever.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),

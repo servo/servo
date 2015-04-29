@@ -770,8 +770,8 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             if let Some((containing_pipeline_id, subpage_id)) = window.r().parent_info() {
                 let ConstellationChan(ref chan) = window.r().constellation_chan();
                 let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
-                                                                 subpage_id,
-                                                                 event);
+                                                              subpage_id,
+                                                              event);
                 chan.send(event).unwrap();
             }
         }

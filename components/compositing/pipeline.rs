@@ -261,8 +261,8 @@ impl Pipeline {
 
         let ScriptControlChan(ref script_channel) = self.script_chan;
         let event = ConstellationControlMsg::MozBrowserEvent(self.id,
-                                                                subpage_id,
-                                                                event);
+                                                             subpage_id,
+                                                             event);
         script_channel.send(event).unwrap();
     }
 }
