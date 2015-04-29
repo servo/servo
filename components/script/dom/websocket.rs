@@ -17,6 +17,7 @@ use dom::bindings::js::{Temporary, JSRef};
 use dom::bindings::utils::reflect_dom_object;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use util::str::DOMString;
+use dom::bindings::str::USVString;
 use script_task::Runnable;
 use script_task::ScriptMsg;
 use dom::bindings::refcounted::Trusted;
@@ -25,6 +26,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::trace::JSTraceable;
 use js::jsapi::JSTracer;
 use websocket::Message;
+use websocket::ws::sender::Sender as Sender_Object;
 use websocket::client::sender::Sender;
 use websocket::client::receiver::Receiver;
 use websocket::stream::WebSocketStream;
@@ -60,7 +62,8 @@ pub struct WebSocket {
     full: Cell<bool>,
     clean_close: Cell<bool>,
     code: Cell<u16>,
-    reason: DOMRefCell<DOMString>
+    reason: DOMRefCell<DOMString>,
+    data: DOMRefCell<DOMString> 
 }
 
 impl WebSocket {
@@ -78,7 +81,8 @@ impl WebSocket {
 	    full: Cell::new(false),
 	    clean_close: Cell::new(true),
 	    code: Cell::new(0),
-	    reason: DOMRefCell::new("".to_owned())
+	    reason: DOMRefCell::new("".to_owned()),
+        data: DOMRefCell::new("".to_owned())
         }
 
     }
@@ -97,40 +101,6 @@ impl WebSocket {
 	
 	//The send function needs to flag when full by using the following
 	//self.full.set(true)
-	/*fn send(self) -> ErrorResult {
-		 let tx_1 = self.tx.clone();
-		let send_loop = thread::scoped(move || {
-			loop {
-				let message = match self.rx.recv() {
-					Ok(m) => m,
-					Err(e) => {
-						println!("Send loop: {:?}",e);
-						return;
-					}
-				};
-				match message {
-					Message::Close(_) => {
-						let _ = self.sender.send_message(message);
-						// If it's a close message, send it and return
-						return;
-					}
-					_ => (),
-				}
-				//Send the message
-				match self.sender.send_message(message){
-					Ok(()) => (),
-					Err(e) => {
-						println!("Send Loop: {:?}", e);
-						let _ = self.sender.send_message(Message::Close(None));
-						return;
-					}
-				}
-			}	
-
-		});
-	}*/
-	Ok(())
-    }
 }
 
 impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
@@ -157,6 +127,16 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
    		Ok(())
     }
 
+    fn Send(self, data: Option<DOMString>)-> Fallible<()>{
+    	//self.send_message = data; 
+    	*self.data.borrow_mut() = data.unwrap(); //storing the message to be sent for the this websocket
+    	let global_root = self.global.root();
+    	let addr: Trusted<WebSocket> = Trusted::new(global_root.r().get_cx(), self, global_root.r().script_chan().clone());
+		let send_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Send);
+		global_root.r().script_chan().send(ScriptMsg::RunnableMsg(send_task)).unwrap();
+		Ok(())
+
+    }
 
     fn Close(self, code: Option<u16>, reason: Option<DOMString>) -> Fallible<()>{
 	if(code.is_some()){ //Code defined
@@ -215,6 +195,8 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
 
 pub enum WebSocketTask {
     Open,
+    Close,
+    Send,
 }
 
 pub struct WebSocketTaskHandler {
@@ -260,6 +242,24 @@ impl WebSocketTaskHandler {
         	println!("Fired open event.");
         	}
     }
+
+    fn dispatch_send(&self){
+    	
+        println!("Trying to send");
+    	let ws = self.addr.to_temporary().root();
+    	let global = ws.r().global.root();
+    	let ws = ws.r();
+    	let mut other_sender = ws.sender.borrow_mut();
+        let my_sender = other_sender.as_mut().unwrap();
+    	let data = ws.data.borrow();
+        let data_clone = data.clone();
+        my_sender.send_message(Message::Text(data_clone));
+    	
+    }
+
+
+
+
     fn dispatch_close(&self) {
     	let ws = self.addr.to_temporary().root();
     	let global = ws.r().global.root();
@@ -307,6 +307,9 @@ impl Runnable for WebSocketTaskHandler {
             }
             WebSocketTask::Close => {
                 self.dispatch_close();
+            }
+            WebSocketTask::Send => {
+                self.dispatch_send();
             }
         }
     }
