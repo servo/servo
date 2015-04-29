@@ -224,72 +224,27 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
 
     // https://dom.spec.whatwg.org/#dom-range-ispointinrangenode-offset
     fn IsPointInRange(self, node: JSRef<Node>, offset: u32) -> Fallible<bool> {
-        let inner = self.inner().borrow();
-        let start = &inner.start;
-        let start_node = start.node().root();
-        let start_offset = start.offset;
-        let start_node_root = start_node.r().inclusive_ancestors().last().unwrap().root();
-        let node_root = node.inclusive_ancestors().last().unwrap().root();
-        if start_node_root.r() != node_root.r() {
-            // Step 1.
-            return Ok(false);
+        match self.inner().borrow().compare_point(node, offset) {
+            Ok(Ordering::Less) => Ok(false),
+            Ok(Ordering::Equal) => Ok(true),
+            Ok(Ordering::Greater) => Ok(false),
+            Err(Error::WrongDocument) => {
+                // Step 2.
+                Ok(false)
+            }
+            Err(error) => Err(error),
         }
-        if node.is_doctype() {
-            // Step 2.
-            return Err(Error::InvalidNodeType);
-        }
-        if offset > node.len() {
-            // Step 3.
-            return Err(Error::IndexSize);
-        }
-        if let Ordering::Less = bp_position(node, offset, start_node.r(), start_offset).unwrap() {
-            // Step 4.
-            return Ok(false);
-        }
-        let end = &inner.end;
-        let end_node = end.node().root();
-        let end_offset = end.offset;
-        if let Ordering::Greater = bp_position(node, offset, end_node.r(), end_offset).unwrap() {
-            // Step 4.
-            return Ok(false);
-        }
-        // Step 5.
-        Ok(true)
     }
 
     // https://dom.spec.whatwg.org/#dom-range-comparepointnode-offset
     fn ComparePoint(self, node: JSRef<Node>, offset: u32) -> Fallible<i16> {
-        let inner = self.inner().borrow();
-        let start = &inner.start;
-        let start_node = start.node().root();
-        let start_offset = start.offset;
-        let start_node_root = start_node.r().inclusive_ancestors().last().unwrap().root();
-        let node_root = node.inclusive_ancestors().last().unwrap().root();
-        if start_node_root.r() != node_root.r() {
-            // Step 1.
-            return Err(Error::WrongDocument);
-        }
-        if node.is_doctype() {
-            // Step 2.
-            return Err(Error::InvalidNodeType);
-        }
-        if offset > node.len() {
-            // Step 3.
-            return Err(Error::IndexSize);
-        }
-        if let Ordering::Less = bp_position(node, offset, start_node.r(), start_offset).unwrap() {
-            // Step 4.
-            return Ok(-1);
-        }
-        let end = &inner.end;
-        let end_node = end.node().root();
-        let end_offset = end.offset;
-        if let Ordering::Greater = bp_position(node, offset, end_node.r(), end_offset).unwrap() {
-            // Step 5.
-            return Ok(1);
-        }
-        // Step 6.
-        Ok(0)
+        self.inner().borrow().compare_point(node, offset).map(|order| {
+            match order {
+                Ordering::Less => -1,
+                Ordering::Equal => 0,
+                Ordering::Greater => 1,
+            }
+        })
     }
 
     // https://dom.spec.whatwg.org/#dom-range-intersectsnodenode
@@ -365,6 +320,7 @@ impl RangeInner {
 
     // https://dom.spec.whatwg.org/#concept-range-bp-set
     pub fn set_start(&mut self, bp_node: JSRef<Node>, bp_offset: u32) {
+        // Steps 1-3 handled in Range caller.
         let end_node = self.end.node().root();
         let end_offset = self.end.offset;
         match bp_position(bp_node, bp_offset, end_node.r(), end_offset) {
@@ -380,6 +336,7 @@ impl RangeInner {
 
     // https://dom.spec.whatwg.org/#concept-range-bp-set
     pub fn set_end(&mut self, bp_node: JSRef<Node>, bp_offset: u32) {
+        // Steps 1-3 handled in Range caller.
         let start_node = self.start.node().root();
         let start_offset = self.start.offset;
         match bp_position(bp_node, bp_offset, start_node.r(), start_offset) {
@@ -430,6 +387,40 @@ impl RangeInner {
         // Step 4.
         self.end.set(node, length);
         Ok(())
+    }
+
+    // https://dom.spec.whatwg.org/#dom-range-comparepointnode-offset
+    fn compare_point(&self, node: JSRef<Node>, offset: u32) -> Fallible<Ordering> {
+        let start = &self.start;
+        let start_node = start.node().root();
+        let start_offset = start.offset;
+        let start_node_root = start_node.r().inclusive_ancestors().last().unwrap().root();
+        let node_root = node.inclusive_ancestors().last().unwrap().root();
+        if start_node_root.r() != node_root.r() {
+            // Step 1.
+            return Err(Error::WrongDocument);
+        }
+        if node.is_doctype() {
+            // Step 2.
+            return Err(Error::InvalidNodeType);
+        }
+        if offset > node.len() {
+            // Step 3.
+            return Err(Error::IndexSize);
+        }
+        if let Ordering::Less = bp_position(node, offset, start_node.r(), start_offset).unwrap() {
+            // Step 4.
+            return Ok(Ordering::Less);
+        }
+        let end = &self.end;
+        let end_node = end.node().root();
+        let end_offset = end.offset;
+        if let Ordering::Greater = bp_position(node, offset, end_node.r(), end_offset).unwrap() {
+            // Step 5.
+            return Ok(Ordering::Greater);
+        }
+        // Step 6.
+        Ok(Ordering::Equal)
     }
 }
 
@@ -505,7 +496,7 @@ fn bp_position(a_node: JSRef<Node>, a_offset: u32,
     } else if position & NodeConstants::DOCUMENT_POSITION_CONTAINS != 0 {
         // Step 3-1, 3-2.
         let b_ancestors = b_node.inclusive_ancestors();
-        let child = b_ancestors.map(|child| child.root()).find(|child| {
+        let ref child = b_ancestors.map(|child| child.root()).find(|child| {
             child.r().parent_node().unwrap().root().r() == a_node
         }).unwrap();
         // Step 3-3.
