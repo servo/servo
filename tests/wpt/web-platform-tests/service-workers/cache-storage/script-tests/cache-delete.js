@@ -43,8 +43,8 @@ cache_test(function(cache) {
   }, 'Cache.delete called with a string URL');
 
 cache_test(function(cache) {
-    var request = new Request(test_url, { method: 'POST', body: 'Abc' });
-    return cache.put(request.clone(), new_test_response())
+    var request = new Request(test_url);
+    return cache.put(request, new_test_response())
       .then(function() {
           return cache.delete(request);
         })
@@ -52,32 +52,8 @@ cache_test(function(cache) {
           assert_true(result,
                       'Cache.delete should resolve with "true" if an entry ' +
                       'was successfully deleted.');
-          assert_false(request.bodyUsed,
-                       'Cache.delete should not consume request body.');
         });
   }, 'Cache.delete called with a Request object');
-
-cache_test(function(cache) {
-    var request = new Request(test_url, { method: 'POST', body: 'Abc' });
-    return cache.put(request.clone(), new_test_response())
-      .then(function() {
-          return request.text();
-        })
-      .then(function() {
-          assert_true(request.bodyUsed,
-                      '[https://fetch.spec.whatwg.org/#body-mixin] ' +
-                      'Request.bodyUsed should be true after text() method ' +
-                      'resolves.');
-        })
-      .then(function() {
-          return cache.delete(request);
-        })
-      .then(function(result) {
-          assert_true(result,
-                      'Cache.delete should resolve with "true" if an entry ' +
-                      'was successfully deleted.');
-        });
-  }, 'Cache.delete with a Request object containing used body');
 
 cache_test(function(cache) {
     return cache.delete(test_url)

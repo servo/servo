@@ -30,7 +30,7 @@ interface EventInit {
 interface Storage {
   readonly attribute unsigned long length;
   DOMString? key(unsigned long index);
-  getter DOMString getItem(DOMString key);
+  getter DOMString? getItem(DOMString key);
   setter creator void setItem(DOMString key, DOMString value);
   deleter void removeItem(DOMString key);
   void clear();
@@ -47,7 +47,7 @@ interface WindowLocalStorage {
 Window implements WindowLocalStorage;
 [Constructor(DOMString type, optional StorageEventInit eventInitDict)]
 interface StorageEvent : Event {
-  readonly attribute DOMString key;
+  readonly attribute DOMString? key;
   readonly attribute DOMString? oldValue;
   readonly attribute DOMString? newValue;
   readonly attribute DOMString url;
@@ -55,7 +55,7 @@ interface StorageEvent : Event {
 };
 
 dictionary StorageEventInit : EventInit {
-  DOMString key;
+  DOMString? key;
   DOMString? oldValue;
   DOMString? newValue;
   DOMString url;

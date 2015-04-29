@@ -68,29 +68,6 @@ cache_test(function(cache) {
   }, 'Cache.put with Response without a body');
 
 cache_test(function(cache) {
-    var request = new Request(test_url, {
-        method: 'POST',
-        body: 'Hello'
-      });
-    var response = new Response(test_body);
-    assert_false(request.bodyUsed,
-                 '[https://fetch.spec.whatwg.org/#dom-body-bodyused] ' +
-                 'Request.bodyUsed should be initially false.');
-    return cache.put(request, response.clone())
-      .then(function() {
-          assert_true(request.bodyUsed,
-                       'Cache.put should consume Request body.');
-        })
-      .then(function() {
-          return cache.match(request);
-        })
-      .then(function(result) {
-          assert_object_equals(result, response,
-                               'Cache.put should store response body.');
-        });
-  }, 'Cache.put with Request containing a body');
-
-cache_test(function(cache) {
     var request = new Request(test_url);
     var response = new Response(test_body);
     return cache.put(request, response.clone())
@@ -294,18 +271,11 @@ cache_test(function(cache) {
 
 cache_test(function(cache) {
     var request = new Request(test_url, {method: 'POST', body: test_body});
-    assert_false(request.bodyUsed,
-                 '[https://fetch.spec.whatwg.org/#dom-body-bodyused] ' +
-                 'Request.bodyUsed should be initially false.');
-    var copy = new Request(request);
-    assert_true(request.bodyUsed,
-                '[https://fetch.spec.whatwg.org/#dom-request] ' +
-                'Request constructor should set input\'s used flag.');
     return assert_promise_rejects(
       cache.put(request, new Response(test_body)),
       new TypeError(),
-      'Cache.put should throw a TypeError for a request with used body.');
-  }, 'Cache.put with a used request body');
+      'Cache.put should throw a TypeError for a POST request.');
+  }, 'Cache.put with a POST request');
 
 cache_test(function(cache) {
     var response = new Response(test_body);
