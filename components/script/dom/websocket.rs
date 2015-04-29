@@ -24,6 +24,7 @@ use dom::bindings::js::{Temporary, JSRef, Rootable};
 use dom::bindings::utils::reflect_dom_object;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use util::str::DOMString;
+use dom::bindings::str::USVString;
 use script_task::Runnable;
 use script_task::ScriptMsg;
 use dom::bindings::refcounted::Trusted;
@@ -343,6 +344,24 @@ impl WebSocketTaskHandler {
         event.fire(target);
         println!("Fired close event.");
     }
+
+    fn dispatch_send(&self){
+    	
+        println!("Trying to send");
+    	let ws = self.addr.to_temporary().root();
+    	let global = ws.r().global.root();
+    	let ws = ws.r();
+    	let mut other_sender = ws.sender.borrow_mut();
+        let my_sender = other_sender.as_mut().unwrap();
+    	let data = ws.data.borrow();
+        let data_clone = data.clone();
+        my_sender.send_message(Message::Text(data_clone));
+    	
+    }
+
+
+
+
     fn dispatch_close(&self) {
     	let ws = self.addr.to_temporary().root();
     	let global = ws.r().global.root();
