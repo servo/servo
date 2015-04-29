@@ -239,7 +239,7 @@ impl Pipeline {
         let _ = self.paint_chan.send(PaintMsg::Exit(None, PipelineExitType::PipelineOnly));
         let LayoutControlChan(ref layout_channel) = self.layout_chan;
         let _ = layout_channel.send(
-            LayoutControlMsg::ExitNowMsg(PipelineExitType::PipelineOnly)).unwrap();
+            LayoutControlMsg::ExitNow(PipelineExitType::PipelineOnly)).unwrap();
     }
 
     pub fn to_sendable(&self) -> CompositionPipeline {
@@ -260,9 +260,9 @@ impl Pipeline {
         assert!(opts::experimental_enabled());
 
         let ScriptControlChan(ref script_channel) = self.script_chan;
-        let event = ConstellationControlMsg::MozBrowserEventMsg(self.id,
-                                                                subpage_id,
-                                                                event);
+        let event = ConstellationControlMsg::MozBrowserEvent(self.id,
+                                                             subpage_id,
+                                                             event);
         script_channel.send(event).unwrap();
     }
 }

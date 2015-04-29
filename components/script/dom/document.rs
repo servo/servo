@@ -481,7 +481,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             if focus_type == FocusType::Element {
                 let window = self.window.root();
                 let ConstellationChan(ref chan) = window.r().constellation_chan();
-                let event = ConstellationMsg::FocusMsg(window.r().pipeline());
+                let event = ConstellationMsg::Focus(window.r().pipeline());
                 chan.send(event).unwrap();
             }
         }
@@ -769,9 +769,9 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
             if let Some((containing_pipeline_id, subpage_id)) = window.r().parent_info() {
                 let ConstellationChan(ref chan) = window.r().constellation_chan();
-                let event = ConstellationMsg::MozBrowserEventMsg(containing_pipeline_id,
-                                                                 subpage_id,
-                                                                 event);
+                let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
+                                                              subpage_id,
+                                                              event);
                 chan.send(event).unwrap();
             }
         }
