@@ -1506,6 +1506,12 @@ class CGImports(CGWrapper):
                     types += relatedTypesForSignatures(m)
                 elif m.isAttr():
                     types += componentTypes(m.type)
+                    if m.putForwards:
+                        forwardedType = m.type.inner
+                        if forwardedType != d.interface:
+                            name = forwardedType.identifier.name
+                            imports.append("dom::bindings::codegen::Bindings::%sBinding::%sMethods" %
+                                           (name, name))
 
         for c in callbacks:
             types += relatedTypesForSignatures(c)
