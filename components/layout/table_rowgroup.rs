@@ -8,7 +8,7 @@
 
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
-use flow::{FlowClass, Flow};
+use flow::{FlowClass, Flow, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use layout_debug;
 use style::computed_values::{border_collapse, border_spacing};
@@ -23,7 +23,7 @@ use std::iter::{IntoIterator, Iterator, Peekable};
 use std::sync::Arc;
 use style::properties::ComputedValues;
 use util::geometry::Au;
-use util::logical_geometry::{LogicalRect, WritingMode};
+use util::logical_geometry::{LogicalSize, WritingMode};
 
 /// A table formatting context.
 pub struct TableRowGroupFlow {
@@ -228,8 +228,8 @@ impl Flow for TableRowGroupFlow {
         self.block_flow.compute_overflow()
     }
 
-    fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
-        self.block_flow.generated_containing_block_rect()
+    fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {
+        self.block_flow.generated_containing_block_size(flow)
     }
 
     fn iterate_through_fragment_border_boxes(&self,

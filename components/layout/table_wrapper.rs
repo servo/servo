@@ -18,7 +18,7 @@ use block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
 use context::LayoutContext;
 use floats::FloatKind;
 use flow::{FlowClass, Flow, ImmutableFlowUtils};
-use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
+use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use model::MaybeAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
@@ -27,7 +27,7 @@ use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
 use util::geometry::Au;
-use util::logical_geometry::LogicalRect;
+use util::logical_geometry::LogicalSize;
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
@@ -397,8 +397,8 @@ impl Flow for TableWrapperFlow {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
     }
 
-    fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
-        self.block_flow.generated_containing_block_rect()
+    fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {
+        self.block_flow.generated_containing_block_size(flow)
     }
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {

@@ -4,11 +4,13 @@
 
 #![deny(unsafe_code)]
 
+use block::{AbsoluteAssignBSizesTraversal, AbsoluteStoreOverflowTraversal};
 use css::node_style::StyledNode;
 use context::LayoutContext;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
 use floats::{FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, FlowClass, Flow, ForceNonfloatedFlag, IS_ABSOLUTELY_POSITIONED};
+use flow::{MutableFlowUtils, OpaqueFlow};
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
 use layout_debug;
@@ -16,7 +18,7 @@ use model::IntrinsicISizesContribution;
 use text;
 
 use collections::VecDeque;
-use geom::{Point2D, Rect};
+use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
@@ -27,10 +29,10 @@ use std::fmt;
 use std::mem;
 use std::sync::Arc;
 use std::u16;
-use style::computed_values::{display, overflow_x, text_align, text_justify, text_overflow};
-use style::computed_values::{vertical_align, white_space};
+use style::computed_values::{display, overflow_x, position, text_align, text_justify};
+use style::computed_values::{text_overflow, vertical_align, white_space};
 use style::properties::ComputedValues;
-use util::geometry::{Au, MAX_AU, ZERO_RECT};
+use util::geometry::{Au, MAX_AU, ZERO_POINT, ZERO_RECT};
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use util::range::{Range, RangeIndex};
 use util;
@@ -1121,6 +1123,34 @@ impl InlineFlow {
 
         self.base.restyle_damage = damage;
     }
+
+    fn containing_block_range_for_flow(&self, flow: OpaqueFlow) -> Range<FragmentIndex> {
+        let mut fragment_iterator = self.fragments.fragments.iter().enumerate();
+        let mut start_index = 0;
+        while let Some((index, fragment)) = fragment_iterator.next() {
+            if fragment.style.get_box().position == position::T::static_ {
+                start_index = index as isize + 1;
+                continue
+            }
+
+            if let SpecificFragmentInfo::InlineAbsolute(ref info) = fragment.specific {
+                let this_flow = OpaqueFlow::from_flow(&*info.flow_ref);
+                if this_flow == flow {
+                    break
+                }
+            }
+        }
+
+        let mut end_index = start_index + 1;
+        for (index, fragment) in fragment_iterator {
+            if fragment.style.get_box().position == position::T::static_ {
+                break
+            }
+            end_index = index as isize + 1
+        }
+
+        Range::new(FragmentIndex(start_index), FragmentIndex(end_index - start_index))
+    }
 }
 
 impl Flow for InlineFlow {
@@ -1398,6 +1428,19 @@ impl Flow for InlineFlow {
             kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
         }
 
+        if self.contains_positioned_fragments() {
+            // Assign block-sizes for all flows in this absolute flow tree.
+            // This is preorder because the block-size of an absolute flow may depend on
+            // the block-size of its containing block, which may also be an absolute flow.
+            (&mut *self as &mut Flow).traverse_preorder_absolute_flows(
+                &mut AbsoluteAssignBSizesTraversal(layout_context));
+            // Store overflow for all absolute descendants.
+            (&mut *self as &mut Flow).traverse_postorder_absolute_flows(
+                &mut AbsoluteStoreOverflowTraversal {
+                    layout_context: layout_context,
+                });
+        }
+
         self.base.position.size.block = match self.lines.last() {
             Some(ref last_line) => last_line.bounds.start.b + last_line.bounds.size.block,
             None => Au(0),
@@ -1412,6 +1455,28 @@ impl Flow for InlineFlow {
     }
 
     fn compute_absolute_position(&mut self) {
+        // First, gather up the positions of all the containing blocks (if any).
+        let mut containing_block_positions = Vec::new();
+        let container_size = Size2D(self.base.block_container_inline_size, Au(0));
+        for fragment in self.fragments.fragments.iter() {
+            if let SpecificFragmentInfo::InlineAbsolute(ref info) = fragment.specific {
+                let containing_block_range =
+                    self.containing_block_range_for_flow(OpaqueFlow::from_flow(&*info.flow_ref));
+                let first_fragment_index = containing_block_range.begin().get() as usize;
+                if first_fragment_index < self.fragments.fragments.len() {
+                    let first_fragment = &self.fragments.fragments[first_fragment_index];
+                    let padding_box_origin = (first_fragment.border_box -
+                                              first_fragment.style.logical_border_width()).start;
+                    containing_block_positions.push(
+                        padding_box_origin.to_physical(self.base.writing_mode, container_size));
+                } else {
+                    containing_block_positions.push(ZERO_POINT);
+                }
+            }
+        }
+
+        // Then compute the positions of all of our fragments.
+        let mut containing_block_positions = containing_block_positions.iter();
         for fragment in self.fragments.fragments.iter_mut() {
             let stacking_relative_border_box =
                 fragment.stacking_relative_border_box(&self.base.stacking_relative_position,
@@ -1439,6 +1504,22 @@ impl Flow for InlineFlow {
                     block_flow.base.stacking_relative_position =
                         stacking_relative_border_box.origin
 
+                }
+                SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
+                    flow::mut_base(&mut *info.flow_ref).clip = clip;
+
+                    let block_flow = info.flow_ref.as_block();
+                    block_flow.base.absolute_position_info = self.base.absolute_position_info;
+
+                    let stacking_relative_position = self.base.stacking_relative_position;
+                    let padding_box_origin = containing_block_positions.next().unwrap();
+                    block_flow.base
+                              .absolute_position_info
+                              .stacking_relative_position_of_absolute_containing_block =
+                        stacking_relative_position + *padding_box_origin;
+
+                    block_flow.base.stacking_relative_position =
+                        stacking_relative_border_box.origin
                 }
                 _ => {}
             }
@@ -1490,6 +1571,31 @@ impl Flow for InlineFlow {
         for fragment in self.fragments.fragments.iter_mut() {
             (*mutator)(fragment)
         }
+    }
+
+    fn contains_positioned_fragments(&self) -> bool {
+        self.fragments.fragments.iter().any(|fragment| {
+            fragment.style.get_box().position != position::T::static_
+        })
+    }
+
+    fn contains_relatively_positioned_fragments(&self) -> bool {
+        let result = self.fragments.fragments.iter().any(|fragment| {
+            fragment.style.get_box().position == position::T::relative
+        });
+        result
+    }
+
+    fn generated_containing_block_size(&self, for_flow: OpaqueFlow) -> LogicalSize<Au> {
+        let mut containing_block_size = LogicalSize::new(self.base.writing_mode, Au(0), Au(0));
+        for index in self.containing_block_range_for_flow(for_flow).each_index() {
+            let fragment = &self.fragments.fragments[index.get() as usize];
+            containing_block_size.inline = containing_block_size.inline +
+                fragment.border_box.size.inline;
+            containing_block_size.block = Au::max(containing_block_size.block,
+                                                  fragment.border_box.size.block)
+        }
+        containing_block_size
     }
 }
 
