@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! This module contains traits in script used generically in the rest of Servo.
+//! The traits are here instead of in script so that these modules won't have
+//! to depend on script.
+
+#[deny(missing_docs)]
+
 extern crate devtools_traits;
 extern crate geom;
 extern crate libc;
@@ -10,11 +16,6 @@ extern crate net_traits;
 extern crate util;
 extern crate url;
 extern crate webdriver_traits;
-
-// This module contains traits in script used generically
-//   in the rest of Servo.
-// The traits are here instead of in script so
-//   that these modules won't have to depend on script.
 
 use devtools_traits::DevtoolsControlChan;
 use libc::c_void;
@@ -39,11 +40,18 @@ use geom::rect::Rect;
 pub struct UntrustedNodeAddress(pub *const c_void);
 unsafe impl Send for UntrustedNodeAddress {}
 
+/// The initial data associated with a newly-created framed pipeline.
 pub struct NewLayoutInfo {
+    /// Id of the parent of this new pipeline.
     pub containing_pipeline_id: PipelineId,
+    /// Id of the newly-created pipeline.
     pub new_pipeline_id: PipelineId,
+    /// Id of the new frame associated with this pipeline.
     pub subpage_id: SubpageId,
-    pub layout_chan: Box<Any+Send>, // opaque reference to a LayoutChannel
+    /// Channel for communicating with this new pipeline's layout task.
+    /// (This is a LayoutChannel.)
+    pub layout_chan: Box<Any+Send>,
+    /// Network request data which will be initiated by the script task.
     pub load_data: LoadData,
 }
 
@@ -84,18 +92,27 @@ pub enum ConstellationControlMsg {
 /// The mouse button involved in the event.
 #[derive(Clone, Debug)]
 pub enum MouseButton {
+    /// The left mouse button.
     Left,
+    /// The middle mouse button.
     Middle,
+    /// The right mouse button.
     Right,
 }
 
 /// Events from the compositor that the script task needs to know about
 pub enum CompositorEvent {
+    /// The window was resized.
     ResizeEvent(WindowSizeData),
+    /// A point was clicked.
     ClickEvent(MouseButton, Point2D<f32>),
+    /// A mouse button was pressed on a point.
     MouseDownEvent(MouseButton, Point2D<f32>),
+    /// A mouse button was released on a point.
     MouseUpEvent(MouseButton, Point2D<f32>),
+    /// The mouse was moved over a point.
     MouseMoveEvent(Point2D<f32>),
+    /// A key was pressed.
     KeyEvent(Key, KeyState, KeyModifiers),
 }
 
