@@ -28,11 +28,11 @@ impl WebGLUniformLocation {
 }
 
 pub trait WebGLUniformLocationHelpers {
-  fn get_id(&self) -> u32;
+    fn get_id(&self) -> u32;
 }
 
 impl<'a> WebGLUniformLocationHelpers for JSRef<'a, WebGLUniformLocation> {
-  fn get_id(&self) -> u32 {
-      self.id
-  }
+    fn get_id(&self) -> u32 {
+        self.id
+    }
 }

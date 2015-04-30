@@ -28,12 +28,12 @@ impl WebGLShader {
 }
 
 pub trait WebGLShaderHelpers {
-  fn get_id(&self) -> u32;
+    fn get_id(&self) -> u32;
 }
 
 impl<'a> WebGLShaderHelpers for JSRef<'a, WebGLShader> {
-  fn get_id(&self) -> u32 {
-      self.id
-  }
+    fn get_id(&self) -> u32 {
+        self.id
+    }
 }
 

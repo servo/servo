@@ -28,11 +28,11 @@ impl WebGLBuffer {
 }
 
 pub trait WebGLBufferHelpers {
-  fn get_id(&self) -> u32;
+    fn get_id(&self) -> u32;
 }
 
 impl<'a> WebGLBufferHelpers for JSRef<'a, WebGLBuffer> {
-  fn get_id(&self) -> u32 {
-      self.id
-  }
+    fn get_id(&self) -> u32 {
+        self.id
+    }
 }

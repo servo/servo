@@ -28,11 +28,11 @@ impl WebGLProgram {
 }
 
 pub trait WebGLProgramHelpers {
-  fn get_id(&self) -> u32;
+    fn get_id(&self) -> u32;
 }
 
 impl<'a> WebGLProgramHelpers for JSRef<'a, WebGLProgram> {
-  fn get_id(&self) -> u32 {
-      self.id
-  }
+    fn get_id(&self) -> u32 {
+        self.id
+    }
 }
