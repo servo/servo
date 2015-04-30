@@ -237,7 +237,7 @@ pub trait WorkerGlobalScopeHelpers {
     fn get_cx(self) -> *mut JSContext;
     fn get_closing(self) -> bool;
     fn set_closing(self, closing: bool);
-
+    fn clear_timers(self);
 }
 
 impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
@@ -293,6 +293,10 @@ impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
 
     fn set_closing(self, closing: bool) {
         self.closing.set(closing);
+    }
+
+    fn clear_timers(self) {
+        self.timers.clear()
     }
 }
 
