@@ -229,7 +229,7 @@ impl InlineFragmentsAccumulator {
             mut fragments,
             enclosing_node,
         } = self;
-        if let Some(enclosing_style) = enclosing_style {
+        if let Some(enclosing_node) = enclosing_node {
             let frag_len = fragments.fragments.len();
             for (idx, frag) in fragments.fragments.iter_mut().enumerate() {
 
