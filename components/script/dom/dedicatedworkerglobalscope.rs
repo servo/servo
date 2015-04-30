@@ -187,6 +187,10 @@ impl DedicatedWorkerGlobalScope {
                     Ok((linked_worker, msg)) => {
                         let _ar = AutoWorkerReset::new(global.r(), linked_worker);
                         global.r().handle_event(msg);
+
+                        if WorkerGlobalScopeCast::from_ref(global.r()).get_closing() {
+                            break
+                        }
                     }
                     Err(_) => break,
                 }
@@ -250,11 +254,14 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
             ScriptMsg::RefcountCleanup(addr) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 LiveDOMReferences::cleanup(scope.get_cx(), addr);
-            }
+            },
             ScriptMsg::FireTimer(TimerSource::FromWorker, timer_id) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 scope.handle_fire_timer(timer_id);
-            }
+            },
+            ScriptMsg::Terminate => {
+                WorkerGlobalScopeCast::from_ref(self).set_closing(true);
+            },
             _ => panic!("Unexpected message"),
         }
     }

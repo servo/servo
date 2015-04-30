@@ -20,7 +20,7 @@ use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use script_task::{ScriptChan, ScriptMsg, Runnable};
+use script_task::{ScriptTask, ScriptChan, ScriptMsg, Runnable};
 
 use devtools_traits::{DevtoolsControlMsg, DevtoolsPageInfo};
 
@@ -28,10 +28,12 @@ use util::str::DOMString;
 
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, UndefinedValue};
+use js::rust::Runtime;
 use url::UrlParser;
 
 use std::borrow::ToOwned;
 use std::sync::mpsc::{channel, Sender};
+use std::cell::Cell;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
@@ -43,6 +45,7 @@ pub struct Worker {
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
     sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+    closing: Cell<bool>,
 }
 
 impl Worker {
@@ -51,6 +54,7 @@ impl Worker {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::Worker),
             global: GlobalField::from_rooted(&global),
             sender: sender,
+            closing: Cell::new(false),
         }
     }
 
@@ -99,6 +103,10 @@ impl Worker {
                           data: StructuredCloneData) {
         let worker = address.to_temporary().root();
 
+        if worker.r().closing.get() {
+            return
+        }
+
         let global = worker.r().global.root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
 
@@ -121,6 +129,11 @@ impl Worker {
     pub fn handle_error_message(address: TrustedWorkerAddress, message: DOMString,
                                 filename: DOMString, lineno: u32, colno: u32) {
         let worker = address.to_temporary().root();
+
+        if worker.r().closing.get() {
+            return
+        }
+
         let global = worker.r().global.root();
         let error = UndefinedValue();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
@@ -138,6 +151,16 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
         let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
         self.sender.send((address, ScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
+    }
+
+
+    // https://html.spec.whatwg.org/multipage/#terminate-a-worker
+    fn Terminate(self) {
+        self.closing.set(true);
+
+        let address = Trusted::new(self.global.root().r().get_cx(), self,
+                                   self.global.root().r().script_chan().clone());
+        self.sender.send((address, ScriptMsg::Terminate)).unwrap();
     }
 
     event_handler!(message, GetOnmessage, SetOnmessage);
