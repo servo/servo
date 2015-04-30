@@ -1488,10 +1488,11 @@ impl Flow for InlineFlow {
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
                     flow::mut_base(&mut *info.flow_ref).clip = clip;
+
                     let block_flow = info.flow_ref.as_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
                     block_flow.base.stacking_relative_position =
-                        stacking_relative_border_box.origin;
+                        stacking_relative_border_box.origin
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
                     flow::mut_base(&mut *info.flow_ref).clip = clip;

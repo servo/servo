@@ -549,9 +549,10 @@ impl<'a> FlowConstructor<'a> {
                 inline_fragment_accumulator.push_all(successor_fragments);
                 abs_descendants.push_descendants(kid_abs_descendants);
             }
-            ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(whitespace_node,
-                                                                          whitespace_style,
-                                                                          whitespace_damage)) => {
+            ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
+                    whitespace_node,
+                    whitespace_style,
+                    whitespace_damage)) => {
                 // Add whitespace results. They will be stripped out later on when
                 // between block elements, and retained when between inline elements.
                 let fragment_info = SpecificFragmentInfo::UnscannedText(
@@ -661,7 +662,9 @@ impl<'a> FlowConstructor<'a> {
                 }
             }
 
-            self.create_fragments_for_node_text_content(&mut initial_fragments, node, node.style());
+            self.create_fragments_for_node_text_content(&mut initial_fragments,
+                                                        node,
+                                                        node.style());
         }
 
         self.build_flow_for_block_starting_with_fragments(flow, node, initial_fragments)
