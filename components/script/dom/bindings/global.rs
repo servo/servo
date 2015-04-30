@@ -21,7 +21,7 @@ use net_traits::ResourceTask;
 use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::glue::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject};
-use js::jsapi::{JS_GetClass};
+use js::jsapi::{JS_GetClass, JS_GetGlobalObject};
 use url::Url;
 
 /// A freely-copyable reference to a rooted global object.
@@ -203,6 +203,27 @@ impl GlobalUnrooted {
 pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalUnrooted {
     unsafe {
         let global = GetGlobalForObjectCrossCompartment(obj);
+        let clasp = JS_GetClass(global);
+        assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
+        match native_from_reflector_jsmanaged(global) {
+            Ok(window) => return GlobalUnrooted::Window(window),
+            Err(_) => (),
+        }
+
+        match native_from_reflector_jsmanaged(global) {
+            Ok(worker) => return GlobalUnrooted::Worker(worker),
+            Err(_) => (),
+        }
+
+        panic!("found DOM global that doesn't unwrap to Window or WorkerGlobalScope")
+    }
+}
+
+/// Returns the global object for the given JSContext
+#[allow(unrooted_must_root)]
+pub fn global_object_for_js_context(cx: *mut JSContext) -> GlobalUnrooted {
+    unsafe {
+        let global = JS_GetGlobalObject(cx);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
         match native_from_reflector_jsmanaged(global) {

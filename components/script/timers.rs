@@ -131,6 +131,11 @@ impl TimerManager {
             timer_handle.resume();
         }
     }
+    pub fn clear(&self) {
+        for (_, timer_handle) in self.active_timers.borrow_mut().iter_mut() {
+            timer_handle.cancel();
+        }
+    }
 
     #[allow(unsafe_code)]
     pub fn set_timeout_or_interval(&self,

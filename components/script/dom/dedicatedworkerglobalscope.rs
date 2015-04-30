@@ -1,24 +1,26 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+#![allow(unsafe_code)]
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
+use dom::bindings::codegen::InheritTypes::{DedicatedWorkerGlobalScopeDerived, DedicatedWorkerGlobalScopeCast};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::error::ErrorResult;
-use dom::bindings::global::GlobalRef;
+use dom::bindings::global::{GlobalRef, global_object_for_js_context};
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;
+use dom::bindings::trace::JSTraceable;
 use dom::errorevent::ErrorEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, WorkerErrorHandler};
+use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, WorkerErrorHandler, SharedRt};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource, ScriptPort};
@@ -33,10 +35,12 @@ use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
 
-use js::jsapi::JSContext;
+use js::jsapi::{JSContext, JS_SetOperationCallback, JSBool};
 use js::jsval::JSVal;
 use js::rust::Cx;
 
+use std::cell::RefCell;
+use std::collections::LinkedList;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use url::Url;
@@ -101,6 +105,7 @@ pub struct DedicatedWorkerGlobalScope {
     worker: DOMRefCell<Option<TrustedWorkerAddress>>,
     /// Sender to the parent thread.
     parent_sender: Box<ScriptChan+Send>,
+    msg_queue: RefCell<LinkedList<(TrustedWorkerAddress, ScriptMsg)>>
 }
 
 impl DedicatedWorkerGlobalScope {
@@ -121,6 +126,7 @@ impl DedicatedWorkerGlobalScope {
             own_sender: own_sender,
             parent_sender: parent_sender,
             worker: DOMRefCell::new(None),
+            msg_queue: RefCell::new(LinkedList::new())
         }
     }
 
@@ -148,7 +154,8 @@ impl DedicatedWorkerGlobalScope {
                             resource_task: ResourceTask,
                             parent_sender: Box<ScriptChan+Send>,
                             own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
-                            receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>) {
+                            receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>,
+                            rt_sender: Sender<SharedRt>) {
         spawn_named(format!("WebWorker for {}", worker_url.serialize()), move || {
             task_state::initialize(SCRIPT | IN_WORKER);
 
@@ -168,6 +175,16 @@ impl DedicatedWorkerGlobalScope {
             };
 
             let runtime = ScriptTask::new_rt_and_cx();
+
+            // Send JSRuntime ref to main thread for interrupt scheduling
+            rt_sender.send(SharedRt::new(runtime.rt())).unwrap();
+
+            // Handle interrupt requests
+            unsafe {
+                JS_SetOperationCallback(runtime.cx.ptr,
+                    Some(interrupt_callback as unsafe extern "C" fn(*mut JSContext) -> JSBool));
+            }
+
             let global = DedicatedWorkerGlobalScope::new(
                 worker_url, id, devtools_chan, runtime.cx.clone(), resource_task,
                 parent_sender, own_sender, receiver).root();
@@ -178,25 +195,67 @@ impl DedicatedWorkerGlobalScope {
                 match runtime.cx.evaluate_script(
                     global.r().reflector().get_jsobject(), source, url.serialize(), 1) {
                     Ok(_) => (),
-                    Err(_) => println!("evaluate_script failed")
+                    Err(_) => {
+                        if global.r().is_closing() {
+                            println!("evaluate_script failed (terminated)");
+                        } else {
+                            println!("evaluate_script failed");
+                            return
+                        }
+                    }
                 }
             }
 
             loop {
+                // Process any pending events
+                while let Some((linked_worker, msg)) = global.r().take_event() {
+                    let _ar = AutoWorkerReset::new(global.r(), linked_worker);
+                    global.r().handle_event(msg);
+
+                    if global.r().is_closing() { break }
+                }
+
+                // Wait for new events
                 match global.r().receiver.recv() {
                     Ok((linked_worker, msg)) => {
                         let _ar = AutoWorkerReset::new(global.r(), linked_worker);
                         global.r().handle_event(msg);
 
-                        if WorkerGlobalScopeCast::from_ref(global.r()).get_closing() {
-                            break
-                        }
+                        if global.r().is_closing() { break }
                     }
                     Err(_) => break,
                 }
             }
+
+            WorkerGlobalScopeCast::from_ref(global.r()).clear_timers();
+            global.r().clear_events();
         });
     }
+}
+
+unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> JSBool {
+    // get global for context
+    let global = global_object_for_js_context(cx);
+    let global_root = global.root();
+    let scope = match global_root.r() {
+        GlobalRef::Worker(w) => DedicatedWorkerGlobalScopeCast::to_ref(w).unwrap(),
+        _ => panic!("global for worker is not a DedicatedWorkerGlobalScope")
+    };
+
+    // Process any critical control messages. It might be nice to have two message types, each on
+    // their own channel, so that we don't need to buffer events outside of the channel.
+    while let Ok(msg) = scope.receiver.try_recv() {
+        match msg {
+            (linked_worker, ScriptMsg::Terminate) => {
+                let _ar = AutoWorkerReset::new(scope, linked_worker);
+                scope.handle_event(ScriptMsg::Terminate)
+            },
+            _ => scope.queue_event(msg)
+        }
+    }
+
+    // A false response causes the script to terminate
+    !scope.is_closing() as JSBool
 }
 
 pub trait DedicatedWorkerGlobalScopeHelpers {
@@ -204,6 +263,10 @@ pub trait DedicatedWorkerGlobalScopeHelpers {
     fn pipeline(self) -> PipelineId;
     fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>);
     fn process_event(self, msg: ScriptMsg);
+    fn queue_event(self, msg: (TrustedWorkerAddress, ScriptMsg));
+    fn take_event(self) -> Option<(TrustedWorkerAddress, ScriptMsg)>;
+    fn clear_events(self);
+    fn is_closing(self) -> bool;
 }
 
 impl<'a> DedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
@@ -231,6 +294,25 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalSc
 
     fn process_event(self, msg: ScriptMsg) {
         self.handle_event(msg);
+    }
+
+    fn queue_event(self, msg: (TrustedWorkerAddress, ScriptMsg)) {
+        let mut events = self.msg_queue.borrow_mut();
+        events.push_back(msg);
+    }
+
+    fn take_event(self) -> Option<(TrustedWorkerAddress, ScriptMsg)> {
+        let mut events = self.msg_queue.borrow_mut();
+        events.pop_front()
+    }
+
+    fn clear_events(self) {
+        let mut events = self.msg_queue.borrow_mut();
+        events.clear()
+    }
+
+    fn is_closing(self) -> bool {
+        WorkerGlobalScopeCast::from_ref(self).get_closing()
     }
 }
 
@@ -296,5 +378,11 @@ impl DedicatedWorkerGlobalScopeDerived for EventTarget {
             EventTargetTypeId::WorkerGlobalScope(WorkerGlobalScopeTypeId::DedicatedGlobalScope) => true,
             _ => false
         }
+    }
+}
+
+impl JSTraceable for RefCell<LinkedList<(TrustedWorkerAddress, ScriptMsg)>> {
+    fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
+        // TODO? 
     }
 }

@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+#![allow(unsafe_code)]
 
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
@@ -12,30 +13,31 @@ use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
+use dom::bindings::trace::JSTraceable;
 use dom::window::WindowHelpers;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use script_task::{ScriptTask, ScriptChan, ScriptMsg, Runnable};
+use script_task::{ScriptChan, ScriptMsg, Runnable};
 
 use devtools_traits::{DevtoolsControlMsg, DevtoolsPageInfo};
 
 use util::str::DOMString;
 
-use js::jsapi::JSContext;
+use js::jsapi::{JSContext, JSRuntime, JS_TriggerOperationCallback};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::Runtime;
 use url::UrlParser;
 
 use std::borrow::ToOwned;
 use std::sync::mpsc::{channel, Sender};
 use std::cell::Cell;
+use std::ptr;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
+
 
 // https://html.spec.whatwg.org/multipage/#worker
 #[dom_struct]
@@ -46,6 +48,7 @@ pub struct Worker {
     /// this Worker created.
     sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
     closing: Cell<bool>,
+    rt: Cell<SharedRt>
 }
 
 impl Worker {
@@ -55,6 +58,7 @@ impl Worker {
             global: GlobalField::from_rooted(&global),
             sender: sender,
             closing: Cell::new(false),
+            rt: Cell::new(SharedRt::null())
         }
     }
 
@@ -93,9 +97,18 @@ impl Worker {
             ).unwrap();
         }
 
+        // temporary channel to get a SharedRt from the worker task
+        let (rt_sender, rt_receiver) = channel();
+
         DedicatedWorkerGlobalScope::run_worker_scope(
             worker_url, global.pipeline(), global.devtools_chan(), worker_ref, resource_task, global.script_chan(),
-            sender, receiver);
+            sender, receiver, rt_sender.clone());
+
+        // block until the JSRuntime arrives
+        match rt_receiver.recv() {
+            Ok(shared_rt) => worker.r().set_rt(shared_rt),
+            Err(_) => panic!("Error receiving runtime from worker task")
+        };
 
         Ok(Temporary::from_rooted(worker.r()))
     }
@@ -157,14 +170,37 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
 
     // https://html.spec.whatwg.org/multipage/#terminate-a-worker
     fn Terminate(self) {
+        if self.closing.get() { return; }
         self.closing.set(true);
 
         let address = Trusted::new(self.global.root().r().get_cx(), self,
                                    self.global.root().r().script_chan().clone());
         self.sender.send((address, ScriptMsg::Terminate)).unwrap();
+
+        let rt = self.get_rt();
+        if !rt.is_null() {
+            unsafe {
+                JS_TriggerOperationCallback(rt.rt());
+            }
+        }
     }
 
     event_handler!(message, GetOnmessage, SetOnmessage);
+}
+
+pub trait WorkerHelpers {
+    fn get_rt(self) -> SharedRt;
+    fn set_rt(self, rt: SharedRt);
+}
+
+impl<'a> WorkerHelpers for JSRef<'a, Worker> {
+    fn get_rt(self) -> SharedRt {
+        self.rt.get()
+    }
+
+    fn set_rt(self, rt: SharedRt) {
+        self.rt.set(rt);
+    }
 }
 
 pub struct WorkerMessageHandler {
@@ -232,4 +268,46 @@ impl Runnable for WorkerErrorHandler {
         let this = *self;
         Worker::handle_error_message(this.addr, this.msg, this.file_name, this.line_num, this.col_num);
     }
+}
+
+pub struct SharedRt {
+    ptr: *mut JSRuntime
+}
+
+impl SharedRt {
+    pub fn new(rt: *mut JSRuntime) -> SharedRt {
+        SharedRt {
+            ptr: rt
+        }
+    }
+
+    pub fn is_null(self) -> bool {
+        self.ptr.is_null()
+    }
+
+    pub fn rt(self) -> *mut JSRuntime {
+        self.ptr
+    }
+
+    pub fn null() -> SharedRt {
+        SharedRt {
+            ptr: ptr::null_mut()
+        }
+    }
+
+}
+
+impl JSTraceable for SharedRt {
+    fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
+
+    }
+}
+
+impl Copy for SharedRt {}
+impl Clone for SharedRt {
+    fn clone(&self) -> SharedRt { *self }
+}
+
+unsafe impl Send for SharedRt {
+
 }
