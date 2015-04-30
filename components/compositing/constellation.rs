@@ -1001,7 +1001,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.pipeline_to_frame_map.remove(&pipeline_id);
 
         // Remove this pipeline from pending frames if it hasn't loaded yet.
-        let pending_index = self.pending_frames.iter().rposition(|frame_change| {
+        let pending_index = self.pending_frames.iter().position(|frame_change| {
             frame_change.new_pipeline_id == pipeline_id
         });
         if let Some(pending_index) = pending_index {

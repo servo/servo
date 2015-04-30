@@ -1365,7 +1365,7 @@ impl ScriptTask {
             let load_response = input_port.recv().unwrap();
             if script_chan.send(ScriptMsg::PageFetchComplete(id, subpage, load_response)).is_err() {
                 // TODO(gw): This should be handled by aborting
-                // the load before the script task exis.
+                // the load before the script task exits.
                 debug!("PageFetchComplete: script channel has exited");
             }
         });
