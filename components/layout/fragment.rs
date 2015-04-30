@@ -150,6 +150,11 @@ pub enum SpecificFragmentInfo {
     InlineAbsoluteHypothetical(InlineAbsoluteHypotheticalFragmentInfo),
 
     InlineBlock(InlineBlockFragmentInfo),
+
+    /// An inline fragment that establishes an absolute containing block for its descendants (i.e.
+    /// a positioned inline fragment).
+    InlineAbsolute(InlineAbsoluteFragmentInfo),
+
     ScannedText(Box<ScannedTextFragmentInfo>),
     Table,
     TableCell,
@@ -176,6 +181,7 @@ impl SpecificFragmentInfo {
                 SpecificFragmentInfo::UnscannedText(_) |
                 SpecificFragmentInfo::Generic => return RestyleDamage::empty(),
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref info) => &info.flow_ref,
+                SpecificFragmentInfo::InlineAbsolute(ref info) => &info.flow_ref,
                 SpecificFragmentInfo::InlineBlock(ref info) => &info.flow_ref,
             };
 
@@ -189,6 +195,7 @@ impl SpecificFragmentInfo {
             SpecificFragmentInfo::GeneratedContent(_) => "SpecificFragmentInfo::GeneratedContent",
             SpecificFragmentInfo::Iframe(_) => "SpecificFragmentInfo::Iframe",
             SpecificFragmentInfo::Image(_) => "SpecificFragmentInfo::Image",
+            SpecificFragmentInfo::InlineAbsolute(_) => "SpecificFragmentInfo::InlineAbsolute",
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
                 "SpecificFragmentInfo::InlineAbsoluteHypothetical"
             }
@@ -256,6 +263,24 @@ pub struct InlineBlockFragmentInfo {
 impl InlineBlockFragmentInfo {
     pub fn new(flow_ref: FlowRef) -> InlineBlockFragmentInfo {
         InlineBlockFragmentInfo {
+            flow_ref: flow_ref,
+        }
+    }
+}
+
+/// An inline fragment that establishes an absolute containing block for its descendants (i.e.
+/// a positioned inline fragment).
+///
+/// FIXME(pcwalton): Stop leaking this `FlowRef` to layout; that is not memory safe because layout
+/// can clone it.
+#[derive(Clone)]
+pub struct InlineAbsoluteFragmentInfo {
+    pub flow_ref: FlowRef,
+}
+
+impl InlineAbsoluteFragmentInfo {
+    pub fn new(flow_ref: FlowRef) -> InlineAbsoluteFragmentInfo {
+        InlineAbsoluteFragmentInfo {
             flow_ref: flow_ref,
         }
     }
@@ -880,7 +905,8 @@ impl Fragment {
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(_) |
             SpecificFragmentInfo::Iframe(_) |
-            SpecificFragmentInfo::Image(_) => {
+            SpecificFragmentInfo::Image(_) |
+            SpecificFragmentInfo::InlineAbsolute(_) => {
                 QuantitiesIncludedInIntrinsicInlineSizes::all()
             }
             SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell => {
@@ -1244,6 +1270,10 @@ impl Fragment {
                 let block_flow = info.flow_ref.as_block();
                 result.union_block(&block_flow.base.intrinsic_inline_sizes)
             }
+            SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
+                let block_flow = info.flow_ref.as_block();
+                result.union_block(&block_flow.base.intrinsic_inline_sizes)
+            }
             SpecificFragmentInfo::Image(ref mut image_fragment_info) => {
                 let image_inline_size = image_fragment_info.image_inline_size();
                 result.union_block(&IntrinsicISizes {
@@ -1311,7 +1341,8 @@ impl Fragment {
             SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::TableWrapper |
             SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => Au(0),
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::InlineAbsolute(_) => Au(0),
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
                 canvas_fragment_info.replaced_image_fragment_info.computed_inline_size()
             }
@@ -1601,6 +1632,7 @@ impl Fragment {
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::InlineAbsolute(_) |
             SpecificFragmentInfo::ScannedText(_) => {}
         };
 
@@ -1617,6 +1649,14 @@ impl Fragment {
                 self.border_box.size.inline = Au(0);
             }
             SpecificFragmentInfo::InlineBlock(ref mut info) => {
+                let block_flow = info.flow_ref.as_block();
+                self.border_box.size.inline =
+                    max(block_flow.base.intrinsic_inline_sizes.minimum_inline_size,
+                        block_flow.base.intrinsic_inline_sizes.preferred_inline_size);
+                block_flow.base.block_container_inline_size = self.border_box.size.inline;
+                block_flow.base.block_container_writing_mode = self.style.writing_mode;
+            }
+            SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
                 let block_flow = info.flow_ref.as_block();
                 self.border_box.size.inline =
                     max(block_flow.base.intrinsic_inline_sizes.minimum_inline_size,
@@ -1683,6 +1723,7 @@ impl Fragment {
             SpecificFragmentInfo::Image(_) |
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::InlineAbsolute(_) |
             SpecificFragmentInfo::ScannedText(_) => {}
         }
 
@@ -1728,6 +1769,12 @@ impl Fragment {
                 let block_flow = info.flow_ref.as_block();
                 self.border_box.size.block = block_flow.base.position.size.block;
             }
+            SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
+                // Not the primary fragment, so we do not take the noncontent size into account.
+                let block_flow = info.flow_ref.as_block();
+                self.border_box.size.block = block_flow.base.position.size.block +
+                    block_flow.fragment.margin.block_start_end()
+            }
             SpecificFragmentInfo::Iframe(_) => {
                 self.border_box.size.block = IframeFragmentInfo::calculate_replaced_block_size(
                                                 style, containing_block_block_size) +
@@ -1767,6 +1814,14 @@ impl Fragment {
                                                  block_flow.fragment.margin.block_start_end())
             }
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
+                // Hypothetical boxes take up no space.
+                InlineMetrics {
+                    block_size_above_baseline: Au(0),
+                    depth_below_baseline: Au(0),
+                    ascent: Au(0),
+                }
+            }
+            SpecificFragmentInfo::InlineAbsolute(_) => {
                 // Hypothetical boxes take up no space.
                 InlineMetrics {
                     block_size_above_baseline: Au(0),
@@ -1821,6 +1876,7 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::InlineAbsolute(_) |
             SpecificFragmentInfo::TableWrapper => false,
             SpecificFragmentInfo::Canvas(_) |
             SpecificFragmentInfo::Generic |
