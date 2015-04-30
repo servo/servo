@@ -408,6 +408,13 @@ pub mod longhands {
                         T::Number(value) => value,
                     }
                 }
+
+                pub fn is_number(self) -> bool {
+                    match self {
+                        T::Auto => false,
+                        T::Number(_) => true,
+                    }
+                }
             }
         }
         #[inline]
