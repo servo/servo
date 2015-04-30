@@ -807,11 +807,6 @@ impl LayoutTask {
                                                            ScrollPolicy::Scrollable));
                 let origin = Rect(Point2D(Au(0), Au(0)), root_size);
 
-                if opts::get().dump_display_list {
-                    println!("#### start printing display list.");
-                    display_list.print_items(String::from_str("#"));
-                }
-
                 let stacking_context = Arc::new(StackingContext::new(display_list,
                                                                      &origin,
                                                                      &origin,
@@ -820,6 +815,11 @@ impl LayoutTask {
                                                                      filter::T::new(Vec::new()),
                                                                      mix_blend_mode::T::normal,
                                                                      Some(paint_layer)));
+
+                if opts::get().dump_display_list {
+                    println!("#### start printing display list.");
+                    stacking_context.print(String::from_str("#"));
+                }
 
                 rw_data.stacking_context = Some(stacking_context.clone());
 
