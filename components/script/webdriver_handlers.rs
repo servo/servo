@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use webdriver_traits::{EvaluateJSReply};
+use webdriver_traits::{WebDriverJSValue, WebDriverJSError, WebDriverJSResult};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
@@ -37,24 +37,24 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     None
 }
 
-pub fn jsval_to_webdriver(cx: *mut JSContext, val: JSVal) -> Result<EvaluateJSReply, ()> {
+pub fn jsval_to_webdriver(cx: *mut JSContext, val: JSVal) -> WebDriverJSResult {
     if val.is_undefined() {
-        Ok(EvaluateJSReply::VoidValue)
+        Ok(WebDriverJSValue::Undefined)
     } else if val.is_boolean() {
-        Ok(EvaluateJSReply::BooleanValue(val.to_boolean()))
+        Ok(WebDriverJSValue::Boolean(val.to_boolean()))
     } else if val.is_double() {
-        Ok(EvaluateJSReply::NumberValue(FromJSValConvertible::from_jsval(cx, val, ()).unwrap()))
+        Ok(WebDriverJSValue::Number(FromJSValConvertible::from_jsval(cx, val, ()).unwrap()))
     } else if val.is_string() {
         //FIXME: use jsstring_to_str when jsval grows to_jsstring
-        Ok(EvaluateJSReply::StringValue(FromJSValConvertible::from_jsval(cx, val, StringificationBehavior::Default).unwrap()))
+        Ok(WebDriverJSValue::String(FromJSValConvertible::from_jsval(cx, val, StringificationBehavior::Default).unwrap()))
     } else if val.is_null() {
-        Ok(EvaluateJSReply::NullValue)
+        Ok(WebDriverJSValue::Null)
     } else {
-        Err(())
+        Err(WebDriverJSError::UnknownType)
     }
 }
 
-pub fn handle_execute_script(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<Result<EvaluateJSReply, ()>>) {
+pub fn handle_execute_script(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<WebDriverJSResult>) {
     let page = get_page(&*page, pipeline);
     let window = page.window().root();
     let cx = window.r().get_cx();
@@ -63,8 +63,7 @@ pub fn handle_execute_script(page: &Rc<Page>, pipeline: PipelineId, eval: String
     reply.send(jsval_to_webdriver(cx, rval)).unwrap();
 }
 
-
-pub fn handle_execute_async_script(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<Result<EvaluateJSReply, ()>>) {
+pub fn handle_execute_async_script(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<WebDriverJSResult>) {
     let page = get_page(&*page, pipeline);
     let window = page.window().root();
     window.r().set_webdriver_script_chan(Some(reply));

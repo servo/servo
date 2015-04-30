@@ -56,9 +56,6 @@
 
   //void postMessage(any message, DOMString targetOrigin, optional sequence<Transferable> transfer);
 
-  // Shouldn't be public, but just to make things work for now
-  void webdriverCallback(optional any result);
-
   // also has obsolete members
 };
 Window implements GlobalEventHandlers;
@@ -130,6 +127,13 @@ partial interface Window {
   void gc();
 };
 Window implements OnErrorEventHandlerForWindow;
+
+// WebDriver extensions
+partial interface Window {
+  // Shouldn't be public, but just to make things work for now
+  void webdriverCallback(optional any result);
+  void webdriverTimeout();
+};
 
 // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
 [NoInterfaceObject]

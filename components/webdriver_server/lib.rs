@@ -22,11 +22,11 @@ extern crate webdriver_traits;
 use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, NavigationDirection, WebDriverCommandMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use std::sync::mpsc::{channel, Receiver};
-use webdriver_traits::{WebDriverScriptCommand, EvaluateJSReply};
+use webdriver_traits::{WebDriverScriptCommand, WebDriverJSError, WebDriverJSResult};
 
 use url::Url;
 use webdriver::command::{WebDriverMessage, WebDriverCommand};
-use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
+use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters, TimeoutsParameters};
 use webdriver::common::{LocatorStrategy, WebElement};
 use webdriver::response::{
     WebDriverResponse, NewSessionResponse, ValueResponse};
@@ -58,6 +58,9 @@ struct WebdriverSession {
 struct Handler {
     session: Option<WebdriverSession>,
     constellation_chan: ConstellationChan,
+    script_timeout: u32,
+    load_timeout: u32,
+    implicit_wait_timeout: u32
 }
 
 impl WebdriverSession {
@@ -72,7 +75,10 @@ impl Handler {
     pub fn new(constellation_chan: ConstellationChan) -> Handler {
         Handler {
             session: None,
-            constellation_chan: constellation_chan
+            constellation_chan: constellation_chan,
+            script_timeout: 30_000,
+            load_timeout: 300_000,
+            implicit_wait_timeout: 0
         }
     }
 
@@ -263,6 +269,19 @@ impl Handler {
         }
     }
 
+    fn handle_set_timeouts(&mut self, parameters: &TimeoutsParameters) -> WebDriverResult<WebDriverResponse> {
+        //TODO: this conversion is crazy, spec should limit these to u32 and check upstream
+        let value = parameters.ms as u32;
+        match &parameters.type_[..] {
+            "implicit" => self.implicit_wait_timeout = value,
+            "page load" => self.load_timeout = value,
+            "script" => self.script_timeout = value,
+            x @ _ => return Err(WebDriverError::new(ErrorStatus::InvalidSelector,
+                                                    &format!("Unknown timeout type {}", x)))
+        }
+        Ok(WebDriverResponse::Void)
+    }
+
     fn handle_execute_script(&self, parameters: &JavascriptCommandParameters) -> WebDriverResult<WebDriverResponse> {
         let func_body = &parameters.script;
         let args_string = "";
@@ -281,17 +300,16 @@ impl Handler {
         let func_body = &parameters.script;
         let args_string = "window.webdriverCallback";
 
-        // This is pretty ugly; we really want something that acts like
-        // new Function() and then takes the resulting function and executes
-        // it with a vec of arguments.
-        let script = format!("(function(callback) {{ {} }})({})", func_body, args_string);
+        let script = format!(
+            "setTimeout(webdriverTimeout, {}); (function(callback) {{ {} }})({})",
+            self.script_timeout, func_body, args_string);
 
         let (sender, reciever) = channel();
         let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
         self.execute_script(command, reciever)
     }
 
-    fn execute_script(&self, command: WebDriverScriptCommand, reciever: Receiver<Result<EvaluateJSReply, ()>>) -> WebDriverResult<WebDriverResponse> {
+    fn execute_script(&self, command: WebDriverScriptCommand, reciever: Receiver<WebDriverJSResult>) -> WebDriverResult<WebDriverResponse> {
         // TODO: This isn't really right because it always runs the script in the
         // root window
         let pipeline_id = try!(self.get_root_pipeline());
@@ -302,11 +320,11 @@ impl Handler {
 
         match reciever.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
-            Err(_) => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
-                                              "Unsupported return type"))
+            Err(WebDriverJSError::Timeout) => Err(WebDriverError::new(ErrorStatus::Timeout, "")),
+            Err(WebDriverJSError::UnknownType) => Err(WebDriverError::new(
+                ErrorStatus::UnsupportedOperation, "Unsupported return type"))
         }
     }
-
 
     fn handle_take_screenshot(&self) -> WebDriverResult<WebDriverResponse> {
         let mut img = None;
@@ -367,6 +385,7 @@ impl WebDriverHandler for Handler {
             WebDriverCommand::GetElementTagName(ref element) => self.handle_get_element_tag_name(element),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
             WebDriverCommand::ExecuteAsyncScript(ref x) => self.handle_execute_async_script(x),
+            WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
             _ => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
                                          "Command not implemented"))
