@@ -30,6 +30,7 @@ pub struct TextDecoder {
     fatal: bool,
     ignoreBOM: bool,
     BOMseen: bool,
+    streamingFlag: bool,
 }
 
 impl TextDecoder {
@@ -40,6 +41,7 @@ impl TextDecoder {
             fatal: fatal,
             ignoreBOM: ignoreBOM,
             BOMseen: false,
+            streamingFlag: false,
         }
     }
 
@@ -97,8 +99,15 @@ impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
     }
 
     #[allow(unsafe_code)]
-    fn Decode(self, cx: *mut JSContext, input: Option<*mut JSObject>, options: &TextDecoderBinding::TextDecodeOptions)
+    fn Decode(mut self, cx: *mut JSContext, input: Option<*mut JSObject>, options: &TextDecoderBinding::TextDecodeOptions)
               -> Fallible<USVString> {
+        // Step 1
+        if !self.streamingFlag {
+            self.BOMseen = false;
+        }
+        // Step 2
+        self.streamingFlag = options.stream;
+
         let input = match input {
             Some(input) => input,
             None => return Ok(USVString("".to_owned())),
@@ -113,13 +122,22 @@ impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
         let buffer = unsafe {
             slice::from_raw_parts(data as *const _, length as usize)
         };
+
         let trap = if self.fatal {
             DecoderTrap::Strict
         } else {
             DecoderTrap::Replace
         };
+
         match self.encoding.decode(buffer, trap) {
-            Ok(s) => Ok(USVString(s)),
+            Ok(output) => {
+                let mut vec = Vec::new();
+                vec.push_all(self.serialize(output.as_bytes()));
+                match String::from_utf8(vec) {
+                    Ok(e) => Ok(USVString(e)),
+                    Err(e) => Ok(USVString("".to_owned())),
+                }
+            },
             Err(_) => Err(Error::Type("Decoding failed".to_owned())),
         }
     }
