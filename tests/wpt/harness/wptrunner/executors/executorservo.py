@@ -186,7 +186,8 @@ class ServoRefTestExecutor(ProcessTestExecutor):
 
         with TempFilename(self.tempdir) as output_path:
             self.command = [self.binary, "--cpu", "--hard-fail", "--exit",
-                            "--output=%s" % output_path, full_url]
+                            "-Z", "disable-text-aa", "--output=%s" % output_path,
+                            full_url]
 
             env = os.environ.copy()
             env["HOST_FILE"] = self.hosts_path
