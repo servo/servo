@@ -9,13 +9,13 @@
 use block::BlockFlow;
 use context::LayoutContext;
 use floats::FloatKind;
-use flow::{FlowClass, Flow};
+use flow::{FlowClass, Flow, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
 use util::geometry::Au;
-use util::logical_geometry::LogicalRect;
+use util::logical_geometry::LogicalSize;
 use std::fmt;
 use style::properties::ComputedValues;
 use std::sync::Arc;
@@ -88,8 +88,8 @@ impl Flow for MulticolFlow {
         self.block_flow.compute_overflow()
     }
 
-    fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
-        self.block_flow.generated_containing_block_rect()
+    fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {
+        self.block_flow.generated_containing_block_size(flow)
     }
 
     fn iterate_through_fragment_border_boxes(&self,
