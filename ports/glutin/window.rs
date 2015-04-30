@@ -237,21 +237,22 @@ impl Window {
                 MouseWindowEvent::MouseDown(MouseButton::Left, TypedPoint2D(x as f32, y as f32))
             }
             ElementState::Released => {
+                let mouse_up_event = MouseWindowEvent::MouseUp(MouseButton::Left, TypedPoint2D(x as f32, y as f32));
                 match self.mouse_down_button.get() {
-                    None => (),
+                    None => mouse_up_event,
                     Some(but) if button == but => {
                         let pixel_dist = self.mouse_down_point.get() - Point2D(x, y);
                         let pixel_dist = ((pixel_dist.x * pixel_dist.x +
                                            pixel_dist.y * pixel_dist.y) as f64).sqrt();
                         if pixel_dist < max_pixel_dist {
-                            let click_event = MouseWindowEvent::Click(
-                                MouseButton::Left, TypedPoint2D(x as f32, y as f32));
-                            self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(click_event));
+                            self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(mouse_up_event));
+                            MouseWindowEvent::Click(MouseButton::Left, TypedPoint2D(x as f32, y as f32))
+                        } else {
+                            mouse_up_event
                         }
-                    }
-                    Some(_) => (),
+                    },
+                    Some(_) => mouse_up_event,
                 }
-                MouseWindowEvent::MouseUp(MouseButton::Left, TypedPoint2D(x as f32, y as f32))
             }
         };
         self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(event));

@@ -31,7 +31,7 @@ use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::{JSTraceable, trace_collections, RootedVec};
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
-use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource};
+use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler, DocumentProgressTask, DocumentSource, MouseEventType};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementHelpers};
@@ -51,7 +51,7 @@ use webdriver_handlers;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, DevtoolsPageInfo};
 use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
 use devtools_traits::{TimelineMarker, TimelineMarkerType, TracingMetadata};
-use script_traits::CompositorEvent;
+use script_traits::{CompositorEvent, MouseButton};
 use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
 use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
@@ -1230,17 +1230,17 @@ impl ScriptTask {
             }
 
             ClickEvent(button, point) => {
-                let _marker;
-                if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
-                    _marker = AutoDOMEventMarker::new(self);
-                }
-                let page = get_page(&self.root_page(), pipeline_id);
-                let document = page.document().root();
-                document.r().handle_click_event(self.js_runtime.rt(), button, point);
+                self.handle_mouse_event(pipeline_id, MouseEventType::Click, button, point);
             }
 
-            MouseDownEvent(..) => {}
-            MouseUpEvent(..) => {}
+            MouseDownEvent(button, point) => {
+                self.handle_mouse_event(pipeline_id, MouseEventType::MouseDown, button, point);
+            }
+
+            MouseUpEvent(button, point) => {
+                self.handle_mouse_event(pipeline_id, MouseEventType::MouseUp, button, point);
+            }
+
             MouseMoveEvent(point) => {
                 let _marker;
                 if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
@@ -1266,6 +1266,16 @@ impl ScriptTask {
                     key, state, modifiers, &mut *self.compositor.borrow_mut());
             }
         }
+    }
+
+    fn handle_mouse_event(&self, pipeline_id: PipelineId, mouse_event_type: MouseEventType, button: MouseButton, point: Point2D<f32>) {
+        let _marker;
+        if self.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
+            _marker = AutoDOMEventMarker::new(self);
+        }
+        let page = get_page(&self.root_page(), pipeline_id);
+        let document = page.document().root();
+        document.r().handle_mouse_event(self.js_runtime.rt(), button, point, mouse_event_type);
     }
 
     /// https://html.spec.whatwg.org/multipage/#navigating-across-documents

@@ -220,8 +220,6 @@ pub trait DocumentHelpers<'a> {
     fn title_changed(self);
     fn send_title_to_compositor(self);
     fn dirty_all_nodes(self);
-    fn handle_click_event(self, js_runtime: *mut JSRuntime,
-                          button: MouseButton, point: Point2D<f32>);
     fn dispatch_key_event(self, key: Key, state: KeyState,
         modifiers: KeyModifiers, compositor: &mut Box<ScriptListener+'static>);
     fn node_from_nodes_and_strings(self, nodes: Vec<NodeOrString>)
@@ -229,6 +227,9 @@ pub trait DocumentHelpers<'a> {
     fn get_body_attribute(self, local_name: &Atom) -> DOMString;
     fn set_body_attribute(self, local_name: &Atom, value: DOMString);
 
+    fn handle_mouse_event(self, js_runtime: *mut JSRuntime,
+                          button: MouseButton, point: Point2D<f32>,
+                          mouse_event_type: MouseEventType);
     /// Handles a mouse-move event coming from the compositor.
     fn handle_mouse_move_event(self,
                                js_runtime: *mut JSRuntime,
@@ -511,9 +512,15 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         }
     }
 
-    fn handle_click_event(self, js_runtime: *mut JSRuntime,
-                          _button: MouseButton, point: Point2D<f32>) {
-        debug!("ClickEvent: clicked at {:?}", point);
+    fn handle_mouse_event(self, js_runtime: *mut JSRuntime,
+                          _button: MouseButton, point: Point2D<f32>,
+                          mouse_event_type: MouseEventType) {
+        let mouse_event_type_string = match mouse_event_type {
+            MouseEventType::Click => "click".to_owned(),
+            MouseEventType::MouseUp => "mouseup".to_owned(),
+            MouseEventType::MouseDown => "mousedown".to_owned(),
+        };
+        debug!("{}: at {:?}", mouse_event_type_string, point);
         let node = match self.hit_test(&point) {
             Some(node_address) => {
                 debug!("node address is {:?}", node_address.0);
@@ -534,13 +541,15 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         }.root();
 
         let node: JSRef<Node> = NodeCast::from_ref(el.r());
-        debug!("clicked on {:?}", node.debug_str());
+        debug!("{} on {:?}", mouse_event_type_string, node.debug_str());
         // Prevent click event if form control element is disabled.
-        if node.click_event_filter_by_disabled_state() {
-            return;
-        }
+        if let  MouseEventType::Click = mouse_event_type {
+            if node.click_event_filter_by_disabled_state() {
+                return;
+            }
 
-        self.begin_focus_transaction();
+            self.begin_focus_transaction();
+        }
 
         let window = self.window.root();
 
@@ -548,7 +557,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let x = point.x as i32;
         let y = point.y as i32;
         let event = MouseEvent::new(window.r(),
-                                    "click".to_owned(),
+                                    mouse_event_type_string,
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
                                     Some(window.r()),
@@ -562,9 +571,17 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
         event.set_trusted(true);
         // https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps
-        el.r().authentic_click_activation(event);
+        match mouse_event_type {
+            MouseEventType::Click => el.r().authentic_click_activation(event),
+            _ =>  {
+                let target: JSRef<EventTarget> = EventTargetCast::from_ref(node);
+                event.fire(target);
+            },
+        }
 
-        self.commit_focus_transaction(FocusType::Element);
+        if let MouseEventType::Click = mouse_event_type {
+            self.commit_focus_transaction(FocusType::Element);
+        }
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::MouseEvent);
     }
 
@@ -776,6 +793,12 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             }
         }
     }
+}
+
+pub enum MouseEventType {
+    Click,
+    MouseDown,
+    MouseUp,
 }
 
 #[derive(PartialEq)]
