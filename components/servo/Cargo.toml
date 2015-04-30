@@ -67,6 +67,9 @@ path = "../msg"
 [dependencies.profile]
 path = "../profile"
 
+[dependencies.profile_traits]
+path = "../profile_traits"
+
 [dependencies.util]
 path = "../util"
 

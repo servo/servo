@@ -25,7 +25,7 @@ use msg::compositor_msg::{LayerMetadata, PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::PipelineExitType;
-use profile::time::{self, profile};
+use profile_traits::time::{self, profile};
 use skia::SkiaGrGLNativeContextRef;
 use std::borrow::ToOwned;
 use std::mem;

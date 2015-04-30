@@ -6,7 +6,6 @@
 
 extern crate net;
 extern crate net_traits;
-extern crate profile;
 extern crate url;
 extern crate util;
 

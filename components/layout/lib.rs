@@ -32,7 +32,7 @@ extern crate bitflags;
 extern crate "plugins" as servo_plugins;
 extern crate net_traits;
 #[macro_use]
-extern crate profile;
+extern crate profile_traits;
 
 #[macro_use]
 extern crate util;

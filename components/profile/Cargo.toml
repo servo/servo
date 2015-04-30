@@ -7,6 +7,9 @@ authors = ["The Servo Project Developers"]
 name = "profile"
 path = "lib.rs"
 
+[dependencies.profile_traits]
+path = "../profile_traits"
+
 [dependencies.task_info]
 path = "../../support/rust-task_info"
 
@@ -17,4 +20,3 @@ path = "../util"
 libc = "*"
 regex = "0.1.14"
 time = "0.1.12"
-url = "0.2.16"
