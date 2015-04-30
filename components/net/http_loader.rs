@@ -331,8 +331,16 @@ reason: \"certificate verify failed\" }]";
         match encoding_str {
             Some(encoding) => {
                 if encoding == "gzip" {
-                    let mut response_decoding = GzDecoder::new(response).unwrap();
-                    send_data(&mut response_decoding, start_chan, metadata, classifier);
+                    let result = GzDecoder::new(response);
+                    match result {
+                        Ok(mut response_decoding) => {
+                            send_data(&mut response_decoding, start_chan, metadata, classifier);
+                        }
+                        Err(err) => {
+                            send_error(metadata.final_url, err.to_string(), start_chan);
+                            return;
+                        }
+                    }
                 } else if encoding == "deflate" {
                     let mut response_decoding = DeflateDecoder::new(response);
                     send_data(&mut response_decoding, start_chan, metadata, classifier);
