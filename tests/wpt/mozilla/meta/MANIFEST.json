@@ -15,6 +15,18 @@
     "deleted": [],
     "items": {
       "reftest": {
+        "css/abs_float_pref_width.html": [
+          {
+            "path": "css/abs_float_pref_width.html",
+            "references": [
+              [
+                "/_mozilla/css/abs_float_pref_width-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/abs_float_pref_width.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -534,6 +546,18 @@
             ]
           ],
           "url": "/_mozilla/css/class-namespaces.html"
+        }
+      ],
+      "css/abs_float_pref_width.html": [
+        {
+          "path": "css/abs_float_pref_width.html",
+          "references": [
+            [
+              "/_mozilla/css/abs_float_pref_width-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/abs_float_pref_width.html"
         }
       ]
     }
