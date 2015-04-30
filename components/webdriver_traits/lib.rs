@@ -11,8 +11,8 @@ use rustc_serialize::json::{Json, ToJson};
 use std::sync::mpsc::Sender;
 
 pub enum WebDriverScriptCommand {
-    ExecuteScript(String, Sender<Result<EvaluateJSReply, ()>>),
-    ExecuteAsyncScript(String, Sender<Result<EvaluateJSReply, ()>>),
+    ExecuteScript(String, Sender<WebDriverJSResult>),
+    ExecuteAsyncScript(String, Sender<WebDriverJSResult>),
     FindElementCSS(String, Sender<Result<Option<String>, ()>>),
     FindElementsCSS(String, Sender<Result<Vec<String>, ()>>),
     GetActiveElement(Sender<Option<String>>),
@@ -21,23 +21,30 @@ pub enum WebDriverScriptCommand {
     GetTitle(Sender<String>)
 }
 
-pub enum EvaluateJSReply {
-    VoidValue,
-    NullValue,
-    BooleanValue(bool),
-    NumberValue(f64),
-    StringValue(String),
+pub enum WebDriverJSValue {
+    Undefined,
+    Null,
+    Boolean(bool),
+    Number(f64),
+    String(String),
     // TODO: ObjectValue and WebElementValue
 }
 
-impl ToJson for EvaluateJSReply {
+pub enum WebDriverJSError {
+    Timeout,
+    UnknownType
+}
+
+pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;
+
+impl ToJson for WebDriverJSValue {
     fn to_json(&self) -> Json {
         match self {
-            &EvaluateJSReply::VoidValue => Json::Null,
-            &EvaluateJSReply::NullValue => Json::Null,
-            &EvaluateJSReply::BooleanValue(ref x) => x.to_json(),
-            &EvaluateJSReply::NumberValue(ref x) => x.to_json(),
-            &EvaluateJSReply::StringValue(ref x) => x.to_json()
+            &WebDriverJSValue::Undefined => Json::Null,
+            &WebDriverJSValue::Null => Json::Null,
+            &WebDriverJSValue::Boolean(ref x) => x.to_json(),
+            &WebDriverJSValue::Number(ref x) => x.to_json(),
+            &WebDriverJSValue::String(ref x) => x.to_json()
         }
     }
 }

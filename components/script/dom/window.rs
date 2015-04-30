@@ -38,7 +38,7 @@ use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use webdriver_handlers::jsval_to_webdriver;
 
 use devtools_traits::{DevtoolsControlChan, TimelineMarker, TimelineMarkerType, TracingMetadata};
-use webdriver_traits::EvaluateJSReply;
+use webdriver_traits::{WebDriverJSError, WebDriverJSResult};
 use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
 use net_traits::ResourceTask;
@@ -170,7 +170,7 @@ pub struct Window {
     pending_reflow_count: Cell<u32>,
 
     /// A channel for communicating results of async scripts back to the webdriver server
-    webdriver_script_chan: RefCell<Option<Sender<Result<EvaluateJSReply, ()>>>>
+    webdriver_script_chan: RefCell<Option<Sender<WebDriverJSResult>>>
 }
 
 impl Window {
@@ -499,6 +499,16 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         }
         self.set_webdriver_script_chan(None);
     }
+
+    fn WebdriverTimeout(self) {
+        {
+            let opt_chan = self.webdriver_script_chan.borrow();
+            if let Some(ref chan) = *opt_chan {
+                chan.send(Err(WebDriverJSError::Timeout)).unwrap();
+            }
+        }
+        self.set_webdriver_script_chan(None);
+    }
 }
 
 pub trait WindowHelpers {
@@ -539,7 +549,7 @@ pub trait WindowHelpers {
     fn emit_timeline_marker(self, marker: TimelineMarker);
     fn set_devtools_timeline_marker(self, marker: TimelineMarkerType, reply: Sender<TimelineMarker>);
     fn drop_devtools_timeline_markers(self);
-    fn set_webdriver_script_chan(self, chan: Option<Sender<Result<EvaluateJSReply, ()>>>);
+    fn set_webdriver_script_chan(self, chan: Option<Sender<WebDriverJSResult>>);
 }
 
 pub trait ScriptHelpers {
@@ -898,7 +908,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         *self.devtools_marker_sender.borrow_mut() = None;
     }
 
-    fn set_webdriver_script_chan(self, chan: Option<Sender<Result<EvaluateJSReply, ()>>>) {
+    fn set_webdriver_script_chan(self, chan: Option<Sender<WebDriverJSResult>>) {
         *self.webdriver_script_chan.borrow_mut() = chan;
     }
 }
