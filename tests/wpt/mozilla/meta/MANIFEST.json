@@ -27,6 +27,42 @@
             "url": "/_mozilla/css/abs_float_pref_width.html"
           }
         ],
+        "css/absolute_clipping_of_own_contents.html": [
+          {
+            "path": "css/absolute_clipping_of_own_contents.html",
+            "references": [
+              [
+                "/_mozilla/css/absolute_clipping_of_own_contents_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/absolute_clipping_of_own_contents.html"
+          }
+        ],
+        "css/absolute_content_height.html": [
+          {
+            "path": "css/absolute_content_height.html",
+            "references": [
+              [
+                "/_mozilla/css/absolute_content_height_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/absolute_content_height.html"
+          }
+        ],
+        "css/absolute_hypothetical_float.html": [
+          {
+            "path": "css/absolute_hypothetical_float.html",
+            "references": [
+              [
+                "/_mozilla/css/absolute_hypothetical_float_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/absolute_hypothetical_float.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -536,18 +572,6 @@
       }
     },
     "reftest_nodes": {
-      "css/class-namespaces.html": [
-        {
-          "path": "css/class-namespaces.html",
-          "references": [
-            [
-              "/_mozilla/css/class-namespaces-ref.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/class-namespaces.html"
-        }
-      ],
       "css/abs_float_pref_width.html": [
         {
           "path": "css/abs_float_pref_width.html",
@@ -558,6 +582,54 @@
             ]
           ],
           "url": "/_mozilla/css/abs_float_pref_width.html"
+        }
+      ],
+      "css/absolute_clipping_of_own_contents.html": [
+        {
+          "path": "css/absolute_clipping_of_own_contents.html",
+          "references": [
+            [
+              "/_mozilla/css/absolute_clipping_of_own_contents_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/absolute_clipping_of_own_contents.html"
+        }
+      ],
+      "css/absolute_content_height.html": [
+        {
+          "path": "css/absolute_content_height.html",
+          "references": [
+            [
+              "/_mozilla/css/absolute_content_height_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/absolute_content_height.html"
+        }
+      ],
+      "css/absolute_hypothetical_float.html": [
+        {
+          "path": "css/absolute_hypothetical_float.html",
+          "references": [
+            [
+              "/_mozilla/css/absolute_hypothetical_float_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/absolute_hypothetical_float.html"
+        }
+      ],
+      "css/class-namespaces.html": [
+        {
+          "path": "css/class-namespaces.html",
+          "references": [
+            [
+              "/_mozilla/css/class-namespaces-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/class-namespaces.html"
         }
       ]
     }
