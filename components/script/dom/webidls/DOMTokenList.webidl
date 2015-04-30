@@ -17,5 +17,5 @@ interface DOMTokenList {
   [Throws]
   boolean toggle(DOMString token, optional boolean force);
 
-  //stringifier;
+  stringifier;
 };

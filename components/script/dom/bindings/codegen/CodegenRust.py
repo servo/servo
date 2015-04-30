@@ -4106,25 +4106,6 @@ class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
         CGAbstractExternMethod.__init__(self, descriptor, "obj_toString", "*mut JSString", args)
         self.descriptor = descriptor
     def getBody(self):
-        stringifier = self.descriptor.operations['Stringifier']
-        if stringifier:
-            name = self.descriptor.binaryNameFor(stringifier.identifier.name)
-            nativeName = MakeNativeName(name)
-            signature = stringifier.signatures()[0]
-            returnType = signature[0]
-            extendedAttributes = self.descriptor.getExtendedAttributes(stringifier)
-            infallible = 'infallible' in extendedAttributes
-            if not infallible:
-                error = CGGeneric(
-                    ('ThrowMethodFailedWithDetails(cx, rv, "%s", "toString");\n' +
-                     "return NULL;") % self.descriptor.interface.identifier.name)
-            else:
-                error = None
-            call = CGCallGenerator(error, [], "", returnType, extendedAttributes, self.descriptor, nativeName, False, object="UnwrapProxy(proxy)")
-            return call.define() + """\
-JSString* jsresult;
-return xpc_qsStringToJsstring(cx, result, &jsresult) ? jsresult : NULL;"""
-
         return """proxyhandler::object_to_string(cx, "%s")""" % self.descriptor.name
 
     def definition_body(self):
@@ -4264,7 +4245,7 @@ class CGInterfaceTrait(CGThing):
 
             if descriptor.proxy:
                 for name, operation in descriptor.operations.iteritems():
-                    if not operation:
+                    if not operation or operation.isStringifier():
                         continue
 
                     assert len(operation.signatures()) == 1

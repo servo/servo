@@ -53,7 +53,7 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
     }
 
     // https://url.spec.whatwg.org/#URLUtils-stringification-behavior
-    fn Stringify(self) -> DOMString {
+    fn Stringifier(self) -> DOMString {
         self.Href().0
     }
 

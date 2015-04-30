@@ -254,7 +254,7 @@ class Descriptor(DescriptorProvider):
 
         self._binaryNames = desc.get('binaryNames', {})
         self._binaryNames.setdefault('__legacycaller', 'LegacyCall')
-        self._binaryNames.setdefault('__stringifier', 'Stringify')
+        self._binaryNames.setdefault('__stringifier', 'Stringifier')
 
         for member in self.interface.members:
             if not member.isAttr() and not member.isMethod():
