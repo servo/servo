@@ -665,7 +665,9 @@ impl<'a> FlowConstructor<'a> {
                 }
             }
 
-            self.create_fragments_for_node_text_content(&mut initial_fragments, node, node.style());
+            self.create_fragments_for_node_text_content(&mut initial_fragments,
+                                                        node,
+                                                        node.style());
         }
 
         self.build_flow_for_block_starting_with_fragments(flow, node, initial_fragments)

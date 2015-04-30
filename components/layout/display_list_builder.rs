@@ -1070,7 +1070,6 @@ impl FragmentDisplayListBuilding for Fragment {
                                display_list: Box<DisplayList>,
                                layer: Option<Arc<PaintLayer>>)
                                -> Arc<StackingContext> {
-
         let border_box = self.stacking_relative_border_box(&base_flow.stacking_relative_position,
                                                                &base_flow.absolute_position_info
                                                                .relative_containing_block_size,
@@ -1402,12 +1401,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             ScrollPolicy::Scrollable
         };
 
-
         let transparent = color::transparent();
-        let stacking_context = self.fragment.create_stacking_context(&self.base, display_list,
-                                                                     Some(Arc::new(PaintLayer::new(self.layer_id(0),
-                                                                                                   transparent,
-                                                                                                   scroll_policy))));
+        let stacking_context = self.fragment.create_stacking_context(
+            &self.base,
+            display_list,
+            Some(Arc::new(PaintLayer::new(self.layer_id(0), transparent, scroll_policy))));
         self.base.display_list_building_result =
             DisplayListBuildingResult::StackingContext(stacking_context)
     }
