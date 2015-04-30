@@ -9,7 +9,7 @@
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use flow::{self, FlowClass, Flow, ImmutableFlowUtils};
+use flow::{self, FlowClass, Flow, ImmutableFlowUtils, OpaqueFlow};
 use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use layout_debug;
@@ -30,7 +30,7 @@ use style::computed_values::{border_collapse, border_spacing, border_top_style};
 use style::properties::ComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
 use util::geometry::Au;
-use util::logical_geometry::{LogicalRect, PhysicalSide, WritingMode};
+use util::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 
 /// A single row of a table.
 pub struct TableRowFlow {
@@ -438,8 +438,8 @@ impl Flow for TableRowFlow {
         self.block_flow.compute_overflow()
     }
 
-    fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
-        self.block_flow.generated_containing_block_rect()
+    fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {
+        self.block_flow.generated_containing_block_size(flow)
     }
 
     fn iterate_through_fragment_border_boxes(&self,

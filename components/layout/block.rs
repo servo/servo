@@ -33,7 +33,7 @@ use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use display_list_builder::{FragmentDisplayListBuilding};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, AbsolutePositionInfo, BaseFlow, ForceNonfloatedFlag, FlowClass, Flow};
-use flow::{ImmutableFlowUtils, PreorderFlowTraversal};
+use flow::{ImmutableFlowUtils, MutableFlowUtils, OpaqueFlow, PreorderFlowTraversal};
 use flow::{PostorderFlowTraversal, mut_base};
 use flow::{BLOCK_POSITION_IS_STATIC, HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, INLINE_POSITION_IS_STATIC};
@@ -433,26 +433,31 @@ fn translate_including_floats(cur_b: &mut Au, delta: Au, floats: &mut Floats) {
 ///
 /// Note that flows with position 'fixed' just form a flat list as they all
 /// have the Root flow as their CB.
-struct AbsoluteAssignBSizesTraversal<'a>(&'a LayoutContext<'a>);
+pub struct AbsoluteAssignBSizesTraversal<'a>(pub &'a LayoutContext<'a>);
 
 impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        let block_flow = flow.as_block();
-
-        // The root of the absolute flow tree is definitely not absolutely
-        // positioned. Nothing to process here.
-        if block_flow.is_root_of_absolute_flow_tree() {
-            return;
+        {
+            // The root of the absolute flow tree is definitely not absolutely
+            // positioned. Nothing to process here.
+            let flow: &Flow = flow;
+            if flow.contains_roots_of_absolute_flow_tree() {
+                return;
+            }
+            if !flow.is_block_like() {
+                return
+            }
         }
 
-        assert!(block_flow.base.flags.contains(IS_ABSOLUTELY_POSITIONED));
-        if !block_flow.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
+        let block = flow.as_block();
+        debug_assert!(block.base.flags.contains(IS_ABSOLUTELY_POSITIONED));
+        if !block.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
             return
         }
 
         let AbsoluteAssignBSizesTraversal(ref layout_context) = *self;
-        block_flow.calculate_absolute_block_size_and_margins(*layout_context);
+        block.calculate_absolute_block_size_and_margins(*layout_context);
     }
 }
 
@@ -462,16 +467,19 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
 /// not including the root of the Absolute flow tree.
 /// After that, it is up to the normal store-overflow traversal to propagate
 /// it further up.
-struct AbsoluteStoreOverflowTraversal<'a>{
-    layout_context: &'a LayoutContext<'a>,
+pub struct AbsoluteStoreOverflowTraversal<'a>{
+    pub layout_context: &'a LayoutContext<'a>,
 }
 
 impl<'a> PostorderFlowTraversal for AbsoluteStoreOverflowTraversal<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        // This will be taken care of by the normal store-overflow traversal.
-        if flow.is_root_of_absolute_flow_tree() {
-            return;
+        {
+            // This will be taken care of by the normal store-overflow traversal.
+            let flow: &Flow = flow;
+            if flow.contains_roots_of_absolute_flow_tree() {
+                return;
+            }
         }
 
         flow.store_overflow(self.layout_context);
@@ -656,54 +664,21 @@ impl BlockFlow {
         &mut self.fragment
     }
 
-    /// Return the size of the Containing Block for this flow.
+    /// Return the size of the containing block for the given immediate absolute descendant of this
+    /// flow.
     ///
-    /// Right now, this only gets the Containing Block size for absolutely
-    /// positioned elements.
-    /// Note: Assume this is called in a top-down traversal, so it is ok to
-    /// reference the CB.
+    /// Right now, this only gets the containing block size for absolutely positioned elements.
+    /// Note: We assume this is called in a top-down traversal, so it is ok to reference the CB.
     #[inline]
-    pub fn containing_block_size(&mut self, viewport_size: Size2D<Au>) -> LogicalSize<Au> {
+    pub fn containing_block_size(&mut self, viewport_size: &Size2D<Au>, descendant: OpaqueFlow)
+                                 -> LogicalSize<Au> {
         debug_assert!(self.base.flags.contains(IS_ABSOLUTELY_POSITIONED));
         if self.is_fixed() {
             // Initial containing block is the CB for the root
-            LogicalSize::from_physical(self.base.writing_mode, viewport_size)
+            LogicalSize::from_physical(self.base.writing_mode, *viewport_size)
         } else {
-            self.base.absolute_cb.generated_containing_block_rect().size
+            self.base.absolute_cb.generated_containing_block_size(descendant)
         }
-    }
-
-    /// Traverse the Absolute flow tree in preorder.
-    ///
-    /// Traverse all your direct absolute descendants, who will then traverse
-    /// their direct absolute descendants.
-    ///
-    /// Return true if the traversal is to continue or false to stop.
-    fn traverse_preorder_absolute_flows<T>(&mut self, traversal: &mut T)
-                                           where T: PreorderFlowTraversal {
-        let flow = self as &mut Flow;
-
-        traversal.process(flow);
-
-        let descendant_offset_iter = mut_base(flow).abs_descendants.iter();
-        for ref mut descendant_link in descendant_offset_iter {
-            descendant_link.as_block().traverse_preorder_absolute_flows(traversal)
-        }
-    }
-
-    /// Traverse the Absolute flow tree in postorder.
-    ///
-    /// Return true if the traversal is to continue or false to stop.
-    fn traverse_postorder_absolute_flows<T>(&mut self, traversal: &mut T)
-                                            where T: PostorderFlowTraversal {
-        let flow = self as &mut Flow;
-
-        for descendant_link in mut_base(flow).abs_descendants.iter() {
-            let block = descendant_link.as_block();
-            block.traverse_postorder_absolute_flows(traversal);
-        }
-
-        traversal.process(flow)
     }
 
     /// Return true if this has a replaced fragment.
@@ -1006,16 +981,17 @@ impl BlockFlow {
             }
         }
 
-        if self.is_root_of_absolute_flow_tree() {
+        if (&*self as &Flow).contains_roots_of_absolute_flow_tree() {
             // Assign block-sizes for all flows in this absolute flow tree.
             // This is preorder because the block-size of an absolute flow may depend on
             // the block-size of its containing block, which may also be an absolute flow.
-            self.traverse_preorder_absolute_flows(&mut AbsoluteAssignBSizesTraversal(
-                    layout_context));
+            (&mut *self as &mut Flow).traverse_preorder_absolute_flows(
+                &mut AbsoluteAssignBSizesTraversal(layout_context));
             // Store overflow for all absolute descendants.
-            self.traverse_postorder_absolute_flows(&mut AbsoluteStoreOverflowTraversal {
-                layout_context: layout_context,
-            });
+            (&mut *self as &mut Flow).traverse_postorder_absolute_flows(
+                &mut AbsoluteStoreOverflowTraversal {
+                    layout_context: layout_context,
+                });
         }
 
         // Don't remove the dirty bits yet if we're absolutely-positioned, since our final size
@@ -1086,8 +1062,10 @@ impl BlockFlow {
     /// + block-size for the flow
     /// + position in the block direction of the flow with respect to its Containing Block.
     /// + block-size, vertical margins, and y-coordinate for the flow's box.
-    fn calculate_absolute_block_size_and_margins(&mut self, ctx: &LayoutContext) {
-        let containing_block_block_size = self.containing_block_size(ctx.shared.screen_size).block;
+    fn calculate_absolute_block_size_and_margins(&mut self, layout_context: &LayoutContext) {
+        let opaque_self = OpaqueFlow::from_flow(self);
+        let containing_block_block_size =
+            self.containing_block_size(&layout_context.shared.screen_size, opaque_self).block;
 
         // This is the stored content block-size value from assign-block-size
         let content_block_size = self.fragment.border_box.size.block;
@@ -1250,8 +1228,9 @@ impl BlockFlow {
         };
 
         // Calculate containing block inline size.
+        let opaque_self = OpaqueFlow::from_flow(self);
         let containing_block_size = if flags.contains(IS_ABSOLUTELY_POSITIONED) {
-            self.containing_block_size(layout_context.shared.screen_size).inline
+            self.containing_block_size(&layout_context.shared.screen_size, opaque_self).inline
         } else {
             content_inline_size
         };
@@ -1724,13 +1703,15 @@ impl Flow for BlockFlow {
             self.fragment.relative_position(&self.base
                                                  .absolute_position_info
                                                  .relative_containing_block_size);
-        if self.is_positioned() {
+        if self.contains_positioned_fragments() {
+            let border_box_origin = (self.fragment.border_box -
+                self.fragment.style.logical_border_width()).start;
             self.base
                 .absolute_position_info
                 .stacking_relative_position_of_absolute_containing_block =
                     self.base.stacking_relative_position +
-                    (self.generated_containing_block_rect().start +
-                     relative_offset).to_physical(self.base.writing_mode, container_size)
+                     (border_box_origin + relative_offset).to_physical(self.base.writing_mode,
+                                                                       container_size)
         }
 
         // Compute absolute position info for children.
@@ -1741,7 +1722,7 @@ impl Flow for BlockFlow {
                                                  logical_border_width.inline_start,
                                                  logical_border_width.block_start);
                 let position = position.to_physical(self.base.writing_mode, container_size);
-                if self.is_positioned() {
+                if self.contains_positioned_fragments() {
                     position
                 } else {
                     // We establish a stacking context but are not positioned. (This will happen
@@ -1850,17 +1831,10 @@ impl Flow for BlockFlow {
         self.fragment.style.get_box().position
     }
 
-    /// Return true if this is the root of an Absolute flow tree.
-    ///
-    /// It has to be either relatively positioned or the Root flow.
-    fn is_root_of_absolute_flow_tree(&self) -> bool {
-        self.is_relatively_positioned() || self.is_root()
-    }
-
     /// Return the dimensions of the containing block generated by this flow for absolutely-
     /// positioned descendants. For block flows, this is the padding box.
-    fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
-        self.fragment.border_box - self.fragment.style().logical_border_width()
+    fn generated_containing_block_size(&self, _: OpaqueFlow) -> LogicalSize<Au> {
+        (self.fragment.border_box - self.fragment.style().logical_border_width()).size
     }
 
     fn layer_id(&self, fragment_index: u32) -> LayerId {
@@ -1871,7 +1845,7 @@ impl Flow for BlockFlow {
     }
 
     fn is_absolute_containing_block(&self) -> bool {
-        self.is_positioned()
+        self.contains_positioned_fragments()
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
@@ -2491,7 +2465,8 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
                                     _: Au,
                                     layout_context: &LayoutContext)
                                     -> Au {
-        block.containing_block_size(layout_context.shared.screen_size).inline
+        let opaque_block = OpaqueFlow::from_flow(block);
+        block.containing_block_size(&layout_context.shared.screen_size, opaque_block).inline
     }
 
     fn set_inline_position_of_flow_if_necessary(&self,
@@ -2601,8 +2576,9 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
                                     _: Au,
                                     layout_context: &LayoutContext)
                                     -> MaybeAuto {
+        let opaque_block = OpaqueFlow::from_flow(block);
         let containing_block_inline_size =
-            block.containing_block_size(layout_context.shared.screen_size).inline;
+            block.containing_block_size(&layout_context.shared.screen_size, opaque_block).inline;
         let fragment = block.fragment();
         fragment.assign_replaced_inline_size_if_necessary(containing_block_inline_size);
         // For replaced absolute flow, the rest of the constraint solving will
@@ -2610,9 +2586,13 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
         MaybeAuto::Specified(fragment.content_inline_size())
     }
 
-    fn containing_block_inline_size(&self, block: &mut BlockFlow, _: Au, ctx: &LayoutContext)
+    fn containing_block_inline_size(&self,
+                                    block: &mut BlockFlow,
+                                    _: Au,
+                                    layout_context: &LayoutContext)
                                     -> Au {
-        block.containing_block_size(ctx.shared.screen_size).inline
+        let opaque_block = OpaqueFlow::from_flow(block);
+        block.containing_block_size(&layout_context.shared.screen_size, opaque_block).inline
     }
 
     fn set_inline_position_of_flow_if_necessary(&self,

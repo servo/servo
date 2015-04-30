@@ -11,7 +11,7 @@ use block::{ISizeConstraintInput, ISizeConstraintSolution};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use flow::{self, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
-use flow::{ImmutableFlowUtils};
+use flow::{ImmutableFlowUtils, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
@@ -32,7 +32,7 @@ use style::properties::ComputedValues;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use util::geometry::Au;
-use util::logical_geometry::LogicalRect;
+use util::logical_geometry::LogicalSize;
 
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
 /// The properties `position`, `float`, and `margin-*` are used on the table wrapper fragment,
@@ -507,8 +507,8 @@ impl Flow for TableFlow {
         self.block_flow.compute_absolute_position()
     }
 
-    fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
-        self.block_flow.generated_containing_block_rect()
+    fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {
+        self.block_flow.generated_containing_block_size(flow)
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
