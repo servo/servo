@@ -220,6 +220,7 @@ pub struct StackingContext {
 
     /// The position and size of this stacking context.
     pub bounds: Rect<Au>,
+
     /// The overflow rect for this stacking context in its coordinate system.
     pub overflow: Rect<Au>,
 
