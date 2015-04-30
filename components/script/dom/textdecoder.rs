@@ -97,7 +97,7 @@ impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
     }
 
     #[allow(unsafe_code)]
-    fn Decode(self, cx: *mut JSContext, input: Option<*mut JSObject>)
+    fn Decode(self, cx: *mut JSContext, input: Option<*mut JSObject>, options: &TextDecoderBinding::TextDecodeOptions)
               -> Fallible<USVString> {
         let input = match input {
             Some(input) => input,
