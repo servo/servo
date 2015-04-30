@@ -536,18 +536,6 @@
       }
     },
     "reftest_nodes": {
-      "css/class-namespaces.html": [
-        {
-          "path": "css/class-namespaces.html",
-          "references": [
-            [
-              "/_mozilla/css/class-namespaces-ref.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/class-namespaces.html"
-        }
-      ],
       "css/abs_float_pref_width.html": [
         {
           "path": "css/abs_float_pref_width.html",
@@ -558,6 +546,18 @@
             ]
           ],
           "url": "/_mozilla/css/abs_float_pref_width.html"
+        }
+      ],
+      "css/class-namespaces.html": [
+        {
+          "path": "css/class-namespaces.html",
+          "references": [
+            [
+              "/_mozilla/css/class-namespaces-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/class-namespaces.html"
         }
       ]
     }
