@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::EventBinding;
 use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
-use dom::bindings::js::{JSRef,Temporary, Rootable};
+use dom::bindings::js::{JSRef,Temporary};
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use script_task::{ScriptChan, ScriptMsg, Runnable};
 

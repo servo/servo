@@ -13,7 +13,7 @@ use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::closeevent::CloseEvent;
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
-use dom::bindings::js::{Temporary, JSRef, Rootable};
+use dom::bindings::js::{Temporary, JSRef};
 use dom::bindings::utils::reflect_dom_object;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use util::str::DOMString;
