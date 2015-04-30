@@ -1003,7 +1003,8 @@ impl FragmentDisplayListBuilding for Fragment {
             SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::TableWrapper |
             SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::InlineAbsolute(_) => {
                 if opts::get().show_debug_fragment_borders {
                     self.build_debug_borders_around_fragment(display_list,
                                                              stacking_relative_border_box,
@@ -1366,7 +1367,10 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                background_border_level);
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            DisplayListBuildingResult::StackingContext(self.fragment.create_stacking_context(&self.base, display_list, None))
+            DisplayListBuildingResult::StackingContext(self.fragment.create_stacking_context(
+                    &self.base,
+                    display_list,
+                    None))
         } else {
             DisplayListBuildingResult::Normal(display_list)
         }
@@ -1386,8 +1390,10 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 !self.base.flags.contains(NEEDS_LAYER) {
             // We didn't need a layer.
             self.base.display_list_building_result =
-                DisplayListBuildingResult::StackingContext(self.fragment
-                                                               .create_stacking_context(&self.base, display_list, None));
+                DisplayListBuildingResult::StackingContext(self.fragment.create_stacking_context(
+                        &self.base,
+                        display_list,
+                        None));
             return
         }
 
@@ -1483,6 +1489,11 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                               .add_to(&mut *display_list)
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
+                    let block_flow = &mut *block_flow.flow_ref;
+                    flow::mut_base(block_flow).display_list_building_result
+                                              .add_to(&mut *display_list)
+                }
+                SpecificFragmentInfo::InlineAbsolute(ref mut block_flow) => {
                     let block_flow = &mut *block_flow.flow_ref;
                     flow::mut_base(block_flow).display_list_building_result
                                               .add_to(&mut *display_list)
