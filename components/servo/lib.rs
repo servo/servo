@@ -26,6 +26,7 @@ extern crate net;
 extern crate net_traits;
 extern crate msg;
 extern crate profile;
+extern crate profile_traits;
 #[macro_use]
 extern crate util;
 extern crate script;
@@ -52,8 +53,10 @@ use net::resource_task::new_resource_task;
 use net_traits::storage_task::StorageTask;
 
 use gfx::font_cache_task::FontCacheTask;
-use profile::mem;
-use profile::time;
+use profile::mem as profile_mem;
+use profile::time as profile_time;
+use profile_traits::mem;
+use profile_traits::time;
 use util::opts;
 
 use std::rc::Rc;
@@ -92,8 +95,8 @@ impl Browser  {
         // to deliver the message.
         let (compositor_proxy, compositor_receiver) =
             WindowMethods::create_compositor_channel(&window);
-        let time_profiler_chan = time::Profiler::create(opts.time_profiler_period);
-        let mem_profiler_chan = mem::Profiler::create(opts.mem_profiler_period);
+        let time_profiler_chan = profile_time::Profiler::create(opts.time_profiler_period);
+        let mem_profiler_chan = profile_mem::Profiler::create(opts.mem_profiler_period);
         let devtools_chan = opts.devtools_port.map(|port| {
             devtools::start_server(port)
         });

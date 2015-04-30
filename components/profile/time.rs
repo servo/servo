@@ -5,35 +5,17 @@
 //! Timing functions.
 
 use collections::BTreeMap;
+use profile_traits::time::{ProfilerCategory, ProfilerChan, ProfilerMsg, TimerMetadata};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::f64;
 use std::old_io::timer::sleep;
 use std::iter::AdditiveIterator;
 use std::num::Float;
-use std::sync::mpsc::{Sender, channel, Receiver};
+use std::sync::mpsc::{channel, Receiver};
 use std::time::duration::Duration;
 use std_time::precise_time_ns;
-use url::Url;
 use util::task::spawn_named;
-
-// front-end representation of the profiler used to communicate with the profiler
-#[derive(Clone)]
-pub struct ProfilerChan(pub Sender<ProfilerMsg>);
-
-impl ProfilerChan {
-    pub fn send(&self, msg: ProfilerMsg) {
-        let ProfilerChan(ref c) = *self;
-        c.send(msg).unwrap();
-    }
-}
-
-#[derive(PartialEq, Clone, PartialOrd, Eq, Ord)]
-pub struct TimerMetadata {
-    url:         String,
-    iframe:      bool,
-    incremental: bool,
-}
 
 pub trait Formattable {
     fn format(&self) -> String;
@@ -58,38 +40,6 @@ impl Formattable for Option<TimerMetadata> {
                 format!(" {:14} {:9} {:30}", "    N/A", "  N/A", "             N/A")
         }
     }
-}
-
-#[derive(Clone)]
-pub enum ProfilerMsg {
-    /// Normal message used for reporting time
-    Time((ProfilerCategory, Option<TimerMetadata>), f64),
-    /// Message used to force print the profiling metrics
-    Print,
-    /// Tells the profiler to shut down.
-    Exit,
-}
-
-#[repr(u32)]
-#[derive(PartialEq, Clone, PartialOrd, Eq, Ord)]
-pub enum ProfilerCategory {
-    Compositing,
-    LayoutPerform,
-    LayoutStyleRecalc,
-    LayoutRestyleDamagePropagation,
-    LayoutNonIncrementalReset,
-    LayoutSelectorMatch,
-    LayoutTreeBuilder,
-    LayoutDamagePropagate,
-    LayoutGeneratedContent,
-    LayoutMain,
-    LayoutParallelWarmup,
-    LayoutShaping,
-    LayoutDispListBuild,
-    PaintingPerTile,
-    PaintingPrepBuff,
-    Painting,
-    ImageDecoding,
 }
 
 impl Formattable for ProfilerCategory {
@@ -252,41 +202,6 @@ impl Profiler {
         }
         println!("");
     }
-}
-
-#[derive(Eq, PartialEq)]
-pub enum TimerMetadataFrameType {
-    RootWindow,
-    IFrame,
-}
-
-#[derive(Eq, PartialEq)]
-pub enum TimerMetadataReflowType {
-    Incremental,
-    FirstReflow,
-}
-
-pub type ProfilerMetadata<'a> = Option<(&'a Url, TimerMetadataFrameType, TimerMetadataReflowType)>;
-
-pub fn profile<T, F>(category: ProfilerCategory,
-                     meta: ProfilerMetadata,
-                     profiler_chan: ProfilerChan,
-                     callback: F)
-                  -> T
-    where F: FnOnce() -> T
-{
-    let start_time = precise_time_ns();
-    let val = callback();
-    let end_time = precise_time_ns();
-    let ms = (end_time - start_time) as f64 / 1000000f64;
-    let meta = meta.map(|(url, iframe, reflow_type)|
-        TimerMetadata {
-            url: url.serialize(),
-            iframe: iframe == TimerMetadataFrameType::IFrame,
-            incremental: reflow_type == TimerMetadataReflowType::Incremental,
-        });
-    profiler_chan.send(ProfilerMsg::Time((category, meta), ms));
-    return val;
 }
 
 pub fn time<T, F>(msg: &str, callback: F) -> T

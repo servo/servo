@@ -22,7 +22,7 @@ extern crate png;
 extern crate script_traits;
 extern crate msg;
 extern crate net;
-extern crate profile;
+extern crate profile_traits;
 extern crate net_traits;
 #[macro_use]
 extern crate util;

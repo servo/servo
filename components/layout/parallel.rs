@@ -20,7 +20,7 @@ use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_
 use wrapper::{PostorderNodeMutTraversal, UnsafeLayoutNode};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
-use profile::time::{self, ProfilerMetadata, profile};
+use profile_traits::time::{self, ProfilerMetadata, profile};
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicIsize, Ordering};

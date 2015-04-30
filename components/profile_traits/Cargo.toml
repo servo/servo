@@ -1,0 +1,13 @@
+[package]
+name = "profile_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "profile_traits"
+path = "lib.rs"
+
+[dependencies]
+time = "0.1.12"
+url = "0.2.16"
+

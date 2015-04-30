@@ -12,7 +12,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use libc::uintptr_t;
 use msg::constellation_msg::{PipelineExitType, WindowSizeData};
-use profile::mem::{Reporter, ReportsChan};
+use profile_traits::mem::{Reporter, ReportsChan};
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel, UntrustedNodeAddress};
 use std::any::Any;
 use std::sync::mpsc::{channel, Receiver, Sender};
