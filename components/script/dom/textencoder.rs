@@ -14,7 +14,6 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use util::str::DOMString;
 
 use std::borrow::ToOwned;
-use std::ascii::AsciiExt;
 use std::ptr;
 
 use encoding::types::EncodingRef;
@@ -50,7 +49,7 @@ impl TextEncoder {
     // https://encoding.spec.whatwg.org/#dom-textencoder
     pub fn Constructor(global: GlobalRef,
                        label: DOMString) -> Fallible<Temporary<TextEncoder>> {
-        let encoding = match encoding_from_whatwg_label(&label.trim().to_ascii_lowercase()) {
+        let encoding = match encoding_from_whatwg_label(&label) {
             Some(enc) => enc,
             None => {
                 debug!("Encoding Label Not Supported");
