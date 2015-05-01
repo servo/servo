@@ -4,6 +4,7 @@
 
 //! The `ByteString` struct.
 
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::hash::{Hash, Hasher};
 use std::ops;
@@ -36,20 +37,12 @@ impl ByteString {
 
     /// Compare `self` to `other`, matching A–Z and a–z as equal.
     pub fn eq_ignore_case(&self, other: &ByteString) -> bool {
-        // XXXManishearth make this more efficient
-        self.to_lower() == other.to_lower()
+        self.0.eq_ignore_ascii_case(&other.0)
     }
 
     /// Returns `self` with A–Z replaced by a–z.
     pub fn to_lower(&self) -> ByteString {
-        let ByteString(ref vec) = *self;
-        ByteString::new(vec.iter().map(|&x| {
-            if x > 'A' as u8 && x < 'Z' as u8 {
-                x + ('a' as u8) - ('A' as u8)
-            } else {
-                x
-            }
-        }).collect())
+        ByteString::new(self.0.to_ascii_lowercase())
     }
 
     /// Returns whether `self` is a `token`, as defined by
