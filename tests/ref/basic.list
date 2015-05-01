@@ -66,6 +66,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == block_formatting_context_cleared_float_a.html block_formatting_context_cleared_float_ref.html
 == block_formatting_context_complex_a.html block_formatting_context_complex_ref.html
 == block_formatting_context_containing_floats_a.html block_formatting_context_containing_floats_ref.html
+== block_formatting_context_float_placement_a.html block_formatting_context_float_placement_ref.html
 == block_formatting_context_relative_a.html block_formatting_context_ref.html
 == block_formatting_context_translation_a.html block_formatting_context_translation_ref.html
 == block_image.html 500x300_green.html
