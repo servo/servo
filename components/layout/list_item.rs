@@ -172,7 +172,7 @@ impl Flow for ListItemFlow {
                                                              .base
                                                              .absolute_position_info
                                                              .relative_containing_block_mode,
-                                                         CoordinateSystem::Parent)
+                                                         CoordinateSystem::Own)
                            .translate(stacking_context_position));
             }
         }

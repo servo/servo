@@ -15,7 +15,7 @@ use gfx::font_context::FontContext;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageState};
-use script::layout_interface::{Animation, LayoutChan};
+use script::layout_interface::{Animation, LayoutChan, ReflowGoal};
 use std::boxed;
 use std::cell::Cell;
 use std::ptr;
@@ -98,6 +98,9 @@ pub struct SharedLayoutContext {
     /// A channel on which new animations that have been triggered by style recalculation can be
     /// sent.
     pub new_animations_sender: Sender<Animation>,
+
+    /// Why is this reflow occurring
+    pub goal: ReflowGoal,
 }
 
 pub struct SharedLayoutContextWrapper(pub *const SharedLayoutContext);

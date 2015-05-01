@@ -88,7 +88,7 @@ pub struct HitTestResponse(pub UntrustedNodeAddress);
 pub struct MouseOverResponse(pub Vec<UntrustedNodeAddress>);
 
 /// Why we're doing reflow.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Copy, Debug)]
 pub enum ReflowGoal {
     /// We're reflowing in order to send a display list to the screen.
     ForDisplay,
