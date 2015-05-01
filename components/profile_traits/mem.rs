@@ -2,12 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! APIs for memory profiling.
+
+#![deny(missing_docs)]
+
 use std::sync::mpsc::Sender;
 
+/// Front-end representation of the profiler used to communicate with the
+/// profiler.
 #[derive(Clone)]
 pub struct ProfilerChan(pub Sender<ProfilerMsg>);
 
 impl ProfilerChan {
+    /// Send `msg` on this `Sender`.
+    ///
+    /// Panics if the send fails.
     pub fn send(&self, msg: ProfilerMsg) {
         let ProfilerChan(ref c) = *self;
         c.send(msg).unwrap();
@@ -28,6 +37,9 @@ pub struct Report {
 pub struct ReportsChan(pub Sender<Vec<Report>>);
 
 impl ReportsChan {
+    /// Send `report` on this `Sender`.
+    ///
+    /// Panics if the send fails.
     pub fn send(&self, report: Vec<Report>) {
         let ReportsChan(ref c) = *self;
         c.send(report).unwrap();
