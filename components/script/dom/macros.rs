@@ -85,12 +85,11 @@ macro_rules! make_url_or_base_getter(
             use std::ascii::AsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             let url = element.get_url_attribute(&Atom::from_slice($htmlname));
-            match &*url {
-                "" => {
-                    let window = window_from_node(self).root();
-                    window.r().get_url().serialize()
-                },
-                _ => url
+            if url.is_empty() {
+                let window = window_from_node(self).root();
+                window.r().get_url().serialize()
+            } else {
+                url
             }
         }
     );
