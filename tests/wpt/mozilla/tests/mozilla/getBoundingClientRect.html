@@ -3,18 +3,68 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
-div {
+@font-face {
+    font-family: 'ahem';
+    src: url(../css/fonts/ahem/ahem.ttf);
+}
+#rel-div {
     position: relative;
     top:  100px;
     left: 100px;
     width: 100px;
     height: 100px;
 }
+#abs1 {
+    position: absolute;
+    background-color: red;
+    top: 45px;
+    left: 55px;
+    width: 100px;
+    height: 120px;
+}
+#abs2 {
+    position: absolute;
+    background-color: green;
+    top: 5px;
+    left: 5px;
+    width: 80px;
+    height: 80px;
+}
+#abs3 {
+    position: absolute;
+    background-color: blue;
+    top: 12px;
+    left: 14px;
+    width: 48px;
+    height: 40px;
+}
+#span1 {
+    font-family: 'ahem';
+    font-size: 20px;
+    line-height: 1;
+}
 </style>
 </head>
 <body>
-    <div>my div</div>
+    <div id="rel-div">my div</div>
+    <div id="abs1">
+        <div id="abs2">
+            <div id="abs3">
+                <span id="span1">X</span>
+            </div>
+        </div>
+    </div>
     <script>
+    test_rect = function(name, left, top, bottom, right) {
+      var div = document.getElementById(name);
+      var rect = div.getBoundingClientRect();
+
+      assert_equals(rect.left, left);
+      assert_equals(rect.top, top);
+      assert_equals(rect.bottom, bottom);
+      assert_equals(rect.right, right);
+    }
+
     test(function() {
       assert_equals(String(DOMRect).indexOf("function DOMRect("), 0);
 
@@ -31,6 +81,13 @@ div {
       assert_equals(rect.height, 100);
       assert_equals(rect.width,  rect.right  - rect.left);
       assert_equals(rect.height, rect.bottom - rect.top);
+    });
+
+    test(function() {
+        test_rect('abs1', 55, 45, 165, 155);
+        test_rect('abs2', 60, 50, 130, 140);
+        test_rect('abs3', 74, 62, 102, 122);
+        test_rect('span1', 74, 62, 82, 94);
     });
     </script>
 </body>

@@ -867,30 +867,30 @@ impl FragmentDisplayListBuilding for Fragment {
 
             // Add shadows, background, borders, and outlines, if applicable.
             if let Some(ref inline_context) = self.inline_context {
-                for style in inline_context.styles.iter().rev() {
+                for node in inline_context.nodes.iter().rev() {
                     self.build_display_list_for_box_shadow_if_applicable(
-                        &**style,
+                        &*node.style,
                         display_list,
                         layout_context,
                         level,
                         &stacking_relative_border_box,
                         &clip);
                     self.build_display_list_for_background_if_applicable(
-                        &**style,
+                        &*node.style,
                         display_list,
                         layout_context,
                         level,
                         &stacking_relative_border_box,
                         &clip);
                     self.build_display_list_for_borders_if_applicable(
-                        &**style,
+                        &*node.style,
                         border_painting_mode,
                         display_list,
                         &stacking_relative_border_box,
                         level,
                         &clip);
                     self.build_display_list_for_outline_if_applicable(
-                        &**style,
+                        &*node.style,
                         display_list,
                         &stacking_relative_border_box,
                         &clip);

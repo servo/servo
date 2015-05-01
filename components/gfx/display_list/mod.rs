@@ -64,7 +64,7 @@ pub static BLUR_INFLATION_FACTOR: i32 = 3;
 /// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
-#[derive(Clone, PartialEq, Copy)]
+#[derive(Clone, PartialEq, Copy, Debug)]
 pub struct OpaqueNode(pub uintptr_t);
 
 impl OpaqueNode {

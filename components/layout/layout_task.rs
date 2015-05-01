@@ -350,7 +350,8 @@ impl LayoutTask {
                                    rw_data: &LayoutTaskData,
                                    screen_size_changed: bool,
                                    reflow_root: Option<&LayoutNode>,
-                                   url: &Url)
+                                   url: &Url,
+                                   goal: ReflowGoal)
                                    -> SharedLayoutContext {
         SharedLayoutContext {
             image_cache_task: rw_data.image_cache_task.clone(),
@@ -366,6 +367,7 @@ impl LayoutTask {
             dirty: Rect::zero(),
             generation: rw_data.generation,
             new_animations_sender: rw_data.new_animations_sender.clone(),
+            goal: goal,
         }
     }
 
@@ -467,7 +469,8 @@ impl LayoutTask {
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   None,
-                                                                  &self.url);
+                                                                  &self.url,
+                                                                  reflow_info.goal);
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
                                                      &mut *rw_data,
@@ -751,11 +754,11 @@ impl LayoutTask {
         rw_data.content_boxes_response = iterator.rects;
     }
 
-    fn build_display_list_for_reflow<'a>(&'a self,
-                                         data: &Reflow,
-                                         layout_root: &mut FlowRef,
-                                         shared_layout_context: &mut SharedLayoutContext,
-                                         rw_data: &mut LayoutTaskData) {
+    fn compute_abs_pos_and_build_display_list<'a>(&'a self,
+                                                  data: &Reflow,
+                                                  layout_root: &mut FlowRef,
+                                                  shared_layout_context: &mut SharedLayoutContext,
+                                                  rw_data: &mut LayoutTaskData) {
         let writing_mode = flow::base(&**layout_root).writing_mode;
         profile(time::ProfilerCategory::LayoutDispListBuild,
                 self.profiler_metadata(),
@@ -773,7 +776,8 @@ impl LayoutTask {
 
             match rw_data.parallel_traversal {
                 None => {
-                    sequential::build_display_list_for_subtree(layout_root, shared_layout_context);
+                    sequential::build_display_list_for_subtree(layout_root,
+                                                               shared_layout_context);
                 }
                 Some(ref mut traversal) => {
                     parallel::build_display_list_for_subtree(layout_root,
@@ -784,40 +788,42 @@ impl LayoutTask {
                 }
             }
 
-            debug!("Done building display list.");
+            if data.goal == ReflowGoal::ForDisplay {
+                debug!("Done building display list.");
 
-            let root_background_color = get_root_flow_background_color(&mut **layout_root);
-            let root_size = {
-                let root_flow = flow::base(&**layout_root);
-                root_flow.position.size.to_physical(root_flow.writing_mode)
-            };
-            let mut display_list = box DisplayList::new();
-            flow::mut_base(&mut **layout_root).display_list_building_result
-                                              .add_to(&mut *display_list);
-            let paint_layer = Arc::new(PaintLayer::new(layout_root.layer_id(0),
-                                                       root_background_color,
-                                                       ScrollPolicy::Scrollable));
-            let origin = Rect(Point2D(Au(0), Au(0)), root_size);
+                let root_background_color = get_root_flow_background_color(&mut **layout_root);
+                let root_size = {
+                    let root_flow = flow::base(&**layout_root);
+                    root_flow.position.size.to_physical(root_flow.writing_mode)
+                };
+                let mut display_list = box DisplayList::new();
+                flow::mut_base(&mut **layout_root).display_list_building_result
+                                                  .add_to(&mut *display_list);
+                let paint_layer = Arc::new(PaintLayer::new(layout_root.layer_id(0),
+                                                           root_background_color,
+                                                           ScrollPolicy::Scrollable));
+                let origin = Rect(Point2D(Au(0), Au(0)), root_size);
 
-            if opts::get().dump_display_list {
-                println!("#### start printing display list.");
-                display_list.print_items(String::from_str("#"));
+                if opts::get().dump_display_list {
+                    println!("#### start printing display list.");
+                    display_list.print_items(String::from_str("#"));
+                }
+
+                let stacking_context = Arc::new(StackingContext::new(display_list,
+                                                                     &origin,
+                                                                     &origin,
+                                                                     0,
+                                                                     &Matrix2D::identity(),
+                                                                     filter::T::new(Vec::new()),
+                                                                     mix_blend_mode::T::normal,
+                                                                     Some(paint_layer)));
+
+                rw_data.stacking_context = Some(stacking_context.clone());
+
+                debug!("Layout done!");
+
+                self.paint_chan.send(PaintMsg::PaintInit(stacking_context));
             }
-
-            let stacking_context = Arc::new(StackingContext::new(display_list,
-                                                                 &origin,
-                                                                 &origin,
-                                                                 0,
-                                                                 &Matrix2D::identity(),
-                                                                 filter::T::new(Vec::new()),
-                                                                 mix_blend_mode::T::normal,
-                                                                 Some(paint_layer)));
-
-            rw_data.stacking_context = Some(stacking_context.clone());
-
-            debug!("Layout done!");
-
-            self.paint_chan.send(PaintMsg::PaintInit(stacking_context));
         });
     }
 
@@ -878,7 +884,8 @@ impl LayoutTask {
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
                                                                          screen_size_changed,
                                                                          Some(&node),
-                                                                         &self.url);
+                                                                         &self.url,
+                                                                         data.reflow_info.goal);
 
         // Recalculate CSS styles and rebuild flows and fragments.
         profile(time::ProfilerCategory::LayoutStyleRecalc,
@@ -946,7 +953,8 @@ impl LayoutTask {
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   None,
-                                                                  &self.url);
+                                                                  &self.url,
+                                                                  reflow_info.goal);
         let mut root_flow = (*rw_data.root_flow.as_ref().unwrap()).clone();
         profile(time::ProfilerCategory::LayoutStyleRecalc,
                 self.profiler_metadata(),
@@ -1010,16 +1018,10 @@ impl LayoutTask {
         });
 
         // Build the display list if necessary, and send it to the painter.
-        match data.goal {
-            ReflowGoal::ForDisplay => {
-                self.build_display_list_for_reflow(data,
-                                                   &mut root_flow,
-                                                   &mut *layout_context,
-                                                   rw_data);
-            }
-            ReflowGoal::ForScriptQuery => {}
-        }
-
+        self.compute_abs_pos_and_build_display_list(data,
+                                                    &mut root_flow,
+                                                    &mut *layout_context,
+                                                    rw_data);
         self.first_reflow.set(false);
 
         if opts::get().trace_layout {
@@ -1182,7 +1184,7 @@ impl FragmentBorderBoxIterator for UnioningFragmentBorderBoxIterator {
     }
 
     fn should_process(&mut self, fragment: &Fragment) -> bool {
-        self.node_address == fragment.node
+        fragment.contains_node(self.node_address)
     }
 }
 
@@ -1206,7 +1208,7 @@ impl FragmentBorderBoxIterator for CollectingFragmentBorderBoxIterator {
     }
 
     fn should_process(&mut self, fragment: &Fragment) -> bool {
-        self.node_address == fragment.node
+        fragment.contains_node(self.node_address)
     }
 }
 

@@ -31,7 +31,7 @@ use fragment::TableColumnFragmentInfo;
 use fragment::UnscannedTextFragmentInfo;
 use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo};
 use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
-use inline::InlineFlow;
+use inline::{InlineFlow, InlineFragmentNodeInfo};
 use list_item::{ListItemFlow, ListStyleTypeContent};
 use multicol::MulticolFlow;
 use opaque_node::OpaqueNodeMethods;
@@ -169,14 +169,14 @@ struct InlineFragmentsAccumulator {
 
     /// Whether we've created a range to enclose all the fragments. This will be Some() if the
     /// outer node is an inline and None otherwise.
-    enclosing_style: Option<Arc<ComputedValues>>,
+    enclosing_node: Option<InlineFragmentNodeInfo>,
 }
 
 impl InlineFragmentsAccumulator {
     fn new() -> InlineFragmentsAccumulator {
         InlineFragmentsAccumulator {
             fragments: LinkedList::new(),
-            enclosing_style: None,
+            enclosing_node: None,
         }
     }
 
@@ -184,7 +184,9 @@ impl InlineFragmentsAccumulator {
         let fragments = LinkedList::new();
         InlineFragmentsAccumulator {
             fragments: fragments,
-            enclosing_style: Some(node.style().clone()),
+            enclosing_node: Some(InlineFragmentNodeInfo {
+                                    address: OpaqueNodeMethods::from_thread_safe_layout_node(node),
+                                    style: node.style().clone() }),
         }
     }
 
@@ -199,9 +201,9 @@ impl InlineFragmentsAccumulator {
     fn to_dlist(self) -> LinkedList<Fragment> {
         let InlineFragmentsAccumulator {
             mut fragments,
-            enclosing_style
+            enclosing_node,
         } = self;
-        if let Some(enclosing_style) = enclosing_style {
+        if let Some(enclosing_node) = enclosing_node {
             let frag_len = fragments.len();
             for (idx, frag) in fragments.iter_mut().enumerate() {
 
@@ -210,7 +212,7 @@ impl InlineFragmentsAccumulator {
                 // frag is the last inline fragment in the inline node
                 let is_last = idx == frag_len - 1;
 
-                frag.add_inline_context_style(enclosing_style.clone(), is_first, is_last);
+                frag.add_inline_context_style(enclosing_node.clone(), is_first, is_last);
             }
         }
         fragments

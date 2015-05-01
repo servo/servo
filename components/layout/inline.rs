@@ -17,6 +17,7 @@ use text;
 
 use collections::VecDeque;
 use geom::{Point2D, Rect};
+use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
@@ -1088,10 +1089,10 @@ impl InlineFlow {
         for frag in self.fragments.fragments.iter() {
             match frag.inline_context {
                 Some(ref inline_context) => {
-                    for style in inline_context.styles.iter() {
-                        let font_style = style.get_font_arc();
+                    for node in inline_context.nodes.iter() {
+                        let font_style = node.style.get_font_arc();
                         let font_metrics = text::font_metrics_for_style(font_context, font_style);
-                        let line_height = text::line_height_from_style(&**style, &font_metrics);
+                        let line_height = text::line_height_from_style(&*node.style, &font_metrics);
                         let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics,
                                                                               line_height);
                         block_size_above_baseline = max(block_size_above_baseline,
@@ -1476,7 +1477,7 @@ impl Flow for InlineFlow {
                              &fragment.stacking_relative_border_box(stacking_relative_position,
                                                                     relative_containing_block_size,
                                                                     relative_containing_block_mode,
-                                                                    CoordinateSystem::Parent)
+                                                                    CoordinateSystem::Own)
                                       .translate(stacking_context_position))
         }
     }
@@ -1495,23 +1496,34 @@ impl fmt::Debug for InlineFlow {
 }
 
 #[derive(Clone)]
+pub struct InlineFragmentNodeInfo {
+    pub address: OpaqueNode,
+    pub style: Arc<ComputedValues>,
+}
+
+#[derive(Clone)]
 pub struct InlineFragmentContext {
-    pub styles: Vec<Arc<ComputedValues>>,
+    pub nodes: Vec<InlineFragmentNodeInfo>,
 }
 
 impl InlineFragmentContext {
     pub fn new() -> InlineFragmentContext {
         InlineFragmentContext {
-            styles: vec!()
+            nodes: vec!(),
         }
     }
 
+    #[inline]
+    pub fn contains_node(&self, node_address: OpaqueNode) -> bool {
+        self.nodes.iter().position(|node| node.address == node_address).is_some()
+    }
+
     fn ptr_eq(&self, other: &InlineFragmentContext) -> bool {
-        if self.styles.len() != other.styles.len() {
+        if self.nodes.len() != other.nodes.len() {
             return false
         }
-        for (this_style, other_style) in self.styles.iter().zip(other.styles.iter()) {
-            if !util::arc_ptr_eq(this_style, other_style) {
+        for (this_node, other_node) in self.nodes.iter().zip(other.nodes.iter()) {
+            if !util::arc_ptr_eq(&this_node.style, &other_node.style) {
                 return false
             }
         }

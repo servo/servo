@@ -14,7 +14,7 @@ use flow;
 use flow::Flow;
 use flow_ref::FlowRef;
 use incremental::{self, RestyleDamage};
-use inline::{InlineFragmentContext, InlineMetrics};
+use inline::{InlineFragmentContext, InlineFragmentNodeInfo, InlineMetrics};
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use text;
@@ -840,32 +840,37 @@ impl Fragment {
         self.restyle_damage | self.specific.restyle_damage()
     }
 
+    pub fn contains_node(&self, node_address: OpaqueNode) -> bool {
+        node_address == self.node ||
+        self.inline_context.as_ref().map_or(false, |ctx| {
+            ctx.contains_node(node_address)
+        })
+    }
+
     /// Adds a style to the inline context for this fragment. If the inline context doesn't exist
     /// yet, it will be created.
     pub fn add_inline_context_style(&mut self,
-                                    style: Arc<ComputedValues>,
+                                    mut node_info: InlineFragmentNodeInfo,
                                     first_frag: bool,
                                     last_frag: bool) {
         if self.inline_context.is_none() {
             self.inline_context = Some(InlineFragmentContext::new());
         }
-        let frag_style = if first_frag && last_frag {
-            style.clone()
-        } else {
+        if !first_frag || !last_frag {
             // Set the border width to zero and the border style to none on
             // border sides that are not the outermost for a node container.
             // Because with multiple inline fragments they don't have interior
             // borders separating each other.
-            let mut border_width = style.logical_border_width();
+            let mut border_width = node_info.style.logical_border_width();
             if !last_frag {
-                border_width.set_right(style.writing_mode, Zero::zero());
+                border_width.set_right(node_info.style.writing_mode, Zero::zero());
             }
             if !first_frag {
-                border_width.set_left(style.writing_mode, Zero::zero());
+                border_width.set_left(node_info.style.writing_mode, Zero::zero());
             }
-            Arc::new(make_border(&*style, border_width))
+            node_info.style = Arc::new(make_border(&*node_info.style, border_width))
         };
-        self.inline_context.as_mut().unwrap().styles.push(frag_style);
+        self.inline_context.as_mut().unwrap().nodes.push(node_info);
     }
 
     /// Determines which quantities (border/padding/margin/specified) should be included in the
@@ -1000,10 +1005,10 @@ impl Fragment {
         match self.inline_context {
             None => style_border_width,
             Some(ref inline_fragment_context) => {
-                inline_fragment_context.styles
+                inline_fragment_context.nodes
                                        .iter()
                                        .fold(style_border_width,
-                                             |acc, style| acc + style.logical_border_width())
+                                             |acc, node| acc + node.style.logical_border_width())
             }
         }
     }
@@ -1092,10 +1097,10 @@ impl Fragment {
                 match self.inline_context {
                     None => style_padding,
                     Some(ref inline_fragment_context) => {
-                        inline_fragment_context.styles
+                        inline_fragment_context.nodes
                                                .iter()
-                                               .fold(style_padding, |acc, style| {
-                                                   acc + model::padding_from_style(&**style,
+                                               .fold(style_padding, |acc, node| {
+                                                   acc + model::padding_from_style(&*node.style,
                                                                                    Au(0))
                                                })
                     }
@@ -1136,9 +1141,9 @@ impl Fragment {
         };
 
         if let Some(ref inline_fragment_context) = self.inline_context {
-            for style in inline_fragment_context.styles.iter() {
-                if style.get_box().position == position::T::relative {
-                    rel_pos = rel_pos + from_style(&**style, containing_block_size);
+            for node in inline_fragment_context.nodes.iter() {
+                if node.style.get_box().position == position::T::relative {
+                    rel_pos = rel_pos + from_style(&*node.style, containing_block_size);
                 }
             }
         }
@@ -1282,10 +1287,10 @@ impl Fragment {
         // Take borders and padding for parent inline fragments into account, if necessary.
         if self.is_primary_fragment() {
             if let Some(ref context) = self.inline_context {
-                for style in context.styles.iter() {
-                    let border_width = style.logical_border_width().inline_start_end();
+                for node in context.nodes.iter() {
+                    let border_width = node.style.logical_border_width().inline_start_end();
                     let padding_inline_size =
-                        model::padding_from_style(&**style, Au(0)).inline_start_end();
+                        model::padding_from_style(&*node.style, Au(0)).inline_start_end();
                     result.surrounding_size = result.surrounding_size + border_width +
                         padding_inline_size;
                 }
@@ -2097,11 +2102,11 @@ impl<'a> Iterator for InlineStyleIterator<'a> {
             Some(ref inline_context) => inline_context,
         };
         let inline_style_index = self.inline_style_index;
-        if inline_style_index == inline_context.styles.len() {
+        if inline_style_index == inline_context.nodes.len() {
             return None
         }
         self.inline_style_index += 1;
-        Some(&*inline_context.styles[inline_style_index])
+        Some(&*inline_context.nodes[inline_style_index].style)
     }
 }
 

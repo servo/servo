@@ -14,6 +14,7 @@ use flow::{Flow, MutableFlowUtils};
 use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
+use script::layout_interface::ReflowGoal;
 use wrapper::{layout_node_to_unsafe_layout_node, LayoutNode};
 use wrapper::{PostorderNodeMutTraversal, ThreadSafeLayoutNode, UnsafeLayoutNode};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
@@ -378,5 +379,9 @@ impl<'a> PostorderFlowTraversal for BuildDisplayList<'a> {
     fn process(&self, flow: &mut Flow) {
         flow.build_display_list(self.layout_context);
     }
-}
 
+    #[inline]
+    fn should_process(&self, _: &mut Flow) -> bool {
+        self.layout_context.shared.goal == ReflowGoal::ForDisplay
+    }
+}
