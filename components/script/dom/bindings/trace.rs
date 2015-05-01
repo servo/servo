@@ -99,7 +99,7 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
     unsafe {
         let name = CString::new(description).unwrap();
         (*tracer).debugPrinter = None;
-        (*tracer).debugPrintIndex = -1;
+        (*tracer).debugPrintIndex = !0;
         (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;
         debug!("tracing value {}", description);
         JS_CallTracer(tracer, val.to_gcthing(), val.trace_kind());
@@ -117,7 +117,7 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut JSObject
     unsafe {
         let name = CString::new(description).unwrap();
         (*tracer).debugPrinter = None;
-        (*tracer).debugPrintIndex = -1;
+        (*tracer).debugPrintIndex = !0;
         (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;
         debug!("tracing {}", description);
         JS_CallTracer(tracer, obj as *mut libc::c_void, JSGCTraceKind::JSTRACE_OBJECT);
