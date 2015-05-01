@@ -399,14 +399,14 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                 debug!("SetRequestHeader: old value = {:?}", raw[0]);
                 let mut buf = raw[0].clone();
                 buf.push_all(b", ");
-                buf.push_all(value.as_slice());
+                buf.push_all(&value);
                 debug!("SetRequestHeader: new value = {:?}", buf);
                 value = ByteString::new(buf);
             },
             None => {}
         }
 
-        headers.set_raw(name_str.to_owned(), vec![value.as_slice().to_vec()]);
+        headers.set_raw(name_str.to_owned(), vec![value.to_vec()]);
         Ok(())
     }
 
@@ -678,7 +678,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             },
             _ if self.ready_state.get() != XMLHttpRequestState::Done => NullValue(),
             Json => {
-                let decoded = UTF_8.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().to_owned();
+                let decoded = UTF_8.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
                 let decoded: Vec<u16> = decoded.utf16_units().collect();
                 let mut vp = UndefinedValue();
                 unsafe {
@@ -1028,7 +1028,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         let response = self.response.borrow();
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
-        encoding.decode(response.as_slice(), DecoderTrap::Replace).unwrap().to_owned()
+        encoding.decode(&response, DecoderTrap::Replace).unwrap().to_owned()
     }
     fn filter_response_headers(self) -> Headers {
         // https://fetch.spec.whatwg.org/#concept-response-header-list

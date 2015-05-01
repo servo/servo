@@ -6,6 +6,7 @@
 
 use std::borrow::ToOwned;
 use std::hash::{Hash, Hasher};
+use std::ops;
 use std::str;
 use std::str::FromStr;
 
@@ -25,12 +26,6 @@ impl ByteString {
     pub fn as_str<'a>(&'a self) -> Option<&'a str> {
         let ByteString(ref vec) = *self;
         str::from_utf8(&vec).ok()
-    }
-
-    /// Returns the underlying vector as a slice.
-    pub fn as_slice<'a>(&'a self) -> &'a [u8] {
-        let ByteString(ref vector) = *self;
-        vector
     }
 
     /// Returns the length.
@@ -155,6 +150,13 @@ impl FromStr for ByteString {
     type Err = ();
     fn from_str(s: &str) -> Result<ByteString, ()> {
         Ok(ByteString::new(s.to_owned().into_bytes()))
+    }
+}
+
+impl ops::Deref for ByteString {
+    type Target = [u8];
+    fn deref(&self) -> &[u8] {
+        &self.0
     }
 }
 
