@@ -9,8 +9,8 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, WindowSizeData};
-use profile::mem;
-use profile::time;
+use profile_traits::mem;
+use profile_traits::time;
 
 /// Starts the compositor, which listens for messages on the specified port.
 ///

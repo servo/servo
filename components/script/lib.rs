@@ -43,7 +43,7 @@ extern crate png;
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate time;
 extern crate canvas;
-extern crate profile;
+extern crate profile_traits;
 extern crate script_traits;
 extern crate selectors;
 extern crate util;

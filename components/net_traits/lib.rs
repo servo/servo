@@ -12,7 +12,6 @@ extern crate hyper;
 #[macro_use]
 extern crate log;
 extern crate png;
-extern crate profile;
 extern crate stb_image;
 extern crate url;
 extern crate util;
