@@ -75,9 +75,7 @@ pub struct TimerManager {
 
 impl Drop for TimerManager {
     fn drop(&mut self) {
-        for (_, timer_handle) in self.active_timers.borrow_mut().iter_mut() {
-            timer_handle.cancel();
-        }
+        self.clear();
     }
 }
 

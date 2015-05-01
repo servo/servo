@@ -24,7 +24,7 @@ use profile_traits::mem;
 use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::jsapi::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject};
-use js::jsapi::{JS_GetClass, JS_GetGlobalObject};
+use js::jsapi::{JS_GetClass, JS_GetRuntime, JS_GetRuntimePrivate};
 use url::Url;
 
 /// A freely-copyable reference to a rooted global object.
@@ -221,7 +221,8 @@ pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalRoot {
 #[allow(unrooted_must_root)]
 pub fn global_object_for_js_context(cx: *mut JSContext) -> GlobalUnrooted {
     unsafe {
-        let global = JS_GetGlobalObject(cx);
+        let rt = JS_GetRuntime(cx);
+        let global = JS_GetRuntimePrivate(rt) as *mut JSObject;
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
         match native_from_reflector_jsmanaged(global) {
