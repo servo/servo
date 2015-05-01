@@ -305,7 +305,7 @@ impl Flow for TableWrapperFlow {
 
         self.compute_used_inline_size(layout_context,
                                       containing_block_inline_size,
-                                      intermediate_column_inline_sizes.as_slice());
+                                      &intermediate_column_inline_sizes);
 
         if let TableLayout::Auto = self.table_layout {
             self.calculate_table_column_sizes_for_automatic_layout(
