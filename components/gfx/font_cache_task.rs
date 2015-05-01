@@ -139,7 +139,7 @@ impl FontCache {
                             let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
                             match maybe_resource {
                                 Ok((_, bytes)) => {
-                                    let family = &mut self.web_families[family_name];
+                                    let family = &mut self.web_families.get_mut(&family_name).unwrap();
                                     family.add_template(&url.to_string(), Some(bytes));
                                 },
                                 Err(_) => {
@@ -148,7 +148,7 @@ impl FontCache {
                             }
                         }
                         Source::Local(ref local_family_name) => {
-                            let family = &mut self.web_families[family_name];
+                            let family = &mut self.web_families.get_mut(&family_name).unwrap();
                             get_variations_for_family(&local_family_name, |path| {
                                 family.add_template(&path, None);
                             });
@@ -188,7 +188,7 @@ impl FontCache {
         // look up canonical name
         if self.local_families.contains_key(family_name) {
             debug!("FontList: Found font family with name={}", &**family_name);
-            let s = &mut self.local_families[*family_name];
+            let s = self.local_families.get_mut(family_name).unwrap();
 
             if s.templates.len() == 0 {
                 get_variations_for_family(&family_name, |path| {
@@ -213,7 +213,7 @@ impl FontCache {
     fn find_font_in_web_family<'a>(&'a mut self, family_name: &LowercaseString, desc: &FontTemplateDescriptor)
                                 -> Option<Arc<FontTemplateData>> {
         if self.web_families.contains_key(family_name) {
-            let family = &mut self.web_families[*family_name];
+            let family = self.web_families.get_mut(family_name).unwrap();
             let maybe_font = family.find_font_for_style(desc, &self.font_context);
             maybe_font
         } else {

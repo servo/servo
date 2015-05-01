@@ -109,7 +109,7 @@ impl BufferMap {
                 }
             };
             if {
-                let list = &mut self.map[old_key].buffers;
+                let list = &mut self.map.get_mut(&old_key).unwrap().buffers;
                 let condemned_buffer = list.pop().take().unwrap();
                 self.mem -= condemned_buffer.get_mem();
                 condemned_buffer.destroy(graphics_context);
