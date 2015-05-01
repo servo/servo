@@ -593,7 +593,7 @@ impl RootCollection {
 /// `RootCollection` object. Attempts to transfer ownership of a `Root` via
 /// moving will trigger dynamic unrooting failures due to incorrect ordering.
 #[no_move]
-pub struct Root<T> {
+pub struct Root<T: Reflectable> {
     /// List that ensures correct dynamic root ordering
     root_list: &'static RootCollection,
     /// Reference to rooted value that must not outlive this container
