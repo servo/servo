@@ -88,7 +88,7 @@ impl TableRowGroupFlow {
         self.collapsed_inline_direction_border_widths_for_table
             .extend(collapsed_inline_direction_border_widths_for_table.into_iter().map(|x| *x));
 
-        for _ in range(0, self.block_flow.base.children.len()) {
+        for _ in 0..self.block_flow.base.children.len() {
             if let Some(collapsed_block_direction_border_width_for_table) =
                     collapsed_block_direction_border_widths_for_table.next() {
                 self.collapsed_block_direction_border_widths_for_table

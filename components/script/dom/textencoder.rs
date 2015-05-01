@@ -80,12 +80,12 @@ impl<'a> TextEncoderMethods for JSRef<'a, TextEncoder> {
     #[allow(unsafe_code)]
     fn Encode(self, cx: *mut JSContext, input: USVString) -> *mut JSObject {
         unsafe {
-            let output = self.encoder.encode(&input.0, EncoderTrap::Strict).unwrap();
-            let length = output.len() as u32;
+            let encoded = self.encoder.encode(&input.0, EncoderTrap::Strict).unwrap();
+            let length = encoded.len() as u32;
             let js_object: *mut JSObject = JS_NewUint8Array(cx, length);
 
             let js_object_data: *mut uint8_t = JS_GetUint8ArrayData(js_object, cx);
-            ptr::copy_nonoverlapping(js_object_data, output.as_ptr(), length as usize);
+            ptr::copy_nonoverlapping(js_object_data, encoded.as_ptr(), length as usize);
             return js_object;
         }
     }
