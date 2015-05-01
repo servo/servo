@@ -35,7 +35,7 @@ use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{SCRIPT, IN_WORKER};
 
-use js::jsapi::{JSContext, JS_SetOperationCallback, JSBool};
+use js::jsapi::{JSContext, JS_SetOperationCallback, JSBool, JS_SetRuntimePrivate};
 use js::jsval::JSVal;
 use js::rust::Cx;
 
@@ -44,6 +44,8 @@ use std::collections::LinkedList;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use url::Url;
+
+use libc::c_void;
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
 /// every message. While this SendableWorkerScriptChan is alive, the associated Worker object
@@ -147,6 +149,7 @@ impl DedicatedWorkerGlobalScope {
 }
 
 impl DedicatedWorkerGlobalScope {
+    #[allow(unsafe_code)]
     pub fn run_worker_scope(worker_url: Url,
                             id: PipelineId,
                             devtools_chan: Option<DevtoolsControlChan>,
@@ -179,15 +182,19 @@ impl DedicatedWorkerGlobalScope {
             // Send JSRuntime ref to main thread for interrupt scheduling
             rt_sender.send(SharedRt::new(runtime.rt())).unwrap();
 
-            // Handle interrupt requests
-            unsafe {
-                JS_SetOperationCallback(runtime.cx.ptr,
-                    Some(interrupt_callback as unsafe extern "C" fn(*mut JSContext) -> JSBool));
-            }
-
             let global = DedicatedWorkerGlobalScope::new(
                 worker_url, id, devtools_chan, runtime.cx.clone(), resource_task,
                 parent_sender, own_sender, receiver).root();
+
+            unsafe {
+                // Worker's global scope is stored in the JSRuntime private
+                JS_SetRuntimePrivate(runtime.rt(),
+                    global.r().reflector().get_jsobject() as *mut c_void);
+
+                // Handle interrupt requests
+                JS_SetOperationCallback(runtime.cx.ptr,
+                    Some(interrupt_callback as unsafe extern "C" fn(*mut JSContext) -> JSBool));
+            }
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
@@ -206,22 +213,26 @@ impl DedicatedWorkerGlobalScope {
                 }
             }
 
-            loop {
+            'process_events : loop {
                 // Process any pending events
                 while let Some((linked_worker, msg)) = global.r().take_event() {
                     let _ar = AutoWorkerReset::new(global.r(), linked_worker);
                     global.r().handle_event(msg);
 
-                    if global.r().is_closing() { break }
+                    if global.r().is_closing() {
+                        break 'process_events
+                    }
                 }
 
-                // Wait for new events
+                // Wait for a new event
                 match global.r().receiver.recv() {
                     Ok((linked_worker, msg)) => {
                         let _ar = AutoWorkerReset::new(global.r(), linked_worker);
                         global.r().handle_event(msg);
 
-                        if global.r().is_closing() { break }
+                        if global.r().is_closing() {
+                            break
+                        }
                     }
                     Err(_) => break,
                 }
@@ -233,6 +244,7 @@ impl DedicatedWorkerGlobalScope {
     }
 }
 
+#[allow(unsafe_code)]
 unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> JSBool {
     // get global for context
     let global = global_object_for_js_context(cx);

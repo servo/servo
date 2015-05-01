@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#![allow(unsafe_code)]
 
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
@@ -169,6 +168,7 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
 
 
     // https://html.spec.whatwg.org/multipage/#terminate-a-worker
+    #[allow(unsafe_code)]
     fn Terminate(self) {
         if self.closing.get() { return; }
         self.closing.set(true);
@@ -178,10 +178,10 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
         self.sender.send((address, ScriptMsg::Terminate)).unwrap();
 
         let rt = self.get_rt();
-        if !rt.is_null() {
-            unsafe {
-                JS_TriggerOperationCallback(rt.rt());
-            }
+        assert!(!rt.is_null());
+
+        unsafe {
+            JS_TriggerOperationCallback(rt.rt());
         }
     }
 
@@ -308,6 +308,7 @@ impl Clone for SharedRt {
     fn clone(&self) -> SharedRt { *self }
 }
 
+#[allow(unsafe_code)]
 unsafe impl Send for SharedRt {
 
 }
