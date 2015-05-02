@@ -20,7 +20,6 @@ use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
 use util::str::{DOMString, StaticStringVec};
-use string_cache::Atom;
 
 #[dom_struct]
 pub struct HTMLFieldSetElement {
