@@ -282,17 +282,14 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
-    pub fn handle_keydown(&mut self, event: JSRef<KeyboardEvent>) -> KeyReaction
-    {
+    pub fn handle_keydown(&mut self, event: JSRef<KeyboardEvent>) -> KeyReaction {
         if let Some(key) = event.get_key() {
             self.handle_keydown_aux(key, event.get_key_modifiers())
-        }
-        else {
+        } else {
             KeyReaction::Nothing
         }
     }
-    pub fn handle_keydown_aux(&mut self, key: Key, mods: KeyModifiers) -> KeyReaction
-    {
+    pub fn handle_keydown_aux(&mut self, key: Key, mods: KeyModifiers) -> KeyReaction {
         let maybe_select = if mods.contains(SHIFT) { Selection::Selected } else { Selection::NotSelected };
         match key_value(key, mods) {
            "a" if is_control_key(mods) => {
