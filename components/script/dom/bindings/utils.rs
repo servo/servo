@@ -403,7 +403,7 @@ impl Reflector {
         assert!(self.object.get().ptr.is_null());
         assert!(!object.is_null());
         unsafe {
-            let mut cell = self.object.as_unsafe_cell().get();
+            let cell = self.object.as_unsafe_cell().get();
             (*cell).set(object);
         }
     }
@@ -418,7 +418,7 @@ impl Reflector {
     /// Create an uninitialized `Reflector`.
     pub fn new() -> Reflector {
         Reflector {
-            object: Cell::default()
+            object: Cell::new(Heap { ptr: ptr::null_mut() })
         }
     }
 }

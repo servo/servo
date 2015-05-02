@@ -8,8 +8,8 @@ use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, ErrorEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, MutHeap, Rootable, Temporary};
-use js::jsapi::{JSContext, HandleValue};
+use dom::bindings::js::{JSRef, Rootable, Temporary};
+use js::jsapi::{JSContext, HandleValue, Heap};
 use dom::bindings::trace::JSTraceable;
 
 use dom::bindings::utils::reflect_dom_object;
@@ -28,7 +28,7 @@ pub struct ErrorEvent {
     filename: DOMRefCell<DOMString>,
     lineno: Cell<u32>,
     colno: Cell<u32>,
-    error: MutHeap<JSVal>,
+    error: Cell<Heap<JSVal>>,
 }
 
 impl ErrorEventDerived for Event {
@@ -45,7 +45,7 @@ impl ErrorEvent {
             filename: DOMRefCell::new("".to_owned()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
-            error: MutHeap::new(NullValue())
+            error: Cell::new(Heap::new(NullValue()))
         }
     }
 
@@ -55,6 +55,7 @@ impl ErrorEvent {
                            ErrorEventBinding::Wrap)
     }
 
+    #[allow(unsafe_code)]
     pub fn new(global: GlobalRef,
                type_: DOMString,
                bubbles: EventBubbles,
@@ -74,7 +75,10 @@ impl ErrorEvent {
         *ev.filename.borrow_mut() = filename;
         ev.lineno.set(lineno);
         ev.colno.set(colno);
-        ev.error.set(error.get());
+        unsafe {
+            let cell = ev.error.as_unsafe_cell().get();
+            (*cell).set(error.get());
+        }
         Temporary::from_rooted(ev)
     }
 
@@ -130,7 +134,7 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
     }
 
     fn Error(self, _cx: *mut JSContext) -> JSVal {
-        self.error.get()
+        self.error.get().get()
     }
 
 }
