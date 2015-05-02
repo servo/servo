@@ -6,7 +6,7 @@
 
 use clipboard_provider::ClipboardProvider;
 use dom::bindings::js::JSRef;
-use dom::keyboardevent::{KeyboardEvent, key_value};
+use dom::keyboardevent::{KeyboardEvent, KeyboardEventHelpers, key_value};
 use msg::constellation_msg::{SHIFT, CONTROL, ALT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
 use util::str::DOMString;

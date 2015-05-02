@@ -130,12 +130,19 @@ impl KeyboardEvent {
                 key_code: key_keycode(key),
             }
     }
+}
 
-    pub fn get_key(&self) -> Option<Key> {
+pub trait KeyboardEventHelpers {
+    fn get_key(&self) -> Option<Key>;
+    fn get_key_modifiers(&self) -> KeyModifiers;
+}
+
+impl<'a> KeyboardEventHelpers for JSRef<'a, KeyboardEvent> {
+    fn get_key(&self) -> Option<Key> {
         self.key.get().clone()
     }
 
-    pub fn get_key_modifiers(&self) -> KeyModifiers {
+    fn get_key_modifiers(&self) -> KeyModifiers {
         let mut result = KeyModifiers::empty();
         if self.shift.get() {
             result = result | constellation_msg::SHIFT;
@@ -152,6 +159,7 @@ impl KeyboardEvent {
         return result;
     }
 }
+
 
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3Events-key.html
 pub fn key_value(key: Key, mods: KeyModifiers) -> &'static str {
