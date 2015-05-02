@@ -6,6 +6,7 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLAreaElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLAppletElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLBodyElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLButtonElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementCast;
@@ -143,6 +144,9 @@ pub fn vtable_for<'a>(node: &'a JSRef<'a, Node>) -> &'a (VirtualMethods + 'a) {
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
             let element: &'a JSRef<'a, HTMLAnchorElement> = HTMLAnchorElementCast::to_borrowed_ref(node).unwrap();
             element as &'a (VirtualMethods + 'a)
+        }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAppletElement)) => {
+            HTMLAppletElementCast::to_borrowed_ref(node).unwrap() as &'a (VirtualMethods + 'a)
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) => {
             let element: &'a JSRef<'a, HTMLAreaElement> = HTMLAreaElementCast::to_borrowed_ref(node).unwrap();
