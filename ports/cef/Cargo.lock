@@ -6,6 +6,7 @@ dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
  "compositing 0.0.1",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
  "devtools 0.0.1",

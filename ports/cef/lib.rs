@@ -11,6 +11,8 @@
 #![feature(std_misc)]
 #![feature(rustc_private)]
 #![feature(collections)]
+#![feature(negate_unsigned)]
+#![feature(unicode)]
 
 #![allow(non_camel_case_types)]
 
@@ -30,6 +32,7 @@ extern crate glutin_app;
 extern crate js;
 extern crate layers;
 extern crate png;
+extern crate rustc_unicode;
 extern crate script;
 extern crate script_traits;
 
@@ -46,6 +49,8 @@ extern crate url as std_url;
 extern crate cgl;
 #[cfg(target_os="macos")]
 extern crate cocoa;
+#[cfg(target_os="macos")]
+extern crate core_foundation;
 #[cfg(target_os="macos")]
 extern crate core_graphics;
 #[cfg(target_os="macos")]
