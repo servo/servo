@@ -54,7 +54,7 @@ use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::node::Node;
-use js::jsapi::JSObject;
+use js::jsapi::{JSObject, Heap};
 use js::jsval::JSVal;
 use layout_interface::TrustedNodeAddress;
 use script_task::STACK_ROOTS;
@@ -298,7 +298,7 @@ impl<T: Reflectable> Reflectable for JS<T> {
 pub trait HeapGCValue: JSTraceable {
 }
 
-impl HeapGCValue for JSVal {
+impl HeapGCValue for Heap<JSVal> {
 }
 
 impl<T: Reflectable> HeapGCValue for JS<T> {

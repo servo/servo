@@ -17,7 +17,7 @@ use horribly_inefficient_timers;
 use util::task::spawn_named;
 use util::str::DOMString;
 
-use js::jsapi::{RootedValue, HandleValue};
+use js::jsapi::{RootedValue, HandleValue, Heap};
 use js::jsval::{JSVal, UndefinedValue};
 
 use std::borrow::ToOwned;
@@ -110,7 +110,7 @@ pub enum TimerControlMsg {
 struct TimerData {
     is_interval: IsInterval,
     callback: TimerCallback,
-    args: Vec<JSVal>
+    args: Vec<Heap<JSVal>>
 }
 
 impl TimerManager {
@@ -207,7 +207,7 @@ impl TimerManager {
             data: TimerData {
                 is_interval: is_interval,
                 callback: callback,
-                args: arguments.iter().map(|arg| arg.get()).collect()
+                args: arguments.iter().map(|arg| Heap::new(arg.get())).collect()
             }
         };
         self.active_timers.borrow_mut().insert(timer_id, timer);
@@ -232,7 +232,7 @@ impl TimerManager {
         // TODO: Must handle rooting of funval and args when movable GC is turned on
         match data.callback {
             TimerCallback::FunctionTimerCallback(function) => {
-                let args = data.args.iter().map(|arg| HandleValue { ptr: arg }).collect();
+                let args = data.args.iter().map(|arg| HandleValue { ptr: &arg.ptr }).collect();
                 let _ = function.Call_(this, args, Report);
             }
             TimerCallback::StringTimerCallback(code_str) => {
