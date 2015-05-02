@@ -21,7 +21,6 @@ use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
 use util::str::DOMString;
-use string_cache::Atom;
 
 use std::borrow::ToOwned;
 

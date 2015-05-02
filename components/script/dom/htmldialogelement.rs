@@ -14,7 +14,6 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 
 use util::str::DOMString;
-use string_cache::Atom;
 
 use std::borrow::ToOwned;
 
