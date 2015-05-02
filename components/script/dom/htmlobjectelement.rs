@@ -24,7 +24,6 @@ use dom::virtualmethods::VirtualMethods;
 use net_traits::image::base::Image;
 use util::str::DOMString;
 use std::sync::Arc;
-use string_cache::Atom;
 
 #[dom_struct]
 pub struct HTMLObjectElement {
