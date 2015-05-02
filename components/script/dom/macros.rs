@@ -199,6 +199,20 @@ macro_rules! make_limited_uint_setter(
     };
 );
 
+#[macro_export]
+macro_rules! make_atomic_setter(
+    ( $attr:ident, $htmlname:expr ) => (
+        fn $attr(self, value: DOMString) {
+            use dom::element::{Element, AttributeHandlers};
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
+            let element: JSRef<Element> = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not at runtime.
+            element.set_atomic_attribute(&Atom::from_slice($htmlname), value)
+        }
+    );
+);
+
 /// For use on non-jsmanaged types
 /// Use #[jstraceable] on JS managed types
 macro_rules! no_jsmanaged_fields(
