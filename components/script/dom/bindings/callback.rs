@@ -9,7 +9,7 @@ use dom::bindings::js::JSRef;
 use dom::bindings::utils::Reflectable;
 use js::jsapi::{JSContext, JSObject, JS_WrapObject, IsCallable};
 use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException};
-use js::jsapi::{RootedObject, RootedValue};
+use js::jsapi::{RootedObject, RootedValue, Heap};
 use js::jsapi::{JSAutoCompartment};
 use js::jsapi::{JS_BeginRequest, JS_EndRequest};
 use js::jsapi::{JS_EnterCompartment, JS_LeaveCompartment, JSCompartment};
@@ -41,7 +41,7 @@ impl CallbackFunction {
     pub fn new(callback: *mut JSObject) -> CallbackFunction {
         CallbackFunction {
             object: CallbackObject {
-                callback: callback
+                callback: Heap::<*mut JSObject>::new(callback)
             }
         }
     }
@@ -57,11 +57,11 @@ pub struct CallbackInterface {
 /// A common base class for representing IDL callback function and
 /// callback interface types.
 #[allow(raw_pointer_derive)]
-#[derive(Copy, Clone,PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 #[jstraceable]
 struct CallbackObject {
     /// The underlying `JSObject`.
-    callback: *mut JSObject,
+    callback: Heap<*mut JSObject>,
 }
 
 /// A trait to be implemented by concrete IDL callback function and
@@ -76,14 +76,14 @@ pub trait CallbackContainer {
 impl CallbackInterface {
     /// Returns the underlying `JSObject`.
     pub fn callback(&self) -> *mut JSObject {
-        self.object.callback
+        self.object.callback.ptr
     }
 }
 
 impl CallbackFunction {
     /// Returns the underlying `JSObject`.
     pub fn callback(&self) -> *mut JSObject {
-        self.object.callback
+        self.object.callback.ptr
     }
 }
 
@@ -92,7 +92,7 @@ impl CallbackInterface {
     pub fn new(callback: *mut JSObject) -> CallbackInterface {
         CallbackInterface {
             object: CallbackObject {
-                callback: callback
+                callback: Heap::<*mut JSObject>::new(callback)
             }
         }
     }
