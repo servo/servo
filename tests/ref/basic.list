@@ -115,6 +115,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == first_of_type_pseudo_a.html first_of_type_pseudo_b.html
 == fixed_width_overrides_child_intrinsic_width_a.html fixed_width_overrides_child_intrinsic_width_ref.html
 == float_clearance_a.html float_clearance_ref.html
+== float_clearance_intrinsic_width_a.html float_clearance_intrinsic_width_ref.html
 == float_intrinsic_height.html float_intrinsic_height_ref.html
 == float_intrinsic_width_a.html float_intrinsic_width_ref.html
 == float_right_intrinsic_width_a.html float_right_intrinsic_width_ref.html
@@ -161,6 +162,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 != inline_background_a.html inline_background_ref.html
 == inline_block_baseline_a.html inline_block_baseline_ref.html
 == inline_block_border_a.html inline_block_border_ref.html
+== inline_block_border_intrinsic_size_a.html inline_block_border_intrinsic_size_ref.html
 == inline_block_img_a.html inline_block_img_ref.html
 == inline_block_margin_a.html inline_block_margin_ref.html
 == inline_block_min_width.html inline_block_min_width_ref.html

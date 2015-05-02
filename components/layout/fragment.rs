@@ -882,8 +882,7 @@ impl Fragment {
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(_) |
             SpecificFragmentInfo::Iframe(_) |
-            SpecificFragmentInfo::Image(_) |
-            SpecificFragmentInfo::InlineBlock(_) => {
+            SpecificFragmentInfo::Image(_) => {
                 QuantitiesIncludedInIntrinsicInlineSizes::all()
             }
             SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell => {
@@ -918,7 +917,8 @@ impl Fragment {
             SpecificFragmentInfo::ScannedText(_) |
             SpecificFragmentInfo::TableColumn(_) |
             SpecificFragmentInfo::UnscannedText(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::InlineBlock(_) => {
                 QuantitiesIncludedInIntrinsicInlineSizes::empty()
             }
         }
