@@ -229,9 +229,9 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
         image.is_some()
     }
 
+    // https://html.spec.whatwg.org/#dom-img-name
     make_getter!(Name);
-
-    make_setter!(SetName, "name");
+    make_atomic_setter!(SetName, "name");
 
     make_getter!(Align);
 
@@ -288,6 +288,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
+            &atom!("name") => AttrValue::from_atomic(value),
             &atom!("width") | &atom!("height") |
             &atom!("hspace") | &atom!("vspace") => AttrValue::from_u32(value, 0),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
