@@ -8,18 +8,19 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, CustomEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, MutHeap, Rootable, Temporary};
+use dom::bindings::js::{JSRef, Rootable, Temporary};
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
-use js::jsapi::{JSContext, HandleValue};
+use js::jsapi::{JSContext, HandleValue, Heap};
 use js::jsval::{JSVal, NullValue};
 use util::str::DOMString;
+use std::cell::Cell;
 
 // https://dom.spec.whatwg.org/#interface-customevent
 #[dom_struct]
 pub struct CustomEvent {
     event: Event,
-    detail: MutHeap<JSVal>,
+    detail: Cell<Heap<JSVal>>,
 }
 
 impl CustomEventDerived for Event {
@@ -32,7 +33,7 @@ impl CustomEvent {
     fn new_inherited(type_id: EventTypeId) -> CustomEvent {
         CustomEvent {
             event: Event::new_inherited(type_id),
-            detail: MutHeap::new(NullValue()),
+            detail: Cell::new(Heap::new(NullValue())),
         }
     }
 
@@ -56,10 +57,11 @@ impl CustomEvent {
 impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
     // https://dom.spec.whatwg.org/#dom-customevent-detail
     fn Detail(self, _cx: *mut JSContext) -> JSVal {
-        self.detail.get()
+        self.detail.get().get()
     }
 
     // https://dom.spec.whatwg.org/#dom-customevent-initcustomevent
+    #[allow(unsafe_code)]
     fn InitCustomEvent(self,
                        _cx: *mut JSContext,
                        type_: DOMString,
@@ -71,7 +73,10 @@ impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
             return;
         }
 
-        self.detail.set(detail.get());
+        unsafe {
+            let cell = self.detail.as_unsafe_cell().get();
+            (*cell).set(detail.get());
+        }
         event.InitEvent(type_, can_bubble, cancelable);
     }
 }

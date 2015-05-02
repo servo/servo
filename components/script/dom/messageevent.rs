@@ -15,7 +15,7 @@ use dom::eventtarget::EventTarget;
 
 use util::str::DOMString;
 
-use js::jsapi::JSContext;
+use js::jsapi::{JSContext, Heap};
 use js::jsval::{JSVal, UndefinedValue};
 
 use std::borrow::ToOwned;
@@ -23,7 +23,7 @@ use std::borrow::ToOwned;
 #[dom_struct]
 pub struct MessageEvent {
     event: Event,
-    data: JSVal,
+    data: Heap<JSVal>,
     origin: DOMString,
     lastEventId: DOMString,
 }
@@ -39,7 +39,7 @@ impl MessageEvent {
                          -> MessageEvent {
         MessageEvent {
             event: Event::new_inherited(EventTypeId::MessageEvent),
-            data: data,
+            data: Heap::<JSVal>::new(data),
             origin: origin,
             lastEventId: lastEventId,
         }
@@ -89,7 +89,7 @@ impl MessageEvent {
 
 impl<'a> MessageEventMethods for JSRef<'a, MessageEvent> {
     fn Data(self, _cx: *mut JSContext) -> JSVal {
-        self.data
+        self.data.get()
     }
 
     fn Origin(self) -> DOMString {

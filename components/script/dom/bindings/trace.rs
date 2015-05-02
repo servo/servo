@@ -171,7 +171,7 @@ impl<T: JSTraceable+Copy> JSTraceable for Cell<T> {
 }
 
 
-impl JSTraceable for *mut JSObject {
+impl JSTraceable for Heap<*mut JSObject> {
     fn trace(&self, trc: *mut JSTracer) {
         unsafe {
             trace_object(trc, "object", mem::transmute(&*self));
@@ -180,7 +180,7 @@ impl JSTraceable for *mut JSObject {
 }
 
 
-impl JSTraceable for JSVal {
+impl JSTraceable for Heap<JSVal> {
     fn trace(&self, trc: *mut JSTracer) {
         unsafe {
             trace_jsval(trc, "val", mem::transmute(&*self));
@@ -394,8 +394,8 @@ impl RootedCollectionSet {
             }
         }
 
-        trace_collection_type::<JSVal>(tracer, &self.set[CollectionType::JSVals as usize]);
-        trace_collection_type::<*mut JSObject>(tracer, &self.set[CollectionType::JSObjects as usize]);
+//        trace_collection_type::<JSVal>(tracer, &self.set[CollectionType::JSVals as usize]);
+//        trace_collection_type::<*mut JSObject>(tracer, &self.set[CollectionType::JSObjects as usize]);
     }
 }
 
