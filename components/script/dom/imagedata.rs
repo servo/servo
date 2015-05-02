@@ -8,7 +8,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use geom::size::Size2D;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::{JSContext, JSObject, Heap};
 use js::jsapi::{JS_NewUint8ClampedArray, JS_GetUint8ClampedArrayData};
 use libc::uint8_t;
 use std::vec::Vec;
@@ -21,7 +21,7 @@ pub struct ImageData {
     reflector_: Reflector,
     width: u32,
     height: u32,
-    data: *mut JSObject,
+    data: Heap<*mut JSObject>,
 }
 
 impl ImageData {
@@ -40,7 +40,7 @@ impl ImageData {
                 reflector_: Reflector::new(),
                 width: width,
                 height: height,
-                data: js_object,
+                data: Heap::new(js_object),
             }
         }
     }
@@ -85,6 +85,6 @@ impl<'a> ImageDataMethods for JSRef<'a, ImageData> {
 
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
     fn Data(self, _: *mut JSContext) -> *mut JSObject {
-        self.data
+        self.data.ptr
     }
 }
