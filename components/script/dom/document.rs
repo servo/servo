@@ -23,6 +23,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElem
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLTitleElementDerived};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
 use dom::bindings::error::Error::HierarchyRequest;
@@ -84,7 +85,7 @@ use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
 use layout_interface::{LayoutChan, Msg};
 use string_cache::{Atom, QualName};
 use url::Url;
-use js::jsapi::JSRuntime;
+use js::jsapi::{JSContext, JSObject, JSRuntime};
 
 use num::ToPrimitive;
 use std::iter::FromIterator;
@@ -94,6 +95,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::ascii::AsciiExt;
 use std::cell::{Cell, Ref, RefMut, RefCell};
 use std::default::Default;
+use std::ptr;
 use std::sync::mpsc::{Receiver, channel};
 use time;
 
@@ -1659,6 +1661,94 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     fn SetBgColor(self, value: DOMString) {
         self.set_body_attribute(&atom!("bgcolor"), value)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
+    fn NamedGetter(self, cx: *mut JSContext, name: DOMString, found: &mut bool)
+                   -> *mut JSObject {
+        #[jstraceable]
+        struct NamedElementFilter {
+            name: Atom,
+        }
+        impl CollectionFilter for NamedElementFilter {
+            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
+                filter_by_name(&self.name, NodeCast::from_ref(elem))
+            }
+        }
+        // https://html.spec.whatwg.org/#dom-document-nameditem-filter
+        fn filter_by_name(name: &Atom, node: JSRef<Node>) -> bool {
+            let html_elem_type = match node.type_id() {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
+                _ => return false,
+            };
+            let elem = match ElementCast::to_ref(node) {
+                Some(elem) => elem,
+                None => return false,
+            };
+            match html_elem_type {
+                HTMLElementTypeId::HTMLAppletElement => {
+                    match elem.get_attribute(&ns!(""), &atom!("name")).root() {
+                        Some(ref attr) if attr.r().value().atom() == Some(name) => true,
+                        _ => {
+                            match elem.get_attribute(&ns!(""), &atom!("id")).root() {
+                                Some(ref attr) => attr.r().value().atom() == Some(name),
+                                None => false,
+                            }
+                        },
+                    }
+                },
+                HTMLElementTypeId::HTMLFormElement => {
+                    match elem.get_attribute(&ns!(""), &atom!("name")).root() {
+                        Some(ref attr) => attr.r().value().atom() == Some(name),
+                        None => false,
+                    }
+                },
+                HTMLElementTypeId::HTMLImageElement => {
+                    match elem.get_attribute(&ns!(""), &atom!("name")).root() {
+                        Some(ref attr) => {
+                            if attr.r().value().atom() == Some(name) {
+                                true
+                            } else {
+                                match elem.get_attribute(&ns!(""), &atom!("id")).root() {
+                                    Some(ref attr) => attr.r().value().atom() == Some(name),
+                                    None => false,
+                                }
+                            }
+                        },
+                        None => false,
+                    }
+                },
+                // TODO: Handle <embed>, <iframe> and <object>.
+                _ => false,
+            }
+        }
+        let name = Atom::from_slice(&name);
+        let root = NodeCast::from_ref(self);
+        {
+            // Step 1.
+            let mut elements = root.traverse_preorder().filter(|node| {
+                let node = node.root();
+                filter_by_name(&name, node.r())
+            }).peekable();
+            if let Some(first) = elements.next() {
+                let first = first.root();
+                if elements.is_empty() {
+                    *found = true;
+                    // TODO: Step 2.
+                    // Step 3.
+                    return first.to_jsval(cx).to_object();
+                }
+            } else {
+                *found = false;
+                return ptr::null_mut();
+            }
+        }
+        // Step 4.
+        *found = true;
+        let window = self.window().root();
+        let filter = NamedElementFilter { name: name };
+        let collection = HTMLCollection::create(window.r(), root, box filter).root();
+        collection.to_jsval(cx).to_object()
     }
 
     global_event_handlers!();
