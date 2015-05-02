@@ -8,5 +8,8 @@ name = "script_tests"
 path = "lib.rs"
 doctest = false
 
+[dependencies.msg]
+path = "../../../components/msg"
+
 [dependencies.script]
 path = "../../../components/script"
