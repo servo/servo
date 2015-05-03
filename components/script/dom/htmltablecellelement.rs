@@ -20,6 +20,7 @@ use cssparser::RGBA;
 use string_cache::Atom;
 
 use std::cell::Cell;
+use std::cmp::max;
 
 const DEFAULT_COLSPAN: u32 = 1;
 
@@ -70,7 +71,7 @@ impl HTMLTableCellElement {
 impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
     // https://html.spec.whatwg.org/multipage/#dom-tdth-colspan
     make_uint_getter!(ColSpan, "colspan", DEFAULT_COLSPAN);
-    make_limited_uint_setter!(SetColSpan, "colspan");
+    make_uint_setter!(SetColSpan, "colspan");
 }
 
 pub trait HTMLTableCellElementHelpers {
@@ -110,7 +111,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
             }
             &atom!("colspan") => {
                 match *attr.value() {
-                    AttrValue::UInt(_, colspan) => self.colspan.set(Some(colspan)),
+                    AttrValue::UInt(_, colspan) => {
+                        self.colspan.set(Some(max(DEFAULT_COLSPAN, colspan)))
+                    },
                     _ => unreachable!(),
                 }
             },
@@ -134,7 +137,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
 
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
         match local_name {
-            &atom!("colspan") => AttrValue::from_limited_u32(value, DEFAULT_COLSPAN),
+            &atom!("colspan") => AttrValue::from_u32(value, DEFAULT_COLSPAN),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }
