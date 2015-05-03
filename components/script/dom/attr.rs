@@ -56,6 +56,21 @@ impl AttrValue {
 
     pub fn from_u32(string: DOMString, default: u32) -> AttrValue {
         let result = parse_unsigned_integer(string.chars()).unwrap_or(default);
+        let result = if result > 2147483647 {
+            default
+        } else {
+            result
+        };
+        AttrValue::UInt(string, result)
+    }
+
+    pub fn from_limited_u32(string: DOMString, default: u32) -> AttrValue {
+        let result = parse_unsigned_integer(string.chars()).unwrap_or(default);
+        let result = if result == 0 || result > 2147483647 {
+            default
+        } else {
+            result
+        };
         AttrValue::UInt(string, result)
     }
 
