@@ -5,13 +5,12 @@
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::CloseEventBinding;
 use dom::bindings::codegen::Bindings::CloseEventBinding::CloseEventMethods;
-use dom::bindings::codegen::Bindings::EventBinding;
 use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef,Temporary, Rootable};
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
-use script_task::{ScriptChan, ScriptMsg, Runnable};
+use script_task::ScriptChan;
 
 use dom::bindings::utils::reflect_dom_object;
 use std::borrow::ToOwned;
