@@ -68,7 +68,7 @@ impl HTMLTableCellElement {
 }
 
 impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
-    // https://html.spec.whatwg.org/multipage/tables.html#dom-tdth-colspan
+    // https://html.spec.whatwg.org/multipage/#dom-tdth-colspan
     make_uint_getter!(ColSpan, "colspan", DEFAULT_COLSPAN);
     make_limited_uint_setter!(SetColSpan, "colspan");
 }
