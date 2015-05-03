@@ -259,16 +259,14 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         return console_actor_name;
     }
 
-    {
-        let sender = sender.clone();
-        spawn_named("DevtoolsClientAcceptor".to_owned(), move || {
-            // accept connections and process them, spawning a new task for each one
-            for stream in listener.incoming() {
-                // connection succeeded
-                sender.send(DevtoolsControlMsg::AddClient(stream.unwrap())).unwrap();
-            }
-        });
-    }
+    let sender_clone = sender.clone();
+    spawn_named("DevtoolsClientAcceptor".to_owned(), move || {
+        // accept connections and process them, spawning a new task for each one
+        for stream in listener.incoming() {
+            // connection succeeded
+            sender_clone.send(DevtoolsControlMsg::AddClient(stream.unwrap())).unwrap();
+        }
+    });
 
     loop {
         match receiver.recv() {

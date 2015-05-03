@@ -20,7 +20,7 @@ pub struct FramerateActor {
     script_sender: Sender<DevtoolScriptControlMsg>,
     devtools_sender: Sender<DevtoolsControlMsg>,
     start_time: Option<u64>,
-    is_recording: bool,
+    is_recording: Arc<Mutex<bool>>,
     ticks: Arc<Mutex<Vec<HighResolutionStamp>>>,
 }
 
@@ -52,7 +52,7 @@ impl FramerateActor {
             script_sender: script_sender,
             devtools_sender: devtools_sender,
             start_time: None,
-            is_recording: false,
+            is_recording: Arc::new(Mutex::new(false)),
             ticks: Arc::new(Mutex::new(Vec::new())),
         };
 
@@ -74,52 +74,60 @@ impl FramerateActor {
     }
 
     fn start_recording(&mut self) {
-        if self.is_recording {
+        let lock = self.is_recording.lock();
+        if *lock.unwrap() {
             return;
         }
-        self.start_time = Some(precise_time_ns());
-        self.is_recording = true;
 
-        fn closure_fabric(is_recording: Box<bool>,
-                          name: String,
-                          pipeline: PipelineId,
-                          script_sender: Sender<DevtoolScriptControlMsg>,
-                          devtools_sender: Sender<DevtoolsControlMsg>)
-                            -> Box<Fn(f64, ) + Send> {
+        self.start_time = Some(precise_time_ns());
+        let mut lock = self.is_recording.lock();
+        let is_recording = lock.as_mut();
+        **is_recording.unwrap() = true;
+
+        fn get_closure(is_recording: Arc<Mutex<bool>>,
+                       name: String,
+                       pipeline: PipelineId,
+                       script_sender: Sender<DevtoolScriptControlMsg>,
+                       devtools_sender: Sender<DevtoolsControlMsg>)
+                          -> Box<Fn(f64, ) + Send> {
 
             let closure = move |now: f64| {
                 let msg = DevtoolsControlMsg::FramerateTick(name.clone(), now);
                 devtools_sender.send(msg).unwrap();
 
-                if !*is_recording {
+                if !*is_recording.lock().unwrap() {
                     return;
                 }
 
-                let closure = closure_fabric(is_recording.clone(),
-                                             name.clone(),
-                                             pipeline.clone(),
-                                             script_sender.clone(),
-                                             devtools_sender.clone());
+                let closure = get_closure(is_recording.clone(),
+                                          name.clone(),
+                                          pipeline.clone(),
+                                          script_sender.clone(),
+                                          devtools_sender.clone());
                 let msg = DevtoolScriptControlMsg::RequestAnimationFrame(pipeline, closure);
                 script_sender.send(msg).unwrap();
             };
             Box::new(closure)
         };
 
-        let closure = closure_fabric(Box::new(self.is_recording),
-                                     self.name(),
-                                     self.pipeline.clone(),
-                                     self.script_sender.clone(),
-                                     self.devtools_sender.clone());
+        let closure = get_closure(self.is_recording.clone(),
+                                  self.name(),
+                                  self.pipeline.clone(),
+                                  self.script_sender.clone(),
+                                  self.devtools_sender.clone());
         let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline, closure);
         self.script_sender.send(msg).unwrap();
     }
 
     fn stop_recording(&mut self) {
-        if !self.is_recording {
+        let lock = self.is_recording.lock();
+        if !*lock.unwrap() {
             return;
         }
-        self.is_recording = false;
+
+        let mut lock = self.is_recording.lock();
+        let is_recording = lock.as_mut();
+        **is_recording.unwrap() = false;
         self.start_time = None;
     }
 

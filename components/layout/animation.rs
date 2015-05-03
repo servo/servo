@@ -52,17 +52,13 @@ pub fn process_new_animations(rw_data: &mut LayoutTaskData, pipeline_id: Pipelin
         rw_data.running_animations.push(animation)
     }
 
-    let animation_state;
     if !rw_data.running_animations.is_empty() {
-        animation_state = AnimationState::Stopped;
-    } else {
-        animation_state = AnimationState::Running;
+        rw_data.constellation_chan
+               .0
+               .send(Msg::ChangeRunningAnimationsState(pipeline_id, AnimationState::NoAnimationsPresent))
+               .unwrap();
     }
 
-    rw_data.constellation_chan
-           .0
-           .send(Msg::ChangeRunningAnimationsState(pipeline_id, animation_state))
-           .unwrap();
 }
 
 /// Recalculates style for an animation. This does *not* run with the DOM lock held.

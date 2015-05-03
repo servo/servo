@@ -816,7 +816,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         // TODO: Should tick animation only when document is visible
         let ConstellationChan(ref chan) = window.constellation_chan();
         let event = ConstellationMsg::ChangeRunningAnimationsState(window.pipeline(),
-                                                                   AnimationState::RunningByCallback);
+                                                                   AnimationState::AnimationCallbacksPresent);
         chan.send(event).unwrap();
 
         ident

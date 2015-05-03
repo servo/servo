@@ -168,8 +168,11 @@ struct PipelineDetails {
     /// The status of this pipeline's PaintTask.
     paint_state: PaintState,
 
-    /// Current animation state
-    animation_state: AnimationState,
+    /// Wether animations are running
+    animations_running: bool,
+
+    /// Wether there are animation callbacks
+    animation_callbacks_running: bool,
 }
 
 impl PipelineDetails {
@@ -178,7 +181,8 @@ impl PipelineDetails {
             pipeline: None,
             ready_state: ReadyState::Blank,
             paint_state: PaintState::Painting,
-            animation_state: AnimationState::Stopped,
+            animations_running: false,
+            animation_callbacks_running: false,
         }
     }
 }
@@ -425,10 +429,21 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn change_running_animations_state(&mut self,
                                        pipeline_id: PipelineId,
                                        animation_state: AnimationState) {
-        self.get_or_create_pipeline_details(pipeline_id).animation_state = animation_state.clone();
-
-        if animation_state != AnimationState::Stopped {
-            self.composite_if_necessary(CompositingReason::Animation);
+        match animation_state {
+            AnimationState::AnimationsPresent => {
+                self.get_or_create_pipeline_details(pipeline_id).animations_running = true;
+                self.composite_if_necessary(CompositingReason::Animation);
+            }
+            AnimationState::AnimationCallbacksPresent => {
+                self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running = true;
+                self.composite_if_necessary(CompositingReason::Animation);
+            }
+            AnimationState::NoAnimationsPresent => {
+                self.get_or_create_pipeline_details(pipeline_id).animations_running = false;
+            }
+            AnimationState::NoAnimationCallbacksPresent => {
+                self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running = false;
+            }
         }
     }
 
@@ -923,10 +938,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// If there are any animations running, dispatches appropriate messages to the constellation.
     fn process_animations(&mut self) {
         for (pipeline_id, pipeline_details) in self.pipeline_details.iter() {
-            if pipeline_details.animation_state == AnimationState::Stopped {
-                continue
+            if pipeline_details.animations_running ||
+               pipeline_details.animation_callbacks_running {
+
+                self.constellation_chan.0.send(ConstellationMsg::TickAnimation(*pipeline_id)).unwrap();
             }
-            self.constellation_chan.0.send(ConstellationMsg::TickAnimation(*pipeline_id)).unwrap();
         }
     }
 
