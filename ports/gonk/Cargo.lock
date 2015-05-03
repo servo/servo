@@ -513,7 +513,7 @@ dependencies = [
  "httparse 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "num_cpus 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num_cpus 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -757,7 +757,7 @@ dependencies = [
 
 [[package]]
 name = "num_cpus"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1155,7 +1155,7 @@ dependencies = [
  "lazy_static 0.1.10 (git+https://github.com/Kimundi/lazy-static.rs)",
  "libc 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
- "num_cpus 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num_cpus 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "rand 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
