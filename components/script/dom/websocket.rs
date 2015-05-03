@@ -266,7 +266,7 @@ impl WebSocketTaskHandler {
         //Do nothing else. Let the close finish.
     }
     else {
-        let (mut temp_sender, mut temp_receiver) = response.begin().split(); //Set send and receiver in the attributes
+        let (temp_sender, temp_receiver) = response.begin().split(); //Set send and receiver in the attributes
         let mut other_sender = ws.sender.borrow_mut();
         let mut other_receiver = ws.receiver.borrow_mut();
         *other_sender = Some(temp_sender);
