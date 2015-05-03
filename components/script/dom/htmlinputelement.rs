@@ -242,10 +242,8 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     make_bool_setter!(SetReadOnly, "readonly");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-size
-    make_uint_getter!(Size);
-
-    // https://html.spec.whatwg.org/multipage/#dom-input-size
-    make_uint_setter!(SetSize, "size");
+    make_uint_getter!(Size, "size", DEFAULT_INPUT_SIZE);
+    make_limited_uint_setter!(SetSize, "size", DEFAULT_INPUT_SIZE);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-type
     make_enumerated_getter!(Type, "text", ("hidden") | ("search") | ("tel") |
@@ -568,7 +566,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("size") => AttrValue::from_u32(value, DEFAULT_INPUT_SIZE),
+            &atom!("size") => AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
