@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>WebGL Triangle Test</title>
+</head>
+<body>
+<div style="text-align: center">
+   <canvas id="canvas" width="512" height="512"></canvas>
+</div>
+<script id="vertexshader" type="x-shader">
+   attribute vec2 aVertexPosition;
+   attribute vec4 aColour;
+   varying vec4 aVertexColor;
+
+   void main() {
+      aVertexColor = aColour;
+      gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+   }
+</script>
+<script id="fragmentshader" type="x-shader">
+   #ifdef GL_ES
+   precision highp float;
+   #endif
+
+   varying vec4 aVertexColor;
+
+   void main() {
+      gl_FragColor = aVertexColor;
+   }
+</script>
+<script type="text/javascript">
+
+   var canvas;
+   function initWebGL()
+   {
+      canvas = document.getElementById("canvas");
+      var gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+      if (!gl) return null; // can't initialize WebGL
+      return gl;
+   }
+
+   var gl = initWebGL();
+
+   // Setup Shaders:
+   var v = document.getElementById("vertexshader").firstChild.nodeValue;
+   var f = document.getElementById("fragmentshader").firstChild.nodeValue;
+
+   var vs = gl.createShader(gl.VERTEX_SHADER);
+   gl.shaderSource(vs, v);
+   gl.compileShader(vs);
+
+   if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
+      alert(gl.getShaderInfoLog(vs));
+   }
+
+   var fs = gl.createShader(gl.FRAGMENT_SHADER);
+   gl.shaderSource(fs, f);
+   gl.compileShader(fs);
+
+   if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+       alert(gl.getShaderInfoLog(fs));
+   }
+
+   program = gl.createProgram();
+   gl.attachShader(program, vs);
+   gl.attachShader(program, fs);
+   gl.linkProgram(program);
+
+   // if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+   //     alert(gl.getProgramInfoLog(program));
+
+   // Setup Geometry
+   var vertices = new Float32Array([
+       -0.5,-0.5, 0.5,-0.5, 0.0,0.5,  // Triangle-Coordinates
+       1.0, 0.0, 0.0, 1.0,
+       0.0, 1.0, 0.0, 1.0,
+       0.0, 0.0, 1.0, 1.0,
+   ]);
+
+   vbuffer = gl.createBuffer();
+   gl.bindBuffer(gl.ARRAY_BUFFER, vbuffer);
+   gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+   itemSize = 2; // we have 2 coordinates (x,y)
+   numItems = vertices.length / itemSize; // number of vertices
+
+   // Viewport
+   gl.viewport(0, 0, canvas.width, canvas.height);
+   gl.clearColor(0, 0, 0, 1);
+   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+   // Setup Geometry
+   gl.useProgram(program);
+
+   program.aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+   gl.enableVertexAttribArray(program.aVertexPosition);
+   gl.vertexAttribPointer(program.aVertexPosition, itemSize, gl.FLOAT, false, 0, 0);
+
+   program.aColour = gl.getAttribLocation(program, "aColour");
+   gl.enableVertexAttribArray(program.aColour);
+   gl.vertexAttribPointer(program.aColour, 4, gl.FLOAT, false, 0, 24);
+
+   // Draw
+   gl.drawArrays(gl.TRIANGLES, 0, 3);
+</script>
+</body>
+</html>

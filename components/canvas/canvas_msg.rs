@@ -52,8 +52,27 @@ pub enum Canvas2dMsg {
 
 #[derive(Clone)]
 pub enum CanvasWebGLMsg {
+    AttachShader(u32, u32),
+    BindBuffer(u32, u32),
+    BufferData(u32, Vec<f32>, u32),
     Clear(u32),
     ClearColor(f32, f32, f32, f32),
+    CompileShader(u32),
+    CreateBuffer(Sender<u32>),
+    CreateProgram(Sender<u32>),
+    CreateShader(u32, Sender<u32>),
+    DrawArrays(u32, i32, i32),
+    EnableVertexAttribArray(u32),
+    GetAttribLocation(u32, String, Sender<i32>),
+    GetShaderInfoLog(u32, Sender<String>),
+    GetShaderParameter(u32, u32, Sender<i32>),
+    GetUniformLocation(u32, String, Sender<u32>),
+    LinkProgram(u32),
+    ShaderSource(u32, Vec<String>),
+    Uniform4fv(u32, Vec<f32>),
+    UseProgram(u32),
+    VertexAttribPointer2f(u32, i32, bool, i32, i64),
+    Viewport(i32, i32, i32, i32),
 }
 
 #[derive(Clone)]
