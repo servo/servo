@@ -88,6 +88,24 @@ fn is_control_key(mods: KeyModifiers) -> bool {
     mods.contains(CONTROL) && !mods.contains(SUPER | ALT)
 }
 
+fn is_printable_key(key: Key) -> bool {
+    match key {
+        Key::Space | Key::Apostrophe | Key::Comma | Key::Minus |
+        Key::Period | Key::Slash | Key::GraveAccent | Key::Num0 |
+        Key::Num1 | Key::Num2 | Key::Num3 | Key::Num4 | Key::Num5 |
+        Key::Num6 | Key::Num7 | Key::Num8 | Key::Num9 | Key::Semicolon |
+        Key::Equal | Key::A | Key::B | Key::C | Key::D | Key::E | Key::F |
+        Key::G | Key::H | Key::I | Key::J | Key::K | Key::L | Key::M | Key::N |
+        Key::O | Key::P | Key::Q | Key::R | Key::S | Key::T | Key::U | Key::V |
+        Key::W | Key::X | Key::Y | Key::Z | Key::LeftBracket | Key::Backslash |
+        Key::RightBracket | Key::Kp0 | Key::Kp1 | Key::Kp2 | Key::Kp3 |
+        Key::Kp4 | Key::Kp5 | Key::Kp6 | Key::Kp7 | Key::Kp8 | Key::Kp9 |
+        Key::KpDecimal | Key::KpDivide | Key::KpMultiply | Key::KpSubtract |
+        Key::KpAdd | Key::KpEqual => true,
+        _ => false,
+    }
+}
+
 impl<T: ClipboardProvider> TextInput<T> {
     /// Instantiate a new text input control
     pub fn new(lines: Lines, initial: DOMString, clipboard_provider: T) -> TextInput<T> {
@@ -291,67 +309,66 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
     pub fn handle_keydown_aux(&mut self, key: Key, mods: KeyModifiers) -> KeyReaction {
         let maybe_select = if mods.contains(SHIFT) { Selection::Selected } else { Selection::NotSelected };
-        match key_value(key, mods) {
-           "a" if is_control_key(mods) => {
+        match key {
+           Key::A if is_control_key(mods) => {
                 self.select_all();
                 KeyReaction::Nothing
             },
-           "v" if is_control_key(mods) => {
+           Key::V if is_control_key(mods) => {
                 let contents = self.clipboard_provider.get_clipboard_contents();
                 self.insert_string(contents.as_slice());
                 KeyReaction::DispatchInput
             },
-            // printable characters have single-character key values
-            c if c.len() == 1 => {
-                self.insert_char(c.char_at(0));
+            _ if is_printable_key(key) => {
+                self.insert_string(key_value(key, mods));
                 KeyReaction::DispatchInput
             }
-            "Space" => {
+            Key::Space => {
                 self.insert_char(' ');
                 KeyReaction::DispatchInput
             }
-            "Delete" => {
+            Key::Delete => {
                 self.delete_char(DeleteDir::Forward);
                 KeyReaction::DispatchInput
             }
-            "Backspace" => {
+            Key::Backspace => {
                 self.delete_char(DeleteDir::Backward);
                 KeyReaction::DispatchInput
             }
-            "ArrowLeft" => {
+            Key::Left => {
                 self.adjust_horizontal(-1, maybe_select);
                 KeyReaction::Nothing
             }
-            "ArrowRight" => {
+            Key::Right => {
                 self.adjust_horizontal(1, maybe_select);
                 KeyReaction::Nothing
             }
-            "ArrowUp" => {
+            Key::Up => {
                 self.adjust_vertical(-1, maybe_select);
                 KeyReaction::Nothing
             }
-            "ArrowDown" => {
+            Key::Down => {
                 self.adjust_vertical(1, maybe_select);
                 KeyReaction::Nothing
             }
-            "Enter" => self.handle_return(),
-            "Home" => {
+            Key::Enter | Key::KpEnter => self.handle_return(),
+            Key::Home => {
                 self.edit_point.index = 0;
                 KeyReaction::Nothing
             }
-            "End" => {
+            Key::End => {
                 self.edit_point.index = self.current_line_length();
                 KeyReaction::Nothing
             }
-            "PageUp" => {
+            Key::PageUp => {
                 self.adjust_vertical(-28, maybe_select);
                 KeyReaction::Nothing
             }
-            "PageDown" => {
+            Key::PageDown => {
                 self.adjust_vertical(28, maybe_select);
                 KeyReaction::Nothing
             }
-            "Tab" => KeyReaction::TriggerDefaultAction,
+            Key::Tab => KeyReaction::TriggerDefaultAction,
             _ => KeyReaction::Nothing,
         }
     }
