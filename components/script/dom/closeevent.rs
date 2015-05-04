@@ -67,7 +67,7 @@ impl CloseEvent{
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &CloseEventBinding::CloseEventInit) -> Fallible<Temporary<CloseEvent>> {
-        let clean_status = init.wasClean.unwrap();
+        let clean_status = init.wasClean.unwrap_or();
         let cd = init.code.unwrap_or(0);
         let rsn = match init.reason.as_ref() {
             Some(reason) => reason.clone(),
