@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 #[cfg(target_os = "android")]
 pub fn resources_dir_path() -> PathBuf {
-    PathBuf::new("/sdcard/servo/")
+    PathBuf::from("/sdcard/servo/")
 }
 
 #[cfg(not(target_os = "android"))]
