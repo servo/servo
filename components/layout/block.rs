@@ -1465,8 +1465,8 @@ impl Flow for BlockFlow {
 
         // Find the maximum inline-size from children.
         let mut computation = self.fragment.compute_intrinsic_inline_sizes();
-        let mut left_float_width = Au(0);
-        let mut right_float_width = Au(0);
+        let (mut left_float_width, mut right_float_width) = (Au(0), Au(0));
+        let (mut left_float_width_accumulator, mut right_float_width_accumulator) = (Au(0), Au(0));
         for kid in self.base.child_iter() {
             let is_absolutely_positioned =
                 flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
@@ -1477,6 +1477,15 @@ impl Flow for BlockFlow {
                     max(computation.content_intrinsic_sizes.minimum_inline_size,
                         child_base.intrinsic_inline_sizes.minimum_inline_size);
 
+                if child_base.flags.contains(CLEARS_LEFT) {
+                    left_float_width = Au::max(left_float_width, left_float_width_accumulator);
+                    left_float_width_accumulator = Au(0)
+                }
+                if child_base.flags.contains(CLEARS_RIGHT) {
+                    right_float_width = Au::max(right_float_width, right_float_width_accumulator);
+                    right_float_width_accumulator = Au(0)
+                }
+
                 match float_kind {
                     float::T::none => {
                         computation.content_intrinsic_sizes.preferred_inline_size =
@@ -1484,11 +1493,11 @@ impl Flow for BlockFlow {
                                 child_base.intrinsic_inline_sizes.preferred_inline_size);
                     }
                     float::T::left => {
-                        left_float_width = left_float_width +
+                        left_float_width_accumulator = left_float_width_accumulator +
                             child_base.intrinsic_inline_sizes.preferred_inline_size;
                     }
                     float::T::right => {
-                        right_float_width = right_float_width +
+                        right_float_width_accumulator = right_float_width_accumulator +
                             child_base.intrinsic_inline_sizes.preferred_inline_size;
                     }
                 }
@@ -1500,6 +1509,8 @@ impl Flow for BlockFlow {
         // FIXME(pcwalton): This should consider all float descendants, not just children.
         // FIXME(pcwalton): This is not well-spec'd; INTRINSIC specifies to do this, but CSS-SIZING
         // says not to. In practice, Gecko and WebKit both do this.
+        left_float_width = Au::max(left_float_width, left_float_width_accumulator);
+        right_float_width = Au::max(right_float_width, right_float_width_accumulator);
         computation.content_intrinsic_sizes.preferred_inline_size =
             max(computation.content_intrinsic_sizes.preferred_inline_size,
                 left_float_width + right_float_width);

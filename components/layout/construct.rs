@@ -822,7 +822,7 @@ impl<'a> FlowConstructor<'a> {
                 block_flow));
         let fragment = Fragment::new(node, fragment_info);
 
-        let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
+        let mut fragment_accumulator = InlineFragmentsAccumulator::new();
         fragment_accumulator.fragments.push_back(fragment);
 
         let construction_item =
