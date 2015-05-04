@@ -26,17 +26,11 @@ pub struct CloseEvent{
     reason: DOMRefCell<DOMString>
 }
 
-#[derive(PartialEq)]
-pub enum Clean {
-    Clean,
-    NotClean
-}
-
 impl CloseEvent{
     pub fn new_inherited(type_id: EventTypeId) -> CloseEvent{
         CloseEvent{
             event: Event::new_inherited(type_id),
-            wasClean: Cell::new(false),
+            wasClean: Cell::new(true),
             code: Cell::new(0),
             reason: DOMRefCell::new("".to_owned())
         }
@@ -52,7 +46,7 @@ impl CloseEvent{
         let ev = reflect_dom_object(box CloseEvent::new_inherited(EventTypeId::CloseEvent),
                                     global,
                                     CloseEventBinding::Wrap);
-		let ev = ev.root();
+        let ev = ev.root();
         let event: JSRef<Event> = EventCast::from_ref(ev.r());
         event.InitEvent(type_,
                         bubbles == EventBubbles::Bubbles,
@@ -67,7 +61,7 @@ impl CloseEvent{
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &CloseEventBinding::CloseEventInit) -> Fallible<Temporary<CloseEvent>> {
-        let clean_status = init.wasClean.unwrap_or();
+        let clean_status = init.wasClean.unwrap_or(true);
         let cd = init.code.unwrap_or(0);
         let rsn = match init.reason.as_ref() {
             Some(reason) => reason.clone(),
