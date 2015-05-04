@@ -121,7 +121,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
             new_node: NodeOrText<JS<Node>>) -> Result<(), NodeOrText<JS<Node>>> {
         // If there is no parent, return the node to the parser.
         let sibling: Root<Node> = sibling.root();
-        let parent = match sibling.r().parent_node() {
+        let parent = match sibling.r().GetParentNode() {
             Some(p) => p.root(),
             None => return Err(new_node),
         };
