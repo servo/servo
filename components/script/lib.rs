@@ -53,6 +53,7 @@ extern crate url;
 extern crate uuid;
 extern crate string_cache;
 extern crate webdriver_traits;
+
 pub mod cors;
 
 #[macro_use]
