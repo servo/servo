@@ -1463,7 +1463,7 @@ IdlInterface.prototype.test_interface_of = function(desc, obj, exception, expect
                 var args = [];
                 for (var i = 0; i < member.arguments.length; i++)
                 {
-                    if (member.arguments[i].optional)
+                    if (member.arguments[i].optional || member.arguments[i].variadic)
                     {
                         break;
                     }
