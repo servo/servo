@@ -5,7 +5,7 @@
 use net_traits::{LoadData, Metadata, LoadConsumer};
 use net_traits::ProgressMsg::{Payload, Done};
 use mime_classifier::MIMEClassifier;
-use resource_task::{start_sending, start_sending_sniffed, ProgressSender};
+use resource_task::{start_sending, start_sending_sniffed, ProgressSender, CancelationListener};
 
 use std::borrow::ToOwned;
 use std::fs::File;
@@ -43,7 +43,7 @@ fn read_all(reader: &mut File, progress_chan: &ProgressSender)
     }
 }
 
-pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEClassifier>) {
+pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEClassifier>, cancel_receiver: CancelationListener) {
     let url = load_data.url;
     assert!(&*url.scheme == "file");
     spawn_named("file_loader".to_owned(), move || {
@@ -53,12 +53,19 @@ pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEC
             Ok(file_path) => {
                 match File::open(&file_path) {
                     Ok(ref mut reader) => {
+                        if cancel_receiver.is_cancelled() {
+                            return;
+                        }
                         let res = read_block(reader);
                         let (res, progress_chan) = match res {
                             Ok(ReadStatus::Partial(buf)) => {
                                 let progress_chan = start_sending_sniffed(senders, metadata,
                                                                           classifier, &buf);
                                 progress_chan.send(Payload(buf)).unwrap();
+
+                                if cancel_receiver.is_cancelled() {
+                                    return;
+                                }
                                 (read_all(reader, &progress_chan), progress_chan)
                             }
                             Ok(ReadStatus::EOF) | Err(_) =>

@@ -276,7 +276,7 @@ impl XMLHttpRequest {
             context: context,
             script_chan: script_chan,
         };
-        resource_task.send(Load(load_data, LoadConsumer::Listener(listener))).unwrap();
+        resource_task.send(Load(load_data, LoadConsumer::Listener(listener), None)).unwrap();
     }
 }
 

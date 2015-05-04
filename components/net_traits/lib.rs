@@ -108,16 +108,36 @@ pub enum LoadConsumer {
     Listener(Box<AsyncResponseTarget + Send>),
 }
 
+/// Identifier for a resource
+#[derive(PartialEq, Eq, Hash, Copy, Clone)]
+pub struct ResourceId(u32);
+
+impl ResourceId {
+    pub fn new() -> ResourceId {
+        ResourceId(0)
+    }
+
+    pub fn increment(&mut self) -> ResourceId {
+        let current = ResourceId(self.0);
+
+        self.0 += 1;
+
+        current
+    }
+}
+
 /// Handle to a resource task
 pub type ResourceTask = Sender<ControlMsg>;
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
-    Load(LoadData, LoadConsumer),
+    Load(LoadData, LoadConsumer, Option<Sender<ResourceId>>),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(Url, Sender<Option<String>>, CookieSource),
+    /// Cancel the request
+    Cancel(ResourceId),
     Exit
 }
 
@@ -175,16 +195,12 @@ impl Metadata {
 
     /// Extract the parts of a Mime that we care about.
     pub fn set_content_type(&mut self, content_type: Option<&Mime>) {
-        match content_type {
-            None => (),
-            Some(mime) => {
-                self.content_type = Some(ContentType(mime.clone()));
-                let &Mime(_, _, ref parameters) = mime;
-                for &(ref k, ref v) in parameters.iter() {
-                    if &Attr::Charset == k {
-                        self.charset = Some(v.to_string());
-                    }
-                }
+        if let Some(mime) = content_type {
+            self.content_type = Some(ContentType(mime.clone()));
+            let &Mime(_, _, ref parameters) = mime;
+            let charset_pair = parameters.iter().find(|&&(ref key, _)| key == &Attr::Charset);
+            if let Some(&(_, ref value)) = charset_pair {
+                self.charset = Some(value.to_string());
             }
         }
     }
@@ -212,7 +228,7 @@ pub enum ProgressMsg {
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
         -> Result<(Metadata, Vec<u8>), String> {
     let (start_chan, start_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url), LoadConsumer::Channel(start_chan))).unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(url), LoadConsumer::Channel(start_chan), None)).unwrap();
     let response = start_port.recv().unwrap();
 
     let mut buf = vec!();
@@ -228,7 +244,7 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
 /// Load a URL asynchronously and iterate over chunks of bytes from the response.
 pub fn load_bytes_iter(resource_task: &ResourceTask, url: Url) -> (Metadata, ProgressMsgPortIterator) {
     let (input_chan, input_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url), LoadConsumer::Channel(input_chan))).unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(url), LoadConsumer::Channel(input_chan), None)).unwrap();
 
     let response = input_port.recv().unwrap();
     let iter = ProgressMsgPortIterator { progress_port: response.progress_port };
@@ -254,5 +270,3 @@ impl Iterator for ProgressMsgPortIterator {
         }
     }
 }
-
-
