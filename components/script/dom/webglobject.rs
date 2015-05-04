@@ -14,7 +14,7 @@ pub struct WebGLObject {
 }
 
 impl WebGLObject {
-    fn new_inherited() -> WebGLObject {
+    pub fn new_inherited() -> WebGLObject {
         WebGLObject {
             reflector_: Reflector::new(),
         }

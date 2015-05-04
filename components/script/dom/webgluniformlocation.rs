@@ -6,18 +6,19 @@
 use dom::bindings::codegen::Bindings::WebGLUniformLocationBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, JSRef};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
+use dom::webglobject::WebGLObject;
 
 #[dom_struct]
 pub struct WebGLUniformLocation {
-    reflector_: Reflector,
+    webgl_object: WebGLObject,
     id: u32,
 }
 
 impl WebGLUniformLocation {
     fn new_inherited(id: u32) -> WebGLUniformLocation {
         WebGLUniformLocation {
-            reflector_: Reflector::new(),
+            webgl_object: WebGLObject::new_inherited(),
             id: id,
         }
     }
