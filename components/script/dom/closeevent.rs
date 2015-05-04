@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::CloseEventBinding;
 use dom::bindings::codegen::Bindings::CloseEventBinding::CloseEventMethods;
@@ -9,12 +10,10 @@ use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef,Temporary, Rootable};
+use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use script_task::ScriptChan;
-
-use dom::bindings::utils::reflect_dom_object;
 use std::borrow::ToOwned;
-use dom::bindings::cell::DOMRefCell;
 use std::cell::Cell;
 use util::str::DOMString;
 
