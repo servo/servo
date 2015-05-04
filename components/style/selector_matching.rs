@@ -242,6 +242,10 @@ impl Stylist {
 
         shareable
     }
+
+    pub fn is_dirty(&self) -> bool {
+        self.is_dirty
+    }
 }
 
 struct PerOriginSelectorMap {
