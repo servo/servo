@@ -47,7 +47,7 @@ no_jsmanaged_fields!(Sender<WebSocketStream>);
 no_jsmanaged_fields!(Receiver<WebSocketStream>);
 
 #[dom_struct]
-pub struct WebSocket { //Websocket attributes defined here
+pub struct WebSocket {
     eventtarget: EventTarget,
     url: DOMString,
     global: GlobalField,
@@ -59,8 +59,8 @@ pub struct WebSocket { //Websocket attributes defined here
     clean_close: Cell<bool>, //Flag to tell if the websocket closed cleanly (not due to full or fail)
     code: Cell<u16>, //Closing code
     reason: DOMRefCell<DOMString>, //Closing reason
-    data: DOMRefCell<DOMString>, //Data from send
-  sendCloseFrame: Cell<bool>
+    data: DOMRefCell<DOMString>, //Data from send - TODO: Remove after buffer is added.
+    sendCloseFrame: Cell<bool>
 }
 
 impl WebSocket {
@@ -132,7 +132,7 @@ impl WebSocket {
           it confirms the websocket is now closed. This requires the close event
           to be fired (dispatch_close fires the close event - see implementation below)
         */
-        Temporary::from_rooted(ws_root) //Return the websocket from the original thread that called this constructor
+        Temporary::from_rooted(ws_root)
     }
 
     pub fn Constructor(global: GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
