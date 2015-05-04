@@ -2,13 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-/* References:
-  Student page: https://github.com/servo/servo/wiki/WebSocket-student-project
-  Servo error enums for throwing errors: https://github.com/servo/servo/wiki/WebSocket-student-project
-  Servo core - a list of all the modules like cell, char, u 16:
-    https://github.com/servo/servo/wiki/WebSocket-student-project
-*/
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::WebSocketMethods;
