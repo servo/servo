@@ -171,15 +171,6 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
         return Ok(())
     }
 
-    /*TODO: 3 other types of send as specified in webidle/WebSocket.webidl
-      The specs for each of these functions are described here:
-      https://html.spec.whatwg.org/multipage/comms.html
-    */
-    //void send(Blob data); //Search above reference for "If the argument is a blob"
-    //void send(ArrayBuffer data); //Search above reference for "If the argument is an ArrayBuffer"
-    //void send(ArrayBufferView data); //Search above reference for "If the argument is an object that matches the ArrayBufferView"
-
-    //Close is up to spec! :)
     fn Close(self, code: Option<u16>, reason: Option<DOMString>) -> Fallible<()>{
         if code.is_some() { //Code defined
             //Check code is NOT 1000 NOR in the range of 3000-4999 (inclusive)
@@ -204,7 +195,7 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
                 self.ready_state.set(WebSocketRequestState::Closing);
                 self.failed.set(true);
                 self.sendCloseFrame.set(true);
-                //-----Dispatch send task to send close frame------//
+                //-----Dispatch send task to send close frame------
                 //TODO: Sending here is just empty string, though no string is really needed. Another send, empty send, could be used.
                 let _ = self.Send(None);
                 //Note: After sending the close message, the receive loop confirms a close message from the server and must fire a close event
@@ -215,16 +206,15 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
                 if code.is_some() {
                     self.code.set(code.unwrap());
                 }
-                if reason.is_some(){
+                if reason.is_some() {
                     *self.reason.borrow_mut() = reason.unwrap();
                 }
-                self.ready_state.set(WebSocketRequestState::Closing); //Set state to closing
-                self.sendCloseFrame.set(true); //Set close frame flag
-                //Dispatch send task to send close frame
+                self.ready_state.set(WebSocketRequestState::Closing);
+                self.sendCloseFrame.set(true);
+                //-----Dispatch send task to send close frame------
                 let _ = self.Send(None);
                 //Note: After sending the close message, the receive loop confirms a close message from the server and must fire a close event
             }
-            //_ => { self.ready_state.set(WebSocketRequestState::Closing); } //Unreachable - Uncomment if you add more states to WebSocketRequestState
         }
         Ok(()) //Return Ok
     }
@@ -251,7 +241,7 @@ impl WebSocketTaskHandler {
 
     fn dispatch_open(&self) {
         /*TODO: Items 1, 3, 4, & 5 under "WebSocket connection is established" as specified here:
-          https://html.spec.whatwg.org
+          https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol
         */
         let ws = self.addr.to_temporary().root(); //Get root
         let ws = ws.r(); //Get websocket reference
@@ -267,40 +257,38 @@ impl WebSocketTaskHandler {
 
     fn dispatch_close(&self) {
         let ws = self.addr.to_temporary().root();
-        let global = ws.r().global.root();
-        ws.r().ready_state.set(WebSocketRequestState::Closed); //Set to closed state
+        let ws = ws.r();
+        let global = ws.global.root();
+        ws.ready_state.set(WebSocketRequestState::Closed);
         //If failed or full, fire error event
-        if ws.r().failed.get()||ws.r().full.get() {
+        if ws.failed.get() || ws.full.get() {
             //Unset failed flag so we don't cause false positives
-            ws.r().failed.set(false);
+            ws.failed.set(false);
             //Unset full flag so we don't cause false positives
-            ws.r().full.set(false);
+            ws.full.set(false);
             //A Bad close
-            ws.r().clean_close.set(false);
+            ws.clean_close.set(false);
             let event = Event::new(global.r(),
-                "error".to_owned(),
-                EventBubbles::DoesNotBubble,
-                EventCancelable::Cancelable).root();
-            let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws.r());
+                                   "error".to_owned(),
+                                   EventBubbles::DoesNotBubble,
+                                   EventCancelable::Cancelable).root();
+            let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws);
             event.r().fire(target);
         }
-        let ws = ws.r();
         let rsn = ws.reason.borrow();
         let rsn_clone = rsn.clone();
         /*In addition, we also have to fire a close even if error event fired
-         https://html.spec.whatwg.org
+         https://html.spec.whatwg.org/multipage/#closeWebSocket
         */
         let close_event = CloseEvent::new(global.r(),
-                "close".to_owned(),
-                EventBubbles::DoesNotBubble,
-            EventCancelable::Cancelable,
-            ws.clean_close.get(),
-            ws.code.get(),
-            rsn_clone
-            ).root();
+                                          "close".to_owned(),
+                                          EventBubbles::DoesNotBubble,
+                                          EventCancelable::Cancelable,
+                                          ws.clean_close.get(),
+                                          ws.code.get(),
+                                          rsn_clone).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws);
         let event: JSRef<Event> = EventCast::from_ref(close_event.r());
-        event.set_trusted(true);
         event.fire(target);
     }
 }
