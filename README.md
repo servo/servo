@@ -81,6 +81,15 @@ cd servo
 ./mach run tests/html/about-mozilla.html
 ```
 
+By default, Servo builds in debug mode.  This is useful for development, but
+the resulting binary is very slow.  For benchmarking, performance testing, or
+real-world use, add the `--release` flag to create an optimized build:
+
+``` sh
+./mach build --release
+./mach run --release tests/html/about-mozilla.html
+```
+
 ### Building for Android target
 
 ``` sh
