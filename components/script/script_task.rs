@@ -266,8 +266,6 @@ impl Drop for StackRootTLS {
 
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
 /// frames.
-///
-/// FIXME: Rename to `Page`, following WebKit?
 #[jstraceable]
 pub struct ScriptTask {
     /// A handle to the information pertaining to page layout
