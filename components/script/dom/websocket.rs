@@ -195,7 +195,7 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
                 self.ready_state.set(WebSocketRequestState::Closing);
                 self.failed.set(true);
                 self.sendCloseFrame.set(true);
-                //-----Dispatch send task to send close frame------
+                //Dispatch send task to send close frame
                 //TODO: Sending here is just empty string, though no string is really needed. Another send, empty send, could be used.
                 let _ = self.Send(None);
                 //Note: After sending the close message, the receive loop confirms a close message from the server and must fire a close event
@@ -211,7 +211,7 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
                 }
                 self.ready_state.set(WebSocketRequestState::Closing);
                 self.sendCloseFrame.set(true);
-                //-----Dispatch send task to send close frame------
+                //Dispatch send task to send close frame
                 let _ = self.Send(None);
                 //Note: After sending the close message, the receive loop confirms a close message from the server and must fire a close event
             }
@@ -262,9 +262,7 @@ impl WebSocketTaskHandler {
         ws.ready_state.set(WebSocketRequestState::Closed);
         //If failed or full, fire error event
         if ws.failed.get() || ws.full.get() {
-            //Unset failed flag so we don't cause false positives
             ws.failed.set(false);
-            //Unset full flag so we don't cause false positives
             ws.full.set(false);
             //A Bad close
             ws.clean_close.set(false);

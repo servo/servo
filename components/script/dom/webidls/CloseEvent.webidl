@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//https://html.spec.whatwg.org/multipage/comms.html#the-closeevent-interfaces
+//https://html.spec.whatwg.org/multipage/#the-closeevent-interfaces
 [Constructor(DOMString type, optional CloseEventInit eventInitDict)/*, Exposed=(Window,Worker)*/]
 interface CloseEvent : Event {
   readonly attribute boolean wasClean;
