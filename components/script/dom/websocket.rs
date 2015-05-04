@@ -172,16 +172,15 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
     }
 
     fn Close(self, code: Option<u16>, reason: Option<DOMString>) -> Fallible<()>{
-        if code.is_some() { //Code defined
+        if let Some(code) = code{ //Code defined
             //Check code is NOT 1000 NOR in the range of 3000-4999 (inclusive)
-            if  code != Some(1000) && (code < Some(3000) || code > Some(4999))
+            if  code != 1000 && (code < 3000 || code > 4999)
             {
                 return Err(Error::InvalidAccess); //Throw InvalidAccessError and abort
             }
         }
-        if reason.is_some() { //reason defined
-            let a_reason = reason.as_ref().unwrap();
-            if a_reason.as_bytes().len() > 123 //reason cannot be larger than 123 bytes
+        if let Some(ref reason) = reason { //reason defined
+            if reason.as_bytes().len() > 123 //reason cannot be larger than 123 bytes
             {
                 return Err(Error::Syntax); //Throw SyntaxError and abort
             }
@@ -203,11 +202,11 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
             WebSocketRequestState::Open => {
                 //Closing handshake not started - still in open
                 //Start the closing by setting the code and reason if they exist
-                if code.is_some() {
-                    self.code.set(code.unwrap());
+                if let Some(code)= code {
+                    self.code.set(code);
                 }
-                if reason.is_some() {
-                    *self.reason.borrow_mut() = reason.unwrap();
+                if let Some(reason) = reason {
+                    *self.reason.borrow_mut() = reason;
                 }
                 self.ready_state.set(WebSocketRequestState::Closing);
                 self.sendCloseFrame.set(true);
