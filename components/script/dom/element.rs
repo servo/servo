@@ -51,7 +51,7 @@ use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelper
 use dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementHelpers};
 use dom::htmltablesectionelement::{HTMLTableSectionElement, HTMLTableSectionElementHelpers};
 use dom::htmltextareaelement::{HTMLTextAreaElement, RawLayoutHTMLTextAreaElementHelpers};
-use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node, NodeHelpers, NodeTypeId, TABINDEX};
+use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node, NodeHelpers, NodeTypeId, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, NodeDamage};
 use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
@@ -633,7 +633,7 @@ impl<'a> FocusElementHelpers for JSRef<'a, Element> {
         }
         // TODO: Check whether the element is being rendered (i.e. not hidden).
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        if node.get_flag(TABINDEX) {
+        if node.get_flag(SEQUENTIALLY_FOCUSABLE) {
             return true;
         }
         // https://html.spec.whatwg.org/multipage/#specially-focusable

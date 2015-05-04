@@ -159,7 +159,7 @@ bitflags! {
         const IN_FOCUS_STATE = 0x200,
         #[doc = "Specifies whether this node is focusable and whether it is supposed \
                  to be reachable with using sequential focus navigation."]
-        const TABINDEX = 0x400,
+        const SEQUENTIALLY_FOCUSABLE = 0x400,
     }
 }
 

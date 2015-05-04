@@ -24,7 +24,7 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmlmediaelement::HTMLMediaElementTypeId;
 use dom::htmltablecellelement::HTMLTableCellElementTypeId;
-use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node, TABINDEX};
+use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node, SEQUENTIALLY_FOCUSABLE};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
@@ -70,12 +70,55 @@ impl HTMLElement {
 
 trait PrivateHTMLElementHelpers {
     fn is_body_or_frameset(self) -> bool;
+    fn update_sequentially_focusable_status(&self, attr: Option<JSRef<Attr>>, added: bool);
 }
 
 impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
     fn is_body_or_frameset(self) -> bool {
         let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.is_htmlbodyelement() || eventtarget.is_htmlframesetelement()
+    }
+
+    fn update_sequentially_focusable_status(&self, attr: Option<JSRef<Attr>>, added: bool) {
+        let element: &JSRef<Element> = ElementCast::from_borrowed_ref(self);
+        if let Some(attr) = attr {
+            let name = attr.local_name();
+            if name.eq(&atom!("tabindex")) {
+                let node = NodeCast::from_ref(*self);
+                node.set_flag(SEQUENTIALLY_FOCUSABLE, added);
+            }
+        }
+        if !element.has_attribute(&atom!("tabindex")) {
+            let node = NodeCast::from_borrowed_ref(self);
+            match node.type_id() {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)) |
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => node.set_flag(SEQUENTIALLY_FOCUSABLE, true),
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) |
+                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
+                            if element.has_attribute(&atom!("href")) {
+                                node.set_flag(SEQUENTIALLY_FOCUSABLE, true);
+                            }
+                        },
+                        _ => {
+                            if let Some(attr) = element.get_attribute(&ns!(""), &atom!("draggable")) {
+                                let attr = attr.root();
+                                let attr = attr.r();
+                                let value = attr.value();
+                                if value.as_slice() == "true" {
+                                    node.set_flag(SEQUENTIALLY_FOCUSABLE, true);
+                                } else {
+                                    node.set_flag(SEQUENTIALLY_FOCUSABLE, false);
+                                }
+                            } else {
+                                node.set_flag(SEQUENTIALLY_FOCUSABLE, false);
+                            }
+                            //TODO set SEQUENTIALLY_FOCUSABLE flag if editing host
+                            //TODO set SEQUENTIALLY_FOCUSABLE flag if "sorting interface th elements"
+                        },
+            }
+        }
     }
 }
 
@@ -220,6 +263,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
         Some(element as &VirtualMethods)
     }
 
+    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+        if let Some(ref s) = self.super_type() {
+            s.before_remove_attr(attr);
+        }
+        self.update_sequentially_focusable_status(Some(attr), false);
+    }
+
     fn after_set_attr(&self, attr: JSRef<Attr>) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
@@ -236,43 +286,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
                                                   &name[2..],
                                                   (**attr.value()).to_owned());
         }
-        if name.starts_with("tabindex") {
-            let node: JSRef<Node> = NodeCast::from_ref(*self);
-            node.set_flag(TABINDEX, true);
-        }
+        self.update_sequentially_focusable_status(Some(attr), true);
     }
     fn bind_to_tree(&self, tree_in_doc: bool) {
         if let Some(ref s) = self.super_type() {
             s.bind_to_tree(tree_in_doc);
         }
-        let element: &JSRef<Element> = ElementCast::from_borrowed_ref(self);
-        if element.get_attribute(&ns!(""), &atom!("tabindex")).is_none() {
-            let node: &JSRef<Node> = NodeCast::from_borrowed_ref(self);
-            match node.type_id() {
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)) |
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => node.set_flag(TABINDEX, true),
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) |
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
-                    if element.get_attribute(&ns!(""), &atom!("href")).is_some() {
-                        node.set_flag(TABINDEX, true);
-                    }
-                },
-                _ => {
-                    element.get_attribute(&ns!(""), &atom!("draggable")).map(|attr| {
-                        let attr = attr.root();
-                        let attr = attr.r();
-                        let value = attr.value();
-                        if value.as_slice() == "true".to_owned() {
-                            node.set_flag(TABINDEX, true);
-                        }
-                    });
-                    //TODO set TABINDEX flag if editing host
-                    //TODO set TABINDEX flag if "sorting interface th elements"
-                },
-            }
-        }
+        self.update_sequentially_focusable_status(None, true);
     }
 }
 
