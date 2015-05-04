@@ -93,7 +93,7 @@ impl WebSocket {
     pub fn new(global: GlobalRef, url: DOMString) -> Temporary<WebSocket> {
         /*TODO: This constructor is only a prototype, it does not accomplish the specs
           defined here:
-          http://html.spec.whatwg.org/multipage/comms.html#client-specified-protocols
+          http://html.spec.whatwg.org
           All 9 items must be satisfied.
           TODO: This constructor should be responsible for spawning a thread for the
           receive loop after ws_root.r().Open() - See comment
@@ -191,7 +191,7 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
         if code.is_some() { //Code defined
             //Check code is NOT 1000 NOR in the range of 3000-4999 (inclusive)
             if  code != Some(1000) && (code < Some(3000) || code > Some(4999))
-            { 
+            {
                 return Err(Error::InvalidAccess); //Throw InvalidAccessError and abort
             }
         }
@@ -212,7 +212,7 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
                 self.failed.set(true);
                 self.sendCloseFrame.set(true);
                 //-----Dispatch send task to send close frame------//
-                //TODO: Sending here is just empty string, though no string is really needed. Another send, empty send, could be used. 
+                //TODO: Sending here is just empty string, though no string is really needed. Another send, empty send, could be used.
                 let _ = self.Send(None);
                 //Note: After sending the close message, the receive loop confirms a close message from the server and must fire a close event
             }
@@ -258,7 +258,7 @@ impl WebSocketTaskHandler {
 
     fn dispatch_open(&self) {
         /*TODO: Items 1, 3, 4, & 5 under "WebSocket connection is established" as specified here:
-          https://html.spec.whatwg.org/multipage/comms.html#feedback-from-the-protocol
+          https://html.spec.whatwg.org
         */
         let ws = self.addr.to_temporary().root(); //Get root
         let ws = ws.r(); //Get websocket reference
@@ -295,7 +295,7 @@ impl WebSocketTaskHandler {
         let rsn = ws.reason.borrow();
         let rsn_clone = rsn.clone();
         /*In addition, we also have to fire a close even if error event fired
-         https://html.spec.whatwg.org/multipage/comms.html#closeWebSocket
+         https://html.spec.whatwg.org
         */
         let close_event = CloseEvent::new(global.r(),
                 "close".to_owned(),
