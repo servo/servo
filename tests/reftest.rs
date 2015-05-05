@@ -7,7 +7,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![feature(collections, exit_status, fs_walk, io, path, path_ext, slice_patterns, std_misc, test)]
+#![feature(collections, exit_status, fs_walk, path_ext, slice_patterns, test)]
 #[macro_use] extern crate bitflags;
 extern crate png;
 extern crate test;
@@ -19,7 +19,6 @@ use std::fs::{PathExt, File, walk_dir};
 use std::io::{self, Read, Result};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::thunk::Thunk;
 use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldPanic};
 use test::run_tests_console;
 use url::Url;

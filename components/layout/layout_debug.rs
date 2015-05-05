@@ -6,7 +6,6 @@
 //! that can be viewed by an external tool to make layout debugging easier.
 
 #![macro_use]
-#![allow(unsafe_code)] // thread_local!() defines an unsafe function on Android
 
 use flow_ref::FlowRef;
 use flow;
@@ -20,7 +19,7 @@ use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 
 thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));
 
-static mut DEBUG_ID_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
+static DEBUG_ID_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
 
 pub struct Scope;
 
@@ -98,7 +97,7 @@ impl Drop for Scope {
 /// which are often reallocated but represent essentially the
 /// same data.
 pub fn generate_unique_debug_id() -> u16 {
-    unsafe { DEBUG_ID_COUNTER.fetch_add(1, Ordering::SeqCst) as u16 }
+    DEBUG_ID_COUNTER.fetch_add(1, Ordering::SeqCst) as u16
 }
 
 /// Begin a layout debug trace. If this has not been called,
