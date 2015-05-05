@@ -5677,21 +5677,47 @@ pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValues>) {
         style.box_.make_unique().vertical_align =
             longhands::vertical_align::computed_value::T::baseline
     }
+
+    // Reset margins.
+    if style.margin.margin_top != computed::LengthOrPercentageOrAuto::Length(Au(0)) ||
+            style.margin.margin_left != computed::LengthOrPercentageOrAuto::Length(Au(0)) ||
+            style.margin.margin_bottom != computed::LengthOrPercentageOrAuto::Length(Au(0)) ||
+            style.margin.margin_right != computed::LengthOrPercentageOrAuto::Length(Au(0)) {
+        let mut style = style.make_unique();
+        let margin = style.margin.make_unique();
+        margin.margin_top = computed::LengthOrPercentageOrAuto::Length(Au(0));
+        margin.margin_left = computed::LengthOrPercentageOrAuto::Length(Au(0));
+        margin.margin_bottom = computed::LengthOrPercentageOrAuto::Length(Au(0));
+        margin.margin_right = computed::LengthOrPercentageOrAuto::Length(Au(0));
+    }
 }
 
-/// Sets `border_${side}_width` to the passed in values.
-/// If `border_${side}_width` == 0 also sets `border_${side}_style` = none.
+/// Adjusts borders, padding, and margins as appropriate to account for a fragment's status as the
+/// first or last fragment within the range of an element.
+///
+/// Specifically, this function sets border/padding/margin widths to zero on the sides for which
+/// the fragment is not outermost.
 #[inline]
-pub fn make_border(style: &ComputedValues, border_width: LogicalMargin<Au>) -> ComputedValues {
-    let mut style = (*style).clone();
-    let physical_border = LogicalMargin::to_physical(&border_width, style.writing_mode);
-    % for side in ["top", "right", "bottom", "left"]:
-        style.border.make_unique().border_${side}_width = physical_border.${side};
-        if physical_border.${side} == Zero::zero() {
-            style.border.make_unique().border_${side}_style = BorderStyle::none;
-        }
-    % endfor
-    style
+pub fn modify_style_for_inline_sides(style: &mut Arc<ComputedValues>,
+                                     is_first_fragment_of_element: bool,
+                                     is_last_fragment_of_element: bool) {
+    if !is_first_fragment_of_element {
+        let mut style = style.make_unique();
+        let mut border = style.border.make_unique();
+        border.border_left_width = Au(0);
+        border.border_left_style = BorderStyle::none;
+        style.padding.make_unique().padding_left = computed::LengthOrPercentage::Length(Au(0));
+        style.margin.make_unique().margin_left = computed::LengthOrPercentageOrAuto::Length(Au(0))
+    }
+
+    if !is_last_fragment_of_element {
+        let mut style = style.make_unique();
+        let mut border = style.border.make_unique();
+        border.border_right_width = Au(0);
+        border.border_right_style = BorderStyle::none;
+        style.padding.make_unique().padding_right = computed::LengthOrPercentage::Length(Au(0));
+        style.margin.make_unique().margin_right = computed::LengthOrPercentageOrAuto::Length(Au(0))
+    }
 }
 
 pub fn is_supported_property(property: &str) -> bool {
