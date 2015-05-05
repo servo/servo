@@ -46,7 +46,7 @@ interface CanvasRenderingContext2D {
                     unrestricted double d,
                     unrestricted double e,
                     unrestricted double f);
-  //void resetTransform();
+  void resetTransform();
 
   // compositing
   attribute unrestricted double globalAlpha; // (default 1.0)

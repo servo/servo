@@ -1158,6 +1158,16 @@
         "url": "/2dcontext/transformations/canvas_transformations_scale_001.htm"
       },
       {
+        "path": "2dcontext/transformations/canvas_transformations_reset_001.htm",
+        "references": [
+          [
+            "/2dcontext/transformations/canvas_transformations_reset_001-ref.htm",
+            "=="
+          ]
+        ],
+        "url": "/2dcontext/transformations/canvas_transformations_reset_001.htm"
+      },
+      {
         "path": "FileAPI/url/url_xmlhttprequest_img.html",
         "references": [
           [
@@ -20880,6 +20890,18 @@
           ]
         ],
         "url": "/2dcontext/transformations/canvas_transformations_scale_001.htm"
+      }
+    ],
+    "2dcontext/transformations/canvas_transformations_reset_001.htm": [
+      {
+        "path": "2dcontext/transformations/canvas_transformations_reset_001.htm",
+        "references": [
+          [
+            "/2dcontext/transformations/canvas_transformations_reset_001-ref.htm",
+            "=="
+          ]
+        ],
+        "url": "/2dcontext/transformations/canvas_transformations_reset_001.htm"
       }
     ],
     "FileAPI/url/url_xmlhttprequest_img.html": [
