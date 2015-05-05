@@ -4,6 +4,7 @@
 
 use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer};
 use net_traits::ProgressMsg::{Payload, Done};
+use devtools_traits::{DevtoolsControlMsg, NetworkEvent};
 use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 
@@ -28,13 +29,14 @@ use util::resource_files::resources_dir_path;
 use util::opts;
 use url::{Url, UrlParser};
 
+use uuid;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 
-pub fn factory(cookies_chan: Sender<ControlMsg>)
+pub fn factory(cookies_chan: Sender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
     box move |load_data, senders, classifier| {
-        spawn_named("http_loader".to_owned(), move || load(load_data, senders, classifier, cookies_chan))
+        spawn_named("http_loader".to_owned(), move || load(load_data, senders, classifier, cookies_chan, devtools_chan))
     }
 }
 
@@ -66,7 +68,8 @@ fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     }
 }
 
-fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>, cookies_chan: Sender<ControlMsg>) {
+fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>,
+        cookies_chan: Sender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -140,7 +143,7 @@ reason: \"certificate verify failed\" }]))";
             ) => {
                 let mut image = resources_dir_path();
                 image.push("badcert.html");
-                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap());
+                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
                 file_loader::factory(load_data, start_chan, classifier);
                 return;
             },
@@ -231,6 +234,18 @@ reason: \"certificate verify failed\" }]))";
                 }
             }
         };
+
+        // Send an HttpRequest message to devtools with a unique request_id
+        // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the message
+        let request_id = uuid::Uuid::new_v4().to_simple_string();
+        if let Some(ref chan) = devtools_chan {
+            let net_event = NetworkEvent::HttpRequest(load_data.url.clone(),
+                                                      load_data.method.clone(),
+                                                      load_data.headers.clone(),
+                                                      load_data.data.clone());
+            chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id.clone(), net_event)).unwrap();
+        }
+
         let mut response = match writer.send() {
             Ok(r) => r,
             Err(e) => {
@@ -327,6 +342,13 @@ reason: \"certificate verify failed\" }]))";
                     }
                 }
             }
+        }
+
+        // Send an HttpResponse message to devtools with the corresponding request_id
+        // TODO: Send this message only if load_data has a pipeline_id that is not None
+        if let Some(ref chan) = devtools_chan {
+            let net_event_response = NetworkEvent::HttpResponse(metadata.headers.clone(), metadata.status.clone(), None);
+            chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id, net_event_response)).unwrap();
         }
 
         match encoding_str {

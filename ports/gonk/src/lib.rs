@@ -103,7 +103,7 @@ impl Browser {
         });
 
         // Create a Servo instance.
-        let resource_task = new_resource_task(opts.user_agent.clone());
+        let resource_task = new_resource_task(opts.user_agent.clone(), devtools_chan.clone());
 
         let image_cache_task = new_image_cache_task(resource_task.clone());
         let font_cache_task = FontCacheTask::new(resource_task.clone());

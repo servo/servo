@@ -306,7 +306,7 @@ impl ImageCache {
                         pending_load.add_listener(image_listener);
                         e.insert(pending_load);
 
-                        let load_data = LoadData::new(url.clone());
+                        let load_data = LoadData::new(url.clone(), None);
                         let listener = box ResourceListener {
                             url: url,
                             sender: self.progress_sender.clone(),

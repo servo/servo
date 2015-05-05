@@ -19,3 +19,5 @@ path = "../util"
 [dependencies]
 time = "*"
 rustc-serialize = "0.3"
+url = "*"
+hyper = "*"

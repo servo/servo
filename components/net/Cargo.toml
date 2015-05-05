@@ -13,6 +13,9 @@ path = "../net_traits"
 [dependencies.util]
 path = "../util"
 
+[dependencies.devtools_traits]
+path = "../devtools_traits"
+
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
@@ -29,3 +32,4 @@ regex = "0.1.14"
 regex_macros = "0.1.8"
 hyper = "0.3"
 flate2 = "0.2.0"
+uuid = "*"

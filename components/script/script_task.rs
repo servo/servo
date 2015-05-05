@@ -1358,6 +1358,7 @@ impl ScriptTask {
                 preserved_headers: load_data.headers,
                 data: load_data.data,
                 cors: None,
+                pipeline_id: Some(id),
             }, LoadConsumer::Channel(input_chan))).unwrap();
 
             let load_response = input_port.recv().unwrap();

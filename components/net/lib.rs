@@ -16,6 +16,7 @@
 
 extern crate net_traits;
 extern crate cookie as cookie_rs;
+extern crate devtools_traits;
 extern crate collections;
 extern crate flate2;
 extern crate geom;
@@ -28,6 +29,7 @@ extern crate rustc_serialize;
 extern crate util;
 extern crate time;
 extern crate url;
+extern crate uuid;
 
 extern crate regex;
 
