@@ -52,7 +52,7 @@ use style::values::computed::{Image, LinearGradient, LengthOrPercentage, LengthO
 use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
 use url::Url;
 use util::cursor::Cursor;
-use util::geometry::{self, Au, ZERO_POINT, to_px, to_frac_px};
+use util::geometry::{Au, ZERO_POINT};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
 
@@ -1025,9 +1025,9 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
                 let width = canvas_fragment_info.replaced_image_fragment_info
-                    .computed_inline_size.map_or(0, |w| to_px(w) as usize);
+                    .computed_inline_size.map_or(0, |w| w.to_px() as usize);
                 let height = canvas_fragment_info.replaced_image_fragment_info
-                    .computed_block_size.map_or(0, |h| to_px(h) as usize);
+                    .computed_block_size.map_or(0, |h| h.to_px() as usize);
 
                 let (sender, receiver) = channel::<Vec<u8>>();
                 let canvas_data = match canvas_fragment_info.renderer {
@@ -1117,10 +1117,10 @@ impl FragmentDisplayListBuilding for Fragment {
                                             layout_context: &LayoutContext) {
         let border_padding = (self.border_padding).to_physical(self.style.writing_mode);
         let content_size = self.content_box().size.to_physical(self.style.writing_mode);
-        let iframe_rect = Rect(Point2D(geometry::to_frac_px(offset.x + border_padding.left) as f32,
-                                       geometry::to_frac_px(offset.y + border_padding.top) as f32),
-                               Size2D(geometry::to_frac_px(content_size.width) as f32,
-                                      geometry::to_frac_px(content_size.height) as f32));
+        let iframe_rect = Rect(Point2D((offset.x + border_padding.left).to_frac32_px(),
+                                       (offset.y + border_padding.top).to_frac32_px()),
+                               Size2D(content_size.width.to_frac32_px(),
+                                      content_size.height.to_frac32_px()));
 
         debug!("finalizing position and size of iframe for {:?},{:?}",
                iframe_fragment.pipeline_id,

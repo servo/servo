@@ -21,7 +21,6 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{document_from_node, Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
-use util::geometry::to_px;
 use util::str::DOMString;
 use string_cache::Atom;
 
@@ -188,7 +187,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
     fn Width(self) -> u32 {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
-        to_px(rect.size.width) as u32
+        rect.size.width.to_px() as u32
     }
 
     fn SetWidth(self, width: u32) {
@@ -199,7 +198,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
     fn Height(self) -> u32 {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
-        to_px(rect.size.height) as u32
+        rect.size.height.to_px() as u32
     }
 
     fn SetHeight(self, height: u32) {

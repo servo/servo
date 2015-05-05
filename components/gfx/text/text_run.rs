@@ -8,7 +8,7 @@ use platform::font_template::FontTemplateData;
 use util::geometry::Au;
 use util::range::Range;
 use util::vec::{Comparator, FullBinarySearchMethods};
-use std::cmp::Ordering;
+use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
@@ -322,7 +322,7 @@ impl<'a> TextRun {
         debug!("iterating outer range {:?}", range);
         self.natural_word_slices_in_range(range).fold(Au(0), |max_piece_width, slice| {
             debug!("iterated on {:?}[{:?}]", slice.offset, slice.range);
-            Au::max(max_piece_width, self.advance_for_range(&slice.range))
+            max(max_piece_width, self.advance_for_range(&slice.range))
         })
     }
 

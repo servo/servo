@@ -210,6 +210,13 @@ impl Au {
         Au((px.get() * 60f32) as i32)
     }
 
+    /// Rounds this app unit down to the pixel towards zero and returns it.
+    #[inline]
+    pub fn to_px(&self) -> isize {
+        let Au(a) = *self;
+        (a / 60) as isize
+    }
+
     /// Rounds this app unit down to the previous (left or top) pixel and returns it.
     #[inline]
     pub fn to_prev_px(&self) -> isize {
@@ -257,26 +264,12 @@ impl Au {
 
     #[inline]
     pub fn from_pt(pt: f64) -> Au {
-        from_frac_px(pt_to_px(pt))
+        Au::from_frac_px(pt_to_px(pt))
     }
 
     #[inline]
     pub fn from_frac_px(px: f64) -> Au {
         Au((px * 60.) as i32)
-    }
-
-    #[inline]
-    pub fn min(x: Au, y: Au) -> Au {
-        let Au(xi) = x;
-        let Au(yi) = y;
-        if xi < yi { x } else { y }
-    }
-
-    #[inline]
-    pub fn max(x: Au, y: Au) -> Au {
-        let Au(xi) = x;
-        let Au(yi) = y;
-        if xi > yi { x } else { y }
     }
 }
 
@@ -288,35 +281,6 @@ pub fn pt_to_px(pt: f64) -> f64 {
 // assumes 72 points per inch, and 96 px per inch
 pub fn px_to_pt(px: f64) -> f64 {
     px / 96. * 72.
-}
-
-pub fn from_frac_px(px: f64) -> Au {
-    Au((px * 60.) as i32)
-}
-
-pub fn from_px(px: isize) -> Au {
-    Au::from_px(px)
-}
-
-pub fn to_px(au: Au) -> isize {
-    let Au(a) = au;
-    (a / 60) as isize
-}
-
-pub fn to_frac_px(au: Au) -> f32 {
-    let Au(a) = au;
-    (a as f32) / 60.
-}
-
-// assumes 72 points per inch, and 96 px per inch
-pub fn from_pt(pt: f32) -> Au {
-    from_px((pt / 72. * 96.) as isize)
-}
-
-// assumes 72 points per inch, and 96 px per inch
-pub fn to_pt(au: Au) -> f32 {
-    let Au(a) = au;
-    (a as f32) / 60. * 72. / 96.
 }
 
 /// Returns true if the rect contains the given point. Points on the top or left sides of the rect

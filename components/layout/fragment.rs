@@ -47,7 +47,7 @@ use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
 use text::TextRunScanner;
 use url::Url;
-use util::geometry::{self, Au, ZERO_POINT};
+use util::geometry::{Au, ZERO_POINT};
 use util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin, WritingMode};
 use util::range::*;
 use util::str::is_whitespace;
@@ -213,9 +213,9 @@ fn clamp_size(size: Au,
     let min_size = model::specified(min_size, container_inline_size);
     let max_size = model::specified_or_none(max_size, container_inline_size);
 
-    Au::max(min_size, match max_size {
+    max(min_size, match max_size {
         None => size,
-        Some(max_size) => Au::min(size, max_size),
+        Some(max_size) => min(size, max_size),
     })
 }
 
@@ -355,7 +355,7 @@ impl ImageFragmentInfo {
     pub fn tile_image(position: &mut Au, size: &mut Au,
                         virtual_position: Au, image_size: u32) {
         let image_size = image_size as isize;
-        let delta_pixels = geometry::to_px(virtual_position - *position);
+        let delta_pixels = (virtual_position - *position).to_px();
         let tile_count = (delta_pixels + image_size - 1) / image_size;
         let offset = Au::from_px(image_size * tile_count);
         let new_position = virtual_position - offset;
@@ -967,8 +967,8 @@ impl Fragment {
         let flags = self.quantities_included_in_intrinsic_inline_size();
         let style = self.style();
         let specified = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
-            Au::max(model::specified(style.min_inline_size(), Au(0)),
-                    MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero())
+            max(model::specified(style.min_inline_size(), Au(0)),
+                MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero())
         } else {
             Au(0)
         };

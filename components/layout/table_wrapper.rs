@@ -695,11 +695,10 @@ fn initial_computed_inline_size(block: &mut BlockFlow,
                                                        containing_block_inline_size);
     match inline_size_from_style {
         MaybeAuto::Auto => {
-            MaybeAuto::Specified(Au::max(containing_block_inline_size,
-                                         minimum_width_of_all_columns))
+            MaybeAuto::Specified(max(containing_block_inline_size, minimum_width_of_all_columns))
         }
         MaybeAuto::Specified(inline_size_from_style) => {
-            MaybeAuto::Specified(Au::max(inline_size_from_style, minimum_width_of_all_columns))
+            MaybeAuto::Specified(max(inline_size_from_style, minimum_width_of_all_columns))
         }
     }
 }
