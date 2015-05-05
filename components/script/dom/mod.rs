@@ -206,6 +206,7 @@ pub mod cssstyledeclaration;
 pub mod domrect;
 pub mod domrectlist;
 pub mod domstringmap;
+pub mod closeevent;
 pub mod comment;
 pub mod console;
 mod create;

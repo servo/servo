@@ -44,6 +44,7 @@ extern crate profile_traits;
 extern crate script_traits;
 extern crate selectors;
 extern crate util;
+extern crate websocket;
 #[macro_use]
 extern crate style;
 extern crate unicase;
