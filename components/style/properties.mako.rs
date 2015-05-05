@@ -1681,7 +1681,7 @@ pub mod longhands {
             use util::geometry::Au;
             pub type T = Au;
         }
-        const MEDIUM_PX: isize = 16;
+        const MEDIUM_PX: i32 = 16;
         #[inline] pub fn get_initial_value() -> computed_value::T {
             Au::from_px(MEDIUM_PX)
         }

@@ -271,8 +271,8 @@ impl CanvasFragmentInfo {
     pub fn new(node: &ThreadSafeLayoutNode) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
-                Some(Au::from_px(node.get_canvas_width() as isize)),
-                Some(Au::from_px(node.get_canvas_height() as isize))),
+                Some(Au::from_px(node.get_canvas_width() as i32)),
+                Some(Au::from_px(node.get_canvas_height() as i32))),
             renderer: node.get_renderer().map(|rec| Arc::new(Mutex::new(rec))),
         }
     }
@@ -309,8 +309,8 @@ impl ImageFragmentInfo {
         fn convert_length(node: &ThreadSafeLayoutNode, name: &Atom) -> Option<Au> {
             let element = node.as_element();
             element.get_attr(&ns!(""), name)
-                   .and_then(|string| string.parse::<isize>().ok())
-                   .map(|pixels| Au::from_px(pixels))
+                   .and_then(|string| string.parse().ok())
+                   .map(Au::from_px)
         }
 
         let image = url.and_then(|url| layout_context.get_or_request_image(url));
@@ -331,7 +331,7 @@ impl ImageFragmentInfo {
                     image.height
                 } else {
                     image.width
-                } as isize)
+                } as i32)
             }
             None => Au(0)
         }
@@ -345,7 +345,7 @@ impl ImageFragmentInfo {
                     image.width
                 } else {
                     image.height
-                } as isize)
+                } as i32)
             }
             None => Au(0)
         }
@@ -354,7 +354,7 @@ impl ImageFragmentInfo {
     /// Tile an image
     pub fn tile_image(position: &mut Au, size: &mut Au,
                         virtual_position: Au, image_size: u32) {
-        let image_size = image_size as isize;
+        let image_size = image_size as i32;
         let delta_pixels = (virtual_position - *position).to_px();
         let tile_count = (delta_pixels + image_size - 1) / image_size;
         let offset = Au::from_px(image_size * tile_count);

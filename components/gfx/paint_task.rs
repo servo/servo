@@ -575,8 +575,8 @@ impl WorkerThread {
                 // painted this tile.
                 let color = THREAD_TINT_COLORS[thread_id % THREAD_TINT_COLORS.len()];
                 paint_context.draw_solid_color(&Rect(Point2D(Au(0), Au(0)),
-                                                     Size2D(Au::from_px(size.width as isize),
-                                                            Au::from_px(size.height as isize))),
+                                                     Size2D(Au::from_px(size.width),
+                                                            Au::from_px(size.height))),
                                                color);
             }
         }

@@ -353,8 +353,8 @@ impl FragmentDisplayListBuilding for Fragment {
         // wide.
         let image_aspect_ratio = (image.width as f64) / (image.height as f64);
         let bounds_aspect_ratio = bounds.size.width.to_f64_px() / bounds.size.height.to_f64_px();
-        let intrinsic_size = Size2D(Au::from_px(image.width as isize),
-                                    Au::from_px(image.height as isize));
+        let intrinsic_size = Size2D(Au::from_px(image.width as i32),
+                                    Au::from_px(image.height as i32));
         match (style.get_background().background_size.clone(),
                image_aspect_ratio < bounds_aspect_ratio) {
             (background_size::T::Contain, false) | (background_size::T::Cover, true) => {
