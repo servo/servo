@@ -18,6 +18,7 @@ use net_traits::ProgressMsg::Done;
 use util::opts;
 use util::task::spawn_named;
 
+use devtools_traits::{DevtoolsControlMsg};
 use hyper::header::{ContentType, Header, SetCookie, UserAgent};
 use hyper::mime::{Mime, TopLevel, SubLevel};
 
@@ -31,6 +32,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thunk::Invoke;
+
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 
@@ -137,11 +139,11 @@ pub fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result
 }
 
 /// Create a ResourceTask
-pub fn new_resource_task(user_agent: Option<String>) -> ResourceTask {
+pub fn new_resource_task(user_agent: Option<String>, devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceTask {
     let (setup_chan, setup_port) = channel();
     let setup_chan_clone = setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
-        ResourceManager::new(setup_port, user_agent, setup_chan_clone).start();
+        ResourceManager::new(setup_port, user_agent, setup_chan_clone, devtools_chan).start();
     });
     setup_chan
 }
@@ -186,17 +188,19 @@ struct ResourceManager {
     cookie_storage: CookieStorage,
     resource_task: Sender<ControlMsg>,
     mime_classifier: Arc<MIMEClassifier>,
+    devtools_chan: Option<Sender<DevtoolsControlMsg>>
 }
 
 impl ResourceManager {
     fn new(from_client: Receiver<ControlMsg>, user_agent: Option<String>,
-           resource_task: Sender<ControlMsg>) -> ResourceManager {
+           resource_task: Sender<ControlMsg>, devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
         ResourceManager {
             from_client: from_client,
             user_agent: user_agent,
             cookie_storage: CookieStorage::new(),
             resource_task: resource_task,
             mime_classifier: Arc::new(MIMEClassifier::new()),
+            devtools_chan: devtools_channel
         }
     }
 }
@@ -247,7 +251,7 @@ impl ResourceManager {
 
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
-            "http" | "https" | "view-source" => http_loader::factory(self.resource_task.clone()),
+            "http" | "https" | "view-source" => http_loader::factory(self.resource_task.clone(), self.devtools_chan.clone()),
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
             _ => {

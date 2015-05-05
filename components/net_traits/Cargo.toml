@@ -16,6 +16,9 @@ git = "https://github.com/servo/rust-png"
 [dependencies.util]
 path = "../util"
 
+[dependencies.msg]
+path = "../msg"
+
 [dependencies.stb_image]
 git = "https://github.com/servo/rust-stb-image"
 
