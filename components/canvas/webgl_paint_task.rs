@@ -163,7 +163,7 @@ impl WebGLPaintTask {
     }
 
     fn get_attrib_location(&self, program_id: u32, name: String, chan: Sender<i32> ) {
-        let attrib_location = gl::get_attrib_location(program_id, name.as_slice());
+        let attrib_location = gl::get_attrib_location(program_id, &name);
         chan.send(attrib_location).unwrap();
     }
 
@@ -178,7 +178,7 @@ impl WebGLPaintTask {
     }
 
     fn get_uniform_location(&self, program_id: u32, name: String, chan: Sender<u32>) {
-        let uniform_location = gl::get_uniform_location(program_id, name.as_slice());
+        let uniform_location = gl::get_uniform_location(program_id, &name);
         chan.send(uniform_location as u32).unwrap();
     }
 
@@ -202,8 +202,7 @@ impl WebGLPaintTask {
             let dst_start = y * stride;
             let src_start = (height - y - 1) * stride;
             let src_slice = &orig_pixels[src_start .. src_start + stride];
-            copy_memory(&mut pixels[dst_start .. dst_start + stride],
-                        &src_slice[..stride]);
+            copy_memory(&src_slice[..stride], &mut pixels[dst_start .. dst_start + stride]);
         }
 
         // rgba -> bgra
@@ -213,7 +212,7 @@ impl WebGLPaintTask {
 
     fn shader_source(&self, shader_id: u32, source_lines: Vec<String>) {
         let mut lines: Vec<&[u8]> = source_lines.iter().map(|line| line.as_bytes()).collect();
-        gl::shader_source(shader_id, lines.as_mut_slice());
+        gl::shader_source(shader_id, &mut lines);
     }
 
     fn uniform_4fv(&self, uniform_id: u32, data: Vec<f32>) {
