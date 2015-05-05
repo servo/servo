@@ -203,39 +203,39 @@ impl Au {
 
     /// Rounds this app unit down to the pixel towards zero and returns it.
     #[inline]
-    pub fn to_px(&self) -> i32 {
+    pub fn to_px(self) -> i32 {
         self.0 / 60
     }
 
     /// Rounds this app unit down to the previous (left or top) pixel and returns it.
     #[inline]
-    pub fn to_prev_px(&self) -> i32 {
+    pub fn to_prev_px(self) -> i32 {
         ((self.0 as f64) / 60f64).floor() as i32
     }
 
     /// Rounds this app unit up to the next (right or bottom) pixel and returns it.
     #[inline]
-    pub fn to_next_px(&self) -> i32 {
+    pub fn to_next_px(self) -> i32 {
         ((self.0 as f64) / 60f64).ceil() as i32
     }
 
     #[inline]
-    pub fn to_nearest_px(&self) -> i32 {
+    pub fn to_nearest_px(self) -> i32 {
         ((self.0 as f64) / 60f64).round() as i32
     }
 
     #[inline]
-    pub fn to_f32_px(&self) -> f32 {
+    pub fn to_f32_px(self) -> f32 {
         (self.0 as f32) / 60f32
     }
 
     #[inline]
-    pub fn to_f64_px(&self) -> f64 {
+    pub fn to_f64_px(self) -> f64 {
         (self.0 as f64) / 60f64
     }
 
     #[inline]
-    pub fn to_snapped(&self) -> Au {
+    pub fn to_snapped(self) -> Au {
         let res = self.0 % 60i32;
         return if res >= 30i32 { return Au(self.0 - res + 60i32) }
                        else { return Au(self.0 - res) };
