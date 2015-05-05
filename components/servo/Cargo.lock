@@ -433,7 +433,7 @@ dependencies = [
 [[package]]
 name = "glutin"
 version = "0.0.26"
-source = "git+https://github.com/servo/glutin?branch=servo#c1af76550f311e3da7a08d393b4ea9805cb61a7b"
+source = "git+https://github.com/servo/glutin?branch=servo#11389c9ead188376095297a5a295f53d98129a57"
 dependencies = [
  "android_glue 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gdi32-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
