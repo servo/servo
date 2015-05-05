@@ -590,7 +590,7 @@ impl SelectedAutoLayoutCandidateGuess {
 /// Computes the weight needed to linearly interpolate `middle` between two guesses `low` and
 /// `high` as specified by INTRINSIC § 4.3.
 fn weight(low: Au, middle: Au, high: Au) -> CSSFloat {
-    (middle - low).to_frac32_px() / (high - low).to_frac32_px()
+    (middle - low).to_f32_px() / (high - low).to_f32_px()
 }
 
 /// Linearly interpolates between two guesses, as specified by INTRINSIC § 4.3.
@@ -653,9 +653,9 @@ impl ExcessInlineSizeDistributionInfo {
                 // do?
                 if !column_intrinsic_inline_size.constrained &&
                         column_intrinsic_inline_size.percentage == 0.0 {
-                    column_intrinsic_inline_size.preferred.to_frac32_px() /
+                    column_intrinsic_inline_size.preferred.to_f32_px() /
                         self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage
-                            .to_frac32_px()
+                            .to_f32_px()
                 } else {
                     0.0
                 }
@@ -663,8 +663,8 @@ impl ExcessInlineSizeDistributionInfo {
                 1.0 / (self.count_of_nonconstrained_columns_with_no_percentage as CSSFloat)
             } else if self.preferred_inline_size_of_constrained_columns_with_no_percentage >
                     Au(0) {
-                column_intrinsic_inline_size.preferred.to_frac32_px() /
-                    self.preferred_inline_size_of_constrained_columns_with_no_percentage.to_frac32_px()
+                column_intrinsic_inline_size.preferred.to_f32_px() /
+                    self.preferred_inline_size_of_constrained_columns_with_no_percentage.to_f32_px()
             } else if self.total_percentage > 0.0 {
                 column_intrinsic_inline_size.percentage / self.total_percentage
             } else {

@@ -3313,8 +3313,8 @@ pub mod longhands {
                                 return Err(())
                             }
                             let (tx, ty) =
-                                (specified::Length::Absolute(Au::from_frac32_px(values[4])),
-                                 specified::Length::Absolute(Au::from_frac32_px(values[5])));
+                                (specified::Length::Absolute(Au::from_f32_px(values[4])),
+                                 specified::Length::Absolute(Au::from_f32_px(values[5])));
                             let (tx, ty) =
                                 (specified::LengthAndPercentage::from_length(tx),
                                  specified::LengthAndPercentage::from_length(ty));

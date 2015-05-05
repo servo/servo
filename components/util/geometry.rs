@@ -115,13 +115,13 @@ pub const MAX_AU: Au = Au(i32::MAX);
 
 impl Encodable for Au {
     fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
-        e.emit_f64(self.to_subpx())
+        e.emit_f64(self.to_f64_px())
     }
 }
 
 impl fmt::Debug for Au {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}px", self.to_subpx())
+        write!(f, "{}px", self.to_f64_px())
     }}
 
 impl Add for Au {
@@ -238,13 +238,13 @@ impl Au {
     }
 
     #[inline]
-    pub fn to_frac32_px(&self) -> f32 {
+    pub fn to_f32_px(&self) -> f32 {
         let Au(s) = *self;
         (s as f32) / 60f32
     }
 
     #[inline]
-    pub fn to_subpx(&self) -> f64 {
+    pub fn to_f64_px(&self) -> f64 {
         let Au(s) = *self;
         (s as f64) / 60f64
     }
@@ -258,17 +258,17 @@ impl Au {
     }
 
     #[inline]
-    pub fn from_frac32_px(px: f32) -> Au {
+    pub fn from_f32_px(px: f32) -> Au {
         Au((px * 60f32) as i32)
     }
 
     #[inline]
     pub fn from_pt(pt: f64) -> Au {
-        Au::from_frac_px(pt_to_px(pt))
+        Au::from_f64_px(pt_to_px(pt))
     }
 
     #[inline]
-    pub fn from_frac_px(px: f64) -> Au {
+    pub fn from_f64_px(px: f64) -> Au {
         Au((px * 60.) as i32)
     }
 }
@@ -293,7 +293,7 @@ pub fn rect_contains_point<T:PartialOrd + Add<T, Output=T>>(rect: Rect<T>, point
 
 /// A helper function to convert a rect of `f32` pixels to a rect of app units.
 pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
-    Rect(Point2D(Au::from_frac32_px(rect.origin.x), Au::from_frac32_px(rect.origin.y)),
-         Size2D(Au::from_frac32_px(rect.size.width), Au::from_frac32_px(rect.size.height)))
+    Rect(Point2D(Au::from_f32_px(rect.origin.x), Au::from_f32_px(rect.origin.y)),
+         Size2D(Au::from_f32_px(rect.size.width), Au::from_f32_px(rect.size.height)))
 }
 

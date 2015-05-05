@@ -728,7 +728,7 @@ impl<'a> GlyphStore {
                 // FIXME(pcwalton): This can overflow for very large font-sizes.
                 let advance =
                     ((entry.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT) +
-                    Au::from_frac_px(space).0 as u32;
+                    Au::from_f64_px(space).0 as u32;
                 entry.value = (entry.value & !GLYPH_ADVANCE_MASK) |
                     (advance << GLYPH_ADVANCE_SHIFT);
             }

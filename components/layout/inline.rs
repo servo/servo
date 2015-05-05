@@ -966,7 +966,7 @@ impl InlineFlow {
         }
 
         // Then distribute all the space across the expansion opportunities.
-        let space_per_expansion_opportunity = slack_inline_size.to_subpx() /
+        let space_per_expansion_opportunity = slack_inline_size.to_f64_px() /
             (expansion_opportunities as f64);
         for fragment_index in line.range.each_index() {
             let fragment = fragments.get_mut(fragment_index.to_usize());

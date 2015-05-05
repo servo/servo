@@ -489,9 +489,9 @@ impl StackingContext {
         point = point - self.bounds.origin;
 
         debug_assert!(!topmost_only || result.is_empty());
-        let frac_point = self.transform.transform_point(&Point2D(point.x.to_frac32_px(),
-                                                                 point.y.to_frac32_px()));
-        point = Point2D(Au::from_frac32_px(frac_point.x), Au::from_frac32_px(frac_point.y));
+        let frac_point = self.transform.transform_point(&Point2D(point.x.to_f32_px(),
+                                                                 point.y.to_f32_px()));
+        point = Point2D(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y));
 
         // Iterate through display items in reverse stacking order. Steps here refer to the
         // painting steps in CSS 2.1 Appendix E.

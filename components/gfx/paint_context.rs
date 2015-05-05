@@ -826,16 +826,16 @@ impl<'a> PaintContext<'a> {
         let baseline_origin = match text.orientation {
             Upright => text.baseline_origin,
             SidewaysLeft => {
-                let x = text.baseline_origin.x.to_subpx() as AzFloat;
-                let y = text.baseline_origin.y.to_subpx() as AzFloat;
+                let x = text.baseline_origin.x.to_f64_px() as AzFloat;
+                let y = text.baseline_origin.y.to_f64_px() as AzFloat;
                 self.draw_target.set_transform(&draw_target_transform.mul(&Matrix2D::new(0., -1.,
                                                                                          1., 0.,
                                                                                          x, y)));
                 Point2D::zero()
             }
             SidewaysRight => {
-                let x = text.baseline_origin.x.to_subpx() as AzFloat;
-                let y = text.baseline_origin.y.to_subpx() as AzFloat;
+                let x = text.baseline_origin.x.to_f64_px() as AzFloat;
+                let y = text.baseline_origin.y.to_f64_px() as AzFloat;
                 self.draw_target.set_transform(&draw_target_transform.mul(&Matrix2D::new(0., 1.,
                                                                                          -1., 0.,
                                                                                          x, y)));
@@ -1060,7 +1060,7 @@ impl<'a> PaintContext<'a> {
         }
 
         let blur_filter = self.draw_target.create_filter(FilterType::GaussianBlur);
-        blur_filter.set_attribute(GaussianBlurAttribute::StdDeviation(blur_radius.to_subpx() as
+        blur_filter.set_attribute(GaussianBlurAttribute::StdDeviation(blur_radius.to_f64_px() as
                                                                       AzFloat));
         blur_filter.set_input(GaussianBlurInput, &temporary_draw_target.draw_target.snapshot());
         temporary_draw_target.draw_filter(&self.draw_target, blur_filter);
@@ -1104,21 +1104,21 @@ impl<'a> PaintContext<'a> {
 
 pub trait ToAzurePoint {
     fn to_azure_point(&self) -> Point2D<AzFloat>;
-    fn to_subpx_azure_point(&self) -> Point2D<AzFloat>;
+    fn to_f64_px_azure_point(&self) -> Point2D<AzFloat>;
 }
 
 impl ToAzurePoint for Point2D<Au> {
     fn to_azure_point(&self) -> Point2D<AzFloat> {
         Point2D(self.x.to_nearest_px() as AzFloat, self.y.to_nearest_px() as AzFloat)
     }
-    fn to_subpx_azure_point(&self) -> Point2D<AzFloat> {
-        Point2D(self.x.to_subpx() as AzFloat, self.y.to_subpx() as AzFloat)
+    fn to_f64_px_azure_point(&self) -> Point2D<AzFloat> {
+        Point2D(self.x.to_f64_px() as AzFloat, self.y.to_f64_px() as AzFloat)
     }
 }
 
 pub trait ToAzureRect {
     fn to_azure_rect(&self) -> Rect<AzFloat>;
-    fn to_subpx_azure_rect(&self) -> Rect<AzFloat>;
+    fn to_f64_px_azure_rect(&self) -> Rect<AzFloat>;
 }
 
 impl ToAzureRect for Rect<Au> {
@@ -1127,9 +1127,9 @@ impl ToAzureRect for Rect<Au> {
                                                   self.size.height.to_nearest_px() as AzFloat))
 
     }
-    fn to_subpx_azure_rect(&self) -> Rect<AzFloat> {
-        Rect(self.origin.to_subpx_azure_point(), Size2D(self.size.width.to_subpx() as AzFloat,
-                                                        self.size.height.to_subpx() as AzFloat))
+    fn to_f64_px_azure_rect(&self) -> Rect<AzFloat> {
+        Rect(self.origin.to_f64_px_azure_point(), Size2D(self.size.width.to_f64_px() as AzFloat,
+                                                        self.size.height.to_f64_px() as AzFloat))
     }
 }
 
@@ -1241,8 +1241,8 @@ impl ScaledFontExtensionMethods for ScaledFont {
                 let azglyph = struct__AzGlyph {
                     mIndex: glyph.id() as uint32_t,
                     mPosition: struct__AzPoint {
-                        x: (origin.x + glyph_offset.x).to_subpx() as AzFloat,
-                        y: (origin.y + glyph_offset.y).to_subpx() as AzFloat
+                        x: (origin.x + glyph_offset.x).to_f64_px() as AzFloat,
+                        y: (origin.y + glyph_offset.y).to_f64_px() as AzFloat
                     }
                 };
                 origin = Point2D(origin.x + glyph_advance, origin.y);
@@ -1385,7 +1385,7 @@ impl TemporaryDrawTarget {
     fn from_bounds(main_draw_target: &DrawTarget, bounds: &Rect<Au>) -> TemporaryDrawTarget {
         let draw_target_transform = main_draw_target.get_transform();
         let temporary_draw_target_bounds =
-            draw_target_transform.transform_rect(&bounds.to_subpx_azure_rect());
+            draw_target_transform.transform_rect(&bounds.to_f64_px_azure_rect());
         let temporary_draw_target_size =
             Size2D(temporary_draw_target_bounds.size.width.ceil() as i32,
                    temporary_draw_target_bounds.size.height.ceil() as i32);

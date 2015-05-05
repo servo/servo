@@ -257,7 +257,7 @@ impl FontHandleMethods for FontHandle {
             line_gap:         height,
         };
 
-        debug!("Font metrics (@{}px): {:?}", em_size.to_frac32_px(), metrics);
+        debug!("Font metrics (@{}px): {:?}", em_size.to_f32_px(), metrics);
         return metrics;
     }
 
@@ -268,7 +268,7 @@ impl FontHandleMethods for FontHandle {
 
 impl<'a> FontHandle {
     fn set_char_size(face: FT_Face, pt_size: Au) -> Result<(), ()>{
-        let char_width = float_to_fixed_ft((0.5f64 + pt_size.to_subpx()).floor()) as FT_F26Dot6;
+        let char_width = float_to_fixed_ft((0.5f64 + pt_size.to_f64_px()).floor()) as FT_F26Dot6;
 
         unsafe {
             let result = FT_Set_Char_Size(face, char_width, 0, 0, 0);
@@ -296,6 +296,6 @@ impl<'a> FontHandle {
         // If this isn't true then we're scaling one of the axes wrong
         assert!(metrics.x_ppem == metrics.y_ppem);
 
-        return Au::from_frac_px(value * x_scale);
+        return Au::from_f64_px(value * x_scale);
     }
 }
