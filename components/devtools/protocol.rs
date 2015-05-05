@@ -8,13 +8,12 @@
 
 use rustc_serialize::{json, Encodable};
 use rustc_serialize::json::Json;
-use std::io::{self, Read, ReadExt, Write, ErrorKind};
+use std::io::{self, Read, Write};
 use std::net::TcpStream;
-use std::num;
 
 pub trait JsonPacketStream {
     fn write_json_packet<'a, T: Encodable>(&mut self, obj: &T);
-    fn read_json_packet(&mut self) -> io::Result<Json>;
+    fn read_json_packet(&mut self) -> io::Result<Option<Json>>;
 }
 
 impl JsonPacketStream for TcpStream {
@@ -26,25 +25,25 @@ impl JsonPacketStream for TcpStream {
         self.write_all(s.as_bytes()).unwrap();
     }
 
-    fn read_json_packet<'a>(&mut self) -> io::Result<Json> {
+    fn read_json_packet<'a>(&mut self) -> io::Result<Option<Json>> {
         // https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport
         // In short, each JSON packet is [ascii length]:[JSON data of given length]
         let mut buffer = vec!();
         loop {
             let mut buf = [0];
             let byte = match try!(self.read(&mut buf)) {
-                0 => return Err(io::Error::new(ErrorKind::Other, "EOF", None)),
+                0 => return Ok(None),  // EOF
                 1 => buf[0],
                 _ => unreachable!(),
             };
             match byte {
                 b':' => {
                     let packet_len_str = String::from_utf8(buffer).unwrap();
-                    let packet_len = num::from_str_radix(&packet_len_str, 10).unwrap();
+                    let packet_len = u64::from_str_radix(&packet_len_str, 10).unwrap();
                     let mut packet = String::new();
                     self.take(packet_len).read_to_string(&mut packet).unwrap();
                     println!("{}", packet);
-                    return Ok(Json::from_str(&packet).unwrap())
+                    return Ok(Some(Json::from_str(&packet).unwrap()))
                 },
                 c => buffer.push(c),
             }

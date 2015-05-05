@@ -6,10 +6,8 @@
 
 use compositor_task::{CompositorProxy, Msg};
 
-use std::old_io::timer;
 use std::sync::mpsc::{Receiver, Sender, channel};
-use std::thread::Builder;
-use std::time::duration::Duration;
+use std::thread::{Builder, sleep_ms};
 use time;
 
 /// The amount of time in nanoseconds that we give to the painting thread to paint new tiles upon
@@ -61,8 +59,8 @@ impl ScrollingTimer {
             match self.receiver.recv() {
                 Ok(ToScrollingTimerMsg::ScrollEventProcessedMsg(timestamp)) => {
                     let target = timestamp as i64 + TIMEOUT;
-                    let delta = target - (time::precise_time_ns() as i64);
-                    timer::sleep(Duration::nanoseconds(delta));
+                    let delta_ns = target - (time::precise_time_ns() as i64);
+                    sleep_ms((delta_ns / 1000) as u32);
                     self.compositor_proxy.send(Msg::ScrollTimeout(timestamp));
                 }
                 Ok(ToScrollingTimerMsg::ExitMsg) | Err(_) => break,

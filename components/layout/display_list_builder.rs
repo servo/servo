@@ -39,8 +39,6 @@ use png::{self, PixelsByColorType};
 use std::cmp;
 use std::default::Default;
 use std::iter::repeat;
-use std::num::Float;
-use std::num::ToPrimitive;
 use std::sync::Arc;
 use std::sync::mpsc::channel;
 use style::computed_values::filter::Filter;
@@ -247,13 +245,13 @@ pub trait FragmentDisplayListBuilding {
 fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> BorderRadii<Au> {
     // No two corners' border radii may add up to more than the length of the edge
     // between them. To prevent that, all radii are scaled down uniformly.
-    fn scale_factor(radius_a: Au, radius_b: Au, edge_length: Au) -> f64 {
+    fn scale_factor(radius_a: Au, radius_b: Au, edge_length: Au) -> f32 {
         let required = radius_a + radius_b;
 
         if required <= edge_length {
             1.0
         } else {
-            to_frac_px(edge_length) / to_frac_px(required)
+            edge_length.to_frac32_px() / required.to_frac32_px()
         }
     }
 
@@ -503,10 +501,10 @@ impl FragmentDisplayListBuilding for Fragment {
         // between the starting point and the ending point.
         let delta = match gradient.angle_or_corner {
             AngleOrCorner::Angle(angle) => {
-                Point2D(Au((angle.radians().sin() *
-                             absolute_bounds.size.width.to_f64().unwrap() / 2.0) as i32),
-                        Au((-angle.radians().cos() *
-                             absolute_bounds.size.height.to_f64().unwrap() / 2.0) as i32))
+                Point2D(Au::from_frac32_px(angle.radians().sin() *
+                                           absolute_bounds.size.width.to_frac32_px() / 2.0),
+                        Au::from_frac32_px(-angle.radians().cos() *
+                                           absolute_bounds.size.height.to_frac32_px() / 2.0))
             }
             AngleOrCorner::Corner(horizontal, vertical) => {
                 let x_factor = match horizontal {
@@ -517,14 +515,14 @@ impl FragmentDisplayListBuilding for Fragment {
                     VerticalDirection::Top => -1,
                     VerticalDirection::Bottom => 1,
                 };
-                Point2D(Au(x_factor * absolute_bounds.size.width.to_i32().unwrap() / 2),
-                        Au(y_factor * absolute_bounds.size.height.to_i32().unwrap() / 2))
+                Point2D(absolute_bounds.size.width * x_factor / 2,
+                        absolute_bounds.size.height * y_factor / 2)
             }
         };
 
         // This is the length of the gradient line.
-        let length = Au((delta.x.to_f64().unwrap() * 2.0).hypot(delta.y.to_f64().unwrap() * 2.0)
-                        as i32);
+        let length = Au::from_frac32_px(
+            (delta.x.to_frac32_px() * 2.0).hypot(delta.y.to_frac32_px() * 2.0));
 
         // Determine the position of each stop per CSS-IMAGES § 3.4.
         //

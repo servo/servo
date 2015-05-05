@@ -5,7 +5,7 @@
 #![crate_name = "webdriver_traits"]
 #![crate_type = "rlib"]
 
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 use rustc_serialize::json::{Json, ToJson};
 
 use std::sync::mpsc::Sender;

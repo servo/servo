@@ -430,8 +430,8 @@ impl Flow for TableFlow {
                 // if there are any, or among all the columns if all are specified.
                 self.column_computed_inline_sizes.clear();
                 if num_unspecified_inline_sizes == 0 {
-                    let ratio = content_inline_size.to_subpx() /
-                        total_column_inline_size.to_subpx();
+                    let ratio = content_inline_size.to_frac32_px() /
+                        total_column_inline_size.to_frac32_px();
                     for column_inline_size in self.column_intrinsic_inline_sizes.iter() {
                         self.column_computed_inline_sizes.push(ColumnComputedInlineSize {
                             size: column_inline_size.minimum_length.scale_by(ratio),

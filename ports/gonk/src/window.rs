@@ -60,7 +60,7 @@ pub struct native_handle {
 pub struct ANativeBase {
     magic: u32,
     version: u32,
-    reserved: [int; 4],
+    reserved: [isize; 4],
     incRef: extern fn(*mut ANativeBase),
     decRef: extern fn(*mut ANativeBase),
 }
@@ -86,7 +86,7 @@ pub struct ANativeWindow {
     maxSwapInterval: c_int,
     xdpi: f32,
     ydpi: f32,
-    oem: [int; 4],
+    oem: [isize; 4],
     setSwapInterval: extern fn(*mut ANativeWindow, c_int) -> c_int,
     //dequeueBuffer_DEPRECATED: extern fn(*mut ANativeWindow, *mut *mut ANativeWindowBuffer) -> c_int,
     //lockBuffer_DEPRECATED: extern fn(*mut ANativeWindow, *mut ANativeWindowBuffer) -> c_int,
@@ -342,7 +342,7 @@ extern fn dequeueBuffer(base: *mut ANativeWindow, buf: *mut *mut ANativeWindowBu
     unsafe {
         let window: &mut GonkNativeWindow = transmute(base);
         for idx in 0..window.bufs.len() {
-            if idx == window.last_idx as uint {
+            if idx == window.last_idx as usize {
                 continue;
             }
             match window.bufs[idx] {
@@ -695,7 +695,7 @@ impl Window {
              egl::EGL_ALPHA_SIZE, 0,
              egl::EGL_NONE, 0];
 
-        let mut config: EGLConfig = unsafe { transmute(0i) };
+        let mut config: EGLConfig = unsafe { transmute(0isize) };
         let mut num_config: EGLint = 0;
 
         let ret2 = unsafe {

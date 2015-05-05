@@ -56,15 +56,16 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{RefCell, Cell};
 use std::default::Default;
-use std::old_io::Timer;
 use std::str::FromStr;
 use std::sync::{Mutex, Arc};
-use std::time::duration::Duration;
+use std::sync::mpsc::{channel, Sender, TryRecvError};
+use std::thread::sleep_ms;
 use time;
 use url::{Url, UrlParser};
 
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
+
 pub type SendParam = StringOrURLSearchParams;
 
 #[derive(PartialEq, Copy, Clone)]
@@ -140,7 +141,7 @@ pub struct XMLHttpRequest {
     send_flag: Cell<bool>,
 
     global: GlobalField,
-    timer: DOMRefCell<Timer>,
+    timeout_cancel: DOMRefCell<Option<Sender<()>>>,
     fetch_time: Cell<i64>,
     timeout_target: DOMRefCell<Option<Box<ScriptChan+Send>>>,
     generation_id: Cell<GenerationId>,
@@ -174,7 +175,7 @@ impl XMLHttpRequest {
             upload_events: Cell::new(false),
 
             global: GlobalField::from_rooted(&global),
-            timer: DOMRefCell::new(Timer::new().unwrap()),
+            timeout_cancel: DOMRefCell::new(None),
             fetch_time: Cell::new(0),
             timeout_target: DOMRefCell::new(None),
             generation_id: Cell::new(GenerationId(0)),
@@ -963,7 +964,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         let total = self.response_headers.borrow().get::<ContentLength>().map(|x| {**x as u64});
         self.dispatch_progress_event(false, type_, len, total);
     }
-    fn set_timeout(self, timeout: u32) {
+    fn set_timeout(self, duration_ms: u32) {
         struct XHRTimeout {
             xhr: TrustedXHRAddress,
             gen_id: GenerationId,
@@ -981,22 +982,23 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
         // Sets up the object to timeout in a given number of milliseconds
         // This will cancel all previous timeouts
-        let oneshot = self.timer.borrow_mut()
-                          .oneshot(Duration::milliseconds(timeout as i64));
         let timeout_target = (*self.timeout_target.borrow().as_ref().unwrap()).clone();
         let global = self.global.root();
         let xhr = Trusted::new(global.r().get_cx(), self, global.r().script_chan());
         let gen_id = self.generation_id.get();
+        let (cancel_tx, cancel_rx) = channel();
+        *self.timeout_cancel.borrow_mut() = Some(cancel_tx);
         spawn_named("XHR:Timer".to_owned(), move || {
-            match oneshot.recv() {
-                Ok(_) => {
+            sleep_ms(duration_ms);
+            match cancel_rx.try_recv() {
+                Err(TryRecvError::Empty) => {
                     timeout_target.send(ScriptMsg::RunnableMsg(box XHRTimeout {
                         xhr: xhr,
                         gen_id: gen_id,
                     })).unwrap();
                 },
-                Err(_) => {
-                    // This occurs if xhr.timeout (the sender) goes out of scope (i.e, xhr went out of scope)
+                Err(TryRecvError::Disconnected) | Ok(()) => {
+                    // This occurs if xhr.timeout_cancel (the sender) goes out of scope (i.e, xhr went out of scope)
                     // or if the oneshot timer was overwritten. The former case should not happen due to pinning.
                     debug!("XHR timeout was overwritten or canceled")
                 }
@@ -1006,8 +1008,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     }
 
     fn cancel_timeout(self) {
-        // oneshot() closes the previous channel, canceling the timeout
-        self.timer.borrow_mut().oneshot(Duration::zero());
+        if let Some(cancel_tx) = self.timeout_cancel.borrow_mut().take() {
+            let _ = cancel_tx.send(());
+        }
     }
 
     fn text_response(self) -> DOMString {

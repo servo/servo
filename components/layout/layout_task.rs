@@ -73,7 +73,6 @@ use util::geometry::{Au, MAX_RECT};
 use util::logical_geometry::LogicalPoint;
 use util::mem::HeapSizeOf;
 use util::opts;
-use util::smallvec::SmallVec;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 use util::workqueue::WorkQueue;
@@ -1097,7 +1096,7 @@ impl LayoutRPC for LayoutRPCImpl {
 
     /// Requests the node containing the point of interest.
     fn hit_test(&self, _: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
-        let point = Point2D(Au::from_frac_px(point.x as f64), Au::from_frac_px(point.y as f64));
+        let point = Point2D(Au::from_frac32_px(point.x), Au::from_frac32_px(point.y));
         let resp = {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock().unwrap();
@@ -1124,7 +1123,7 @@ impl LayoutRPC for LayoutRPCImpl {
     fn mouse_over(&self, _: TrustedNodeAddress, point: Point2D<f32>)
                   -> Result<MouseOverResponse, ()> {
         let mut mouse_over_list: Vec<DisplayItemMetadata> = vec!();
-        let point = Point2D(Au::from_frac_px(point.x as f64), Au::from_frac_px(point.y as f64));
+        let point = Point2D(Au::from_frac32_px(point.x), Au::from_frac32_px(point.y));
         {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock().unwrap();

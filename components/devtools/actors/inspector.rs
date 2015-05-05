@@ -16,7 +16,6 @@ use msg::constellation_msg::PipelineId;
 use rustc_serialize::json::{self, Json, ToJson};
 use std::cell::RefCell;
 use std::net::TcpStream;
-use std::num::Float;
 use std::sync::mpsc::{channel, Sender};
 
 pub struct InspectorActor {

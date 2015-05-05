@@ -20,7 +20,6 @@ use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent,
 use script_traits::{ScriptControlChan, ConstellationControlMsg};
 use msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
 use msg::constellation_msg::PipelineId;
-use std::num::Float;
 use std::rc::Rc;
 
 pub struct CompositorData {
@@ -63,6 +62,7 @@ impl CompositorData {
         Rc::new(Layer::new(Rect::from_untyped(&layer_properties.rect),
                            tile_size,
                            to_layers_color(&layer_properties.background_color),
+                           1.0,
                            new_compositor_data))
     }
 }

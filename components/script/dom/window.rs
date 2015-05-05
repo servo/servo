@@ -61,7 +61,6 @@ use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
 use std::mem;
-use std::num::Float;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};

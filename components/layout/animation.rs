@@ -31,7 +31,7 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
             property_animation.update(new_style, 0.0);
 
             // Kick off the animation.
-            let now = clock_ticks::precise_time_s();
+            let now = clock_ticks::precise_time_s() as f32;
             let animation_style = new_style.get_animation();
             let start_time = now + animation_style.transition_delay.0.get_mod(i).seconds();
             new_animations_sender.send(Animation {
@@ -66,7 +66,7 @@ pub fn recalc_style_for_animation(flow: &mut Flow, animation: &Animation) {
             return
         }
 
-        let now = clock_ticks::precise_time_s();
+        let now = clock_ticks::precise_time_s() as f32;
         let mut progress = (now - animation.start_time) / animation.duration();
         if progress > 1.0 {
             progress = 1.0
@@ -91,7 +91,7 @@ pub fn recalc_style_for_animation(flow: &mut Flow, animation: &Animation) {
 /// Handles animation updates.
 pub fn tick_all_animations(layout_task: &LayoutTask, rw_data: &mut LayoutTaskData) {
     let running_animations = mem::replace(&mut rw_data.running_animations, Vec::new());
-    let now = clock_ticks::precise_time_s();
+    let now = clock_ticks::precise_time_s() as f32;
     for running_animation in running_animations.into_iter() {
         layout_task.tick_animation(&running_animation, rw_data);
 

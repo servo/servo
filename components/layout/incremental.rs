@@ -210,7 +210,10 @@ impl<'a> LayoutDamageComputation for &'a mut (Flow + 'a) {
                                    .insert(self_base.restyle_damage.damage_for_child(
                                             is_absolutely_positioned,
                                             child_is_absolutely_positioned));
-                special_damage.insert(kid.compute_layout_damage());
+                {
+                    let kid: &mut Flow = kid;
+                    special_damage.insert(kid.compute_layout_damage());
+                }
                 self_base.restyle_damage
                          .insert(flow::base(kid).restyle_damage.damage_for_parent(
                                  child_is_absolutely_positioned));

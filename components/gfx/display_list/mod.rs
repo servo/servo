@@ -40,7 +40,7 @@ use util::linked_list::prepend_from;
 use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
 use util::mem::HeapSizeOf;
 use util::range::Range;
-use util::smallvec::{SmallVec, SmallVec8};
+use util::smallvec::SmallVec8;
 use std::fmt;
 use std::slice::Iter;
 use std::sync::Arc;
@@ -305,8 +305,7 @@ impl StackingContext {
             for kid in display_list.children.iter() {
                 positioned_children.push((*kid).clone());
             }
-            positioned_children.as_slice_mut()
-                               .sort_by(|this, other| this.z_index.cmp(&other.z_index));
+            positioned_children.sort_by(|this, other| this.z_index.cmp(&other.z_index));
 
             // Set up our clip rect and transform.
             let old_transform = paint_subcontext.draw_target.get_transform();

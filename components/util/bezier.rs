@@ -7,22 +7,21 @@
 //! This is based on `WebCore/platform/graphics/UnitBezier.h` in WebKit.
 
 use geom::point::Point2D;
-use std::num::Float;
 
 const NEWTON_METHOD_ITERATIONS: u8 = 8;
 
 pub struct Bezier {
-    ax: f64,
-    bx: f64,
-    cx: f64,
-    ay: f64,
-    by: f64,
-    cy: f64,
+    ax: f32,
+    bx: f32,
+    cx: f32,
+    ay: f32,
+    by: f32,
+    cy: f32,
 }
 
 impl Bezier {
     #[inline]
-    pub fn new(p1: Point2D<f64>, p2: Point2D<f64>) -> Bezier {
+    pub fn new(p1: Point2D<f32>, p2: Point2D<f32>) -> Bezier {
         let cx = 3.0 * p1.x;
         let bx = 3.0 * (p2.x - p1.x) - cx;
 
@@ -40,23 +39,23 @@ impl Bezier {
     }
 
     #[inline]
-    fn sample_curve_x(&self, t: f64) -> f64 {
+    fn sample_curve_x(&self, t: f32) -> f32 {
         // ax * t^3 + bx * t^2 + cx * t
         ((self.ax * t + self.bx) * t + self.cx) * t
     }
 
     #[inline]
-    fn sample_curve_y(&self, t: f64) -> f64 {
+    fn sample_curve_y(&self, t: f32) -> f32 {
         ((self.ay * t + self.by) * t + self.cy) * t
     }
 
     #[inline]
-    fn sample_curve_derivative_x(&self, t: f64) -> f64 {
+    fn sample_curve_derivative_x(&self, t: f32) -> f32 {
         (3.0 * self.ax * t + 2.0 * self.bx) * t + self.cx
     }
 
     #[inline]
-    fn solve_curve_x(&self, x: f64, epsilon: f64) -> f64 {
+    fn solve_curve_x(&self, x: f32, epsilon: f32) -> f32 {
         // Fast path: Use Newton's method.
         let mut t = x;
         for _ in 0..NEWTON_METHOD_ITERATIONS {
@@ -98,7 +97,7 @@ impl Bezier {
     }
 
     #[inline]
-    pub fn solve(&self, x: f64, epsilon: f64) -> f64 {
+    pub fn solve(&self, x: f32, epsilon: f32) -> f32 {
         self.sample_curve_y(self.solve_curve_x(x, epsilon))
     }
 }
@@ -107,9 +106,9 @@ trait ApproxEq {
     fn approx_eq(self, value: Self, epsilon: Self) -> bool;
 }
 
-impl ApproxEq for f64 {
+impl ApproxEq for f32 {
     #[inline]
-    fn approx_eq(self, value: f64, epsilon: f64) -> bool {
+    fn approx_eq(self, value: f32, epsilon: f32) -> bool {
         (self - value).abs() < epsilon
     }
 }

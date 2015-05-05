@@ -2,11 +2,37 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cmp::{max, min};
+use num_lib;
+use std::cmp::{self, max, min};
 use std::fmt;
+use std::iter;
 use std::marker::PhantomData;
-use std::num::{self, Int};
+use std::num;
 use std::ops;
+
+pub trait Int:
+    Copy
+    + ops::Add<Self, Output=Self>
+    + ops::Sub<Self, Output=Self>
+    + cmp::Ord
+{
+    fn zero() -> Self;
+    fn one() -> Self;
+    fn max_value() -> Self;
+    fn from_usize(n: usize) -> Option<Self>;
+}
+impl Int for isize {
+    fn zero() -> isize { 0 }
+    fn one() -> isize { 1 }
+    fn max_value() -> isize { ::std::isize::MAX }
+    fn from_usize(n: usize) -> Option<isize> { num_lib::NumCast::from(n) }
+}
+impl Int for usize {
+    fn zero() -> usize { 0 }
+    fn one() -> usize { 1 }
+    fn max_value() -> usize { ::std::usize::MAX }
+    fn from_usize(n: usize) -> Option<usize> { Some(n) }
+}
 
 /// An index type to be used by a `Range`
 pub trait RangeIndex: Int + fmt::Debug {
@@ -61,32 +87,14 @@ macro_rules! int_range_index {
             }
         }
 
-        impl ::std::num::Int for $Self_ {
-            fn zero() -> $Self_ { $Self_(0) }
-            fn one() -> $Self_ { $Self_(1) }
-            fn min_value() -> $Self_ { $Self_(::std::num::Int::min_value()) }
-            fn max_value() -> $Self_ { $Self_(::std::num::Int::max_value()) }
-            fn count_ones(self) -> u32 { self.get().count_ones() }
-            fn leading_zeros(self) -> u32 { self.get().leading_zeros() }
-            fn trailing_zeros(self) -> u32 { self.get().trailing_zeros() }
-            fn rotate_left(self, n: u32) -> $Self_ { $Self_(self.get().rotate_left(n)) }
-            fn rotate_right(self, n: u32) -> $Self_ { $Self_(self.get().rotate_right(n)) }
-            fn swap_bytes(self) -> $Self_ { $Self_(self.get().swap_bytes()) }
-            fn checked_add(self, other: $Self_) -> Option<$Self_> {
-                self.get().checked_add(other.get()).map($Self_)
-            }
-            fn checked_sub(self, other: $Self_) -> Option<$Self_> {
-                self.get().checked_sub(other.get()).map($Self_)
-            }
-            fn checked_mul(self, other: $Self_) -> Option<$Self_> {
-                self.get().checked_mul(other.get()).map($Self_)
-            }
-            fn checked_div(self, other: $Self_) -> Option<$Self_> {
-                self.get().checked_div(other.get()).map($Self_)
-            }
+        impl $crate::range::Int for $Self_ {
+            fn zero() -> $Self_ { $Self_($crate::range::Int::zero()) }
+            fn one() -> $Self_ { $Self_($crate::range::Int::one()) }
+            fn max_value() -> $Self_ { $Self_($crate::range::Int::max_value()) }
+            fn from_usize(n: usize) -> Option<$Self_> { $crate::range::Int::from_usize(n).map($Self_) }
         }
 
-        impl Add<$Self_> for $Self_ {
+        impl ::std::ops::Add<$Self_> for $Self_ {
             type Output = $Self_;
 
             #[inline]
@@ -95,7 +103,7 @@ macro_rules! int_range_index {
             }
         }
 
-        impl Sub<$Self_> for $Self_ {
+        impl ::std::ops::Sub<$Self_> for $Self_ {
             type Output = $Self_;
 
             #[inline]
@@ -104,120 +112,12 @@ macro_rules! int_range_index {
             }
         }
 
-        impl Mul<$Self_> for $Self_ {
-            type Output = $Self_;
-
-            #[inline]
-            fn mul(self, other: $Self_) -> $Self_ {
-                $Self_(self.get() * other.get())
-            }
-        }
-
-        impl Neg for $Self_ {
+        impl ::std::ops::Neg for $Self_ {
             type Output = $Self_;
 
             #[inline]
             fn neg(self) -> $Self_ {
                 $Self_(-self.get())
-            }
-        }
-
-        impl ToPrimitive for $Self_ {
-            fn to_i64(&self) -> Option<i64> {
-                Some(self.get() as i64)
-            }
-
-            fn to_u64(&self) -> Option<u64> {
-                Some(self.get() as u64)
-            }
-        }
-
-        impl ::std::num::NumCast for $Self_ {
-            fn from<T: ToPrimitive>(n: T) -> Option<$Self_> {
-                n.to_isize().map($Self_)
-            }
-        }
-
-        impl Div<$Self_> for $Self_ {
-            type Output = $Self_;
-            fn div(self, other: $Self_) -> $Self_ {
-                $Self_(self.get() / other.get())
-            }
-        }
-
-        impl Rem<$Self_> for $Self_ {
-            type Output = $Self_;
-            fn rem(self, other: $Self_) -> $Self_ {
-                $Self_(self.get() % other.get())
-            }
-        }
-
-        impl Not for $Self_ {
-            type Output = $Self_;
-            fn not(self) -> $Self_ {
-                $Self_(!self.get())
-            }
-        }
-
-        impl BitAnd<$Self_> for $Self_ {
-            type Output = $Self_;
-            fn bitand(self, other: $Self_) -> $Self_ {
-                $Self_(self.get() & other.get())
-            }
-        }
-
-        impl BitOr<$Self_> for $Self_ {
-            type Output = $Self_;
-            fn bitor(self, other: $Self_) -> $Self_ {
-                $Self_(self.get() | other.get())
-            }
-        }
-
-        impl BitXor<$Self_> for $Self_ {
-            type Output = $Self_;
-            fn bitxor(self, other: $Self_) -> $Self_ {
-                $Self_(self.get() ^ other.get())
-            }
-        }
-
-        impl Shl<usize> for $Self_ {
-            type Output = $Self_;
-            fn shl(self, n: usize) -> $Self_ {
-                $Self_(self.get() << n)
-            }
-        }
-
-        impl Shr<usize> for $Self_ {
-            type Output = $Self_;
-            fn shr(self, n: usize) -> $Self_ {
-                $Self_(self.get() >> n)
-            }
-        }
-
-        impl ::std::num::wrapping::WrappingOps for $Self_ {
-            fn wrapping_add(self, rhs: $Self_) -> $Self_ {
-                $Self_(self.get().wrapping_add(rhs.get()))
-            }
-            fn wrapping_sub(self, rhs: $Self_) -> $Self_ {
-                $Self_(self.get().wrapping_sub(rhs.get()))
-            }
-            fn wrapping_mul(self, rhs: $Self_) -> $Self_ {
-                $Self_(self.get().wrapping_mul(rhs.get()))
-            }
-        }
-
-        impl ::std::num::wrapping::OverflowingOps for $Self_ {
-            fn overflowing_add(self, rhs: $Self_) -> ($Self_, bool) {
-                let (x, b) = self.get().overflowing_add(rhs.get());
-                ($Self_(x), b)
-            }
-            fn overflowing_sub(self, rhs: $Self_) -> ($Self_, bool) {
-                let (x, b) = self.get().overflowing_sub(rhs.get());
-                ($Self_(x), b)
-            }
-            fn overflowing_mul(self, rhs: $Self_) -> ($Self_, bool) {
-                let (x, b) = self.get().overflowing_mul(rhs.get());
-                ($Self_(x), b)
             }
         }
     )
@@ -246,12 +146,13 @@ pub fn each_index<T: Int, I: RangeIndex<Index=T>>(start: I, stop: I) -> EachInde
     EachIndex { it: start.get()..stop.get(), phantom: PhantomData }
 }
 
-impl<T: Int, I: RangeIndex<Index=T>> Iterator for EachIndex<T, I> {
+impl<T: Int, I: RangeIndex<Index=T>> Iterator for EachIndex<T, I>
+where T: Int + num::One + iter::Step, for<'a> &'a T: ops::Add<&'a T, Output = T> {
     type Item = I;
 
     #[inline]
     fn next(&mut self) -> Option<I> {
-        self.it.next().map(|i| RangeIndex::new(i))
+        self.it.next().map(RangeIndex::new)
     }
 
     #[inline]
@@ -407,7 +308,7 @@ impl<T: Int, I: RangeIndex<Index=T>> Range<I> {
     #[inline]
     pub fn is_valid_for_string(&self, s: &str) -> bool {
         let s_len = s.len();
-        match num::cast::<usize, T>(s_len) {
+        match Int::from_usize(s_len) {
             Some(len) => {
                 let len = RangeIndex::new(len);
                 self.begin() < len

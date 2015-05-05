@@ -15,7 +15,7 @@
 //!
 //! [glutin]: https://github.com/tomaka/glutin
 
-#![feature(start)]
+#![feature(start, libc)]
 
 // The Servo engine
 extern crate servo;
@@ -26,7 +26,7 @@ extern crate net;
 // Servo common utilitiess
 extern crate util;
 // The window backed by glutin
-extern crate "glutin_app" as app;
+extern crate glutin_app as app;
 extern crate time;
 
 #[cfg(target_os="android")]
@@ -187,7 +187,6 @@ mod android {
         use self::libc::funcs::posix88::stdio::fdopen;
         use self::libc::funcs::c95::stdio::fgets;
         use util::task::spawn_named;
-        use std::mem;
         use std::ffi::CString;
         use std::str::from_utf8;
 
@@ -195,14 +194,15 @@ mod android {
             let mut pipes: [c_int; 2] = [ 0, 0 ];
             pipe(pipes.as_mut_ptr());
             dup2(pipes[1], file_no);
-            let mode = CString::from_slice("r".as_bytes());
+            let mode = CString::new("r").unwrap();
             let input_file = FilePtr(fdopen(pipes[0], mode.as_ptr()));
             spawn_named("android-logger".to_owned(), move || {
                 loop {
-                    let mut read_buffer: [u8; 1024] = mem::zeroed();
+                    let mut read_buffer: Vec<u8> = vec!();
+                    read_buffer.reserve(1024);
                     let FilePtr(input_file) = input_file;
                     fgets(read_buffer.as_mut_ptr() as *mut i8, read_buffer.len() as i32, input_file);
-                    let cs = CString::from_slice(&read_buffer);
+                    let cs = CString::new(read_buffer).unwrap();
                     match from_utf8(cs.as_bytes()) {
                         Ok(s) => android_glue::write_log(s),
                         _ => {}

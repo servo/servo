@@ -9,12 +9,10 @@
 #![crate_name = "devtools_traits"]
 #![crate_type = "rlib"]
 
-#![feature(net)]
-
 #![allow(non_snake_case)]
 
 extern crate msg;
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 extern crate url;
 extern crate util;
 extern crate time;

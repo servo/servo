@@ -11,6 +11,7 @@ use dom::bindings::utils::Reflectable;
 use dom::window::ScriptHelpers;
 
 use script_task::{ScriptChan, ScriptMsg, TimerSource};
+use horribly_inefficient_timers;
 
 use util::task::spawn_named;
 use util::str::DOMString;
@@ -24,8 +25,6 @@ use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::mpsc::Select;
 use std::hash::{Hash, Hasher};
-use std::old_io::timer::Timer;
-use std::time::duration::Duration;
 
 #[derive(PartialEq, Eq)]
 #[jstraceable]
@@ -74,7 +73,6 @@ pub struct TimerManager {
 }
 
 
-#[unsafe_destructor]
 impl Drop for TimerManager {
     fn drop(&mut self) {
         for (_, timer_handle) in self.active_timers.borrow_mut().iter_mut() {
@@ -141,13 +139,12 @@ impl TimerManager {
                                   source: TimerSource,
                                   script_chan: Box<ScriptChan+Send>)
                                   -> i32 {
-        let timeout = cmp::max(0, timeout) as u64;
+        let duration_ms = cmp::max(0, timeout) as u32;
         let handle = self.next_timer_handle.get();
         self.next_timer_handle.set(handle + 1);
 
         // Spawn a new timer task; it will dispatch the `ScriptMsg::FireTimer`
         // to the relevant script handler that will deal with it.
-        let tm = Timer::new().unwrap();
         let (control_chan, control_port) = channel();
         let spawn_name = match source {
             TimerSource::FromWindow(_) if is_interval == IsInterval::Interval => "Window:SetInterval",
@@ -156,12 +153,10 @@ impl TimerManager {
             TimerSource::FromWorker => "Worker:SetTimeout",
         }.to_owned();
         spawn_named(spawn_name, move || {
-            let mut tm = tm;
-            let duration = Duration::milliseconds(timeout as i64);
             let timeout_port = if is_interval == IsInterval::Interval {
-                tm.periodic(duration)
+                horribly_inefficient_timers::periodic(duration_ms)
             } else {
-                tm.oneshot(duration)
+                horribly_inefficient_timers::oneshot(duration_ms)
             };
             let control_port = control_port;
 

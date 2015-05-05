@@ -78,7 +78,8 @@ impl DerefMut for FlowRef {
 impl Drop for FlowRef {
     fn drop(&mut self) {
         unsafe {
-            if self.object.vtable.is_null() {
+            if self.object.vtable.is_null() ||
+               self.object.vtable as usize == mem::POST_DROP_USIZE {
                 return
             }
             if flow::base(&**self).strong_ref_count().fetch_sub(1, Ordering::Release) != 1 {
@@ -102,7 +103,7 @@ impl Drop for FlowRef {
             let object_align = vtable[2];
 
             let fake_data = heap::allocate(object_size, object_align);
-            ptr::copy(fake_data, flow_ref.object.data as *const u8, object_size);
+            ptr::copy(flow_ref.object.data as *const u8, fake_data, object_size);
 
             let fake_box = raw::TraitObject { vtable: flow_ref.object.vtable, data: fake_data as *mut () };
             let fake_flow = mem::transmute::<raw::TraitObject, Box<Flow>>(fake_box);
@@ -181,7 +182,8 @@ impl Clone for WeakFlowRef {
 impl Drop for WeakFlowRef {
     fn drop(&mut self) {
         unsafe {
-            if self.object.vtable.is_null() {
+            if self.object.vtable.is_null() ||
+               self.object.vtable as usize == mem::POST_DROP_USIZE {
                 return
             }
 

@@ -8,6 +8,7 @@ use mime_classifier::MIMEClassifier;
 use resource_task::{start_sending, start_sending_sniffed, ProgressSender};
 
 use std::borrow::ToOwned;
+use std::error::Error;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;

@@ -8,9 +8,9 @@ use selectors::bloom::BloomFilter;
 use selectors::matching::{SelectorMap, Rule};
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::parser::PseudoElement;
-use selectors::smallvec::VecLike;
 use selectors::tree::TNode;
 use util::resource_files::read_resource_file;
+use util::smallvec::VecLike;
 
 use legacy::PresentationalHintSynthesis;
 use media_queries::Device;
@@ -213,7 +213,7 @@ impl Stylist {
         // Step 4: Normal style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.vec_push(
+            applicable_declarations.push(
                 GenericDeclarationBlock::from_declarations(sa.normal.clone()))
         });
 
@@ -226,7 +226,7 @@ impl Stylist {
         // Step 6: `!important` style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.vec_push(
+            applicable_declarations.push(
                 GenericDeclarationBlock::from_declarations(sa.important.clone()))
         });
 

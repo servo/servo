@@ -9,11 +9,8 @@ use profile_traits::time::{ProfilerCategory, ProfilerChan, ProfilerMsg, TimerMet
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::f64;
-use std::old_io::timer::sleep;
-use std::iter::AdditiveIterator;
-use std::num::Float;
 use std::sync::mpsc::{channel, Receiver};
-use std::time::duration::Duration;
+use std::thread::sleep_ms;
 use std_time::precise_time_ns;
 use util::task::spawn_named;
 
@@ -99,11 +96,11 @@ impl Profiler {
         let (chan, port) = channel();
         match period {
             Some(period) => {
-                let period = Duration::milliseconds((period * 1000f64) as i64);
+                let period = (period * 1000.) as u32;
                 let chan = chan.clone();
                 spawn_named("Time profiler timer".to_owned(), move || {
                     loop {
-                        sleep(period);
+                        sleep_ms(period);
                         if chan.send(ProfilerMsg::Print).is_err() {
                             break;
                         }
@@ -192,7 +189,7 @@ impl Profiler {
             let data_len = data.len();
             if data_len > 0 {
                 let (mean, median, min, max) =
-                    (data.iter().map(|&x|x).sum() / (data_len as f64),
+                    (data.iter().map(|&x|x).sum::<f64>() / (data_len as f64),
                      data[data_len / 2],
                      data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
                      data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));

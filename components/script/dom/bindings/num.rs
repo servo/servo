@@ -5,7 +5,7 @@
 //! The `Finite<T>` struct.
 
 use core::nonzero::Zeroable;
-use std::num::Float;
+use num::Float;
 use std::ops::Deref;
 
 /// Encapsulates the IDL restricted float type.
