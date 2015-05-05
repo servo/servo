@@ -998,7 +998,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                     })).unwrap();
                 },
                 Err(TryRecvError::Disconnected) | Ok(()) => {
-                    // This occurs if xhr.timeout (the sender) goes out of scope (i.e, xhr went out of scope)
+                    // This occurs if xhr.timeout_cancel (the sender) goes out of scope (i.e, xhr went out of scope)
                     // or if the oneshot timer was overwritten. The former case should not happen due to pinning.
                     debug!("XHR timeout was overwritten or canceled")
                 }
@@ -1008,7 +1008,6 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     }
 
     fn cancel_timeout(self) {
-        // oneshot() closes the previous channel, canceling the timeout
         if let Some(cancel_tx) = self.timeout_cancel.borrow_mut().take() {
             let _ = cancel_tx.send(());
         }

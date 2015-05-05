@@ -581,29 +581,13 @@ impl FlowFlags {
 
     #[inline]
     pub fn text_align(self) -> text_align::T {
-        match (self & TEXT_ALIGN).bits() >> TEXT_ALIGN_SHIFT {
-            0 => text_align::T::start,
-            1 => text_align::T::end,
-            2 => text_align::T::left,
-            3 => text_align::T::right,
-            4 => text_align::T::center,
-            5 => text_align::T::justify,
-            _ => unreachable!()
-        }
+        text_align::T::from_u32((self & TEXT_ALIGN).bits() >> TEXT_ALIGN_SHIFT).unwrap()
     }
 
     #[inline]
     pub fn set_text_align(&mut self, value: text_align::T) {
-        let value = match value {
-            text_align::T::start => 0,
-            text_align::T::end => 1,
-            text_align::T::left => 2,
-            text_align::T::right => 3,
-            text_align::T::center => 4,
-            text_align::T::justify => 5,
-        };
         *self = (*self & !TEXT_ALIGN) |
-            FlowFlags::from_bits(value << TEXT_ALIGN_SHIFT).unwrap();
+                FlowFlags::from_bits(value.to_u32() << TEXT_ALIGN_SHIFT).unwrap();
     }
 
     #[inline]

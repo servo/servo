@@ -183,7 +183,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         let node: Root<Node> = node.root();
         let script: Option<JSRef<HTMLScriptElement>> = HTMLScriptElementCast::to_ref(node.r());
         script.map(|script| script.prepare());
-        NextParserState::Continue  // FIXME: Do we want to suspend here?
+        NextParserState::Continue
     }
 
     fn reparent_children(&mut self, node: JS<Node>, new_parent: JS<Node>) {
