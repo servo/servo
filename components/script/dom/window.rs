@@ -473,7 +473,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
         let callback  = move |now: f64| {
             // TODO: @jdm The spec says that any exceptions should be suppressed;
-            callback.Call__(Finite::wrap(now), ExceptionHandling::Report);
+            callback.Call__(Finite::wrap(now), ExceptionHandling::Report).unwrap();
         };
 
         doc.r().request_animation_frame(Box::new(callback))

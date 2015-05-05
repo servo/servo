@@ -831,6 +831,14 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
     fn cancel_animation_frame(self, ident: i32) {
         self.animation_frame_list.borrow_mut().remove(&ident);
+        if self.animation_frame_list.borrow().len() == 0 {
+            let window = self.window.root();
+            let window = window.r();
+            let ConstellationChan(ref chan) = window.constellation_chan();
+            let event = ConstellationMsg::ChangeRunningAnimationsState(window.pipeline(),
+                                                                       AnimationState::NoAnimationCallbacksPresent);
+            chan.send(event).unwrap();
+        }
     }
 
     /// http://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
@@ -839,6 +847,13 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         {
             let mut list = self.animation_frame_list.borrow_mut();
             animation_frame_list = Vec::from_iter(list.drain());
+
+            let window = self.window.root();
+            let window = window.r();
+            let ConstellationChan(ref chan) = window.constellation_chan();
+            let event = ConstellationMsg::ChangeRunningAnimationsState(window.pipeline(),
+                                                                       AnimationState::NoAnimationCallbacksPresent);
+            chan.send(event).unwrap();
         }
         let window = self.window.root();
         let window = window.r();
