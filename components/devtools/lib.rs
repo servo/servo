@@ -299,7 +299,6 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     stream.write_json_packet(&msg);
                 }
             }
- 
             NetworkEvent::HttpResponse(headers, status, body) => {
                 //Store the response information in the actor
                 actor.addResponse(headers, status, body);
@@ -372,14 +371,13 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 for stream in accepted_connections.iter() {
                     connections.push(stream.try_clone().unwrap());
                 }
-                //TODO: Get pipeline_id from NetworkEventMessage after fixing the send in http_loader 
+                //TODO: Get pipeline_id from NetworkEventMessage after fixing the send in http_loader
                 // For now, the id of the first pipeline is passed
-                handle_network_event(actors.clone(), connections, &actor_pipelines, &mut actor_requests, 
+                handle_network_event(actors.clone(), connections, &actor_pipelines, &mut actor_requests,
                                      PipelineId(0), request_id, network_event);
             }
         }
     }
-
     for connection in accepted_connections.iter_mut() {
         let _ = connection.shutdown(Shutdown::Both);
     }

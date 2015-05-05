@@ -68,7 +68,7 @@ fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     }
 }
 
-fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>, 
+fn load(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>,
         cookies_chan: Sender<ControlMsg>, devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
@@ -206,7 +206,7 @@ reason: \"certificate verify failed\" }]";
             let net_event = NetworkEvent::HttpRequest(load_data.url.clone(),
                     load_data.method.clone(),
                     load_data.headers.clone(),
-                    load_data.data.clone()            
+                    load_data.data.clone()
                     );
             chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id.clone(), net_event));
         }

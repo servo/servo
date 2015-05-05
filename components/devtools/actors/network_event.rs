@@ -82,32 +82,26 @@ impl Actor for NetworkEventActor {
                     from: self.name(),
                     headers: Vec::new(),
                     headerSize: 10,
-                    rawHeaders: "Raw headers".to_string(),                    
+                    rawHeaders: "Raw headers".to_string(),
                 };
                 stream.write_json_packet(&msg);
                 true
             }
-
             "getRequestCookies" => {
                 false
             }
-            
             "getRequestPostData" => {
                 false
             }
-
             "getResponseHeaders" => {
                 false
             }
-
             "getResponseCookies" => {
                 false
             }
-
             "getResponseContent" => {
                 false
             }
-
             _ => false
         })
     }
@@ -128,7 +122,7 @@ impl NetworkEventActor {
                 status: None,
                 body: None,
             }
-        } 
+        }
     }
 
     pub fn addRequest(&mut self, url: Url, method: Method, headers: Headers, body: Option<Vec<u8>>) {
@@ -136,7 +130,7 @@ impl NetworkEventActor {
         self.request.method = method.clone();
         self.request.headers = headers.clone();
         self.request.body = body;
-    }    
+    }
 
     pub fn addResponse(&mut self, headers: Option<Headers>, status: Option<RawStatus>, body: Option<Vec<u8>>) {
         self.response.headers = headers.clone();
