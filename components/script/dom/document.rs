@@ -133,8 +133,10 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: Cell<bool>,
+    /// https://html.spec.whatwg.org/multipage/#animation-frame-callback-identifier
     /// Current identifier of animation frame callback
     animation_frame_ident: Cell<i32>,
+    /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
     animation_frame_list: RefCell<HashMap<i32, Box<Fn(f64)>>>,
 }
@@ -246,8 +248,11 @@ pub trait DocumentHelpers<'a> {
 
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>);
     fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
+    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
     fn request_animation_frame(self, callback: Box<Fn(f64, )>) -> i32;
+    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
     fn cancel_animation_frame(self, ident: i32);
+    /// http://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
     fn invoke_animation_callbacks(self);
 }
 
@@ -805,6 +810,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         }
     }
 
+    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
     fn request_animation_frame(self, callback: Box<Fn(f64, )>) -> i32 {
         let window = self.window.root();
         let window = window.r();
@@ -822,6 +828,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         ident
     }
 
+    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
     fn cancel_animation_frame(self, ident: i32) {
         self.animation_frame_list.borrow_mut().remove(&ident);
     }

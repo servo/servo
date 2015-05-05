@@ -74,13 +74,12 @@ impl FramerateActor {
     }
 
     fn start_recording(&mut self) {
-        let lock = self.is_recording.lock();
-        if *lock.unwrap() {
+        let mut lock = self.is_recording.lock();
+        if **lock.as_ref().unwrap() {
             return;
         }
 
         self.start_time = Some(precise_time_ns());
-        let mut lock = self.is_recording.lock();
         let is_recording = lock.as_mut();
         **is_recording.unwrap() = true;
 
@@ -120,12 +119,11 @@ impl FramerateActor {
     }
 
     fn stop_recording(&mut self) {
-        let lock = self.is_recording.lock();
-        if !*lock.unwrap() {
+        let mut lock = self.is_recording.lock();
+        if !**lock.as_ref().unwrap() {
             return;
         }
 
-        let mut lock = self.is_recording.lock();
         let is_recording = lock.as_mut();
         **is_recording.unwrap() = false;
         self.start_time = None;

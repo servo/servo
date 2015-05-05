@@ -52,12 +52,17 @@ pub fn process_new_animations(rw_data: &mut LayoutTaskData, pipeline_id: Pipelin
         rw_data.running_animations.push(animation)
     }
 
-    if !rw_data.running_animations.is_empty() {
-        rw_data.constellation_chan
-               .0
-               .send(Msg::ChangeRunningAnimationsState(pipeline_id, AnimationState::NoAnimationsPresent))
-               .unwrap();
+    let animation_state;
+    if rw_data.running_animations.is_empty() {
+        animation_state = AnimationState::NoAnimationsPresent;
+    } else {
+        animation_state = AnimationState::AnimationsPresent;
     }
+
+    rw_data.constellation_chan
+           .0
+           .send(Msg::ChangeRunningAnimationsState(pipeline_id, animation_state))
+           .unwrap();
 
 }
 

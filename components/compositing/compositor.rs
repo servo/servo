@@ -168,10 +168,10 @@ struct PipelineDetails {
     /// The status of this pipeline's PaintTask.
     paint_state: PaintState,
 
-    /// Wether animations are running
+    /// Whether animations are running
     animations_running: bool,
 
-    /// Wether there are animation callbacks
+    /// Whether there are animation callbacks
     animation_callbacks_running: bool,
 }
 
