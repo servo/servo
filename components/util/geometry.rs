@@ -129,9 +129,7 @@ impl Add for Au {
 
     #[inline]
     fn add(self, other: Au) -> Au {
-        let Au(s) = self;
-        let Au(o) = other;
-        Au(s.wrapping_add(o))
+        Au(self.0.wrapping_add(other.0))
     }
 }
 
@@ -140,9 +138,7 @@ impl Sub for Au {
 
     #[inline]
     fn sub(self, other: Au) -> Au {
-        let Au(s) = self;
-        let Au(o) = other;
-        Au(s.wrapping_sub(o))
+        Au(self.0.wrapping_sub(other.0))
     }
 
 }
@@ -152,8 +148,7 @@ impl Mul<i32> for Au {
 
     #[inline]
     fn mul(self, other: i32) -> Au {
-        let Au(s) = self;
-        Au(s.wrapping_mul(other))
+        Au(self.0.wrapping_mul(other))
     }
 }
 
@@ -162,8 +157,7 @@ impl Div<i32> for Au {
 
     #[inline]
     fn div(self, other: i32) -> Au {
-        let Au(s) = self;
-        Au(s / other)
+        Au(self.0 / other)
     }
 }
 
@@ -172,8 +166,7 @@ impl Rem<i32> for Au {
 
     #[inline]
     fn rem(self, other: i32) -> Au {
-        let Au(s) = self;
-        Au(s % other)
+        Au(self.0 % other)
     }
 }
 
@@ -182,8 +175,7 @@ impl Neg for Au {
 
     #[inline]
     fn neg(self) -> Au {
-        let Au(s) = self;
-        Au(-s)
+        Au(-self.0)
     }
 }
 
@@ -196,8 +188,7 @@ impl Au {
 
     #[inline]
     pub fn scale_by(self, factor: f32) -> Au {
-        let Au(s) = self;
-        Au(((s as f32) * factor) as i32)
+        Au(((self.0 as f32) * factor) as i32)
     }
 
     #[inline]
@@ -213,48 +204,41 @@ impl Au {
     /// Rounds this app unit down to the pixel towards zero and returns it.
     #[inline]
     pub fn to_px(&self) -> i32 {
-        let Au(a) = *self;
-        (a / 60)
+        self.0 / 60
     }
 
     /// Rounds this app unit down to the previous (left or top) pixel and returns it.
     #[inline]
     pub fn to_prev_px(&self) -> i32 {
-        let Au(s) = *self;
-        ((s as f64) / 60f64).floor() as i32
+        ((self.0 as f64) / 60f64).floor() as i32
     }
 
     /// Rounds this app unit up to the next (right or bottom) pixel and returns it.
     #[inline]
     pub fn to_next_px(&self) -> i32 {
-        let Au(s) = *self;
-        ((s as f64) / 60f64).ceil() as i32
+        ((self.0 as f64) / 60f64).ceil() as i32
     }
 
     #[inline]
     pub fn to_nearest_px(&self) -> i32 {
-        let Au(s) = *self;
-        ((s as f64) / 60f64).round() as i32
+        ((self.0 as f64) / 60f64).round() as i32
     }
 
     #[inline]
     pub fn to_f32_px(&self) -> f32 {
-        let Au(s) = *self;
-        (s as f32) / 60f32
+        (self.0 as f32) / 60f32
     }
 
     #[inline]
     pub fn to_f64_px(&self) -> f64 {
-        let Au(s) = *self;
-        (s as f64) / 60f64
+        (self.0 as f64) / 60f64
     }
 
     #[inline]
     pub fn to_snapped(&self) -> Au {
-        let Au(s) = *self;
-        let res = s % 60i32;
-        return if res >= 30i32 { return Au(s - res + 60i32) }
-                       else { return Au(s - res) };
+        let res = self.0 % 60i32;
+        return if res >= 30i32 { return Au(self.0 - res + 60i32) }
+                       else { return Au(self.0 - res) };
     }
 
     #[inline]
