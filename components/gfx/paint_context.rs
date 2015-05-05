@@ -826,16 +826,16 @@ impl<'a> PaintContext<'a> {
         let baseline_origin = match text.orientation {
             Upright => text.baseline_origin,
             SidewaysLeft => {
-                let x = text.baseline_origin.x.to_f64_px() as AzFloat;
-                let y = text.baseline_origin.y.to_f64_px() as AzFloat;
+                let x = text.baseline_origin.x.to_f32_px();
+                let y = text.baseline_origin.y.to_f32_px();
                 self.draw_target.set_transform(&draw_target_transform.mul(&Matrix2D::new(0., -1.,
                                                                                          1., 0.,
                                                                                          x, y)));
                 Point2D::zero()
             }
             SidewaysRight => {
-                let x = text.baseline_origin.x.to_f64_px() as AzFloat;
-                let y = text.baseline_origin.y.to_f64_px() as AzFloat;
+                let x = text.baseline_origin.x.to_f32_px();
+                let y = text.baseline_origin.y.to_f32_px();
                 self.draw_target.set_transform(&draw_target_transform.mul(&Matrix2D::new(0., 1.,
                                                                                          -1., 0.,
                                                                                          x, y)));
@@ -1112,7 +1112,7 @@ impl ToAzurePoint for Point2D<Au> {
         Point2D(self.x.to_nearest_px() as AzFloat, self.y.to_nearest_px() as AzFloat)
     }
     fn to_f64_px_azure_point(&self) -> Point2D<AzFloat> {
-        Point2D(self.x.to_f64_px() as AzFloat, self.y.to_f64_px() as AzFloat)
+        Point2D(self.x.to_f32_px(), self.y.to_f32_px())
     }
 }
 
@@ -1128,8 +1128,8 @@ impl ToAzureRect for Rect<Au> {
 
     }
     fn to_f64_px_azure_rect(&self) -> Rect<AzFloat> {
-        Rect(self.origin.to_f64_px_azure_point(), Size2D(self.size.width.to_f64_px() as AzFloat,
-                                                        self.size.height.to_f64_px() as AzFloat))
+        Rect(self.origin.to_f64_px_azure_point(), Size2D(self.size.width.to_f32_px(),
+                                                        self.size.height.to_f32_px()))
     }
 }
 
@@ -1241,8 +1241,8 @@ impl ScaledFontExtensionMethods for ScaledFont {
                 let azglyph = struct__AzGlyph {
                     mIndex: glyph.id() as uint32_t,
                     mPosition: struct__AzPoint {
-                        x: (origin.x + glyph_offset.x).to_f64_px() as AzFloat,
-                        y: (origin.y + glyph_offset.y).to_f64_px() as AzFloat
+                        x: (origin.x + glyph_offset.x).to_f32_px(),
+                        y: (origin.y + glyph_offset.y).to_f32_px(),
                     }
                 };
                 origin = Point2D(origin.x + glyph_advance, origin.y);
