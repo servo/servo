@@ -355,6 +355,20 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.update_transform()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-rotate
+    fn Rotate(self, angle: f64) {
+        if angle == 0.0 || !angle.is_finite() {
+            return;
+        }
+
+        let (sin, cos) = (angle.sin(), angle.cos());
+        let transform = self.state.borrow().transform;
+        self.state.borrow_mut().transform = transform.mul(&Matrix2D::new(cos as f32, sin as f32,
+                                                                         -sin as f32, cos as f32,
+                                                                         0.0, 0.0));
+        self.update_transform()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-translate
     fn Translate(self, x: f64, y: f64) {
         if !(x.is_finite() && y.is_finite()) {
