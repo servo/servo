@@ -117,10 +117,10 @@ impl ShapedGlyphData {
             let x_advance = Shaper::fixed_to_float((*pos_info_i).x_advance);
             let y_advance = Shaper::fixed_to_float((*pos_info_i).y_advance);
 
-            let x_offset = Au::from_frac_px(x_offset);
-            let y_offset = Au::from_frac_px(y_offset);
-            let x_advance = Au::from_frac_px(x_advance);
-            let y_advance = Au::from_frac_px(y_advance);
+            let x_offset = Au::from_f64_px(x_offset);
+            let y_offset = Au::from_f64_px(y_offset);
+            let x_advance = Au::from_f64_px(x_advance);
+            let y_advance = Au::from_f64_px(y_advance);
 
             let offset = if x_offset == Au(0) && y_offset == Au(0) && y_advance == Au(0) {
                 None
@@ -185,7 +185,7 @@ impl Shaper {
             let hb_font: *mut hb_font_t = RUST_hb_font_create(hb_face);
 
             // Set points-per-em. if zero, performs no hinting in that direction.
-            let pt_size = font.actual_pt_size.to_subpx();
+            let pt_size = font.actual_pt_size.to_f64_px();
             RUST_hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
 
             // Set scaling. Note that this takes 16.16 fixed point.
@@ -518,7 +518,7 @@ impl Shaper {
             advance = advance + options.word_spacing
         } else if character == '\t' {
             let tab_size = 8f64;
-            advance = Au::from_frac_px(tab_size * glyph_space_advance(self.font_and_shaping_options.font));
+            advance = Au::from_f64_px(tab_size * glyph_space_advance(self.font_and_shaping_options.font));
         }
 
         advance

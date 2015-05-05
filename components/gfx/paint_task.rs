@@ -546,8 +546,8 @@ impl WorkerThread {
             // Apply a translation to start at the boundaries of the stacking context, since the
             // layer's origin starts at its overflow rect's origin.
             let tile_bounds = tile.page_rect.translate(
-                &Point2D(stacking_context.overflow.origin.x.to_subpx() as AzFloat,
-                         stacking_context.overflow.origin.y.to_subpx() as AzFloat));
+                &Point2D(stacking_context.overflow.origin.x.to_f32_px(),
+                         stacking_context.overflow.origin.y.to_f32_px()));
 
             // Apply the translation to paint the tile we want.
             let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
@@ -575,8 +575,8 @@ impl WorkerThread {
                 // painted this tile.
                 let color = THREAD_TINT_COLORS[thread_id % THREAD_TINT_COLORS.len()];
                 paint_context.draw_solid_color(&Rect(Point2D(Au(0), Au(0)),
-                                                     Size2D(Au::from_px(size.width as isize),
-                                                            Au::from_px(size.height as isize))),
+                                                     Size2D(Au::from_px(size.width),
+                                                            Au::from_px(size.height))),
                                                color);
             }
         }

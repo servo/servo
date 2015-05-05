@@ -187,7 +187,7 @@ pub mod specified {
         pub fn to_computed_value(&self, viewport_size: Size2D<Au>) -> Au {
             macro_rules! to_unit {
                 ($viewport_dimension:expr) => {
-                    $viewport_dimension.to_frac32_px() / 100.0
+                    $viewport_dimension.to_f32_px() / 100.0
                 }
             }
 
@@ -201,7 +201,7 @@ pub mod specified {
                 &ViewportPercentageLength::Vmax(length) =>
                     length * to_unit!(cmp::max(viewport_size.width, viewport_size.height)),
             };
-            Au::from_frac32_px(value)
+            Au::from_f32_px(value)
         }
     }
 
@@ -236,7 +236,7 @@ pub mod specified {
     impl ToCss for Length {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match self {
-                &Length::Absolute(length) => write!(dest, "{}px", length.to_frac32_px()),
+                &Length::Absolute(length) => write!(dest, "{}px", length.to_f32_px()),
                 &Length::FontRelative(length) => length.to_css(dest),
                 &Length::ViewportPercentage(length) => length.to_css(dest),
                 &Length::ServoCharacterWidth(_)
@@ -1114,7 +1114,7 @@ pub mod computed {
 
         fn mul(self, scalar: CSSFloat) -> LengthAndPercentage {
             LengthAndPercentage {
-                length: Au::from_frac32_px(self.length.to_frac32_px() * scalar),
+                length: Au::from_f32_px(self.length.to_f32_px() * scalar),
                 percentage: self.percentage * scalar,
             }
         }

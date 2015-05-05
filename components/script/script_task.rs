@@ -70,7 +70,6 @@ use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
 use net_traits::storage_task::StorageTask;
 use string_cache::Atom;
-use util::geometry::to_frac_px;
 use util::str::DOMString;
 use util::task::{spawn_named, spawn_named_with_send_on_failure};
 use util::task_state;
@@ -85,7 +84,6 @@ use js::rust::{Runtime, RtUtils};
 use url::Url;
 
 use libc;
-use num::ToPrimitive;
 use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -1182,8 +1180,7 @@ impl ScriptTask {
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: JSRef<Element>) {
         let node: JSRef<Node> = NodeCast::from_ref(node);
         let rect = node.get_bounding_content_box();
-        let point = Point2D(to_frac_px(rect.origin.x).to_f32().unwrap(),
-                            to_frac_px(rect.origin.y).to_f32().unwrap());
+        let point = Point2D(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px());
         // FIXME(#2003, pcwalton): This is pretty bogus when multiple layers are involved.
         // Really what needs to happen is that this needs to go through layout to ask which
         // layer the element belongs to, and have it send the scroll message to the

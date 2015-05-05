@@ -95,7 +95,7 @@ pub fn create_filters(draw_target: &DrawTarget,
             }
             filter::Filter::Blur(amount) => {
                 *accumulated_blur_radius = accumulated_blur_radius.clone() + amount;
-                let amount = amount.to_frac32_px();
+                let amount = amount.to_f32_px();
                 let blur = draw_target.create_filter(FilterType::GaussianBlur);
                 blur.set_attribute(GaussianBlurAttribute::StdDeviation(amount));
                 blur.set_input(GaussianBlurInput, &filter);

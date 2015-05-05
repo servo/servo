@@ -397,8 +397,8 @@ impl LineBreaker {
 
     fn new_block_size_for_line(&self, new_fragment: &Fragment, layout_context: &LayoutContext)
                                -> Au {
-        Au::max(self.pending_line.bounds.size.block,
-                self.new_inline_metrics_for_line(new_fragment, layout_context).block_size())
+        max(self.pending_line.bounds.size.block,
+            self.new_inline_metrics_for_line(new_fragment, layout_context).block_size())
     }
 
     /// Computes the position of a line that has only the provided fragment. Returns the bounding
@@ -966,7 +966,7 @@ impl InlineFlow {
         }
 
         // Then distribute all the space across the expansion opportunities.
-        let space_per_expansion_opportunity = slack_inline_size.to_subpx() /
+        let space_per_expansion_opportunity = slack_inline_size.to_f64_px() /
             (expansion_opportunities as f64);
         for fragment_index in line.range.each_index() {
             let fragment = fragments.get_mut(fragment_index.to_usize());
@@ -1589,10 +1589,10 @@ impl InlineMetrics {
 
     pub fn max(&self, other: &InlineMetrics) -> InlineMetrics {
         InlineMetrics {
-            block_size_above_baseline: Au::max(self.block_size_above_baseline,
-                                               other.block_size_above_baseline),
-            depth_below_baseline: Au::max(self.depth_below_baseline, other.depth_below_baseline),
-            ascent: Au::max(self.ascent, other.ascent),
+            block_size_above_baseline: max(self.block_size_above_baseline,
+                                           other.block_size_above_baseline),
+            depth_below_baseline: max(self.depth_below_baseline, other.depth_below_baseline),
+            ascent: max(self.ascent, other.ascent),
         }
     }
 }

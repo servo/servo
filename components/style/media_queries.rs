@@ -203,8 +203,8 @@ pub fn parse_media_query_list(input: &mut Parser) -> MediaQueryList {
 
 impl MediaQueryList {
     pub fn evaluate(&self, device: &Device) -> bool {
-        let viewport_size = Size2D(Au::from_frac32_px(device.viewport_size.width.get()),
-                                   Au::from_frac32_px(device.viewport_size.height.get()));
+        let viewport_size = Size2D(Au::from_f32_px(device.viewport_size.width.get()),
+                                   Au::from_f32_px(device.viewport_size.height.get()));
 
         // Check if any queries match (OR condition)
         self.media_queries.iter().any(|mq| {

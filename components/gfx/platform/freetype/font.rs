@@ -7,7 +7,6 @@ extern crate freetype;
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel};
 use util::geometry::Au;
-use util::geometry;
 use util::str::c_str_to_string;
 use platform::font_context::FontContextHandle;
 use text::glyph::GlyphId;
@@ -225,9 +224,9 @@ impl FontHandleMethods for FontHandle {
         let height = self.font_units_to_au(face.height as f64);
         let leading = height - (ascent + descent);
 
-        let mut strikeout_size = geometry::from_pt(0.0);
-        let mut strikeout_offset = geometry::from_pt(0.0);
-        let mut x_height = geometry::from_pt(0.0);
+        let mut strikeout_size = Au(0);
+        let mut strikeout_offset = Au(0);
+        let mut x_height = Au(0);
         unsafe {
             let os2 = FT_Get_Sfnt_Table(face, ft_sfnt_os2) as *mut TT_OS2;
             let valid = !os2.is_null() && (*os2).version != 0xffff;
@@ -258,7 +257,7 @@ impl FontHandleMethods for FontHandle {
             line_gap:         height,
         };
 
-        debug!("Font metrics (@{} pt): {:?}", geometry::to_pt(em_size), metrics);
+        debug!("Font metrics (@{}px): {:?}", em_size.to_f32_px(), metrics);
         return metrics;
     }
 
@@ -269,7 +268,7 @@ impl FontHandleMethods for FontHandle {
 
 impl<'a> FontHandle {
     fn set_char_size(face: FT_Face, pt_size: Au) -> Result<(), ()>{
-        let char_width = float_to_fixed_ft((0.5f64 + pt_size.to_subpx()).floor()) as FT_F26Dot6;
+        let char_width = float_to_fixed_ft((0.5f64 + pt_size.to_f64_px()).floor()) as FT_F26Dot6;
 
         unsafe {
             let result = FT_Set_Char_Size(face, char_width, 0, 0, 0);
@@ -297,6 +296,6 @@ impl<'a> FontHandle {
         // If this isn't true then we're scaling one of the axes wrong
         assert!(metrics.x_ppem == metrics.y_ppem);
 
-        return geometry::from_frac_px(value * x_scale);
+        return Au::from_f64_px(value * x_scale);
     }
 }

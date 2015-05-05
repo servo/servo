@@ -851,8 +851,8 @@ impl LayoutTask {
         // http://www.w3.org/TR/css-device-adapt/#actual-viewport
         let viewport_size = data.window_size.initial_viewport;
         let old_screen_size = rw_data.screen_size;
-        let current_screen_size = Size2D(Au::from_frac32_px(viewport_size.width.get()),
-                                         Au::from_frac32_px(viewport_size.height.get()));
+        let current_screen_size = Size2D(Au::from_f32_px(viewport_size.width.get()),
+                                         Au::from_f32_px(viewport_size.height.get()));
         rw_data.screen_size = current_screen_size;
 
         // Handle conditions where the entire flow tree is invalid.
@@ -1096,7 +1096,7 @@ impl LayoutRPC for LayoutRPCImpl {
 
     /// Requests the node containing the point of interest.
     fn hit_test(&self, _: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
-        let point = Point2D(Au::from_frac32_px(point.x), Au::from_frac32_px(point.y));
+        let point = Point2D(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
         let resp = {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock().unwrap();
@@ -1123,7 +1123,7 @@ impl LayoutRPC for LayoutRPCImpl {
     fn mouse_over(&self, _: TrustedNodeAddress, point: Point2D<f32>)
                   -> Result<MouseOverResponse, ()> {
         let mut mouse_over_list: Vec<DisplayItemMetadata> = vec!();
-        let point = Point2D(Au::from_frac32_px(point.x), Au::from_frac32_px(point.y));
+        let point = Point2D(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
         {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock().unwrap();

@@ -126,7 +126,7 @@ impl PresentationalHintSynthesis for Stylist {
                         UnsignedIntegerAttribute::CellSpacing) {
                     None => {}
                     Some(length) => {
-                        let width_value = specified::Length::Absolute(Au::from_px(length as isize));
+                        let width_value = specified::Length::Absolute(Au::from_px(length as i32));
                         matching_rules_list.push(from_declaration(
                                 PropertyDeclaration::BorderSpacing(
                                     SpecifiedValue(
@@ -204,7 +204,7 @@ impl PresentationalHintSynthesis for Stylist {
         match element.get_unsigned_integer_attribute(UnsignedIntegerAttribute::Border) {
             None => {}
             Some(length) => {
-                let width_value = specified::Length::Absolute(Au::from_px(length as isize));
+                let width_value = specified::Length::Absolute(Au::from_px(length as i32));
                 matching_rules_list.push(from_declaration(
                         PropertyDeclaration::BorderTopWidth(SpecifiedValue(
                             longhands::border_top_width::SpecifiedValue(width_value)))));

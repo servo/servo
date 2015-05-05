@@ -135,8 +135,8 @@ impl<'a> Activatable for JSRef<'a, HTMLAnchorElement> {
                 let target_node = NodeCast::to_ref(target).unwrap();
                 let rect = window_from_node(target_node).root().r().content_box_query(target_node.to_trusted_node_address());
                 ismap_suffix = Some(
-                    format!("?{},{}", mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_frac32_px(),
-                                      mouse_event.ClientY().to_f32().unwrap() - rect.origin.y.to_frac32_px())
+                    format!("?{},{}", mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_f32_px(),
+                                      mouse_event.ClientY().to_f32().unwrap() - rect.origin.y.to_f32_px())
                 )
             }
         }

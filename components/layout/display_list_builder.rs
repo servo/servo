@@ -52,7 +52,7 @@ use style::values::computed::{Image, LinearGradient, LengthOrPercentage, LengthO
 use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
 use url::Url;
 use util::cursor::Cursor;
-use util::geometry::{self, Au, ZERO_POINT, to_px, to_frac_px};
+use util::geometry::{Au, ZERO_POINT};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
 
@@ -251,7 +251,7 @@ fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> Borde
         if required <= edge_length {
             1.0
         } else {
-            edge_length.to_frac32_px() / required.to_frac32_px()
+            edge_length.to_f32_px() / required.to_f32_px()
         }
     }
 
@@ -352,18 +352,18 @@ impl FragmentDisplayListBuilding for Fragment {
         // If `image_aspect_ratio` < `bounds_aspect_ratio`, the image is tall; otherwise, it is
         // wide.
         let image_aspect_ratio = (image.width as f64) / (image.height as f64);
-        let bounds_aspect_ratio = bounds.size.width.to_subpx() / bounds.size.height.to_subpx();
-        let intrinsic_size = Size2D(Au::from_px(image.width as isize),
-                                    Au::from_px(image.height as isize));
+        let bounds_aspect_ratio = bounds.size.width.to_f64_px() / bounds.size.height.to_f64_px();
+        let intrinsic_size = Size2D(Au::from_px(image.width as i32),
+                                    Au::from_px(image.height as i32));
         match (style.get_background().background_size.clone(),
                image_aspect_ratio < bounds_aspect_ratio) {
             (background_size::T::Contain, false) | (background_size::T::Cover, true) => {
                 Size2D(bounds.size.width,
-                       Au::from_frac_px(bounds.size.width.to_subpx() / image_aspect_ratio))
+                       Au::from_f64_px(bounds.size.width.to_f64_px() / image_aspect_ratio))
             }
 
             (background_size::T::Contain, true) | (background_size::T::Cover, false) => {
-                Size2D(Au::from_frac_px(bounds.size.height.to_subpx() * image_aspect_ratio),
+                Size2D(Au::from_f64_px(bounds.size.height.to_f64_px() * image_aspect_ratio),
                        bounds.size.height)
             }
 
@@ -373,7 +373,7 @@ impl FragmentDisplayListBuilding for Fragment {
             }), _) => {
                 let width = MaybeAuto::from_style(width, bounds.size.width)
                                       .specified_or_default(intrinsic_size.width);
-                Size2D(width, Au::from_frac_px(width.to_subpx() / image_aspect_ratio))
+                Size2D(width, Au::from_f64_px(width.to_f64_px() / image_aspect_ratio))
             }
 
             (background_size::T::Explicit(background_size::ExplicitSize {
@@ -382,7 +382,7 @@ impl FragmentDisplayListBuilding for Fragment {
             }), _) => {
                 let height = MaybeAuto::from_style(height, bounds.size.height)
                                        .specified_or_default(intrinsic_size.height);
-                Size2D(Au::from_frac_px(height.to_subpx() * image_aspect_ratio), height)
+                Size2D(Au::from_f64_px(height.to_f64_px() * image_aspect_ratio), height)
             }
 
             (background_size::T::Explicit(background_size::ExplicitSize {
@@ -501,10 +501,10 @@ impl FragmentDisplayListBuilding for Fragment {
         // between the starting point and the ending point.
         let delta = match gradient.angle_or_corner {
             AngleOrCorner::Angle(angle) => {
-                Point2D(Au::from_frac32_px(angle.radians().sin() *
-                                           absolute_bounds.size.width.to_frac32_px() / 2.0),
-                        Au::from_frac32_px(-angle.radians().cos() *
-                                           absolute_bounds.size.height.to_frac32_px() / 2.0))
+                Point2D(Au::from_f32_px(angle.radians().sin() *
+                                           absolute_bounds.size.width.to_f32_px() / 2.0),
+                        Au::from_f32_px(-angle.radians().cos() *
+                                           absolute_bounds.size.height.to_f32_px() / 2.0))
             }
             AngleOrCorner::Corner(horizontal, vertical) => {
                 let x_factor = match horizontal {
@@ -521,8 +521,8 @@ impl FragmentDisplayListBuilding for Fragment {
         };
 
         // This is the length of the gradient line.
-        let length = Au::from_frac32_px(
-            (delta.x.to_frac32_px() * 2.0).hypot(delta.y.to_frac32_px() * 2.0));
+        let length = Au::from_f32_px(
+            (delta.x.to_f32_px() * 2.0).hypot(delta.y.to_f32_px() * 2.0));
 
         // Determine the position of each stop per CSS-IMAGES § 3.4.
         //
@@ -1025,9 +1025,9 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
                 let width = canvas_fragment_info.replaced_image_fragment_info
-                    .computed_inline_size.map_or(0, |w| to_px(w) as usize);
+                    .computed_inline_size.map_or(0, |w| w.to_px() as usize);
                 let height = canvas_fragment_info.replaced_image_fragment_info
-                    .computed_block_size.map_or(0, |h| to_px(h) as usize);
+                    .computed_block_size.map_or(0, |h| h.to_px() as usize);
 
                 let (sender, receiver) = channel::<Vec<u8>>();
                 let canvas_data = match canvas_fragment_info.renderer {
@@ -1080,9 +1080,9 @@ impl FragmentDisplayListBuilding for Fragment {
         let transform_origin = self.style().get_effects().transform_origin;
         let transform_origin =
             Point2D(model::specified(transform_origin.horizontal,
-                                     border_box.size.width).to_frac32_px(),
+                                     border_box.size.width).to_f32_px(),
                     model::specified(transform_origin.vertical,
-                                     border_box.size.height).to_frac32_px());
+                                     border_box.size.height).to_f32_px());
         let transform = self.style().get_effects().transform
             .unwrap_or(ComputedMatrix::identity()).to_gfx_matrix(&border_box.size);
 
@@ -1117,10 +1117,10 @@ impl FragmentDisplayListBuilding for Fragment {
                                             layout_context: &LayoutContext) {
         let border_padding = (self.border_padding).to_physical(self.style.writing_mode);
         let content_size = self.content_box().size.to_physical(self.style.writing_mode);
-        let iframe_rect = Rect(Point2D(geometry::to_frac_px(offset.x + border_padding.left) as f32,
-                                       geometry::to_frac_px(offset.y + border_padding.top) as f32),
-                               Size2D(geometry::to_frac_px(content_size.width) as f32,
-                                      geometry::to_frac_px(content_size.height) as f32));
+        let iframe_rect = Rect(Point2D((offset.x + border_padding.left).to_f32_px(),
+                                       (offset.y + border_padding.top).to_f32_px()),
+                               Size2D(content_size.width.to_f32_px(),
+                                      content_size.height.to_f32_px()));
 
         debug!("finalizing position and size of iframe for {:?},{:?}",
                iframe_fragment.pipeline_id,

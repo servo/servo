@@ -62,7 +62,7 @@ impl FontHandleMethods for FontHandle {
                        pt_size: Option<Au>)
                         -> Result<FontHandle, ()> {
         let size = match pt_size {
-            Some(s) => s.to_subpx(),
+            Some(s) => s.to_f64_px(),
             None => 0.0
         };
         match template.ctfont {
@@ -162,7 +162,7 @@ impl FontHandleMethods for FontHandle {
         let bounding_rect: CGRect = self.ctfont.bounding_box();
         let ascent = self.ctfont.ascent() as f64;
         let descent = self.ctfont.descent() as f64;
-        let em_size = Au::from_frac_px(self.ctfont.pt_size() as f64);
+        let em_size = Au::from_f64_px(self.ctfont.pt_size() as f64);
         let leading = self.ctfont.leading() as f64;
 
         let scale = px_to_pt(self.ctfont.pt_size() as f64) / (ascent + descent);
@@ -171,7 +171,7 @@ impl FontHandleMethods for FontHandle {
         let max_advance_width = Au::from_pt(bounding_rect.size.width as f64);
         let average_advance = self.glyph_index('0')
                                   .and_then(|idx| self.glyph_h_advance(idx))
-                                  .map(|advance| Au::from_frac_px(advance))
+                                  .map(|advance| Au::from_f64_px(advance))
                                   .unwrap_or(max_advance_width);
 
         let metrics =  FontMetrics {
@@ -182,8 +182,8 @@ impl FontHandleMethods for FontHandle {
             // see also: https://bugs.webkit.org/show_bug.cgi?id=16768
             // see also: https://bugreports.qt-project.org/browse/QTBUG-13364
             underline_offset: Au::from_pt(self.ctfont.underline_position() as f64),
-            strikeout_size:   geometry::from_pt(0.0), // FIXME(Issue #942)
-            strikeout_offset: geometry::from_pt(0.0), // FIXME(Issue #942)
+            strikeout_size:   Au(0), // FIXME(Issue #942)
+            strikeout_offset: Au(0), // FIXME(Issue #942)
             leading:          Au::from_pt(leading),
             x_height:         Au::from_pt(self.ctfont.x_height() as f64),
             em_size:          em_size,
@@ -191,7 +191,7 @@ impl FontHandleMethods for FontHandle {
             descent:          Au::from_pt(descent * scale),
             max_advance:      max_advance_width,
             average_advance:  average_advance,
-            line_gap:         Au::from_frac_px(line_gap),
+            line_gap:         Au::from_f64_px(line_gap),
         };
         debug!("Font metrics (@{} pt): {:?}", self.ctfont.pt_size() as f64, metrics);
         return metrics;
