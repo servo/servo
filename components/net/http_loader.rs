@@ -331,14 +331,23 @@ reason: \"certificate verify failed\" }]";
             Some(encoding) => {
                 if encoding == "gzip" {
                     let mut response_decoding = GzDecoder::new(response).unwrap();
-                    send_data(&mut response_decoding, start_chan, metadata, classifier);
+                    if send_data(&mut response_decoding, start_chan, metadata,
+                                 classifier, &cancel_receiver) {
+                        return;
+                    }
                 } else if encoding == "deflate" {
                     let mut response_decoding = DeflateDecoder::new(response);
-                    send_data(&mut response_decoding, start_chan, metadata, classifier);
+                    if send_data(&mut response_decoding, start_chan, metadata,
+                                 classifier, &cancel_receiver) {
+                        return;
+                    }
                 }
             },
             None => {
-                send_data(&mut response, start_chan, metadata, classifier);
+                if send_data(&mut response, start_chan, metadata,
+                             classifier, &cancel_receiver) {
+                    return;
+                }
             }
         }
 
@@ -350,7 +359,12 @@ reason: \"certificate verify failed\" }]";
 fn send_data<R: Read>(reader: &mut R,
                       start_chan: LoadConsumer,
                       metadata: Metadata,
-                      classifier: Arc<MIMEClassifier>) {
+                      classifier: Arc<MIMEClassifier>,
+                      cancel_receiver: &CancelationListener) -> bool {
+    if cancel_receiver.is_cancelled() {
+        return true;
+    }
+
     let (progress_chan, mut chunk) = {
         let buf = match read_block(reader) {
             Ok(ReadResult::Payload(buf)) => buf,
@@ -358,17 +372,21 @@ fn send_data<R: Read>(reader: &mut R,
         };
         let p = match start_sending_sniffed_opt(start_chan, metadata, classifier, &buf) {
             Ok(p) => p,
-            _ => return
+            _ => return false
         };
         (p, buf)
     };
 
     loop {
+        if cancel_receiver.is_cancelled() {
+            return true;
+        }
+
         if progress_chan.send(Payload(chunk)).is_err() {
             // The send errors when the receiver is out of scope,
             // which will happen if the fetch has timed out (or has been aborted)
             // so we don't need to continue with the loading of the file here.
-            return;
+            return false;
         }
 
         chunk = match read_block(reader) {
@@ -377,5 +395,11 @@ fn send_data<R: Read>(reader: &mut R,
         };
     }
 
+    if cancel_receiver.is_cancelled() {
+        return true;
+    }
+
     let _ = progress_chan.send(Done(Ok(())));
+
+    false
 }

@@ -33,17 +33,27 @@ fn read_block(reader: &mut File) -> Result<ReadStatus, String> {
     }
 }
 
-fn read_all(reader: &mut File, progress_chan: &ProgressSender)
-            -> Result<(), String> {
+// returns true on cancelation, false on natural finish
+fn read_all(reader: &mut File,
+            progress_chan: &ProgressSender,
+            cancel_receiver: &CancelationListener)
+            -> Result<bool, String> {
     loop {
+        if cancel_receiver.is_cancelled() {
+            return Ok(true);
+        }
+
         match try!(read_block(reader)) {
             ReadStatus::Partial(buf) => progress_chan.send(Payload(buf)).unwrap(),
-            ReadStatus::EOF => return Ok(()),
+            ReadStatus::EOF => return Ok(false),
         }
     }
 }
 
-pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEClassifier>, cancel_receiver: CancelationListener) {
+pub fn factory(load_data: LoadData,
+               senders: LoadConsumer,
+               classifier: Arc<MIMEClassifier>,
+               cancel_receiver: CancelationListener) {
     let url = load_data.url;
     assert!(&*url.scheme == "file");
     spawn_named("file_loader".to_owned(), move || {
@@ -63,10 +73,12 @@ pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEC
                                                                           classifier, &buf);
                                 progress_chan.send(Payload(buf)).unwrap();
 
-                                if cancel_receiver.is_cancelled() {
+                                let read_result = read_all(reader, &progress_chan, &cancel_receiver);
+                                if let Ok(true) = read_result {
                                     return;
                                 }
-                                (read_all(reader, &progress_chan), progress_chan)
+                                
+                                (read_result.map(|_| ()), progress_chan)
                             }
                             Ok(ReadStatus::EOF) | Err(_) =>
                                 (res.map(|_| ()), start_sending(senders, metadata)),

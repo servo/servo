@@ -248,7 +248,9 @@ impl ResourceManager {
                 consumer.send(self.cookie_storage.cookies_for_url(&url, source)).unwrap();
               }
               ControlMsg::Cancel(resource_id) => {
-                self.resource_id_map.get(&resource_id).unwrap().send(CancelLoad).unwrap();
+                let _ = self.resource_id_map.get(&resource_id).map(|cancel_sender| {
+                    cancel_sender.send(CancelLoad).unwrap()
+                });
               },
               ControlMsg::Exit => {
                 break
@@ -287,18 +289,15 @@ impl ResourceManager {
         };
         debug!("resource_task: loading url: {}", load_data.url.serialize());
 
-        let cancelation_receiver = match resource_sender {
-            Some(sender) => {
-                let resource_id = self.next_resource_id.increment();
-                let (cancel_sender, cancel_receiver) = channel();
+        let cancelation_receiver = resource_sender.map(|sender| {
+            let resource_id = self.next_resource_id.increment();
+            let (cancel_sender, cancel_receiver) = channel();
 
-                self.resource_id_map.insert(resource_id, cancel_sender);
-                sender.send(resource_id).unwrap();
+            self.resource_id_map.insert(resource_id, cancel_sender);
+            sender.send(resource_id).unwrap();
 
-                Some(cancel_receiver)
-            },
-            None => None
-        };
+            cancel_receiver
+        });
 
         let cancelation_listener = CancelationListener::from_receiver(cancelation_receiver);
 
