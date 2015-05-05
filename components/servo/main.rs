@@ -15,7 +15,7 @@
 //!
 //! [glutin]: https://github.com/tomaka/glutin
 
-#![feature(start, libc)]
+#![feature(start)]
 
 // The Servo engine
 extern crate servo;
