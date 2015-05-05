@@ -87,6 +87,33 @@ impl Window {
         WindowEvent::Idle
     }
 
+    fn cursor_type_for_cursor(&self, cursor: Cursor) -> cef_cursor_type_t {
+        match cursor {
+            Cursor::NoCursor => return cef_cursor_type_t::CT_NONE,
+            Cursor::ContextMenuCursor => return cef_cursor_type_t::CT_CONTEXTMENU,
+            Cursor::GrabbingCursor => return cef_cursor_type_t::CT_GRABBING,
+            Cursor::CrosshairCursor => return cef_cursor_type_t::CT_CROSS,
+            Cursor::CopyCursor => return cef_cursor_type_t::CT_COPY,
+            Cursor::AliasCursor => return cef_cursor_type_t::CT_ALIAS,
+            Cursor::TextCursor => return cef_cursor_type_t::CT_IBEAM,
+            Cursor::GrabCursor | Cursor::AllScrollCursor =>
+                return cef_cursor_type_t::CT_GRAB,
+            Cursor::NoDropCursor => return cef_cursor_type_t::CT_NODROP,
+            Cursor::NotAllowedCursor => return cef_cursor_type_t::CT_NOTALLOWED,
+            Cursor::PointerCursor => return cef_cursor_type_t::CT_POINTER,
+            Cursor::SResizeCursor => return cef_cursor_type_t::CT_SOUTHRESIZE,
+            Cursor::WResizeCursor => return cef_cursor_type_t::CT_WESTRESIZE,
+            Cursor::EwResizeCursor => return cef_cursor_type_t::CT_EASTWESTRESIZE,
+            Cursor::ColResizeCursor => return cef_cursor_type_t::CT_COLUMNRESIZE,
+            Cursor::EResizeCursor => return cef_cursor_type_t::CT_EASTRESIZE,
+            Cursor::NResizeCursor => return cef_cursor_type_t::CT_NORTHRESIZE,
+            Cursor::NsResizeCursor => return cef_cursor_type_t::CT_NORTHSOUTHRESIZE,
+            Cursor::RowResizeCursor => return cef_cursor_type_t::CT_ROWRESIZE,
+            Cursor::VerticalTextCursor => return cef_cursor_type_t::CT_VERTICALTEXT,
+            _ => return cef_cursor_type_t::CT_POINTER,
+        }
+    }
+
     /// Returns the Cocoa cursor for a CSS cursor. These match Firefox, except where Firefox
     /// bundles custom resources (which we don't yet do).
     #[cfg(target_os="macos")]
@@ -318,7 +345,7 @@ impl WindowMethods for Window {
                        .get_client()
                        .get_render_handler()
                        .on_cursor_change(browser.clone(), cursor_handle,
-                         CT_POINTER, &info)
+                         self.cursor_type_for_cursor(cursor), &info)
             }
         }
     }
