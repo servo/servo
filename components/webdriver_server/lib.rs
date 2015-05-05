@@ -153,7 +153,7 @@ impl Handler {
         let interval = 20;
         let iterations = 30_000 / interval;
 
-        for _ in [0..iterations].iter() {
+        for _ in 0..iterations {
             let (sender, reciever) = channel();
             let ConstellationChan(ref const_chan) = self.constellation_chan;
             const_chan.send(ConstellationMsg::CompositePng(sender)).unwrap();

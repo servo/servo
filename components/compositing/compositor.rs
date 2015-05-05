@@ -191,9 +191,34 @@ impl PipelineDetails {
 
 #[derive(Clone, Copy, PartialEq)]
 enum CompositeTarget {
+    /// Normal composition to a window
     Window,
+
+    /// Compose as normal, but also return a PNG of the composed output
     WindowAndPng,
+
+    /// Compose to a PNG, write it to disk, and then exit the browser (used for reftests)
     PngFile
+}
+
+fn initialize_png(width: usize, height: usize) -> (Vec<gl::GLuint>, Vec<gl::GLuint>) {
+    let framebuffer_ids = gl::gen_framebuffers(1);
+    gl::bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
+
+    let texture_ids = gl::gen_textures(1);
+    gl::bind_texture(gl::TEXTURE_2D, texture_ids[0]);
+
+    gl::tex_image_2d(gl::TEXTURE_2D, 0, gl::RGB as GLint, width as GLsizei,
+                     height as GLsizei, 0, gl::RGB, gl::UNSIGNED_BYTE, None);
+    gl::tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
+    gl::tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
+
+    gl::framebuffer_texture_2d(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D,
+                               texture_ids[0], 0);
+
+    gl::bind_texture(gl::TEXTURE_2D, 0);
+
+    (framebuffer_ids, texture_ids)
 }
 
 impl<Window: WindowMethods> IOCompositor<Window> {
@@ -1180,7 +1205,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let (framebuffer_ids, texture_ids) = match target {
             CompositeTarget::Window => (vec!(), vec!()),
-            _ => self.initialize_png(width, height)
+            _ => initialize_png(width, height)
         };
 
         profile(ProfilerCategory::Compositing, None, self.time_profiler_chan.clone(), || {
@@ -1230,26 +1255,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.process_pending_scroll_events();
         self.process_animations();
         rv
-    }
-
-    fn initialize_png(&self, width: usize, height: usize) -> (Vec<gl::GLuint>, Vec<gl::GLuint>) {
-        let framebuffer_ids = gl::gen_framebuffers(1);
-        gl::bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
-
-        let texture_ids = gl::gen_textures(1);
-        gl::bind_texture(gl::TEXTURE_2D, texture_ids[0]);
-
-        gl::tex_image_2d(gl::TEXTURE_2D, 0, gl::RGB as GLint, width as GLsizei,
-                         height as GLsizei, 0, gl::RGB, gl::UNSIGNED_BYTE, None);
-        gl::tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
-        gl::tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
-
-        gl::framebuffer_texture_2d(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D,
-                                   texture_ids[0], 0);
-
-        gl::bind_texture(gl::TEXTURE_2D, 0);
-
-        (framebuffer_ids, texture_ids)
     }
 
     fn draw_png(&self, framebuffer_ids: Vec<gl::GLuint>, texture_ids: Vec<gl::GLuint>, width: usize, height: usize) -> png::Image {
