@@ -199,18 +199,6 @@ reason: \"certificate verify failed\" }]";
             info!("{:?}", load_data.data);
         }
 
-        // Send an HttpRequest message to devtools with a unique request_id
-        // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the message
-        let request_id = uuid::Uuid::new_v4().to_simple_string();
-        if let Some(ref chan) = devtools_chan {
-            let net_event = NetworkEvent::HttpRequest(load_data.url.clone(),
-                    load_data.method.clone(),
-                    load_data.headers.clone(),
-                    load_data.data.clone()
-                    );
-            chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id.clone(), net_event));
-        }
-
         // Avoid automatically sending request body if a redirect has occurred.
         let writer = match load_data.data {
             Some(ref data) if iters == 1 => {
@@ -245,6 +233,18 @@ reason: \"certificate verify failed\" }]";
                 }
             }
         };
+
+        // Send an HttpRequest message to devtools with a unique request_id
+        // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the message
+        let request_id = uuid::Uuid::new_v4().to_simple_string();
+        if let Some(ref chan) = devtools_chan {
+            let net_event = NetworkEvent::HttpRequest(load_data.url.clone(),
+                                                      load_data.method.clone(),
+                                                      load_data.headers.clone(),
+                                                      load_data.data.clone());
+            chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id.clone(), net_event)).unwrap();
+        }
+
         let mut response = match writer.send() {
             Ok(r) => r,
             Err(e) => {
@@ -347,7 +347,7 @@ reason: \"certificate verify failed\" }]";
         // TODO: Send this message only if load_data has a pipeline_id that is not None
         if let Some(ref chan) = devtools_chan {
             let net_event_response = NetworkEvent::HttpResponse(metadata.headers.clone(), metadata.status.clone(), None);
-            chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id, net_event_response));
+            chan.send(DevtoolsControlMsg::NetworkEventMessage(request_id, net_event_response)).unwrap();
         }
 
         match encoding_str {

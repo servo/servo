@@ -287,7 +287,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         match network_event {
             NetworkEvent::HttpRequest(url, method, headers, body) => {
                 //Store the request information in the actor
-                actor.addRequest(url, method, headers, body);
+                actor.add_request(url, method, headers, body);
 
                 //Send a networkEvent message to the client
                 let msg = NetworkEventMsg {
@@ -301,7 +301,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
             }
             NetworkEvent::HttpResponse(headers, status, body) => {
                 //Store the response information in the actor
-                actor.addResponse(headers, status, body);
+                actor.add_response(headers, status, body);
 
                 //Send a networkEventUpdate (responseStart) to the client
                 let msg = NetworkEventUpdateMsg {

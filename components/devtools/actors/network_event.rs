@@ -6,7 +6,6 @@
 /// Handles interaction with the remote web console on network events (HTTP requests, responses) in Servo.
 
 extern crate hyper;
-extern crate url;
 
 use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketStream;
@@ -42,8 +41,8 @@ pub struct EventActor {
     pub url: String,
     pub method: String,
     pub startedDateTime: String,
-    pub isXHR: String,
-    pub private: String
+    pub isXHR: bool,
+    pub private: bool
 }
 
 #[derive(RustcEncodable)]
@@ -125,14 +124,14 @@ impl NetworkEventActor {
         }
     }
 
-    pub fn addRequest(&mut self, url: Url, method: Method, headers: Headers, body: Option<Vec<u8>>) {
+    pub fn add_request(&mut self, url: Url, method: Method, headers: Headers, body: Option<Vec<u8>>) {
         self.request.url = url.serialize();
         self.request.method = method.clone();
         self.request.headers = headers.clone();
         self.request.body = body;
     }
 
-    pub fn addResponse(&mut self, headers: Option<Headers>, status: Option<RawStatus>, body: Option<Vec<u8>>) {
+    pub fn add_response(&mut self, headers: Option<Headers>, status: Option<RawStatus>, body: Option<Vec<u8>>) {
         self.response.headers = headers.clone();
         self.response.status = status.clone();
         self.response.body = body.clone();
@@ -145,8 +144,8 @@ impl NetworkEventActor {
             url: self.request.url.clone(),
             method: format!("{}", self.request.method),
             startedDateTime: "2015-04-22T20:47:08.545Z".to_string(),
-            isXHR: "false".to_string(),
-            private: "false".to_string(),
+            isXHR: false,
+            private: false,
         }
     }
 
