@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -611,13 +611,15 @@ pub struct _cef_run_file_dialog_callback_t {
   pub base: types::cef_base_t,
 
   //
-  // Called asynchronously after the file dialog is dismissed. If the selection
-  // was successful |file_paths| will be a single value or a list of values
-  // depending on the dialog mode. If the selection was cancelled |file_paths|
-  // will be NULL.
+  // Called asynchronously after the file dialog is dismissed.
+  // |selected_accept_filter| is the 0-based index of the value selected from
+  // the accept filters array passed to cef_browser_host_t::RunFileDialog.
+  // |file_paths| will be a single value or a list of values depending on the
+  // dialog mode. If the selection was cancelled |file_paths| will be NULL.
   //
-  pub cont: Option<extern "C" fn(this: *mut cef_run_file_dialog_callback_t,
-      browser_host: *mut interfaces::cef_browser_host_t,
+  pub on_file_dialog_dismissed: Option<extern "C" fn(
+      this: *mut cef_run_file_dialog_callback_t,
+      selected_accept_filter: libc::c_int,
       file_paths: types::cef_string_list_t) -> ()>,
 
   //
@@ -702,21 +704,22 @@ impl CefRunFileDialogCallback {
   }
 
   //
-  // Called asynchronously after the file dialog is dismissed. If the selection
-  // was successful |file_paths| will be a single value or a list of values
-  // depending on the dialog mode. If the selection was cancelled |file_paths|
-  // will be NULL.
+  // Called asynchronously after the file dialog is dismissed.
+  // |selected_accept_filter| is the 0-based index of the value selected from
+  // the accept filters array passed to cef_browser_host_t::RunFileDialog.
+  // |file_paths| will be a single value or a list of values depending on the
+  // dialog mode. If the selection was cancelled |file_paths| will be NULL.
   //
-  pub fn cont(&self, browser_host: interfaces::CefBrowserHost,
+  pub fn on_file_dialog_dismissed(&self, selected_accept_filter: libc::c_int,
       file_paths: Vec<String>) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
       CefWrap::to_rust(
-        ((*self.c_object).cont.unwrap())(
+        ((*self.c_object).on_file_dialog_dismissed.unwrap())(
           self.c_object,
-          CefWrap::to_c(browser_host),
+          CefWrap::to_c(selected_accept_filter),
           CefWrap::to_c(file_paths)))
     }
   }
@@ -742,6 +745,159 @@ impl CefWrap<*mut cef_run_file_dialog_callback_t> for Option<CefRunFileDialogCal
       None
     } else {
       Some(CefRunFileDialogCallback::from_c_object_addref(c_object))
+    }
+  }
+}
+
+
+//
+// Callback structure for cef_browser_host_t::GetNavigationEntries. The
+// functions of this structure will be called on the browser process UI thread.
+//
+#[repr(C)]
+pub struct _cef_navigation_entry_visitor_t {
+  //
+  // Base structure.
+  //
+  pub base: types::cef_base_t,
+
+  //
+  // Method that will be executed. Do not keep a reference to |entry| outside of
+  // this callback. Return true (1) to continue visiting entries or false (0) to
+  // stop. |current| is true (1) if this entry is the currently loaded
+  // navigation entry. |index| is the 0-based index of this entry and |total| is
+  // the total number of entries.
+  //
+  pub visit: Option<extern "C" fn(this: *mut cef_navigation_entry_visitor_t,
+      entry: *mut interfaces::cef_navigation_entry_t, current: libc::c_int,
+      index: libc::c_int, total: libc::c_int) -> libc::c_int>,
+
+  //
+  // The reference count. This will only be present for Rust instances!
+  //
+  pub ref_count: usize,
+
+  //
+  // Extra data. This will only be present for Rust instances!
+  //
+  pub extra: u8,
+} 
+
+pub type cef_navigation_entry_visitor_t = _cef_navigation_entry_visitor_t;
+
+
+//
+// Callback structure for cef_browser_host_t::GetNavigationEntries. The
+// functions of this structure will be called on the browser process UI thread.
+//
+pub struct CefNavigationEntryVisitor {
+  c_object: *mut cef_navigation_entry_visitor_t,
+}
+
+impl Clone for CefNavigationEntryVisitor {
+  fn clone(&self) -> CefNavigationEntryVisitor{
+    unsafe {
+      if !self.c_object.is_null() {
+        ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
+      }
+      CefNavigationEntryVisitor {
+        c_object: self.c_object,
+      }
+    }
+  }
+}
+
+impl Drop for CefNavigationEntryVisitor {
+  fn drop(&mut self) {
+    unsafe {
+      if !self.c_object.is_null() {
+        ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
+      }
+    }
+  }
+}
+
+impl CefNavigationEntryVisitor {
+  pub unsafe fn from_c_object(c_object: *mut cef_navigation_entry_visitor_t) -> CefNavigationEntryVisitor {
+    CefNavigationEntryVisitor {
+      c_object: c_object,
+    }
+  }
+
+  pub unsafe fn from_c_object_addref(c_object: *mut cef_navigation_entry_visitor_t) -> CefNavigationEntryVisitor {
+    if !c_object.is_null() {
+      ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
+    }
+    CefNavigationEntryVisitor {
+      c_object: c_object,
+    }
+  }
+
+  pub fn c_object(&self) -> *mut cef_navigation_entry_visitor_t {
+    self.c_object
+  }
+
+  pub fn c_object_addrefed(&self) -> *mut cef_navigation_entry_visitor_t {
+    unsafe {
+      if !self.c_object.is_null() {
+        eutil::add_ref(self.c_object as *mut types::cef_base_t);
+      }
+      self.c_object
+    }
+  }
+
+  pub fn is_null_cef_object(&self) -> bool {
+    self.c_object.is_null()
+  }
+  pub fn is_not_null_cef_object(&self) -> bool {
+    !self.c_object.is_null()
+  }
+
+  //
+  // Method that will be executed. Do not keep a reference to |entry| outside of
+  // this callback. Return true (1) to continue visiting entries or false (0) to
+  // stop. |current| is true (1) if this entry is the currently loaded
+  // navigation entry. |index| is the 0-based index of this entry and |total| is
+  // the total number of entries.
+  //
+  pub fn visit(&self, entry: interfaces::CefNavigationEntry,
+      current: libc::c_int, index: libc::c_int,
+      total: libc::c_int) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).visit.unwrap())(
+          self.c_object,
+          CefWrap::to_c(entry),
+          CefWrap::to_c(current),
+          CefWrap::to_c(index),
+          CefWrap::to_c(total)))
+    }
+  }
+} 
+
+impl CefWrap<*mut cef_navigation_entry_visitor_t> for CefNavigationEntryVisitor {
+  fn to_c(rust_object: CefNavigationEntryVisitor) -> *mut cef_navigation_entry_visitor_t {
+    rust_object.c_object_addrefed()
+  }
+  unsafe fn to_rust(c_object: *mut cef_navigation_entry_visitor_t) -> CefNavigationEntryVisitor {
+    CefNavigationEntryVisitor::from_c_object_addref(c_object)
+  }
+}
+impl CefWrap<*mut cef_navigation_entry_visitor_t> for Option<CefNavigationEntryVisitor> {
+  fn to_c(rust_object: Option<CefNavigationEntryVisitor>) -> *mut cef_navigation_entry_visitor_t {
+    match rust_object {
+      None => ptr::null_mut(),
+      Some(rust_object) => rust_object.c_object_addrefed(),
+    }
+  }
+  unsafe fn to_rust(c_object: *mut cef_navigation_entry_visitor_t) -> Option<CefNavigationEntryVisitor> {
+    if c_object.is_null() {
+      None
+    } else {
+      Some(CefNavigationEntryVisitor::from_c_object_addref(c_object))
     }
   }
 }
@@ -837,18 +993,23 @@ pub struct _cef_browser_host_t {
   // Call to run a file chooser dialog. Only a single file chooser dialog may be
   // pending at any given time. |mode| represents the type of dialog to display.
   // |title| to the title to be used for the dialog and may be NULL to show the
-  // default title ("Open" or "Save" depending on the mode). |default_file_name|
-  // is the default file name to select in the dialog. |accept_types| is a list
-  // of valid lower-cased MIME types or file extensions specified in an input
-  // element and is used to restrict selectable files to such types. |callback|
-  // will be executed after the dialog is dismissed or immediately if another
-  // dialog is already pending. The dialog will be initiated asynchronously on
-  // the UI thread.
+  // default title ("Open" or "Save" depending on the mode). |default_file_path|
+  // is the path with optional directory and/or file name component that will be
+  // initially selected in the dialog. |accept_filters| are used to restrict the
+  // selectable file types and may any combination of (a) valid lower-cased MIME
+  // types (e.g. "text/*" or "image/*"), (b) individual file extensions (e.g.
+  // ".txt" or ".png"), or (c) combined description and file extension delimited
+  // using "|" and ";" (e.g. "Image Types|.png;.gif;.jpg").
+  // |selected_accept_filter| is the 0-based index of the filter that will be
+  // selected by default. |callback| will be executed after the dialog is
+  // dismissed or immediately if another dialog is already pending. The dialog
+  // will be initiated asynchronously on the UI thread.
   //
   pub run_file_dialog: Option<extern "C" fn(this: *mut cef_browser_host_t,
       mode: types::cef_file_dialog_mode_t, title: *const types::cef_string_t,
-      default_file_name: *const types::cef_string_t,
-      accept_types: types::cef_string_list_t,
+      default_file_path: *const types::cef_string_t,
+      accept_filters: types::cef_string_list_t,
+      selected_accept_filter: libc::c_int,
       callback: *mut interfaces::cef_run_file_dialog_callback_t) -> ()>,
 
   //
@@ -864,10 +1025,11 @@ pub struct _cef_browser_host_t {
 
   //
   // Search for |searchText|. |identifier| can be used to have multiple searches
-  // running simultaneously. |forward| indicates whether to search forward or
+  // running simultaniously. |forward| indicates whether to search forward or
   // backward within the page. |matchCase| indicates whether the search should
   // be case-sensitive. |findNext| indicates whether this is the first request
-  // or a follow-up.
+  // or a follow-up. The cef_find_handler_t instance, if any, returned via
+  // cef_client_t::GetFindHandler will be called to report find results.
   //
   pub find: Option<extern "C" fn(this: *mut cef_browser_host_t,
       identifier: libc::c_int, searchText: *const types::cef_string_t,
@@ -896,6 +1058,18 @@ pub struct _cef_browser_host_t {
   //
   pub close_dev_tools: Option<extern "C" fn(this: *mut cef_browser_host_t) -> (
       )>,
+
+  //
+  // Retrieve a snapshot of current navigation entries as values sent to the
+  // specified visitor. If |current_only| is true (1) only the current
+  // navigation entry will be sent, otherwise all navigation entries will be
+  // sent.
+  //
+  //
+  pub get_navigation_entries: Option<extern "C" fn(
+      this: *mut cef_browser_host_t,
+      visitor: *mut interfaces::cef_navigation_entry_visitor_t,
+      current_only: libc::c_int) -> ()>,
 
   //
   // Set whether mouse cursor change is disabled.
@@ -1089,7 +1263,7 @@ pub struct _cef_browser_host_t {
   // being cancelled. |x| and |y| are mouse coordinates relative to the upper-
   // left corner of the view. If the web view is both the drag source and the
   // drag target then all DragTarget* functions should be called before
-  // DragSource* methods. This function is only used when window rendering is
+  // DragSource* mthods. This function is only used when window rendering is
   // disabled.
   //
   pub drag_source_ended_at: Option<extern "C" fn(this: *mut cef_browser_host_t,
@@ -1101,7 +1275,7 @@ pub struct _cef_browser_host_t {
   // cef_render_handler_t::StartDragging call has completed. This function may
   // be called immediately without first calling DragSourceEndedAt to cancel a
   // drag operation. If the web view is both the drag source and the drag target
-  // then all DragTarget* functions should be called before DragSource* methods.
+  // then all DragTarget* functions should be called before DragSource* mthods.
   // This function is only used when window rendering is disabled.
   //
   pub drag_source_system_drag_ended: Option<extern "C" fn(
@@ -1359,16 +1533,21 @@ impl CefBrowserHost {
   // Call to run a file chooser dialog. Only a single file chooser dialog may be
   // pending at any given time. |mode| represents the type of dialog to display.
   // |title| to the title to be used for the dialog and may be NULL to show the
-  // default title ("Open" or "Save" depending on the mode). |default_file_name|
-  // is the default file name to select in the dialog. |accept_types| is a list
-  // of valid lower-cased MIME types or file extensions specified in an input
-  // element and is used to restrict selectable files to such types. |callback|
-  // will be executed after the dialog is dismissed or immediately if another
-  // dialog is already pending. The dialog will be initiated asynchronously on
-  // the UI thread.
+  // default title ("Open" or "Save" depending on the mode). |default_file_path|
+  // is the path with optional directory and/or file name component that will be
+  // initially selected in the dialog. |accept_filters| are used to restrict the
+  // selectable file types and may any combination of (a) valid lower-cased MIME
+  // types (e.g. "text/*" or "image/*"), (b) individual file extensions (e.g.
+  // ".txt" or ".png"), or (c) combined description and file extension delimited
+  // using "|" and ";" (e.g. "Image Types|.png;.gif;.jpg").
+  // |selected_accept_filter| is the 0-based index of the filter that will be
+  // selected by default. |callback| will be executed after the dialog is
+  // dismissed or immediately if another dialog is already pending. The dialog
+  // will be initiated asynchronously on the UI thread.
   //
   pub fn run_file_dialog(&self, mode: types::cef_file_dialog_mode_t,
-      title: &[u16], default_file_name: &[u16], accept_types: Vec<String>,
+      title: &[u16], default_file_path: &[u16], accept_filters: Vec<String>,
+      selected_accept_filter: libc::c_int,
       callback: interfaces::CefRunFileDialogCallback) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -1379,8 +1558,9 @@ impl CefBrowserHost {
           self.c_object,
           CefWrap::to_c(mode),
           CefWrap::to_c(title),
-          CefWrap::to_c(default_file_name),
-          CefWrap::to_c(accept_types),
+          CefWrap::to_c(default_file_path),
+          CefWrap::to_c(accept_filters),
+          CefWrap::to_c(selected_accept_filter),
           CefWrap::to_c(callback)))
     }
   }
@@ -1416,10 +1596,11 @@ impl CefBrowserHost {
 
   //
   // Search for |searchText|. |identifier| can be used to have multiple searches
-  // running simultaneously. |forward| indicates whether to search forward or
+  // running simultaniously. |forward| indicates whether to search forward or
   // backward within the page. |matchCase| indicates whether the search should
   // be case-sensitive. |findNext| indicates whether this is the first request
-  // or a follow-up.
+  // or a follow-up. The cef_find_handler_t instance, if any, returned via
+  // cef_client_t::GetFindHandler will be called to report find results.
   //
   pub fn find(&self, identifier: libc::c_int, searchText: &[u16],
       forward: libc::c_int, matchCase: libc::c_int, findNext: libc::c_int) -> (
@@ -1487,6 +1668,28 @@ impl CefBrowserHost {
       CefWrap::to_rust(
         ((*self.c_object).close_dev_tools.unwrap())(
           self.c_object))
+    }
+  }
+
+  //
+  // Retrieve a snapshot of current navigation entries as values sent to the
+  // specified visitor. If |current_only| is true (1) only the current
+  // navigation entry will be sent, otherwise all navigation entries will be
+  // sent.
+  //
+  //
+  pub fn get_navigation_entries(&self,
+      visitor: interfaces::CefNavigationEntryVisitor,
+      current_only: libc::c_int) -> () {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_navigation_entries.unwrap())(
+          self.c_object,
+          CefWrap::to_c(visitor),
+          CefWrap::to_c(current_only)))
     }
   }
 
@@ -1888,7 +2091,7 @@ impl CefBrowserHost {
   // being cancelled. |x| and |y| are mouse coordinates relative to the upper-
   // left corner of the view. If the web view is both the drag source and the
   // drag target then all DragTarget* functions should be called before
-  // DragSource* methods. This function is only used when window rendering is
+  // DragSource* mthods. This function is only used when window rendering is
   // disabled.
   //
   pub fn drag_source_ended_at(&self, x: libc::c_int, y: libc::c_int,
@@ -1911,7 +2114,7 @@ impl CefBrowserHost {
   // cef_render_handler_t::StartDragging call has completed. This function may
   // be called immediately without first calling DragSourceEndedAt to cancel a
   // drag operation. If the web view is both the drag source and the drag target
-  // then all DragTarget* functions should be called before DragSource* methods.
+  // then all DragTarget* functions should be called before DragSource* mthods.
   // This function is only used when window rendering is disabled.
   //
   pub fn drag_source_system_drag_ended(&self) -> () {

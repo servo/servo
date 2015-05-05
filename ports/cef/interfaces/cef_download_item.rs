@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -134,6 +134,13 @@ pub struct _cef_download_item_t {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub get_url: Option<extern "C" fn(
+      this: *mut cef_download_item_t) -> types::cef_string_userfree_t>,
+
+  //
+  // Returns the original URL before any redirections.
+  //
+  // The resulting string must be freed by calling cef_string_userfree_free().
+  pub get_original_url: Option<extern "C" fn(
       this: *mut cef_download_item_t) -> types::cef_string_userfree_t>,
 
   //
@@ -419,6 +426,21 @@ impl CefDownloadItem {
     unsafe {
       CefWrap::to_rust(
         ((*self.c_object).get_url.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns the original URL before any redirections.
+  //
+  // The resulting string must be freed by calling cef_string_userfree_free().
+  pub fn get_original_url(&self) -> String {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_original_url.unwrap())(
           self.c_object))
     }
   }

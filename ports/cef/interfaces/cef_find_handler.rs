@@ -46,24 +46,28 @@ use std::collections::HashMap;
 use std::ptr;
 
 //
-// Implement this structure to provide handler implementations. The handler
-// instance will not be released until all objects related to the context have
-// been destroyed.
+// Implement this structure to handle events related to find results. The
+// functions of this structure will be called on the UI thread.
 //
 #[repr(C)]
-pub struct _cef_request_context_handler_t {
+pub struct _cef_find_handler_t {
   //
   // Base structure.
   //
   pub base: types::cef_base_t,
 
   //
-  // Called on the IO thread to retrieve the cookie manager. If this function
-  // returns NULL the default cookie manager retrievable via
-  // cef_request_tContext::get_default_cookie_manager() will be used.
+  // Called to report find results returned by cef_browser_host_t::find().
+  // |identifer| is the identifier passed to find(), |count| is the number of
+  // matches currently identified, |selectionRect| is the location of where the
+  // match was found (in window coordinates), |activeMatchOrdinal| is the
+  // current position in the search results, and |finalUpdate| is true (1) if
+  // this is the last find notification.
   //
-  pub get_cookie_manager: Option<extern "C" fn(
-      this: *mut cef_request_context_handler_t) -> *mut interfaces::cef_cookie_manager_t>,
+  pub on_find_result: Option<extern "C" fn(this: *mut cef_find_handler_t,
+      browser: *mut interfaces::cef_browser_t, identifier: libc::c_int,
+      count: libc::c_int, selectionRect: *const types::cef_rect_t,
+      activeMatchOrdinal: libc::c_int, finalUpdate: libc::c_int) -> ()>,
 
   //
   // The reference count. This will only be present for Rust instances!
@@ -76,32 +80,31 @@ pub struct _cef_request_context_handler_t {
   pub extra: u8,
 } 
 
-pub type cef_request_context_handler_t = _cef_request_context_handler_t;
+pub type cef_find_handler_t = _cef_find_handler_t;
 
 
 //
-// Implement this structure to provide handler implementations. The handler
-// instance will not be released until all objects related to the context have
-// been destroyed.
+// Implement this structure to handle events related to find results. The
+// functions of this structure will be called on the UI thread.
 //
-pub struct CefRequestContextHandler {
-  c_object: *mut cef_request_context_handler_t,
+pub struct CefFindHandler {
+  c_object: *mut cef_find_handler_t,
 }
 
-impl Clone for CefRequestContextHandler {
-  fn clone(&self) -> CefRequestContextHandler{
+impl Clone for CefFindHandler {
+  fn clone(&self) -> CefFindHandler{
     unsafe {
       if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
-      CefRequestContextHandler {
+      CefFindHandler {
         c_object: self.c_object,
       }
     }
   }
 }
 
-impl Drop for CefRequestContextHandler {
+impl Drop for CefFindHandler {
   fn drop(&mut self) {
     unsafe {
       if !self.c_object.is_null() {
@@ -111,27 +114,27 @@ impl Drop for CefRequestContextHandler {
   }
 }
 
-impl CefRequestContextHandler {
-  pub unsafe fn from_c_object(c_object: *mut cef_request_context_handler_t) -> CefRequestContextHandler {
-    CefRequestContextHandler {
+impl CefFindHandler {
+  pub unsafe fn from_c_object(c_object: *mut cef_find_handler_t) -> CefFindHandler {
+    CefFindHandler {
       c_object: c_object,
     }
   }
 
-  pub unsafe fn from_c_object_addref(c_object: *mut cef_request_context_handler_t) -> CefRequestContextHandler {
+  pub unsafe fn from_c_object_addref(c_object: *mut cef_find_handler_t) -> CefFindHandler {
     if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
-    CefRequestContextHandler {
+    CefFindHandler {
       c_object: c_object,
     }
   }
 
-  pub fn c_object(&self) -> *mut cef_request_context_handler_t {
+  pub fn c_object(&self) -> *mut cef_find_handler_t {
     self.c_object
   }
 
-  pub fn c_object_addrefed(&self) -> *mut cef_request_context_handler_t {
+  pub fn c_object_addrefed(&self) -> *mut cef_find_handler_t {
     unsafe {
       if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
@@ -148,42 +151,54 @@ impl CefRequestContextHandler {
   }
 
   //
-  // Called on the IO thread to retrieve the cookie manager. If this function
-  // returns NULL the default cookie manager retrievable via
-  // cef_request_tContext::get_default_cookie_manager() will be used.
+  // Called to report find results returned by cef_browser_host_t::find().
+  // |identifer| is the identifier passed to find(), |count| is the number of
+  // matches currently identified, |selectionRect| is the location of where the
+  // match was found (in window coordinates), |activeMatchOrdinal| is the
+  // current position in the search results, and |finalUpdate| is true (1) if
+  // this is the last find notification.
   //
-  pub fn get_cookie_manager(&self) -> interfaces::CefCookieManager {
+  pub fn on_find_result(&self, browser: interfaces::CefBrowser,
+      identifier: libc::c_int, count: libc::c_int,
+      selectionRect: &types::cef_rect_t, activeMatchOrdinal: libc::c_int,
+      finalUpdate: libc::c_int) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
       CefWrap::to_rust(
-        ((*self.c_object).get_cookie_manager.unwrap())(
-          self.c_object))
+        ((*self.c_object).on_find_result.unwrap())(
+          self.c_object,
+          CefWrap::to_c(browser),
+          CefWrap::to_c(identifier),
+          CefWrap::to_c(count),
+          CefWrap::to_c(selectionRect),
+          CefWrap::to_c(activeMatchOrdinal),
+          CefWrap::to_c(finalUpdate)))
     }
   }
 } 
 
-impl CefWrap<*mut cef_request_context_handler_t> for CefRequestContextHandler {
-  fn to_c(rust_object: CefRequestContextHandler) -> *mut cef_request_context_handler_t {
+impl CefWrap<*mut cef_find_handler_t> for CefFindHandler {
+  fn to_c(rust_object: CefFindHandler) -> *mut cef_find_handler_t {
     rust_object.c_object_addrefed()
   }
-  unsafe fn to_rust(c_object: *mut cef_request_context_handler_t) -> CefRequestContextHandler {
-    CefRequestContextHandler::from_c_object_addref(c_object)
+  unsafe fn to_rust(c_object: *mut cef_find_handler_t) -> CefFindHandler {
+    CefFindHandler::from_c_object_addref(c_object)
   }
 }
-impl CefWrap<*mut cef_request_context_handler_t> for Option<CefRequestContextHandler> {
-  fn to_c(rust_object: Option<CefRequestContextHandler>) -> *mut cef_request_context_handler_t {
+impl CefWrap<*mut cef_find_handler_t> for Option<CefFindHandler> {
+  fn to_c(rust_object: Option<CefFindHandler>) -> *mut cef_find_handler_t {
     match rust_object {
       None => ptr::null_mut(),
       Some(rust_object) => rust_object.c_object_addrefed(),
     }
   }
-  unsafe fn to_rust(c_object: *mut cef_request_context_handler_t) -> Option<CefRequestContextHandler> {
+  unsafe fn to_rust(c_object: *mut cef_find_handler_t) -> Option<CefFindHandler> {
     if c_object.is_null() {
       None
     } else {
-      Some(CefRequestContextHandler::from_c_object_addref(c_object))
+      Some(CefFindHandler::from_c_object_addref(c_object))
     }
   }
 }

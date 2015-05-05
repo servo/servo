@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -58,22 +58,29 @@ pub struct _cef_life_span_handler_t {
   pub base: types::cef_base_t,
 
   //
-  // Called on the IO thread before a new popup window is created. The |browser|
-  // and |frame| parameters represent the source of the popup request. The
-  // |target_url| and |target_frame_name| values may be NULL if none were
-  // specified with the request. The |popupFeatures| structure contains
-  // information about the requested popup window. To allow creation of the
-  // popup window optionally modify |windowInfo|, |client|, |settings| and
-  // |no_javascript_access| and return false (0). To cancel creation of the
-  // popup window return true (1). The |client| and |settings| values will
-  // default to the source browser's values. The |no_javascript_access| value
-  // indicates whether the new browser window should be scriptable and in the
-  // same process as the source browser.
+  // Called on the IO thread before a new popup browser is created. The
+  // |browser| and |frame| values represent the source of the popup request. The
+  // |target_url| and |target_frame_name| values indicate where the popup
+  // browser should navigate and may be NULL if not specified with the request.
+  // The |target_disposition| value indicates where the user intended to open
+  // the popup (e.g. current tab, new tab, etc). The |user_gesture| value will
+  // be true (1) if the popup was opened via explicit user gesture (e.g.
+  // clicking a link) or false (0) if the popup opened automatically (e.g. via
+  // the DomContentLoaded event). The |popupFeatures| structure contains
+  // additional information about the requested popup window. To allow creation
+  // of the popup browser optionally modify |windowInfo|, |client|, |settings|
+  // and |no_javascript_access| and return false (0). To cancel creation of the
+  // popup browser return true (1). The |client| and |settings| values will
+  // default to the source browser's values. If the |no_javascript_access| value
+  // is set to false (0) the new browser will not be scriptable and may not be
+  // hosted in the same renderer process as the source browser.
   pub on_before_popup: Option<extern "C" fn(this: *mut cef_life_span_handler_t,
       browser: *mut interfaces::cef_browser_t,
       frame: *mut interfaces::cef_frame_t,
       target_url: *const types::cef_string_t,
       target_frame_name: *const types::cef_string_t,
+      target_disposition: types::cef_window_open_disposition_t,
+      user_gesture: libc::c_int,
       popupFeatures: *const interfaces::cef_popup_features_t,
       windowInfo: *mut interfaces::cef_window_info_t,
       client: *mut interfaces::cef_client_t,
@@ -95,7 +102,7 @@ pub struct _cef_life_span_handler_t {
       browser: *mut interfaces::cef_browser_t) -> libc::c_int>,
 
   //
-  // Called when a browser has received a request to close. This may result
+  // Called when a browser has recieved a request to close. This may result
   // directly from a call to cef_browser_host_t::close_browser() or indirectly
   // if the browser is a top-level OS window created by CEF and the user
   // attempts to close the window. This function will be called after the
@@ -248,20 +255,27 @@ impl CefLifeSpanHandler {
   }
 
   //
-  // Called on the IO thread before a new popup window is created. The |browser|
-  // and |frame| parameters represent the source of the popup request. The
-  // |target_url| and |target_frame_name| values may be NULL if none were
-  // specified with the request. The |popupFeatures| structure contains
-  // information about the requested popup window. To allow creation of the
-  // popup window optionally modify |windowInfo|, |client|, |settings| and
-  // |no_javascript_access| and return false (0). To cancel creation of the
-  // popup window return true (1). The |client| and |settings| values will
-  // default to the source browser's values. The |no_javascript_access| value
-  // indicates whether the new browser window should be scriptable and in the
-  // same process as the source browser.
+  // Called on the IO thread before a new popup browser is created. The
+  // |browser| and |frame| values represent the source of the popup request. The
+  // |target_url| and |target_frame_name| values indicate where the popup
+  // browser should navigate and may be NULL if not specified with the request.
+  // The |target_disposition| value indicates where the user intended to open
+  // the popup (e.g. current tab, new tab, etc). The |user_gesture| value will
+  // be true (1) if the popup was opened via explicit user gesture (e.g.
+  // clicking a link) or false (0) if the popup opened automatically (e.g. via
+  // the DomContentLoaded event). The |popupFeatures| structure contains
+  // additional information about the requested popup window. To allow creation
+  // of the popup browser optionally modify |windowInfo|, |client|, |settings|
+  // and |no_javascript_access| and return false (0). To cancel creation of the
+  // popup browser return true (1). The |client| and |settings| values will
+  // default to the source browser's values. If the |no_javascript_access| value
+  // is set to false (0) the new browser will not be scriptable and may not be
+  // hosted in the same renderer process as the source browser.
   pub fn on_before_popup(&self, browser: interfaces::CefBrowser,
       frame: interfaces::CefFrame, target_url: &[u16],
-      target_frame_name: &[u16], popupFeatures: &interfaces::CefPopupFeatures,
+      target_frame_name: &[u16],
+      target_disposition: types::cef_window_open_disposition_t,
+      user_gesture: libc::c_int, popupFeatures: &interfaces::CefPopupFeatures,
       windowInfo: &mut interfaces::CefWindowInfo,
       client: interfaces::CefClient,
       settings: &mut interfaces::CefBrowserSettings,
@@ -277,6 +291,8 @@ impl CefLifeSpanHandler {
           CefWrap::to_c(frame),
           CefWrap::to_c(target_url),
           CefWrap::to_c(target_frame_name),
+          CefWrap::to_c(target_disposition),
+          CefWrap::to_c(user_gesture),
           CefWrap::to_c(popupFeatures),
           CefWrap::to_c(windowInfo),
           CefWrap::to_c(client),
@@ -318,7 +334,7 @@ impl CefLifeSpanHandler {
   }
 
   //
-  // Called when a browser has received a request to close. This may result
+  // Called when a browser has recieved a request to close. This may result
   // directly from a call to cef_browser_host_t::close_browser() or indirectly
   // if the browser is a top-level OS window created by CEF and the user
   // attempts to close the window. This function will be called after the

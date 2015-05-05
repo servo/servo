@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -46,26 +46,26 @@ use std::collections::HashMap;
 use std::ptr;
 
 //
-// Callback structure used for asynchronous continuation of quota requests.
+// Callback structure used for asynchronous continuation of url requests.
 //
 #[repr(C)]
-pub struct _cef_quota_callback_t {
+pub struct _cef_request_callback_t {
   //
   // Base structure.
   //
   pub base: types::cef_base_t,
 
   //
-  // Continue the quota request. If |allow| is true (1) the request will be
-  // allowed. Otherwise, the request will be denied.
+  // Continue the url request. If |allow| is true (1) the request will be
+  // continued. Otherwise, the request will be canceled.
   //
-  pub cont: Option<extern "C" fn(this: *mut cef_quota_callback_t,
+  pub cont: Option<extern "C" fn(this: *mut cef_request_callback_t,
       allow: libc::c_int) -> ()>,
 
   //
-  // Cancel the quota request.
+  // Cancel the url request.
   //
-  pub cancel: Option<extern "C" fn(this: *mut cef_quota_callback_t) -> ()>,
+  pub cancel: Option<extern "C" fn(this: *mut cef_request_callback_t) -> ()>,
 
   //
   // The reference count. This will only be present for Rust instances!
@@ -78,30 +78,30 @@ pub struct _cef_quota_callback_t {
   pub extra: u8,
 } 
 
-pub type cef_quota_callback_t = _cef_quota_callback_t;
+pub type cef_request_callback_t = _cef_request_callback_t;
 
 
 //
-// Callback structure used for asynchronous continuation of quota requests.
+// Callback structure used for asynchronous continuation of url requests.
 //
-pub struct CefQuotaCallback {
-  c_object: *mut cef_quota_callback_t,
+pub struct CefRequestCallback {
+  c_object: *mut cef_request_callback_t,
 }
 
-impl Clone for CefQuotaCallback {
-  fn clone(&self) -> CefQuotaCallback{
+impl Clone for CefRequestCallback {
+  fn clone(&self) -> CefRequestCallback{
     unsafe {
       if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
-      CefQuotaCallback {
+      CefRequestCallback {
         c_object: self.c_object,
       }
     }
   }
 }
 
-impl Drop for CefQuotaCallback {
+impl Drop for CefRequestCallback {
   fn drop(&mut self) {
     unsafe {
       if !self.c_object.is_null() {
@@ -111,27 +111,27 @@ impl Drop for CefQuotaCallback {
   }
 }
 
-impl CefQuotaCallback {
-  pub unsafe fn from_c_object(c_object: *mut cef_quota_callback_t) -> CefQuotaCallback {
-    CefQuotaCallback {
+impl CefRequestCallback {
+  pub unsafe fn from_c_object(c_object: *mut cef_request_callback_t) -> CefRequestCallback {
+    CefRequestCallback {
       c_object: c_object,
     }
   }
 
-  pub unsafe fn from_c_object_addref(c_object: *mut cef_quota_callback_t) -> CefQuotaCallback {
+  pub unsafe fn from_c_object_addref(c_object: *mut cef_request_callback_t) -> CefRequestCallback {
     if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
-    CefQuotaCallback {
+    CefRequestCallback {
       c_object: c_object,
     }
   }
 
-  pub fn c_object(&self) -> *mut cef_quota_callback_t {
+  pub fn c_object(&self) -> *mut cef_request_callback_t {
     self.c_object
   }
 
-  pub fn c_object_addrefed(&self) -> *mut cef_quota_callback_t {
+  pub fn c_object_addrefed(&self) -> *mut cef_request_callback_t {
     unsafe {
       if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
@@ -148,8 +148,8 @@ impl CefQuotaCallback {
   }
 
   //
-  // Continue the quota request. If |allow| is true (1) the request will be
-  // allowed. Otherwise, the request will be denied.
+  // Continue the url request. If |allow| is true (1) the request will be
+  // continued. Otherwise, the request will be canceled.
   //
   pub fn cont(&self, allow: libc::c_int) -> () {
     if self.c_object.is_null() {
@@ -164,7 +164,7 @@ impl CefQuotaCallback {
   }
 
   //
-  // Cancel the quota request.
+  // Cancel the url request.
   //
   pub fn cancel(&self) -> () {
     if self.c_object.is_null() {
@@ -178,168 +178,26 @@ impl CefQuotaCallback {
   }
 } 
 
-impl CefWrap<*mut cef_quota_callback_t> for CefQuotaCallback {
-  fn to_c(rust_object: CefQuotaCallback) -> *mut cef_quota_callback_t {
+impl CefWrap<*mut cef_request_callback_t> for CefRequestCallback {
+  fn to_c(rust_object: CefRequestCallback) -> *mut cef_request_callback_t {
     rust_object.c_object_addrefed()
   }
-  unsafe fn to_rust(c_object: *mut cef_quota_callback_t) -> CefQuotaCallback {
-    CefQuotaCallback::from_c_object_addref(c_object)
+  unsafe fn to_rust(c_object: *mut cef_request_callback_t) -> CefRequestCallback {
+    CefRequestCallback::from_c_object_addref(c_object)
   }
 }
-impl CefWrap<*mut cef_quota_callback_t> for Option<CefQuotaCallback> {
-  fn to_c(rust_object: Option<CefQuotaCallback>) -> *mut cef_quota_callback_t {
+impl CefWrap<*mut cef_request_callback_t> for Option<CefRequestCallback> {
+  fn to_c(rust_object: Option<CefRequestCallback>) -> *mut cef_request_callback_t {
     match rust_object {
       None => ptr::null_mut(),
       Some(rust_object) => rust_object.c_object_addrefed(),
     }
   }
-  unsafe fn to_rust(c_object: *mut cef_quota_callback_t) -> Option<CefQuotaCallback> {
+  unsafe fn to_rust(c_object: *mut cef_request_callback_t) -> Option<CefRequestCallback> {
     if c_object.is_null() {
       None
     } else {
-      Some(CefQuotaCallback::from_c_object_addref(c_object))
-    }
-  }
-}
-
-
-//
-// Callback structure used for asynchronous continuation of url requests when
-// invalid SSL certificates are encountered.
-//
-#[repr(C)]
-pub struct _cef_allow_certificate_error_callback_t {
-  //
-  // Base structure.
-  //
-  pub base: types::cef_base_t,
-
-  //
-  // Continue the url request. If |allow| is true (1) the request will be
-  // continued. Otherwise, the request will be canceled.
-  //
-  pub cont: Option<extern "C" fn(
-      this: *mut cef_allow_certificate_error_callback_t,
-      allow: libc::c_int) -> ()>,
-
-  //
-  // The reference count. This will only be present for Rust instances!
-  //
-  pub ref_count: usize,
-
-  //
-  // Extra data. This will only be present for Rust instances!
-  //
-  pub extra: u8,
-} 
-
-pub type cef_allow_certificate_error_callback_t = _cef_allow_certificate_error_callback_t;
-
-
-//
-// Callback structure used for asynchronous continuation of url requests when
-// invalid SSL certificates are encountered.
-//
-pub struct CefAllowCertificateErrorCallback {
-  c_object: *mut cef_allow_certificate_error_callback_t,
-}
-
-impl Clone for CefAllowCertificateErrorCallback {
-  fn clone(&self) -> CefAllowCertificateErrorCallback{
-    unsafe {
-      if !self.c_object.is_null() {
-        ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
-      }
-      CefAllowCertificateErrorCallback {
-        c_object: self.c_object,
-      }
-    }
-  }
-}
-
-impl Drop for CefAllowCertificateErrorCallback {
-  fn drop(&mut self) {
-    unsafe {
-      if !self.c_object.is_null() {
-        ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
-      }
-    }
-  }
-}
-
-impl CefAllowCertificateErrorCallback {
-  pub unsafe fn from_c_object(c_object: *mut cef_allow_certificate_error_callback_t) -> CefAllowCertificateErrorCallback {
-    CefAllowCertificateErrorCallback {
-      c_object: c_object,
-    }
-  }
-
-  pub unsafe fn from_c_object_addref(c_object: *mut cef_allow_certificate_error_callback_t) -> CefAllowCertificateErrorCallback {
-    if !c_object.is_null() {
-      ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
-    }
-    CefAllowCertificateErrorCallback {
-      c_object: c_object,
-    }
-  }
-
-  pub fn c_object(&self) -> *mut cef_allow_certificate_error_callback_t {
-    self.c_object
-  }
-
-  pub fn c_object_addrefed(&self) -> *mut cef_allow_certificate_error_callback_t {
-    unsafe {
-      if !self.c_object.is_null() {
-        eutil::add_ref(self.c_object as *mut types::cef_base_t);
-      }
-      self.c_object
-    }
-  }
-
-  pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
-  }
-  pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
-  }
-
-  //
-  // Continue the url request. If |allow| is true (1) the request will be
-  // continued. Otherwise, the request will be canceled.
-  //
-  pub fn cont(&self, allow: libc::c_int) -> () {
-    if self.c_object.is_null() {
-      panic!("called a CEF method on a null object")
-    }
-    unsafe {
-      CefWrap::to_rust(
-        ((*self.c_object).cont.unwrap())(
-          self.c_object,
-          CefWrap::to_c(allow)))
-    }
-  }
-} 
-
-impl CefWrap<*mut cef_allow_certificate_error_callback_t> for CefAllowCertificateErrorCallback {
-  fn to_c(rust_object: CefAllowCertificateErrorCallback) -> *mut cef_allow_certificate_error_callback_t {
-    rust_object.c_object_addrefed()
-  }
-  unsafe fn to_rust(c_object: *mut cef_allow_certificate_error_callback_t) -> CefAllowCertificateErrorCallback {
-    CefAllowCertificateErrorCallback::from_c_object_addref(c_object)
-  }
-}
-impl CefWrap<*mut cef_allow_certificate_error_callback_t> for Option<CefAllowCertificateErrorCallback> {
-  fn to_c(rust_object: Option<CefAllowCertificateErrorCallback>) -> *mut cef_allow_certificate_error_callback_t {
-    match rust_object {
-      None => ptr::null_mut(),
-      Some(rust_object) => rust_object.c_object_addrefed(),
-    }
-  }
-  unsafe fn to_rust(c_object: *mut cef_allow_certificate_error_callback_t) -> Option<CefAllowCertificateErrorCallback> {
-    if c_object.is_null() {
-      None
-    } else {
-      Some(CefAllowCertificateErrorCallback::from_c_object_addref(c_object))
+      Some(CefRequestCallback::from_c_object_addref(c_object))
     }
   }
 }
@@ -373,14 +231,41 @@ pub struct _cef_request_handler_t {
       is_redirect: libc::c_int) -> libc::c_int>,
 
   //
+  // Called on the UI thread before OnBeforeBrowse in certain limited cases
+  // where navigating a new or different browser might be desirable. This
+  // includes user-initiated navigation that might open in a special way (e.g.
+  // links clicked via middle-click or ctrl + left-click) and certain types of
+  // cross-origin navigation initiated from the renderer process (e.g.
+  // navigating the top-level frame to/from a file URL). The |browser| and
+  // |frame| values represent the source of the navigation. The
+  // |target_disposition| value indicates where the user intended to navigate
+  // the browser based on standard Chromium behaviors (e.g. current tab, new
+  // tab, etc). The |user_gesture| value will be true (1) if the browser
+  // navigated via explicit user gesture (e.g. clicking a link) or false (0) if
+  // it navigated automatically (e.g. via the DomContentLoaded event). Return
+  // true (1) to cancel the navigation or false (0) to allow the navigation to
+  // proceed in the source browser's top-level frame.
+  //
+  pub on_open_urlfrom_tab: Option<extern "C" fn(
+      this: *mut cef_request_handler_t, browser: *mut interfaces::cef_browser_t,
+      frame: *mut interfaces::cef_frame_t,
+      target_url: *const types::cef_string_t,
+      target_disposition: types::cef_window_open_disposition_t,
+      user_gesture: libc::c_int) -> libc::c_int>,
+
+  //
   // Called on the IO thread before a resource request is loaded. The |request|
-  // object may be modified. To cancel the request return true (1) otherwise
-  // return false (0).
+  // object may be modified. Return RV_CONTINUE to continue the request
+  // immediately. Return RV_CONTINUE_ASYNC and call cef_request_tCallback::
+  // cont() at a later time to continue or cancel the request asynchronously.
+  // Return RV_CANCEL to cancel the request immediately.
+  //
   //
   pub on_before_resource_load: Option<extern "C" fn(
       this: *mut cef_request_handler_t, browser: *mut interfaces::cef_browser_t,
       frame: *mut interfaces::cef_frame_t,
-      request: *mut interfaces::cef_request_t) -> libc::c_int>,
+      request: *mut interfaces::cef_request_t,
+      callback: *mut interfaces::cef_request_callback_t) -> types::cef_return_value_t>,
 
   //
   // Called on the IO thread before a resource is loaded. To allow the resource
@@ -394,21 +279,36 @@ pub struct _cef_request_handler_t {
       request: *mut interfaces::cef_request_t) -> *mut interfaces::cef_resource_handler_t>,
 
   //
-  // Called on the IO thread when a resource load is redirected. The |old_url|
-  // parameter will contain the old URL. The |new_url| parameter will contain
-  // the new URL and can be changed if desired.
+  // Called on the IO thread when a resource load is redirected. The |request|
+  // parameter will contain the old URL and other request-related information.
+  // The |new_url| parameter will contain the new URL and can be changed if
+  // desired. The |request| object cannot be modified in this callback.
   //
   pub on_resource_redirect: Option<extern "C" fn(
       this: *mut cef_request_handler_t, browser: *mut interfaces::cef_browser_t,
-      frame: *mut interfaces::cef_frame_t, old_url: *const types::cef_string_t,
+      frame: *mut interfaces::cef_frame_t,
+      request: *mut interfaces::cef_request_t,
       new_url: *mut types::cef_string_t) -> ()>,
+
+  //
+  // Called on the IO thread when a resource response is received. To allow the
+  // resource to load normally return false (0). To redirect or retry the
+  // resource modify |request| (url, headers or post body) and return true (1).
+  // The |response| object cannot be modified in this callback.
+  //
+  pub on_resource_response: Option<extern "C" fn(
+      this: *mut cef_request_handler_t, browser: *mut interfaces::cef_browser_t,
+      frame: *mut interfaces::cef_frame_t,
+      request: *mut interfaces::cef_request_t,
+      response: *mut interfaces::cef_response_t) -> libc::c_int>,
 
   //
   // Called on the IO thread when the browser needs credentials from the user.
   // |isProxy| indicates whether the host is a proxy server. |host| contains the
   // hostname and |port| contains the port number. Return true (1) to continue
-  // the request and call cef_auth_callback_t::cont() when the authentication
-  // information is available. Return false (0) to cancel the request.
+  // the request and call cef_auth_callback_t::cont() either in this function or
+  // at a later time when the authentication information is available. Return
+  // false (0) to cancel the request immediately.
   //
   pub get_auth_credentials: Option<extern "C" fn(
       this: *mut cef_request_handler_t, browser: *mut interfaces::cef_browser_t,
@@ -421,14 +321,15 @@ pub struct _cef_request_handler_t {
   // Called on the IO thread when JavaScript requests a specific storage quota
   // size via the webkitStorageInfo.requestQuota function. |origin_url| is the
   // origin of the page making the request. |new_size| is the requested quota
-  // size in bytes. Return true (1) and call cef_quota_callback_t::cont() either
-  // in this function or at a later time to grant or deny the request. Return
-  // false (0) to cancel the request.
+  // size in bytes. Return true (1) to continue the request and call
+  // cef_request_tCallback::cont() either in this function or at a later time to
+  // grant or deny the request. Return false (0) to cancel the request
+  // immediately.
   //
   pub on_quota_request: Option<extern "C" fn(this: *mut cef_request_handler_t,
       browser: *mut interfaces::cef_browser_t,
       origin_url: *const types::cef_string_t, new_size: i64,
-      callback: *mut interfaces::cef_quota_callback_t) -> libc::c_int>,
+      callback: *mut interfaces::cef_request_callback_t) -> libc::c_int>,
 
   //
   // Called on the UI thread to handle requests for URLs with an unknown
@@ -444,18 +345,19 @@ pub struct _cef_request_handler_t {
 
   //
   // Called on the UI thread to handle requests for URLs with an invalid SSL
-  // certificate. Return true (1) and call
-  // cef_allow_certificate_error_callback_t:: cont() either in this function or
-  // at a later time to continue or cancel the request. Return false (0) to
-  // cancel the request immediately. If |callback| is NULL the error cannot be
-  // recovered from and the request will be canceled automatically. If
-  // CefSettings.ignore_certificate_errors is set all invalid certificates will
-  // be accepted without calling this function.
+  // certificate. Return true (1) and call cef_request_tCallback::cont() either
+  // in this function or at a later time to continue or cancel the request.
+  // Return false (0) to cancel the request immediately. If |callback| is NULL
+  // the error cannot be recovered from and the request will be canceled
+  // automatically. If CefSettings.ignore_certificate_errors is set all invalid
+  // certificates will be accepted without calling this function.
   //
   pub on_certificate_error: Option<extern "C" fn(
-      this: *mut cef_request_handler_t, cert_error: types::cef_errorcode_t,
+      this: *mut cef_request_handler_t, browser: *mut interfaces::cef_browser_t,
+      cert_error: types::cef_errorcode_t,
       request_url: *const types::cef_string_t,
-      callback: *mut interfaces::cef_allow_certificate_error_callback_t) -> libc::c_int>,
+      ssl_info: *mut interfaces::cef_sslinfo_t,
+      callback: *mut interfaces::cef_request_callback_t) -> libc::c_int>,
 
   //
   // Called on the browser process IO thread before a plugin is loaded. Return
@@ -473,6 +375,15 @@ pub struct _cef_request_handler_t {
   pub on_plugin_crashed: Option<extern "C" fn(this: *mut cef_request_handler_t,
       browser: *mut interfaces::cef_browser_t,
       plugin_path: *const types::cef_string_t) -> ()>,
+
+  //
+  // Called on the browser process UI thread when the render view associated
+  // with |browser| is ready to receive/handle IPC messages in the render
+  // process.
+  //
+  pub on_render_view_ready: Option<extern "C" fn(
+      this: *mut cef_request_handler_t,
+      browser: *mut interfaces::cef_browser_t) -> ()>,
 
   //
   // Called on the browser process UI thread when the render process terminates
@@ -591,13 +502,51 @@ impl CefRequestHandler {
   }
 
   //
+  // Called on the UI thread before OnBeforeBrowse in certain limited cases
+  // where navigating a new or different browser might be desirable. This
+  // includes user-initiated navigation that might open in a special way (e.g.
+  // links clicked via middle-click or ctrl + left-click) and certain types of
+  // cross-origin navigation initiated from the renderer process (e.g.
+  // navigating the top-level frame to/from a file URL). The |browser| and
+  // |frame| values represent the source of the navigation. The
+  // |target_disposition| value indicates where the user intended to navigate
+  // the browser based on standard Chromium behaviors (e.g. current tab, new
+  // tab, etc). The |user_gesture| value will be true (1) if the browser
+  // navigated via explicit user gesture (e.g. clicking a link) or false (0) if
+  // it navigated automatically (e.g. via the DomContentLoaded event). Return
+  // true (1) to cancel the navigation or false (0) to allow the navigation to
+  // proceed in the source browser's top-level frame.
+  //
+  pub fn on_open_urlfrom_tab(&self, browser: interfaces::CefBrowser,
+      frame: interfaces::CefFrame, target_url: &[u16],
+      target_disposition: types::cef_window_open_disposition_t,
+      user_gesture: libc::c_int) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).on_open_urlfrom_tab.unwrap())(
+          self.c_object,
+          CefWrap::to_c(browser),
+          CefWrap::to_c(frame),
+          CefWrap::to_c(target_url),
+          CefWrap::to_c(target_disposition),
+          CefWrap::to_c(user_gesture)))
+    }
+  }
+
+  //
   // Called on the IO thread before a resource request is loaded. The |request|
-  // object may be modified. To cancel the request return true (1) otherwise
-  // return false (0).
+  // object may be modified. Return RV_CONTINUE to continue the request
+  // immediately. Return RV_CONTINUE_ASYNC and call cef_request_tCallback::
+  // cont() at a later time to continue or cancel the request asynchronously.
+  // Return RV_CANCEL to cancel the request immediately.
+  //
   //
   pub fn on_before_resource_load(&self, browser: interfaces::CefBrowser,
-      frame: interfaces::CefFrame,
-      request: interfaces::CefRequest) -> libc::c_int {
+      frame: interfaces::CefFrame, request: interfaces::CefRequest,
+      callback: interfaces::CefRequestCallback) -> types::cef_return_value_t {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -607,7 +556,8 @@ impl CefRequestHandler {
           self.c_object,
           CefWrap::to_c(browser),
           CefWrap::to_c(frame),
-          CefWrap::to_c(request)))
+          CefWrap::to_c(request),
+          CefWrap::to_c(callback)))
     }
   }
 
@@ -634,12 +584,13 @@ impl CefRequestHandler {
   }
 
   //
-  // Called on the IO thread when a resource load is redirected. The |old_url|
-  // parameter will contain the old URL. The |new_url| parameter will contain
-  // the new URL and can be changed if desired.
+  // Called on the IO thread when a resource load is redirected. The |request|
+  // parameter will contain the old URL and other request-related information.
+  // The |new_url| parameter will contain the new URL and can be changed if
+  // desired. The |request| object cannot be modified in this callback.
   //
   pub fn on_resource_redirect(&self, browser: interfaces::CefBrowser,
-      frame: interfaces::CefFrame, old_url: &[u16],
+      frame: interfaces::CefFrame, request: interfaces::CefRequest,
       new_url: *mut types::cef_string_t) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -650,8 +601,31 @@ impl CefRequestHandler {
           self.c_object,
           CefWrap::to_c(browser),
           CefWrap::to_c(frame),
-          CefWrap::to_c(old_url),
+          CefWrap::to_c(request),
           CefWrap::to_c(new_url)))
+    }
+  }
+
+  //
+  // Called on the IO thread when a resource response is received. To allow the
+  // resource to load normally return false (0). To redirect or retry the
+  // resource modify |request| (url, headers or post body) and return true (1).
+  // The |response| object cannot be modified in this callback.
+  //
+  pub fn on_resource_response(&self, browser: interfaces::CefBrowser,
+      frame: interfaces::CefFrame, request: interfaces::CefRequest,
+      response: interfaces::CefResponse) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).on_resource_response.unwrap())(
+          self.c_object,
+          CefWrap::to_c(browser),
+          CefWrap::to_c(frame),
+          CefWrap::to_c(request),
+          CefWrap::to_c(response)))
     }
   }
 
@@ -659,8 +633,9 @@ impl CefRequestHandler {
   // Called on the IO thread when the browser needs credentials from the user.
   // |isProxy| indicates whether the host is a proxy server. |host| contains the
   // hostname and |port| contains the port number. Return true (1) to continue
-  // the request and call cef_auth_callback_t::cont() when the authentication
-  // information is available. Return false (0) to cancel the request.
+  // the request and call cef_auth_callback_t::cont() either in this function or
+  // at a later time when the authentication information is available. Return
+  // false (0) to cancel the request immediately.
   //
   pub fn get_auth_credentials(&self, browser: interfaces::CefBrowser,
       frame: interfaces::CefFrame, isProxy: libc::c_int, host: &[u16],
@@ -688,13 +663,14 @@ impl CefRequestHandler {
   // Called on the IO thread when JavaScript requests a specific storage quota
   // size via the webkitStorageInfo.requestQuota function. |origin_url| is the
   // origin of the page making the request. |new_size| is the requested quota
-  // size in bytes. Return true (1) and call cef_quota_callback_t::cont() either
-  // in this function or at a later time to grant or deny the request. Return
-  // false (0) to cancel the request.
+  // size in bytes. Return true (1) to continue the request and call
+  // cef_request_tCallback::cont() either in this function or at a later time to
+  // grant or deny the request. Return false (0) to cancel the request
+  // immediately.
   //
   pub fn on_quota_request(&self, browser: interfaces::CefBrowser,
       origin_url: &[u16], new_size: i64,
-      callback: interfaces::CefQuotaCallback) -> libc::c_int {
+      callback: interfaces::CefRequestCallback) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -733,17 +709,17 @@ impl CefRequestHandler {
 
   //
   // Called on the UI thread to handle requests for URLs with an invalid SSL
-  // certificate. Return true (1) and call
-  // cef_allow_certificate_error_callback_t:: cont() either in this function or
-  // at a later time to continue or cancel the request. Return false (0) to
-  // cancel the request immediately. If |callback| is NULL the error cannot be
-  // recovered from and the request will be canceled automatically. If
-  // CefSettings.ignore_certificate_errors is set all invalid certificates will
-  // be accepted without calling this function.
+  // certificate. Return true (1) and call cef_request_tCallback::cont() either
+  // in this function or at a later time to continue or cancel the request.
+  // Return false (0) to cancel the request immediately. If |callback| is NULL
+  // the error cannot be recovered from and the request will be canceled
+  // automatically. If CefSettings.ignore_certificate_errors is set all invalid
+  // certificates will be accepted without calling this function.
   //
-  pub fn on_certificate_error(&self, cert_error: types::cef_errorcode_t,
-      request_url: &[u16],
-      callback: interfaces::CefAllowCertificateErrorCallback) -> libc::c_int {
+  pub fn on_certificate_error(&self, browser: interfaces::CefBrowser,
+      cert_error: types::cef_errorcode_t, request_url: &[u16],
+      ssl_info: interfaces::CefSSLInfo,
+      callback: interfaces::CefRequestCallback) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -751,8 +727,10 @@ impl CefRequestHandler {
       CefWrap::to_rust(
         ((*self.c_object).on_certificate_error.unwrap())(
           self.c_object,
+          CefWrap::to_c(browser),
           CefWrap::to_c(cert_error),
           CefWrap::to_c(request_url),
+          CefWrap::to_c(ssl_info),
           CefWrap::to_c(callback)))
     }
   }
@@ -793,6 +771,23 @@ impl CefRequestHandler {
           self.c_object,
           CefWrap::to_c(browser),
           CefWrap::to_c(plugin_path)))
+    }
+  }
+
+  //
+  // Called on the browser process UI thread when the render view associated
+  // with |browser| is ready to receive/handle IPC messages in the render
+  // process.
+  //
+  pub fn on_render_view_ready(&self, browser: interfaces::CefBrowser) -> () {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).on_render_view_ready.unwrap())(
+          self.c_object,
+          CefWrap::to_c(browser)))
     }
   }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -274,7 +274,7 @@ impl CefWrap<*mut cef_context_menu_handler_t> for Option<CefContextMenuHandler> 
 
 
 //
-// Provides information about the context menu state. The methods of this
+// Provides information about the context menu state. The ethods of this
 // structure can only be accessed on browser process the UI thread.
 //
 #[repr(C)]
@@ -388,13 +388,6 @@ pub struct _cef_context_menu_params_t {
       this: *mut cef_context_menu_params_t) -> types::cef_string_userfree_t>,
 
   //
-  // Returns the hash of the misspelled word, if any, that the context menu was
-  // invoked on.
-  //
-  pub get_misspelling_hash: Option<extern "C" fn(
-      this: *mut cef_context_menu_params_t) -> libc::c_int>,
-
-  //
   // Returns true (1) if suggestions exist, false (0) otherwise. Fills in
   // |suggestions| from the spell check service for the misspelled word if there
   // is one.
@@ -438,7 +431,7 @@ pub type cef_context_menu_params_t = _cef_context_menu_params_t;
 
 
 //
-// Provides information about the context menu state. The methods of this
+// Provides information about the context menu state. The ethods of this
 // structure can only be accessed on browser process the UI thread.
 //
 pub struct CefContextMenuParams {
@@ -716,21 +709,6 @@ impl CefContextMenuParams {
     unsafe {
       CefWrap::to_rust(
         ((*self.c_object).get_misspelled_word.unwrap())(
-          self.c_object))
-    }
-  }
-
-  //
-  // Returns the hash of the misspelled word, if any, that the context menu was
-  // invoked on.
-  //
-  pub fn get_misspelling_hash(&self) -> libc::c_int {
-    if self.c_object.is_null() {
-      panic!("called a CEF method on a null object")
-    }
-    unsafe {
-      CefWrap::to_rust(
-        ((*self.c_object).get_misspelling_hash.unwrap())(
           self.c_object))
     }
   }

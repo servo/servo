@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -253,22 +253,10 @@ pub struct _cef_domdocument_t {
       this: *mut cef_domdocument_t) -> libc::c_int>,
 
   //
-  // Returns the selection start node.
-  //
-  pub get_selection_start_node: Option<extern "C" fn(
-      this: *mut cef_domdocument_t) -> *mut interfaces::cef_domnode_t>,
-
-  //
   // Returns the selection offset within the start node.
   //
   pub get_selection_start_offset: Option<extern "C" fn(
       this: *mut cef_domdocument_t) -> libc::c_int>,
-
-  //
-  // Returns the selection end node.
-  //
-  pub get_selection_end_node: Option<extern "C" fn(
-      this: *mut cef_domdocument_t) -> *mut interfaces::cef_domnode_t>,
 
   //
   // Returns the selection offset within the end node.
@@ -501,20 +489,6 @@ impl CefDOMDocument {
   }
 
   //
-  // Returns the selection start node.
-  //
-  pub fn get_selection_start_node(&self) -> interfaces::CefDOMNode {
-    if self.c_object.is_null() {
-      panic!("called a CEF method on a null object")
-    }
-    unsafe {
-      CefWrap::to_rust(
-        ((*self.c_object).get_selection_start_node.unwrap())(
-          self.c_object))
-    }
-  }
-
-  //
   // Returns the selection offset within the start node.
   //
   pub fn get_selection_start_offset(&self) -> libc::c_int {
@@ -524,20 +498,6 @@ impl CefDOMDocument {
     unsafe {
       CefWrap::to_rust(
         ((*self.c_object).get_selection_start_offset.unwrap())(
-          self.c_object))
-    }
-  }
-
-  //
-  // Returns the selection end node.
-  //
-  pub fn get_selection_end_node(&self) -> interfaces::CefDOMNode {
-    if self.c_object.is_null() {
-      panic!("called a CEF method on a null object")
-    }
-    unsafe {
-      CefWrap::to_rust(
-        ((*self.c_object).get_selection_end_node.unwrap())(
           self.c_object))
     }
   }

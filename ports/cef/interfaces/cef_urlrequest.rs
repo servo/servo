@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -280,15 +280,20 @@ impl CefURLRequest {
   // would not normally be rendered then the response may receive special
   // handling inside the browser (for example, via the file download code path
   // instead of the URL request code path). The |request| object will be marked
-  // as read-only after calling this function.
+  // as read-only after calling this function. In the browser process if
+  // |request_context| is NULL the global request context will be used. In the
+  // render process |request_context| must be NULL and the context associated
+  // with the current renderer process' browser will be used.
   //
   pub fn create(request: interfaces::CefRequest,
-      client: interfaces::CefURLRequestClient) -> interfaces::CefURLRequest {
+      client: interfaces::CefURLRequestClient,
+      request_context: interfaces::CefRequestContext) -> interfaces::CefURLRequest {
     unsafe {
       CefWrap::to_rust(
         ::urlrequest::cef_urlrequest_create(
           CefWrap::to_c(request),
-          CefWrap::to_c(client)))
+          CefWrap::to_c(client),
+          CefWrap::to_c(request_context)))
     }
   }
 } 
@@ -347,8 +352,8 @@ pub struct _cef_urlrequest_client_t {
   //
   pub on_upload_progress: Option<extern "C" fn(
       this: *mut cef_urlrequest_client_t,
-      request: *mut interfaces::cef_urlrequest_t, current: u64,
-      total: u64) -> ()>,
+      request: *mut interfaces::cef_urlrequest_t, current: i64,
+      total: i64) -> ()>,
 
   //
   // Notifies the client of download progress. |current| denotes the number of
@@ -357,8 +362,8 @@ pub struct _cef_urlrequest_client_t {
   //
   pub on_download_progress: Option<extern "C" fn(
       this: *mut cef_urlrequest_client_t,
-      request: *mut interfaces::cef_urlrequest_t, current: u64,
-      total: u64) -> ()>,
+      request: *mut interfaces::cef_urlrequest_t, current: i64,
+      total: i64) -> ()>,
 
   //
   // Called when some part of the response is read. |data| contains the current
@@ -490,7 +495,7 @@ impl CefURLRequestClient {
   // UR_FLAG_REPORT_UPLOAD_PROGRESS flag is set on the request.
   //
   pub fn on_upload_progress(&self, request: interfaces::CefURLRequest,
-      current: u64, total: u64) -> () {
+      current: i64, total: i64) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -510,7 +515,7 @@ impl CefURLRequestClient {
   // response (or -1 if not determined).
   //
   pub fn on_download_progress(&self, request: interfaces::CefURLRequest,
-      current: u64, total: u64) -> () {
+      current: i64, total: i64) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

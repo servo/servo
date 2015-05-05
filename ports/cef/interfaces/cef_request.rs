@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -163,6 +163,13 @@ pub struct _cef_request_t {
   //
   pub get_transition_type: Option<extern "C" fn(
       this: *mut cef_request_t) -> types::cef_transition_type_t>,
+
+  //
+  // Returns the globally unique identifier for this request or 0 if not
+  // specified. Can be used by cef_request_tHandler implementations in the
+  // browser process to track a single request across multiple callbacks.
+  //
+  pub get_identifier: Option<extern "C" fn(this: *mut cef_request_t) -> u64>,
 
   //
   // The reference count. This will only be present for Rust instances!
@@ -489,6 +496,22 @@ impl CefRequest {
     unsafe {
       CefWrap::to_rust(
         ((*self.c_object).get_transition_type.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns the globally unique identifier for this request or 0 if not
+  // specified. Can be used by cef_request_tHandler implementations in the
+  // browser process to track a single request across multiple callbacks.
+  //
+  pub fn get_identifier(&self) -> u64 {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_identifier.unwrap())(
           self.c_object))
     }
   }

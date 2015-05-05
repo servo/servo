@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -207,6 +207,18 @@ pub struct _cef_download_item_callback_t {
       )>,
 
   //
+  // Call to pause the download.
+  //
+  pub pause: Option<extern "C" fn(this: *mut cef_download_item_callback_t) -> (
+      )>,
+
+  //
+  // Call to resume the download.
+  //
+  pub resume: Option<extern "C" fn(this: *mut cef_download_item_callback_t) -> (
+      )>,
+
+  //
   // The reference count. This will only be present for Rust instances!
   //
   pub ref_count: usize,
@@ -296,6 +308,34 @@ impl CefDownloadItemCallback {
     unsafe {
       CefWrap::to_rust(
         ((*self.c_object).cancel.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Call to pause the download.
+  //
+  pub fn pause(&self) -> () {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).pause.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Call to resume the download.
+  //
+  pub fn resume(&self) -> () {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).resume.unwrap())(
           self.c_object))
     }
   }

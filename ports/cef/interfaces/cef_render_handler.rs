@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -103,18 +103,21 @@ pub struct _cef_render_handler_t {
 
   //
   // Called when the browser wants to move or resize the popup widget. |rect|
-  // contains the new location and size.
+  // contains the new location and size in view coordinates.
   //
   pub on_popup_size: Option<extern "C" fn(this: *mut cef_render_handler_t,
       browser: *mut interfaces::cef_browser_t,
       rect: *const types::cef_rect_t) -> ()>,
 
   //
-  // Called when an element should be painted. |type| indicates whether the
-  // element is the view or the popup widget. |buffer| contains the pixel data
-  // for the whole image. |dirtyRects| contains the set of rectangles that need
-  // to be repainted. On Windows |buffer| will be |width|*|height|*4 bytes in
-  // size and represents a BGRA image with an upper-left origin.
+  // Called when an element should be painted. Pixel values passed to this
+  // function are scaled relative to view coordinates based on the value of
+  // CefScreenInfo.device_scale_factor returned from GetScreenInfo. |type|
+  // indicates whether the element is the view or the popup widget. |buffer|
+  // contains the pixel data for the whole image. |dirtyRects| contains the set
+  // of rectangles in pixel coordinates that need to be repainted. |buffer| will
+  // be |width|*|height|*4 bytes in size and represents a BGRA image with an
+  // upper-left origin.
   //
   pub on_paint: Option<extern "C" fn(this: *mut cef_render_handler_t,
       browser: *mut interfaces::cef_browser_t,
@@ -123,16 +126,19 @@ pub struct _cef_render_handler_t {
       width: libc::c_int, height: libc::c_int) -> ()>,
 
   //
-  // Called when the browser window's cursor has changed.
+  // Called when the browser's cursor has changed. If |type| is CT_CUSTOM then
+  // |custom_cursor_info| will be populated with the custom cursor information.
   //
   pub on_cursor_change: Option<extern "C" fn(this: *mut cef_render_handler_t,
       browser: *mut interfaces::cef_browser_t,
-      cursor: types::cef_cursor_handle_t) -> ()>,
+      cursor: types::cef_cursor_handle_t, ty: types::cef_cursor_type_t,
+      custom_cursor_info: *const interfaces::cef_cursor_info_t) -> ()>,
 
   //
   // Called when the user starts dragging content in the web view. Contextual
-  // information about the dragged content is supplied by |drag_data|. OS APIs
-  // that run a system message loop may be used within the StartDragging call.
+  // information about the dragged content is supplied by |drag_data|. (|x|,
+  // |y|) is the drag start location in screen coordinates. OS APIs that run a
+  // system message loop may be used within the StartDragging call.
   //
   // Return false (0) to abort the drag operation. Don't call any of
   // cef_browser_host_t::DragSource*Ended* functions after returning false (0).
@@ -161,8 +167,8 @@ pub struct _cef_render_handler_t {
   // Called when the scroll offset has changed.
   //
   pub on_scroll_offset_changed: Option<extern "C" fn(
-      this: *mut cef_render_handler_t,
-      browser: *mut interfaces::cef_browser_t) -> ()>,
+      this: *mut cef_render_handler_t, browser: *mut interfaces::cef_browser_t,
+      x: libc::c_double, y: libc::c_double) -> ()>,
 
   //
   // Called to retrieve the backing size of the view rectangle which is relative
@@ -363,7 +369,7 @@ impl CefRenderHandler {
 
   //
   // Called when the browser wants to move or resize the popup widget. |rect|
-  // contains the new location and size.
+  // contains the new location and size in view coordinates.
   //
   pub fn on_popup_size(&self, browser: interfaces::CefBrowser,
       rect: &types::cef_rect_t) -> () {
@@ -380,11 +386,14 @@ impl CefRenderHandler {
   }
 
   //
-  // Called when an element should be painted. |type| indicates whether the
-  // element is the view or the popup widget. |buffer| contains the pixel data
-  // for the whole image. |dirtyRects| contains the set of rectangles that need
-  // to be repainted. On Windows |buffer| will be |width|*|height|*4 bytes in
-  // size and represents a BGRA image with an upper-left origin.
+  // Called when an element should be painted. Pixel values passed to this
+  // function are scaled relative to view coordinates based on the value of
+  // CefScreenInfo.device_scale_factor returned from GetScreenInfo. |type|
+  // indicates whether the element is the view or the popup widget. |buffer|
+  // contains the pixel data for the whole image. |dirtyRects| contains the set
+  // of rectangles in pixel coordinates that need to be repainted. |buffer| will
+  // be |width|*|height|*4 bytes in size and represents a BGRA image with an
+  // upper-left origin.
   //
   pub fn on_paint(&self, browser: interfaces::CefBrowser,
       ty: types::cef_paint_element_type_t, dirtyRects_count: libc::size_t,
@@ -408,10 +417,12 @@ impl CefRenderHandler {
   }
 
   //
-  // Called when the browser window's cursor has changed.
+  // Called when the browser's cursor has changed. If |type| is CT_CUSTOM then
+  // |custom_cursor_info| will be populated with the custom cursor information.
   //
   pub fn on_cursor_change(&self, browser: interfaces::CefBrowser,
-      cursor: types::cef_cursor_handle_t) -> () {
+      cursor: types::cef_cursor_handle_t, ty: types::cef_cursor_type_t,
+      custom_cursor_info: &interfaces::CefCursorInfo) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -420,14 +431,17 @@ impl CefRenderHandler {
         ((*self.c_object).on_cursor_change.unwrap())(
           self.c_object,
           CefWrap::to_c(browser),
-          CefWrap::to_c(cursor)))
+          CefWrap::to_c(cursor),
+          CefWrap::to_c(ty),
+          CefWrap::to_c(custom_cursor_info)))
     }
   }
 
   //
   // Called when the user starts dragging content in the web view. Contextual
-  // information about the dragged content is supplied by |drag_data|. OS APIs
-  // that run a system message loop may be used within the StartDragging call.
+  // information about the dragged content is supplied by |drag_data|. (|x|,
+  // |y|) is the drag start location in screen coordinates. OS APIs that run a
+  // system message loop may be used within the StartDragging call.
   //
   // Return false (0) to abort the drag operation. Don't call any of
   // cef_browser_host_t::DragSource*Ended* functions after returning false (0).
@@ -478,8 +492,8 @@ impl CefRenderHandler {
   //
   // Called when the scroll offset has changed.
   //
-  pub fn on_scroll_offset_changed(&self, browser: interfaces::CefBrowser) -> (
-      ) {
+  pub fn on_scroll_offset_changed(&self, browser: interfaces::CefBrowser,
+      x: libc::c_double, y: libc::c_double) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -487,7 +501,9 @@ impl CefRenderHandler {
       CefWrap::to_rust(
         ((*self.c_object).on_scroll_offset_changed.unwrap())(
           self.c_object,
-          CefWrap::to_c(browser)))
+          CefWrap::to_c(browser),
+          CefWrap::to_c(x),
+          CefWrap::to_c(y)))
     }
   }
 

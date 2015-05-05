@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -87,6 +87,12 @@ pub struct _cef_client_t {
   //
   pub get_drag_handler: Option<extern "C" fn(
       this: *mut cef_client_t) -> *mut interfaces::cef_drag_handler_t>,
+
+  //
+  // Return the handler for find result events.
+  //
+  pub get_find_handler: Option<extern "C" fn(
+      this: *mut cef_client_t) -> *mut interfaces::cef_find_handler_t>,
 
   //
   // Return the handler for focus events.
@@ -297,6 +303,20 @@ impl CefClient {
     unsafe {
       CefWrap::to_rust(
         ((*self.c_object).get_drag_handler.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Return the handler for find result events.
+  //
+  pub fn get_find_handler(&self) -> interfaces::CefFindHandler {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_find_handler.unwrap())(
           self.c_object))
     }
   }

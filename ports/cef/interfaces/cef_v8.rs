@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -581,9 +581,9 @@ impl CefWrap<*mut cef_v8handler_t> for Option<CefV8Handler> {
 
 //
 // Structure that should be implemented to handle V8 accessor calls. Accessor
-// identifiers are registered by calling cef_v8value_t::set_value_byaccessor().
-// The functions of this structure will be called on the thread associated with
-// the V8 accessor.
+// identifiers are registered by calling cef_v8value_t::set_value(). The
+// functions of this structure will be called on the thread associated with the
+// V8 accessor.
 //
 #[repr(C)]
 pub struct _cef_v8accessor_t {
@@ -632,9 +632,9 @@ pub type cef_v8accessor_t = _cef_v8accessor_t;
 
 //
 // Structure that should be implemented to handle V8 accessor calls. Accessor
-// identifiers are registered by calling cef_v8value_t::set_value_byaccessor().
-// The functions of this structure will be called on the thread associated with
-// the V8 accessor.
+// identifiers are registered by calling cef_v8value_t::set_value(). The
+// functions of this structure will be called on the thread associated with the
+// V8 accessor.
 //
 pub struct CefV8Accessor {
   c_object: *mut cef_v8accessor_t,
@@ -1168,7 +1168,7 @@ pub struct _cef_v8value_t {
   pub get_int_value: Option<extern "C" fn(this: *mut cef_v8value_t) -> i32>,
 
   //
-  // Return an unsigned int value.  The underlying data will be converted to if
+  // Return an unisgned int value.  The underlying data will be converted to if
   // necessary.
   //
   pub get_uint_value: Option<extern "C" fn(this: *mut cef_v8value_t) -> u32>,
@@ -1714,7 +1714,7 @@ impl CefV8Value {
   }
 
   //
-  // Return an unsigned int value.  The underlying data will be converted to if
+  // Return an unisgned int value.  The underlying data will be converted to if
   // necessary.
   //
   pub fn get_uint_value(&self) -> u32 {
@@ -2289,7 +2289,7 @@ impl CefV8Value {
 
   //
   // Create a new cef_v8value_t object of type Date. This function should only
-  // be called from within the scope of a cef_v8context_tHandler,
+  // be called from within the scope of a cef_render_process_handler_t,
   // cef_v8handler_t or cef_v8accessor_t callback, or in combination with
   // calling enter() and exit() on a stored cef_v8context_t reference.
   //
@@ -2315,9 +2315,9 @@ impl CefV8Value {
   //
   // Create a new cef_v8value_t object of type object with optional accessor.
   // This function should only be called from within the scope of a
-  // cef_v8context_tHandler, cef_v8handler_t or cef_v8accessor_t callback, or in
-  // combination with calling enter() and exit() on a stored cef_v8context_t
-  // reference.
+  // cef_render_process_handler_t, cef_v8handler_t or cef_v8accessor_t callback,
+  // or in combination with calling enter() and exit() on a stored
+  // cef_v8context_t reference.
   //
   pub fn create_object(
       accessor: interfaces::CefV8Accessor) -> interfaces::CefV8Value {
@@ -2332,9 +2332,9 @@ impl CefV8Value {
   // Create a new cef_v8value_t object of type array with the specified
   // |length|. If |length| is negative the returned array will have length 0.
   // This function should only be called from within the scope of a
-  // cef_v8context_tHandler, cef_v8handler_t or cef_v8accessor_t callback, or in
-  // combination with calling enter() and exit() on a stored cef_v8context_t
-  // reference.
+  // cef_render_process_handler_t, cef_v8handler_t or cef_v8accessor_t callback,
+  // or in combination with calling enter() and exit() on a stored
+  // cef_v8context_t reference.
   //
   pub fn create_array(length: libc::c_int) -> interfaces::CefV8Value {
     unsafe {
@@ -2346,7 +2346,7 @@ impl CefV8Value {
 
   //
   // Create a new cef_v8value_t object of type function. This function should
-  // only be called from within the scope of a cef_v8context_tHandler,
+  // only be called from within the scope of a cef_render_process_handler_t,
   // cef_v8handler_t or cef_v8accessor_t callback, or in combination with
   // calling enter() and exit() on a stored cef_v8context_t reference.
   //

@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -46,6 +46,654 @@ use std::collections::HashMap;
 use std::ptr;
 
 //
+// Structure that wraps other data value types. Complex types (binary,
+// dictionary and list) will be referenced but not owned by this object. Can be
+// used on any process and thread.
+//
+#[repr(C)]
+pub struct _cef_value_t {
+  //
+  // Base structure.
+  //
+  pub base: types::cef_base_t,
+
+  //
+  // Returns true (1) if the underlying data is valid. This will always be true
+  // (1) for simple types. For complex types (binary, dictionary and list) the
+  // underlying data may become invalid if owned by another object (e.g. list or
+  // dictionary) and that other object is then modified or destroyed. This value
+  // object can be re-used by calling Set*() even if the underlying data is
+  // invalid.
+  //
+  pub is_valid: Option<extern "C" fn(this: *mut cef_value_t) -> libc::c_int>,
+
+  //
+  // Returns true (1) if the underlying data is owned by another object.
+  //
+  pub is_owned: Option<extern "C" fn(this: *mut cef_value_t) -> libc::c_int>,
+
+  //
+  // Returns true (1) if the underlying data is read-only. Some APIs may expose
+  // read-only objects.
+  //
+  pub is_read_only: Option<extern "C" fn(
+      this: *mut cef_value_t) -> libc::c_int>,
+
+  //
+  // Returns true (1) if this object and |that| object have the same underlying
+  // data. If true (1) modifications to this object will also affect |that|
+  // object and vice-versa.
+  //
+  pub is_same: Option<extern "C" fn(this: *mut cef_value_t,
+      that: *mut interfaces::cef_value_t) -> libc::c_int>,
+
+  //
+  // Returns true (1) if this object and |that| object have an equivalent
+  // underlying value but are not necessarily the same object.
+  //
+  pub is_equal: Option<extern "C" fn(this: *mut cef_value_t,
+      that: *mut interfaces::cef_value_t) -> libc::c_int>,
+
+  //
+  // Returns a copy of this object. The underlying data will also be copied.
+  //
+  pub copy: Option<extern "C" fn(
+      this: *mut cef_value_t) -> *mut interfaces::cef_value_t>,
+
+  //
+  // Returns the underlying value type.
+  //
+  pub get_type: Option<extern "C" fn(
+      this: *mut cef_value_t) -> interfaces::cef_value_type_t>,
+
+  //
+  // Returns the underlying value as type bool.
+  //
+  pub get_bool: Option<extern "C" fn(this: *mut cef_value_t) -> libc::c_int>,
+
+  //
+  // Returns the underlying value as type int.
+  //
+  pub get_int: Option<extern "C" fn(this: *mut cef_value_t) -> libc::c_int>,
+
+  //
+  // Returns the underlying value as type double.
+  //
+  pub get_double: Option<extern "C" fn(
+      this: *mut cef_value_t) -> libc::c_double>,
+
+  //
+  // Returns the underlying value as type string.
+  //
+  // The resulting string must be freed by calling cef_string_userfree_free().
+  pub get_string: Option<extern "C" fn(
+      this: *mut cef_value_t) -> types::cef_string_userfree_t>,
+
+  //
+  // Returns the underlying value as type binary. The returned reference may
+  // become invalid if the value is owned by another object or if ownership is
+  // transferred to another object in the future. To maintain a reference to the
+  // value after assigning ownership to a dictionary or list pass this object to
+  // the set_value() function instead of passing the returned reference to
+  // set_binary().
+  //
+  pub get_binary: Option<extern "C" fn(
+      this: *mut cef_value_t) -> *mut interfaces::cef_binary_value_t>,
+
+  //
+  // Returns the underlying value as type dictionary. The returned reference may
+  // become invalid if the value is owned by another object or if ownership is
+  // transferred to another object in the future. To maintain a reference to the
+  // value after assigning ownership to a dictionary or list pass this object to
+  // the set_value() function instead of passing the returned reference to
+  // set_dictionary().
+  //
+  pub get_dictionary: Option<extern "C" fn(
+      this: *mut cef_value_t) -> *mut interfaces::cef_dictionary_value_t>,
+
+  //
+  // Returns the underlying value as type list. The returned reference may
+  // become invalid if the value is owned by another object or if ownership is
+  // transferred to another object in the future. To maintain a reference to the
+  // value after assigning ownership to a dictionary or list pass this object to
+  // the set_value() function instead of passing the returned reference to
+  // set_list().
+  //
+  pub get_list: Option<extern "C" fn(
+      this: *mut cef_value_t) -> *mut interfaces::cef_list_value_t>,
+
+  //
+  // Sets the underlying value as type null. Returns true (1) if the value was
+  // set successfully.
+  //
+  pub set_null: Option<extern "C" fn(this: *mut cef_value_t) -> libc::c_int>,
+
+  //
+  // Sets the underlying value as type bool. Returns true (1) if the value was
+  // set successfully.
+  //
+  pub set_bool: Option<extern "C" fn(this: *mut cef_value_t,
+      value: libc::c_int) -> libc::c_int>,
+
+  //
+  // Sets the underlying value as type int. Returns true (1) if the value was
+  // set successfully.
+  //
+  pub set_int: Option<extern "C" fn(this: *mut cef_value_t,
+      value: libc::c_int) -> libc::c_int>,
+
+  //
+  // Sets the underlying value as type double. Returns true (1) if the value was
+  // set successfully.
+  //
+  pub set_double: Option<extern "C" fn(this: *mut cef_value_t,
+      value: libc::c_double) -> libc::c_int>,
+
+  //
+  // Sets the underlying value as type string. Returns true (1) if the value was
+  // set successfully.
+  //
+  pub set_string: Option<extern "C" fn(this: *mut cef_value_t,
+      value: *const types::cef_string_t) -> libc::c_int>,
+
+  //
+  // Sets the underlying value as type binary. Returns true (1) if the value was
+  // set successfully. This object keeps a reference to |value| and ownership of
+  // the underlying data remains unchanged.
+  //
+  pub set_binary: Option<extern "C" fn(this: *mut cef_value_t,
+      value: *mut interfaces::cef_binary_value_t) -> libc::c_int>,
+
+  //
+  // Sets the underlying value as type dict. Returns true (1) if the value was
+  // set successfully. This object keeps a reference to |value| and ownership of
+  // the underlying data remains unchanged.
+  //
+  pub set_dictionary: Option<extern "C" fn(this: *mut cef_value_t,
+      value: *mut interfaces::cef_dictionary_value_t) -> libc::c_int>,
+
+  //
+  // Sets the underlying value as type list. Returns true (1) if the value was
+  // set successfully. This object keeps a reference to |value| and ownership of
+  // the underlying data remains unchanged.
+  //
+  pub set_list: Option<extern "C" fn(this: *mut cef_value_t,
+      value: *mut interfaces::cef_list_value_t) -> libc::c_int>,
+
+  //
+  // The reference count. This will only be present for Rust instances!
+  //
+  pub ref_count: usize,
+
+  //
+  // Extra data. This will only be present for Rust instances!
+  //
+  pub extra: u8,
+} 
+
+pub type cef_value_t = _cef_value_t;
+
+
+//
+// Structure that wraps other data value types. Complex types (binary,
+// dictionary and list) will be referenced but not owned by this object. Can be
+// used on any process and thread.
+//
+pub struct CefValue {
+  c_object: *mut cef_value_t,
+}
+
+impl Clone for CefValue {
+  fn clone(&self) -> CefValue{
+    unsafe {
+      if !self.c_object.is_null() {
+        ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
+      }
+      CefValue {
+        c_object: self.c_object,
+      }
+    }
+  }
+}
+
+impl Drop for CefValue {
+  fn drop(&mut self) {
+    unsafe {
+      if !self.c_object.is_null() {
+        ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
+      }
+    }
+  }
+}
+
+impl CefValue {
+  pub unsafe fn from_c_object(c_object: *mut cef_value_t) -> CefValue {
+    CefValue {
+      c_object: c_object,
+    }
+  }
+
+  pub unsafe fn from_c_object_addref(c_object: *mut cef_value_t) -> CefValue {
+    if !c_object.is_null() {
+      ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
+    }
+    CefValue {
+      c_object: c_object,
+    }
+  }
+
+  pub fn c_object(&self) -> *mut cef_value_t {
+    self.c_object
+  }
+
+  pub fn c_object_addrefed(&self) -> *mut cef_value_t {
+    unsafe {
+      if !self.c_object.is_null() {
+        eutil::add_ref(self.c_object as *mut types::cef_base_t);
+      }
+      self.c_object
+    }
+  }
+
+  pub fn is_null_cef_object(&self) -> bool {
+    self.c_object.is_null()
+  }
+  pub fn is_not_null_cef_object(&self) -> bool {
+    !self.c_object.is_null()
+  }
+
+  //
+  // Returns true (1) if the underlying data is valid. This will always be true
+  // (1) for simple types. For complex types (binary, dictionary and list) the
+  // underlying data may become invalid if owned by another object (e.g. list or
+  // dictionary) and that other object is then modified or destroyed. This value
+  // object can be re-used by calling Set*() even if the underlying data is
+  // invalid.
+  //
+  pub fn is_valid(&self) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).is_valid.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns true (1) if the underlying data is owned by another object.
+  //
+  pub fn is_owned(&self) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).is_owned.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns true (1) if the underlying data is read-only. Some APIs may expose
+  // read-only objects.
+  //
+  pub fn is_read_only(&self) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).is_read_only.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns true (1) if this object and |that| object have the same underlying
+  // data. If true (1) modifications to this object will also affect |that|
+  // object and vice-versa.
+  //
+  pub fn is_same(&self, that: interfaces::CefValue) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).is_same.unwrap())(
+          self.c_object,
+          CefWrap::to_c(that)))
+    }
+  }
+
+  //
+  // Returns true (1) if this object and |that| object have an equivalent
+  // underlying value but are not necessarily the same object.
+  //
+  pub fn is_equal(&self, that: interfaces::CefValue) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).is_equal.unwrap())(
+          self.c_object,
+          CefWrap::to_c(that)))
+    }
+  }
+
+  //
+  // Returns a copy of this object. The underlying data will also be copied.
+  //
+  pub fn copy(&self) -> interfaces::CefValue {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).copy.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns the underlying value type.
+  //
+  pub fn get_type(&self) -> interfaces::CefValueType {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_type.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns the underlying value as type bool.
+  //
+  pub fn get_bool(&self) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_bool.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns the underlying value as type int.
+  //
+  pub fn get_int(&self) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_int.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns the underlying value as type double.
+  //
+  pub fn get_double(&self) -> libc::c_double {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_double.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns the underlying value as type string.
+  //
+  // The resulting string must be freed by calling cef_string_userfree_free().
+  pub fn get_string(&self) -> String {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_string.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns the underlying value as type binary. The returned reference may
+  // become invalid if the value is owned by another object or if ownership is
+  // transferred to another object in the future. To maintain a reference to the
+  // value after assigning ownership to a dictionary or list pass this object to
+  // the set_value() function instead of passing the returned reference to
+  // set_binary().
+  //
+  pub fn get_binary(&self) -> interfaces::CefBinaryValue {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_binary.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns the underlying value as type dictionary. The returned reference may
+  // become invalid if the value is owned by another object or if ownership is
+  // transferred to another object in the future. To maintain a reference to the
+  // value after assigning ownership to a dictionary or list pass this object to
+  // the set_value() function instead of passing the returned reference to
+  // set_dictionary().
+  //
+  pub fn get_dictionary(&self) -> interfaces::CefDictionaryValue {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_dictionary.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns the underlying value as type list. The returned reference may
+  // become invalid if the value is owned by another object or if ownership is
+  // transferred to another object in the future. To maintain a reference to the
+  // value after assigning ownership to a dictionary or list pass this object to
+  // the set_value() function instead of passing the returned reference to
+  // set_list().
+  //
+  pub fn get_list(&self) -> interfaces::CefListValue {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_list.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Sets the underlying value as type null. Returns true (1) if the value was
+  // set successfully.
+  //
+  pub fn set_null(&self) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).set_null.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Sets the underlying value as type bool. Returns true (1) if the value was
+  // set successfully.
+  //
+  pub fn set_bool(&self, value: libc::c_int) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).set_bool.unwrap())(
+          self.c_object,
+          CefWrap::to_c(value)))
+    }
+  }
+
+  //
+  // Sets the underlying value as type int. Returns true (1) if the value was
+  // set successfully.
+  //
+  pub fn set_int(&self, value: libc::c_int) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).set_int.unwrap())(
+          self.c_object,
+          CefWrap::to_c(value)))
+    }
+  }
+
+  //
+  // Sets the underlying value as type double. Returns true (1) if the value was
+  // set successfully.
+  //
+  pub fn set_double(&self, value: libc::c_double) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).set_double.unwrap())(
+          self.c_object,
+          CefWrap::to_c(value)))
+    }
+  }
+
+  //
+  // Sets the underlying value as type string. Returns true (1) if the value was
+  // set successfully.
+  //
+  pub fn set_string(&self, value: &[u16]) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).set_string.unwrap())(
+          self.c_object,
+          CefWrap::to_c(value)))
+    }
+  }
+
+  //
+  // Sets the underlying value as type binary. Returns true (1) if the value was
+  // set successfully. This object keeps a reference to |value| and ownership of
+  // the underlying data remains unchanged.
+  //
+  pub fn set_binary(&self, value: interfaces::CefBinaryValue) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).set_binary.unwrap())(
+          self.c_object,
+          CefWrap::to_c(value)))
+    }
+  }
+
+  //
+  // Sets the underlying value as type dict. Returns true (1) if the value was
+  // set successfully. This object keeps a reference to |value| and ownership of
+  // the underlying data remains unchanged.
+  //
+  pub fn set_dictionary(&self,
+      value: interfaces::CefDictionaryValue) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).set_dictionary.unwrap())(
+          self.c_object,
+          CefWrap::to_c(value)))
+    }
+  }
+
+  //
+  // Sets the underlying value as type list. Returns true (1) if the value was
+  // set successfully. This object keeps a reference to |value| and ownership of
+  // the underlying data remains unchanged.
+  //
+  pub fn set_list(&self, value: interfaces::CefListValue) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).set_list.unwrap())(
+          self.c_object,
+          CefWrap::to_c(value)))
+    }
+  }
+
+  //
+  // Creates a new object.
+  //
+  pub fn create() -> interfaces::CefValue {
+    unsafe {
+      CefWrap::to_rust(
+        ::values::cef_value_create(
+))
+    }
+  }
+} 
+
+impl CefWrap<*mut cef_value_t> for CefValue {
+  fn to_c(rust_object: CefValue) -> *mut cef_value_t {
+    rust_object.c_object_addrefed()
+  }
+  unsafe fn to_rust(c_object: *mut cef_value_t) -> CefValue {
+    CefValue::from_c_object_addref(c_object)
+  }
+}
+impl CefWrap<*mut cef_value_t> for Option<CefValue> {
+  fn to_c(rust_object: Option<CefValue>) -> *mut cef_value_t {
+    match rust_object {
+      None => ptr::null_mut(),
+      Some(rust_object) => rust_object.c_object_addrefed(),
+    }
+  }
+  unsafe fn to_rust(c_object: *mut cef_value_t) -> Option<CefValue> {
+    if c_object.is_null() {
+      None
+    } else {
+      Some(CefValue::from_c_object_addref(c_object))
+    }
+  }
+}
+
+
+//
 // Structure representing a binary value. Can be used on any process and thread.
 //
 #[repr(C)]
@@ -56,8 +704,10 @@ pub struct _cef_binary_value_t {
   pub base: types::cef_base_t,
 
   //
-  // Returns true (1) if this object is valid. Do not call any other functions
-  // if this function returns false (0).
+  // Returns true (1) if this object is valid. This object may become invalid if
+  // the underlying data is owned by another object (e.g. list or dictionary)
+  // and that other object is then modified or destroyed. Do not call any other
+  // functions if this function returns false (0).
   //
   pub is_valid: Option<extern "C" fn(
       this: *mut cef_binary_value_t) -> libc::c_int>,
@@ -67,6 +717,20 @@ pub struct _cef_binary_value_t {
   //
   pub is_owned: Option<extern "C" fn(
       this: *mut cef_binary_value_t) -> libc::c_int>,
+
+  //
+  // Returns true (1) if this object and |that| object have the same underlying
+  // data.
+  //
+  pub is_same: Option<extern "C" fn(this: *mut cef_binary_value_t,
+      that: *mut interfaces::cef_binary_value_t) -> libc::c_int>,
+
+  //
+  // Returns true (1) if this object and |that| object have an equivalent
+  // underlying value but are not necessarily the same object.
+  //
+  pub is_equal: Option<extern "C" fn(this: *mut cef_binary_value_t,
+      that: *mut interfaces::cef_binary_value_t) -> libc::c_int>,
 
   //
   // Returns a copy of this object. The data in this object will also be copied.
@@ -169,8 +833,10 @@ impl CefBinaryValue {
   }
 
   //
-  // Returns true (1) if this object is valid. Do not call any other functions
-  // if this function returns false (0).
+  // Returns true (1) if this object is valid. This object may become invalid if
+  // the underlying data is owned by another object (e.g. list or dictionary)
+  // and that other object is then modified or destroyed. Do not call any other
+  // functions if this function returns false (0).
   //
   pub fn is_valid(&self) -> libc::c_int {
     if self.c_object.is_null() {
@@ -194,6 +860,38 @@ impl CefBinaryValue {
       CefWrap::to_rust(
         ((*self.c_object).is_owned.unwrap())(
           self.c_object))
+    }
+  }
+
+  //
+  // Returns true (1) if this object and |that| object have the same underlying
+  // data.
+  //
+  pub fn is_same(&self, that: interfaces::CefBinaryValue) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).is_same.unwrap())(
+          self.c_object,
+          CefWrap::to_c(that)))
+    }
+  }
+
+  //
+  // Returns true (1) if this object and |that| object have an equivalent
+  // underlying value but are not necessarily the same object.
+  //
+  pub fn is_equal(&self, that: interfaces::CefBinaryValue) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).is_equal.unwrap())(
+          self.c_object,
+          CefWrap::to_c(that)))
     }
   }
 
@@ -296,8 +994,10 @@ pub struct _cef_dictionary_value_t {
   pub base: types::cef_base_t,
 
   //
-  // Returns true (1) if this object is valid. Do not call any other functions
-  // if this function returns false (0).
+  // Returns true (1) if this object is valid. This object may become invalid if
+  // the underlying data is owned by another object (e.g. list or dictionary)
+  // and that other object is then modified or destroyed. Do not call any other
+  // functions if this function returns false (0).
   //
   pub is_valid: Option<extern "C" fn(
       this: *mut cef_dictionary_value_t) -> libc::c_int>,
@@ -314,6 +1014,21 @@ pub struct _cef_dictionary_value_t {
   //
   pub is_read_only: Option<extern "C" fn(
       this: *mut cef_dictionary_value_t) -> libc::c_int>,
+
+  //
+  // Returns true (1) if this object and |that| object have the same underlying
+  // data. If true (1) modifications to this object will also affect |that|
+  // object and vice-versa.
+  //
+  pub is_same: Option<extern "C" fn(this: *mut cef_dictionary_value_t,
+      that: *mut interfaces::cef_dictionary_value_t) -> libc::c_int>,
+
+  //
+  // Returns true (1) if this object and |that| object have an equivalent
+  // underlying value but are not necessarily the same object.
+  //
+  pub is_equal: Option<extern "C" fn(this: *mut cef_dictionary_value_t,
+      that: *mut interfaces::cef_dictionary_value_t) -> libc::c_int>,
 
   //
   // Returns a writable copy of this object. If |exclude_NULL_children| is true
@@ -360,6 +1075,16 @@ pub struct _cef_dictionary_value_t {
       key: *const types::cef_string_t) -> interfaces::cef_value_type_t>,
 
   //
+  // Returns the value at the specified key. For simple types the returned value
+  // will copy existing data and modifications to the value will not modify this
+  // object. For complex types (binary, dictionary and list) the returned value
+  // will reference existing data and modifications to the value will modify
+  // this object.
+  //
+  pub get_value: Option<extern "C" fn(this: *mut cef_dictionary_value_t,
+      key: *const types::cef_string_t) -> *mut interfaces::cef_value_t>,
+
+  //
   // Returns the value at the specified key as type bool.
   //
   pub get_bool: Option<extern "C" fn(this: *mut cef_dictionary_value_t,
@@ -385,22 +1110,39 @@ pub struct _cef_dictionary_value_t {
       key: *const types::cef_string_t) -> types::cef_string_userfree_t>,
 
   //
-  // Returns the value at the specified key as type binary.
+  // Returns the value at the specified key as type binary. The returned value
+  // will reference existing data.
   //
   pub get_binary: Option<extern "C" fn(this: *mut cef_dictionary_value_t,
       key: *const types::cef_string_t) -> *mut interfaces::cef_binary_value_t>,
 
   //
-  // Returns the value at the specified key as type dictionary.
+  // Returns the value at the specified key as type dictionary. The returned
+  // value will reference existing data and modifications to the value will
+  // modify this object.
   //
   pub get_dictionary: Option<extern "C" fn(this: *mut cef_dictionary_value_t,
       key: *const types::cef_string_t) -> *mut interfaces::cef_dictionary_value_t>,
 
   //
-  // Returns the value at the specified key as type list.
+  // Returns the value at the specified key as type list. The returned value
+  // will reference existing data and modifications to the value will modify
+  // this object.
   //
   pub get_list: Option<extern "C" fn(this: *mut cef_dictionary_value_t,
       key: *const types::cef_string_t) -> *mut interfaces::cef_list_value_t>,
+
+  //
+  // Sets the value at the specified key. Returns true (1) if the value was set
+  // successfully. If |value| represents simple data then the underlying data
+  // will be copied and modifications to |value| will not modify this object. If
+  // |value| represents complex data (binary, dictionary or list) then the
+  // underlying data will be referenced and modifications to |value| will modify
+  // this object.
+  //
+  pub set_value: Option<extern "C" fn(this: *mut cef_dictionary_value_t,
+      key: *const types::cef_string_t,
+      value: *mut interfaces::cef_value_t) -> libc::c_int>,
 
   //
   // Sets the value at the specified key as type null. Returns true (1) if the
@@ -451,8 +1193,7 @@ pub struct _cef_dictionary_value_t {
 
   //
   // Sets the value at the specified key as type dict. Returns true (1) if the
-  // value was set successfully. After calling this function the |value| object
-  // will no longer be valid. If |value| is currently owned by another object
+  // value was set successfully. If |value| is currently owned by another object
   // then the value will be copied and the |value| reference will not change.
   // Otherwise, ownership will be transferred to this object and the |value|
   // reference will be invalidated.
@@ -463,8 +1204,7 @@ pub struct _cef_dictionary_value_t {
 
   //
   // Sets the value at the specified key as type list. Returns true (1) if the
-  // value was set successfully. After calling this function the |value| object
-  // will no longer be valid. If |value| is currently owned by another object
+  // value was set successfully. If |value| is currently owned by another object
   // then the value will be copied and the |value| reference will not change.
   // Otherwise, ownership will be transferred to this object and the |value|
   // reference will be invalidated.
@@ -555,8 +1295,10 @@ impl CefDictionaryValue {
   }
 
   //
-  // Returns true (1) if this object is valid. Do not call any other functions
-  // if this function returns false (0).
+  // Returns true (1) if this object is valid. This object may become invalid if
+  // the underlying data is owned by another object (e.g. list or dictionary)
+  // and that other object is then modified or destroyed. Do not call any other
+  // functions if this function returns false (0).
   //
   pub fn is_valid(&self) -> libc::c_int {
     if self.c_object.is_null() {
@@ -595,6 +1337,39 @@ impl CefDictionaryValue {
       CefWrap::to_rust(
         ((*self.c_object).is_read_only.unwrap())(
           self.c_object))
+    }
+  }
+
+  //
+  // Returns true (1) if this object and |that| object have the same underlying
+  // data. If true (1) modifications to this object will also affect |that|
+  // object and vice-versa.
+  //
+  pub fn is_same(&self, that: interfaces::CefDictionaryValue) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).is_same.unwrap())(
+          self.c_object,
+          CefWrap::to_c(that)))
+    }
+  }
+
+  //
+  // Returns true (1) if this object and |that| object have an equivalent
+  // underlying value but are not necessarily the same object.
+  //
+  pub fn is_equal(&self, that: interfaces::CefDictionaryValue) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).is_equal.unwrap())(
+          self.c_object,
+          CefWrap::to_c(that)))
     }
   }
 
@@ -705,6 +1480,25 @@ impl CefDictionaryValue {
   }
 
   //
+  // Returns the value at the specified key. For simple types the returned value
+  // will copy existing data and modifications to the value will not modify this
+  // object. For complex types (binary, dictionary and list) the returned value
+  // will reference existing data and modifications to the value will modify
+  // this object.
+  //
+  pub fn get_value(&self, key: &[u16]) -> interfaces::CefValue {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_value.unwrap())(
+          self.c_object,
+          CefWrap::to_c(key)))
+    }
+  }
+
+  //
   // Returns the value at the specified key as type bool.
   //
   pub fn get_bool(&self, key: &[u16]) -> libc::c_int {
@@ -766,7 +1560,8 @@ impl CefDictionaryValue {
   }
 
   //
-  // Returns the value at the specified key as type binary.
+  // Returns the value at the specified key as type binary. The returned value
+  // will reference existing data.
   //
   pub fn get_binary(&self, key: &[u16]) -> interfaces::CefBinaryValue {
     if self.c_object.is_null() {
@@ -781,7 +1576,9 @@ impl CefDictionaryValue {
   }
 
   //
-  // Returns the value at the specified key as type dictionary.
+  // Returns the value at the specified key as type dictionary. The returned
+  // value will reference existing data and modifications to the value will
+  // modify this object.
   //
   pub fn get_dictionary(&self, key: &[u16]) -> interfaces::CefDictionaryValue {
     if self.c_object.is_null() {
@@ -796,7 +1593,9 @@ impl CefDictionaryValue {
   }
 
   //
-  // Returns the value at the specified key as type list.
+  // Returns the value at the specified key as type list. The returned value
+  // will reference existing data and modifications to the value will modify
+  // this object.
   //
   pub fn get_list(&self, key: &[u16]) -> interfaces::CefListValue {
     if self.c_object.is_null() {
@@ -807,6 +1606,28 @@ impl CefDictionaryValue {
         ((*self.c_object).get_list.unwrap())(
           self.c_object,
           CefWrap::to_c(key)))
+    }
+  }
+
+  //
+  // Sets the value at the specified key. Returns true (1) if the value was set
+  // successfully. If |value| represents simple data then the underlying data
+  // will be copied and modifications to |value| will not modify this object. If
+  // |value| represents complex data (binary, dictionary or list) then the
+  // underlying data will be referenced and modifications to |value| will modify
+  // this object.
+  //
+  pub fn set_value(&self, key: &[u16],
+      value: interfaces::CefValue) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).set_value.unwrap())(
+          self.c_object,
+          CefWrap::to_c(key),
+          CefWrap::to_c(value)))
     }
   }
 
@@ -917,8 +1738,7 @@ impl CefDictionaryValue {
 
   //
   // Sets the value at the specified key as type dict. Returns true (1) if the
-  // value was set successfully. After calling this function the |value| object
-  // will no longer be valid. If |value| is currently owned by another object
+  // value was set successfully. If |value| is currently owned by another object
   // then the value will be copied and the |value| reference will not change.
   // Otherwise, ownership will be transferred to this object and the |value|
   // reference will be invalidated.
@@ -939,8 +1759,7 @@ impl CefDictionaryValue {
 
   //
   // Sets the value at the specified key as type list. Returns true (1) if the
-  // value was set successfully. After calling this function the |value| object
-  // will no longer be valid. If |value| is currently owned by another object
+  // value was set successfully. If |value| is currently owned by another object
   // then the value will be copied and the |value| reference will not change.
   // Otherwise, ownership will be transferred to this object and the |value|
   // reference will be invalidated.
@@ -1007,8 +1826,10 @@ pub struct _cef_list_value_t {
   pub base: types::cef_base_t,
 
   //
-  // Returns true (1) if this object is valid. Do not call any other functions
-  // if this function returns false (0).
+  // Returns true (1) if this object is valid. This object may become invalid if
+  // the underlying data is owned by another object (e.g. list or dictionary)
+  // and that other object is then modified or destroyed. Do not call any other
+  // functions if this function returns false (0).
   //
   pub is_valid: Option<extern "C" fn(
       this: *mut cef_list_value_t) -> libc::c_int>,
@@ -1025,6 +1846,21 @@ pub struct _cef_list_value_t {
   //
   pub is_read_only: Option<extern "C" fn(
       this: *mut cef_list_value_t) -> libc::c_int>,
+
+  //
+  // Returns true (1) if this object and |that| object have the same underlying
+  // data. If true (1) modifications to this object will also affect |that|
+  // object and vice-versa.
+  //
+  pub is_same: Option<extern "C" fn(this: *mut cef_list_value_t,
+      that: *mut interfaces::cef_list_value_t) -> libc::c_int>,
+
+  //
+  // Returns true (1) if this object and |that| object have an equivalent
+  // underlying value but are not necessarily the same object.
+  //
+  pub is_equal: Option<extern "C" fn(this: *mut cef_list_value_t,
+      that: *mut interfaces::cef_list_value_t) -> libc::c_int>,
 
   //
   // Returns a writable copy of this object.
@@ -1063,6 +1899,16 @@ pub struct _cef_list_value_t {
       index: libc::c_int) -> interfaces::cef_value_type_t>,
 
   //
+  // Returns the value at the specified index. For simple types the returned
+  // value will copy existing data and modifications to the value will not
+  // modify this object. For complex types (binary, dictionary and list) the
+  // returned value will reference existing data and modifications to the value
+  // will modify this object.
+  //
+  pub get_value: Option<extern "C" fn(this: *mut cef_list_value_t,
+      index: libc::c_int) -> *mut interfaces::cef_value_t>,
+
+  //
   // Returns the value at the specified index as type bool.
   //
   pub get_bool: Option<extern "C" fn(this: *mut cef_list_value_t,
@@ -1088,22 +1934,38 @@ pub struct _cef_list_value_t {
       index: libc::c_int) -> types::cef_string_userfree_t>,
 
   //
-  // Returns the value at the specified index as type binary.
+  // Returns the value at the specified index as type binary. The returned value
+  // will reference existing data.
   //
   pub get_binary: Option<extern "C" fn(this: *mut cef_list_value_t,
       index: libc::c_int) -> *mut interfaces::cef_binary_value_t>,
 
   //
-  // Returns the value at the specified index as type dictionary.
+  // Returns the value at the specified index as type dictionary. The returned
+  // value will reference existing data and modifications to the value will
+  // modify this object.
   //
   pub get_dictionary: Option<extern "C" fn(this: *mut cef_list_value_t,
       index: libc::c_int) -> *mut interfaces::cef_dictionary_value_t>,
 
   //
-  // Returns the value at the specified index as type list.
+  // Returns the value at the specified index as type list. The returned value
+  // will reference existing data and modifications to the value will modify
+  // this object.
   //
   pub get_list: Option<extern "C" fn(this: *mut cef_list_value_t,
       index: libc::c_int) -> *mut interfaces::cef_list_value_t>,
+
+  //
+  // Sets the value at the specified index. Returns true (1) if the value was
+  // set successfully. If |value| represents simple data then the underlying
+  // data will be copied and modifications to |value| will not modify this
+  // object. If |value| represents complex data (binary, dictionary or list)
+  // then the underlying data will be referenced and modifications to |value|
+  // will modify this object.
+  //
+  pub set_value: Option<extern "C" fn(this: *mut cef_list_value_t,
+      index: libc::c_int, value: *mut interfaces::cef_value_t) -> libc::c_int>,
 
   //
   // Sets the value at the specified index as type null. Returns true (1) if the
@@ -1142,8 +2004,7 @@ pub struct _cef_list_value_t {
 
   //
   // Sets the value at the specified index as type binary. Returns true (1) if
-  // the value was set successfully. After calling this function the |value|
-  // object will no longer be valid. If |value| is currently owned by another
+  // the value was set successfully. If |value| is currently owned by another
   // object then the value will be copied and the |value| reference will not
   // change. Otherwise, ownership will be transferred to this object and the
   // |value| reference will be invalidated.
@@ -1154,8 +2015,7 @@ pub struct _cef_list_value_t {
 
   //
   // Sets the value at the specified index as type dict. Returns true (1) if the
-  // value was set successfully. After calling this function the |value| object
-  // will no longer be valid. If |value| is currently owned by another object
+  // value was set successfully. If |value| is currently owned by another object
   // then the value will be copied and the |value| reference will not change.
   // Otherwise, ownership will be transferred to this object and the |value|
   // reference will be invalidated.
@@ -1166,8 +2026,7 @@ pub struct _cef_list_value_t {
 
   //
   // Sets the value at the specified index as type list. Returns true (1) if the
-  // value was set successfully. After calling this function the |value| object
-  // will no longer be valid. If |value| is currently owned by another object
+  // value was set successfully. If |value| is currently owned by another object
   // then the value will be copied and the |value| reference will not change.
   // Otherwise, ownership will be transferred to this object and the |value|
   // reference will be invalidated.
@@ -1257,8 +2116,10 @@ impl CefListValue {
   }
 
   //
-  // Returns true (1) if this object is valid. Do not call any other functions
-  // if this function returns false (0).
+  // Returns true (1) if this object is valid. This object may become invalid if
+  // the underlying data is owned by another object (e.g. list or dictionary)
+  // and that other object is then modified or destroyed. Do not call any other
+  // functions if this function returns false (0).
   //
   pub fn is_valid(&self) -> libc::c_int {
     if self.c_object.is_null() {
@@ -1297,6 +2158,39 @@ impl CefListValue {
       CefWrap::to_rust(
         ((*self.c_object).is_read_only.unwrap())(
           self.c_object))
+    }
+  }
+
+  //
+  // Returns true (1) if this object and |that| object have the same underlying
+  // data. If true (1) modifications to this object will also affect |that|
+  // object and vice-versa.
+  //
+  pub fn is_same(&self, that: interfaces::CefListValue) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).is_same.unwrap())(
+          self.c_object,
+          CefWrap::to_c(that)))
+    }
+  }
+
+  //
+  // Returns true (1) if this object and |that| object have an equivalent
+  // underlying value but are not necessarily the same object.
+  //
+  pub fn is_equal(&self, that: interfaces::CefListValue) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).is_equal.unwrap())(
+          self.c_object,
+          CefWrap::to_c(that)))
     }
   }
 
@@ -1389,6 +2283,25 @@ impl CefListValue {
   }
 
   //
+  // Returns the value at the specified index. For simple types the returned
+  // value will copy existing data and modifications to the value will not
+  // modify this object. For complex types (binary, dictionary and list) the
+  // returned value will reference existing data and modifications to the value
+  // will modify this object.
+  //
+  pub fn get_value(&self, index: libc::c_int) -> interfaces::CefValue {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_value.unwrap())(
+          self.c_object,
+          CefWrap::to_c(index)))
+    }
+  }
+
+  //
   // Returns the value at the specified index as type bool.
   //
   pub fn get_bool(&self, index: libc::c_int) -> libc::c_int {
@@ -1450,7 +2363,8 @@ impl CefListValue {
   }
 
   //
-  // Returns the value at the specified index as type binary.
+  // Returns the value at the specified index as type binary. The returned value
+  // will reference existing data.
   //
   pub fn get_binary(&self, index: libc::c_int) -> interfaces::CefBinaryValue {
     if self.c_object.is_null() {
@@ -1465,7 +2379,9 @@ impl CefListValue {
   }
 
   //
-  // Returns the value at the specified index as type dictionary.
+  // Returns the value at the specified index as type dictionary. The returned
+  // value will reference existing data and modifications to the value will
+  // modify this object.
   //
   pub fn get_dictionary(&self,
       index: libc::c_int) -> interfaces::CefDictionaryValue {
@@ -1481,7 +2397,9 @@ impl CefListValue {
   }
 
   //
-  // Returns the value at the specified index as type list.
+  // Returns the value at the specified index as type list. The returned value
+  // will reference existing data and modifications to the value will modify
+  // this object.
   //
   pub fn get_list(&self, index: libc::c_int) -> interfaces::CefListValue {
     if self.c_object.is_null() {
@@ -1492,6 +2410,28 @@ impl CefListValue {
         ((*self.c_object).get_list.unwrap())(
           self.c_object,
           CefWrap::to_c(index)))
+    }
+  }
+
+  //
+  // Sets the value at the specified index. Returns true (1) if the value was
+  // set successfully. If |value| represents simple data then the underlying
+  // data will be copied and modifications to |value| will not modify this
+  // object. If |value| represents complex data (binary, dictionary or list)
+  // then the underlying data will be referenced and modifications to |value|
+  // will modify this object.
+  //
+  pub fn set_value(&self, index: libc::c_int,
+      value: interfaces::CefValue) -> libc::c_int {
+    if self.c_object.is_null() {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).set_value.unwrap())(
+          self.c_object,
+          CefWrap::to_c(index),
+          CefWrap::to_c(value)))
     }
   }
 
@@ -1583,8 +2523,7 @@ impl CefListValue {
 
   //
   // Sets the value at the specified index as type binary. Returns true (1) if
-  // the value was set successfully. After calling this function the |value|
-  // object will no longer be valid. If |value| is currently owned by another
+  // the value was set successfully. If |value| is currently owned by another
   // object then the value will be copied and the |value| reference will not
   // change. Otherwise, ownership will be transferred to this object and the
   // |value| reference will be invalidated.
@@ -1605,8 +2544,7 @@ impl CefListValue {
 
   //
   // Sets the value at the specified index as type dict. Returns true (1) if the
-  // value was set successfully. After calling this function the |value| object
-  // will no longer be valid. If |value| is currently owned by another object
+  // value was set successfully. If |value| is currently owned by another object
   // then the value will be copied and the |value| reference will not change.
   // Otherwise, ownership will be transferred to this object and the |value|
   // reference will be invalidated.
@@ -1627,8 +2565,7 @@ impl CefListValue {
 
   //
   // Sets the value at the specified index as type list. Returns true (1) if the
-  // value was set successfully. After calling this function the |value| object
-  // will no longer be valid. If |value| is currently owned by another object
+  // value was set successfully. If |value| is currently owned by another object
   // then the value will be copied and the |value| reference will not change.
   // Otherwise, ownership will be transferred to this object and the |value|
   // reference will be invalidated.

@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -56,11 +56,14 @@ pub struct _cef_file_dialog_callback_t {
   pub base: types::cef_base_t,
 
   //
-  // Continue the file selection with the specified |file_paths|. This may be a
-  // single value or a list of values depending on the dialog mode. An NULL
+  // Continue the file selection. |selected_accept_filter| should be the 0-based
+  // index of the value selected from the accept filters array passed to
+  // cef_dialog_handler_t::OnFileDialog. |file_paths| should be a single value
+  // or a list of values depending on the dialog mode. An NULL |file_paths|
   // value is treated the same as calling cancel().
   //
   pub cont: Option<extern "C" fn(this: *mut cef_file_dialog_callback_t,
+      selected_accept_filter: libc::c_int,
       file_paths: types::cef_string_list_t) -> ()>,
 
   //
@@ -150,11 +153,14 @@ impl CefFileDialogCallback {
   }
 
   //
-  // Continue the file selection with the specified |file_paths|. This may be a
-  // single value or a list of values depending on the dialog mode. An NULL
+  // Continue the file selection. |selected_accept_filter| should be the 0-based
+  // index of the value selected from the accept filters array passed to
+  // cef_dialog_handler_t::OnFileDialog. |file_paths| should be a single value
+  // or a list of values depending on the dialog mode. An NULL |file_paths|
   // value is treated the same as calling cancel().
   //
-  pub fn cont(&self, file_paths: Vec<String>) -> () {
+  pub fn cont(&self, selected_accept_filter: libc::c_int,
+      file_paths: Vec<String>) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -162,6 +168,7 @@ impl CefFileDialogCallback {
       CefWrap::to_rust(
         ((*self.c_object).cont.unwrap())(
           self.c_object,
+          CefWrap::to_c(selected_accept_filter),
           CefWrap::to_c(file_paths)))
     }
   }
@@ -221,18 +228,23 @@ pub struct _cef_dialog_handler_t {
   // Called to run a file chooser dialog. |mode| represents the type of dialog
   // to display. |title| to the title to be used for the dialog and may be NULL
   // to show the default title ("Open" or "Save" depending on the mode).
-  // |default_file_name| is the default file name to select in the dialog.
-  // |accept_types| is a list of valid lower-cased MIME types or file extensions
-  // specified in an input element and is used to restrict selectable files to
-  // such types. To display a custom dialog return true (1) and execute
-  // |callback| either inline or at a later time. To display the default dialog
-  // return false (0).
+  // |default_file_path| is the path with optional directory and/or file name
+  // component that should be initially selected in the dialog. |accept_filters|
+  // are used to restrict the selectable file types and may any combination of
+  // (a) valid lower-cased MIME types (e.g. "text/*" or "image/*"), (b)
+  // individual file extensions (e.g. ".txt" or ".png"), or (c) combined
+  // description and file extension delimited using "|" and ";" (e.g. "Image
+  // Types|.png;.gif;.jpg"). |selected_accept_filter| is the 0-based index of
+  // the filter that should be selected by default. To display a custom dialog
+  // return true (1) and execute |callback| either inline or at a later time. To
+  // display the default dialog return false (0).
   //
   pub on_file_dialog: Option<extern "C" fn(this: *mut cef_dialog_handler_t,
       browser: *mut interfaces::cef_browser_t,
       mode: types::cef_file_dialog_mode_t, title: *const types::cef_string_t,
-      default_file_name: *const types::cef_string_t,
-      accept_types: types::cef_string_list_t,
+      default_file_path: *const types::cef_string_t,
+      accept_filters: types::cef_string_list_t,
+      selected_accept_filter: libc::c_int,
       callback: *mut interfaces::cef_file_dialog_callback_t) -> libc::c_int>,
 
   //
@@ -320,16 +332,21 @@ impl CefDialogHandler {
   // Called to run a file chooser dialog. |mode| represents the type of dialog
   // to display. |title| to the title to be used for the dialog and may be NULL
   // to show the default title ("Open" or "Save" depending on the mode).
-  // |default_file_name| is the default file name to select in the dialog.
-  // |accept_types| is a list of valid lower-cased MIME types or file extensions
-  // specified in an input element and is used to restrict selectable files to
-  // such types. To display a custom dialog return true (1) and execute
-  // |callback| either inline or at a later time. To display the default dialog
-  // return false (0).
+  // |default_file_path| is the path with optional directory and/or file name
+  // component that should be initially selected in the dialog. |accept_filters|
+  // are used to restrict the selectable file types and may any combination of
+  // (a) valid lower-cased MIME types (e.g. "text/*" or "image/*"), (b)
+  // individual file extensions (e.g. ".txt" or ".png"), or (c) combined
+  // description and file extension delimited using "|" and ";" (e.g. "Image
+  // Types|.png;.gif;.jpg"). |selected_accept_filter| is the 0-based index of
+  // the filter that should be selected by default. To display a custom dialog
+  // return true (1) and execute |callback| either inline or at a later time. To
+  // display the default dialog return false (0).
   //
   pub fn on_file_dialog(&self, browser: interfaces::CefBrowser,
       mode: types::cef_file_dialog_mode_t, title: &[u16],
-      default_file_name: &[u16], accept_types: Vec<String>,
+      default_file_path: &[u16], accept_filters: Vec<String>,
+      selected_accept_filter: libc::c_int,
       callback: interfaces::CefFileDialogCallback) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -341,8 +358,9 @@ impl CefDialogHandler {
           CefWrap::to_c(browser),
           CefWrap::to_c(mode),
           CefWrap::to_c(title),
-          CefWrap::to_c(default_file_name),
-          CefWrap::to_c(accept_types),
+          CefWrap::to_c(default_file_path),
+          CefWrap::to_c(accept_filters),
+          CefWrap::to_c(selected_accept_filter),
           CefWrap::to_c(callback)))
     }
   }
