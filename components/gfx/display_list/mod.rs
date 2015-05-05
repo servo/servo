@@ -420,7 +420,7 @@ impl StackingContext {
         // Translate the child's overflow region into our coordinate system.
         let child_stacking_context_overflow =
             child_stacking_context.overflow.translate(&child_stacking_context.bounds.origin)
-                                           .to_azure_rect();
+                                           .to_nearest_azure_rect();
 
         // Intersect that with the current tile boundaries to find the tile boundaries that the
         // child covers.
@@ -428,7 +428,7 @@ impl StackingContext {
                                       .unwrap_or(ZERO_AZURE_RECT);
 
         // Translate the resulting rect into the child's coordinate system.
-        tile_subrect.translate(&-child_stacking_context.bounds.to_azure_rect().origin)
+        tile_subrect.translate(&-child_stacking_context.bounds.to_nearest_azure_rect().origin)
     }
 
     /// Places all nodes containing the point of interest into `result`, topmost first. Respects
