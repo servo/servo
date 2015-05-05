@@ -378,13 +378,15 @@ impl LineBreaker {
             let mut range = &mut scanned_text_fragment_info.range;
             strip_trailing_whitespace_if_necessary(&**scanned_text_fragment_info.run, range);
 
-            let old_fragment_inline_size = fragment.border_box.size.inline;
+            let old_fragment_inline_size = fragment.border_box.size.inline +
+                fragment.margin.inline_start_end();
             scanned_text_fragment_info.content_size.inline =
                 scanned_text_fragment_info.run.metrics_for_range(range).advance_width;
             fragment.border_box.size.inline = scanned_text_fragment_info.content_size.inline +
                 fragment.border_padding.inline_start_end();
             self.pending_line.bounds.size.inline = self.pending_line.bounds.size.inline -
-                (old_fragment_inline_size - fragment.border_box.size.inline)
+                (old_fragment_inline_size - (fragment.border_box.size.inline +
+                                             fragment.margin.inline_start_end()))
         }
     }
 
@@ -420,7 +422,7 @@ impl LineBreaker {
         let placement_inline_size = if first_fragment.can_split() {
             Au(0)
         } else {
-            first_fragment.border_box.size.inline + self.indentation_for_pending_fragment()
+            first_fragment.margin_box_inline_size() + self.indentation_for_pending_fragment()
         };
 
         // Try to place the fragment between floats.
@@ -434,9 +436,9 @@ impl LineBreaker {
         });
 
         // Simple case: if the fragment fits, then we can stop here.
-        if line_bounds.size.inline > first_fragment.border_box.size.inline {
+        if line_bounds.size.inline > first_fragment.margin_box_inline_size() {
             debug!("LineBreaker: fragment fits on line {}", self.lines.len());
-            return (line_bounds, first_fragment.border_box.size.inline);
+            return (line_bounds, first_fragment.margin_box_inline_size());
         }
 
         // If not, but we can't split the fragment, then we'll place the line here and it will
@@ -445,7 +447,7 @@ impl LineBreaker {
             debug!("LineBreaker: line doesn't fit, but is unsplittable");
         }
 
-        (line_bounds, first_fragment.border_box.size.inline)
+        (line_bounds, first_fragment.margin_box_inline_size())
     }
 
     /// Performs float collision avoidance. This is called when adding a fragment is going to
@@ -545,7 +547,7 @@ impl LineBreaker {
         // it doesn't fit.
         let indentation = self.indentation_for_pending_fragment();
         let new_inline_size = self.pending_line.bounds.size.inline +
-            fragment.border_box.size.inline + indentation;
+            fragment.margin_box_inline_size() + indentation;
         if new_inline_size <= green_zone.inline {
             debug!("LineBreaker: fragment fits without splitting");
             self.push_fragment_to_line(layout_context, fragment, line_flush_mode);
@@ -632,7 +634,7 @@ impl LineBreaker {
                fragment.style().get_box().overflow_x) {
             (text_overflow::T::clip, _) | (_, overflow_x::T::visible) => {}
             (text_overflow::T::ellipsis, _) => {
-                need_ellipsis = fragment.border_box.size.inline > available_inline_size;
+                need_ellipsis = fragment.margin_box_inline_size() > available_inline_size;
             }
         }
 
@@ -642,7 +644,7 @@ impl LineBreaker {
             let ellipsis = fragment.transform_into_ellipsis(layout_context);
             if let Some(truncation_info) =
                     fragment.truncate_to_inline_size(available_inline_size -
-                                                     ellipsis.border_box.size.inline) {
+                                                     ellipsis.margin_box_inline_size()) {
                 let fragment = fragment.transform_with_split_info(&truncation_info.split,
                                                                   truncation_info.text_run);
                 self.push_fragment_to_line_ignoring_text_overflow(fragment, layout_context);
@@ -663,7 +665,7 @@ impl LineBreaker {
         let indentation = self.indentation_for_pending_fragment();
         self.pending_line.range.extend_by(FragmentIndex(1));
         self.pending_line.bounds.size.inline = self.pending_line.bounds.size.inline +
-            fragment.border_box.size.inline +
+            fragment.margin_box_inline_size() +
             indentation;
         self.pending_line.inline_metrics =
             self.new_inline_metrics_for_line(&fragment, layout_context);
@@ -928,14 +930,16 @@ impl InlineFlow {
 
         for fragment_index in line.range.each_index() {
             let fragment = fragments.get_mut(fragment_index.to_usize());
-            let size = fragment.border_box.size;
+            inline_start_position_for_fragment = inline_start_position_for_fragment +
+                fragment.margin.inline_start;
             fragment.border_box = LogicalRect::new(fragment.style.writing_mode,
                                                    inline_start_position_for_fragment,
                                                    fragment.border_box.start.b,
-                                                   size.inline,
-                                                   size.block);
+                                                   fragment.border_box.size.inline,
+                                                   fragment.border_box.size.block);
             fragment.update_late_computed_inline_position_if_necessary();
-            inline_start_position_for_fragment = inline_start_position_for_fragment + size.inline;
+            inline_start_position_for_fragment = inline_start_position_for_fragment +
+                fragment.border_box.size.inline + fragment.margin.inline_end;
         }
     }
 

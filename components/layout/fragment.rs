@@ -21,7 +21,6 @@ use text;
 use opaque_node::OpaqueNodeMethods;
 use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
-use geom::num::Zero;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
@@ -42,7 +41,7 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, mix_blend_mode, overflow_wrap, position};
 use style::computed_values::{text_align, text_decoration, white_space, word_break};
 use style::node::{TElement, TNode};
-use style::properties::{ComputedValues, cascade_anonymous, make_border};
+use style::properties::{self, ComputedValues, cascade_anonymous};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
 use text::TextRunScanner;
@@ -855,18 +854,7 @@ impl Fragment {
             self.inline_context = Some(InlineFragmentContext::new());
         }
         if !first_frag || !last_frag {
-            // Set the border width to zero and the border style to none on
-            // border sides that are not the outermost for a node container.
-            // Because with multiple inline fragments they don't have interior
-            // borders separating each other.
-            let mut border_width = node_info.style.logical_border_width();
-            if !last_frag {
-                border_width.set_right(node_info.style.writing_mode, Zero::zero());
-            }
-            if !first_frag {
-                border_width.set_left(node_info.style.writing_mode, Zero::zero());
-            }
-            node_info.style = Arc::new(make_border(&*node_info.style, border_width))
+            properties::modify_style_for_inline_sides(&mut node_info.style, first_frag, last_frag)
         };
         self.inline_context.as_mut().unwrap().nodes.push(node_info);
     }
@@ -1018,21 +1006,36 @@ impl Fragment {
     /// (for example, via constraint solving for blocks).
     pub fn compute_inline_direction_margins(&mut self, containing_block_inline_size: Au) {
         match self.specific {
+            SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::TableColumn(_) => {
                 self.margin.inline_start = Au(0);
-                self.margin.inline_end = Au(0)
+                self.margin.inline_end = Au(0);
+                return
             }
-            _ => {
-                let margin = self.style().logical_margin();
-                self.margin.inline_start =
-                    MaybeAuto::from_style(margin.inline_start, containing_block_inline_size)
-                    .specified_or_zero();
-                self.margin.inline_end =
-                    MaybeAuto::from_style(margin.inline_end, containing_block_inline_size)
-                    .specified_or_zero();
+            _ => {}
+        }
+
+
+        let margin = self.style().logical_margin();
+        self.margin.inline_start =
+            MaybeAuto::from_style(margin.inline_start,
+                                  containing_block_inline_size).specified_or_zero();
+        self.margin.inline_end =
+            MaybeAuto::from_style(margin.inline_end,
+                                  containing_block_inline_size).specified_or_zero();
+
+        if let Some(ref inline_context) = self.inline_context {
+            for node in inline_context.nodes.iter() {
+                let margin = node.style.logical_margin();
+                self.margin.inline_start = self.margin.inline_start +
+                    MaybeAuto::from_style(margin.inline_start,
+                                          containing_block_inline_size).specified_or_zero();
+                self.margin.inline_end = self.margin.inline_end +
+                    MaybeAuto::from_style(margin.inline_end,
+                                          containing_block_inline_size).specified_or_zero();
             }
         }
     }
@@ -2026,6 +2029,11 @@ impl Fragment {
 
     pub fn inline_styles<'a>(&'a self) -> InlineStyleIterator<'a> {
         InlineStyleIterator::new(self)
+    }
+
+    /// Returns the inline-size of this fragment's margin box.
+    pub fn margin_box_inline_size(&self) -> Au {
+        self.border_box.size.inline + self.margin.inline_start_end()
     }
 }
 
