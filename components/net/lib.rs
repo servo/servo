@@ -10,7 +10,6 @@
 #![feature(plugin)]
 #![feature(rustc_private)]
 #![feature(std_misc)]
-#![feature(unboxed_closures)]
 
 #![plugin(regex_macros)]
 
