@@ -11,7 +11,7 @@ use eutil::Downcast;
 use interfaces::CefBrowser;
 use render_handler::CefRenderHandlerExtensions;
 use rustc_unicode::str::Utf16Encoder;
-use types::{cef_cursor_handle_t, cef_rect_t};
+use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t};
 
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
@@ -307,15 +307,18 @@ impl WindowMethods for Window {
     }
 
     fn set_cursor(&self, cursor: Cursor) {
+        use types::{CefCursorInfo,cef_point_t,cef_size_t};
         let browser = self.cef_browser.borrow();
         match *browser {
             None => {}
             Some(ref browser) => {
                 let cursor_handle = self.cursor_handle_for_cursor(cursor);
+                let info = CefCursorInfo { hotspot: cef_point_t {x: 0, y: 0}, image_scale_factor: 0.0, buffer: 0 as *mut isize, size: cef_size_t { width: 0, height: 0 } };
                 browser.get_host()
                        .get_client()
                        .get_render_handler()
-                       .on_cursor_change(browser.clone(), cursor_handle)
+                       .on_cursor_change(browser.clone(), cursor_handle,
+                         CT_POINTER, &info)
             }
         }
     }
