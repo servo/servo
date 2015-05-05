@@ -218,7 +218,7 @@ pub enum Msg {
     KeyEvent(Key, KeyState, KeyModifiers),
     /// Changes the cursor.
     SetCursor(Cursor),
-    //
+    /// Composite to a PNG file and return the Image over a passed channel.
     CreatePng(Sender<Option<png::Image>>),
     /// Informs the compositor that the paint task for the given pipeline has exited.
     PaintTaskExited(PipelineId),

@@ -233,9 +233,9 @@ pub enum Msg {
     Focus(PipelineId),
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(Sender<String>),
-    // Dispatch a webdriver command
+    /// Dispatch a webdriver command
     WebDriverCommand(PipelineId, WebDriverScriptCommand),
-    // Create a PNG of the window contents
+    /// Create a PNG of the window contents
     CompositePng(Sender<Option<png::Image>>)
 }
 
