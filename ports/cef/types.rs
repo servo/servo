@@ -17,28 +17,6 @@ pub enum cef_string_list_t {}
 pub enum cef_text_input_context_t {}
 pub enum cef_event_handle_t {}
 
-//these all need to be done...
-pub enum cef_binary_value_t {}
-pub enum cef_dictionary_value_t {}
-pub enum cef_request_t {}
-pub enum cef_response_t {}
-pub enum cef_urlrequest_client_t {}
-pub enum cef_domnode_t {}
-pub enum cef_load_handler_t {}
-pub enum cef_browser_settings_t {}
-pub enum cef_v8context_t {}
-pub enum cef_v8exception_t {}
-pub enum cef_v8stack_trace_t {}
-pub enum cef_context_menu_handler_t {}
-pub enum cef_dialog_handler_t {}
-pub enum cef_download_handler_t {}
-pub enum cef_drag_handler_t {}
-pub enum cef_focus_handler_t {}
-pub enum cef_geolocation_handler_t {}
-pub enum cef_jsdialog_handler_t {}
-pub enum cef_keyboard_handler_t {}
-pub enum cef_render_handler_t {}
-pub enum cef_request_handler_t {}
 #[cfg(target_os="linux")]
 pub type cef_window_handle_t = c_ulong;
 #[cfg(target_os="macos")]
@@ -51,20 +29,6 @@ pub type cef_cursor_handle_t = c_ulong;
 pub type cef_cursor_handle_t = *mut c_void; //NSCursor*
 //#[cfg(target_os="win")]
 //pub enum cef_cursor_handle_t {} //HCURSOR
-
-pub enum cef_request_val {}
-pub type cef_request = *mut cef_request_val;
-pub enum cef_navigation_type_val {}
-pub type cef_navigation_type = *mut cef_navigation_type_val;
-pub enum cef_screen_info_t {}
-pub type cef_v8context = *mut cef_v8context_t;
-pub enum cef_v8exception_val {}
-pub type cef_v8exception = *mut cef_v8exception_val;
-pub enum cef_v8stack_trace_val {}
-pub type cef_v8stack_trace = *mut cef_v8stack_trace_val;
-
-pub type CefBrowserSettings = cef_browser_settings_t;
-pub type CefScreenInfo = cef_screen_info_t;
 
 pub type cef_string_t = cef_string_utf16; //FIXME: this is #defined...
 pub type cef_string_userfree_t = *mut cef_string_t; //FIXME: this is #defined...
