@@ -10,7 +10,8 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentTypeCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLScriptElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLFormElementCast, HTMLFormElementDerived};
+use dom::bindings::codegen::InheritTypes::{NodeCast};
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::js::{RootedReference};
@@ -21,6 +22,7 @@ use dom::document::{Document, DocumentHelpers};
 use dom::document::{DocumentSource, IsHTMLDocument};
 use dom::documenttype::DocumentType;
 use dom::element::{Element, AttributeHandlers, ElementHelpers, ElementCreator};
+use dom::htmlformelement::FormControlElementHelpers;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlscriptelement::HTMLScriptElementHelpers;
 use dom::node::{Node, NodeHelpers, NodeTypeId};
@@ -85,6 +87,16 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         }
     }
 
+    fn same_home_subtree(&self, x: JS<Node>, y: JS<Node>) -> bool {
+        let x = x.root();
+        let y = y.root();
+
+        let x = ElementCast::to_root(x).expect("Element node expected");
+        let y = ElementCast::to_root(y).expect("Element node expected");
+
+        x.is_in_same_home_subtree(y.r())
+    }
+
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>)
             -> JS<Node> {
         let doc = self.document.root();
@@ -106,19 +118,37 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         JS::from_rooted(&node)
     }
 
+    fn has_parent_node(&self, node: JS<Node>) -> bool {
+         node.root().GetParentNode().is_some()
+    }
+
+
+    fn associate_with_form(&mut self, target: JS<Node>, form: JS<Node>) {
+        let node = target.root();
+        let form = form.root();
+        let form = HTMLFormElementCast::to_root(form)
+            .expect("Owner must be a form element");
+
+        let elem = ElementCast::to_ref(node.r());
+        let control = elem.as_ref().and_then(|e| e.as_maybe_form_control());
+
+        if let Some(control) = control {
+            control.set_form_owner_from_parser(form.r());
+        } else {
+            // TODO remove this code when keygen is implemented.
+            assert!(node.NodeName() == "KEYGEN", "Unknown form-associatable element");
+        }
+    }
+
     fn append_before_sibling(&mut self,
             sibling: JS<Node>,
-            new_node: NodeOrText<JS<Node>>) -> Result<(), NodeOrText<JS<Node>>> {
-        // If there is no parent, return the node to the parser.
-        let sibling: Root<Node> = sibling.root();
-        let parent = match sibling.r().GetParentNode() {
-            Some(p) => p,
-            None => return Err(new_node),
-        };
+            new_node: NodeOrText<JS<Node>>) {
+        let sibling = sibling.root();
+        let parent = sibling.GetParentNode()
+            .expect("append_before_sibling called on node without parent");
 
         let child = self.get_or_create(new_node);
-        assert!(parent.r().InsertBefore(child.r(), Some(sibling.r())).is_ok());
-        Ok(())
+        assert!(parent.InsertBefore(child.r(), Some(sibling.r())).is_ok());
     }
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {

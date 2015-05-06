@@ -13,7 +13,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLEle
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
@@ -21,7 +21,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlformelement::FormControl;
+use dom::htmlformelement::{HTMLFormElement, FormControl};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
@@ -36,6 +36,7 @@ use string_cache::Atom;
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::default::Default;
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {
@@ -45,6 +46,7 @@ pub struct HTMLTextAreaElement {
     rows: Cell<u32>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_changed: Cell<bool>,
+    form_owner: MutNullableHeap<JS<HTMLFormElement>>
 }
 
 impl HTMLTextAreaElementDerived for EventTarget {
@@ -104,6 +106,7 @@ impl HTMLTextAreaElement {
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),
             value_changed: Cell::new(false),
+            form_owner: Default::default(),
         }
     }
 
@@ -202,6 +205,11 @@ impl<'a> HTMLTextAreaElementMethods for &'a HTMLTextAreaElement {
 
         self.force_relayout();
     }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-fae-form
+    fn GetForm(self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
 }
 
 pub trait HTMLTextAreaElementHelpers {
@@ -276,6 +284,9 @@ impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
                     _ => panic!("Expected an AttrValue::UInt"),
                 }
             },
+            &atom!("form") => {
+                self.after_set_form_attr();
+            },
             _ => ()
         }
     }
@@ -298,6 +309,22 @@ impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
             &atom!("rows") => {
                 self.rows.set(DEFAULT_ROWS);
             },
+            &atom!("form") => {
+                self.before_remove_form_attr();
+            }
+            _ => ()
+        }
+    }
+
+    fn after_remove_attr(&self, attr: &Atom) {
+        if let Some(ref s) = self.super_type() {
+            s.after_remove_attr(attr);
+        }
+
+        match attr {
+            &atom!("form") => {
+                self.after_remove_form_attr();
+            }
             _ => ()
         }
     }
@@ -306,6 +333,8 @@ impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
         if let Some(ref s) = self.super_type() {
             s.bind_to_tree(tree_in_doc);
         }
+
+        self.bind_form_control_to_tree();
 
         let node = NodeCast::from_ref(*self);
         node.check_ancestors_disabled_state_for_form_control();
@@ -323,6 +352,8 @@ impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
         if let Some(ref s) = self.super_type() {
             s.unbind_from_tree(tree_in_doc);
         }
+
+        self.unbind_form_control_from_tree();
 
         let node = NodeCast::from_ref(*self);
         if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
@@ -381,9 +412,17 @@ impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
     }
 }
 
-impl<'a> FormControl<'a> for &'a HTMLTextAreaElement {
-    fn to_element(self) -> &'a Element {
-        ElementCast::from_ref(self)
+impl<'a> FormControl for &'a HTMLTextAreaElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get().map(Root::from_rooted)
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form.map(JS::from_ref));
+    }
+
+    fn to_element<'b>(&'b self) -> &'b Element {
+        ElementCast::from_ref(*self)
     }
 }
 

@@ -165,6 +165,9 @@ bitflags! {
         #[doc = "Specifies whether this node is focusable and whether it is supposed \
                  to be reachable with using sequential focus navigation."]
         const SEQUENTIALLY_FOCUSABLE = 0x400,
+        #[doc = "Specifies whether the parser has set an associated form owner for
+                 this element. Only applicable for form-associatable elements."]
+        const PARSER_ASSOCIATED_FORM_OWNER = 0x800,
     }
 }
 
@@ -2679,4 +2682,34 @@ pub enum NodeDamage {
     NodeStyleDamaged,
     /// Other parts of a node changed; attributes, text content, etc.
     OtherNodeDamage,
+}
+
+/// Helper trait to insert an element into vector whose elements
+/// are maintained in tree order
+pub trait VecPreOrderInsertionHelper<T> {
+    fn insert_pre_order(&mut self, elem: &T, tree_root: &Node);
+}
+
+impl<T> VecPreOrderInsertionHelper<T> for Vec<JS<T>>
+    where T: NodeBase + Reflectable
+{
+    fn insert_pre_order(&mut self, elem: &T, tree_root: &Node) {
+        if self.len() == 0 {
+            self.push(JS::from_ref(elem));
+            return;
+        }
+
+        let elem_node = NodeCast::from_ref(elem);
+        let mut head: usize = 0;
+        for node in tree_root.traverse_preorder() {
+            let head_node = NodeCast::from_root(self[head].root());
+            if head_node == node {
+                head += 1;
+            }
+            if elem_node == node.r() || head == self.len() {
+                break;
+            }
+        }
+        self.insert(head, JS::from_ref(elem));
+    }
 }

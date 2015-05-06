@@ -37,6 +37,7 @@ use script_task::ScriptChan;
 use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
 use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending, RepetitionStyle};
 use canvas_traits::WebGLError;
+use devtools_traits::TimelineMarkerType;
 use cssparser::RGBA;
 use encoding::types::EncodingRef;
 use euclid::matrix2d::Matrix2D;
@@ -257,6 +258,20 @@ impl<K,V,S> JSTraceable for HashMap<K, V, S>
     }
 }
 
+impl<T, S> JSTraceable for HashSet<T, S>
+    where T: Hash + Eq + JSTraceable,
+    S: HashState,
+    <S as HashState>::Hasher: Hasher,
+{
+    #[inline]
+    fn trace(&self, trc: *mut JSTracer) {
+        for v in self.iter() {
+            v.trace(trc);
+        }
+    }
+}
+
+
 impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
@@ -279,7 +294,6 @@ no_jsmanaged_fields!(Image, ImageCacheChan, ImageCacheTask, ScriptControlChan);
 no_jsmanaged_fields!(Atom, Namespace);
 no_jsmanaged_fields!(Trusted<T>);
 no_jsmanaged_fields!(PropertyDeclarationBlock);
-no_jsmanaged_fields!(HashSet<T>);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
 no_jsmanaged_fields!(SubpageId, WindowSizeData, PipelineId);
@@ -299,6 +313,7 @@ no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyl
 no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
 no_jsmanaged_fields!(RepetitionStyle);
 no_jsmanaged_fields!(WebGLError);
+no_jsmanaged_fields!(TimelineMarkerType);
 
 impl JSTraceable for Box<ScriptChan+Send> {
     #[inline]
