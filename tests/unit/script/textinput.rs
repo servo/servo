@@ -7,7 +7,13 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use msg::constellation_msg::{Key, CONTROL};
+use msg::constellation_msg::{Key, KeyModifiers};
+
+#[cfg(target_os="macos")]
+use msg::constellation_msg::SUPER;
+#[cfg(not(target_os="macos"))]
+use msg::constellation_msg::CONTROL;
+
 use script::textinput::{TextInput, Selection, Lines, DeleteDir};
 use script::clipboard_provider::DummyClipboardContext;
 use std::borrow::ToOwned;
@@ -169,9 +175,14 @@ fn test_textinput_set_content() {
 
 #[test]
 fn test_clipboard_paste() {
+    #[cfg(target_os="macos")]
+    const MODIFIERS: KeyModifiers = SUPER;
+    #[cfg(not(target_os="macos"))]
+    const MODIFIERS: KeyModifiers = CONTROL;
+
     let mut textinput = TextInput::new(Lines::Single, "defg".to_owned(), DummyClipboardContext::new("abc"));
     assert_eq!(textinput.get_content(), "defg");
     assert_eq!(textinput.edit_point.index, 0);
-    textinput.handle_keydown_aux(Key::V, CONTROL);
+    textinput.handle_keydown_aux(Key::V, MODIFIERS);
     assert_eq!(textinput.get_content(), "abcdefg");
 }
