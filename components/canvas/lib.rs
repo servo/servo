@@ -14,7 +14,6 @@ extern crate util;
 extern crate gleam;
 extern crate num;
 extern crate offscreen_gl_context;
-extern crate glutin;
 
 #[macro_use]
 extern crate log;
