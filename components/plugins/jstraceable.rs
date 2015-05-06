@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::ext::base::ExtCtxt;
+use syntax::ext::base::{Annotatable, ExtCtxt};
 use syntax::codemap::Span;
 use syntax::ptr::P;
 use syntax::ast::{Item, MetaItem, Expr};
@@ -27,7 +27,7 @@ pub fn expand_dom_struct(cx: &mut ExtCtxt, _: Span, _: &MetaItem, item: P<Item>)
 /// Provides the hook to expand `#[jstraceable]` into an implementation of `JSTraceable`
 ///
 /// The expansion basically calls `trace()` on all of the fields of the struct/enum, erroring if they do not implement the method.
-pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: &Item, push: &mut FnMut(P<Item>)) {
+pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: Annotatable, push: &mut FnMut(Annotatable)) {
     let trait_def = TraitDef {
         span: span,
         attributes: Vec::new(),
@@ -47,7 +47,7 @@ pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: 
         ],
         associated_types: vec![],
     };
-    trait_def.expand(cx, mitem, item, push)
+    trait_def.expand(cx, mitem, &item, push)
 }
 
 // Mostly copied from syntax::ext::deriving::hash
