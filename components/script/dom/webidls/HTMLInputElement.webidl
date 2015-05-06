@@ -34,8 +34,8 @@ interface HTMLInputElement : HTMLElement {
            attribute DOMString placeholder;
            attribute boolean readOnly;
   //         attribute boolean required;
-  [SetterThrows]
-  attribute unsigned long size;
+             [SetterThrows]
+             attribute unsigned long size;
   //         attribute DOMString src;
   //         attribute DOMString step;
            attribute DOMString type;

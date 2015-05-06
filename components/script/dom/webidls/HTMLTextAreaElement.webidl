@@ -7,8 +7,8 @@
 interface HTMLTextAreaElement : HTMLElement {
   //         attribute DOMString autocomplete;
   //         attribute boolean autofocus;
-  [SetterThrows]
-  attribute unsigned long cols;
+             [SetterThrows]
+             attribute unsigned long cols;
   //         attribute DOMString dirName;
            attribute boolean disabled;
   //readonly attribute HTMLFormElement? form;
@@ -19,8 +19,8 @@ interface HTMLTextAreaElement : HTMLElement {
            attribute DOMString placeholder;
            attribute boolean readOnly;
            attribute boolean required;
-  [SetterThrows]
-  attribute unsigned long rows;
+           [SetterThrows]
+           attribute unsigned long rows;
            attribute DOMString wrap;
 
   readonly attribute DOMString type;
