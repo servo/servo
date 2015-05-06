@@ -52,7 +52,6 @@ pub use interfaces::cef_string_visitor::{CefStringVisitor,cef_string_visitor_t,}
 pub use interfaces::cef_task::{CefTask,CefTaskRunner,cef_task_t,cef_task_runner_t,};
 pub use interfaces::cef_trace::{CefEndTracingCallback,cef_end_tracing_callback_t,};
 pub use interfaces::cef_urlrequest::{CefURLRequest,CefURLRequestClient,cef_urlrequest_t,cef_urlrequest_client_t,};
-pub use interfaces::cef_url::{};
 pub use interfaces::cef_v8::{CefV8Context,CefV8Handler,CefV8Accessor,CefV8Exception,CefV8Value,CefV8StackTrace,CefV8StackFrame,cef_v8context_t,cef_v8handler_t,cef_v8accessor_t,cef_v8exception_t,cef_v8value_t,cef_v8stack_trace_t,cef_v8stack_frame_t,};
 pub use interfaces::cef_values::{CefValue,CefBinaryValue,CefDictionaryValue,CefListValue,cef_value_t,cef_binary_value_t,cef_dictionary_value_t,cef_list_value_t,};
 pub use interfaces::cef_web_plugin::{CefWebPluginInfo,CefWebPluginInfoVisitor,CefWebPluginUnstableCallback,cef_web_plugin_info_t,cef_web_plugin_info_visitor_t,cef_web_plugin_unstable_callback_t,};
@@ -112,7 +111,6 @@ pub mod cef_string_visitor;
 pub mod cef_task;
 pub mod cef_trace;
 pub mod cef_urlrequest;
-pub mod cef_url;
 pub mod cef_v8;
 pub mod cef_values;
 pub mod cef_web_plugin;

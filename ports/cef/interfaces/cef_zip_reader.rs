@@ -106,7 +106,7 @@ pub struct _cef_zip_reader_t {
   // Returns the last modified timestamp for the file.
   //
   pub get_file_last_modified: Option<extern "C" fn(
-      this: *mut cef_zip_reader_t) -> libc::time_t>,
+      this: *mut cef_zip_reader_t) -> types::cef_time_t>,
 
   //
   // Opens the file for reading of uncompressed data. A read password may
@@ -329,7 +329,7 @@ impl CefZipReader {
   //
   // Returns the last modified timestamp for the file.
   //
-  pub fn get_file_last_modified(&self) -> libc::time_t {
+  pub fn get_file_last_modified(&self) -> types::cef_time_t {
     if self.c_object.is_null() ||
        self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
