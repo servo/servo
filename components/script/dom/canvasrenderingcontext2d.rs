@@ -19,7 +19,7 @@ use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeSty
 use dom::htmlcanvaselement::{HTMLCanvasElement, HTMLCanvasElementHelpers};
 use dom::htmlimageelement::{HTMLImageElement, HTMLImageElementHelpers};
 use dom::imagedata::{ImageData, ImageDataHelpers};
-use dom::node::{window_from_node, Node, NodeHelpers, NodeDamage};
+use dom::node::{window_from_node, NodeHelpers, NodeDamage};
 
 use cssparser::Color as CSSColor;
 use cssparser::{Parser, RGBA, ToCss};
@@ -121,7 +121,7 @@ impl CanvasRenderingContext2D {
 
     fn mark_as_dirty(&self) {
         let canvas = self.canvas.root();
-        let node: JSRef<Node> = NodeCast::from_ref(canvas.r());
+        let node = NodeCast::from_ref(canvas.r());
         node.dirty(NodeDamage::OtherNodeDamage);
     }
 
@@ -227,6 +227,7 @@ impl CanvasRenderingContext2D {
         };
 
         self.renderer.send(msg).unwrap();
+        self.mark_as_dirty();
         Ok(())
     }
 
@@ -246,6 +247,7 @@ impl CanvasRenderingContext2D {
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::DrawImage(
                            image_data, image_size, dest_rect,
                            source_rect, smoothing_enabled))).unwrap();
+        self.mark_as_dirty();
         Ok(())
     }
 
@@ -552,8 +554,6 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
             }
 
         }
-
-        self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -610,8 +610,6 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                                             dx, dy, dw, dh)
             }
         }
-
-        self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -654,8 +652,6 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                                             dx, dy, dw, dh)
             }
         }
-
-        self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-moveto
