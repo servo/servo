@@ -16,8 +16,8 @@ interface NodeIterator {
   readonly attribute Node root;
   [Pure]
   readonly attribute Node? referenceNode;
-  // [Pure]
-  // readonly attribute boolean pointerBeforeReferenceNode;
+  [Pure]
+  readonly attribute boolean pointerBeforeReferenceNode;
   [Constant]
   readonly attribute unsigned long whatToShow;
   [Constant]
@@ -28,5 +28,5 @@ interface NodeIterator {
   [Throws]
   Node? previousNode();
 
-  // void detach();
+  void detach();
 };
