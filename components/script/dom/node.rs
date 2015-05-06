@@ -1667,6 +1667,7 @@ impl Node {
         parent.remove_child(node);
 
         node.set_flag(IS_IN_DOC, false);
+        Node::remove_subtree_from_doc(node);
 
         // Step 9.
         match suppress_observers {
@@ -1800,6 +1801,14 @@ impl Node {
             }
         }
         content
+    }
+
+    fn remove_subtree_from_doc(node: JSRef<Node>) {
+        node.set_flag(IS_IN_DOC, false);
+        for child in node.children().map(|c| c.root()) {
+            let child = child.r();
+            Node::remove_subtree_from_doc(child)
+        }
     }
 }
 
