@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -167,13 +168,13 @@ pub struct _cef_download_item_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_download_item_t = _cef_download_item_t;
 
@@ -188,7 +189,8 @@ pub struct CefDownloadItem {
 impl Clone for CefDownloadItem {
   fn clone(&self) -> CefDownloadItem{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefDownloadItem {
@@ -201,7 +203,8 @@ impl Clone for CefDownloadItem {
 impl Drop for CefDownloadItem {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -216,7 +219,8 @@ impl CefDownloadItem {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_download_item_t) -> CefDownloadItem {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefDownloadItem {
@@ -230,7 +234,8 @@ impl CefDownloadItem {
 
   pub fn c_object_addrefed(&self) -> *mut cef_download_item_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -238,10 +243,10 @@ impl CefDownloadItem {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -249,7 +254,8 @@ impl CefDownloadItem {
   // if this function returns false (0).
   //
   pub fn is_valid(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -263,7 +269,8 @@ impl CefDownloadItem {
   // Returns true (1) if the download is in progress.
   //
   pub fn is_in_progress(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -277,7 +284,8 @@ impl CefDownloadItem {
   // Returns true (1) if the download is complete.
   //
   pub fn is_complete(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -291,7 +299,8 @@ impl CefDownloadItem {
   // Returns true (1) if the download has been canceled or interrupted.
   //
   pub fn is_canceled(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -305,7 +314,8 @@ impl CefDownloadItem {
   // Returns a simple speed estimate in bytes/s.
   //
   pub fn get_current_speed(&self) -> i64 {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -320,7 +330,8 @@ impl CefDownloadItem {
   // unknown.
   //
   pub fn get_percent_complete(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -334,7 +345,8 @@ impl CefDownloadItem {
   // Returns the total number of bytes.
   //
   pub fn get_total_bytes(&self) -> i64 {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -348,7 +360,8 @@ impl CefDownloadItem {
   // Returns the number of received bytes.
   //
   pub fn get_received_bytes(&self) -> i64 {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -362,7 +375,8 @@ impl CefDownloadItem {
   // Returns the time that the download started.
   //
   pub fn get_start_time(&self) -> types::cef_time_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -376,7 +390,8 @@ impl CefDownloadItem {
   // Returns the time that the download ended.
   //
   pub fn get_end_time(&self) -> types::cef_time_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -391,7 +406,8 @@ impl CefDownloadItem {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_full_path(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -405,7 +421,8 @@ impl CefDownloadItem {
   // Returns the unique identifier for this download.
   //
   pub fn get_id(&self) -> u32 {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -420,7 +437,8 @@ impl CefDownloadItem {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_url(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -435,7 +453,8 @@ impl CefDownloadItem {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_original_url(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -450,7 +469,8 @@ impl CefDownloadItem {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_suggested_file_name(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -465,7 +485,8 @@ impl CefDownloadItem {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_content_disposition(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -480,7 +501,8 @@ impl CefDownloadItem {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_mime_type(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -507,7 +529,8 @@ impl CefWrap<*mut cef_download_item_t> for Option<CefDownloadItem> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_download_item_t) -> Option<CefDownloadItem> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefDownloadItem::from_c_object_addref(c_object))

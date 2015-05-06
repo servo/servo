@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -131,13 +132,13 @@ pub struct _cef_navigation_entry_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_navigation_entry_t = _cef_navigation_entry_t;
 
@@ -152,7 +153,8 @@ pub struct CefNavigationEntry {
 impl Clone for CefNavigationEntry {
   fn clone(&self) -> CefNavigationEntry{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefNavigationEntry {
@@ -165,7 +167,8 @@ impl Clone for CefNavigationEntry {
 impl Drop for CefNavigationEntry {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -180,7 +183,8 @@ impl CefNavigationEntry {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_navigation_entry_t) -> CefNavigationEntry {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefNavigationEntry {
@@ -194,7 +198,8 @@ impl CefNavigationEntry {
 
   pub fn c_object_addrefed(&self) -> *mut cef_navigation_entry_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -202,10 +207,10 @@ impl CefNavigationEntry {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -213,7 +218,8 @@ impl CefNavigationEntry {
   // if this function returns false (0).
   //
   pub fn is_valid(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -229,7 +235,8 @@ impl CefNavigationEntry {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_url(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -244,7 +251,8 @@ impl CefNavigationEntry {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_display_url(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -259,7 +267,8 @@ impl CefNavigationEntry {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_original_url(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -274,7 +283,8 @@ impl CefNavigationEntry {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_title(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -289,7 +299,8 @@ impl CefNavigationEntry {
   // this page from the previous page.
   //
   pub fn get_transition_type(&self) -> types::cef_transition_type_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -303,7 +314,8 @@ impl CefNavigationEntry {
   // Returns true (1) if this navigation includes post data.
   //
   pub fn has_post_data(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -319,7 +331,8 @@ impl CefNavigationEntry {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_frame_name(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -335,7 +348,8 @@ impl CefNavigationEntry {
   // 0 if the navigation has not yet completed.
   //
   pub fn get_completion_time(&self) -> types::cef_time_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -351,7 +365,8 @@ impl CefNavigationEntry {
   // navigation has not yet completed.
   //
   pub fn get_http_status_code(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -378,7 +393,8 @@ impl CefWrap<*mut cef_navigation_entry_t> for Option<CefNavigationEntry> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_navigation_entry_t) -> Option<CefNavigationEntry> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefNavigationEntry::from_c_object_addref(c_object))

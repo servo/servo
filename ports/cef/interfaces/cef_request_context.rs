@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -144,13 +145,13 @@ pub struct _cef_request_context_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_request_context_t = _cef_request_context_t;
 
@@ -178,7 +179,8 @@ pub struct CefRequestContext {
 impl Clone for CefRequestContext {
   fn clone(&self) -> CefRequestContext{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefRequestContext {
@@ -191,7 +193,8 @@ impl Clone for CefRequestContext {
 impl Drop for CefRequestContext {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -206,7 +209,8 @@ impl CefRequestContext {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_request_context_t) -> CefRequestContext {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefRequestContext {
@@ -220,7 +224,8 @@ impl CefRequestContext {
 
   pub fn c_object_addrefed(&self) -> *mut cef_request_context_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -228,10 +233,10 @@ impl CefRequestContext {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -239,7 +244,8 @@ impl CefRequestContext {
   // object.
   //
   pub fn is_same(&self, other: interfaces::CefRequestContext) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -256,7 +262,8 @@ impl CefRequestContext {
   //
   pub fn is_sharing_with(&self,
       other: interfaces::CefRequestContext) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -273,7 +280,8 @@ impl CefRequestContext {
   // context argument.
   //
   pub fn is_global(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -287,7 +295,8 @@ impl CefRequestContext {
   // Returns the handler for this context if any.
   //
   pub fn get_handler(&self) -> interfaces::CefRequestContextHandler {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -303,7 +312,8 @@ impl CefRequestContext {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_cache_path(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -323,7 +333,8 @@ impl CefRequestContext {
   //
   pub fn get_default_cookie_manager(&self,
       callback: interfaces::CefCompletionCallback) -> interfaces::CefCookieManager {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -350,7 +361,8 @@ impl CefRequestContext {
   pub fn register_scheme_handler_factory(&self, scheme_name: &[u16],
       domain_name: &[u16],
       factory: interfaces::CefSchemeHandlerFactory) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -368,7 +380,8 @@ impl CefRequestContext {
   // This function may be called on any thread in the browser process.
   //
   pub fn clear_scheme_handler_factories(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -434,7 +447,8 @@ impl CefWrap<*mut cef_request_context_t> for Option<CefRequestContext> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_request_context_t) -> Option<CefRequestContext> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefRequestContext::from_c_object_addref(c_object))

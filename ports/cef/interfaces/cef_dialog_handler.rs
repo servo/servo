@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -75,13 +76,13 @@ pub struct _cef_file_dialog_callback_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_file_dialog_callback_t = _cef_file_dialog_callback_t;
 
@@ -96,7 +97,8 @@ pub struct CefFileDialogCallback {
 impl Clone for CefFileDialogCallback {
   fn clone(&self) -> CefFileDialogCallback{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefFileDialogCallback {
@@ -109,7 +111,8 @@ impl Clone for CefFileDialogCallback {
 impl Drop for CefFileDialogCallback {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -124,7 +127,8 @@ impl CefFileDialogCallback {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_file_dialog_callback_t) -> CefFileDialogCallback {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefFileDialogCallback {
@@ -138,7 +142,8 @@ impl CefFileDialogCallback {
 
   pub fn c_object_addrefed(&self) -> *mut cef_file_dialog_callback_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -146,10 +151,10 @@ impl CefFileDialogCallback {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -161,7 +166,8 @@ impl CefFileDialogCallback {
   //
   pub fn cont(&self, selected_accept_filter: libc::c_int,
       file_paths: Vec<String>) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -177,7 +183,8 @@ impl CefFileDialogCallback {
   // Cancel the file selection.
   //
   pub fn cancel(&self) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -204,7 +211,8 @@ impl CefWrap<*mut cef_file_dialog_callback_t> for Option<CefFileDialogCallback> 
     }
   }
   unsafe fn to_rust(c_object: *mut cef_file_dialog_callback_t) -> Option<CefFileDialogCallback> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefFileDialogCallback::from_c_object_addref(c_object))
@@ -250,13 +258,13 @@ pub struct _cef_dialog_handler_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_dialog_handler_t = _cef_dialog_handler_t;
 
@@ -272,7 +280,8 @@ pub struct CefDialogHandler {
 impl Clone for CefDialogHandler {
   fn clone(&self) -> CefDialogHandler{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefDialogHandler {
@@ -285,7 +294,8 @@ impl Clone for CefDialogHandler {
 impl Drop for CefDialogHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -300,7 +310,8 @@ impl CefDialogHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_dialog_handler_t) -> CefDialogHandler {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefDialogHandler {
@@ -314,7 +325,8 @@ impl CefDialogHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_dialog_handler_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -322,10 +334,10 @@ impl CefDialogHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -348,7 +360,8 @@ impl CefDialogHandler {
       default_file_path: &[u16], accept_filters: Vec<String>,
       selected_accept_filter: libc::c_int,
       callback: interfaces::CefFileDialogCallback) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -382,7 +395,8 @@ impl CefWrap<*mut cef_dialog_handler_t> for Option<CefDialogHandler> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_dialog_handler_t) -> Option<CefDialogHandler> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefDialogHandler::from_c_object_addref(c_object))

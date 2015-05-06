@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -122,13 +123,13 @@ pub struct _cef_sslcert_principal_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_sslcert_principal_t = _cef_sslcert_principal_t;
 
@@ -143,7 +144,8 @@ pub struct CefSSLCertPrincipal {
 impl Clone for CefSSLCertPrincipal {
   fn clone(&self) -> CefSSLCertPrincipal{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefSSLCertPrincipal {
@@ -156,7 +158,8 @@ impl Clone for CefSSLCertPrincipal {
 impl Drop for CefSSLCertPrincipal {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -171,7 +174,8 @@ impl CefSSLCertPrincipal {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_sslcert_principal_t) -> CefSSLCertPrincipal {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefSSLCertPrincipal {
@@ -185,7 +189,8 @@ impl CefSSLCertPrincipal {
 
   pub fn c_object_addrefed(&self) -> *mut cef_sslcert_principal_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -193,10 +198,10 @@ impl CefSSLCertPrincipal {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -205,7 +210,8 @@ impl CefSSLCertPrincipal {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_display_name(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -220,7 +226,8 @@ impl CefSSLCertPrincipal {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_common_name(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -235,7 +242,8 @@ impl CefSSLCertPrincipal {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_locality_name(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -250,7 +258,8 @@ impl CefSSLCertPrincipal {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_state_or_province_name(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -265,7 +274,8 @@ impl CefSSLCertPrincipal {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_country_name(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -279,7 +289,8 @@ impl CefSSLCertPrincipal {
   // Retrieve the list of street addresses.
   //
   pub fn get_street_addresses(&self, addresses: Vec<String>) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -294,7 +305,8 @@ impl CefSSLCertPrincipal {
   // Retrieve the list of organization names.
   //
   pub fn get_organization_names(&self, names: Vec<String>) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -309,7 +321,8 @@ impl CefSSLCertPrincipal {
   // Retrieve the list of organization unit names.
   //
   pub fn get_organization_unit_names(&self, names: Vec<String>) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -324,7 +337,8 @@ impl CefSSLCertPrincipal {
   // Retrieve the list of domain components.
   //
   pub fn get_domain_components(&self, components: Vec<String>) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -352,7 +366,8 @@ impl CefWrap<*mut cef_sslcert_principal_t> for Option<CefSSLCertPrincipal> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_sslcert_principal_t) -> Option<CefSSLCertPrincipal> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefSSLCertPrincipal::from_c_object_addref(c_object))
@@ -421,13 +436,13 @@ pub struct _cef_sslinfo_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_sslinfo_t = _cef_sslinfo_t;
 
@@ -442,7 +457,8 @@ pub struct CefSSLInfo {
 impl Clone for CefSSLInfo {
   fn clone(&self) -> CefSSLInfo{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefSSLInfo {
@@ -455,7 +471,8 @@ impl Clone for CefSSLInfo {
 impl Drop for CefSSLInfo {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -470,7 +487,8 @@ impl CefSSLInfo {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_sslinfo_t) -> CefSSLInfo {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefSSLInfo {
@@ -484,7 +502,8 @@ impl CefSSLInfo {
 
   pub fn c_object_addrefed(&self) -> *mut cef_sslinfo_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -492,10 +511,10 @@ impl CefSSLInfo {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -504,7 +523,8 @@ impl CefSSLInfo {
   // match the host name of the web server.
   //
   pub fn get_subject(&self) -> interfaces::CefSSLCertPrincipal {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -518,7 +538,8 @@ impl CefSSLInfo {
   // Returns the issuer of the X.509 certificate.
   //
   pub fn get_issuer(&self) -> interfaces::CefSSLCertPrincipal {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -533,7 +554,8 @@ impl CefSSLInfo {
   // possibly includes a leading 00 byte.
   //
   pub fn get_serial_number(&self) -> interfaces::CefBinaryValue {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -548,7 +570,8 @@ impl CefSSLInfo {
   // CefTime.GetTimeT() will return 0 if no date was specified.
   //
   pub fn get_valid_start(&self) -> types::cef_time_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -563,7 +586,8 @@ impl CefSSLInfo {
   // CefTime.GetTimeT() will return 0 if no date was specified.
   //
   pub fn get_valid_expiry(&self) -> types::cef_time_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -577,7 +601,8 @@ impl CefSSLInfo {
   // Returns the DER encoded data for the X.509 certificate.
   //
   pub fn get_derencoded(&self) -> interfaces::CefBinaryValue {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -591,7 +616,8 @@ impl CefSSLInfo {
   // Returns the PEM encoded data for the X.509 certificate.
   //
   pub fn get_pemencoded(&self) -> interfaces::CefBinaryValue {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -618,7 +644,8 @@ impl CefWrap<*mut cef_sslinfo_t> for Option<CefSSLInfo> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_sslinfo_t) -> Option<CefSSLInfo> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefSSLInfo::from_c_object_addref(c_object))

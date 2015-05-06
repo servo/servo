@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -175,13 +176,13 @@ pub struct _cef_life_span_handler_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_life_span_handler_t = _cef_life_span_handler_t;
 
@@ -198,7 +199,8 @@ pub struct CefLifeSpanHandler {
 impl Clone for CefLifeSpanHandler {
   fn clone(&self) -> CefLifeSpanHandler{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefLifeSpanHandler {
@@ -211,7 +213,8 @@ impl Clone for CefLifeSpanHandler {
 impl Drop for CefLifeSpanHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -226,7 +229,8 @@ impl CefLifeSpanHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_life_span_handler_t) -> CefLifeSpanHandler {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefLifeSpanHandler {
@@ -240,7 +244,8 @@ impl CefLifeSpanHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_life_span_handler_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -248,10 +253,10 @@ impl CefLifeSpanHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -280,7 +285,8 @@ impl CefLifeSpanHandler {
       client: interfaces::CefClient,
       settings: &mut interfaces::CefBrowserSettings,
       no_javascript_access: &mut libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -305,7 +311,8 @@ impl CefLifeSpanHandler {
   // Called after a new browser is created.
   //
   pub fn on_after_created(&self, browser: interfaces::CefBrowser) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -322,7 +329,8 @@ impl CefLifeSpanHandler {
   // implementation or true (1) to use a custom implementation.
   //
   pub fn run_modal(&self, browser: interfaces::CefBrowser) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -391,7 +399,8 @@ impl CefLifeSpanHandler {
   //     exist.
   //
   pub fn do_close(&self, browser: interfaces::CefBrowser) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -411,7 +420,8 @@ impl CefLifeSpanHandler {
   // additional usage information.
   //
   pub fn on_before_close(&self, browser: interfaces::CefBrowser) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -439,7 +449,8 @@ impl CefWrap<*mut cef_life_span_handler_t> for Option<CefLifeSpanHandler> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_life_span_handler_t) -> Option<CefLifeSpanHandler> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefLifeSpanHandler::from_c_object_addref(c_object))
