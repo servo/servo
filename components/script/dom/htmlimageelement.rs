@@ -12,14 +12,15 @@ use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCas
                                            HTMLImageElementDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::element::ElementTypeId;
+use dom::element::{Element, ElementTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{document_from_node, Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
@@ -38,6 +39,7 @@ pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     url: DOMRefCell<Option<Url>>,
     image: DOMRefCell<Option<Arc<Image>>>,
+    form_owner: MutNullableHeap<JS<HTMLFormElement>>,
 }
 
 impl HTMLImageElementDerived for EventTarget {
@@ -143,6 +145,7 @@ impl HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLImageElement, localName, prefix, document),
             url: DOMRefCell::new(None),
             image: DOMRefCell::new(None),
+            form_owner: Default::default(),
         }
     }
 
@@ -320,5 +323,38 @@ impl<'a> VirtualMethods for &'a HTMLImageElement {
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
+
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
+        }
+
+        self.bind_form_control_to_tree();
+    }
+
+    fn unbind_from_tree(&self, tree_in_doc: bool) {
+        if let Some(ref s) = self.super_type() {
+            s.unbind_from_tree(tree_in_doc);
+        }
+
+        self.unbind_form_control_from_tree();
+    }
 }
 
+impl<'a> FormControl for &'a HTMLImageElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get().map(Root::from_rooted)
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form.map(JS::from_ref));
+    }
+
+    fn to_element<'b>(&'b self) -> &'b Element {
+        ElementCast::from_ref(*self)
+    }
+
+    fn is_reassociatable(&self) -> bool {
+        false
+    }
+}

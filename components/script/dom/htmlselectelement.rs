@@ -5,16 +5,17 @@
 use dom::attr::{Attr, AttrHelpers, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLSelectElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
-use dom::bindings::js::Root;
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::document::Document;
-use dom::element::AttributeHandlers;
+use dom::element::{Element, AttributeHandlers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlformelement::{HTMLFormElement, FormControl};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -23,10 +24,12 @@ use util::str::DOMString;
 use string_cache::Atom;
 
 use std::borrow::ToOwned;
+use std::default::Default;
 
 #[dom_struct]
 pub struct HTMLSelectElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
+    form_owner: MutNullableHeap<JS<HTMLFormElement>>,
 }
 
 impl HTMLSelectElementDerived for EventTarget {
@@ -45,7 +48,8 @@ impl HTMLSelectElement {
                      document: &Document) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLSelectElement, localName, prefix, document)
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLSelectElement, localName, prefix, document),
+            form_owner: Default::default(),
         }
     }
 
@@ -100,6 +104,11 @@ impl<'a> HTMLSelectElementMethods for &'a HTMLSelectElement {
             "select-one".to_owned()
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-fae-form
+    fn GetForm(self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
 }
 
 impl<'a> VirtualMethods for &'a HTMLSelectElement {
@@ -119,6 +128,9 @@ impl<'a> VirtualMethods for &'a HTMLSelectElement {
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             },
+            &atom!("form") => {
+                self.after_set_form_attr();
+            },
             _ => ()
         }
     }
@@ -135,6 +147,22 @@ impl<'a> VirtualMethods for &'a HTMLSelectElement {
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
             },
+            &atom!("form") => {
+                self.before_remove_form_attr();
+            },
+            _ => ()
+        }
+    }
+
+    fn after_remove_attr(&self, attr: &Atom) {
+        if let Some(ref s) = self.super_type() {
+            s.after_remove_attr(attr);
+        }
+
+        match attr {
+            &atom!("form") => {
+                self.after_remove_form_attr();
+            }
             _ => ()
         }
     }
@@ -144,6 +172,8 @@ impl<'a> VirtualMethods for &'a HTMLSelectElement {
             s.bind_to_tree(tree_in_doc);
         }
 
+        self.bind_form_control_to_tree();
+
         let node = NodeCast::from_ref(*self);
         node.check_ancestors_disabled_state_for_form_control();
     }
@@ -152,6 +182,8 @@ impl<'a> VirtualMethods for &'a HTMLSelectElement {
         if let Some(ref s) = self.super_type() {
             s.unbind_from_tree(tree_in_doc);
         }
+
+        self.unbind_form_control_from_tree();
 
         let node = NodeCast::from_ref(*self);
         if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
@@ -169,3 +201,16 @@ impl<'a> VirtualMethods for &'a HTMLSelectElement {
     }
 }
 
+impl<'a> FormControl for &'a HTMLSelectElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get().map(Root::from_rooted)
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form.map(JS::from_ref));
+    }
+
+    fn to_element<'b>(&'b self) -> &'b Element {
+        ElementCast::from_ref(*self)
+    }
+}

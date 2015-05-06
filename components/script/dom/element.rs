@@ -16,7 +16,8 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{ElementBase, ElementCast, ElementDerived};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLFontElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
@@ -32,6 +33,7 @@ use dom::bindings::error::Error::NoModificationAllowed;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::trace::RootedVec;
+use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::{namespace_from_domstring, xml_name_type, validate_and_extract};
 use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::create::create_element;
@@ -554,6 +556,8 @@ pub trait ElementHelpers<'a> {
     fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString>;
     fn get_root_element(self) -> Root<Element>;
     fn lookup_prefix(self, namespace: Namespace) -> Option<DOMString>;
+    fn is_in_same_home_subtree<T>(self, other: &T) -> bool
+        where T: ElementBase + Reflectable;
 }
 
 impl<'a> ElementHelpers<'a> for &'a Element {
@@ -740,6 +744,15 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         }
         None
     }
+
+    // https://html.spec.whatwg.org/multipage/#home-subtree
+    fn is_in_same_home_subtree<T>(self, other: &T) -> bool
+        where T: ElementBase + Reflectable
+    {
+        let other = ElementCast::from_ref(other);
+        self.get_root_element() == other.get_root_element()
+    }
+
 }
 
 pub trait FocusElementHelpers {

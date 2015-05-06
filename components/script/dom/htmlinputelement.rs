@@ -15,7 +15,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInp
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root, RootedReference};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, Element};
 use dom::element::{RawLayoutElementHelpers, ActivationElementHelpers};
@@ -24,7 +24,8 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::keyboardevent::KeyboardEvent;
-use dom::htmlformelement::{FormSubmitter, FormControl, HTMLFormElement, HTMLFormElementHelpers};
+use dom::htmlformelement::{FormSubmitter, FormControl};
+use dom::htmlformelement::{HTMLFormElement, HTMLFormElementHelpers};
 use dom::htmlformelement::{SubmittedFrom, ResetFrom};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
@@ -71,6 +72,7 @@ pub struct HTMLInputElement {
     size: Cell<u32>,
     textinput: DOMRefCell<TextInput<ConstellationChan>>,
     activation_state: DOMRefCell<InputActivationState>,
+    form_owner: MutNullableHeap<JS<HTMLFormElement>>
 }
 
 impl PartialEq for HTMLInputElement {
@@ -128,7 +130,8 @@ impl HTMLInputElement {
             value_changed: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
             textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned(), chan)),
-            activation_state: DOMRefCell::new(InputActivationState::new())
+            activation_state: DOMRefCell::new(InputActivationState::new()),
+            form_owner: Default::default(),
         }
     }
 
@@ -293,6 +296,11 @@ impl<'a> HTMLInputElementMethods for &'a HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#attr-input-placeholder
     make_setter!(SetPlaceholder, "placeholder");
+
+    // https://html.spec.whatwg.org/multipage/#dom-fae-form
+    fn GetForm(self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formaction
     make_url_or_base_getter!(FormAction);
@@ -512,6 +520,9 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
                     self.radio_group_updated(Some(&value));
                 }
             }
+            &atom!("form") => {
+                self.after_set_form_attr();
+            }
             _ if attr.local_name() == &Atom::from_slice("placeholder") => {
                 let value = attr.value();
                 let stripped = value.chars()
@@ -563,8 +574,24 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
                     self.radio_group_updated(None);
                 }
             }
+            &atom!("form") => {
+                self.before_remove_form_attr();
+            }
             _ if attr.local_name() == &Atom::from_slice("placeholder") => {
                 self.placeholder.borrow_mut().clear();
+            }
+            _ => ()
+        }
+    }
+
+    fn after_remove_attr(&self, attr: &Atom) {
+        if let Some(ref s) = self.super_type() {
+            s.after_remove_attr(attr);
+        }
+
+        match attr {
+            &atom!("form") => {
+                self.after_remove_form_attr();
             }
             _ => ()
         }
@@ -582,6 +609,8 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
             s.bind_to_tree(tree_in_doc);
         }
 
+        self.bind_form_control_to_tree();
+
         let node = NodeCast::from_ref(*self);
         node.check_ancestors_disabled_state_for_form_control();
     }
@@ -590,6 +619,8 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
         if let Some(ref s) = self.super_type() {
             s.unbind_from_tree(tree_in_doc);
         }
+
+        self.unbind_form_control_from_tree();
 
         let node = NodeCast::from_ref(*self);
         if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
@@ -644,9 +675,17 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
     }
 }
 
-impl<'a> FormControl<'a> for &'a HTMLInputElement {
-    fn to_element(self) -> &'a Element {
-        ElementCast::from_ref(self)
+impl<'a> FormControl for &'a HTMLInputElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get().map(Root::from_rooted)
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form.map(JS::from_ref));
+    }
+
+    fn to_element<'b>(&'b self) -> &'b Element {
+        ElementCast::from_ref(*self)
     }
 }
 

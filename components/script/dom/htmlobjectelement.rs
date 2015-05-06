@@ -10,24 +10,30 @@ use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::js::Root;
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::document::Document;
+use dom::element::Element;
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlformelement::{HTMLFormElement, FormControl};
 use dom::node::{Node, NodeTypeId, NodeHelpers, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
 use net_traits::image::base::Image;
+use string_cache::Atom;
 use util::str::DOMString;
+
 use std::sync::Arc;
+use std::default::Default;
 
 #[dom_struct]
 pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
     image: DOMRefCell<Option<Arc<Image>>>,
+    form_owner: MutNullableHeap<JS<HTMLFormElement>>,
 }
 
 impl HTMLObjectElementDerived for EventTarget {
@@ -46,6 +52,7 @@ impl HTMLObjectElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLObjectElement, localName, prefix, document),
             image: DOMRefCell::new(None),
+            form_owner: Default::default(),
         }
     }
 
@@ -90,6 +97,11 @@ impl<'a> HTMLObjectElementMethods for &'a HTMLObjectElement {
         ValidityState::new(window.r())
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-fae-form
+    fn GetForm(self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-object-type
     make_getter!(Type);
 
@@ -112,8 +124,66 @@ impl<'a> VirtualMethods for &'a HTMLObjectElement {
             &atom!("data") => {
                 self.process_data_url();
             },
+            &atom!("form") => {
+                self.after_set_form_attr();
+            },
             _ => ()
         }
     }
+
+    fn before_remove_attr(&self, attr: &Attr) {
+        if let Some(ref s) = self.super_type() {
+            s.before_remove_attr(attr);
+        }
+
+        match attr.local_name() {
+            &atom!("form") => {
+                self.before_remove_form_attr();
+            },
+            _ => ()
+        }
+    }
+
+    fn after_remove_attr(&self, attr: &Atom) {
+        if let Some(ref s) = self.super_type() {
+            s.after_remove_attr(attr);
+        }
+
+        match attr {
+            &atom!("form") => {
+                self.after_remove_form_attr();
+            }
+            _ => ()
+        }
+    }
+
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
+        }
+
+        self.bind_form_control_to_tree();
+    }
+
+    fn unbind_from_tree(&self, tree_in_doc: bool) {
+        if let Some(ref s) = self.super_type() {
+            s.unbind_from_tree(tree_in_doc);
+        }
+
+        self.unbind_form_control_from_tree();
+    }
 }
 
+impl<'a> FormControl for &'a HTMLObjectElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get().map(Root::from_rooted)
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form.map(JS::from_ref));
+    }
+
+    fn to_element<'b>(&'b self) -> &'b Element {
+        ElementCast::from_ref(*self)
+    }
+}

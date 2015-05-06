@@ -47,6 +47,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlformelement::{FormControl, FormControlElementHelpers};
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmlscriptelement::HTMLScriptElement;
@@ -55,6 +56,7 @@ use dom::mouseevent::MouseEvent;
 use dom::keyboardevent::KeyboardEvent;
 use dom::messageevent::MessageEvent;
 use dom::node::{self, Node, NodeHelpers, NodeTypeId, CloneChildrenFlag, NodeDamage, window_from_node};
+use dom::node::VecPreOrderInsertionHelper;
 use dom::nodelist::NodeList;
 use dom::nodeiterator::NodeIterator;
 use dom::text::Text;
@@ -90,7 +92,7 @@ use js::jsapi::{JSContext, JSObject, JSRuntime};
 use num::ToPrimitive;
 use std::iter::FromIterator;
 use std::borrow::ToOwned;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::ascii::AsciiExt;
 use std::cell::{Cell, Ref, RefMut, RefCell};
@@ -149,6 +151,12 @@ pub struct Document {
     current_parser: MutNullableHeap<JS<ServoHTMLParser>>,
     /// When we should kick off a reflow. This happens during parsing.
     reflow_timeout: Cell<Option<u64>>,
+    /// Map from ID to set of form control elements that have that ID as
+    /// their 'form' content attribute. Used to reset form controls
+    /// whenever any element with the same ID as the form attribute
+    /// is inserted or removed from the document.
+    /// See https://html.spec.whatwg.org/multipage/#form-owner
+    form_id_listener_map: DOMRefCell<HashMap<Atom, HashSet<JS<Element>>>>,
 }
 
 impl PartialEq for Document {
@@ -287,6 +295,8 @@ pub trait DocumentHelpers<'a> {
     fn finish_load(self, load: LoadType);
     fn set_current_parser(self, script: Option<&ServoHTMLParser>);
     fn get_current_parser(self) -> Option<Root<ServoHTMLParser>>;
+    fn register_form_id_listener<T: ?Sized + FormControl>(self, id: DOMString, listener: &T);
+    fn unregister_form_id_listener<T: ?Sized + FormControl>(self, id: DOMString, listener: &T);
 }
 
 impl<'a> DocumentHelpers<'a> for &'a Document {
@@ -400,21 +410,27 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
                                 to_unregister: &Element,
                                 id: Atom) {
         debug!("Removing named element from document {:p}: {:p} id={}", self, to_unregister, id);
-        let mut idmap = self.idmap.borrow_mut();
-        let is_empty = match idmap.get_mut(&id) {
-            None => false,
-            Some(elements) => {
-                let position = elements.iter()
-                                       .map(|elem| elem.root())
-                                       .position(|element| element.r() == to_unregister)
-                                       .expect("This element should be in registered.");
-                elements.remove(position);
-                elements.is_empty()
+        // Limit the scope of the borrow because idmap might be borrowed again by
+        // GetElementById through the following sequence of calls
+        // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
+        {
+            let mut idmap = self.idmap.borrow_mut();
+            let is_empty = match idmap.get_mut(&id) {
+                None => false,
+                Some(elements) => {
+                    let position = elements.iter()
+                        .map(|elem| elem.root())
+                        .position(|element| element.r() == to_unregister)
+                        .expect("This element should be in registered.");
+                    elements.remove(position);
+                    elements.is_empty()
+                }
+            };
+            if is_empty {
+                idmap.remove(&id);
             }
-        };
-        if is_empty {
-            idmap.remove(&id);
         }
+        self.reset_form_owner_for_listeners(&id);
     }
 
     /// Associate an element present in this document with the provided id.
@@ -428,34 +444,38 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         });
         assert!(!id.is_empty());
 
-        let mut idmap = self.idmap.borrow_mut();
-
         let root = self.GetDocumentElement().expect(
             "The element is in the document, so there must be a document element.");
 
-        match idmap.entry(id) {
-            Vacant(entry) => {
-                entry.insert(vec![JS::from_ref(element)]);
-            }
-            Occupied(entry) => {
-                let elements = entry.into_mut();
+        // Limit the scope of the borrow because idmap might be borrowed again by
+        // GetElementById through the following sequence of calls
+        // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
+        {
+            let mut idmap = self.idmap.borrow_mut();
+            let mut elements = idmap.entry(id.clone()).or_insert(Vec::new());
+            elements.insert_pre_order(element, NodeCast::from_ref(root.r()));
+        }
 
-                let new_node = NodeCast::from_ref(element);
-                let mut head: usize = 0;
-                let root = NodeCast::from_ref(root.r());
-                for node in root.traverse_preorder() {
-                    if let Some(elem) = ElementCast::to_ref(node.r()) {
-                        if (*elements)[head].root().r() == elem {
-                            head += 1;
-                        }
-                        if new_node == node.r() || head == elements.len() {
-                            break;
-                        }
-                    }
+        self.reset_form_owner_for_listeners(&id);
+    }
+
+    fn register_form_id_listener<T: ?Sized + FormControl>(self, id: DOMString, listener: &T) {
+        let mut map = self.form_id_listener_map.borrow_mut();
+        let listener = listener.to_element();
+        let mut set = map.entry(Atom::from_slice(&id)).or_insert(HashSet::new());
+        set.insert(JS::from_ref(listener));
+    }
+
+    fn unregister_form_id_listener<T: ?Sized + FormControl>(self, id: DOMString, listener: &T) {
+        let mut map = self.form_id_listener_map.borrow_mut();
+        match map.entry(Atom::from_slice(&id)) {
+            Occupied(mut entry) => {
+                entry.get_mut().remove(&JS::from_ref(listener.to_element()));
+                if entry.get().is_empty() {
+                    entry.remove();
                 }
-
-                elements.insert(head, JS::from_ref(element));
             }
+            Vacant(_) =>  ()
         }
     }
 
@@ -1073,6 +1093,7 @@ impl Document {
             loader: DOMRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
+            form_id_listener_map: DOMRefCell::new(HashMap::new()),
         }
     }
 
@@ -1110,6 +1131,7 @@ impl Document {
 trait PrivateDocumentHelpers {
     fn create_node_list<F: Fn(&Node) -> bool>(self, callback: F) -> Root<NodeList>;
     fn get_html_element(self) -> Option<Root<HTMLHtmlElement>>;
+    fn reset_form_owner_for_listeners(self, id: &Atom);
 }
 
 impl<'a> PrivateDocumentHelpers for &'a Document {
@@ -1127,6 +1149,18 @@ impl<'a> PrivateDocumentHelpers for &'a Document {
             .r()
             .and_then(HTMLHtmlElementCast::to_ref)
             .map(Root::from_ref)
+    }
+
+    fn reset_form_owner_for_listeners(self, id: &Atom) {
+        let map = self.form_id_listener_map.borrow();
+        if let Some(listeners) = map.get(id) {
+            for listener in listeners {
+                let listener = listener.root();
+                listener.r().as_maybe_form_control()
+                    .expect("Element must be a form control")
+                    .reset_form_owner();
+            }
+        }
     }
 }
 
