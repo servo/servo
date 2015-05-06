@@ -163,7 +163,7 @@ impl Handler {
                 break;
             };
 
-            sleep_ms(20)
+            sleep_ms(interval)
         }
 
         if img.is_none() {
