@@ -413,6 +413,12 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         self.update_transform()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-resettransform
+    fn ResetTransform(self) {
+        self.state.borrow_mut().transform = Matrix2D::identity();
+        self.update_transform()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
     fn GlobalAlpha(self) -> f64 {
         let state = self.state.borrow();
