@@ -11,7 +11,7 @@ interface CloseEvent : Event {
 };
 
 dictionary CloseEventInit : EventInit {
-  boolean wasClean = true;
+  boolean wasClean = false;
   unsigned short code = 0;
   DOMString reason = "";
 };
