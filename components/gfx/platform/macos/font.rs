@@ -12,7 +12,6 @@ use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::FontTableTag;
 use font::FractionalPixel;
 use util::geometry::{Au, px_to_pt};
-use util::geometry;
 use platform::macos::font_context::FontContextHandle;
 use text::glyph::GlyphId;
 use style::computed_values::{font_stretch, font_weight};
