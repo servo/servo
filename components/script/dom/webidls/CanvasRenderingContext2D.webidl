@@ -32,7 +32,7 @@ interface CanvasRenderingContext2D {
   // transformations (default transform is the identity matrix)
   //         attribute SVGMatrix currentTransform;
   void scale(unrestricted double x, unrestricted double y);
-  //void rotate(unrestricted double angle);
+  void rotate(unrestricted double angle);
   void translate(unrestricted double x, unrestricted double y);
   void transform(unrestricted double a,
                  unrestricted double b,
