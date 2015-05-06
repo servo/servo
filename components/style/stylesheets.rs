@@ -19,6 +19,7 @@ use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use media_queries::{Device, MediaQueryList, parse_media_query_list};
 use font_face::{FontFaceRule, parse_font_face_block};
 use util::smallvec::SmallVec2;
+use viewport::ViewportRule;
 
 
 /// Each style rule has an origin, which determines where it enters the cascade.
@@ -53,6 +54,7 @@ pub enum CSSRule {
     Style(StyleRule),
     Media(MediaRule),
     FontFace(FontFaceRule),
+    Viewport(ViewportRule),
 }
 
 #[derive(Debug, PartialEq)]
@@ -216,6 +218,7 @@ pub mod rule_filter {
     use std::marker::PhantomData;
     use super::{CSSRule, MediaRule, StyleRule};
     use super::super::font_face::FontFaceRule;
+    use super::super::viewport::ViewportRule;
 
     macro_rules! rule_filter {
         ($variant:ident -> $value:ty) => {
@@ -259,6 +262,7 @@ pub mod rule_filter {
     rule_filter!(FontFace -> FontFaceRule);
     rule_filter!(Media -> MediaRule);
     rule_filter!(Style -> StyleRule);
+    rule_filter!(Viewport -> ViewportRule);
 }
 
 /// Extension methods for `CSSRule` iterators.
@@ -271,6 +275,9 @@ pub trait CSSRuleIteratorExt<'a>: Iterator<Item=&'a CSSRule> {
 
     /// Yield only style rules.
     fn style(self) -> rule_filter::Style<'a, Self>;
+
+    /// Yield only @viewport rules.
+    fn viewport(self) -> rule_filter::Viewport<'a, Self>;
 }
 
 impl<'a, I> CSSRuleIteratorExt<'a> for I where I: Iterator<Item=&'a CSSRule> {
@@ -287,6 +294,11 @@ impl<'a, I> CSSRuleIteratorExt<'a> for I where I: Iterator<Item=&'a CSSRule> {
     #[inline]
     fn style(self) -> rule_filter::Style<'a, I> {
         rule_filter::Style::new(self)
+    }
+
+    #[inline]
+    fn viewport(self) -> rule_filter::Viewport<'a, I> {
+        rule_filter::Viewport::new(self)
     }
 }
 
@@ -324,6 +336,7 @@ enum State {
 enum AtRulePrelude {
     FontFace,
     Media(MediaQueryList),
+    Viewport,
 }
 
 
@@ -414,6 +427,13 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
             },
             "font-face" => {
                 Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace))
+            },
+            "viewport" => {
+                if ::util::opts::experimental_enabled() {
+                    Ok(AtRuleType::WithBlock(AtRulePrelude::Viewport))
+                } else {
+                    Err(())
+                }
             }
             _ => Err(())
         }
@@ -429,6 +449,9 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                     media_queries: media_queries,
                     rules: parse_nested_rules(self.context, input),
                 }))
+            }
+            AtRulePrelude::Viewport => {
+                ViewportRule::parse(input, self.context).map(CSSRule::Viewport)
             }
         }
     }

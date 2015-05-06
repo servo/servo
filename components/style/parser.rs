@@ -11,6 +11,7 @@ use log;
 use stylesheets::Origin;
 
 pub struct ParserContext<'a> {
+    pub stylesheet_origin: Origin,
     pub base_url: &'a Url,
     pub selector_context: SelectorParserContext,
 }
@@ -20,6 +21,7 @@ impl<'a> ParserContext<'a> {
         let mut selector_context = SelectorParserContext::new();
         selector_context.in_user_agent_stylesheet = stylesheet_origin == Origin::UserAgent;
         ParserContext {
+            stylesheet_origin: stylesheet_origin,
             base_url: base_url,
             selector_context: selector_context,
         }

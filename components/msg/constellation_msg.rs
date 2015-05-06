@@ -14,6 +14,7 @@ use layers::geometry::DevicePixel;
 use util::cursor::Cursor;
 use util::geometry::{PagePx, ViewportPx};
 use std::sync::mpsc::{channel, Sender, Receiver};
+use style::viewport::ViewportConstraints;
 use webdriver_traits::WebDriverScriptCommand;
 use url::Url;
 
@@ -233,7 +234,9 @@ pub enum Msg {
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(Sender<String>),
     // Dispatch a webdriver command
-    WebDriverCommand(PipelineId, WebDriverScriptCommand)
+    WebDriverCommand(PipelineId, WebDriverScriptCommand),
+    /// Notifies the constellation that the viewport has been constrained in some manner
+    ViewportConstrained(PipelineId, ViewportConstraints),
 }
 
 #[derive(Clone, Eq, PartialEq)]

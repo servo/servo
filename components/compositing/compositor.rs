@@ -43,6 +43,7 @@ use std::mem as std_mem;
 use std::rc::Rc;
 use std::slice::bytes::copy_memory;
 use std::sync::mpsc::Sender;
+use style::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use url::Url;
 use util::geometry::{PagePx, ScreenPx, ViewportPx};
@@ -74,6 +75,10 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// "Mobile-style" zoom that does not reflow the page.
     viewport_zoom: ScaleFactor<PagePx, ViewportPx, f32>,
+
+    /// Viewport zoom constraints provided by @viewport.
+    min_viewport_zoom: Option<ScaleFactor<PagePx, ViewportPx, f32>>,
+    max_viewport_zoom: Option<ScaleFactor<PagePx, ViewportPx, f32>>,
 
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
     /// See `ViewportPx` docs in util/geom.rs for details.
@@ -219,6 +224,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             shutdown_state: ShutdownState::NotShuttingDown,
             page_zoom: ScaleFactor::new(1.0),
             viewport_zoom: ScaleFactor::new(1.0),
+            min_viewport_zoom: None,
+            max_viewport_zoom: None,
             zoom_action: false,
             zoom_time: 0f64,
             got_load_complete_message: false,
@@ -387,6 +394,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 if self.pipeline_details.remove(&pipeline_id).is_none() {
                     panic!("Saw PaintTaskExited message from an unknown pipeline!");
                 }
+            }
+
+            (Msg::ViewportConstrained(pipeline_id, constraints), ShutdownState::NotShuttingDown) => {
+                self.constrain_viewport(pipeline_id, constraints);
             }
 
             // When we are shutting_down, we need to avoid performing operations
@@ -945,6 +956,21 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
+    fn constrain_viewport(&mut self, pipeline_id: PipelineId, constraints: ViewportConstraints) {
+        let is_root = self.root_pipeline.as_ref().map_or(false, |root_pipeline| {
+            root_pipeline.id == pipeline_id
+        });
+
+        if is_root {
+            // TODO: actual viewport size
+
+            self.viewport_zoom = constraints.initial_zoom;
+            self.min_viewport_zoom = constraints.min_zoom;
+            self.max_viewport_zoom = constraints.max_zoom;
+            self.update_zoom_transform();
+        }
+    }
+
     fn device_pixels_per_screen_px(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
         match opts::get().device_pixels_per_px {
             Some(device_pixels_per_px) => device_pixels_per_px,
@@ -976,12 +1002,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     // TODO(pcwalton): I think this should go through the same queuing as scroll events do.
     fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
+        use num::Float;
+
         self.zoom_action = true;
         self.zoom_time = precise_time_s();
         let old_viewport_zoom = self.viewport_zoom;
 
-        self.viewport_zoom = ScaleFactor::new((self.viewport_zoom.get() * magnification).max(1.0));
-        let viewport_zoom = self.viewport_zoom;
+        let mut viewport_zoom = self.viewport_zoom.get() * magnification;
+        if let Some(min_zoom) = self.min_viewport_zoom.as_ref() {
+            viewport_zoom = min_zoom.get().max(viewport_zoom)
+        }
+        let viewport_zoom = self.max_viewport_zoom.as_ref().map_or(1., |z| z.get()).min(viewport_zoom);
+        let viewport_zoom = ScaleFactor::new(viewport_zoom);
+        self.viewport_zoom = viewport_zoom;
 
         self.update_zoom_transform();
 
@@ -1452,4 +1485,3 @@ pub enum CompositingReason {
     /// The window has been zoomed.
     Zoom,
 }
-

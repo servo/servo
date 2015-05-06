@@ -34,6 +34,7 @@ use std::io::{self, Write};
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::sync::mpsc::{Sender, Receiver, channel};
+use style::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::PagePx;
@@ -417,6 +418,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got webdriver command message");
                 self.handle_webdriver_command_msg(pipeline_id,
                                                   command);
+            }
+            ConstellationMsg::ViewportConstrained(pipeline_id, constraints) => {
+                debug!("constellation got viewport-constrained event message");
+                self.handle_viewport_constrained_msg(pipeline_id, constraints);
             }
         }
         true
@@ -911,6 +916,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
 
         self.window_size = new_size;
+    }
+
+    /// Handle updating actual viewport / zoom due to @viewport rules
+    fn handle_viewport_constrained_msg(&mut self, pipeline_id: PipelineId, constraints: ViewportConstraints) {
+        self.compositor_proxy.send(CompositorMsg::ViewportConstrained(pipeline_id, constraints));
     }
 
     // Close a frame (and all children)
