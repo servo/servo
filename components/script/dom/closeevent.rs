@@ -9,26 +9,27 @@ use dom::bindings::codegen::Bindings::CloseEventBinding::CloseEventMethods;
 use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef,Temporary, Rootable};
+use dom::bindings::js::{JSRef, Temporary, Rootable};
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use script_task::ScriptChan;
-use std::borrow::ToOwned;
-use std::cell::Cell;
+
 use util::str::DOMString;
 
+use std::borrow::ToOwned;
+use std::cell::Cell;
 
 #[dom_struct]
-pub struct CloseEvent{
+pub struct CloseEvent {
     event: Event,
     wasClean: Cell<bool>,
     code: Cell<u16>,
     reason: DOMRefCell<DOMString>
 }
 
-impl CloseEvent{
-    pub fn new_inherited(type_id: EventTypeId) -> CloseEvent{
-        CloseEvent{
+impl CloseEvent {
+    pub fn new_inherited(type_id: EventTypeId) -> CloseEvent {
+        CloseEvent {
             event: Event::new_inherited(type_id),
             wasClean: Cell::new(true),
             code: Cell::new(0),
@@ -60,7 +61,8 @@ impl CloseEvent{
 
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
-                       init: &CloseEventBinding::CloseEventInit) -> Fallible<Temporary<CloseEvent>> {
+                       init: &CloseEventBinding::CloseEventInit)
+                       -> Fallible<Temporary<CloseEvent>> {
         let clean_status = init.wasClean.unwrap_or(true);
         let cd = init.code.unwrap_or(0);
         let rsn = match init.reason.as_ref() {
@@ -73,7 +75,7 @@ impl CloseEvent{
     }
 }
 
-impl<'a> CloseEventMethods for JSRef<'a, CloseEvent>{
+impl<'a> CloseEventMethods for JSRef<'a, CloseEvent> {
     fn WasClean(self) -> bool {
         self.wasClean.get()
     }
