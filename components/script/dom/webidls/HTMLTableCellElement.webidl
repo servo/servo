@@ -5,7 +5,7 @@
 
 // https://www.whatwg.org/html/#htmltablecellelement
 interface HTMLTableCellElement : HTMLElement {
-  //         attribute unsigned long colSpan;
+             attribute unsigned long colSpan;
   //         attribute unsigned long rowSpan;
   //[PutForwards=value] readonly attribute DOMSettableTokenList headers;
   //readonly attribute long cellIndex;

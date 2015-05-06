@@ -114,10 +114,8 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     // constraints
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-cols
-    make_uint_getter!(Cols);
-
-    // https://html.spec.whatwg.org/multipage/#dom-textarea-cols
-    make_uint_setter!(SetCols, "cols");
+    make_uint_getter!(Cols, "cols", DEFAULT_COLS);
+    make_limited_uint_setter!(SetCols, "cols", DEFAULT_COLS);
 
     // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_getter!(Disabled);
@@ -150,10 +148,8 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     make_bool_setter!(SetRequired, "required");
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-rows
-    make_uint_getter!(Rows);
-
-    // https://html.spec.whatwg.org/multipage/#dom-textarea-rows
-    make_uint_setter!(SetRows, "rows");
+    make_uint_getter!(Rows, "rows", DEFAULT_ROWS);
+    make_limited_uint_setter!(SetRows, "rows", DEFAULT_ROWS);
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-wrap
     make_getter!(Wrap);
@@ -310,8 +306,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("cols") => AttrValue::from_u32(value, DEFAULT_COLS),
-            &atom!("rows") => AttrValue::from_u32(value, DEFAULT_ROWS),
+            &atom!("cols") => AttrValue::from_limited_u32(value, DEFAULT_COLS),
+            &atom!("rows") => AttrValue::from_limited_u32(value, DEFAULT_ROWS),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

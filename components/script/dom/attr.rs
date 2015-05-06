@@ -54,8 +54,25 @@ impl AttrValue {
         AttrValue::TokenList(tokens, atoms)
     }
 
+    // https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes:idl-unsigned-long
     pub fn from_u32(string: DOMString, default: u32) -> AttrValue {
         let result = parse_unsigned_integer(string.chars()).unwrap_or(default);
+        let result = if result > 2147483647 {
+            default
+        } else {
+            result
+        };
+        AttrValue::UInt(string, result)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#limited-to-only-non-negative-numbers-greater-than-zero
+    pub fn from_limited_u32(string: DOMString, default: u32) -> AttrValue {
+        let result = parse_unsigned_integer(string.chars()).unwrap_or(default);
+        let result = if result == 0 || result > 2147483647 {
+            default
+        } else {
+            result
+        };
         AttrValue::UInt(string, result)
     }
 

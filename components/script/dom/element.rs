@@ -710,7 +710,7 @@ pub trait AttributeHandlers {
     fn get_tokenlist_attribute(self, local_name: &Atom) -> Vec<Atom>;
     fn set_tokenlist_attribute(self, local_name: &Atom, value: DOMString);
     fn set_atomic_tokenlist_attribute(self, local_name: &Atom, tokens: Vec<Atom>);
-    fn get_uint_attribute(self, local_name: &Atom) -> u32;
+    fn get_uint_attribute(self, local_name: &Atom, default: u32) -> u32;
     fn set_uint_attribute(self, local_name: &Atom, value: u32);
 }
 
@@ -965,7 +965,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens));
     }
 
-    fn get_uint_attribute(self, local_name: &Atom) -> u32 {
+    fn get_uint_attribute(self, local_name: &Atom, default: u32) -> u32 {
         assert!(local_name.chars().all(|ch| {
             !ch.is_ascii() || ch.to_ascii_lowercase() == ch
         }));
@@ -978,7 +978,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                                  implement parse_plain_attribute"),
                 }
             }
-            None => 0,
+            None => default,
         }
     }
     fn set_uint_attribute(self, local_name: &Atom, value: u32) {
