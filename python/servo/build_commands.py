@@ -149,6 +149,10 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify(elapsed)
 
+        # Print warning if release flag is not used
+        if release is False:
+            print("[Warning] This is an un-optimized debug build. For performance testing, use ./mach build --release to enable compiler optimizations.")
+        
         print("Build completed in %0.2fs" % elapsed)
         return status
 
@@ -252,7 +256,7 @@ class MachCommands(CommandBase):
     @CommandArgument('--verbose', '-v',
                      action='store_true',
                      help='Print verbose output')
-    
+
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     def clean(self, manifest_path, params, verbose=False):
