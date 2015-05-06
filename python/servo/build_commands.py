@@ -96,6 +96,9 @@ class MachCommands(CommandBase):
         opts = params or []
         features = []
 
+        if not release:
+            print("Warning: This is an un-optimized debug build. For performance testing, use ./mach build --release to enable compiler optimizations.")
+
         if release:
             opts += ["--release"]
         if target:
