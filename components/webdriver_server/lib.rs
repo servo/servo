@@ -18,7 +18,7 @@ extern crate rustc_serialize;
 extern crate uuid;
 extern crate webdriver_traits;
 
-use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId};
+use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, NavigationDirection};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use std::sync::mpsc::channel;
 use webdriver_traits::WebDriverScriptCommand;
@@ -110,11 +110,41 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
+    fn handle_go_back(&self) -> WebDriverResult<WebDriverResponse> {
+        let ConstellationChan(ref const_chan) = self.constellation_chan;
+        const_chan.send(ConstellationMsg::Navigate(None, NavigationDirection::Back)).unwrap();
+        Ok(WebDriverResponse::Void)
+    }
+
+    fn handle_go_forward(&self) -> WebDriverResult<WebDriverResponse> {
+        let ConstellationChan(ref const_chan) = self.constellation_chan;
+        const_chan.send(ConstellationMsg::Navigate(None, NavigationDirection::Forward)).unwrap();
+        Ok(WebDriverResponse::Void)
+    }
+
+    fn handle_get_title(&self) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = self.get_root_pipeline();
+
+        let (sender, reciever) = channel();
+        let ConstellationChan(ref const_chan) = self.constellation_chan;
+        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id,
+                                                           WebDriverScriptCommand::GetTitle(sender))).unwrap();
+        let value = reciever.recv().unwrap();
+        Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json())))
+    }
+
     fn handle_get_window_handle(&self) -> WebDriverResult<WebDriverResponse> {
         // For now we assume there's only one window so just use the session
         // id as the window id
         let handle = self.session.as_ref().unwrap().id.to_string();
         Ok(WebDriverResponse::Generic(ValueResponse::new(handle.to_json())))
+    }
+
+    fn handle_get_window_handles(&self) -> WebDriverResult<WebDriverResponse> {
+        // For now we assume there's only one window so just use the session
+        // id as the window id
+        let handles = vec![self.session.as_ref().unwrap().id.to_string().to_json()];
+        Ok(WebDriverResponse::Generic(ValueResponse::new(handles.to_json())))
     }
 
     fn handle_execute_script(&self, parameters: &JavascriptCommandParameters)  -> WebDriverResult<WebDriverResponse> {
@@ -149,7 +179,11 @@ impl WebDriverHandler for Handler {
         match msg.command {
             WebDriverCommand::NewSession => self.handle_new_session(),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
+            WebDriverCommand::GoBack => self.handle_go_back(),
+            WebDriverCommand::GoForward => self.handle_go_forward(),
+            WebDriverCommand::GetTitle => self.handle_get_title(),
             WebDriverCommand::GetWindowHandle => self.handle_get_window_handle(),
+            WebDriverCommand::GetWindowHandles => self.handle_get_window_handles(),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
             _ => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
                                          "Command not implemented"))

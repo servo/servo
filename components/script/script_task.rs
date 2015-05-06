@@ -791,7 +791,9 @@ impl ScriptTask {
         let page = self.root_page();
         match msg {
             WebDriverScriptCommand::EvaluateJS(script, reply) =>
-                webdriver_handlers::handle_evaluate_js(&page, pipeline_id, script, reply)
+                webdriver_handlers::handle_evaluate_js(&page, pipeline_id, script, reply),
+            WebDriverScriptCommand::GetTitle(reply) =>
+                webdriver_handlers::handle_get_title(&page, pipeline_id, reply)
         }
     }
 

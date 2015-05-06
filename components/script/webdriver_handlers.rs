@@ -5,6 +5,7 @@
 use webdriver_traits::{EvaluateJSReply};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::js::{OptionalRootable, Rootable};
 use dom::window::ScriptHelpers;
 use dom::document::DocumentHelpers;
@@ -15,7 +16,7 @@ use script_task::get_page;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 
-pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<Result<EvaluateJSReply, ()>>){
+pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<Result<EvaluateJSReply, ()>>) {
     let page = get_page(&*page, pipeline);
     let window = page.window().root();
     let cx = window.r().get_cx();
@@ -35,4 +36,8 @@ pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, r
     } else {
         Err(())
     }).unwrap();
+}
+
+pub fn handle_get_title(page: &Rc<Page>, _pipeline: PipelineId, reply: Sender<String>) {
+    reply.send(page.document().root().r().Title()).unwrap();
 }
