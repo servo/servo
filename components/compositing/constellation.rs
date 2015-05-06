@@ -14,6 +14,7 @@ use gfx::font_cache_task::FontCacheTask;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use libc;
 use msg::compositor_msg::LayerId;
+use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{FrameId, PipelineExitType, PipelineId};
 use msg::constellation_msg::{IFrameSandboxState, MozBrowserEvent, NavigationDirection};
@@ -344,8 +345,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                             sandbox);
             }
             ConstellationMsg::SetCursor(cursor) => self.handle_set_cursor_msg(cursor),
-            ConstellationMsg::ChangeRunningAnimationsState(pipeline_id, animations_running) => {
-                self.handle_change_running_animations_state(pipeline_id, animations_running)
+            ConstellationMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
+                self.handle_change_running_animations_state(pipeline_id, animation_state)
             }
             ConstellationMsg::TickAnimation(pipeline_id) => {
                 self.handle_tick_animation(pipeline_id)
@@ -560,9 +561,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     fn handle_change_running_animations_state(&mut self,
                                               pipeline_id: PipelineId,
-                                              animations_running: bool) {
+                                              animation_state: AnimationState) {
         self.compositor_proxy.send(CompositorMsg::ChangeRunningAnimationsState(pipeline_id,
-                                                                               animations_running))
+                                                                               animation_state))
     }
 
     fn handle_tick_animation(&mut self, pipeline_id: PipelineId) {

@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
-use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::WindowBinding;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::codegen::Bindings::WindowBinding::{self, WindowMethods, FrameRequestCallback};
 use dom::bindings::codegen::InheritTypes::{NodeCast, EventTargetCast};
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::error::{report_pending_exception, Fallible};
@@ -15,6 +15,7 @@ use dom::bindings::error::Error::InvalidCharacter;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, MutNullableHeap, OptionalRootable};
 use dom::bindings::js::{Rootable, RootedReference, Temporary};
+use dom::bindings::num::Finite;
 use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
@@ -463,6 +464,24 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     fn Atob(self, atob: DOMString) -> Fallible<DOMString> {
         base64_atob(atob)
+    }
+
+    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-requestanimationframe
+    fn RequestAnimationFrame(self, callback: FrameRequestCallback) -> i32 {
+        let doc = self.Document().root();
+
+        let callback  = move |now: f64| {
+            // TODO: @jdm The spec says that any exceptions should be suppressed;
+            callback.Call__(Finite::wrap(now), ExceptionHandling::Report).unwrap();
+        };
+
+        doc.r().request_animation_frame(Box::new(callback))
+    }
+
+    /// http://w3c.github.io/animation-timing/#dom-windowanimationtiming-cancelanimationframe
+    fn CancelAnimationFrame(self, ident: i32) {
+        let doc = self.Document().root();
+        doc.r().cancel_animation_frame(ident);
     }
 }
 

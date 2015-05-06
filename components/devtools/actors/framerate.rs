@@ -5,15 +5,23 @@
 use rustc_serialize::json;
 use std::mem;
 use std::net::TcpStream;
+use std::sync::{Arc, Mutex};
+use std::sync::mpsc::Sender;
 use time::precise_time_ns;
 
+use msg::constellation_msg::PipelineId;
 use actor::{Actor, ActorRegistry};
+use actors::timeline::HighResolutionStamp;
+use devtools_traits::{DevtoolsControlMsg, DevtoolScriptControlMsg};
 
 pub struct FramerateActor {
     name: String,
+    pipeline: PipelineId,
+    script_sender: Sender<DevtoolScriptControlMsg>,
+    devtools_sender: Sender<DevtoolsControlMsg>,
     start_time: Option<u64>,
-    is_recording: bool,
-    ticks: Vec<u64>,
+    is_recording: Arc<Mutex<bool>>,
+    ticks: Arc<Mutex<Vec<HighResolutionStamp>>>,
 }
 
 impl Actor for FramerateActor {
@@ -33,13 +41,19 @@ impl Actor for FramerateActor {
 
 impl FramerateActor {
     /// return name of actor
-    pub fn create(registry: &ActorRegistry) -> String {
+    pub fn create(registry: &ActorRegistry,
+                  pipeline_id: PipelineId,
+                  script_sender: Sender<DevtoolScriptControlMsg>,
+                  devtools_sender: Sender<DevtoolsControlMsg>) -> String {
         let actor_name = registry.new_name("framerate");
         let mut actor = FramerateActor {
             name: actor_name.clone(),
+            pipeline: pipeline_id,
+            script_sender: script_sender,
+            devtools_sender: devtools_sender,
             start_time: None,
-            is_recording: false,
-            ticks: Vec::new(),
+            is_recording: Arc::new(Mutex::new(false)),
+            ticks: Arc::new(Mutex::new(Vec::new())),
         };
 
         actor.start_recording();
@@ -47,36 +61,71 @@ impl FramerateActor {
         actor_name
     }
 
-    // callback on request animation frame
-    #[allow(dead_code)]
-    pub fn on_refresh_driver_tick(&mut self) {
-        if !self.is_recording {
-            return;
-        }
-        // TODO: Need implement requesting animation frame
-        // http://hg.mozilla.org/mozilla-central/file/0a46652bd992/dom/base/nsGlobalWindow.cpp#l5314
-
-        let start_time = self.start_time.as_ref().unwrap();
-        self.ticks.push(*start_time - precise_time_ns());
+    pub fn add_tick(&self, tick: f64) {
+        let mut lock = self.ticks.lock();
+        let mut ticks = lock.as_mut().unwrap();
+        ticks.push(HighResolutionStamp::wrap(tick));
     }
 
-    pub fn take_pending_ticks(&mut self) -> Vec<u64> {
-        mem::replace(&mut self.ticks, Vec::new())
+    pub fn take_pending_ticks(&self) -> Vec<HighResolutionStamp> {
+        let mut lock = self.ticks.lock();
+        let mut ticks = lock.as_mut().unwrap();
+        mem::replace(ticks, Vec::new())
     }
 
     fn start_recording(&mut self) {
-        self.is_recording = true;
-        self.start_time = Some(precise_time_ns());
+        let mut lock = self.is_recording.lock();
+        if **lock.as_ref().unwrap() {
+            return;
+        }
 
-        // TODO(#5681): Need implement requesting animation frame
-        // http://hg.mozilla.org/mozilla-central/file/0a46652bd992/dom/base/nsGlobalWindow.cpp#l5314
+        self.start_time = Some(precise_time_ns());
+        let is_recording = lock.as_mut();
+        **is_recording.unwrap() = true;
+
+        fn get_closure(is_recording: Arc<Mutex<bool>>,
+                       name: String,
+                       pipeline: PipelineId,
+                       script_sender: Sender<DevtoolScriptControlMsg>,
+                       devtools_sender: Sender<DevtoolsControlMsg>)
+                          -> Box<Fn(f64, ) + Send> {
+
+            let closure = move |now: f64| {
+                let msg = DevtoolsControlMsg::FramerateTick(name.clone(), now);
+                devtools_sender.send(msg).unwrap();
+
+                if !*is_recording.lock().unwrap() {
+                    return;
+                }
+
+                let closure = get_closure(is_recording.clone(),
+                                          name.clone(),
+                                          pipeline.clone(),
+                                          script_sender.clone(),
+                                          devtools_sender.clone());
+                let msg = DevtoolScriptControlMsg::RequestAnimationFrame(pipeline, closure);
+                script_sender.send(msg).unwrap();
+            };
+            Box::new(closure)
+        };
+
+        let closure = get_closure(self.is_recording.clone(),
+                                  self.name(),
+                                  self.pipeline.clone(),
+                                  self.script_sender.clone(),
+                                  self.devtools_sender.clone());
+        let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline, closure);
+        self.script_sender.send(msg).unwrap();
     }
 
     fn stop_recording(&mut self) {
-        if !self.is_recording {
+        let mut lock = self.is_recording.lock();
+        if !**lock.as_ref().unwrap() {
             return;
         }
-        self.is_recording = false;
+
+        let is_recording = lock.as_mut();
+        **is_recording.unwrap() = false;
         self.start_time = None;
     }
 
