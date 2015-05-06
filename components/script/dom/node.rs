@@ -975,20 +975,17 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     fn get_unique_id(self) -> String {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        if self.unique_id.borrow().is_empty() {
+            let mut unique_id = self.unique_id.borrow_mut();
+            *unique_id = uuid::Uuid::new_v4().to_simple_string();
+        }
         let id = self.unique_id.borrow();
         id.clone()
     }
 
     fn summarize(self) -> NodeInfo {
-        if self.unique_id.borrow().is_empty() {
-            let mut unique_id = self.unique_id.borrow_mut();
-            *unique_id = uuid::Uuid::new_v4().to_simple_string();
-        }
-
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let unique_id = self.unique_id.borrow();
         NodeInfo {
-            uniqueId: unique_id.clone(),
+            uniqueId: self.get_unique_id(),
             baseURI: self.GetBaseURI().unwrap_or("".to_owned()),
             parent: self.GetParentNode().root().map(|node| node.r().get_unique_id()).unwrap_or("".to_owned()),
             nodeType: self.NodeType(),
