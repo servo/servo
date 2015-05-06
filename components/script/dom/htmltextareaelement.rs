@@ -30,6 +30,7 @@ use textinput::{TextInput, Lines, KeyReaction};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 use script_task::{ScriptMsg, Runnable};
+use msg::constellation_msg::ConstellationChan;
 
 use util::str::DOMString;
 use string_cache::Atom;
@@ -40,7 +41,7 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
-    textinput: DOMRefCell<TextInput>,
+    textinput: DOMRefCell<TextInput<ConstellationChan>>,
     cols: Cell<u32>,
     rows: Cell<u32>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
@@ -95,7 +96,7 @@ impl HTMLTextAreaElement {
         let chan = document.window().root().r().constellation_chan();
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTextAreaElement, localName, prefix, document),
-            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned(), Some(chan))),
+            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned(), chan)),
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),
             value_changed: Cell::new(false),

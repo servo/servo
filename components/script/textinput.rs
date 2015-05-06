@@ -4,17 +4,17 @@
 
 //! Common handling of keyboard input and state management for text input controls
 
-use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
+use clipboard_provider::ClipboardProvider;
 use dom::bindings::js::JSRef;
-use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::Msg as ConstellationMsg;
-use dom::keyboardevent::KeyboardEvent;
+use dom::keyboardevent::{KeyboardEvent, KeyboardEventHelpers, key_value};
+use msg::constellation_msg::{SHIFT, CONTROL, ALT, SUPER};
+use msg::constellation_msg::{Key, KeyModifiers};
 use util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::cmp::{min, max};
 use std::default::Default;
-use std::sync::mpsc::channel;
+
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Selection {
@@ -33,7 +33,7 @@ pub struct TextPoint {
 
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
 #[jstraceable]
-pub struct TextInput {
+pub struct TextInput<T: ClipboardProvider> {
     /// Current text input content, split across lines without trailing '\n'
     lines: Vec<DOMString>,
     /// Current cursor input point
@@ -42,7 +42,7 @@ pub struct TextInput {
     selection_begin: Option<TextPoint>,
     /// Is this a multiline input?
     multiline: bool,
-    constellation_channel: Option<ConstellationChan>
+    clipboard_provider: T,
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
@@ -79,24 +79,42 @@ pub enum DeleteDir {
 /// Was the keyboard event accompanied by the standard control modifier,
 /// i.e. cmd on Mac OS or ctrl on other platforms.
 #[cfg(target_os="macos")]
-fn is_control_key(event: JSRef<KeyboardEvent>) -> bool {
-    event.MetaKey() && !event.CtrlKey() && !event.AltKey()
+fn is_control_key(mods: KeyModifiers) -> bool {
+    mods.contains(SUPER) && !mods.contains(CONTROL | ALT)
 }
 
 #[cfg(not(target_os="macos"))]
-fn is_control_key(event: JSRef<KeyboardEvent>) -> bool {
-    event.CtrlKey() && !event.MetaKey() && !event.AltKey()
+fn is_control_key(mods: KeyModifiers) -> bool {
+    mods.contains(CONTROL) && !mods.contains(SUPER | ALT)
 }
 
-impl TextInput {
+fn is_printable_key(key: Key) -> bool {
+    match key {
+        Key::Space | Key::Apostrophe | Key::Comma | Key::Minus |
+        Key::Period | Key::Slash | Key::GraveAccent | Key::Num0 |
+        Key::Num1 | Key::Num2 | Key::Num3 | Key::Num4 | Key::Num5 |
+        Key::Num6 | Key::Num7 | Key::Num8 | Key::Num9 | Key::Semicolon |
+        Key::Equal | Key::A | Key::B | Key::C | Key::D | Key::E | Key::F |
+        Key::G | Key::H | Key::I | Key::J | Key::K | Key::L | Key::M | Key::N |
+        Key::O | Key::P | Key::Q | Key::R | Key::S | Key::T | Key::U | Key::V |
+        Key::W | Key::X | Key::Y | Key::Z | Key::LeftBracket | Key::Backslash |
+        Key::RightBracket | Key::Kp0 | Key::Kp1 | Key::Kp2 | Key::Kp3 |
+        Key::Kp4 | Key::Kp5 | Key::Kp6 | Key::Kp7 | Key::Kp8 | Key::Kp9 |
+        Key::KpDecimal | Key::KpDivide | Key::KpMultiply | Key::KpSubtract |
+        Key::KpAdd | Key::KpEqual => true,
+        _ => false,
+    }
+}
+
+impl<T: ClipboardProvider> TextInput<T> {
     /// Instantiate a new text input control
-    pub fn new(lines: Lines, initial: DOMString, cc: Option<ConstellationChan>) -> TextInput {
+    pub fn new(lines: Lines, initial: DOMString, clipboard_provider: T) -> TextInput<T> {
         let mut i = TextInput {
             lines: vec!(),
             edit_point: Default::default(),
             selection_begin: None,
             multiline: lines == Lines::Multiple,
-            constellation_channel: cc,
+            clipboard_provider: clipboard_provider
         };
         i.set_content(initial);
         i
@@ -283,81 +301,74 @@ impl TextInput {
 
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
     pub fn handle_keydown(&mut self, event: JSRef<KeyboardEvent>) -> KeyReaction {
-        //A simple way to convert an event to a selection
-        fn maybe_select(event: JSRef<KeyboardEvent>) -> Selection {
-            if event.ShiftKey() {
-                return Selection::Selected
-            }
-            return Selection::NotSelected
+        if let Some(key) = event.get_key() {
+            self.handle_keydown_aux(key, event.get_key_modifiers())
+        } else {
+            KeyReaction::Nothing
         }
-        match &*event.Key() {
-           "a" if is_control_key(event) => {
+    }
+    pub fn handle_keydown_aux(&mut self, key: Key, mods: KeyModifiers) -> KeyReaction {
+        let maybe_select = if mods.contains(SHIFT) { Selection::Selected } else { Selection::NotSelected };
+        match key {
+           Key::A if is_control_key(mods) => {
                 self.select_all();
                 KeyReaction::Nothing
             },
-            "v" if is_control_key(event) => {
-                let (tx, rx) = channel();
-                let mut contents = None;
-                if let Some(ref cc) = self.constellation_channel {
-                    cc.0.send(ConstellationMsg::GetClipboardContents(tx)).unwrap();
-                    contents = Some(rx.recv().unwrap());
-                }
-                if let Some(contents) = contents {
-                    self.insert_string(&contents);
-                }
+           Key::V if is_control_key(mods) => {
+                let contents = self.clipboard_provider.get_clipboard_contents();
+                self.insert_string(&contents);
                 KeyReaction::DispatchInput
             },
-            // printable characters have single-character key values
-            c if c.len() == 1 => {
-                self.insert_char(c.chars().next().unwrap());
+            _ if is_printable_key(key) => {
+                self.insert_string(key_value(key, mods));
                 KeyReaction::DispatchInput
             }
-            "Space" => {
+            Key::Space => {
                 self.insert_char(' ');
                 KeyReaction::DispatchInput
             }
-            "Delete" => {
+            Key::Delete => {
                 self.delete_char(DeleteDir::Forward);
                 KeyReaction::DispatchInput
             }
-            "Backspace" => {
+            Key::Backspace => {
                 self.delete_char(DeleteDir::Backward);
                 KeyReaction::DispatchInput
             }
-            "ArrowLeft" => {
-                self.adjust_horizontal(-1, maybe_select(event));
+            Key::Left => {
+                self.adjust_horizontal(-1, maybe_select);
                 KeyReaction::Nothing
             }
-            "ArrowRight" => {
-                self.adjust_horizontal(1, maybe_select(event));
+            Key::Right => {
+                self.adjust_horizontal(1, maybe_select);
                 KeyReaction::Nothing
             }
-            "ArrowUp" => {
-                self.adjust_vertical(-1, maybe_select(event));
+            Key::Up => {
+                self.adjust_vertical(-1, maybe_select);
                 KeyReaction::Nothing
             }
-            "ArrowDown" => {
-                self.adjust_vertical(1, maybe_select(event));
+            Key::Down => {
+                self.adjust_vertical(1, maybe_select);
                 KeyReaction::Nothing
             }
-            "Enter" => self.handle_return(),
-            "Home" => {
+            Key::Enter | Key::KpEnter => self.handle_return(),
+            Key::Home => {
                 self.edit_point.index = 0;
                 KeyReaction::Nothing
             }
-            "End" => {
+            Key::End => {
                 self.edit_point.index = self.current_line_length();
                 KeyReaction::Nothing
             }
-            "PageUp" => {
-                self.adjust_vertical(-28, maybe_select(event));
+            Key::PageUp => {
+                self.adjust_vertical(-28, maybe_select);
                 KeyReaction::Nothing
             }
-            "PageDown" => {
-                self.adjust_vertical(28, maybe_select(event));
+            Key::PageDown => {
+                self.adjust_vertical(28, maybe_select);
                 KeyReaction::Nothing
             }
-            "Tab" => KeyReaction::TriggerDefaultAction,
+            Key::Tab => KeyReaction::TriggerDefaultAction,
             _ => KeyReaction::Nothing,
         }
     }
