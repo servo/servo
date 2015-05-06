@@ -15,8 +15,6 @@ use script_task::ScriptChan;
 
 use util::str::DOMString;
 
-use std::borrow::ToOwned;
-
 #[dom_struct]
 pub struct CloseEvent {
     event: Event,
@@ -57,15 +55,10 @@ impl CloseEvent {
                        type_: DOMString,
                        init: &CloseEventBinding::CloseEventInit)
                        -> Fallible<Temporary<CloseEvent>> {
-        let clean_status = init.wasClean.unwrap_or(true);
-        let cd = init.code.unwrap_or(0);
-        let rsn = match init.reason.as_ref() {
-            Some(reason) => reason.clone(),
-            None => "".to_owned(),
-        };
         let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
         let cancelable = if init.parent.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
-        Ok(CloseEvent::new(global, type_, bubbles, cancelable, clean_status, cd, rsn))
+        Ok(CloseEvent::new(global, type_, bubbles, cancelable, init.wasClean,
+                           init.code, init.reason.clone()))
     }
 }
 
