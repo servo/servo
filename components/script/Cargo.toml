@@ -60,9 +60,6 @@ git = "https://github.com/servo/rust-mozjs"
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
 
-[dependencies.uuid]
-git = "https://github.com/rust-lang/uuid"
-
 [dependencies.string_cache]
 git = "https://github.com/servo/string-cache"
 
@@ -81,3 +78,4 @@ cssparser = "0.3.1"
 unicase = "0.1"
 num = "0.1.24"
 websocket = "0.11.0"
+uuid = "0.1.16"
