@@ -93,8 +93,8 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::ascii::AsciiExt;
 use std::cell::{Cell, Ref, RefCell};
 use std::default::Default;
-use std::sync::mpsc::channel;
 use std::ptr;
+use std::sync::mpsc::channel;
 use time;
 
 #[derive(PartialEq)]
