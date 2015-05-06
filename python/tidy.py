@@ -72,12 +72,10 @@ def check_length(idx, line):
         yield (idx + 1, "(much) overlong line")
 
 def check_whatwg_url(idx, line):
-    matches = re.findall(r'whatwg.org/multipage.*#', line);
-    if matches:
-        for i, match in enumerate(matches):
-            parts = match.split('multipage')
-            if len(parts[1]) > 1 and parts[1][1] != '#':
-                yield (idx + 1, "URL should not point to specific WHATWG multipage page!")
+    match = re.search(r"https://html\.spec\.whatwg\.org/multipage/[\w-]+\.html#([\w\:-]+)", line)
+    if match is not None:
+        preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
+        yield (idx + 1, "link to WHATWG may break in the future, use this format instead: {}".format(preferred_link))
 
 def check_whitespace(idx, line):
     if line[-1] == "\n":
