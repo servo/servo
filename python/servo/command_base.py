@@ -93,7 +93,7 @@ class CommandBase(object):
 
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
-
+        self.config["build"].setdefault("mode", "")
         self.config["build"].setdefault("debug-mozjs", False)
 
         self.config.setdefault("android", {})
