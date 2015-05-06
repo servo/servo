@@ -26,7 +26,6 @@ use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 use std::sync::Arc;
 
-use azure::AzFloat;
 use azure::azure_hl::BackendType;
 use azure::scaled_font::ScaledFont;
 
