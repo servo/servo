@@ -85,7 +85,7 @@ fn main() {
         run_ignored: false,
         logfile: None,
         run_tests: true,
-        run_benchmarks: false,
+        bench_benchmarks: false,
         nocapture: false,
         color: AutoColor,
     };
