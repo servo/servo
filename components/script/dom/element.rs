@@ -1214,11 +1214,13 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         let context_document = document_from_node(self).root();
         let context_node: JSRef<Node> = NodeCast::from_ref(self);
         // Step 1.
-        let context_parent = match context_node.parent_node() {
-            // Step 2.
-            None => return Ok(()),
-            Some(parent) => parent.root()
-        };
+        let context_parent = match context_node.GetParentNode() {
+            None => {
+                // Step 2.
+                return Ok(());
+            },
+            Some(parent) => parent,
+        }.root();
 
         let parent = match context_parent.r().type_id() {
             // Step 3.
@@ -1229,11 +1231,10 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                 let body_elem = Element::create(QualName::new(ns!(HTML), atom!(body)),
                                                 None, context_document.r(),
                                                 ElementCreator::ScriptCreated);
-                let body_node: Temporary<Node> = NodeCast::from_temporary(body_elem);
-                body_node.root()
+                NodeCast::from_temporary(body_elem)
             },
-            _ => context_node.parent_node().unwrap().root()
-        };
+            _ => context_node.GetParentNode().unwrap()
+        }.root();
 
         // Step 5.
         let frag = try!(parent.r().parse_fragment(value));

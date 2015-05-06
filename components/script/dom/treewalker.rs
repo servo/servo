@@ -14,7 +14,7 @@ use dom::bindings::js::{JS, JSRef, MutHeap, OptionalRootable, Rootable};
 use dom::bindings::js::Temporary;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
-use dom::node::{Node, NodeHelpers};
+use dom::node::Node;
 
 // https://dom.spec.whatwg.org/#interface-treewalker
 #[dom_struct]
@@ -93,37 +93,175 @@ impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
 
     // https://dom.spec.whatwg.org/#dom-treewalker-parentnode
     fn ParentNode(self) -> Fallible<Option<Temporary<Node>>> {
-        self.parent_node()
+        // "1. Let node be the value of the currentNode attribute."
+        let mut node = self.current_node.get().root().get_unsound_ref_forever();
+        // "2. While node is not null and is not root, run these substeps:"
+        while !self.is_root_node(node) {
+            // "1. Let node be node's parent."
+            match node.GetParentNode() {
+                Some(n) => {
+                    node = n.root().get_unsound_ref_forever();
+                    // "2. If node is not null and filtering node returns FILTER_ACCEPT,
+                    //     then set the currentNode attribute to node, return node."
+                    match try!(self.accept_node(node)) {
+                        NodeFilterConstants::FILTER_ACCEPT => {
+                            self.current_node.set(JS::from_rooted(node));
+                            return Ok(Some(Temporary::from_rooted(node)))
+                        },
+                        _ => {}
+                    }
+                },
+                None => break,
+            }
+        }
+        // "3. Return null."
+        Ok(None)
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-firstchild
     fn FirstChild(self) -> Fallible<Option<Temporary<Node>>> {
-        self.first_child()
+        // "The firstChild() method must traverse children of type first."
+        self.traverse_children(|node| node.GetFirstChild(),
+                               |node| node.GetNextSibling())
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-lastchild
     fn LastChild(self) -> Fallible<Option<Temporary<Node>>> {
-        self.last_child()
+        // "The lastChild() method must traverse children of type last."
+        self.traverse_children(|node| node.GetLastChild(),
+                               |node| node.GetPreviousSibling())
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-previoussibling
     fn PreviousSibling(self) -> Fallible<Option<Temporary<Node>>> {
-        self.prev_sibling()
+        // "The nextSibling() method must traverse siblings of type next."
+        self.traverse_siblings(|node| node.GetLastChild(),
+                               |node| node.GetPreviousSibling())
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-nextsibling
     fn NextSibling(self) -> Fallible<Option<Temporary<Node>>> {
-        self.next_sibling()
+        // "The previousSibling() method must traverse siblings of type previous."
+        self.traverse_siblings(|node| node.GetFirstChild(),
+                               |node| node.GetNextSibling())
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-previousnode
     fn PreviousNode(self) -> Fallible<Option<Temporary<Node>>> {
-        self.prev_node()
+        // "1. Let node be the value of the currentNode attribute."
+        let mut node = self.current_node.get().root().get_unsound_ref_forever();
+        // "2. While node is not root, run these substeps:"
+        while !self.is_root_node(node) {
+            // "1. Let sibling be the previous sibling of node."
+            let mut sibling_op = node.GetPreviousSibling();
+            // "2. While sibling is not null, run these subsubsteps:"
+            while sibling_op.is_some() {
+                // "1. Set node to sibling."
+                node = sibling_op.unwrap().root().get_unsound_ref_forever();
+                // "2. Filter node and let result be the return value."
+                // "3. While result is not FILTER_REJECT and node has a child,
+                //     set node to its last child and then filter node and
+                //     set result to the return value."
+                // "4. If result is FILTER_ACCEPT, then
+                //     set the currentNode attribute to node and return node."
+                loop {
+                    let result = try!(self.accept_node(node));
+                    match result {
+                        NodeFilterConstants::FILTER_REJECT => break,
+                        _ if node.GetFirstChild().is_some() =>
+                            node = node.GetLastChild().unwrap().root()
+                                       .get_unsound_ref_forever(),
+                        NodeFilterConstants::FILTER_ACCEPT => {
+                            self.current_node.set(JS::from_rooted(node));
+                            return Ok(Some(Temporary::from_rooted(node)))
+                        },
+                        _ => break
+                    }
+                }
+                // "5. Set sibling to the previous sibling of node."
+                sibling_op = node.GetPreviousSibling()
+            }
+            // "3. If node is root or node's parent is null, return null."
+            if self.is_root_node(node) || node.GetParentNode().is_none() {
+                return Ok(None)
+            }
+            // "4. Set node to its parent."
+            match node.GetParentNode() {
+                None =>
+                    // This can happen if the user set the current node to somewhere
+                    // outside of the tree rooted at the original root.
+                    return Ok(None),
+                Some(n) => node = n.root().get_unsound_ref_forever()
+            }
+            // "5. Filter node and if the return value is FILTER_ACCEPT, then
+            //     set the currentNode attribute to node and return node."
+            match try!(self.accept_node(node)) {
+                NodeFilterConstants::FILTER_ACCEPT => {
+                    self.current_node.set(JS::from_rooted(node));
+                    return Ok(Some(Temporary::from_rooted(node)))
+                },
+                _ => {}
+            }
+        }
+        // "6. Return null."
+        Ok(None)
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-nextnode
     fn NextNode(self) -> Fallible<Option<Temporary<Node>>> {
-        self.next_node()
+        // "1. Let node be the value of the currentNode attribute."
+        let mut node = self.current_node.get().root().get_unsound_ref_forever();
+        // "2. Let result be FILTER_ACCEPT."
+        let mut result = NodeFilterConstants::FILTER_ACCEPT;
+        // "3. Run these substeps:"
+        loop {
+            // "1. While result is not FILTER_REJECT and node has a child, run these subsubsteps:"
+            loop {
+                match result {
+                    NodeFilterConstants::FILTER_REJECT => break,
+                    _ => {}
+                }
+                match node.GetFirstChild() {
+                    None => break,
+                    Some (child) => {
+                        // "1. Set node to its first child."
+                        node = child.root().get_unsound_ref_forever();
+                        // "2. Filter node and set result to the return value."
+                        result = try!(self.accept_node(node));
+                        // "3. If result is FILTER_ACCEPT, then
+                        //     set the currentNode attribute to node and return node."
+                        match result {
+                            NodeFilterConstants::FILTER_ACCEPT => {
+                                self.current_node.set(JS::from_rooted(node));
+                                return Ok(Some(Temporary::from_rooted(node)))
+                            },
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            // "2. If a node is following node and is not following root,
+            //     set node to the first such node."
+            // "Otherwise, return null."
+            match self.first_following_node_not_following_root(node) {
+                None => return Ok(None),
+                Some(n) => {
+                    node = n.root().get_unsound_ref_forever();
+                    // "3. Filter node and set result to the return value."
+                    result = try!(self.accept_node(node));
+                    // "4. If result is FILTER_ACCEPT, then
+                    //     set the currentNode attribute to node and return node."
+                    match result {
+                        NodeFilterConstants::FILTER_ACCEPT => {
+                            self.current_node.set(JS::from_rooted(node));
+                            return Ok(Some(Temporary::from_rooted(node)))
+                        },
+                        _ => {}
+                    }
+                }
+            }
+            // "5. Run these substeps again."
+        }
     }
 }
 
@@ -209,7 +347,7 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
                                     },
                                     None => {
                                         // "3. Let parent be node's parent."
-                                        match node.parent_node().map(|p| p.root().get_unsound_ref_forever()) {
+                                        match node.GetParentNode().map(|p| p.root().get_unsound_ref_forever()) {
                                             // "4. If parent is null, parent is root,
                                             //     or parent is currentNode attribute's value,
                                             //     return null."
@@ -280,7 +418,7 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
                 }
             }
             // "3. Set node to its parent."
-            match node.parent_node().map(|p| p.root().get_unsound_ref_forever()) {
+            match node.GetParentNode().map(|p| p.root().get_unsound_ref_forever()) {
                 // "4. If node is null or is root, return null."
                 None => return Ok(None),
                 Some(n) if self.is_root_node(n) => return Ok(None),
@@ -302,11 +440,11 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
                                                -> Option<Temporary<Node>> {
         // "An object A is following an object B if A and B are in the same tree
         //  and A comes after B in tree order."
-        match node.next_sibling() {
+        match node.GetNextSibling() {
             None => {
                 let mut candidate = node;
-                while !self.is_root_node(candidate) && candidate.next_sibling().is_none() {
-                    match candidate.parent_node() {
+                while !self.is_root_node(candidate) && candidate.GetNextSibling().is_none() {
+                    match candidate.GetParentNode() {
                         None =>
                             // This can happen if the user set the current node to somewhere
                             // outside of the tree rooted at the original root.
@@ -317,7 +455,7 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
                 if self.is_root_node(candidate) {
                     None
                 } else {
-                    candidate.next_sibling()
+                    candidate.GetNextSibling()
                 }
             },
             it => it
@@ -354,195 +492,11 @@ impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
     }
 }
 
-pub trait TreeWalkerHelpers {
-    fn parent_node(self) -> Fallible<Option<Temporary<Node>>>;
-    fn first_child(self) -> Fallible<Option<Temporary<Node>>>;
-    fn last_child(self) -> Fallible<Option<Temporary<Node>>>;
-    fn next_sibling(self) -> Fallible<Option<Temporary<Node>>>;
-    fn prev_sibling(self) -> Fallible<Option<Temporary<Node>>>;
-    fn next_node(self) -> Fallible<Option<Temporary<Node>>>;
-    fn prev_node(self) -> Fallible<Option<Temporary<Node>>>;
-}
-
-impl<'a> TreeWalkerHelpers for JSRef<'a, TreeWalker> {
-    // https://dom.spec.whatwg.org/#dom-treewalker-parentnode
-    fn parent_node(self) -> Fallible<Option<Temporary<Node>>> {
-        // "1. Let node be the value of the currentNode attribute."
-        let mut node = self.current_node.get().root().get_unsound_ref_forever();
-        // "2. While node is not null and is not root, run these substeps:"
-        while !self.is_root_node(node) {
-            // "1. Let node be node's parent."
-            match node.parent_node() {
-                Some(n) => {
-                    node = n.root().get_unsound_ref_forever();
-                    // "2. If node is not null and filtering node returns FILTER_ACCEPT,
-                    //     then set the currentNode attribute to node, return node."
-                    match try!(self.accept_node(node)) {
-                        NodeFilterConstants::FILTER_ACCEPT => {
-                            self.current_node.set(JS::from_rooted(node));
-                            return Ok(Some(Temporary::from_rooted(node)))
-                        },
-                        _ => {}
-                    }
-                },
-                None => break,
-            }
-        }
-        // "3. Return null."
-        Ok(None)
-    }
-
-    // https://dom.spec.whatwg.org/#dom-treewalker-firstchild
-    fn first_child(self) -> Fallible<Option<Temporary<Node>>> {
-        // "The firstChild() method must traverse children of type first."
-        self.traverse_children(|node| node.first_child(),
-                               |node| node.next_sibling())
-    }
-
-    // https://dom.spec.whatwg.org/#dom-treewalker-lastchild
-    fn last_child(self) -> Fallible<Option<Temporary<Node>>> {
-        // "The lastChild() method must traverse children of type last."
-        self.traverse_children(|node| node.last_child(),
-                               |node| node.prev_sibling())
-    }
-
-    // https://dom.spec.whatwg.org/#dom-treewalker-nextsibling
-    fn next_sibling(self) -> Fallible<Option<Temporary<Node>>> {
-        // "The nextSibling() method must traverse siblings of type next."
-        self.traverse_siblings(|node| node.first_child(),
-                               |node| node.next_sibling())
-    }
-
-    // https://dom.spec.whatwg.org/#dom-treewalker-previoussibling
-    fn prev_sibling(self) -> Fallible<Option<Temporary<Node>>> {
-        // "The previousSibling() method must traverse siblings of type previous."
-        self.traverse_siblings(|node| node.last_child(),
-                               |node| node.prev_sibling())
-    }
-
-    // https://dom.spec.whatwg.org/#dom-treewalker-previousnode
-    fn prev_node(self) -> Fallible<Option<Temporary<Node>>> {
-        // "1. Let node be the value of the currentNode attribute."
-        let mut node = self.current_node.get().root().get_unsound_ref_forever();
-        // "2. While node is not root, run these substeps:"
-        while !self.is_root_node(node) {
-            // "1. Let sibling be the previous sibling of node."
-            let mut sibling_op = node.prev_sibling();
-            // "2. While sibling is not null, run these subsubsteps:"
-            while sibling_op.is_some() {
-                // "1. Set node to sibling."
-                node = sibling_op.unwrap().root().get_unsound_ref_forever();
-                // "2. Filter node and let result be the return value."
-                // "3. While result is not FILTER_REJECT and node has a child,
-                //     set node to its last child and then filter node and
-                //     set result to the return value."
-                // "4. If result is FILTER_ACCEPT, then
-                //     set the currentNode attribute to node and return node."
-                loop {
-                    let result = try!(self.accept_node(node));
-                    match result {
-                        NodeFilterConstants::FILTER_REJECT => break,
-                        _ if node.first_child().is_some() =>
-                            node = node.last_child().unwrap().root().get_unsound_ref_forever(),
-                        NodeFilterConstants::FILTER_ACCEPT => {
-                            self.current_node.set(JS::from_rooted(node));
-                            return Ok(Some(Temporary::from_rooted(node)))
-                        },
-                        _ => break
-                    }
-                }
-                // "5. Set sibling to the previous sibling of node."
-                sibling_op = node.prev_sibling()
-            }
-            // "3. If node is root or node's parent is null, return null."
-            if self.is_root_node(node) || node.parent_node() == None {
-                return Ok(None)
-            }
-            // "4. Set node to its parent."
-            match node.parent_node() {
-                None =>
-                    // This can happen if the user set the current node to somewhere
-                    // outside of the tree rooted at the original root.
-                    return Ok(None),
-                Some(n) => node = n.root().get_unsound_ref_forever()
-            }
-            // "5. Filter node and if the return value is FILTER_ACCEPT, then
-            //     set the currentNode attribute to node and return node."
-            match try!(self.accept_node(node)) {
-                NodeFilterConstants::FILTER_ACCEPT => {
-                    self.current_node.set(JS::from_rooted(node));
-                    return Ok(Some(Temporary::from_rooted(node)))
-                },
-                _ => {}
-            }
-        }
-        // "6. Return null."
-        Ok(None)
-    }
-
-    // https://dom.spec.whatwg.org/#dom-treewalker-nextnode
-    fn next_node(self) -> Fallible<Option<Temporary<Node>>> {
-        // "1. Let node be the value of the currentNode attribute."
-        let mut node = self.current_node.get().root().get_unsound_ref_forever();
-        // "2. Let result be FILTER_ACCEPT."
-        let mut result = NodeFilterConstants::FILTER_ACCEPT;
-        // "3. Run these substeps:"
-        loop {
-            // "1. While result is not FILTER_REJECT and node has a child, run these subsubsteps:"
-            loop {
-                match result {
-                    NodeFilterConstants::FILTER_REJECT => break,
-                    _ => {}
-                }
-                match node.first_child() {
-                    None => break,
-                    Some (child) => {
-                        // "1. Set node to its first child."
-                        node = child.root().get_unsound_ref_forever();
-                        // "2. Filter node and set result to the return value."
-                        result = try!(self.accept_node(node));
-                        // "3. If result is FILTER_ACCEPT, then
-                        //     set the currentNode attribute to node and return node."
-                        match result {
-                            NodeFilterConstants::FILTER_ACCEPT => {
-                                self.current_node.set(JS::from_rooted(node));
-                                return Ok(Some(Temporary::from_rooted(node)))
-                            },
-                            _ => {}
-                        }
-                    }
-                }
-            }
-            // "2. If a node is following node and is not following root,
-            //     set node to the first such node."
-            // "Otherwise, return null."
-            match self.first_following_node_not_following_root(node) {
-                None => return Ok(None),
-                Some(n) => {
-                    node = n.root().get_unsound_ref_forever();
-                    // "3. Filter node and set result to the return value."
-                    result = try!(self.accept_node(node));
-                    // "4. If result is FILTER_ACCEPT, then
-                    //     set the currentNode attribute to node and return node."
-                    match result {
-                        NodeFilterConstants::FILTER_ACCEPT => {
-                            self.current_node.set(JS::from_rooted(node));
-                            return Ok(Some(Temporary::from_rooted(node)))
-                        },
-                        _ => {}
-                    }
-                }
-            }
-            // "5. Run these substeps again."
-        }
-    }
-}
-
 impl<'a> Iterator for JSRef<'a, TreeWalker> {
     type Item = JSRef<'a, Node>;
 
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
-        match self.next_node() {
+        match self.NextNode() {
             Ok(node) => node.map(|n| n.root().get_unsound_ref_forever()),
             Err(_) =>
                 // The Err path happens only when a JavaScript

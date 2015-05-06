@@ -175,7 +175,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
         }
 
         let node: JSRef<Node> = NodeCast::from_ref(*self);
-        if node.parent_node().is_some() {
+        if node.GetParentNode().is_some() {
             node.check_parent_disabled_state_for_option();
         } else {
             node.check_disabled_attribute();

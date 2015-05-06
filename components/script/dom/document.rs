@@ -548,7 +548,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let el = match ElementCast::to_ref(node.r()) {
             Some(el) => Temporary::from_rooted(el),
             None => {
-                let parent = node.r().parent_node();
+                let parent = node.r().GetParentNode();
                 match parent.and_then(ElementCast::to_temporary) {
                     Some(parent) => parent,
                     None => return,

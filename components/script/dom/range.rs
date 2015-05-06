@@ -133,25 +133,25 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
 
     // https://dom.spec.whatwg.org/#dom-range-setstartbeforenode
     fn SetStartBefore(self, node: JSRef<Node>) -> ErrorResult {
-        let parent = try!(node.parent_node().ok_or(Error::InvalidNodeType)).root();
+        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType)).root();
         self.SetStart(parent.r(), node.index())
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setstartafternode
     fn SetStartAfter(self, node: JSRef<Node>) -> ErrorResult {
-        let parent = try!(node.parent_node().ok_or(Error::InvalidNodeType)).root();
+        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType)).root();
         self.SetStart(parent.r(), node.index() + 1)
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setendbeforenode
     fn SetEndBefore(self, node: JSRef<Node>) -> ErrorResult {
-        let parent = try!(node.parent_node().ok_or(Error::InvalidNodeType)).root();
+        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType)).root();
         self.SetEnd(parent.r(), node.index())
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setendafternode
     fn SetEndAfter(self, node: JSRef<Node>) -> ErrorResult {
-        let parent = try!(node.parent_node().ok_or(Error::InvalidNodeType)).root();
+        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType)).root();
         self.SetEnd(parent.r(), node.index() + 1)
     }
 
@@ -259,7 +259,7 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
             // Step 1.
             return false;
         }
-        let parent = match node.parent_node() {
+        let parent = match node.GetParentNode() {
             Some(parent) => parent,
             None => {
                 // Step 3.
@@ -364,7 +364,7 @@ impl RangeInner {
     // https://dom.spec.whatwg.org/#dom-range-selectnodenode
     fn select_node(&mut self, node: JSRef<Node>) -> ErrorResult {
         // Steps 1, 2.
-        let parent = try!(node.parent_node().ok_or(Error::InvalidNodeType)).root();
+        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType)).root();
         // Step 3.
         let index = node.index();
         // Step 4.
@@ -497,7 +497,7 @@ fn bp_position(a_node: JSRef<Node>, a_offset: u32,
         // Step 3-1, 3-2.
         let b_ancestors = b_node.inclusive_ancestors();
         let ref child = b_ancestors.map(|child| child.root()).find(|child| {
-            child.r().parent_node().unwrap().root().r() == a_node
+            child.r().GetParentNode().unwrap().root().r() == a_node
         }).unwrap();
         // Step 3-3.
         if child.r().index() < a_offset {
