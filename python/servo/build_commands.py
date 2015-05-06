@@ -70,6 +70,9 @@ class MachCommands(CommandBase):
     @CommandArgument('--release', '-r',
                      action='store_true',
                      help='Build in release mode')
+    @CommandArgument('--debug', '-d',
+                     action='store_true',
+                     help='Build in debug mode')
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
@@ -86,7 +89,7 @@ class MachCommands(CommandBase):
                      help='Print verbose output')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
-    def build(self, target=None, release=False, jobs=None, android=None,
+    def build(self, target=None, release=False, jobs=None, android=None, debug=False,
               verbose=False, debug_mozjs=False, params=None):
         self.ensure_bootstrapped()
 
@@ -96,6 +99,12 @@ class MachCommands(CommandBase):
         opts = params or []
         features = []
 
+        if (not(release or debug)):
+            print("You have not set either debug or release mode while building")
+            sys.exit(1)
+
+        if debug:
+            opts += ["--debug"]
         if release:
             opts += ["--release"]
         if target:
@@ -148,6 +157,9 @@ class MachCommands(CommandBase):
 
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify(elapsed)
+
+        if debug and not release:
+            print("[Warning] This is an un-optimized debug build. For performance testing, use ./mach build --release to enable compiler optimizations.")
 
         print("Build completed in %0.2fs" % elapsed)
         return status
