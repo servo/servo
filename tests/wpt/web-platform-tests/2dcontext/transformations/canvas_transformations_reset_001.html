@@ -1,15 +1,13 @@
 <!DOCTYPE html>
-<html>
-<body>
+<meta charset="utf-8">
+<link rel="match" href="canvas_transformations_reset_001-ref.htm">
 <style>
   html, body {
     margin: 0;
     padding: 0;
   }
 </style>
-<canvas id="c" width="150" height="150">
-Your browser does not support the HTML5 canvas tag.</canvas>
-
+<canvas id="c" width="150" height="150"></canvas>
 <script>
 var c = document.getElementById("c");
 var ctx = c.getContext("2d");
@@ -22,6 +20,3 @@ ctx.resetTransform();
 ctx.fillStyle = 'red';
 ctx.fillRect(0, 0, 75, 75);
 </script>
-
-</body>
-</html>
