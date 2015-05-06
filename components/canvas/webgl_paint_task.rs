@@ -16,40 +16,10 @@ use std::sync::mpsc::{channel, Sender};
 use util::vec::byte_swap;
 use offscreen_gl_context::{GLContext, GLContextAttributes};
 
-use glutin::{HeadlessRendererBuilder, HeadlessContext};
-
-// FIXME(ecoal95): We use glutin as a fallback until GLContext support improves.
-enum PlatformIndependentContext {
-    GLContext(GLContext),
-    GlutinContext(HeadlessContext),
-}
-
-impl PlatformIndependentContext {
-    fn make_current(&self) {
-        match *self {
-            PlatformIndependentContext::GLContext(ref ctx) => ctx.make_current().unwrap(),
-            PlatformIndependentContext::GlutinContext(ref ctx) => unsafe { ctx.make_current() }
-        }
-    }
-}
-
-fn create_offscreen_context(size: Size2D<i32>, attrs: GLContextAttributes) -> Result<PlatformIndependentContext, &'static str> {
-    match GLContext::create_offscreen(size, attrs) {
-        Ok(ctx) => Ok(PlatformIndependentContext::GLContext(ctx)),
-        Err(msg) => {
-            debug!("GLContext creation error: {}", msg);
-            match HeadlessRendererBuilder::new(size.width as u32, size.height as u32).build() {
-                Ok(ctx) => Ok(PlatformIndependentContext::GlutinContext(ctx)),
-                Err(_) => Err("Glutin headless context creation failed")
-            }
-        }
-    }
-}
-
 pub struct WebGLPaintTask {
     size: Size2D<i32>,
     original_context_size: Size2D<i32>,
-    gl_context: PlatformIndependentContext,
+    gl_context: GLContext,
 }
 
 // This allows trying to create the PaintTask
@@ -58,7 +28,8 @@ unsafe impl Send for WebGLPaintTask {}
 
 impl WebGLPaintTask {
     fn new(size: Size2D<i32>) -> Result<WebGLPaintTask, &'static str> {
-        let context = try!(create_offscreen_context(size, GLContextAttributes::default()));
+        // TODO(ecoal95): Get the GLContextAttributes from the `GetContext` call
+        let context = try!(GLContext::create_offscreen(size, GLContextAttributes::default()));
         Ok(WebGLPaintTask {
             size: size,
             original_context_size: size,
@@ -104,7 +75,8 @@ impl WebGLPaintTask {
                         match message {
                             CanvasCommonMsg::Close => break,
                             CanvasCommonMsg::SendPixelContents(chan) => painter.send_pixel_contents(chan),
-                            CanvasCommonMsg::Recreate(size) => painter.recreate(size),
+                            // TODO(ecoal95): handle error nicely
+                            CanvasCommonMsg::Recreate(size) => painter.recreate(size).unwrap(),
                         }
                     },
                     CanvasMsg::Canvas2d(_) => panic!("Wrong message sent to WebGLTask"),
@@ -232,20 +204,19 @@ impl WebGLPaintTask {
         gl::viewport(x, y, width, height);
     }
 
-    fn recreate(&mut self, size: Size2D<i32>) {
-        // TODO(ecoal95): GLContext should support a resize() method
+    fn recreate(&mut self, size: Size2D<i32>) -> Result<(), &'static str> {
         if size.width > self.original_context_size.width ||
            size.height > self.original_context_size.height {
-            panic!("Can't grow a GLContext (yet)");
-        } else {
-            // Right now we just crop the viewport, it will do the job
+            try!(self.gl_context.resize(size));
             self.size = size;
-            gl::viewport(0, 0, size.width, size.height);
+        } else {
+            self.size = size;
             unsafe { gl::Scissor(0, 0, size.width, size.height); }
         }
+        Ok(())
     }
 
     fn init(&mut self) {
-        self.gl_context.make_current();
+        self.gl_context.make_current().unwrap();
     }
 }
