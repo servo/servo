@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::CloseEventBinding;
 use dom::bindings::codegen::Bindings::CloseEventBinding::CloseEventMethods;
@@ -17,23 +16,23 @@ use script_task::ScriptChan;
 use util::str::DOMString;
 
 use std::borrow::ToOwned;
-use std::cell::Cell;
 
 #[dom_struct]
 pub struct CloseEvent {
     event: Event,
-    wasClean: Cell<bool>,
-    code: Cell<u16>,
-    reason: DOMRefCell<DOMString>
+    wasClean: bool,
+    code: u16,
+    reason: DOMString,
 }
 
 impl CloseEvent {
-    pub fn new_inherited(type_id: EventTypeId) -> CloseEvent {
+    pub fn new_inherited(type_id: EventTypeId, wasClean: bool, code: u16,
+                         reason: DOMString) -> CloseEvent {
         CloseEvent {
             event: Event::new_inherited(type_id),
-            wasClean: Cell::new(true),
-            code: Cell::new(0),
-            reason: DOMRefCell::new("".to_owned())
+            wasClean: wasClean,
+            code: code,
+            reason: reason,
         }
     }
 
@@ -44,19 +43,14 @@ impl CloseEvent {
                wasClean: bool,
                code: u16,
                reason: DOMString) -> Temporary<CloseEvent> {
-        let ev = reflect_dom_object(box CloseEvent::new_inherited(EventTypeId::CloseEvent),
-                                    global,
-                                    CloseEventBinding::Wrap);
-        let ev = ev.root();
+        let event = box CloseEvent::new_inherited(EventTypeId::CloseEvent,
+                                                  wasClean, code, reason);
+        let ev = reflect_dom_object(event, global, CloseEventBinding::Wrap).root();
         let event: JSRef<Event> = EventCast::from_ref(ev.r());
         event.InitEvent(type_,
                         bubbles == EventBubbles::Bubbles,
                         cancelable == EventCancelable::Cancelable);
-        let ev = ev.r();
-        ev.wasClean.set(wasClean);
-        ev.code.set(code);
-        *ev.reason.borrow_mut() = reason;
-        Temporary::from_rooted(ev)
+        Temporary::from_rooted(ev.r())
     }
 
     pub fn Constructor(global: GlobalRef,
@@ -77,15 +71,14 @@ impl CloseEvent {
 
 impl<'a> CloseEventMethods for JSRef<'a, CloseEvent> {
     fn WasClean(self) -> bool {
-        self.wasClean.get()
+        self.wasClean
     }
 
     fn Code(self) -> u16 {
-        self.code.get()
+        self.code
     }
 
     fn Reason(self) -> DOMString {
-        let reason = self.reason.borrow();
-        reason.clone()
+        self.reason.clone()
     }
 }
