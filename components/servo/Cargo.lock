@@ -931,7 +931,7 @@ dependencies = [
 [[package]]
 name = "png"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-png#80e765ed1880ea70a8326a13964f57657b9e6fa9"
+source = "git+https://github.com/servo/rust-png#34fca101357da41b2b8c95f3efe6cb88a2b36bca"
 dependencies = [
  "gcc 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -941,7 +941,7 @@ dependencies = [
 [[package]]
 name = "png-sys"
 version = "1.6.16"
-source = "git+https://github.com/servo/rust-png#80e765ed1880ea70a8326a13964f57657b9e6fa9"
+source = "git+https://github.com/servo/rust-png#34fca101357da41b2b8c95f3efe6cb88a2b36bca"
 
 [[package]]
 name = "profile"
@@ -1166,7 +1166,7 @@ dependencies = [
 [[package]]
 name = "tenacious"
 version = "0.0.1"
-source = "git+https://github.com/Manishearth/rust-tenacious.git#d61782e70005a9f0cdf66f366d4ec88fc563ea1e"
+source = "git+https://github.com/Manishearth/rust-tenacious.git#5112359cd36682cd7df3a7bb9a963299890be26c"
 
 [[package]]
 name = "time"
