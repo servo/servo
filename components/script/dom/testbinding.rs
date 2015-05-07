@@ -115,6 +115,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn GetUsvstringAttributeNullable(self) -> Option<USVString> { Some(USVString("".to_owned())) }
     fn SetUsvstringAttributeNullable(self, _: Option<USVString>) {}
     fn SetBinaryRenamedAttribute(self, _: DOMString) {}
+    fn ForwardedAttribute(self) -> Temporary<TestBinding> { Temporary::from_rooted(self) }
     fn BinaryRenamedAttribute(self) -> DOMString { "".to_owned() }
     fn GetEnumAttributeNullable(self) -> Option<TestEnum> { Some(_empty) }
     fn GetInterfaceAttributeNullable(self) -> Option<Temporary<Blob>> {

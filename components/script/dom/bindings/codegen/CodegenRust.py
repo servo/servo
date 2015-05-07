@@ -1335,7 +1335,7 @@ class AttrDefiner(PropertyDefiner):
                        "native" : accessor})
 
         def setter(attr):
-            if attr.readonly:
+            if attr.readonly and not attr.getExtendedAttribute("PutForwards"):
                 return "JSStrictPropertyOpWrapper {op: None, info: 0 as *const JSJitInfo}"
 
             if self.static:
@@ -2680,7 +2680,6 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
                                                         self.method)
         return CGMethodCall(["global.r()"], nativeName, True, self.descriptor, self.method)
 
-
 class CGGenericGetter(CGAbstractBindingMethod):
     """
     A class for generating the C++ code for an IDL attribute getter.
@@ -2794,7 +2793,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         self.attr = attr
         name = 'set_' + attr.identifier.name
         args = [ Argument('*mut JSContext', 'cx'),
-                 Argument('JSHandleObject', '_obj'),
+                 Argument('JSHandleObject', 'obj'),
                  Argument('*const %s' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'argv')]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
@@ -2835,6 +2834,31 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
                             self.attr)
         return CGList([checkForArg, call])
 
+class CGSpecializedForwardingSetter(CGSpecializedSetter):
+    """
+    A class for generating the code for an IDL attribute forwarding setter.
+    """
+    def __init__(self, descriptor, attr):
+        CGSpecializedSetter.__init__(self, descriptor, attr)
+
+    def definition_body(self):
+        attrName = self.attr.identifier.name
+        forwardToAttrName = self.attr.getExtendedAttribute("PutForwards")[0]
+        # JS_GetProperty and JS_SetProperty can only deal with ASCII
+        assert all(ord(c) < 128 for c in attrName)
+        assert all(ord(c) < 128 for c in forwardToAttrName)
+        return CGGeneric("""\
+let mut v = UndefinedValue();
+if JS_GetProperty(cx, *obj.unnamed_field1, b"%s".as_ptr() as *const i8, &mut v) == 0 {
+    return 0;
+}
+if !v.is_object() {
+    throw_type_error(cx, "Value.%s is not an object.");
+    return 0;
+}
+let target_obj = v.to_object();
+JS_SetProperty(cx, target_obj, b"%s".as_ptr() as *const i8, argv.offset(0))
+""" % (attrName, attrName, forwardToAttrName))
 
 class CGMemberJITInfo(CGThing):
     """
@@ -2863,7 +2887,7 @@ class CGMemberJITInfo(CGThing):
             getter = ("get_%s" % self.member.identifier.name)
             getterinfal = "infallible" in self.descriptor.getExtendedAttributes(self.member, getter=True)
             result = self.defineJitInfo(getterinfo, getter, getterinfal)
-            if not self.member.readonly:
+            if not self.member.readonly or self.member.getExtendedAttribute("PutForwards"):
                 setterinfo = ("%s_setterinfo" % self.member.identifier.name)
                 setter = ("set_%s" % self.member.identifier.name)
                 # Setters are always fallible, since they have to do a typed unwrap.
@@ -4329,6 +4353,9 @@ class CGDescriptor(CGThing):
                             hasLenientSetter = True
                         else:
                             hasSetter = True
+                elif m.getExtendedAttribute("PutForwards"):
+                    cgThings.append(CGSpecializedForwardingSetter(descriptor, m))
+                    hasSetter = True
 
                 if (not m.isStatic() and
                     not descriptor.interface.isCallback()):
@@ -4711,7 +4738,7 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
             'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
             'js::jsapi::{JS_HasProperty, JS_HasPropertyById, JS_IsExceptionPending}',
-            'js::jsapi::{JS_NewObject, JS_ObjectIsCallable, JS_SetPrototype}',
+            'js::jsapi::{JS_NewObject, JS_ObjectIsCallable, JS_SetProperty, JS_SetPrototype}',
             'js::jsapi::{JS_SetReservedSlot, JS_WrapValue, JSBool, JSContext}',
             'js::jsapi::{JSClass, JSFreeOp, JSFunctionSpec, JSHandleObject, jsid}',
             'js::jsapi::{JSNativeWrapper, JSObject, JSPropertyDescriptor, JS_ArrayIterator}',
