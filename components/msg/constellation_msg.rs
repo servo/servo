@@ -11,6 +11,7 @@ use geom::scale_factor::ScaleFactor;
 use hyper::header::Headers;
 use hyper::method::Method;
 use layers::geometry::DevicePixel;
+use png;
 use util::cursor::Cursor;
 use util::geometry::{PagePx, ViewportPx};
 use std::sync::mpsc::{channel, Sender, Receiver};
@@ -233,10 +234,12 @@ pub enum Msg {
     Focus(PipelineId),
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(Sender<String>),
-    // Dispatch a webdriver command
+    /// Dispatch a webdriver command
     WebDriverCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies the constellation that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
+    /// Create a PNG of the window contents
+    CompositePng(Sender<Option<png::Image>>)
 }
 
 #[derive(Clone, Eq, PartialEq)]

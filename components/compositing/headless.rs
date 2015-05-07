@@ -108,8 +108,9 @@ impl CompositorEventListener for NullCompositor {
             Msg::ChangePageUrl(..) |
             Msg::KeyEvent(..) |
             Msg::SetCursor(..) |
-            Msg::PaintTaskExited(..) |
             Msg::ViewportConstrained(..) => {}
+            Msg::CreatePng(..) |
+            Msg::PaintTaskExited(..) => {}
         }
         true
     }

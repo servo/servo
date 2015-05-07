@@ -413,6 +413,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 };
                 sender.send(result).unwrap();
             }
+            ConstellationMsg::CompositePng(reply) => {
+                self.compositor_proxy.send(CompositorMsg::CreatePng(reply));
+            }
             ConstellationMsg::WebDriverCommand(pipeline_id,
                                                command) => {
                 debug!("constellation got webdriver command message");
