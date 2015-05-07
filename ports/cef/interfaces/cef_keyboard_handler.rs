@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -81,13 +82,13 @@ pub struct _cef_keyboard_handler_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_keyboard_handler_t = _cef_keyboard_handler_t;
 
@@ -103,7 +104,8 @@ pub struct CefKeyboardHandler {
 impl Clone for CefKeyboardHandler {
   fn clone(&self) -> CefKeyboardHandler{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefKeyboardHandler {
@@ -116,7 +118,8 @@ impl Clone for CefKeyboardHandler {
 impl Drop for CefKeyboardHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -131,7 +134,8 @@ impl CefKeyboardHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_keyboard_handler_t) -> CefKeyboardHandler {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefKeyboardHandler {
@@ -145,7 +149,8 @@ impl CefKeyboardHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_keyboard_handler_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -153,10 +158,10 @@ impl CefKeyboardHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   // Called before a keyboard event is sent to the renderer. |event| contains
@@ -167,7 +172,8 @@ impl CefKeyboardHandler {
   pub fn on_pre_key_event(&self, browser: interfaces::CefBrowser,
       event: &interfaces::CefKeyEvent, os_event: types::cef_event_handle_t,
       is_keyboard_shortcut: &mut libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -190,7 +196,8 @@ impl CefKeyboardHandler {
   pub fn on_key_event(&self, browser: interfaces::CefBrowser,
       event: &interfaces::CefKeyEvent,
       os_event: types::cef_event_handle_t) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -220,7 +227,8 @@ impl CefWrap<*mut cef_keyboard_handler_t> for Option<CefKeyboardHandler> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_keyboard_handler_t) -> Option<CefKeyboardHandler> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefKeyboardHandler::from_c_object_addref(c_object))

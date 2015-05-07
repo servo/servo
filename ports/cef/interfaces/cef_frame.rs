@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -214,13 +215,13 @@ pub struct _cef_frame_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_frame_t = _cef_frame_t;
 
@@ -238,7 +239,8 @@ pub struct CefFrame {
 impl Clone for CefFrame {
   fn clone(&self) -> CefFrame{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefFrame {
@@ -251,7 +253,8 @@ impl Clone for CefFrame {
 impl Drop for CefFrame {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -266,7 +269,8 @@ impl CefFrame {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_frame_t) -> CefFrame {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefFrame {
@@ -280,7 +284,8 @@ impl CefFrame {
 
   pub fn c_object_addrefed(&self) -> *mut cef_frame_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -288,17 +293,18 @@ impl CefFrame {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
   // True if this object is currently attached to a valid frame.
   //
   pub fn is_valid(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -312,7 +318,8 @@ impl CefFrame {
   // Execute undo in this frame.
   //
   pub fn undo(&self) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -326,7 +333,8 @@ impl CefFrame {
   // Execute redo in this frame.
   //
   pub fn redo(&self) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -340,7 +348,8 @@ impl CefFrame {
   // Execute cut in this frame.
   //
   pub fn cut(&self) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -354,7 +363,8 @@ impl CefFrame {
   // Execute copy in this frame.
   //
   pub fn copy(&self) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -368,7 +378,8 @@ impl CefFrame {
   // Execute paste in this frame.
   //
   pub fn paste(&self) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -382,7 +393,8 @@ impl CefFrame {
   // Execute delete in this frame.
   //
   pub fn del(&self) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -396,7 +408,8 @@ impl CefFrame {
   // Execute select all in this frame.
   //
   pub fn select_all(&self) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -412,7 +425,8 @@ impl CefFrame {
   // browser process.
   //
   pub fn view_source(&self) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -427,7 +441,8 @@ impl CefFrame {
   // visitor.
   //
   pub fn get_source(&self, visitor: interfaces::CefStringVisitor) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -443,7 +458,8 @@ impl CefFrame {
   // visitor.
   //
   pub fn get_text(&self, visitor: interfaces::CefStringVisitor) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -458,7 +474,8 @@ impl CefFrame {
   // Load the request represented by the |request| object.
   //
   pub fn load_request(&self, request: interfaces::CefRequest) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -473,7 +490,8 @@ impl CefFrame {
   // Load the specified |url|.
   //
   pub fn load_url(&self, url: &[u16]) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -490,7 +508,8 @@ impl CefFrame {
   // link clicks and web security restrictions may not behave as expected.
   //
   pub fn load_string(&self, string_val: &[u16], url: &[u16]) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -511,7 +530,8 @@ impl CefFrame {
   //
   pub fn execute_java_script(&self, code: &[u16], script_url: &[u16],
       start_line: libc::c_int) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -528,7 +548,8 @@ impl CefFrame {
   // Returns true (1) if this is the main (top-level) frame.
   //
   pub fn is_main(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -542,7 +563,8 @@ impl CefFrame {
   // Returns true (1) if this is the focused frame.
   //
   pub fn is_focused(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -561,7 +583,8 @@ impl CefFrame {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_name(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -575,7 +598,8 @@ impl CefFrame {
   // Returns the globally unique identifier for this frame.
   //
   pub fn get_identifier(&self) -> i64 {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -590,7 +614,8 @@ impl CefFrame {
   // frame.
   //
   pub fn get_parent(&self) -> interfaces::CefFrame {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -605,7 +630,8 @@ impl CefFrame {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_url(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -619,7 +645,8 @@ impl CefFrame {
   // Returns the browser that this frame belongs to.
   //
   pub fn get_browser(&self) -> interfaces::CefBrowser {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -634,7 +661,8 @@ impl CefFrame {
   // called from the render process.
   //
   pub fn get_v8context(&self) -> interfaces::CefV8Context {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -649,7 +677,8 @@ impl CefFrame {
   // process.
   //
   pub fn visit_dom(&self, visitor: interfaces::CefDOMVisitor) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -677,7 +706,8 @@ impl CefWrap<*mut cef_frame_t> for Option<CefFrame> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_frame_t) -> Option<CefFrame> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefFrame::from_c_object_addref(c_object))

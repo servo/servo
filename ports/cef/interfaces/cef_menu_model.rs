@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -401,13 +402,13 @@ pub struct _cef_menu_model_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_menu_model_t = _cef_menu_model_t;
 
@@ -425,7 +426,8 @@ pub struct CefMenuModel {
 impl Clone for CefMenuModel {
   fn clone(&self) -> CefMenuModel{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefMenuModel {
@@ -438,7 +440,8 @@ impl Clone for CefMenuModel {
 impl Drop for CefMenuModel {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -453,7 +456,8 @@ impl CefMenuModel {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_menu_model_t) -> CefMenuModel {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefMenuModel {
@@ -467,7 +471,8 @@ impl CefMenuModel {
 
   pub fn c_object_addrefed(&self) -> *mut cef_menu_model_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -475,17 +480,18 @@ impl CefMenuModel {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
   // Clears the menu. Returns true (1) on success.
   //
   pub fn clear(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -499,7 +505,8 @@ impl CefMenuModel {
   // Returns the number of items in this menu.
   //
   pub fn get_count(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -513,7 +520,8 @@ impl CefMenuModel {
   // Add a separator to the menu. Returns true (1) on success.
   //
   pub fn add_separator(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -528,7 +536,8 @@ impl CefMenuModel {
   //
   pub fn add_item(&self, command_id: libc::c_int,
       label: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -545,7 +554,8 @@ impl CefMenuModel {
   //
   pub fn add_check_item(&self, command_id: libc::c_int,
       label: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -563,7 +573,8 @@ impl CefMenuModel {
   //
   pub fn add_radio_item(&self, command_id: libc::c_int, label: &[u16],
       group_id: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -581,7 +592,8 @@ impl CefMenuModel {
   //
   pub fn add_sub_menu(&self, command_id: libc::c_int,
       label: &[u16]) -> interfaces::CefMenuModel {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -598,7 +610,8 @@ impl CefMenuModel {
   // on success.
   //
   pub fn insert_separator_at(&self, index: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -615,7 +628,8 @@ impl CefMenuModel {
   //
   pub fn insert_item_at(&self, index: libc::c_int, command_id: libc::c_int,
       label: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -634,7 +648,8 @@ impl CefMenuModel {
   //
   pub fn insert_check_item_at(&self, index: libc::c_int,
       command_id: libc::c_int, label: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -655,7 +670,8 @@ impl CefMenuModel {
   pub fn insert_radio_item_at(&self, index: libc::c_int,
       command_id: libc::c_int, label: &[u16],
       group_id: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -675,7 +691,8 @@ impl CefMenuModel {
   //
   pub fn insert_sub_menu_at(&self, index: libc::c_int, command_id: libc::c_int,
       label: &[u16]) -> interfaces::CefMenuModel {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -693,7 +710,8 @@ impl CefMenuModel {
   // success.
   //
   pub fn remove(&self, command_id: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -708,7 +726,8 @@ impl CefMenuModel {
   // Removes the item at the specified |index|. Returns true (1) on success.
   //
   pub fn remove_at(&self, index: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -724,7 +743,8 @@ impl CefMenuModel {
   // found due to the command id not existing in the menu.
   //
   pub fn get_index_of(&self, command_id: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -740,7 +760,8 @@ impl CefMenuModel {
   // invalid range or the index being a separator.
   //
   pub fn get_command_id_at(&self, index: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -756,7 +777,8 @@ impl CefMenuModel {
   //
   pub fn set_command_id_at(&self, index: libc::c_int,
       command_id: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -773,7 +795,8 @@ impl CefMenuModel {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_label(&self, command_id: libc::c_int) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -790,7 +813,8 @@ impl CefMenuModel {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_label_at(&self, index: libc::c_int) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -806,7 +830,8 @@ impl CefMenuModel {
   //
   pub fn set_label(&self, command_id: libc::c_int,
       label: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -822,7 +847,8 @@ impl CefMenuModel {
   // Set the label at the specified |index|. Returns true (1) on success.
   //
   pub fn set_label_at(&self, index: libc::c_int, label: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -839,7 +865,8 @@ impl CefMenuModel {
   //
   pub fn get_type(&self,
       command_id: libc::c_int) -> types::cef_menu_item_type_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -854,7 +881,8 @@ impl CefMenuModel {
   // Returns the item type at the specified |index|.
   //
   pub fn get_type_at(&self, index: libc::c_int) -> types::cef_menu_item_type_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -869,7 +897,8 @@ impl CefMenuModel {
   // Returns the group id for the specified |command_id| or -1 if invalid.
   //
   pub fn get_group_id(&self, command_id: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -884,7 +913,8 @@ impl CefMenuModel {
   // Returns the group id at the specified |index| or -1 if invalid.
   //
   pub fn get_group_id_at(&self, index: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -901,7 +931,8 @@ impl CefMenuModel {
   //
   pub fn set_group_id(&self, command_id: libc::c_int,
       group_id: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -918,7 +949,8 @@ impl CefMenuModel {
   //
   pub fn set_group_id_at(&self, index: libc::c_int,
       group_id: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -935,7 +967,8 @@ impl CefMenuModel {
   //
   pub fn get_sub_menu(&self,
       command_id: libc::c_int) -> interfaces::CefMenuModel {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -951,7 +984,8 @@ impl CefMenuModel {
   //
   pub fn get_sub_menu_at(&self,
       index: libc::c_int) -> interfaces::CefMenuModel {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -966,7 +1000,8 @@ impl CefMenuModel {
   // Returns true (1) if the specified |command_id| is visible.
   //
   pub fn is_visible(&self, command_id: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -981,7 +1016,8 @@ impl CefMenuModel {
   // Returns true (1) if the specified |index| is visible.
   //
   pub fn is_visible_at(&self, index: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -998,7 +1034,8 @@ impl CefMenuModel {
   //
   pub fn set_visible(&self, command_id: libc::c_int,
       visible: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1016,7 +1053,8 @@ impl CefMenuModel {
   //
   pub fn set_visible_at(&self, index: libc::c_int,
       visible: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1032,7 +1070,8 @@ impl CefMenuModel {
   // Returns true (1) if the specified |command_id| is enabled.
   //
   pub fn is_enabled(&self, command_id: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1047,7 +1086,8 @@ impl CefMenuModel {
   // Returns true (1) if the specified |index| is enabled.
   //
   pub fn is_enabled_at(&self, index: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1064,7 +1104,8 @@ impl CefMenuModel {
   //
   pub fn set_enabled(&self, command_id: libc::c_int,
       enabled: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1082,7 +1123,8 @@ impl CefMenuModel {
   //
   pub fn set_enabled_at(&self, index: libc::c_int,
       enabled: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1099,7 +1141,8 @@ impl CefMenuModel {
   // check and radio items.
   //
   pub fn is_checked(&self, command_id: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1115,7 +1158,8 @@ impl CefMenuModel {
   // and radio items.
   //
   pub fn is_checked_at(&self, index: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1132,7 +1176,8 @@ impl CefMenuModel {
   //
   pub fn set_checked(&self, command_id: libc::c_int,
       checked: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1150,7 +1195,8 @@ impl CefMenuModel {
   //
   pub fn set_checked_at(&self, index: libc::c_int,
       checked: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1167,7 +1213,8 @@ impl CefMenuModel {
   // assigned.
   //
   pub fn has_accelerator(&self, command_id: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1183,7 +1230,8 @@ impl CefMenuModel {
   // assigned.
   //
   pub fn has_accelerator_at(&self, index: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1201,7 +1249,8 @@ impl CefMenuModel {
   pub fn set_accelerator(&self, command_id: libc::c_int, key_code: libc::c_int,
       shift_pressed: libc::c_int, ctrl_pressed: libc::c_int,
       alt_pressed: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1223,7 +1272,8 @@ impl CefMenuModel {
   pub fn set_accelerator_at(&self, index: libc::c_int, key_code: libc::c_int,
       shift_pressed: libc::c_int, ctrl_pressed: libc::c_int,
       alt_pressed: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1243,7 +1293,8 @@ impl CefMenuModel {
   // true (1) on success.
   //
   pub fn remove_accelerator(&self, command_id: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1259,7 +1310,8 @@ impl CefMenuModel {
   // on success.
   //
   pub fn remove_accelerator_at(&self, index: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1278,7 +1330,8 @@ impl CefMenuModel {
       key_code: &mut libc::c_int, shift_pressed: &mut libc::c_int,
       ctrl_pressed: &mut libc::c_int,
       alt_pressed: &mut libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1301,7 +1354,8 @@ impl CefMenuModel {
       key_code: &mut libc::c_int, shift_pressed: &mut libc::c_int,
       ctrl_pressed: &mut libc::c_int,
       alt_pressed: &mut libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1333,7 +1387,8 @@ impl CefWrap<*mut cef_menu_model_t> for Option<CefMenuModel> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_menu_model_t) -> Option<CefMenuModel> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefMenuModel::from_c_object_addref(c_object))

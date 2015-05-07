@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -106,13 +107,13 @@ pub struct _cef_app_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_app_t = _cef_app_t;
 
@@ -128,7 +129,8 @@ pub struct CefApp {
 impl Clone for CefApp {
   fn clone(&self) -> CefApp{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefApp {
@@ -141,7 +143,8 @@ impl Clone for CefApp {
 impl Drop for CefApp {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -156,7 +159,8 @@ impl CefApp {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_app_t) -> CefApp {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefApp {
@@ -170,7 +174,8 @@ impl CefApp {
 
   pub fn c_object_addrefed(&self) -> *mut cef_app_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -178,10 +183,10 @@ impl CefApp {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -197,7 +202,8 @@ impl CefApp {
   //
   pub fn on_before_command_line_processing(&self, process_type: &[u16],
       command_line: interfaces::CefCommandLine) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -217,7 +223,8 @@ impl CefApp {
   //
   pub fn on_register_custom_schemes(&self,
       registrar: interfaces::CefSchemeRegistrar) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -236,7 +243,8 @@ impl CefApp {
   //
   pub fn get_resource_bundle_handler(
       &self) -> interfaces::CefResourceBundleHandler {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -252,7 +260,8 @@ impl CefApp {
   //
   pub fn get_browser_process_handler(
       &self) -> interfaces::CefBrowserProcessHandler {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -268,7 +277,8 @@ impl CefApp {
   //
   pub fn get_render_process_handler(
       &self) -> interfaces::CefRenderProcessHandler {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -295,7 +305,8 @@ impl CefWrap<*mut cef_app_t> for Option<CefApp> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_app_t) -> Option<CefApp> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefApp::from_c_object_addref(c_object))

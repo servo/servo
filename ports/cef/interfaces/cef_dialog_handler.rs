@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -56,11 +57,14 @@ pub struct _cef_file_dialog_callback_t {
   pub base: types::cef_base_t,
 
   //
-  // Continue the file selection with the specified |file_paths|. This may be a
-  // single value or a list of values depending on the dialog mode. An NULL
+  // Continue the file selection. |selected_accept_filter| should be the 0-based
+  // index of the value selected from the accept filters array passed to
+  // cef_dialog_handler_t::OnFileDialog. |file_paths| should be a single value
+  // or a list of values depending on the dialog mode. An NULL |file_paths|
   // value is treated the same as calling cancel().
   //
   pub cont: Option<extern "C" fn(this: *mut cef_file_dialog_callback_t,
+      selected_accept_filter: libc::c_int,
       file_paths: types::cef_string_list_t) -> ()>,
 
   //
@@ -72,13 +76,13 @@ pub struct _cef_file_dialog_callback_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_file_dialog_callback_t = _cef_file_dialog_callback_t;
 
@@ -93,7 +97,8 @@ pub struct CefFileDialogCallback {
 impl Clone for CefFileDialogCallback {
   fn clone(&self) -> CefFileDialogCallback{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefFileDialogCallback {
@@ -106,7 +111,8 @@ impl Clone for CefFileDialogCallback {
 impl Drop for CefFileDialogCallback {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -121,7 +127,8 @@ impl CefFileDialogCallback {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_file_dialog_callback_t) -> CefFileDialogCallback {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefFileDialogCallback {
@@ -135,7 +142,8 @@ impl CefFileDialogCallback {
 
   pub fn c_object_addrefed(&self) -> *mut cef_file_dialog_callback_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -143,25 +151,30 @@ impl CefFileDialogCallback {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
-  // Continue the file selection with the specified |file_paths|. This may be a
-  // single value or a list of values depending on the dialog mode. An NULL
+  // Continue the file selection. |selected_accept_filter| should be the 0-based
+  // index of the value selected from the accept filters array passed to
+  // cef_dialog_handler_t::OnFileDialog. |file_paths| should be a single value
+  // or a list of values depending on the dialog mode. An NULL |file_paths|
   // value is treated the same as calling cancel().
   //
-  pub fn cont(&self, file_paths: Vec<String>) -> () {
-    if self.c_object.is_null() {
+  pub fn cont(&self, selected_accept_filter: libc::c_int,
+      file_paths: Vec<String>) -> () {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
       CefWrap::to_rust(
         ((*self.c_object).cont.unwrap())(
           self.c_object,
+          CefWrap::to_c(selected_accept_filter),
           CefWrap::to_c(file_paths)))
     }
   }
@@ -170,7 +183,8 @@ impl CefFileDialogCallback {
   // Cancel the file selection.
   //
   pub fn cancel(&self) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -197,7 +211,8 @@ impl CefWrap<*mut cef_file_dialog_callback_t> for Option<CefFileDialogCallback> 
     }
   }
   unsafe fn to_rust(c_object: *mut cef_file_dialog_callback_t) -> Option<CefFileDialogCallback> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefFileDialogCallback::from_c_object_addref(c_object))
@@ -221,30 +236,35 @@ pub struct _cef_dialog_handler_t {
   // Called to run a file chooser dialog. |mode| represents the type of dialog
   // to display. |title| to the title to be used for the dialog and may be NULL
   // to show the default title ("Open" or "Save" depending on the mode).
-  // |default_file_name| is the default file name to select in the dialog.
-  // |accept_types| is a list of valid lower-cased MIME types or file extensions
-  // specified in an input element and is used to restrict selectable files to
-  // such types. To display a custom dialog return true (1) and execute
-  // |callback| either inline or at a later time. To display the default dialog
-  // return false (0).
+  // |default_file_path| is the path with optional directory and/or file name
+  // component that should be initially selected in the dialog. |accept_filters|
+  // are used to restrict the selectable file types and may any combination of
+  // (a) valid lower-cased MIME types (e.g. "text/*" or "image/*"), (b)
+  // individual file extensions (e.g. ".txt" or ".png"), or (c) combined
+  // description and file extension delimited using "|" and ";" (e.g. "Image
+  // Types|.png;.gif;.jpg"). |selected_accept_filter| is the 0-based index of
+  // the filter that should be selected by default. To display a custom dialog
+  // return true (1) and execute |callback| either inline or at a later time. To
+  // display the default dialog return false (0).
   //
   pub on_file_dialog: Option<extern "C" fn(this: *mut cef_dialog_handler_t,
       browser: *mut interfaces::cef_browser_t,
       mode: types::cef_file_dialog_mode_t, title: *const types::cef_string_t,
-      default_file_name: *const types::cef_string_t,
-      accept_types: types::cef_string_list_t,
+      default_file_path: *const types::cef_string_t,
+      accept_filters: types::cef_string_list_t,
+      selected_accept_filter: libc::c_int,
       callback: *mut interfaces::cef_file_dialog_callback_t) -> libc::c_int>,
 
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_dialog_handler_t = _cef_dialog_handler_t;
 
@@ -260,7 +280,8 @@ pub struct CefDialogHandler {
 impl Clone for CefDialogHandler {
   fn clone(&self) -> CefDialogHandler{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefDialogHandler {
@@ -273,7 +294,8 @@ impl Clone for CefDialogHandler {
 impl Drop for CefDialogHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -288,7 +310,8 @@ impl CefDialogHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_dialog_handler_t) -> CefDialogHandler {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefDialogHandler {
@@ -302,7 +325,8 @@ impl CefDialogHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_dialog_handler_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -310,28 +334,34 @@ impl CefDialogHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
   // Called to run a file chooser dialog. |mode| represents the type of dialog
   // to display. |title| to the title to be used for the dialog and may be NULL
   // to show the default title ("Open" or "Save" depending on the mode).
-  // |default_file_name| is the default file name to select in the dialog.
-  // |accept_types| is a list of valid lower-cased MIME types or file extensions
-  // specified in an input element and is used to restrict selectable files to
-  // such types. To display a custom dialog return true (1) and execute
-  // |callback| either inline or at a later time. To display the default dialog
-  // return false (0).
+  // |default_file_path| is the path with optional directory and/or file name
+  // component that should be initially selected in the dialog. |accept_filters|
+  // are used to restrict the selectable file types and may any combination of
+  // (a) valid lower-cased MIME types (e.g. "text/*" or "image/*"), (b)
+  // individual file extensions (e.g. ".txt" or ".png"), or (c) combined
+  // description and file extension delimited using "|" and ";" (e.g. "Image
+  // Types|.png;.gif;.jpg"). |selected_accept_filter| is the 0-based index of
+  // the filter that should be selected by default. To display a custom dialog
+  // return true (1) and execute |callback| either inline or at a later time. To
+  // display the default dialog return false (0).
   //
   pub fn on_file_dialog(&self, browser: interfaces::CefBrowser,
       mode: types::cef_file_dialog_mode_t, title: &[u16],
-      default_file_name: &[u16], accept_types: Vec<String>,
+      default_file_path: &[u16], accept_filters: Vec<String>,
+      selected_accept_filter: libc::c_int,
       callback: interfaces::CefFileDialogCallback) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -341,8 +371,9 @@ impl CefDialogHandler {
           CefWrap::to_c(browser),
           CefWrap::to_c(mode),
           CefWrap::to_c(title),
-          CefWrap::to_c(default_file_name),
-          CefWrap::to_c(accept_types),
+          CefWrap::to_c(default_file_path),
+          CefWrap::to_c(accept_filters),
+          CefWrap::to_c(selected_accept_filter),
           CefWrap::to_c(callback)))
     }
   }
@@ -364,7 +395,8 @@ impl CefWrap<*mut cef_dialog_handler_t> for Option<CefDialogHandler> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_dialog_handler_t) -> Option<CefDialogHandler> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefDialogHandler::from_c_object_addref(c_object))

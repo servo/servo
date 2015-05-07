@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -90,13 +91,13 @@ pub struct _cef_read_handler_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_read_handler_t = _cef_read_handler_t;
 
@@ -112,7 +113,8 @@ pub struct CefReadHandler {
 impl Clone for CefReadHandler {
   fn clone(&self) -> CefReadHandler{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefReadHandler {
@@ -125,7 +127,8 @@ impl Clone for CefReadHandler {
 impl Drop for CefReadHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -140,7 +143,8 @@ impl CefReadHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_read_handler_t) -> CefReadHandler {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefReadHandler {
@@ -154,7 +158,8 @@ impl CefReadHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_read_handler_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -162,10 +167,10 @@ impl CefReadHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -173,7 +178,8 @@ impl CefReadHandler {
   //
   pub fn read(&self, ptr: &mut (), size: libc::size_t,
       n: libc::size_t) -> libc::size_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -191,7 +197,8 @@ impl CefReadHandler {
   // SEEK_END or SEEK_SET. Return zero on success and non-zero on failure.
   //
   pub fn seek(&self, offset: i64, whence: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -207,7 +214,8 @@ impl CefReadHandler {
   // Return the current offset position.
   //
   pub fn tell(&self) -> i64 {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -221,7 +229,8 @@ impl CefReadHandler {
   // Return non-zero if at end of file.
   //
   pub fn eof(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -237,7 +246,8 @@ impl CefReadHandler {
   // the handler from.
   //
   pub fn may_block(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -264,7 +274,8 @@ impl CefWrap<*mut cef_read_handler_t> for Option<CefReadHandler> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_read_handler_t) -> Option<CefReadHandler> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefReadHandler::from_c_object_addref(c_object))
@@ -318,13 +329,13 @@ pub struct _cef_stream_reader_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_stream_reader_t = _cef_stream_reader_t;
 
@@ -340,7 +351,8 @@ pub struct CefStreamReader {
 impl Clone for CefStreamReader {
   fn clone(&self) -> CefStreamReader{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefStreamReader {
@@ -353,7 +365,8 @@ impl Clone for CefStreamReader {
 impl Drop for CefStreamReader {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -368,7 +381,8 @@ impl CefStreamReader {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_stream_reader_t) -> CefStreamReader {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefStreamReader {
@@ -382,7 +396,8 @@ impl CefStreamReader {
 
   pub fn c_object_addrefed(&self) -> *mut cef_stream_reader_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -390,10 +405,10 @@ impl CefStreamReader {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -401,7 +416,8 @@ impl CefStreamReader {
   //
   pub fn read(&self, ptr: &mut (), size: libc::size_t,
       n: libc::size_t) -> libc::size_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -419,7 +435,8 @@ impl CefStreamReader {
   // SEEK_END or SEEK_SET. Returns zero on success and non-zero on failure.
   //
   pub fn seek(&self, offset: i64, whence: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -435,7 +452,8 @@ impl CefStreamReader {
   // Return the current offset position.
   //
   pub fn tell(&self) -> i64 {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -449,7 +467,8 @@ impl CefStreamReader {
   // Return non-zero if at end of file.
   //
   pub fn eof(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -465,7 +484,8 @@ impl CefStreamReader {
   // the reader from.
   //
   pub fn may_block(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -528,7 +548,8 @@ impl CefWrap<*mut cef_stream_reader_t> for Option<CefStreamReader> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_stream_reader_t) -> Option<CefStreamReader> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefStreamReader::from_c_object_addref(c_object))
@@ -583,13 +604,13 @@ pub struct _cef_write_handler_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_write_handler_t = _cef_write_handler_t;
 
@@ -605,7 +626,8 @@ pub struct CefWriteHandler {
 impl Clone for CefWriteHandler {
   fn clone(&self) -> CefWriteHandler{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefWriteHandler {
@@ -618,7 +640,8 @@ impl Clone for CefWriteHandler {
 impl Drop for CefWriteHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -633,7 +656,8 @@ impl CefWriteHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_write_handler_t) -> CefWriteHandler {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefWriteHandler {
@@ -647,7 +671,8 @@ impl CefWriteHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_write_handler_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -655,10 +680,10 @@ impl CefWriteHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -666,7 +691,8 @@ impl CefWriteHandler {
   //
   pub fn write(&self, ptr: &(), size: libc::size_t,
       n: libc::size_t) -> libc::size_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -684,7 +710,8 @@ impl CefWriteHandler {
   // SEEK_END or SEEK_SET. Return zero on success and non-zero on failure.
   //
   pub fn seek(&self, offset: i64, whence: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -700,7 +727,8 @@ impl CefWriteHandler {
   // Return the current offset position.
   //
   pub fn tell(&self) -> i64 {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -714,7 +742,8 @@ impl CefWriteHandler {
   // Flush the stream.
   //
   pub fn flush(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -730,7 +759,8 @@ impl CefWriteHandler {
   // the handler from.
   //
   pub fn may_block(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -757,7 +787,8 @@ impl CefWrap<*mut cef_write_handler_t> for Option<CefWriteHandler> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_write_handler_t) -> Option<CefWriteHandler> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefWriteHandler::from_c_object_addref(c_object))
@@ -812,13 +843,13 @@ pub struct _cef_stream_writer_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_stream_writer_t = _cef_stream_writer_t;
 
@@ -834,7 +865,8 @@ pub struct CefStreamWriter {
 impl Clone for CefStreamWriter {
   fn clone(&self) -> CefStreamWriter{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefStreamWriter {
@@ -847,7 +879,8 @@ impl Clone for CefStreamWriter {
 impl Drop for CefStreamWriter {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -862,7 +895,8 @@ impl CefStreamWriter {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_stream_writer_t) -> CefStreamWriter {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefStreamWriter {
@@ -876,7 +910,8 @@ impl CefStreamWriter {
 
   pub fn c_object_addrefed(&self) -> *mut cef_stream_writer_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -884,10 +919,10 @@ impl CefStreamWriter {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -895,7 +930,8 @@ impl CefStreamWriter {
   //
   pub fn write(&self, ptr: &(), size: libc::size_t,
       n: libc::size_t) -> libc::size_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -913,7 +949,8 @@ impl CefStreamWriter {
   // SEEK_END or SEEK_SET. Returns zero on success and non-zero on failure.
   //
   pub fn seek(&self, offset: i64, whence: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -929,7 +966,8 @@ impl CefStreamWriter {
   // Return the current offset position.
   //
   pub fn tell(&self) -> i64 {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -943,7 +981,8 @@ impl CefStreamWriter {
   // Flush the stream.
   //
   pub fn flush(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -959,7 +998,8 @@ impl CefStreamWriter {
   // the writer from.
   //
   pub fn may_block(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1009,7 +1049,8 @@ impl CefWrap<*mut cef_stream_writer_t> for Option<CefStreamWriter> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_stream_writer_t) -> Option<CefStreamWriter> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefStreamWriter::from_c_object_addref(c_object))

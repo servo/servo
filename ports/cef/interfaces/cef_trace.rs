@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -69,13 +70,13 @@ pub struct _cef_end_tracing_callback_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_end_tracing_callback_t = _cef_end_tracing_callback_t;
 
@@ -92,7 +93,8 @@ pub struct CefEndTracingCallback {
 impl Clone for CefEndTracingCallback {
   fn clone(&self) -> CefEndTracingCallback{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefEndTracingCallback {
@@ -105,7 +107,8 @@ impl Clone for CefEndTracingCallback {
 impl Drop for CefEndTracingCallback {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -120,7 +123,8 @@ impl CefEndTracingCallback {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_end_tracing_callback_t) -> CefEndTracingCallback {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefEndTracingCallback {
@@ -134,7 +138,8 @@ impl CefEndTracingCallback {
 
   pub fn c_object_addrefed(&self) -> *mut cef_end_tracing_callback_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -142,10 +147,10 @@ impl CefEndTracingCallback {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -154,7 +159,8 @@ impl CefEndTracingCallback {
   // deleting |tracing_file|.
   //
   pub fn on_end_tracing_complete(&self, tracing_file: &[u16]) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -182,7 +188,8 @@ impl CefWrap<*mut cef_end_tracing_callback_t> for Option<CefEndTracingCallback> 
     }
   }
   unsafe fn to_rust(c_object: *mut cef_end_tracing_callback_t) -> Option<CefEndTracingCallback> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefEndTracingCallback::from_c_object_addref(c_object))

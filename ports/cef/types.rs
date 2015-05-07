@@ -17,28 +17,6 @@ pub enum cef_string_list_t {}
 pub enum cef_text_input_context_t {}
 pub enum cef_event_handle_t {}
 
-//these all need to be done...
-pub enum cef_binary_value_t {}
-pub enum cef_dictionary_value_t {}
-pub enum cef_request_t {}
-pub enum cef_response_t {}
-pub enum cef_urlrequest_client_t {}
-pub enum cef_domnode_t {}
-pub enum cef_load_handler_t {}
-pub enum cef_browser_settings_t {}
-pub enum cef_v8context_t {}
-pub enum cef_v8exception_t {}
-pub enum cef_v8stack_trace_t {}
-pub enum cef_context_menu_handler_t {}
-pub enum cef_dialog_handler_t {}
-pub enum cef_download_handler_t {}
-pub enum cef_drag_handler_t {}
-pub enum cef_focus_handler_t {}
-pub enum cef_geolocation_handler_t {}
-pub enum cef_jsdialog_handler_t {}
-pub enum cef_keyboard_handler_t {}
-pub enum cef_render_handler_t {}
-pub enum cef_request_handler_t {}
 #[cfg(target_os="linux")]
 pub type cef_window_handle_t = c_ulong;
 #[cfg(target_os="macos")]
@@ -51,20 +29,6 @@ pub type cef_cursor_handle_t = c_ulong;
 pub type cef_cursor_handle_t = *mut c_void; //NSCursor*
 //#[cfg(target_os="win")]
 //pub enum cef_cursor_handle_t {} //HCURSOR
-
-pub enum cef_request_val {}
-pub type cef_request = *mut cef_request_val;
-pub enum cef_navigation_type_val {}
-pub type cef_navigation_type = *mut cef_navigation_type_val;
-pub enum cef_screen_info_t {}
-pub type cef_v8context = *mut cef_v8context_t;
-pub enum cef_v8exception_val {}
-pub type cef_v8exception = *mut cef_v8exception_val;
-pub enum cef_v8stack_trace_val {}
-pub type cef_v8stack_trace = *mut cef_v8stack_trace_val;
-
-pub type CefBrowserSettings = cef_browser_settings_t;
-pub type CefScreenInfo = cef_screen_info_t;
 
 pub type cef_string_t = cef_string_utf16; //FIXME: this is #defined...
 pub type cef_string_userfree_t = *mut cef_string_t; //FIXME: this is #defined...
@@ -101,6 +65,25 @@ pub struct cef_main_args {
 
 pub type cef_color_t = c_uint;
 
+///
+// Represents the state of a setting.
+///
+pub enum cef_state_t {
+    ///
+    // Use the default state for the setting.
+    ///
+    STATE_DEFAULT = 0,
+
+    ///
+    // Enable or allow the setting.
+    ///
+    STATE_ENABLED,
+
+    ///
+    // Disable or disallow the setting.
+    ///
+    STATE_DISABLED,
+}
 //
 // Existing thread IDs.
 //
@@ -1570,3 +1553,415 @@ pub enum cef_xml_encoding_type_t {
     XML_ENCODING_ASCII,
 }
 
+///
+// The manner in which a link click should be opened.
+///
+pub enum cef_window_open_disposition_t {
+    WOD_UNKNOWN = 0,
+    WOD_SUPPRESS_OPEN,
+    WOD_CURRENT_TAB,
+    WOD_SINGLETON_TAB,
+    WOD_NEW_FOREGROUND_TAB,
+    WOD_NEW_BACKGROUND_TAB,
+    WOD_NEW_POPUP,
+    WOD_NEW_WINDOW,
+    WOD_SAVE_TO_DISK,
+    WOD_OFF_THE_RECORD,
+    WOD_IGNORE_ACTION
+}
+
+
+///
+// Cursor type values.
+///
+pub enum cef_cursor_type_t {
+    CT_POINTER = 0,
+    CT_CROSS,
+    CT_HAND,
+    CT_IBEAM,
+    CT_WAIT,
+    CT_HELP,
+    CT_EASTRESIZE,
+    CT_NORTHRESIZE,
+    CT_NORTHEASTRESIZE,
+    CT_NORTHWESTRESIZE,
+    CT_SOUTHRESIZE,
+    CT_SOUTHEASTRESIZE,
+    CT_SOUTHWESTRESIZE,
+    CT_WESTRESIZE,
+    CT_NORTHSOUTHRESIZE,
+    CT_EASTWESTRESIZE,
+    CT_NORTHEASTSOUTHWESTRESIZE,
+    CT_NORTHWESTSOUTHEASTRESIZE,
+    CT_COLUMNRESIZE,
+    CT_ROWRESIZE,
+    CT_MIDDLEPANNING,
+    CT_EASTPANNING,
+    CT_NORTHPANNING,
+    CT_NORTHEASTPANNING,
+    CT_NORTHWESTPANNING,
+    CT_SOUTHPANNING,
+    CT_SOUTHEASTPANNING,
+    CT_SOUTHWESTPANNING,
+    CT_WESTPANNING,
+    CT_MOVE,
+    CT_VERTICALTEXT,
+    CT_CELL,
+    CT_CONTEXTMENU,
+    CT_ALIAS,
+    CT_PROGRESS,
+    CT_NODROP,
+    CT_COPY,
+    CT_NONE,
+    CT_NOTALLOWED,
+    CT_ZOOMIN,
+    CT_ZOOMOUT,
+    CT_GRAB,
+    CT_GRABBING,
+    CT_CUSTOM,
+}
+
+///
+// Screen information used when window rendering is disabled. This structure is
+// passed as a parameter to CefRenderHandler::GetScreenInfo and should be filled
+// in by the client.
+///
+pub struct _cef_screen_info {
+  ///
+  // Device scale factor. Specifies the ratio between physical and logical
+  // pixels.
+  ///
+  pub device_scale_factor: f32,
+
+  ///
+  // The screen depth in bits per pixel.
+  ///
+  pub depth: i32,
+
+  ///
+  // The bits per color component. This assumes that the colors are balanced
+  // equally.
+  ///
+  pub depth_per_component: i32,
+
+  ///
+  // This can be true for black and white printers.
+  ///
+  pub is_monochrome: i32,
+
+  ///
+  // This is set from the rcMonitor member of MONITORINFOEX, to whit:
+  //   "A RECT structure that specifies the display monitor rectangle,
+  //   expressed in virtual-screen coordinates. Note that if the monitor
+  //   is not the primary display monitor, some of the rectangle's
+  //   coordinates may be negative values."
+  //
+  // The |rect| and |available_rect| properties are used to determine the
+  // available surface for rendering popup views.
+  ///
+  pub rect: cef_rect_t,
+
+  ///
+  // This is set from the rcWork member of MONITORINFOEX, to whit:
+  //   "A RECT structure that specifies the work area rectangle of the
+  //   display monitor that can be used by applications, expressed in
+  //   virtual-screen coordinates. Windows uses this rectangle to
+  //   maximize an application on the monitor. The rest of the area in
+  //   rcMonitor contains system windows such as the task bar and side
+  //   bars. Note that if the monitor is not the primary display monitor,
+  //   some of the rectangle's coordinates may be negative values".
+  //
+  // The |rect| and |available_rect| properties are used to determine the
+  // available surface for rendering popup views.
+  ///
+  pub available_rect: cef_rect_t,
+}
+
+pub type cef_screen_info_t = _cef_screen_info;
+pub type CefScreenInfo = cef_screen_info_t;
+
+///
+// Browser initialization settings. Specify NULL or 0 to get the recommended
+// default values. The consequences of using custom values may not be well
+// tested. Many of these and other settings can also configured using command-
+// line switches.
+///
+pub struct _cef_browser_settings {
+    ///
+    // Size of this structure.
+    ///
+    pub size: u64,
+
+    ///
+    // The maximum rate in frames per second (fps) that CefRenderHandler::OnPaint
+    // will be called for a windowless browser. The actual fps may be lower if
+    // the browser cannot generate frames at the requested rate. The minimum
+    // value is 1 and the maximum value is 60 (default 30).
+    ///
+    pub windowless_frame_rate: i32,
+
+    // The below values map to WebPreferences settings.
+
+    ///
+    // Font settings.
+    ///
+    pub standard_font_family: cef_string_t,
+    pub fixed_font_family: cef_string_t,
+    pub serif_font_family: cef_string_t,
+    pub sans_serif_font_family: cef_string_t,
+    pub cursive_font_family: cef_string_t,
+    pub fantasy_font_family: cef_string_t,
+    pub default_font_size: i32,
+    pub default_fixed_font_size: i32,
+    pub minimum_font_size: i32,
+    pub minimum_logical_font_size: i32,
+
+    ///
+    // Default encoding for Web content. If empty "ISO-8859-1" will be used. Also
+    // configurable using the "default-encoding" command-line switch.
+    ///
+    pub default_encoding: cef_string_t,
+
+    ///
+    // Controls the loading of fonts from remote sources. Also configurable using
+    // the "disable-remote-fonts" command-line switch.
+    ///
+    pub remote_fonts: cef_state_t,
+
+    ///
+    // Controls whether JavaScript can be executed. Also configurable using the
+    // "disable-javascript" command-line switch.
+    ///
+    pub javascript: cef_state_t,
+
+    ///
+    // Controls whether JavaScript can be used for opening windows. Also
+    // configurable using the "disable-javascript-open-windows" command-line
+    // switch.
+    ///
+    pub javascript_open_windows: cef_state_t,
+
+    ///
+    // Controls whether JavaScript can be used to close windows that were not
+    // opened via JavaScript. JavaScript can still be used to close windows that
+    // were opened via JavaScript or that have no back/forward history. Also
+    // configurable using the "disable-javascript-close-windows" command-line
+    // switch.
+    ///
+    pub javascript_close_windows: cef_state_t,
+
+    ///
+    // Controls whether JavaScript can access the clipboard. Also configurable
+    // using the "disable-javascript-access-clipboard" command-line switch.
+    ///
+    pub javascript_access_clipboard: cef_state_t,
+
+    ///
+    // Controls whether DOM pasting is supported in the editor via
+    // execCommand("paste"). The |javascript_access_clipboard| setting must also
+    // be enabled. Also configurable using the "disable-javascript-dom-paste"
+    // command-line switch.
+    ///
+    pub javascript_dom_paste: cef_state_t,
+
+    ///
+    // Controls whether the caret position will be drawn. Also configurable using
+    // the "enable-caret-browsing" command-line switch.
+    ///
+    pub caret_browsing: cef_state_t,
+
+    ///
+    // Controls whether the Java plugin will be loaded. Also configurable using
+    // the "disable-java" command-line switch.
+    ///
+    pub java: cef_state_t,
+
+    ///
+    // Controls whether any plugins will be loaded. Also configurable using the
+    // "disable-plugins" command-line switch.
+    ///
+    pub plugins: cef_state_t,
+
+    ///
+    // Controls whether file URLs will have access to all URLs. Also configurable
+    // using the "allow-universal-access-from-files" command-line switch.
+    ///
+    pub universal_access_from_file_urls: cef_state_t,
+
+    ///
+    // Controls whether file URLs will have access to other file URLs. Also
+    // configurable using the "allow-access-from-files" command-line switch.
+    ///
+    pub file_access_from_file_urls: cef_state_t,
+
+    ///
+    // Controls whether web security restrictions (same-origin policy) will be
+    // enforced. Disabling this setting is not recommend as it will allow risky
+    // security behavior such as cross-site scripting (XSS). Also configurable
+    // using the "disable-web-security" command-line switch.
+    ///
+    pub web_security: cef_state_t,
+
+    ///
+    // Controls whether image URLs will be loaded from the network. A cached image
+    // will still be rendered if requested. Also configurable using the
+    // "disable-image-loading" command-line switch.
+    ///
+    pub image_loading: cef_state_t,
+
+    ///
+    // Controls whether standalone images will be shrunk to fit the page. Also
+    // configurable using the "image-shrink-standalone-to-fit" command-line
+    // switch.
+    ///
+    pub image_shrink_standalone_to_fit: cef_state_t,
+
+    ///
+    // Controls whether text areas can be resized. Also configurable using the
+    // "disable-text-area-resize" command-line switch.
+    ///
+    pub text_area_resize: cef_state_t,
+
+    ///
+    // Controls whether the tab key can advance focus to links. Also configurable
+    // using the "disable-tab-to-links" command-line switch.
+    ///
+    pub tab_to_links: cef_state_t,
+
+    ///
+    // Controls whether local storage can be used. Also configurable using the
+    // "disable-local-storage" command-line switch.
+    ///
+    pub local_storage: cef_state_t,
+
+    ///
+    // Controls whether databases can be used. Also configurable using the
+    // "disable-databases" command-line switch.
+    ///
+    pub databases: cef_state_t,
+
+    ///
+    // Controls whether the application cache can be used. Also configurable using
+    // the "disable-application-cache" command-line switch.
+    ///
+    pub application_cache: cef_state_t,
+
+    ///
+    // Controls whether WebGL can be used. Note that WebGL requires hardware
+    // support and may not work on all systems even when enabled. Also
+    // configurable using the "disable-webgl" command-line switch.
+    ///
+    pub webgl: cef_state_t,
+
+    ///
+    // Opaque background color used for the browser before a document is loaded
+    // and when no document color is specified. By default the background color
+    // will be the same as CefSettings.background_color. Only the RGB compontents
+    // of the specified value will be used. The alpha component must greater than
+    // 0 to enable use of the background color but will be otherwise ignored.
+    ///
+    pub background_color: cef_color_t,
+
+    ///
+    // Comma delimited ordered list of language codes without any whitespace that
+    // will be used in the "Accept-Language" HTTP header. May be set globally
+    // using the CefBrowserSettings.accept_language_list value. If both values are
+    // empty then "en-US,en" will be used.
+    ///
+    pub accept_language_list: cef_string_t,
+}
+
+pub type cef_browser_settings_t = _cef_browser_settings;
+pub type CefBrowserSettings = cef_browser_settings_t;
+
+
+///
+// Structure representing cursor information. |buffer| will be
+// |size.width|*|size.height|*4 bytes in size and represents a BGRA image with
+// an upper-left origin.
+///
+pub struct _cef_cursor_info {
+    pub hotspot: cef_point_t,
+    pub image_scale_factor: f32,
+    pub buffer: *mut isize,
+    pub size: cef_size_t,
+}
+
+pub type cef_cursor_info_t = _cef_cursor_info;
+pub type CefCursorInfo = cef_cursor_info_t;
+
+///
+// Return value types.
+///
+pub enum cef_return_value_t {
+    ///
+    // Cancel immediately.
+    ///
+    RV_CANCEL = 0,
+
+    ///
+    // Continue immediately.
+    ///
+    RV_CONTINUE,
+
+    ///
+    // Continue asynchronously (usually via a callback).
+    ///
+    RV_CONTINUE_ASYNC,
+}
+
+
+
+///
+// Request context initialization settings. Specify NULL or 0 to get the
+// recommended default values.
+///
+pub struct _cef_request_context_settings {
+  ///
+  // Size of this structure.
+  ///
+  pub size: size_t,
+
+  ///
+  // The location where cache data will be stored on disk. If empty then
+  // browsers will be created in "incognito mode" where in-memory caches are
+  // used for storage and no data is persisted to disk. HTML5 databases such as
+  // localStorage will only persist across sessions if a cache path is
+  // specified. To share the global browser cache and related configuration set
+  // this value to match the CefSettings.cache_path value.
+  ///
+  pub cache_path: cef_string_t,
+
+  ///
+  // To persist session cookies (cookies without an expiry date or validity
+  // interval) by default when using the global cookie manager set this value to
+  // true. Session cookies are generally intended to be transient and most Web
+  // browsers do not persist them. Can be set globally using the
+  // CefSettings.persist_session_cookies value. This value will be ignored if
+  // |cache_path| is empty or if it matches the CefSettings.cache_path value.
+  ///
+  pub persist_session_cookies: i32,
+
+  ///
+  // Set to true (1) to ignore errors related to invalid SSL certificates.
+  // Enabling this setting can lead to potential security vulnerabilities like
+  // "man in the middle" attacks. Applications that load content from the
+  // internet should not enable this setting. Can be set globally using the
+  // CefSettings.ignore_certificate_errors value. This value will be ignored if
+  // |cache_path| matches the CefSettings.cache_path value.
+  ///
+  pub ignore_certificate_errors: i32,
+
+  ///
+  // Comma delimited ordered list of language codes without any whitespace that
+  // will be used in the "Accept-Language" HTTP header. Can be set globally
+  // using the CefSettings.accept_language_list value or overridden on a per-
+  // browser basis using the CefBrowserSettings.accept_language_list value. If
+  // all values are empty then "en-US,en" will be used. This value will be
+  // ignored if |cache_path| matches the CefSettings.cache_path value.
+  ///
+  pub accept_language_list: cef_string_t,
+}
+
+pub type cef_request_context_settings_t = _cef_request_context_settings;
+pub type CefRequestContextSettings = cef_request_context_settings_t;

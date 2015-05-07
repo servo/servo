@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -86,13 +87,13 @@ pub struct _cef_web_plugin_info_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_web_plugin_info_t = _cef_web_plugin_info_t;
 
@@ -107,7 +108,8 @@ pub struct CefWebPluginInfo {
 impl Clone for CefWebPluginInfo {
   fn clone(&self) -> CefWebPluginInfo{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefWebPluginInfo {
@@ -120,7 +122,8 @@ impl Clone for CefWebPluginInfo {
 impl Drop for CefWebPluginInfo {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -135,7 +138,8 @@ impl CefWebPluginInfo {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_web_plugin_info_t) -> CefWebPluginInfo {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefWebPluginInfo {
@@ -149,7 +153,8 @@ impl CefWebPluginInfo {
 
   pub fn c_object_addrefed(&self) -> *mut cef_web_plugin_info_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -157,10 +162,10 @@ impl CefWebPluginInfo {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -168,7 +173,8 @@ impl CefWebPluginInfo {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_name(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -183,7 +189,8 @@ impl CefWebPluginInfo {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_path(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -198,7 +205,8 @@ impl CefWebPluginInfo {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_version(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -213,7 +221,8 @@ impl CefWebPluginInfo {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_description(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -240,7 +249,8 @@ impl CefWrap<*mut cef_web_plugin_info_t> for Option<CefWebPluginInfo> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_web_plugin_info_t) -> Option<CefWebPluginInfo> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefWebPluginInfo::from_c_object_addref(c_object))
@@ -273,13 +283,13 @@ pub struct _cef_web_plugin_info_visitor_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_web_plugin_info_visitor_t = _cef_web_plugin_info_visitor_t;
 
@@ -295,7 +305,8 @@ pub struct CefWebPluginInfoVisitor {
 impl Clone for CefWebPluginInfoVisitor {
   fn clone(&self) -> CefWebPluginInfoVisitor{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefWebPluginInfoVisitor {
@@ -308,7 +319,8 @@ impl Clone for CefWebPluginInfoVisitor {
 impl Drop for CefWebPluginInfoVisitor {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -323,7 +335,8 @@ impl CefWebPluginInfoVisitor {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_web_plugin_info_visitor_t) -> CefWebPluginInfoVisitor {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefWebPluginInfoVisitor {
@@ -337,7 +350,8 @@ impl CefWebPluginInfoVisitor {
 
   pub fn c_object_addrefed(&self) -> *mut cef_web_plugin_info_visitor_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -345,10 +359,10 @@ impl CefWebPluginInfoVisitor {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -359,7 +373,8 @@ impl CefWebPluginInfoVisitor {
   //
   pub fn visit(&self, info: interfaces::CefWebPluginInfo, count: libc::c_int,
       total: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -389,7 +404,8 @@ impl CefWrap<*mut cef_web_plugin_info_visitor_t> for Option<CefWebPluginInfoVisi
     }
   }
   unsafe fn to_rust(c_object: *mut cef_web_plugin_info_visitor_t) -> Option<CefWebPluginInfoVisitor> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefWebPluginInfoVisitor::from_c_object_addref(c_object))
@@ -421,13 +437,13 @@ pub struct _cef_web_plugin_unstable_callback_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_web_plugin_unstable_callback_t = _cef_web_plugin_unstable_callback_t;
 
@@ -443,7 +459,8 @@ pub struct CefWebPluginUnstableCallback {
 impl Clone for CefWebPluginUnstableCallback {
   fn clone(&self) -> CefWebPluginUnstableCallback{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefWebPluginUnstableCallback {
@@ -456,7 +473,8 @@ impl Clone for CefWebPluginUnstableCallback {
 impl Drop for CefWebPluginUnstableCallback {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -471,7 +489,8 @@ impl CefWebPluginUnstableCallback {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_web_plugin_unstable_callback_t) -> CefWebPluginUnstableCallback {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefWebPluginUnstableCallback {
@@ -485,7 +504,8 @@ impl CefWebPluginUnstableCallback {
 
   pub fn c_object_addrefed(&self) -> *mut cef_web_plugin_unstable_callback_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -493,10 +513,10 @@ impl CefWebPluginUnstableCallback {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -505,7 +525,8 @@ impl CefWebPluginUnstableCallback {
   // 120 seconds.
   //
   pub fn is_unstable(&self, path: &[u16], unstable: libc::c_int) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -534,7 +555,8 @@ impl CefWrap<*mut cef_web_plugin_unstable_callback_t> for Option<CefWebPluginUns
     }
   }
   unsafe fn to_rust(c_object: *mut cef_web_plugin_unstable_callback_t) -> Option<CefWebPluginUnstableCallback> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefWebPluginUnstableCallback::from_c_object_addref(c_object))

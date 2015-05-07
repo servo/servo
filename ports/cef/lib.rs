@@ -13,7 +13,7 @@
 #![feature(collections)]
 #![feature(negate_unsigned)]
 #![feature(unicode)]
-
+#![feature(unsafe_no_drop_flag, filling_drop)]
 #![allow(non_camel_case_types)]
 
 #![plugin(plugins)]

@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -43,10 +43,13 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
-// Implement this structure to provide handler implementations.
+// Implement this structure to provide handler implementations. The handler
+// instance will not be released until all objects related to the context have
+// been destroyed.
 //
 #[repr(C)]
 pub struct _cef_request_context_handler_t {
@@ -56,8 +59,9 @@ pub struct _cef_request_context_handler_t {
   pub base: types::cef_base_t,
 
   //
-  // Called on the IO thread to retrieve the cookie manager. The global cookie
-  // manager will be used if this function returns NULL.
+  // Called on the IO thread to retrieve the cookie manager. If this function
+  // returns NULL the default cookie manager retrievable via
+  // cef_request_tContext::get_default_cookie_manager() will be used.
   //
   pub get_cookie_manager: Option<extern "C" fn(
       this: *mut cef_request_context_handler_t) -> *mut interfaces::cef_cookie_manager_t>,
@@ -65,19 +69,21 @@ pub struct _cef_request_context_handler_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_request_context_handler_t = _cef_request_context_handler_t;
 
 
 //
-// Implement this structure to provide handler implementations.
+// Implement this structure to provide handler implementations. The handler
+// instance will not be released until all objects related to the context have
+// been destroyed.
 //
 pub struct CefRequestContextHandler {
   c_object: *mut cef_request_context_handler_t,
@@ -86,7 +92,8 @@ pub struct CefRequestContextHandler {
 impl Clone for CefRequestContextHandler {
   fn clone(&self) -> CefRequestContextHandler{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefRequestContextHandler {
@@ -99,7 +106,8 @@ impl Clone for CefRequestContextHandler {
 impl Drop for CefRequestContextHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -114,7 +122,8 @@ impl CefRequestContextHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_request_context_handler_t) -> CefRequestContextHandler {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefRequestContextHandler {
@@ -128,7 +137,8 @@ impl CefRequestContextHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_request_context_handler_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -136,18 +146,20 @@ impl CefRequestContextHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
-  // Called on the IO thread to retrieve the cookie manager. The global cookie
-  // manager will be used if this function returns NULL.
+  // Called on the IO thread to retrieve the cookie manager. If this function
+  // returns NULL the default cookie manager retrievable via
+  // cef_request_tContext::get_default_cookie_manager() will be used.
   //
   pub fn get_cookie_manager(&self) -> interfaces::CefCookieManager {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -174,7 +186,8 @@ impl CefWrap<*mut cef_request_context_handler_t> for Option<CefRequestContextHan
     }
   }
   unsafe fn to_rust(c_object: *mut cef_request_context_handler_t) -> Option<CefRequestContextHandler> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefRequestContextHandler::from_c_object_addref(c_object))

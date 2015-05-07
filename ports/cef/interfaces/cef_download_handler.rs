@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -68,13 +69,13 @@ pub struct _cef_before_download_callback_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_before_download_callback_t = _cef_before_download_callback_t;
 
@@ -89,7 +90,8 @@ pub struct CefBeforeDownloadCallback {
 impl Clone for CefBeforeDownloadCallback {
   fn clone(&self) -> CefBeforeDownloadCallback{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefBeforeDownloadCallback {
@@ -102,7 +104,8 @@ impl Clone for CefBeforeDownloadCallback {
 impl Drop for CefBeforeDownloadCallback {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -117,7 +120,8 @@ impl CefBeforeDownloadCallback {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_before_download_callback_t) -> CefBeforeDownloadCallback {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefBeforeDownloadCallback {
@@ -131,7 +135,8 @@ impl CefBeforeDownloadCallback {
 
   pub fn c_object_addrefed(&self) -> *mut cef_before_download_callback_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -139,10 +144,10 @@ impl CefBeforeDownloadCallback {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -152,7 +157,8 @@ impl CefBeforeDownloadCallback {
   // (1) if you do wish to show the default "Save As" dialog.
   //
   pub fn cont(&self, download_path: &[u16], show_dialog: libc::c_int) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -181,7 +187,8 @@ impl CefWrap<*mut cef_before_download_callback_t> for Option<CefBeforeDownloadCa
     }
   }
   unsafe fn to_rust(c_object: *mut cef_before_download_callback_t) -> Option<CefBeforeDownloadCallback> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefBeforeDownloadCallback::from_c_object_addref(c_object))
@@ -207,15 +214,27 @@ pub struct _cef_download_item_callback_t {
       )>,
 
   //
+  // Call to pause the download.
+  //
+  pub pause: Option<extern "C" fn(this: *mut cef_download_item_callback_t) -> (
+      )>,
+
+  //
+  // Call to resume the download.
+  //
+  pub resume: Option<extern "C" fn(this: *mut cef_download_item_callback_t) -> (
+      )>,
+
+  //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_download_item_callback_t = _cef_download_item_callback_t;
 
@@ -230,7 +249,8 @@ pub struct CefDownloadItemCallback {
 impl Clone for CefDownloadItemCallback {
   fn clone(&self) -> CefDownloadItemCallback{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefDownloadItemCallback {
@@ -243,7 +263,8 @@ impl Clone for CefDownloadItemCallback {
 impl Drop for CefDownloadItemCallback {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -258,7 +279,8 @@ impl CefDownloadItemCallback {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_download_item_callback_t) -> CefDownloadItemCallback {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefDownloadItemCallback {
@@ -272,7 +294,8 @@ impl CefDownloadItemCallback {
 
   pub fn c_object_addrefed(&self) -> *mut cef_download_item_callback_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -280,22 +303,53 @@ impl CefDownloadItemCallback {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
   // Call to cancel the download.
   //
   pub fn cancel(&self) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
       CefWrap::to_rust(
         ((*self.c_object).cancel.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Call to pause the download.
+  //
+  pub fn pause(&self) -> () {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).pause.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Call to resume the download.
+  //
+  pub fn resume(&self) -> () {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).resume.unwrap())(
           self.c_object))
     }
   }
@@ -317,7 +371,8 @@ impl CefWrap<*mut cef_download_item_callback_t> for Option<CefDownloadItemCallba
     }
   }
   unsafe fn to_rust(c_object: *mut cef_download_item_callback_t) -> Option<CefDownloadItemCallback> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefDownloadItemCallback::from_c_object_addref(c_object))
@@ -367,13 +422,13 @@ pub struct _cef_download_handler_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_download_handler_t = _cef_download_handler_t;
 
@@ -389,7 +444,8 @@ pub struct CefDownloadHandler {
 impl Clone for CefDownloadHandler {
   fn clone(&self) -> CefDownloadHandler{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefDownloadHandler {
@@ -402,7 +458,8 @@ impl Clone for CefDownloadHandler {
 impl Drop for CefDownloadHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -417,7 +474,8 @@ impl CefDownloadHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_download_handler_t) -> CefDownloadHandler {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefDownloadHandler {
@@ -431,7 +489,8 @@ impl CefDownloadHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_download_handler_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -439,10 +498,10 @@ impl CefDownloadHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -455,7 +514,8 @@ impl CefDownloadHandler {
   pub fn on_before_download(&self, browser: interfaces::CefBrowser,
       download_item: interfaces::CefDownloadItem, suggested_name: &[u16],
       callback: interfaces::CefBeforeDownloadCallback) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -479,7 +539,8 @@ impl CefDownloadHandler {
   pub fn on_download_updated(&self, browser: interfaces::CefBrowser,
       download_item: interfaces::CefDownloadItem,
       callback: interfaces::CefDownloadItemCallback) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -509,7 +570,8 @@ impl CefWrap<*mut cef_download_handler_t> for Option<CefDownloadHandler> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_download_handler_t) -> Option<CefDownloadHandler> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefDownloadHandler::from_c_object_addref(c_object))

@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -204,13 +205,13 @@ pub struct _cef_drag_data_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_drag_data_t = _cef_drag_data_t;
 
@@ -226,7 +227,8 @@ pub struct CefDragData {
 impl Clone for CefDragData {
   fn clone(&self) -> CefDragData{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefDragData {
@@ -239,7 +241,8 @@ impl Clone for CefDragData {
 impl Drop for CefDragData {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -254,7 +257,8 @@ impl CefDragData {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_drag_data_t) -> CefDragData {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefDragData {
@@ -268,7 +272,8 @@ impl CefDragData {
 
   pub fn c_object_addrefed(&self) -> *mut cef_drag_data_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -276,17 +281,18 @@ impl CefDragData {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
   // Returns a copy of the current object.
   //
   pub fn clone(&self) -> interfaces::CefDragData {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -300,7 +306,8 @@ impl CefDragData {
   // Returns true (1) if this object is read-only.
   //
   pub fn is_read_only(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -314,7 +321,8 @@ impl CefDragData {
   // Returns true (1) if the drag data is a link.
   //
   pub fn is_link(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -328,7 +336,8 @@ impl CefDragData {
   // Returns true (1) if the drag data is a text or html fragment.
   //
   pub fn is_fragment(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -342,7 +351,8 @@ impl CefDragData {
   // Returns true (1) if the drag data is a file.
   //
   pub fn is_file(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -357,7 +367,8 @@ impl CefDragData {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_link_url(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -372,7 +383,8 @@ impl CefDragData {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_link_title(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -387,7 +399,8 @@ impl CefDragData {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_link_metadata(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -402,7 +415,8 @@ impl CefDragData {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_fragment_text(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -417,7 +431,8 @@ impl CefDragData {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_fragment_html(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -433,7 +448,8 @@ impl CefDragData {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_fragment_base_url(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -448,7 +464,8 @@ impl CefDragData {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_file_name(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -466,7 +483,8 @@ impl CefDragData {
   //
   pub fn get_file_contents(&self,
       writer: interfaces::CefStreamWriter) -> libc::size_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -482,7 +500,8 @@ impl CefDragData {
   // window.
   //
   pub fn get_file_names(&self, names: Vec<String>) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -497,7 +516,8 @@ impl CefDragData {
   // Set the link URL that is being dragged.
   //
   pub fn set_link_url(&self, url: &[u16]) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -512,7 +532,8 @@ impl CefDragData {
   // Set the title associated with the link being dragged.
   //
   pub fn set_link_title(&self, title: &[u16]) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -527,7 +548,8 @@ impl CefDragData {
   // Set the metadata associated with the link being dragged.
   //
   pub fn set_link_metadata(&self, data: &[u16]) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -542,7 +564,8 @@ impl CefDragData {
   // Set the plain text fragment that is being dragged.
   //
   pub fn set_fragment_text(&self, text: &[u16]) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -557,7 +580,8 @@ impl CefDragData {
   // Set the text/html fragment that is being dragged.
   //
   pub fn set_fragment_html(&self, html: &[u16]) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -572,7 +596,8 @@ impl CefDragData {
   // Set the base URL that the fragment came from.
   //
   pub fn set_fragment_base_url(&self, base_url: &[u16]) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -589,7 +614,8 @@ impl CefDragData {
   // to drag in this kind of data.
   //
   pub fn reset_file_contents(&self) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -603,7 +629,8 @@ impl CefDragData {
   // Add a file that is being dragged into the webview.
   //
   pub fn add_file(&self, path: &[u16], display_name: &[u16]) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -643,7 +670,8 @@ impl CefWrap<*mut cef_drag_data_t> for Option<CefDragData> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_drag_data_t) -> Option<CefDragData> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefDragData::from_c_object_addref(c_object))

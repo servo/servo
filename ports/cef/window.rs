@@ -11,7 +11,7 @@ use eutil::Downcast;
 use interfaces::CefBrowser;
 use render_handler::CefRenderHandlerExtensions;
 use rustc_unicode::str::Utf16Encoder;
-use types::{cef_cursor_handle_t, cef_rect_t};
+use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t};
 
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
@@ -85,6 +85,33 @@ impl Window {
     /// Currently unimplemented.
     pub fn wait_events(&self) -> WindowEvent {
         WindowEvent::Idle
+    }
+
+    fn cursor_type_for_cursor(&self, cursor: Cursor) -> cef_cursor_type_t {
+        match cursor {
+            Cursor::NoCursor => return cef_cursor_type_t::CT_NONE,
+            Cursor::ContextMenuCursor => return cef_cursor_type_t::CT_CONTEXTMENU,
+            Cursor::GrabbingCursor => return cef_cursor_type_t::CT_GRABBING,
+            Cursor::CrosshairCursor => return cef_cursor_type_t::CT_CROSS,
+            Cursor::CopyCursor => return cef_cursor_type_t::CT_COPY,
+            Cursor::AliasCursor => return cef_cursor_type_t::CT_ALIAS,
+            Cursor::TextCursor => return cef_cursor_type_t::CT_IBEAM,
+            Cursor::GrabCursor | Cursor::AllScrollCursor =>
+                return cef_cursor_type_t::CT_GRAB,
+            Cursor::NoDropCursor => return cef_cursor_type_t::CT_NODROP,
+            Cursor::NotAllowedCursor => return cef_cursor_type_t::CT_NOTALLOWED,
+            Cursor::PointerCursor => return cef_cursor_type_t::CT_POINTER,
+            Cursor::SResizeCursor => return cef_cursor_type_t::CT_SOUTHRESIZE,
+            Cursor::WResizeCursor => return cef_cursor_type_t::CT_WESTRESIZE,
+            Cursor::EwResizeCursor => return cef_cursor_type_t::CT_EASTWESTRESIZE,
+            Cursor::ColResizeCursor => return cef_cursor_type_t::CT_COLUMNRESIZE,
+            Cursor::EResizeCursor => return cef_cursor_type_t::CT_EASTRESIZE,
+            Cursor::NResizeCursor => return cef_cursor_type_t::CT_NORTHRESIZE,
+            Cursor::NsResizeCursor => return cef_cursor_type_t::CT_NORTHSOUTHRESIZE,
+            Cursor::RowResizeCursor => return cef_cursor_type_t::CT_ROWRESIZE,
+            Cursor::VerticalTextCursor => return cef_cursor_type_t::CT_VERTICALTEXT,
+            _ => return cef_cursor_type_t::CT_POINTER,
+        }
     }
 
     /// Returns the Cocoa cursor for a CSS cursor. These match Firefox, except where Firefox
@@ -307,15 +334,18 @@ impl WindowMethods for Window {
     }
 
     fn set_cursor(&self, cursor: Cursor) {
+        use types::{CefCursorInfo,cef_point_t,cef_size_t};
         let browser = self.cef_browser.borrow();
         match *browser {
             None => {}
             Some(ref browser) => {
                 let cursor_handle = self.cursor_handle_for_cursor(cursor);
+                let info = CefCursorInfo { hotspot: cef_point_t {x: 0, y: 0}, image_scale_factor: 0.0, buffer: 0 as *mut isize, size: cef_size_t { width: 0, height: 0 } };
                 browser.get_host()
                        .get_client()
                        .get_render_handler()
-                       .on_cursor_change(browser.clone(), cursor_handle)
+                       .on_cursor_change(browser.clone(), cursor_handle,
+                         self.cursor_type_for_cursor(cursor), &info)
             }
         }
     }

@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -277,13 +278,13 @@ pub struct _cef_xml_reader_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_xml_reader_t = _cef_xml_reader_t;
 
@@ -300,7 +301,8 @@ pub struct CefXmlReader {
 impl Clone for CefXmlReader {
   fn clone(&self) -> CefXmlReader{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefXmlReader {
@@ -313,7 +315,8 @@ impl Clone for CefXmlReader {
 impl Drop for CefXmlReader {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -328,7 +331,8 @@ impl CefXmlReader {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_xml_reader_t) -> CefXmlReader {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefXmlReader {
@@ -342,7 +346,8 @@ impl CefXmlReader {
 
   pub fn c_object_addrefed(&self) -> *mut cef_xml_reader_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -350,10 +355,10 @@ impl CefXmlReader {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -362,7 +367,8 @@ impl CefXmlReader {
   // if the cursor position was set successfully.
   //
   pub fn move_to_next_node(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -377,7 +383,8 @@ impl CefXmlReader {
   // occurs on the correct thread.
   //
   pub fn close(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -391,7 +398,8 @@ impl CefXmlReader {
   // Returns true (1) if an error has been reported by the XML parser.
   //
   pub fn has_error(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -406,7 +414,8 @@ impl CefXmlReader {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_error(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -424,7 +433,8 @@ impl CefXmlReader {
   // Returns the node type.
   //
   pub fn get_type(&self) -> types::cef_xml_node_type_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -438,7 +448,8 @@ impl CefXmlReader {
   // Returns the node depth. Depth starts at 0 for the root node.
   //
   pub fn get_depth(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -454,7 +465,8 @@ impl CefXmlReader {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_local_name(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -470,7 +482,8 @@ impl CefXmlReader {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_prefix(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -486,7 +499,8 @@ impl CefXmlReader {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_qualified_name(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -502,7 +516,8 @@ impl CefXmlReader {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_namespace_uri(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -518,7 +533,8 @@ impl CefXmlReader {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_base_uri(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -534,7 +550,8 @@ impl CefXmlReader {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_xml_lang(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -549,7 +566,8 @@ impl CefXmlReader {
   // NULL but <a></a> is not.
   //
   pub fn is_empty_element(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -563,7 +581,8 @@ impl CefXmlReader {
   // Returns true (1) if the node has a text value.
   //
   pub fn has_value(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -578,7 +597,8 @@ impl CefXmlReader {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_value(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -592,7 +612,8 @@ impl CefXmlReader {
   // Returns true (1) if the node has attributes.
   //
   pub fn has_attributes(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -606,7 +627,8 @@ impl CefXmlReader {
   // Returns the number of attributes.
   //
   pub fn get_attribute_count(&self) -> libc::size_t {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -621,7 +643,8 @@ impl CefXmlReader {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_attribute_byindex(&self, index: libc::c_int) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -637,7 +660,8 @@ impl CefXmlReader {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_attribute_byqname(&self, qualifiedName: &[u16]) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -655,7 +679,8 @@ impl CefXmlReader {
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_attribute_bylname(&self, localName: &[u16],
       namespaceURI: &[u16]) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -672,7 +697,8 @@ impl CefXmlReader {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_inner_xml(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -687,7 +713,8 @@ impl CefXmlReader {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_outer_xml(&self) -> String {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -701,7 +728,8 @@ impl CefXmlReader {
   // Returns the line number for the current node.
   //
   pub fn get_line_number(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -722,7 +750,8 @@ impl CefXmlReader {
   // true (1) if the cursor position was set successfully.
   //
   pub fn move_to_attribute_byindex(&self, index: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -739,7 +768,8 @@ impl CefXmlReader {
   //
   pub fn move_to_attribute_byqname(&self,
       qualifiedName: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -757,7 +787,8 @@ impl CefXmlReader {
   //
   pub fn move_to_attribute_bylname(&self, localName: &[u16],
       namespaceURI: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -774,7 +805,8 @@ impl CefXmlReader {
   // true (1) if the cursor position was set successfully.
   //
   pub fn move_to_first_attribute(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -789,7 +821,8 @@ impl CefXmlReader {
   // (1) if the cursor position was set successfully.
   //
   pub fn move_to_next_attribute(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -804,7 +837,8 @@ impl CefXmlReader {
   // cursor position was set successfully.
   //
   pub fn move_to_carrying_element(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -847,7 +881,8 @@ impl CefWrap<*mut cef_xml_reader_t> for Option<CefXmlReader> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_xml_reader_t) -> Option<CefXmlReader> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefXmlReader::from_c_object_addref(c_object))

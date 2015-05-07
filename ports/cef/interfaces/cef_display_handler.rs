@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -43,6 +43,7 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
@@ -70,6 +71,13 @@ pub struct _cef_display_handler_t {
   pub on_title_change: Option<extern "C" fn(this: *mut cef_display_handler_t,
       browser: *mut interfaces::cef_browser_t,
       title: *const types::cef_string_t) -> ()>,
+
+  //
+  // Called when the page icon changes.
+  //
+  pub on_favicon_urlchange: Option<extern "C" fn(
+      this: *mut cef_display_handler_t, browser: *mut interfaces::cef_browser_t,
+      icon_urls: types::cef_string_list_t) -> ()>,
 
   //
   // Called when the browser is about to display a tooltip. |text| contains the
@@ -103,13 +111,13 @@ pub struct _cef_display_handler_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_display_handler_t = _cef_display_handler_t;
 
@@ -125,7 +133,8 @@ pub struct CefDisplayHandler {
 impl Clone for CefDisplayHandler {
   fn clone(&self) -> CefDisplayHandler{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefDisplayHandler {
@@ -138,7 +147,8 @@ impl Clone for CefDisplayHandler {
 impl Drop for CefDisplayHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -153,7 +163,8 @@ impl CefDisplayHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_display_handler_t) -> CefDisplayHandler {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefDisplayHandler {
@@ -167,7 +178,8 @@ impl CefDisplayHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_display_handler_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -175,10 +187,10 @@ impl CefDisplayHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -186,7 +198,8 @@ impl CefDisplayHandler {
   //
   pub fn on_address_change(&self, browser: interfaces::CefBrowser,
       frame: interfaces::CefFrame, url: &[u16]) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -204,7 +217,8 @@ impl CefDisplayHandler {
   //
   pub fn on_title_change(&self, browser: interfaces::CefBrowser,
       title: &[u16]) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -213,6 +227,24 @@ impl CefDisplayHandler {
           self.c_object,
           CefWrap::to_c(browser),
           CefWrap::to_c(title)))
+    }
+  }
+
+  //
+  // Called when the page icon changes.
+  //
+  pub fn on_favicon_urlchange(&self, browser: interfaces::CefBrowser,
+      icon_urls: Vec<String>) -> () {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).on_favicon_urlchange.unwrap())(
+          self.c_object,
+          CefWrap::to_c(browser),
+          CefWrap::to_c(icon_urls)))
     }
   }
 
@@ -226,7 +258,8 @@ impl CefDisplayHandler {
   //
   pub fn on_tooltip(&self, browser: interfaces::CefBrowser,
       text: *mut types::cef_string_t) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -244,7 +277,8 @@ impl CefDisplayHandler {
   //
   pub fn on_status_message(&self, browser: interfaces::CefBrowser,
       value: &[u16]) -> () {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -262,7 +296,8 @@ impl CefDisplayHandler {
   //
   pub fn on_console_message(&self, browser: interfaces::CefBrowser,
       message: &[u16], source: &[u16], line: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -293,7 +328,8 @@ impl CefWrap<*mut cef_display_handler_t> for Option<CefDisplayHandler> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_display_handler_t) -> Option<CefDisplayHandler> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefDisplayHandler::from_c_object_addref(c_object))

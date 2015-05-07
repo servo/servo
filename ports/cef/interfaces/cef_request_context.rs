@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -43,22 +43,24 @@ use wrappers::CefWrap;
 
 use libc;
 use std::collections::HashMap;
+use std::mem;
 use std::ptr;
 
 //
-// A request context provides request handling for a set of related browser
-// objects. A request context is specified when creating a new browser object
-// via the cef_browser_host_t static factory functions. Browser objects with
-// different request contexts will never be hosted in the same render process.
-// Browser objects with the same request context may or may not be hosted in the
-// same render process depending on the process model. Browser objects created
-// indirectly via the JavaScript window.open function or targeted links will
-// share the same render process and the same request context as the source
-// browser. When running in single-process mode there is only a single render
-// process (the main process) and so all browsers created in single-process mode
-// will share the same request context. This will be the first request context
-// passed into a cef_browser_host_t static factory function and all other
-// request context objects will be ignored.
+// A request context provides request handling for a set of related browser or
+// URL request objects. A request context can be specified when creating a new
+// browser via the cef_browser_host_t static factory functions or when creating
+// a new URL request via the cef_urlrequest_t static factory functions. Browser
+// objects with different request contexts will never be hosted in the same
+// render process. Browser objects with the same request context may or may not
+// be hosted in the same render process depending on the process model. Browser
+// objects created indirectly via the JavaScript window.open function or
+// targeted links will share the same render process and the same request
+// context as the source browser. When running in single-process mode there is
+// only a single render process (the main process) and so all browsers created
+// in single-process mode will share the same request context. This will be the
+// first request context passed into a cef_browser_host_t static factory
+// function and all other request context objects will be ignored.
 //
 #[repr(C)]
 pub struct _cef_request_context_t {
@@ -75,7 +77,16 @@ pub struct _cef_request_context_t {
       other: *mut interfaces::cef_request_context_t) -> libc::c_int>,
 
   //
-  // Returns true (1) if this object is the global context.
+  // Returns true (1) if this object is sharing the same storage as |that|
+  // object.
+  //
+  pub is_sharing_with: Option<extern "C" fn(this: *mut cef_request_context_t,
+      other: *mut interfaces::cef_request_context_t) -> libc::c_int>,
+
+  //
+  // Returns true (1) if this object is the global context. The global context
+  // is used by default when creating a browser or URL request with a NULL
+  // context argument.
   //
   pub is_global: Option<extern "C" fn(
       this: *mut cef_request_context_t) -> libc::c_int>,
@@ -87,33 +98,79 @@ pub struct _cef_request_context_t {
       this: *mut cef_request_context_t) -> *mut interfaces::cef_request_context_handler_t>,
 
   //
+  // Returns the cache path for this object. If NULL an "incognito mode" in-
+  // memory cache is being used.
+  //
+  // The resulting string must be freed by calling cef_string_userfree_free().
+  pub get_cache_path: Option<extern "C" fn(
+      this: *mut cef_request_context_t) -> types::cef_string_userfree_t>,
+
+  //
+  // Returns the default cookie manager for this object. This will be the global
+  // cookie manager if this object is the global request context. Otherwise,
+  // this will be the default cookie manager used when this request context does
+  // not receive a value via cef_request_tContextHandler::get_cookie_manager().
+  // If |callback| is non-NULL it will be executed asnychronously on the IO
+  // thread after the manager's storage has been initialized.
+  //
+  pub get_default_cookie_manager: Option<extern "C" fn(
+      this: *mut cef_request_context_t,
+      callback: *mut interfaces::cef_completion_callback_t) -> *mut interfaces::cef_cookie_manager_t>,
+
+  //
+  // Register a scheme handler factory for the specified |scheme_name| and
+  // optional |domain_name|. An NULL |domain_name| value for a standard scheme
+  // will cause the factory to match all domain names. The |domain_name| value
+  // will be ignored for non-standard schemes. If |scheme_name| is a built-in
+  // scheme and no handler is returned by |factory| then the built-in scheme
+  // handler factory will be called. If |scheme_name| is a custom scheme then
+  // you must also implement the cef_app_t::on_register_custom_schemes()
+  // function in all processes. This function may be called multiple times to
+  // change or remove the factory that matches the specified |scheme_name| and
+  // optional |domain_name|. Returns false (0) if an error occurs. This function
+  // may be called on any thread in the browser process.
+  //
+  pub register_scheme_handler_factory: Option<extern "C" fn(
+      this: *mut cef_request_context_t, scheme_name: *const types::cef_string_t,
+      domain_name: *const types::cef_string_t,
+      factory: *mut interfaces::cef_scheme_handler_factory_t) -> libc::c_int>,
+
+  //
+  // Clear all registered scheme handler factories. Returns false (0) on error.
+  // This function may be called on any thread in the browser process.
+  //
+  pub clear_scheme_handler_factories: Option<extern "C" fn(
+      this: *mut cef_request_context_t) -> libc::c_int>,
+
+  //
   // The reference count. This will only be present for Rust instances!
   //
-  pub ref_count: usize,
+  pub ref_count: u32,
 
   //
   // Extra data. This will only be present for Rust instances!
   //
   pub extra: u8,
-} 
+}
 
 pub type cef_request_context_t = _cef_request_context_t;
 
 
 //
-// A request context provides request handling for a set of related browser
-// objects. A request context is specified when creating a new browser object
-// via the cef_browser_host_t static factory functions. Browser objects with
-// different request contexts will never be hosted in the same render process.
-// Browser objects with the same request context may or may not be hosted in the
-// same render process depending on the process model. Browser objects created
-// indirectly via the JavaScript window.open function or targeted links will
-// share the same render process and the same request context as the source
-// browser. When running in single-process mode there is only a single render
-// process (the main process) and so all browsers created in single-process mode
-// will share the same request context. This will be the first request context
-// passed into a cef_browser_host_t static factory function and all other
-// request context objects will be ignored.
+// A request context provides request handling for a set of related browser or
+// URL request objects. A request context can be specified when creating a new
+// browser via the cef_browser_host_t static factory functions or when creating
+// a new URL request via the cef_urlrequest_t static factory functions. Browser
+// objects with different request contexts will never be hosted in the same
+// render process. Browser objects with the same request context may or may not
+// be hosted in the same render process depending on the process model. Browser
+// objects created indirectly via the JavaScript window.open function or
+// targeted links will share the same render process and the same request
+// context as the source browser. When running in single-process mode there is
+// only a single render process (the main process) and so all browsers created
+// in single-process mode will share the same request context. This will be the
+// first request context passed into a cef_browser_host_t static factory
+// function and all other request context objects will be ignored.
 //
 pub struct CefRequestContext {
   c_object: *mut cef_request_context_t,
@@ -122,7 +179,8 @@ pub struct CefRequestContext {
 impl Clone for CefRequestContext {
   fn clone(&self) -> CefRequestContext{
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefRequestContext {
@@ -135,7 +193,8 @@ impl Clone for CefRequestContext {
 impl Drop for CefRequestContext {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -150,7 +209,8 @@ impl CefRequestContext {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_request_context_t) -> CefRequestContext {
-    if !c_object.is_null() {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefRequestContext {
@@ -164,7 +224,8 @@ impl CefRequestContext {
 
   pub fn c_object_addrefed(&self) -> *mut cef_request_context_t {
     unsafe {
-      if !self.c_object.is_null() {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -172,10 +233,10 @@ impl CefRequestContext {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null()
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null()
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
   }
 
   //
@@ -183,7 +244,8 @@ impl CefRequestContext {
   // object.
   //
   pub fn is_same(&self, other: interfaces::CefRequestContext) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -195,10 +257,31 @@ impl CefRequestContext {
   }
 
   //
-  // Returns true (1) if this object is the global context.
+  // Returns true (1) if this object is sharing the same storage as |that|
+  // object.
+  //
+  pub fn is_sharing_with(&self,
+      other: interfaces::CefRequestContext) -> libc::c_int {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).is_sharing_with.unwrap())(
+          self.c_object,
+          CefWrap::to_c(other)))
+    }
+  }
+
+  //
+  // Returns true (1) if this object is the global context. The global context
+  // is used by default when creating a browser or URL request with a NULL
+  // context argument.
   //
   pub fn is_global(&self) -> libc::c_int {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -212,12 +295,98 @@ impl CefRequestContext {
   // Returns the handler for this context if any.
   //
   pub fn get_handler(&self) -> interfaces::CefRequestContextHandler {
-    if self.c_object.is_null() {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
       CefWrap::to_rust(
         ((*self.c_object).get_handler.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns the cache path for this object. If NULL an "incognito mode" in-
+  // memory cache is being used.
+  //
+  // The resulting string must be freed by calling cef_string_userfree_free().
+  pub fn get_cache_path(&self) -> String {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_cache_path.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Returns the default cookie manager for this object. This will be the global
+  // cookie manager if this object is the global request context. Otherwise,
+  // this will be the default cookie manager used when this request context does
+  // not receive a value via cef_request_tContextHandler::get_cookie_manager().
+  // If |callback| is non-NULL it will be executed asnychronously on the IO
+  // thread after the manager's storage has been initialized.
+  //
+  pub fn get_default_cookie_manager(&self,
+      callback: interfaces::CefCompletionCallback) -> interfaces::CefCookieManager {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_default_cookie_manager.unwrap())(
+          self.c_object,
+          CefWrap::to_c(callback)))
+    }
+  }
+
+  //
+  // Register a scheme handler factory for the specified |scheme_name| and
+  // optional |domain_name|. An NULL |domain_name| value for a standard scheme
+  // will cause the factory to match all domain names. The |domain_name| value
+  // will be ignored for non-standard schemes. If |scheme_name| is a built-in
+  // scheme and no handler is returned by |factory| then the built-in scheme
+  // handler factory will be called. If |scheme_name| is a custom scheme then
+  // you must also implement the cef_app_t::on_register_custom_schemes()
+  // function in all processes. This function may be called multiple times to
+  // change or remove the factory that matches the specified |scheme_name| and
+  // optional |domain_name|. Returns false (0) if an error occurs. This function
+  // may be called on any thread in the browser process.
+  //
+  pub fn register_scheme_handler_factory(&self, scheme_name: &[u16],
+      domain_name: &[u16],
+      factory: interfaces::CefSchemeHandlerFactory) -> libc::c_int {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).register_scheme_handler_factory.unwrap())(
+          self.c_object,
+          CefWrap::to_c(scheme_name),
+          CefWrap::to_c(domain_name),
+          CefWrap::to_c(factory)))
+    }
+  }
+
+  //
+  // Clear all registered scheme handler factories. Returns false (0) on error.
+  // This function may be called on any thread in the browser process.
+  //
+  pub fn clear_scheme_handler_factories(&self) -> libc::c_int {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).clear_scheme_handler_factories.unwrap())(
           self.c_object))
     }
   }
@@ -234,13 +403,29 @@ impl CefRequestContext {
   }
 
   //
-  // Creates a new context object with the specified handler.
+  // Creates a new context object with the specified |settings| and optional
+  // |handler|.
   //
-  pub fn create_context(
+  pub fn create_context(settings: &interfaces::CefRequestContextSettings,
       handler: interfaces::CefRequestContextHandler) -> interfaces::CefRequestContext {
     unsafe {
       CefWrap::to_rust(
         ::request_context::cef_request_context_create_context(
+          CefWrap::to_c(settings),
+          CefWrap::to_c(handler)))
+    }
+  }
+
+  //
+  // Creates a new context object that shares storage with |other| and uses an
+  // optional |handler|.
+  //
+  pub fn create_context_shared(other: interfaces::CefRequestContext,
+      handler: interfaces::CefRequestContextHandler) -> interfaces::CefRequestContext {
+    unsafe {
+      CefWrap::to_rust(
+        ::request_context::cef_request_context_create_context_shared(
+          CefWrap::to_c(other),
           CefWrap::to_c(handler)))
     }
   }
@@ -262,7 +447,8 @@ impl CefWrap<*mut cef_request_context_t> for Option<CefRequestContext> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_request_context_t) -> Option<CefRequestContext> {
-    if c_object.is_null() {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
       Some(CefRequestContext::from_c_object_addref(c_object))

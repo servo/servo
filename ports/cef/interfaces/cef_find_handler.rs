@@ -47,23 +47,28 @@ use std::mem;
 use std::ptr;
 
 //
-// Implement this structure to receive geolocation updates. The functions of
-// this structure will be called on the browser process UI thread.
+// Implement this structure to handle events related to find results. The
+// functions of this structure will be called on the UI thread.
 //
 #[repr(C)]
-pub struct _cef_get_geolocation_callback_t {
+pub struct _cef_find_handler_t {
   //
   // Base structure.
   //
   pub base: types::cef_base_t,
 
   //
-  // Called with the 'best available' location information or, if the location
-  // update failed, with error information.
+  // Called to report find results returned by cef_browser_host_t::find().
+  // |identifer| is the identifier passed to find(), |count| is the number of
+  // matches currently identified, |selectionRect| is the location of where the
+  // match was found (in window coordinates), |activeMatchOrdinal| is the
+  // current position in the search results, and |finalUpdate| is true (1) if
+  // this is the last find notification.
   //
-  pub on_location_update: Option<extern "C" fn(
-      this: *mut cef_get_geolocation_callback_t,
-      position: *const interfaces::cef_geoposition_t) -> ()>,
+  pub on_find_result: Option<extern "C" fn(this: *mut cef_find_handler_t,
+      browser: *mut interfaces::cef_browser_t, identifier: libc::c_int,
+      count: libc::c_int, selectionRect: *const types::cef_rect_t,
+      activeMatchOrdinal: libc::c_int, finalUpdate: libc::c_int) -> ()>,
 
   //
   // The reference count. This will only be present for Rust instances!
@@ -76,32 +81,32 @@ pub struct _cef_get_geolocation_callback_t {
   pub extra: u8,
 }
 
-pub type cef_get_geolocation_callback_t = _cef_get_geolocation_callback_t;
+pub type cef_find_handler_t = _cef_find_handler_t;
 
 
 //
-// Implement this structure to receive geolocation updates. The functions of
-// this structure will be called on the browser process UI thread.
+// Implement this structure to handle events related to find results. The
+// functions of this structure will be called on the UI thread.
 //
-pub struct CefGetGeolocationCallback {
-  c_object: *mut cef_get_geolocation_callback_t,
+pub struct CefFindHandler {
+  c_object: *mut cef_find_handler_t,
 }
 
-impl Clone for CefGetGeolocationCallback {
-  fn clone(&self) -> CefGetGeolocationCallback{
+impl Clone for CefFindHandler {
+  fn clone(&self) -> CefFindHandler{
     unsafe {
       if !self.c_object.is_null() &&
           self.c_object as usize != mem::POST_DROP_USIZE {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
-      CefGetGeolocationCallback {
+      CefFindHandler {
         c_object: self.c_object,
       }
     }
   }
 }
 
-impl Drop for CefGetGeolocationCallback {
+impl Drop for CefFindHandler {
   fn drop(&mut self) {
     unsafe {
       if !self.c_object.is_null() &&
@@ -112,28 +117,28 @@ impl Drop for CefGetGeolocationCallback {
   }
 }
 
-impl CefGetGeolocationCallback {
-  pub unsafe fn from_c_object(c_object: *mut cef_get_geolocation_callback_t) -> CefGetGeolocationCallback {
-    CefGetGeolocationCallback {
+impl CefFindHandler {
+  pub unsafe fn from_c_object(c_object: *mut cef_find_handler_t) -> CefFindHandler {
+    CefFindHandler {
       c_object: c_object,
     }
   }
 
-  pub unsafe fn from_c_object_addref(c_object: *mut cef_get_geolocation_callback_t) -> CefGetGeolocationCallback {
+  pub unsafe fn from_c_object_addref(c_object: *mut cef_find_handler_t) -> CefFindHandler {
     if !c_object.is_null() &&
         c_object as usize != mem::POST_DROP_USIZE {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
-    CefGetGeolocationCallback {
+    CefFindHandler {
       c_object: c_object,
     }
   }
 
-  pub fn c_object(&self) -> *mut cef_get_geolocation_callback_t {
+  pub fn c_object(&self) -> *mut cef_find_handler_t {
     self.c_object
   }
 
-  pub fn c_object_addrefed(&self) -> *mut cef_get_geolocation_callback_t {
+  pub fn c_object_addrefed(&self) -> *mut cef_find_handler_t {
     unsafe {
       if !self.c_object.is_null() &&
           self.c_object as usize != mem::POST_DROP_USIZE {
@@ -151,45 +156,56 @@ impl CefGetGeolocationCallback {
   }
 
   //
-  // Called with the 'best available' location information or, if the location
-  // update failed, with error information.
+  // Called to report find results returned by cef_browser_host_t::find().
+  // |identifer| is the identifier passed to find(), |count| is the number of
+  // matches currently identified, |selectionRect| is the location of where the
+  // match was found (in window coordinates), |activeMatchOrdinal| is the
+  // current position in the search results, and |finalUpdate| is true (1) if
+  // this is the last find notification.
   //
-  pub fn on_location_update(&self, position: &interfaces::CefGeoposition) -> (
-      ) {
+  pub fn on_find_result(&self, browser: interfaces::CefBrowser,
+      identifier: libc::c_int, count: libc::c_int,
+      selectionRect: &types::cef_rect_t, activeMatchOrdinal: libc::c_int,
+      finalUpdate: libc::c_int) -> () {
     if self.c_object.is_null() ||
        self.c_object as usize == mem::POST_DROP_USIZE {
       panic!("called a CEF method on a null object")
     }
     unsafe {
       CefWrap::to_rust(
-        ((*self.c_object).on_location_update.unwrap())(
+        ((*self.c_object).on_find_result.unwrap())(
           self.c_object,
-          CefWrap::to_c(position)))
+          CefWrap::to_c(browser),
+          CefWrap::to_c(identifier),
+          CefWrap::to_c(count),
+          CefWrap::to_c(selectionRect),
+          CefWrap::to_c(activeMatchOrdinal),
+          CefWrap::to_c(finalUpdate)))
     }
   }
 } 
 
-impl CefWrap<*mut cef_get_geolocation_callback_t> for CefGetGeolocationCallback {
-  fn to_c(rust_object: CefGetGeolocationCallback) -> *mut cef_get_geolocation_callback_t {
+impl CefWrap<*mut cef_find_handler_t> for CefFindHandler {
+  fn to_c(rust_object: CefFindHandler) -> *mut cef_find_handler_t {
     rust_object.c_object_addrefed()
   }
-  unsafe fn to_rust(c_object: *mut cef_get_geolocation_callback_t) -> CefGetGeolocationCallback {
-    CefGetGeolocationCallback::from_c_object_addref(c_object)
+  unsafe fn to_rust(c_object: *mut cef_find_handler_t) -> CefFindHandler {
+    CefFindHandler::from_c_object_addref(c_object)
   }
 }
-impl CefWrap<*mut cef_get_geolocation_callback_t> for Option<CefGetGeolocationCallback> {
-  fn to_c(rust_object: Option<CefGetGeolocationCallback>) -> *mut cef_get_geolocation_callback_t {
+impl CefWrap<*mut cef_find_handler_t> for Option<CefFindHandler> {
+  fn to_c(rust_object: Option<CefFindHandler>) -> *mut cef_find_handler_t {
     match rust_object {
       None => ptr::null_mut(),
       Some(rust_object) => rust_object.c_object_addrefed(),
     }
   }
-  unsafe fn to_rust(c_object: *mut cef_get_geolocation_callback_t) -> Option<CefGetGeolocationCallback> {
+  unsafe fn to_rust(c_object: *mut cef_find_handler_t) -> Option<CefFindHandler> {
     if c_object.is_null() &&
        c_object as usize != mem::POST_DROP_USIZE {
       None
     } else {
-      Some(CefGetGeolocationCallback::from_c_object_addref(c_object))
+      Some(CefFindHandler::from_c_object_addref(c_object))
     }
   }
 }

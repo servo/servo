@@ -66,7 +66,7 @@ macro_rules! full_cef_class_impl(
                     // Calculate the offset of the reference count. This is the size of the
                     // structure.
                     let null: *const $c_interface_name = ::std::ptr::null();
-                    let offset: *const usize = &(*null).ref_count;
+                    let offset: *const u32 = &(*null).ref_count;
                     let size = (offset as ::libc::size_t) - (null as ::libc::size_t);
                     $interface_name::from_c_object_addref(
                         ::eutil::create_cef_object::<$c_interface_name,$class_name>(size))
