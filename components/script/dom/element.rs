@@ -47,7 +47,7 @@ use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElementTypeId;
 use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementHelpers};
-use dom::htmliframeelement::{HTMLIFrameElement, RawLayoutHTMLIFrameElementHelpers};
+use dom::htmliframeelement::{HTMLIFrameElement, RawHTMLIFrameElementHelpers};
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers, HTMLInputElementHelpers};
 use dom::htmltableelement::{HTMLTableElement, HTMLTableElementHelpers};
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
@@ -335,10 +335,7 @@ impl RawLayoutElementHelpers for Element {
 
         let width = if self.is_htmliframeelement() {
             let this: &HTMLIFrameElement = mem::transmute(self);
-            match this.get_width() {
-                None => LengthOrPercentageOrAuto::Auto,
-                Some(width) => LengthOrPercentageOrAuto::Length(Au::from_px(width as i32)),
-            }
+            this.get_width()
         } else if self.is_htmltableelement() {
             let this: &HTMLTableElement = mem::transmute(self);
             this.get_width()
@@ -372,11 +369,19 @@ impl RawLayoutElementHelpers for Element {
             None
         };
 
-        if let Some(height) = height {
-            let height_value = specified::LengthOrPercentageOrAuto::Length(
-                specified::Length::Absolute(Au::from_px(height as i32)));
-            hints.push(from_declaration(PropertyDeclaration::Height(SpecifiedValue(
-                            height::SpecifiedValue(height_value)))));
+        match height {
+            LengthOrPercentageOrAuto::Auto => {}
+            LengthOrPercentageOrAuto::Percentage(percentage) => {
+                let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
+                hints.push(from_declaration(PropertyDeclaration::Width(SpecifiedValue(
+                                height::SpecifiedValue(width_value)))));
+            }
+            LengthOrPercentageOrAuto::Length(length) => {
+                let width_value = specified::LengthOrPercentageOrAuto::Length(
+                    specified::Length::Absolute(length));
+                hints.push(from_declaration(PropertyDeclaration::Width(SpecifiedValue(
+                                height::SpecifiedValue(width_value)))));
+            }
         }
 
 

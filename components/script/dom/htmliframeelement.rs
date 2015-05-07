@@ -37,6 +37,7 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use url::{Url, UrlParser};
+use util::str::{self, LengthOrPercentageOrAuto};
 
 enum SandboxAllowance {
     AllowNothing = 0x00,
@@ -71,6 +72,11 @@ pub trait HTMLIFrameElementHelpers {
     fn navigate_child_browsing_context(self, url: Url);
     fn dispatch_mozbrowser_event(self, event: MozBrowserEvent);
     fn update_subpage_id(self, new_subpage_id: SubpageId);
+}
+
+pub trait RawHTMLIFrameElementHelpers {
+    fn get_width(&self) -> LengthOrPercentageOrAuto;
+    fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
@@ -160,18 +166,27 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
     }
 }
 
-pub trait RawLayoutHTMLIFrameElementHelpers {
-    fn get_width(&self) -> Option<u32>;
-    fn get_height(&self) -> Option<u32>;
-}
-
-impl RawLayoutHTMLIFrameElementHelpers for HTMLIFrameElement {
-    fn get_width(&self) -> Option<u32> {
-        self.width.get()
+impl RawHTMLIFrameElementHelpers for HTMLIFrameElement {
+    #[allow(unsafe_code)]
+    fn get_width(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            element::get_attr_for_layout(ElementCast::from_actual(&*self),
+                                         &ns!(""),
+                                         &atom!("width")).map(|attribute| {
+                str::parse_length(&**(*attribute.unsafe_get()).value())
+            }).unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
     }
 
-    fn get_height(&self) -> Option<u32> {
-        self.height.get()
+    #[allow(unsafe_code)]
+    fn get_height(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            element::get_attr_for_layout(ElementCast::from_actual(&*self),
+                                         &ns!(""),
+                                         &atom!("height")).map(|attribute| {
+                str::parse_length(&**(*attribute.unsafe_get()).value())
+            }).unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
     }
 }
 
