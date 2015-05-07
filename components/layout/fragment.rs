@@ -1813,14 +1813,7 @@ impl Fragment {
                                                  block_flow.base.position.size.block +
                                                  block_flow.fragment.margin.block_start_end())
             }
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
-                // Hypothetical boxes take up no space.
-                InlineMetrics {
-                    block_size_above_baseline: Au(0),
-                    depth_below_baseline: Au(0),
-                    ascent: Au(0),
-                }
-            }
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) => {
                 // Hypothetical boxes take up no space.
                 InlineMetrics {
