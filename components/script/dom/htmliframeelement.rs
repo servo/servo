@@ -12,7 +12,7 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::NotSupported;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, LayoutJS, OptionalRootable, Rootable, Temporary};
+use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary};
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{self, AttributeHandlers, Element};
@@ -37,6 +37,7 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use url::{Url, UrlParser};
+use util::str::{self, LengthOrPercentageOrAuto};
 
 enum SandboxAllowance {
     AllowNothing = 0x00,
@@ -71,6 +72,11 @@ pub trait HTMLIFrameElementHelpers {
     fn navigate_child_browsing_context(self, url: Url);
     fn dispatch_mozbrowser_event(self, event: MozBrowserEvent);
     fn update_subpage_id(self, new_subpage_id: SubpageId);
+}
+
+pub trait RawHTMLIFrameElementHelpers {
+    fn get_width(&self) -> LengthOrPercentageOrAuto;
+    fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
@@ -157,6 +163,30 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 
     fn update_subpage_id(self, new_subpage_id: SubpageId) {
         self.subpage_id.set(Some(new_subpage_id));
+    }
+}
+
+impl RawHTMLIFrameElementHelpers for HTMLIFrameElement {
+    #[allow(unsafe_code)]
+    fn get_width(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            element::get_attr_for_layout(ElementCast::from_actual(&*self),
+                                         &ns!(""),
+                                         &atom!("width")).map(|attribute| {
+                str::parse_length(&**(*attribute.unsafe_get()).value())
+            }).unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_height(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            element::get_attr_for_layout(ElementCast::from_actual(&*self),
+                                         &ns!(""),
+                                         &atom!("height")).map(|attribute| {
+                str::parse_length(&**(*attribute.unsafe_get()).value())
+            }).unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
     }
 }
 
@@ -390,38 +420,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         if tree_in_doc {
             self.process_the_iframe_attributes();
         }
-    }
-}
-
-pub trait LayoutHTMLIFrameElementHelpers {
-    #[allow(unsafe_code)]
-    unsafe fn get_iframe_width(&self) -> Option<u32>;
-    #[allow(unsafe_code)]
-    unsafe fn get_iframe_height(&self) -> Option<u32>;
-}
-
-impl LayoutHTMLIFrameElementHelpers for LayoutJS<HTMLIFrameElement> {
-    #[allow(unsafe_code)]
-    unsafe fn get_iframe_width(&self) -> Option<u32> {
-        element::get_attr_for_layout(ElementCast::from_actual(&*self.unsafe_get()),
-                                     &ns!(""),
-                                     &atom!("width")).map(|attribute| {
-            match *(*attribute.unsafe_get()).value() {
-                AttrValue::UInt(_, value) => value,
-                _ => panic!("expected an `AttrValue::UInt()`"),
-            }
-        })
-    }
-    #[allow(unsafe_code)]
-    unsafe fn get_iframe_height(&self) -> Option<u32> {
-        element::get_attr_for_layout(ElementCast::from_actual(&*self.unsafe_get()),
-                                     &ns!(""),
-                                     &atom!("height")).map(|attribute| {
-            match *(*attribute.unsafe_get()).value() {
-                AttrValue::UInt(_, value) => value,
-                _ => panic!("expected an `AttrValue::UInt()`"),
-            }
-        })
     }
 }
 

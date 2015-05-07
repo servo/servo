@@ -13,7 +13,7 @@ use node::TElementAttributes;
 use values::{CSSFloat, specified};
 use properties::DeclaredValue::SpecifiedValue;
 use properties::PropertyDeclaration;
-use properties::longhands::{self, border_spacing};
+use properties::longhands::{self, border_spacing, height};
 use selector_matching::Stylist;
 
 use util::geometry::Au;
@@ -214,14 +214,16 @@ impl PresentationalHintSynthesis for Stylist {
                         let height_value = specified::LengthOrPercentageOrAuto::Percentage(
                             percentage);
                         matching_rules_list.push(from_declaration(
-                                PropertyDeclaration::Height(SpecifiedValue(height_value))));
+                                PropertyDeclaration::Height(SpecifiedValue(
+                                        height::SpecifiedValue(height_value)))));
                         *shareable = false
                     }
                     LengthOrPercentageOrAuto::Length(length) => {
                         let height_value = specified::LengthOrPercentageOrAuto::Length(
                             specified::Length::Absolute(length));
                         matching_rules_list.push(from_declaration(
-                                PropertyDeclaration::Height(SpecifiedValue(height_value))));
+                                PropertyDeclaration::Height(SpecifiedValue(
+                                        height::SpecifiedValue(height_value)))));
                         *shareable = false
                     }
                 }

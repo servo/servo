@@ -17,7 +17,8 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLInputElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLIFrameElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCellElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTextAreaElementDerived};
@@ -45,6 +46,7 @@ use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElementTypeId;
+use dom::htmliframeelement::{HTMLIFrameElement, RawHTMLIFrameElementHelpers};
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers, HTMLInputElementHelpers};
 use dom::htmltableelement::{HTMLTableElement, HTMLTableElementHelpers};
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
@@ -274,8 +276,19 @@ impl RawLayoutElementHelpers for Element {
                 } else if self.is_htmltablecellelement() {
                     let this: &HTMLTableCellElement = mem::transmute(self);
                     this.get_width()
+                } else if self.is_htmliframeelement() {
+                    let this: &HTMLIFrameElement = mem::transmute(self);
+                    this.get_width()
                 } else {
-                    panic!("I'm not a table or table cell!")
+                    panic!("I'm not a table, table cell, or iframe!")
+                }
+            }
+            LengthAttribute::Height => {
+                if self.is_htmliframeelement() {
+                    let this: &HTMLIFrameElement = mem::transmute(self);
+                    this.get_height()
+                } else {
+                    panic!("I'm not an iframe!")
                 }
             }
         }
