@@ -884,11 +884,8 @@ impl LayoutTask {
             }
         }
         if needs_reflow {
-            match self.try_get_layout_root(*node) {
-                None => {}
-                Some(mut flow) => {
-                    LayoutTask::reflow_all_nodes(&mut *flow);
-                }
+            if let Some(mut flow) = self.try_get_layout_root(*node) {
+                LayoutTask::reflow_all_nodes(&mut *flow);
             }
         }
 
@@ -899,28 +896,30 @@ impl LayoutTask {
                                                                          &self.url,
                                                                          data.reflow_info.goal);
 
-        // Recalculate CSS styles and rebuild flows and fragments.
-        profile(time::ProfilerCategory::LayoutStyleRecalc,
-                self.profiler_metadata(),
-                self.time_profiler_chan.clone(),
-                || {
-            // Perform CSS selector matching and flow construction.
-            let rw_data = &mut *rw_data;
-            match rw_data.parallel_traversal {
-                None => {
-                    sequential::traverse_dom_preorder(*node, &shared_layout_context);
+        if node.is_dirty() || node.has_dirty_descendants() || rw_data.stylist.is_dirty() {
+            // Recalculate CSS styles and rebuild flows and fragments.
+            profile(time::ProfilerCategory::LayoutStyleRecalc,
+                    self.profiler_metadata(),
+                    self.time_profiler_chan.clone(),
+                    || {
+                // Perform CSS selector matching and flow construction.
+                let rw_data = &mut *rw_data;
+                match rw_data.parallel_traversal {
+                    None => {
+                        sequential::traverse_dom_preorder(*node, &shared_layout_context);
+                    }
+                    Some(ref mut traversal) => {
+                        parallel::traverse_dom_preorder(*node, &shared_layout_context, traversal);
+                    }
                 }
-                Some(ref mut traversal) => {
-                    parallel::traverse_dom_preorder(*node, &shared_layout_context, traversal);
-                }
-            }
-        });
+            });
 
-        // Retrieve the (possibly rebuilt) root flow.
-        rw_data.root_flow = Some(self.get_layout_root((*node).clone()));
+            // Retrieve the (possibly rebuilt) root flow.
+            rw_data.root_flow = Some(self.get_layout_root((*node).clone()));
 
-        // Kick off animations if any were triggered.
-        animation::process_new_animations(&mut *rw_data, self.id);
+            // Kick off animations if any were triggered.
+            animation::process_new_animations(&mut *rw_data, self.id);
+        }
 
         // Perform post-style recalculation layout passes.
         self.perform_post_style_recalc_layout_passes(&data.reflow_info,

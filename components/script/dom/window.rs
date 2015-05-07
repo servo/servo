@@ -490,6 +490,7 @@ pub trait WindowHelpers {
     fn init_browser_context(self, doc: JSRef<Document>, frame_element: Option<JSRef<Element>>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
+    fn force_reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason);
     fn reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason);
     fn join_layout(self);
     fn layout(&self) -> &LayoutRPC;
@@ -566,24 +567,19 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         *self.browser_context.borrow_mut() = None;
     }
 
-    /// Reflows the page if it's possible to do so and the page is dirty. This method will wait
-    /// for the layout thread to complete (but see the `TODO` below). If there is no window size
-    /// yet, the page is presumed invisible and no reflow is performed.
+    /// Reflows the page unconditionally. This method will wait for the layout thread to complete
+    /// (but see the `TODO` below). If there is no window size yet, the page is presumed invisible
+    /// and no reflow is performed.
     ///
     /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
-    fn reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
+    fn force_reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
         let document = self.Document().root();
         let root = document.r().GetDocumentElement().root();
         let root = match root.r() {
             Some(root) => root,
             None => return,
         };
-
         let root: JSRef<Node> = NodeCast::from_ref(root);
-        if query_type == ReflowQueryType::NoQuery && !root.get_has_dirty_descendants() {
-            debug!("root has no dirty descendants; avoiding reflow (reason {:?})", reason);
-            return
-        }
 
         let window_size = match self.window_size.get() {
             Some(window_size) => window_size,
@@ -640,6 +636,28 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             let marker = TimelineMarker::new("Reflow".to_owned(), TracingMetadata::IntervalEnd);
             self.emit_timeline_marker(marker);
         }
+    }
+
+    /// Reflows the page if it's possible to do so and the page is dirty. This method will wait
+    /// for the layout thread to complete (but see the `TODO` below). If there is no window size
+    /// yet, the page is presumed invisible and no reflow is performed.
+    ///
+    /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
+    fn reflow(self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
+        let document = self.Document().root();
+        let root = document.r().GetDocumentElement().root();
+        let root = match root.r() {
+            Some(root) => root,
+            None => return,
+        };
+
+        let root: JSRef<Node> = NodeCast::from_ref(root);
+        if query_type == ReflowQueryType::NoQuery && !root.get_has_dirty_descendants() {
+            debug!("root has no dirty descendants; avoiding reflow (reason {:?})", reason);
+            return
+        }
+
+        self.force_reflow(goal, query_type, reason)
     }
 
     // FIXME(cgaebel): join_layout is racey. What if the compositor triggers a

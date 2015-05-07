@@ -820,7 +820,7 @@ impl ScriptTask {
                 let window = inner_page.window().root();
                 if window.r().set_page_clip_rect_with_new_viewport(rect) {
                     let page = get_page(page, id);
-                    self.force_reflow(&*page, ReflowReason::Viewport);
+                    self.rebuild_and_force_reflow(&*page, ReflowReason::Viewport);
                 }
                 return;
             }
@@ -884,7 +884,7 @@ impl ScriptTask {
 
         let needed_reflow = page.set_reflow_status(false);
         if needed_reflow {
-            self.force_reflow(&*page, ReflowReason::CachedPageNeededReflow);
+            self.rebuild_and_force_reflow(&*page, ReflowReason::CachedPageNeededReflow);
         }
 
         let window = page.window().root();
@@ -1200,8 +1200,8 @@ impl ScriptTask {
         self.compositor.borrow_mut().scroll_fragment_point(pipeline_id, LayerId::null(), point);
     }
 
-    /// Reflows non-incrementally.
-    fn force_reflow(&self, page: &Page, reason: ReflowReason) {
+    /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
+    fn rebuild_and_force_reflow(&self, page: &Page, reason: ReflowReason) {
         let document = page.document().root();
         document.r().dirty_all_nodes();
         let window = window_from_node(document.r()).root();
@@ -1322,7 +1322,9 @@ impl ScriptTask {
         let page = get_page(&self.root_page(), pipeline_id);
         let window = page.window().root();
         window.r().set_window_size(new_size);
-        self.force_reflow(&*page, ReflowReason::WindowResize);
+        window.r().force_reflow(ReflowGoal::ForDisplay,
+                                ReflowQueryType::NoQuery,
+                                ReflowReason::WindowResize);
 
         let document = page.document().root();
         let fragment_node = window.r().steal_fragment_name()
