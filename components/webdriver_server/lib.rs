@@ -158,8 +158,8 @@ impl Handler {
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id,
-                                                           WebDriverScriptCommand::FindElementCSS(parameters.value.clone(), sender))).unwrap();
+        let cmd = WebDriverScriptCommand::FindElementCSS(parameters.value.clone(), sender);
+        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
         match reciever.recv().unwrap() {
             Ok(value) => {
                 Ok(WebDriverResponse::Generic(ValueResponse::new(value.map(|x| WebElement::new(x).to_json()).to_json())))
@@ -179,12 +179,12 @@ impl Handler {
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id,
-                                                           WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender))).unwrap();
+        let cmd = WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender);
+        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
         match reciever.recv().unwrap() {
             Ok(value) => {
-                let resp_value: Vec<Json> = value.iter().map(
-                    |x| WebElement::new(x.clone()).to_json()).collect();
+                let resp_value: Vec<Json> = value.into_iter().map(
+                    |x| WebElement::new(x).to_json()).collect();
                 Ok(WebDriverResponse::Generic(ValueResponse::new(resp_value.to_json())))
             }
             Err(_) => Err(WebDriverError::new(ErrorStatus::InvalidSelector,
@@ -197,8 +197,8 @@ impl Handler {
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id,
-                                                           WebDriverScriptCommand::GetElementText(element.id.clone(), sender))).unwrap();
+        let cmd = WebDriverScriptCommand::GetElementText(element.id.clone(), sender);
+        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
         match reciever.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
             Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
@@ -211,8 +211,8 @@ impl Handler {
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id,
-                                                           WebDriverScriptCommand::GetElementTagName(element.id.clone(), sender))).unwrap();
+        let cmd = WebDriverScriptCommand::GetElementTagName(element.id.clone(), sender);
+        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
         match reciever.recv().unwrap() {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
             Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
