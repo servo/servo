@@ -15,12 +15,11 @@ use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 use util::fnv::FnvHasher;
-use util::logical_geometry::{WritingMode, LogicalMargin};
+use util::logical_geometry::{ LogicalMargin, PhysicalSide, WritingMode};
 use util::geometry::Au;
 use url::Url;
 use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
                 DeclarationListParser, parse_important, ToCss};
-use geom::num::Zero;
 use geom::SideOffsets2D;
 use geom::size::Size2D;
 
@@ -5747,22 +5746,53 @@ pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValues>) {
 pub fn modify_style_for_inline_sides(style: &mut Arc<ComputedValues>,
                                      is_first_fragment_of_element: bool,
                                      is_last_fragment_of_element: bool) {
-    if !is_first_fragment_of_element {
+    fn modify_side(style: &mut Arc<ComputedValues>, side: PhysicalSide) {
         let mut style = style.make_unique();
-        let mut border = style.border.make_unique();
-        border.border_left_width = Au(0);
-        border.border_left_style = BorderStyle::none;
-        style.padding.make_unique().padding_left = computed::LengthOrPercentage::Length(Au(0));
-        style.margin.make_unique().margin_left = computed::LengthOrPercentageOrAuto::Length(Au(0))
+        let border = style.border.make_unique();
+        match side {
+            PhysicalSide::Left => {
+                border.border_left_width = Au(0);
+                border.border_left_style = BorderStyle::none;
+                style.padding.make_unique().padding_left =
+                    computed::LengthOrPercentage::Length(Au(0));
+                style.margin.make_unique().margin_left =
+                    computed::LengthOrPercentageOrAuto::Length(Au(0))
+            }
+            PhysicalSide::Right => {
+                border.border_right_width = Au(0);
+                border.border_right_style = BorderStyle::none;
+                style.padding.make_unique().padding_right =
+                    computed::LengthOrPercentage::Length(Au(0));
+                style.margin.make_unique().margin_right =
+                    computed::LengthOrPercentageOrAuto::Length(Au(0))
+            }
+            PhysicalSide::Bottom => {
+                border.border_bottom_width = Au(0);
+                border.border_bottom_style = BorderStyle::none;
+                style.padding.make_unique().padding_bottom =
+                    computed::LengthOrPercentage::Length(Au(0));
+                style.margin.make_unique().margin_bottom =
+                    computed::LengthOrPercentageOrAuto::Length(Au(0))
+            }
+            PhysicalSide::Top => {
+                border.border_top_width = Au(0);
+                border.border_top_style = BorderStyle::none;
+                style.padding.make_unique().padding_top =
+                    computed::LengthOrPercentage::Length(Au(0));
+                style.margin.make_unique().margin_top =
+                    computed::LengthOrPercentageOrAuto::Length(Au(0))
+            }
+        }
+    }
+
+    if !is_first_fragment_of_element {
+        let side = style.writing_mode.inline_start_physical_side();
+        modify_side(style, side)
     }
 
     if !is_last_fragment_of_element {
-        let mut style = style.make_unique();
-        let mut border = style.border.make_unique();
-        border.border_right_width = Au(0);
-        border.border_right_style = BorderStyle::none;
-        style.padding.make_unique().padding_right = computed::LengthOrPercentage::Length(Au(0));
-        style.margin.make_unique().margin_right = computed::LengthOrPercentageOrAuto::Length(Au(0))
+        let side = style.writing_mode.inline_end_physical_side();
+        modify_side(style, side)
     }
 }
 
