@@ -330,11 +330,6 @@ source = "git+https://github.com/servo/libfreetype2#50c1cf412d87f20ccbb940e39a14
 [[package]]
 name = "gcc"
 version = "0.3.4"
-source = "git+https://github.com/alexcrichton/gcc-rs#9596a4e6da55e5ddbad6fd645b9727aae6b545ef"
-
-[[package]]
-name = "gcc"
-version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -380,7 +375,7 @@ dependencies = [
  "script_traits 0.0.1",
  "skia 0.0.20130412 (git+https://github.com/servo/skia)",
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
- "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
+ "string_cache 0.1.0 (git+https://github.com/servo/string-cache)",
  "style 0.0.1",
  "time 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.31 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -506,8 +501,8 @@ dependencies = [
  "mac 0.0.2 (git+https://github.com/reem/rust-mac)",
  "phf 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_macros 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
- "string_cache_plugin 0.0.0 (git+https://github.com/servo/string-cache)",
+ "string_cache 0.1.0 (git+https://github.com/servo/string-cache)",
+ "string_cache_plugin 0.1.1 (git+https://github.com/servo/string-cache)",
  "time 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -623,8 +618,8 @@ dependencies = [
  "script 0.0.1",
  "script_traits 0.0.1",
  "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
- "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
- "string_cache_plugin 0.0.0 (git+https://github.com/servo/string-cache)",
+ "string_cache 0.1.0 (git+https://github.com/servo/string-cache)",
+ "string_cache_plugin 0.1.1 (git+https://github.com/servo/string-cache)",
  "style 0.0.1",
  "url 0.2.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
@@ -642,11 +637,6 @@ dependencies = [
  "url 0.2.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
-
-[[package]]
-name = "lazy_static"
-version = "0.1.10"
-source = "git+https://github.com/Kimundi/lazy-static.rs#1366fce0e706ee8530c88b80039946c4c7e1f993"
 
 [[package]]
 name = "lazy_static"
@@ -678,6 +668,11 @@ dependencies = [
 name = "mac"
 version = "0.0.2"
 source = "git+https://github.com/reem/rust-mac#6316d3f4663756180fd236b126a84e245e978765"
+
+[[package]]
+name = "mac"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "malloc_buf"
@@ -754,7 +749,7 @@ dependencies = [
  "time 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
- "uuid 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uuid 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -896,9 +891,9 @@ dependencies = [
 [[package]]
 name = "png"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-png#811e4d339441dd34fb087fc895e1619ba882933f"
+source = "git+https://github.com/servo/rust-png#80e765ed1880ea70a8326a13964f57657b9e6fa9"
 dependencies = [
- "gcc 0.3.4 (git+https://github.com/alexcrichton/gcc-rs)",
+ "gcc 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "png-sys 1.6.16 (git+https://github.com/servo/rust-png)",
 ]
@@ -906,7 +901,7 @@ dependencies = [
 [[package]]
 name = "png-sys"
 version = "1.6.16"
-source = "git+https://github.com/servo/rust-png#811e4d339441dd34fb087fc895e1619ba882933f"
+source = "git+https://github.com/servo/rust-png#80e765ed1880ea70a8326a13964f57657b9e6fa9"
 
 [[package]]
 name = "profile"
@@ -983,14 +978,14 @@ dependencies = [
  "rustc-serialize 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_traits 0.0.1",
  "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
- "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
- "string_cache_plugin 0.0.0 (git+https://github.com/servo/string-cache)",
+ "string_cache 0.1.0 (git+https://github.com/servo/string-cache)",
+ "string_cache_plugin 0.1.1 (git+https://github.com/servo/string-cache)",
  "style 0.0.1",
  "time 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
- "uuid 0.1.16 (git+https://github.com/rust-lang/uuid)",
+ "uuid 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "webdriver_traits 0.0.1",
  "websocket 0.11.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1019,8 +1014,8 @@ dependencies = [
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "quicksort 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
- "string_cache_plugin 0.0.0 (git+https://github.com/servo/string-cache)",
+ "string_cache 0.1.0 (git+https://github.com/servo/string-cache)",
+ "string_cache_plugin 0.1.1 (git+https://github.com/servo/string-cache)",
 ]
 
 [[package]]
@@ -1071,24 +1066,31 @@ dependencies = [
 
 [[package]]
 name = "string_cache"
-version = "0.0.0"
-source = "git+https://github.com/servo/string-cache#385c4ac197742e355631209be3613c8a9c7594b6"
+version = "0.1.0"
+source = "git+https://github.com/servo/string-cache#c5912f925e9c1db7dbe4a7980fbc3eed08eef51d"
 dependencies = [
- "lazy_static 0.1.10 (git+https://github.com/Kimundi/lazy-static.rs)",
+ "lazy_static 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_macros 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_plugin 0.0.0 (git+https://github.com/servo/string-cache)",
+ "string_cache_plugin 0.1.1 (git+https://github.com/servo/string-cache)",
+ "string_cache_shared 0.1.0 (git+https://github.com/servo/string-cache)",
 ]
 
 [[package]]
 name = "string_cache_plugin"
-version = "0.0.0"
-source = "git+https://github.com/servo/string-cache#385c4ac197742e355631209be3613c8a9c7594b6"
+version = "0.1.1"
+source = "git+https://github.com/servo/string-cache#c5912f925e9c1db7dbe4a7980fbc3eed08eef51d"
 dependencies = [
- "lazy_static 0.1.10 (git+https://github.com/Kimundi/lazy-static.rs)",
- "mac 0.0.2 (git+https://github.com/reem/rust-mac)",
+ "lazy_static 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_shared 0.1.0 (git+https://github.com/servo/string-cache)",
 ]
+
+[[package]]
+name = "string_cache_shared"
+version = "0.1.0"
+source = "git+https://github.com/servo/string-cache#c5912f925e9c1db7dbe4a7980fbc3eed08eef51d"
 
 [[package]]
 name = "style"
@@ -1098,15 +1100,15 @@ dependencies = [
  "cssparser 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "lazy_static 0.1.10 (git+https://github.com/Kimundi/lazy-static.rs)",
+ "lazy_static 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "mod_path 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "rustc-serialize 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
- "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
- "string_cache_plugin 0.0.0 (git+https://github.com/servo/string-cache)",
+ "string_cache 0.1.0 (git+https://github.com/servo/string-cache)",
+ "string_cache_plugin 0.1.1 (git+https://github.com/servo/string-cache)",
  "url 0.2.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
@@ -1179,7 +1181,7 @@ dependencies = [
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
- "lazy_static 0.1.10 (git+https://github.com/Kimundi/lazy-static.rs)",
+ "lazy_static 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1188,23 +1190,14 @@ dependencies = [
  "rustc-serialize 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
  "smallvec 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
- "string_cache_plugin 0.0.0 (git+https://github.com/servo/string-cache)",
+ "string_cache 0.1.0 (git+https://github.com/servo/string-cache)",
+ "string_cache_plugin 0.1.1 (git+https://github.com/servo/string-cache)",
  "time 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "uuid"
-version = "0.1.16"
-source = "git+https://github.com/rust-lang/uuid#7c767220c41746d346c8195e31ddf090ac6568e7"
-dependencies = [
- "rand 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "uuid"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "rand 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1220,7 +1213,7 @@ dependencies = [
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "uuid 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uuid 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1231,7 +1224,7 @@ dependencies = [
  "rustc-serialize 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
- "uuid 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uuid 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "webdriver 0.1.0 (git+https://github.com/jgraham/webdriver-rust.git)",
  "webdriver_traits 0.0.1",
 ]

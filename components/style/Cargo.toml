@@ -21,9 +21,6 @@ git = "https://github.com/servo/rust-geom"
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
 
-[dependencies.lazy_static]
-git = "https://github.com/Kimundi/lazy-static.rs"
-
 [dependencies.string_cache]
 git = "https://github.com/servo/string-cache"
 
@@ -39,3 +36,4 @@ mod_path = "0.1"
 bitflags = "*"
 cssparser = "0.3.1"
 num = "0.1.24"
+lazy_static = "0.1.10"
