@@ -1124,32 +1124,43 @@ impl InlineFlow {
         self.base.restyle_damage = damage;
     }
 
-    fn containing_block_range_for_flow(&self, flow: OpaqueFlow) -> Range<FragmentIndex> {
-        let mut fragment_iterator = self.fragments.fragments.iter().enumerate();
-        let mut start_index = 0;
-        while let Some((index, fragment)) = fragment_iterator.next() {
-            if fragment.style.get_box().position == position::T::static_ {
-                start_index = index as isize + 1;
-                continue
-            }
+    fn containing_block_range_for_flow_surrounding_fragment_at_index(&self,
+                                                                     fragment_index: FragmentIndex)
+                                                                     -> Range<FragmentIndex> {
+        let mut start_index = fragment_index;
+        while start_index > FragmentIndex(0) &&
+                self.fragments
+                    .fragments[(start_index - FragmentIndex(1)).get() as usize]
+                    .style
+                    .get_box()
+                    .position == position::T::static_ {
+            start_index = start_index - FragmentIndex(1)
+        }
 
-            if let SpecificFragmentInfo::InlineAbsolute(ref info) = fragment.specific {
-                let this_flow = OpaqueFlow::from_flow(&*info.flow_ref);
-                if this_flow == flow {
-                    break
+        let mut end_index = fragment_index + FragmentIndex(1);
+        while end_index < FragmentIndex(self.fragments.fragments.len() as isize) &&
+                self.fragments
+                    .fragments[end_index.get() as usize]
+                    .style
+                    .get_box()
+                    .position == position::T::static_ {
+            end_index = end_index + FragmentIndex(1)
+        }
+
+        Range::new(start_index, end_index - start_index)
+    }
+
+    fn containing_block_range_for_flow(&self, opaque_flow: OpaqueFlow) -> Range<FragmentIndex> {
+        let index = FragmentIndex(self.fragments.fragments.iter().position(|fragment| {
+            match fragment.specific {
+                SpecificFragmentInfo::InlineAbsolute(ref inline_absolute) => {
+                    OpaqueFlow::from_flow(&*inline_absolute.flow_ref) == opaque_flow
                 }
+                _ => false,
             }
-        }
-
-        let mut end_index = start_index + 1;
-        for (index, fragment) in fragment_iterator {
-            if fragment.style.get_box().position == position::T::static_ {
-                break
-            }
-            end_index = index as isize + 1
-        }
-
-        Range::new(FragmentIndex(start_index), FragmentIndex(end_index - start_index))
+        }).expect("containing_block_range_for_flow(): couldn't find inline absolute fragment!")
+                                 as isize);
+        self.containing_block_range_for_flow_surrounding_fragment_at_index(index)
     }
 }
 
@@ -1458,20 +1469,18 @@ impl Flow for InlineFlow {
         // First, gather up the positions of all the containing blocks (if any).
         let mut containing_block_positions = Vec::new();
         let container_size = Size2D(self.base.block_container_inline_size, Au(0));
-        for fragment in self.fragments.fragments.iter() {
-            if let SpecificFragmentInfo::InlineAbsolute(ref info) = fragment.specific {
+        for (fragment_index, fragment) in self.fragments.fragments.iter().enumerate() {
+            if let SpecificFragmentInfo::InlineAbsolute(_) = fragment.specific {
                 let containing_block_range =
-                    self.containing_block_range_for_flow(OpaqueFlow::from_flow(&*info.flow_ref));
+                    self.containing_block_range_for_flow_surrounding_fragment_at_index(
+                        FragmentIndex(fragment_index as isize));
                 let first_fragment_index = containing_block_range.begin().get() as usize;
-                if first_fragment_index < self.fragments.fragments.len() {
-                    let first_fragment = &self.fragments.fragments[first_fragment_index];
-                    let padding_box_origin = (first_fragment.border_box -
-                                              first_fragment.style.logical_border_width()).start;
-                    containing_block_positions.push(
-                        padding_box_origin.to_physical(self.base.writing_mode, container_size));
-                } else {
-                    containing_block_positions.push(ZERO_POINT);
-                }
+                debug_assert!(first_fragment_index < self.fragments.fragments.len());
+                let first_fragment = &self.fragments.fragments[first_fragment_index];
+                let padding_box_origin = (first_fragment.border_box -
+                                          first_fragment.style.logical_border_width()).start;
+                containing_block_positions.push(
+                    padding_box_origin.to_physical(self.base.writing_mode, container_size));
             }
         }
 
@@ -1581,10 +1590,9 @@ impl Flow for InlineFlow {
     }
 
     fn contains_relatively_positioned_fragments(&self) -> bool {
-        let result = self.fragments.fragments.iter().any(|fragment| {
+        self.fragments.fragments.iter().any(|fragment| {
             fragment.style.get_box().position == position::T::relative
-        });
-        result
+        })
     }
 
     fn generated_containing_block_size(&self, for_flow: OpaqueFlow) -> LogicalSize<Au> {
@@ -1593,8 +1601,8 @@ impl Flow for InlineFlow {
             let fragment = &self.fragments.fragments[index.get() as usize];
             containing_block_size.inline = containing_block_size.inline +
                 fragment.border_box.size.inline;
-            containing_block_size.block = Au::max(containing_block_size.block,
-                                                  fragment.border_box.size.block)
+            containing_block_size.block = max(containing_block_size.block,
+                                              fragment.border_box.size.block)
         }
         containing_block_size
     }
