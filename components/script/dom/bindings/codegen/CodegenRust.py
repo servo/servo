@@ -2852,7 +2852,7 @@ let mut v = UndefinedValue();
 if JS_GetProperty(cx, *obj.unnamed_field1, b"%s".as_ptr() as *const i8, &mut v) == 0 {
     return 0;
 }
-if (!v.is_object()) {
+if !v.is_object() {
     throw_type_error(cx, "Value.%s is not an object.");
     return 0;
 }
