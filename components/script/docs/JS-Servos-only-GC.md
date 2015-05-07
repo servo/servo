@@ -128,12 +128,10 @@ pub trait JSTraceable {
 ```
 
 Any type which can be traced will provide a `trace` method. We will implement
-this method with a [custom attribute][custom] `#[jstraceable]`, or
-`#[dom_struct]` which implies it.
+this method with a custom attribute `#[jstraceable]`, or `#[dom_struct]` which
+implies it.
 
 XXX: something about the implementation?
-
-[custom]: XXX
 
 Let's look at [Servo's implementation][document-rs] of the DOM's
 [`Document`][document-mdn] interface:
@@ -230,7 +228,7 @@ most cases, lifetimes are [inferred][ti] and don't need to be written out in
 the source code. Inferred or not, the presence of lifetime information allows
 the compiler to reject use-after-free and other dangerous bugs.
 
-[lifetimes]: http://doc.rust-lang.org/book/lifetimes.html
+[lifetimes]: https://doc.rust-lang.org/book/lifetimes.html
 [ti]: https://en.wikipedia.org/wiki/Type_inference
 
 Not only do lifetimes protect Rust's built-in reference type, we can use them
@@ -251,7 +249,7 @@ pointing to, e.g. `Window`. The somewhat odd syntax `'a` is a
 that object is rooted. Crucially, this lets us write a [method][root-r] on
 `Root` with the following signature:
 
-[named-lifetime]: http://doc.rust-lang.org/book/lifetimes.html#lifetimes
+[named-lifetime]: https://doc.rust-lang.org/book/lifetimes.html#lifetimes
 [root-r]: http://doc.servo.org/script/dom/bindings/js/struct.Root.html#method.r
 
 ```rust
@@ -271,7 +269,7 @@ is how we extend the lifetime system to enforce our application-specific
 property about garbage collector rooting. If we try to compile something like
 this:
 
-[phantom]: http://doc.rust-lang.org/std/marker/struct.PhantomData.html
+[phantom]: https://doc.rust-lang.org/std/marker/struct.PhantomData.html
 
 ```rust
 fn bogus_get_window<'a>(&'a self) -> JSRef<'a, Window> {
@@ -282,38 +280,37 @@ fn bogus_get_window<'a>(&'a self) -> JSRef<'a, Window> {
 
 we get an error:
 
-XXX
-<pre class="sourceCode">`document.rs:199:9: 199:15 <span style="color: red">error:</span> <b>`window` does not live long enough</b>
-document.rs:199     window.root_ref()
-                    <span style="color: red">^~~~~~</span>
-document.rs:197:57: 200:6 <span style="color: green">note:</span> <b>reference must be valid for
-    the lifetime "a as defined on the block at 197:56...</b>
-document.rs:197 fn bogus_get_window<"a>(&amp;self) -> JSRef<"a, Window> {
-document.rs:198     let window = self.window.root();
-document.rs:199     window.root_ref()
-document.rs:200 }
-document.rs:197:57: 200:6 <span style="color: green">note:</span> <b>...but borrowed value is only
-    valid for the block at 197:56</b>
-document.rs:197 fn bogus_get_window<"a>(&amp;self) -> JSRef<"a, Window> {
-document.rs:198     let window = self.window.root();
-document.rs:199     window.root_ref()
-document.rs:200 }</pre>
+```
+document.rs:975:5: 975:11 error: `window` does not live long enough
+document.rs:975     window.r()  // return the JSRef
+                    ^~~~~~
+document.rs:973:56: 976:2 note: reference must be valid for the lifetime 'a as defined on the block at 973:55...
+document.rs:973 fn bogus_get_window<'a>(&'a self) -> JSRef<'a, Window> {
+document.rs:974     let window = self.window.root();
+document.rs:975     window.r()  // return the JSRef
+document.rs:976 }
+document.rs:974:37: 976:2 note: ...but borrowed value is only valid for the block suffix following statement 0 at 974:36
+document.rs:974     let window = self.window.root();
+document.rs:975     window.r()  // return the JSRef
+document.rs:976 }
+```
 
 We also implement the [`Deref` trait][deref] for `JSRef<T>`. This allows us to
 access fields of the underlying type `T` through a `JSRef<T>`. Because `JS<T>`
 does *not* implement `Deref` or otherwise provide access to the underlying
 pointer, we have to root an object before using it.
 
-[deref]: http://doc.rust-lang.org/std/ops/trait.Deref.html
+[deref]: https://doc.rust-lang.org/std/ops/trait.Deref.html
 
-The DOM methods of `Window` (for example) are defined in a trait which is
-[implemented][windowmethods] for `JSRef<Window>`. This ensures that the
-`self` pointer is rooted for the duration of the method call, which would not
-be guaranteed if we implemented the methods on `Window` directly.
+The DOM methods of `Window` (for example) are defined in an automatically
+generated trait which is [implemented][windowmethods] for `JSRef<Window>`.
+This ensures that the `self` pointer is rooted for the duration of the method
+call, and is required for a moving garbage collector.
 
-XXX: this is not really true, is it?
+XXX: Actually, that would be the case only if we moved DOM objects, I think.
+     I guess it would be required for moving GC + fusing, though.
 
-[windowmethods]: XXX
+[windowmethods]: http://doc.servo.org/script/dom/bindings/codegen/Bindings/WindowBinding/trait.WindowMethods.html
 
 You can check out the [`js` module's documentation][js-docs] for more details
 that didn't make it into this document.
@@ -339,8 +336,6 @@ To really be safe, we need to make sure that `JS<T>` *only* appears in places
 where it will be traced, such as DOM structs, and never in local variables,
 function arguments, and so forth.
 
-// XXX: this gives me a crazy idea: what if we made JS<T> !Copy?
-
 This rule doesn't correspond to anything that already exists in Rust's type
 system. Fortunately, the Rust compiler can load 'lint plugins' providing custom
 static analysis. These basically take the form of new compiler warnings,
@@ -355,7 +350,7 @@ where it's okay to use `JS<T>`, like DOM struct definitions and the
 implementation of `JS<T>` itself.
 
 [js-lint]: https://github.com/kmcallister/servo/commit/c20b50bbbbcdc8ce3551adbc1e039a727cf89995 (better link?)
-[warnings]: http://doc.rust-lang.org/rust.html#lint-check-attributes (better link?)
+[warnings]: https://doc.rust-lang.org/book/compiler-plugins.html#lint-plugins
 
 Our plugin looks at every place where the code mentions a type. Remarkably,
 this adds only a fraction of a second to the compile time for Servo's largest
@@ -392,5 +387,3 @@ almost nothing.
 
 [blink]: http://www.chromium.org/blink
 [blink-gc]: http://www.chromium.org/blink/blink-gc
-
-XXX: this doesn't say anything about conservative stack scanning! Should it?
