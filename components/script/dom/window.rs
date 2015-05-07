@@ -586,6 +586,8 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             None => return,
         };
 
+        debug!("script: performing reflow for goal {:?} reason {:?}", goal, reason);
+
         if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
             let marker = TimelineMarker::new("Reflow".to_owned(), TracingMetadata::IntervalStart);
             self.emit_timeline_marker(marker);
