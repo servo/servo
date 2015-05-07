@@ -105,7 +105,7 @@ Rust has a notion of [traits][traits], which are similar to
 [type classes][typeclasses] in Haskell or interfaces in many object-oriented
 languages. For example, we can create a `HasArea` trait:
 
-[traits]: https://doc.rust-lang.org/book/traits.html XXX
+[traits]: https://doc.rust-lang.org/book/traits.html
 [typeclasses]: http://learnyouahaskell.com/types-and-typeclasses
 
 ```rust
@@ -138,7 +138,7 @@ XXX: something about the implementation?
 Let's look at [Servo's implementation][document-rs] of the DOM's
 [`Document`][document-mdn] interface:
 
-[document-rs]: XXX
+[document-rs]: https://github.com/servo/servo/blob/master/components/script/dom/document.rs
 [document-mdn]: https://developer.mozilla.org/en-US/docs/Web/API/document
 
 ```rust
@@ -170,7 +170,7 @@ above). The implementation of [`trace` for `JS<T>`][trace-js] is not
 auto-generated; this is where we actually call the SpiderMonkey trace hooks.
 
 [js]: http://doc.servo.org/script/dom/bindings/js/struct.JS.html
-[trace-js]: XXX
+[trace-js]: https://github.com/servo/servo/blob/master/components/script/dom/bindings/trace.rs#L82-86
 
 Lifetime checking for safe rooting
 ==================================
@@ -192,12 +192,12 @@ process.
 When we want to use a DOM object from Rust code, we call the [`root`][js-root]
 method on `JS<T>`. For example:
 
-[js-root]: http://doc.servo.org/script/dom/bindings/js/struct.JS.html#method.root XXX
+[js-root]: http://doc.servo.org/script/dom/bindings/js/struct.JS.html#method.root
 
 ```rust
 fn load_anchor_href(&self, href: DOMString) {
     let window = self.window.root();
-    window.load_url(href);
+    window.r().load_url(href);
 }
 ```
 
@@ -230,13 +230,13 @@ most cases, lifetimes are [inferred][ti] and don't need to be written out in
 the source code. Inferred or not, the presence of lifetime information allows
 the compiler to reject use-after-free and other dangerous bugs.
 
-[lifetimes]: http://doc.rust-lang.org/guide-lifetimes.html XXX
-[ti]: http://en.wikipedia.org/wiki/Type_inference
+[lifetimes]: http://doc.rust-lang.org/book/lifetimes.html
+[ti]: https://en.wikipedia.org/wiki/Type_inference
 
 Not only do lifetimes protect Rust's built-in reference type, we can use them
 in our own data structures as well. `JSRef` is actually [defined][jsref-rs] as
 
-[jsref-rs]: XXX
+[jsref-rs]: https://github.com/servo/servo/blob/master/components/script/dom/bindings/js.rs#L659-664
 
 ```rust
 pub struct JSRef<'a, T> {
@@ -251,8 +251,8 @@ pointing to, e.g. `Window`. The somewhat odd syntax `'a` is a
 that object is rooted. Crucially, this lets us write a [method][root-r] on
 `Root` with the following signature:
 
-[named-lifetime]: http://doc.rust-lang.org/guide-lifetimes.html#named-lifetimes
-[root-r]: XXX
+[named-lifetime]: http://doc.rust-lang.org/book/lifetimes.html#lifetimes
+[root-r]: http://doc.servo.org/script/dom/bindings/js/struct.Root.html#method.r
 
 ```rust
 pub fn r<'a>(&'a self) -> JSRef<'a, T> {
@@ -274,7 +274,7 @@ this:
 [phantom]: http://doc.rust-lang.org/std/marker/struct.PhantomData.html
 
 ```rust
-fn bogus_get_window<'a>(&self) -> JSRef<'a, Window> {
+fn bogus_get_window<'a>(&'a self) -> JSRef<'a, Window> {
     let window = self.window.root();
     window.r()  // return the JSRef
 }
