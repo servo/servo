@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasWindingRule;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
+use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::Error::{IndexSize, NotSupported, Type, InvalidState};
@@ -18,7 +19,7 @@ use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeSty
 use dom::htmlcanvaselement::{HTMLCanvasElement, HTMLCanvasElementHelpers};
 use dom::htmlimageelement::{HTMLImageElement, HTMLImageElementHelpers};
 use dom::imagedata::{ImageData, ImageDataHelpers};
-use dom::node::{window_from_node};
+use dom::node::{window_from_node, NodeHelpers, NodeDamage};
 
 use cssparser::Color as CSSColor;
 use cssparser::{Parser, RGBA, ToCss};
@@ -116,6 +117,12 @@ impl CanvasRenderingContext2D {
 
     pub fn recreate(&self, size: Size2D<i32>) {
         self.renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
+    }
+
+    fn mark_as_dirty(&self) {
+        let canvas = self.canvas.root();
+        let node = NodeCast::from_ref(canvas.r());
+        node.dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn update_transform(&self) {
@@ -220,6 +227,7 @@ impl CanvasRenderingContext2D {
         };
 
         self.renderer.send(msg).unwrap();
+        self.mark_as_dirty();
         Ok(())
     }
 
@@ -239,6 +247,7 @@ impl CanvasRenderingContext2D {
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::DrawImage(
                            image_data, image_size, dest_rect,
                            source_rect, smoothing_enabled))).unwrap();
+        self.mark_as_dirty();
         Ok(())
     }
 
@@ -456,6 +465,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
     fn FillRect(self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
             self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::FillRect(rect))).unwrap();
+            self.mark_as_dirty();
         }
     }
 
@@ -463,6 +473,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
     fn ClearRect(self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
             self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::ClearRect(rect))).unwrap();
+            self.mark_as_dirty();
         }
     }
 
@@ -470,6 +481,7 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
     fn StrokeRect(self, x: f64, y: f64, width: f64, height: f64) {
         if let Some(rect) = self.create_drawable_rect(x, y, width, height) {
             self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::StrokeRect(rect))).unwrap();
+            self.mark_as_dirty();
         }
     }
 
@@ -487,11 +499,13 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
     fn Fill(self, _: CanvasWindingRule) {
         // TODO: Process winding rule
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Fill)).unwrap();
+        self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
     fn Stroke(self) {
         self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::Stroke)).unwrap();
+        self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
@@ -868,7 +882,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
         let image_data_size = Size2D(image_data_size.width as f64, image_data_size.height as f64);
         let image_data_rect = Rect(Point2D(dx, dy), image_data_size);
         let dirty_rect = None;
-        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect))).unwrap()
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect))).unwrap();
+        self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -893,7 +908,8 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
                                           imagedata.Height() as f64));
         let dirty_rect = Some(Rect(Point2D(dirtyX, dirtyY),
                                    Size2D(dirtyWidth, dirtyHeight)));
-        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect))).unwrap()
+        self.renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data, image_data_rect, dirty_rect))).unwrap();
+        self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createlineargradient
