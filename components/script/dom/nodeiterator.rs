@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::NodeIteratorBinding;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::Temporary;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::js::Root;
 
 #[dom_struct]
 pub struct NodeIterator {
@@ -19,7 +19,7 @@ impl NodeIterator {
         }
     }
 
-    pub fn new(global: GlobalRef) -> Temporary<NodeIterator> {
+    pub fn new(global: GlobalRef) -> Root<NodeIterator> {
         reflect_dom_object(box NodeIterator::new_inherited(), global, NodeIteratorBinding::Wrap)
     }
 }

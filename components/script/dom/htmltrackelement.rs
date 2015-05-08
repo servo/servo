@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLTrackElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTrackElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -24,14 +24,14 @@ impl HTMLTrackElementDerived for EventTarget {
 }
 
 impl HTMLTrackElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTrackElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLTrackElement {
         HTMLTrackElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTrackElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLTrackElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> Root<HTMLTrackElement> {
         let element = HTMLTrackElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTrackElementBinding::Wrap)
     }

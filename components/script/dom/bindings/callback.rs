@@ -5,7 +5,6 @@
 //! Base classes to work with IDL callbacks.
 
 use dom::bindings::global::global_object_for_js_object;
-use dom::bindings::js::JSRef;
 use dom::bindings::utils::Reflectable;
 use js::jsapi::{JSContext, JSObject, JS_WrapObject, IsCallable};
 use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException};
@@ -124,7 +123,7 @@ impl CallbackInterface {
 
 /// Wraps the reflector for `p` into the compartment of `cx`.
 pub fn wrap_call_this_object<T: Reflectable>(cx: *mut JSContext,
-                                             p: JSRef<T>) -> *mut JSObject {
+                                             p: &T) -> *mut JSObject {
     let mut obj = RootedObject::new(cx, p.reflector().get_jsobject());
     assert!(!obj.ptr.is_null());
 
@@ -155,7 +154,6 @@ impl CallSetup {
     #[allow(unrooted_must_root)]
     pub fn new<T: CallbackContainer>(callback: T, handling: ExceptionHandling) -> CallSetup {
         let global = global_object_for_js_object(callback.callback());
-        let global = global.root();
         let cx = global.r().get_cx();
         unsafe { JS_BeginRequest(cx); }
 

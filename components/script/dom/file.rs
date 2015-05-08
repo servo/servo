@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::FileBinding;
 use dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::blob::{Blob, BlobTypeId};
 use util::str::DOMString;
@@ -18,7 +18,7 @@ pub struct File {
 
 impl File {
     fn new_inherited(global: GlobalRef, type_: BlobTypeId,
-                     _file_bits: JSRef<Blob>, name: DOMString) -> File {
+                     _file_bits: &Blob, name: DOMString) -> File {
         File {
             //TODO: get type from the underlying filesystem instead of "".to_string()
             blob: Blob::new_inherited(global, type_, None, ""),
@@ -28,7 +28,7 @@ impl File {
         // the relevant subfields of file_bits should be copied over
     }
 
-    pub fn new(global: GlobalRef, file_bits: JSRef<Blob>, name: DOMString) -> Temporary<File> {
+    pub fn new(global: GlobalRef, file_bits: &Blob, name: DOMString) -> Root<File> {
         reflect_dom_object(box File::new_inherited(global, BlobTypeId::File, file_bits, name),
                            global,
                            FileBinding::Wrap)
@@ -39,7 +39,7 @@ impl File {
     }
 }
 
-impl<'a> FileMethods for JSRef<'a, File> {
+impl<'a> FileMethods for &'a File {
     fn Name(self) -> DOMString {
         self.name.clone()
     }

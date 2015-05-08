@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::js::{JS, Temporary, Unrooted};
+use dom::bindings::js::{JS, Root};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::NodeHelpers;
 use dom::window::Window;
@@ -75,16 +75,12 @@ impl Page {
         self.id
     }
 
-    pub fn window(&self) -> Temporary<Window> {
-        Temporary::from_rooted(self.frame.borrow().as_ref().unwrap().window.clone())
+    pub fn window(&self) -> Root<Window> {
+        self.frame.borrow().as_ref().unwrap().window.root()
     }
 
-    pub fn window_for_script_deallocation(&self) -> Unrooted<Window> {
-        Unrooted::from_js(self.frame.borrow().as_ref().unwrap().window)
-    }
-
-    pub fn document(&self) -> Temporary<Document> {
-        Temporary::from_rooted(self.frame.borrow().as_ref().unwrap().document.clone())
+    pub fn document(&self) -> Root<Document> {
+        self.frame.borrow().as_ref().unwrap().document.root()
     }
 
     // must handle root case separately

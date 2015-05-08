@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyEle
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
-use dom::bindings::js::{JSRef, Rootable, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::element::ElementTypeId;
@@ -37,7 +37,7 @@ impl HTMLBodyElementDerived for EventTarget {
 }
 
 impl HTMLBodyElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
                      -> HTMLBodyElement {
         HTMLBodyElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLBodyElement,
@@ -49,47 +49,47 @@ impl HTMLBodyElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
-               -> Temporary<HTMLBodyElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+               -> Root<HTMLBodyElement> {
         let element = HTMLBodyElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLBodyElementBinding::Wrap)
     }
 }
 
-impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
+impl<'a> HTMLBodyElementMethods for &'a HTMLBodyElement {
 
     // https://html.spec.whatwg.org/#dom-body-bgcolor
     make_getter!(BgColor, "bgcolor");
     make_setter!(SetBgColor, "bgcolor");
 
     fn GetOnunload(self) -> Option<EventHandlerNonNull> {
-        let win = window_from_node(self).root();
+        let win = window_from_node(self);
         win.r().GetOnunload()
     }
 
     fn SetOnunload(self, listener: Option<EventHandlerNonNull>) {
-        let win = window_from_node(self).root();
+        let win = window_from_node(self);
         win.r().SetOnunload(listener)
     }
 }
 
 pub trait HTMLBodyElementHelpers {
-    fn get_background_color(&self) -> Option<RGBA>;
+    fn get_background_color(self) -> Option<RGBA>;
 }
 
-impl HTMLBodyElementHelpers for HTMLBodyElement {
-    fn get_background_color(&self) -> Option<RGBA> {
+impl<'a> HTMLBodyElementHelpers for &'a HTMLBodyElement {
+    fn get_background_color(self) -> Option<RGBA> {
         self.background_color.get()
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
+impl<'a> VirtualMethods for &'a HTMLBodyElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let element: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let element: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(element as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
@@ -101,11 +101,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
                   "onbeforeunload", "onhashchange", "onlanguagechange", "onmessage",
                   "onoffline", "ononline", "onpagehide", "onpageshow", "onpopstate",
                   "onstorage", "onresize", "onunload", "onerror"];
-            let window = window_from_node(*self).root();
+            let window = window_from_node(*self);
             let (cx, url, reflector) = (window.r().get_cx(),
                                         window.r().get_url(),
                                         window.r().reflector().get_jsobject());
-            let evtarget: JSRef<EventTarget> =
+            let evtarget =
                 if FORWARDED_EVENTS.iter().any(|&event| &**name == event) {
                     EventTargetCast::from_ref(window.r())
                 } else {
@@ -124,7 +124,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
         }
     }
 
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+    fn before_remove_attr(&self, attr: &Attr) {
         match self.super_type() {
             Some(ref s) => s.before_remove_attr(attr),
             _ => {}

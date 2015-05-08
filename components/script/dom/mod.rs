@@ -29,14 +29,12 @@
 //!
 //! For more information, see:
 //!
-//! * rooting pointers on the stack: the [`Root`](bindings/js/struct.Root.html)
-//!   and [`JSRef`](bindings/js/struct.JSRef.html) smart pointers;
+//! * rooting pointers on the stack:
+//!   the [`Root`](bindings/js/struct.Root.html) smart pointer;
 //! * tracing pointers in member fields: the [`JS`](bindings/js/struct.JS.html),
 //!   [`MutNullableJS`](bindings/js/struct.MutNullableJS.html) and
 //!   [`MutHeap`](bindings/js/struct.MutHeap.html) smart pointers and
 //!   [the tracing implementation](bindings/trace/index.html);
-//! * returning pointers from functions: the
-//!   [`Temporary`](bindings/js/struct.Temporary.html) smart pointer;
 //! * rooting pointers from across task boundaries or in channels: the
 //!   [`Trusted`](bindings/refcounted/struct.Trusted.html) smart pointer;
 //! * extracting pointers to DOM objects from their reflectors: the
@@ -62,7 +60,7 @@
 //! DOM objects of type `T` in Servo have two constructors:
 //!
 //! * a `T::new_inherited` static method that returns a plain `T`, and
-//! * a `T::new` static method that returns `Temporary<T>`.
+//! * a `T::new` static method that returns `Root<T>`.
 //!
 //! (The result of either method can be wrapped in `Result`, if that is
 //! appropriate for the type in question.)
@@ -111,6 +109,7 @@
 //! Implementing methods for a DOM object
 //! =====================================
 //!
+//! XXX JSRef no longer exists - should we remove the *Helpers traits?
 //! In order to ensure that DOM objects are rooted when they are called, we
 //! require that all methods are implemented for `JSRef<'a, Foo>`. This means
 //! that all methods are defined on traits. Conventionally, those traits are
@@ -121,23 +120,11 @@
 //! * `FooHelpers` for public methods;
 //! * `PrivateFooHelpers` for private methods.
 //!
-//! Calling methods on a DOM object
-//! ===============================
-//!
-//! To call a method on a DOM object, we require that the object is rooted, by
-//! calling `.root()` on a `Temporary` or `JS` pointer. This constructs a
-//! `Root` on the stack, which ensures the DOM object stays alive for the
-//! duration of its lifetime. A `JSRef` on which to call the method can then be
-//! obtained by calling the `r()` method on the `Root`.
-//!
 //! Accessing fields of a DOM object
 //! ================================
 //!
 //! All fields of DOM objects are private; accessing them from outside their
 //! module is done through explicit getter or setter methods.
-//!
-//! However, `JSRef<T>` dereferences to `&T`, so fields can be accessed on a
-//! `JSRef<T>` directly within the module that defines the struct.
 //!
 //! Inheritance and casting
 //! =======================
@@ -147,14 +134,13 @@
 //! to other types in the inheritance chain. For example:
 //!
 //! ```ignore
-//! # use script::dom::bindings::js::JSRef;
 //! # use script::dom::bindings::codegen::InheritTypes::{NodeCast, HTMLElementCast};
 //! # use script::dom::element::Element;
 //! # use script::dom::node::Node;
 //! # use script::dom::htmlelement::HTMLElement;
-//! fn f(element: JSRef<Element>) {
-//!     let base: JSRef<Node> = NodeCast::from_ref(element);
-//!     let derived: Option<JSRef<HTMLElement>> = HTMLElementCast::to_ref(element);
+//! fn f(element: &Element) {
+//!     let base: &Node = NodeCast::from_ref(element);
+//!     let derived: Option<&HTMLElement> = HTMLElementCast::to_ref(element);
 //! }
 //! ```
 //!
@@ -170,7 +156,7 @@
 //!   superclass or `Reflector` member, and other members as appropriate;
 //! * implementing the
 //!   `dom::bindings::codegen::Bindings::FooBindings::FooMethods` trait for
-//!   `JSRef<Foo>`.
+//!   `&'a Foo`.
 //!
 //! More information is available in the [bindings module](bindings/index.html).
 //!

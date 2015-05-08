@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::DOMRectListBinding;
 use dom::bindings::codegen::Bindings::DOMRectListBinding::DOMRectListMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::domrect::DOMRect;
@@ -19,37 +19,37 @@ pub struct DOMRectList {
 }
 
 impl DOMRectList {
-    fn new_inherited(window: JSRef<Window>,
+    fn new_inherited(window: &Window,
                      rects: &RootedVec<JS<DOMRect>>) -> DOMRectList {
         DOMRectList {
             reflector_: Reflector::new(),
             rects: (**rects).clone(),
-            window: JS::from_rooted(window),
+            window: JS::from_ref(window),
         }
     }
 
-    pub fn new(window: JSRef<Window>,
-               rects: &RootedVec<JS<DOMRect>>) -> Temporary<DOMRectList> {
+    pub fn new(window: &Window,
+               rects: &RootedVec<JS<DOMRect>>) -> Root<DOMRectList> {
         reflect_dom_object(box DOMRectList::new_inherited(window, rects),
                            GlobalRef::Window(window), DOMRectListBinding::Wrap)
     }
 }
 
-impl<'a> DOMRectListMethods for JSRef<'a, DOMRectList> {
+impl<'a> DOMRectListMethods for &'a DOMRectList {
     fn Length(self) -> u32 {
         self.rects.len() as u32
     }
 
-    fn Item(self, index: u32) -> Option<Temporary<DOMRect>> {
+    fn Item(self, index: u32) -> Option<Root<DOMRect>> {
         let rects = &self.rects;
         if index < rects.len() as u32 {
-            Some(Temporary::from_rooted(rects[index as usize].clone()))
+            Some(rects[index as usize].root())
         } else {
             None
         }
     }
 
-    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Temporary<DOMRect>> {
+    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Root<DOMRect>> {
         *found = index < self.rects.len() as u32;
         self.Item(index)
     }

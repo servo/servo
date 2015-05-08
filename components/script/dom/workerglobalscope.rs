@@ -8,10 +8,10 @@ use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeCast;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{Syntax, Network, JSFailed};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
+use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::utils::Reflectable;
 use dom::console::Console;
-use dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, DedicatedWorkerGlobalScopeHelpers};
+use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScopeHelpers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
@@ -103,14 +103,14 @@ impl WorkerGlobalScope {
     }
 }
 
-impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
+impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-self
-    fn Self_(self) -> Temporary<WorkerGlobalScope> {
-        Temporary::from_rooted(self)
+    fn Self_(self) -> Root<WorkerGlobalScope> {
+        Root::from_ref(self)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location
-    fn Location(self) -> Temporary<WorkerLocation> {
+    fn Location(self) -> Root<WorkerLocation> {
         self.location.or_init(|| {
             WorkerLocation::new(self, self.worker_url.clone())
         })
@@ -150,11 +150,11 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-worker-navigator
-    fn Navigator(self) -> Temporary<WorkerNavigator> {
+    fn Navigator(self) -> Root<WorkerNavigator> {
         self.navigator.or_init(|| WorkerNavigator::new(self))
     }
 
-    fn Console(self) -> Temporary<Console> {
+    fn Console(self) -> Root<Console> {
         self.console.or_init(|| Console::new(GlobalRef::Worker(self)))
     }
 
@@ -220,9 +220,9 @@ pub trait WorkerGlobalScopeHelpers {
     fn get_cx(self) -> *mut JSContext;
 }
 
-impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
+impl<'a> WorkerGlobalScopeHelpers for &'a WorkerGlobalScope {
     fn script_chan(self) -> Box<ScriptChan+Send> {
-        let dedicated: Option<JSRef<DedicatedWorkerGlobalScope>> =
+        let dedicated =
             DedicatedWorkerGlobalScopeCast::to_ref(self);
         match dedicated {
             Some(dedicated) => dedicated.script_chan(),
@@ -231,7 +231,7 @@ impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
     }
 
     fn pipeline(self) -> PipelineId {
-        let dedicated: Option<JSRef<DedicatedWorkerGlobalScope>> =
+        let dedicated =
             DedicatedWorkerGlobalScopeCast::to_ref(self);
         match dedicated {
             Some(dedicated) => dedicated.pipeline(),
@@ -240,7 +240,7 @@ impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
     }
 
     fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>) {
-        let dedicated: Option<JSRef<DedicatedWorkerGlobalScope>> =
+        let dedicated =
             DedicatedWorkerGlobalScopeCast::to_ref(self);
         match dedicated {
             Some(dedicated) => dedicated.new_script_pair(),
@@ -249,7 +249,7 @@ impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
     }
 
     fn process_event(self, msg: ScriptMsg) {
-        let dedicated: Option<JSRef<DedicatedWorkerGlobalScope>> =
+        let dedicated =
             DedicatedWorkerGlobalScopeCast::to_ref(self);
         match dedicated {
             Some(dedicated) => dedicated.process_event(msg),

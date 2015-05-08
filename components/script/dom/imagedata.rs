@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::ImageDataBinding;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use geom::size::Size2D;
 use js::jsapi::{JSContext, JSObject, Heap};
@@ -45,7 +45,7 @@ impl ImageData {
         }
     }
 
-    pub fn new(global: GlobalRef, width: u32, height: u32, data: Option<Vec<u8>>) -> Temporary<ImageData> {
+    pub fn new(global: GlobalRef, width: u32, height: u32, data: Option<Vec<u8>>) -> Root<ImageData> {
         reflect_dom_object(box ImageData::new_inherited(width, height, data, global),
                            global, ImageDataBinding::Wrap)
     }
@@ -53,10 +53,10 @@ impl ImageData {
 
 pub trait ImageDataHelpers {
     fn get_data_array(self, global: &GlobalRef) -> Vec<u8>;
-    fn get_size(&self) -> Size2D<i32>;
+    fn get_size(self) -> Size2D<i32>;
 }
 
-impl<'a> ImageDataHelpers for JSRef<'a, ImageData> {
+impl<'a> ImageDataHelpers for &'a ImageData {
     #[allow(unsafe_code)]
     fn get_data_array(self, global: &GlobalRef) -> Vec<u8> {
         unsafe {
@@ -67,12 +67,12 @@ impl<'a> ImageDataHelpers for JSRef<'a, ImageData> {
         }
     }
 
-    fn get_size(&self) -> Size2D<i32> {
+    fn get_size(self) -> Size2D<i32> {
         Size2D(self.Width() as i32, self.Height() as i32)
     }
 }
 
-impl<'a> ImageDataMethods for JSRef<'a, ImageData> {
+impl<'a> ImageDataMethods for &'a ImageData {
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-width
     fn Width(self) -> u32 {
         self.width

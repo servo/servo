@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLFrameSetElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFrameSetElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -24,14 +24,14 @@ impl HTMLFrameSetElementDerived for EventTarget {
 }
 
 impl HTMLFrameSetElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLFrameSetElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLFrameSetElement {
         HTMLFrameSetElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLFrameSetElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLFrameSetElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> Root<HTMLFrameSetElement> {
         let element = HTMLFrameSetElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLFrameSetElementBinding::Wrap)
     }

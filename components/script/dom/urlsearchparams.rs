@@ -9,7 +9,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eURLSearchParams, eString};
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Rootable, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 
 use util::str::DOMString;
@@ -35,15 +35,15 @@ impl URLSearchParams {
         }
     }
 
-    pub fn new(global: GlobalRef) -> Temporary<URLSearchParams> {
+    pub fn new(global: GlobalRef) -> Root<URLSearchParams> {
         reflect_dom_object(box URLSearchParams::new_inherited(), global,
                            URLSearchParamsBinding::Wrap)
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams
     pub fn Constructor(global: GlobalRef, init: Option<StringOrURLSearchParams>) ->
-                       Fallible<Temporary<URLSearchParams>> {
-        let usp = URLSearchParams::new(global).root();
+                       Fallible<Root<URLSearchParams>> {
+        let usp = URLSearchParams::new(global);
         match init {
             Some(eString(_s)) => {
                 // XXXManishearth we need to parse the input here
@@ -52,7 +52,6 @@ impl URLSearchParams {
                 // https://github.com/SimonSapin/rust-url/blob/master/form_urlencoded.rs#L29
             },
             Some(eURLSearchParams(u)) => {
-                let u = u.root();
                 let usp = usp.r();
                 let mut map = usp.data.borrow_mut();
                 // FIXME(https://github.com/rust-lang/rust/issues/23338)
@@ -62,11 +61,11 @@ impl URLSearchParams {
             },
             None => {}
         }
-        Ok(Temporary::from_rooted(usp.r()))
+        Ok(usp)
     }
 }
 
-impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
+impl<'a> URLSearchParamsMethods for &'a URLSearchParams {
     // https://url.spec.whatwg.org/#dom-urlsearchparams-append
     fn Append(self, name: DOMString, value: DOMString) {
         let mut data = self.data.borrow_mut();
@@ -114,12 +113,12 @@ impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
 }
 
 pub trait URLSearchParamsHelpers {
-    fn serialize(&self, encoding: Option<EncodingRef>) -> Vec<u8>;
-    fn update_steps(&self);
+    fn serialize(self, encoding: Option<EncodingRef>) -> Vec<u8>;
+    fn update_steps(self);
 }
 
-impl URLSearchParamsHelpers for URLSearchParams {
-    fn serialize(&self, encoding: Option<EncodingRef>) -> Vec<u8> {
+impl<'a> URLSearchParamsHelpers for &'a URLSearchParams {
+    fn serialize(self, encoding: Option<EncodingRef>) -> Vec<u8> {
         // https://url.spec.whatwg.org/#concept-urlencoded-serializer
         fn serialize_string(value: &str, encoding: EncodingRef) -> Vec<u8> {
             // https://url.spec.whatwg.org/#concept-urlencoded-byte-serializer
@@ -172,7 +171,7 @@ impl URLSearchParamsHelpers for URLSearchParams {
         buf
     }
 
-    fn update_steps(&self) {
+    fn update_steps(self) {
         // XXXManishearth Implement this when the URL interface is implemented
         // https://url.spec.whatwg.org/#concept-uq-update
     }

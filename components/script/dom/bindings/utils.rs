@@ -6,10 +6,10 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::bindings::conversions::{native_from_reflector_jsmanaged, is_dom_class};
+use dom::bindings::conversions::{native_from_handleobject, is_dom_class};
 use dom::bindings::error::{Error, ErrorResult, Fallible, throw_type_error};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Temporary, Root, Rootable};
+use dom::bindings::js::Root;
 use dom::browsercontext;
 use dom::window;
 use util::namespace;
@@ -369,8 +369,8 @@ pub trait Reflectable {
 pub fn reflect_dom_object<T: Reflectable>
         (obj:     Box<T>,
          global:  GlobalRef,
-         wrap_fn: extern "Rust" fn(*mut JSContext, GlobalRef, Box<T>) -> Temporary<T>)
-         -> Temporary<T> {
+         wrap_fn: extern "Rust" fn(*mut JSContext, GlobalRef, Box<T>) -> Root<T>)
+         -> Root<T> {
     wrap_fn(global.get_cx(), global, obj)
 }
 
@@ -409,7 +409,7 @@ impl Reflector {
     }
 
     /// Return a pointer to the memory location at which the JS reflector
-    /// object is stored. Used by Temporary values to root the reflector, as
+    /// object is stored. Used to root the reflector, as
     /// required by the JSAPI rooting APIs.
     pub unsafe fn rootable(&self) -> *mut Heap<*mut JSObject> {
         self.object.as_unsafe_cell().get()
@@ -621,7 +621,7 @@ pub unsafe extern fn pre_wrap(cx: *mut JSContext, _existing: HandleObject,
 /// Callback to outerize windows.
 pub unsafe extern fn outerize_global(_cx: *mut JSContext, obj: HandleObject) -> *mut JSObject {
     debug!("outerizing");
-    let win: Root<window::Window> = native_from_reflector_jsmanaged(obj.get()).unwrap().root();
+    let win: Root<window::Window> = native_from_handleobject(obj).unwrap();
     // FIXME(https://github.com/rust-lang/rust/issues/23338)
     let win = win.r();
     let context = win.browser_context();
