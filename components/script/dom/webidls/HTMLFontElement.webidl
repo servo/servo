@@ -5,7 +5,7 @@
 
 // https://www.whatwg.org/html/#htmlfontelement
 interface HTMLFontElement : HTMLElement {
-  //[TreatNullAs=EmptyString] attribute DOMString color;
+  [TreatNullAs=EmptyString] attribute DOMString color;
   //                          attribute DOMString face;
   //                          attribute DOMString size;
 };
