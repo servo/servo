@@ -10,9 +10,8 @@ use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::js::{JSRef, Rootable, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::Element;
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -42,7 +41,7 @@ impl HTMLObjectElementDerived for EventTarget {
 impl HTMLObjectElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLObjectElement {
+                     document: &Document) -> HTMLObjectElement {
         HTMLObjectElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLObjectElement, localName, prefix, document),
@@ -53,7 +52,7 @@ impl HTMLObjectElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLObjectElement> {
+               document: &Document) -> Root<HTMLObjectElement> {
         let element = HTMLObjectElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLObjectElementBinding::Wrap)
     }
@@ -63,15 +62,15 @@ trait ProcessDataURL {
     fn process_data_url(&self);
 }
 
-impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
+impl<'a> ProcessDataURL for &'a HTMLObjectElement {
     // Makes the local `data` member match the status of the `data` attribute and starts
     /// prefetching the image. This method must be called after `data` is changed.
     fn process_data_url(&self) {
-        let elem: JSRef<Element> = ElementCast::from_ref(*self);
+        let elem = ElementCast::from_ref(*self);
 
         // TODO: support other values
-        match (elem.get_attribute(&ns!(""), &atom!("type")).map(|x| x.root().r().Value()),
-               elem.get_attribute(&ns!(""), &atom!("data")).map(|x| x.root().r().Value())) {
+        match (elem.get_attribute(&ns!(""), &atom!("type")).map(|x| x.r().Value()),
+               elem.get_attribute(&ns!(""), &atom!("data")).map(|x| x.r().Value())) {
             (None, Some(_uri)) => {
                 // TODO(gw): Prefetch the image here.
             }
@@ -85,9 +84,9 @@ pub fn is_image_data(uri: &str) -> bool {
     TYPES.iter().any(|&type_| uri.starts_with(type_))
 }
 
-impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
-    fn Validity(self) -> Temporary<ValidityState> {
-        let window = window_from_node(self).root();
+impl<'a> HTMLObjectElementMethods for &'a HTMLObjectElement {
+    fn Validity(self) -> Root<ValidityState> {
+        let window = window_from_node(self);
         ValidityState::new(window.r())
     }
 
@@ -98,13 +97,13 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     make_setter!(SetType, "type");
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
+impl<'a> VirtualMethods for &'a HTMLObjectElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }

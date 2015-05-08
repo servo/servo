@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::NavigatorBinding;
 use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::navigatorinfo;
 use dom::window::Window;
@@ -23,14 +23,14 @@ impl Navigator {
         }
     }
 
-    pub fn new(window: JSRef<Window>) -> Temporary<Navigator> {
+    pub fn new(window: &Window) -> Root<Navigator> {
         reflect_dom_object(box Navigator::new_inherited(),
                            GlobalRef::Window(window),
                            NavigatorBinding::Wrap)
     }
 }
 
-impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
+impl<'a> NavigatorMethods for &'a Navigator {
     fn Product(self) -> DOMString {
         navigatorinfo::Product()
     }

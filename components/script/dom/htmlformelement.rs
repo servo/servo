@@ -17,7 +17,7 @@ use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
 use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary};
+use dom::bindings::js::{Root};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
@@ -49,6 +49,12 @@ pub struct HTMLFormElement {
     marked_for_reset: Cell<bool>,
 }
 
+impl PartialEq for HTMLFormElement {
+    fn eq(&self, other: &HTMLFormElement) -> bool {
+        self as *const HTMLFormElement == &*other
+    }
+}
+
 impl HTMLFormElementDerived for EventTarget {
     fn is_htmlformelement(&self) -> bool {
         *self.type_id() ==
@@ -60,7 +66,7 @@ impl HTMLFormElementDerived for EventTarget {
 impl HTMLFormElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLFormElement {
+                     document: &Document) -> HTMLFormElement {
         HTMLFormElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLFormElement, localName, prefix, document),
             marked_for_reset: Cell::new(false),
@@ -70,13 +76,13 @@ impl HTMLFormElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLFormElement> {
+               document: &Document) -> Root<HTMLFormElement> {
         let element = HTMLFormElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLFormElementBinding::Wrap)
     }
 }
 
-impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
+impl<'a> HTMLFormElementMethods for &'a HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#dom-form-acceptcharset
     make_getter!(AcceptCharset, "accept-charset");
 
@@ -165,19 +171,19 @@ pub trait HTMLFormElementHelpers {
     fn reset(self, submit_method_flag: ResetFrom);
 }
 
-impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
+impl<'a> HTMLFormElementHelpers for &'a HTMLFormElement {
     fn submit(self, _submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
         // Step 1
-        let doc = document_from_node(self).root();
-        let win = window_from_node(self).root();
+        let doc = document_from_node(self);
+        let win = window_from_node(self);
         let base = doc.r().url();
         // TODO: Handle browsing contexts
         // TODO: Handle validation
         let event = Event::new(GlobalRef::Window(win.r()),
                                "submit".to_owned(),
                                EventBubbles::Bubbles,
-                               EventCancelable::Cancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+                               EventCancelable::Cancelable);
+        let target = EventTargetCast::from_ref(self);
         event.r().fire(target);
         if event.r().DefaultPrevented() {
             return;
@@ -262,16 +268,15 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
             buf
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
         let data_set = node.traverse_preorder().filter_map(|child| {
-            let child = child.root();
             if child.r().get_disabled_state() {
                 return None;
             }
             if child.r().ancestors()
-                        .any(|a| HTMLDataListElementCast::to_temporary(a).is_some()) {
+                        .any(|a| HTMLDataListElementCast::to_root(a).is_some()) {
                 return None;
             }
             // XXXManishearth don't include it if it is a button but not the submitter
@@ -365,23 +370,22 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
             self.marked_for_reset.set(true);
         }
 
-        let win = window_from_node(self).root();
+        let win = window_from_node(self);
         let event = Event::new(GlobalRef::Window(win.r()),
                                "reset".to_owned(),
                                EventBubbles::Bubbles,
-                               EventCancelable::Cancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+                               EventCancelable::Cancelable);
+        let target = EventTargetCast::from_ref(self);
         event.r().fire(target);
         if event.r().DefaultPrevented() {
             return;
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
 
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
         for child in node.traverse_preorder() {
-            let child = child.root();
             match child.r().type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                     let input = HTMLInputElementCast::to_ref(child.r()).unwrap();
@@ -434,9 +438,9 @@ pub enum FormMethod {
 
 #[derive(Copy, Clone)]
 pub enum FormSubmitter<'a> {
-    FormElement(JSRef<'a, HTMLFormElement>),
-    InputElement(JSRef<'a, HTMLInputElement>),
-    ButtonElement(JSRef<'a, HTMLButtonElement>)
+    FormElement(&'a HTMLFormElement),
+    InputElement(&'a HTMLInputElement),
+    ButtonElement(&'a HTMLButtonElement)
     // TODO: image submit, etc etc
 }
 
@@ -525,28 +529,27 @@ impl<'a> FormSubmitter<'a> {
 pub trait FormControl<'a> : Copy + Sized {
     // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
     //        but we need html5ever to do it correctly
-    fn form_owner(self) -> Option<Temporary<HTMLFormElement>> {
+    fn form_owner(self) -> Option<Root<HTMLFormElement>> {
         // https://html.spec.whatwg.org/multipage/#reset-the-form-owner
         let elem = self.to_element();
         let owner = elem.get_string_attribute(&atom!("form"));
         if !owner.is_empty() {
-            let doc = document_from_node(elem).root();
-            let owner = doc.r().GetElementById(owner).root();
+            let doc = document_from_node(elem);
+            let owner = doc.r().GetElementById(owner);
             match owner {
                 Some(ref o) => {
-                    let maybe_form: Option<JSRef<HTMLFormElement>> = HTMLFormElementCast::to_ref(o.r());
+                    let maybe_form = HTMLFormElementCast::to_ref(o.r());
                     if maybe_form.is_some() {
-                        return maybe_form.map(Temporary::from_rooted);
+                        return maybe_form.map(Root::from_ref);
                     }
                 },
                 _ => ()
             }
         }
-        let node: JSRef<Node> = NodeCast::from_ref(elem);
+        let node = NodeCast::from_ref(elem);
         for ancestor in node.ancestors() {
-            let ancestor = ancestor.root();
             if let Some(ancestor) = HTMLFormElementCast::to_ref(ancestor.r()) {
-                return Some(Temporary::from_rooted(ancestor))
+                return Some(Root::from_ref(ancestor))
             }
         }
         None
@@ -558,19 +561,19 @@ pub trait FormControl<'a> : Copy + Sized {
                                             owner: OwnerFn)
                                             -> DOMString
         where InputFn: Fn(Self) -> DOMString,
-              OwnerFn: Fn(JSRef<HTMLFormElement>) -> DOMString
+              OwnerFn: Fn(&HTMLFormElement) -> DOMString
     {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
-            self.form_owner().map_or("".to_owned(), |t| owner(t.root().r()))
+            self.form_owner().map_or("".to_owned(), |t| owner(t.r()))
         }
     }
 
-    fn to_element(self) -> JSRef<'a, Element>;
+    fn to_element(self) -> &'a Element;
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLFormElement> {
+impl<'a> VirtualMethods for &'a HTMLFormElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         Some(HTMLElementCast::from_borrowed_ref(self) as &VirtualMethods)
     }

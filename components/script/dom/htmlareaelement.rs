@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::ElementCast;
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, Temporary};
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
@@ -36,7 +36,7 @@ impl HTMLAreaElementDerived for EventTarget {
 }
 
 impl HTMLAreaElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAreaElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLAreaElement {
         HTMLAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLAreaElement, localName, prefix, document),
             rel_list: Default::default(),
@@ -46,15 +46,15 @@ impl HTMLAreaElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLAreaElement> {
+               document: &Document) -> Root<HTMLAreaElement> {
         let element = HTMLAreaElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLAreaElementBinding::Wrap)
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLAreaElement> {
+impl<'a> VirtualMethods for &'a HTMLAreaElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -66,8 +66,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAreaElement> {
     }
 }
 
-impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
-    fn RelList(self) -> Temporary<DOMTokenList> {
+impl<'a> HTMLAreaElementMethods for &'a HTMLAreaElement {
+    fn RelList(self) -> Root<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
         })

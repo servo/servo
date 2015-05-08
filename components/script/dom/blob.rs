@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::FileDerived;
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::bindings::codegen::Bindings::BlobBinding;
@@ -54,20 +54,20 @@ impl Blob {
     }
 
     pub fn new(global: GlobalRef, bytes: Option<Vec<u8>>,
-               typeString: &str) -> Temporary<Blob> {
+               typeString: &str) -> Root<Blob> {
         reflect_dom_object(box Blob::new_inherited(global, BlobTypeId::Blob, bytes, typeString),
                            global,
                            BlobBinding::Wrap)
     }
 
     // http://dev.w3.org/2006/webapi/FileAPI/#constructorBlob
-    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<Blob>> {
+    pub fn Constructor(global: GlobalRef) -> Fallible<Root<Blob>> {
         Ok(Blob::new(global, None, ""))
     }
 
     // http://dev.w3.org/2006/webapi/FileAPI/#constructorBlob
     pub fn Constructor_(global: GlobalRef, blobParts: DOMString,
-                        blobPropertyBag: &BlobBinding::BlobPropertyBag) -> Fallible<Temporary<Blob>> {
+                        blobPropertyBag: &BlobBinding::BlobPropertyBag) -> Fallible<Root<Blob>> {
         //TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView or Blob
         let bytes: Option<Vec<u8>> = Some(blobParts.into_bytes());
         let typeString = if is_ascii_printable(&blobPropertyBag.type_) {
@@ -79,7 +79,7 @@ impl Blob {
     }
 }
 
-impl<'a> BlobMethods for JSRef<'a, Blob> {
+impl<'a> BlobMethods for &'a Blob {
     // http://dev.w3.org/2006/webapi/FileAPI/#dfn-size
     fn Size(self) -> u64{
         match self.bytes {
@@ -95,7 +95,7 @@ impl<'a> BlobMethods for JSRef<'a, Blob> {
 
     // http://dev.w3.org/2006/webapi/FileAPI/#slice-method-algo
     fn Slice(self, start: Option<i64>, end: Option<i64>,
-             contentType: Option<DOMString>) -> Temporary<Blob> {
+             contentType: Option<DOMString>) -> Root<Blob> {
         let size: i64 = self.Size().to_i64().unwrap();
         let relativeStart: i64 = match start {
             None => 0,

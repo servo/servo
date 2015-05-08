@@ -8,8 +8,8 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, Rootable, RootedReference};
-use dom::bindings::js::Temporary;
+use dom::bindings::js::{JS, MutNullableHeap, RootedReference};
+use dom::bindings::js::Root;
 
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
@@ -42,27 +42,27 @@ impl UIEvent {
         }
     }
 
-    pub fn new_uninitialized(window: JSRef<Window>) -> Temporary<UIEvent> {
+    pub fn new_uninitialized(window: &Window) -> Root<UIEvent> {
         reflect_dom_object(box UIEvent::new_inherited(EventTypeId::UIEvent),
                            GlobalRef::Window(window),
                            UIEventBinding::Wrap)
     }
 
-    pub fn new(window: JSRef<Window>,
+    pub fn new(window: &Window,
                type_: DOMString,
                can_bubble: EventBubbles,
                cancelable: EventCancelable,
-               view: Option<JSRef<Window>>,
-               detail: i32) -> Temporary<UIEvent> {
-        let ev = UIEvent::new_uninitialized(window).root();
+               view: Option<&Window>,
+               detail: i32) -> Root<UIEvent> {
+        let ev = UIEvent::new_uninitialized(window);
         ev.r().InitUIEvent(type_, can_bubble == EventBubbles::Bubbles,
                            cancelable == EventCancelable::Cancelable, view, detail);
-        Temporary::from_rooted(ev.r())
+        ev
     }
 
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
-                       init: &UIEventBinding::UIEventInit) -> Fallible<Temporary<UIEvent>> {
+                       init: &UIEventBinding::UIEventInit) -> Fallible<Root<UIEvent>> {
         let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
         let cancelable = if init.parent.cancelable {
             EventCancelable::Cancelable
@@ -76,10 +76,10 @@ impl UIEvent {
     }
 }
 
-impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
+impl<'a> UIEventMethods for &'a UIEvent {
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-UIEvent-view
-    fn GetView(self) -> Option<Temporary<Window>> {
-        self.view.get().map(Temporary::from_rooted)
+    fn GetView(self) -> Option<Root<Window>> {
+        self.view.get().map(Root::from_rooted)
     }
 
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-UIEvent-detail
@@ -91,15 +91,15 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
                    type_: DOMString,
                    can_bubble: bool,
                    cancelable: bool,
-                   view: Option<JSRef<Window>>,
+                   view: Option<&Window>,
                    detail: i32) {
-        let event: JSRef<Event> = EventCast::from_ref(self);
+        let event: &Event = EventCast::from_ref(self);
         if event.dispatching() {
             return;
         }
 
         event.InitEvent(type_, can_bubble, cancelable);
-        self.view.set(view.map(JS::from_rooted));
+        self.view.set(view.map(JS::from_ref));
         self.detail.set(detail);
     }
 }

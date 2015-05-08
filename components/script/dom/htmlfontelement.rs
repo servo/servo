@@ -6,7 +6,7 @@ use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLFontElementDerived};
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -33,7 +33,7 @@ impl HTMLFontElementDerived for EventTarget {
 }
 
 impl HTMLFontElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLFontElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLFontElement {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLFontElement, localName, prefix, document),
             color: Cell::new(None),
@@ -43,24 +43,24 @@ impl HTMLFontElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLFontElement> {
+               document: &Document) -> Root<HTMLFontElement> {
         let element = HTMLFontElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLFontElementBinding::Wrap)
     }
 }
 
-impl<'a> HTMLFontElementMethods for JSRef<'a, HTMLFontElement> {
+impl<'a> HTMLFontElementMethods for &'a HTMLFontElement {
     make_getter!(Color, "color");
     make_setter!(SetColor, "color");
 }
 
-impl<'a> VirtualMethods for JSRef<'a,HTMLFontElement> {
+impl<'a> VirtualMethods for &'a HTMLFontElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
@@ -73,7 +73,7 @@ impl<'a> VirtualMethods for JSRef<'a,HTMLFontElement> {
         }
     }
 
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+    fn before_remove_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.before_remove_attr(attr);
         }

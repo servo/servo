@@ -5,7 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom::bindings::codegen::Bindings::WebGLUniformLocationBinding;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Temporary, JSRef};
+use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 
@@ -23,17 +23,17 @@ impl WebGLUniformLocation {
         }
     }
 
-    pub fn new(global: GlobalRef, id: u32) -> Temporary<WebGLUniformLocation> {
+    pub fn new(global: GlobalRef, id: u32) -> Root<WebGLUniformLocation> {
         reflect_dom_object(box WebGLUniformLocation::new_inherited(id), global, WebGLUniformLocationBinding::Wrap)
     }
 }
 
 pub trait WebGLUniformLocationHelpers {
-    fn get_id(&self) -> u32;
+    fn get_id(self) -> u32;
 }
 
-impl<'a> WebGLUniformLocationHelpers for JSRef<'a, WebGLUniformLocation> {
-    fn get_id(&self) -> u32 {
+impl<'a> WebGLUniformLocationHelpers for &'a WebGLUniformLocation {
+    fn get_id(self) -> u32 {
         self.id
     }
 }

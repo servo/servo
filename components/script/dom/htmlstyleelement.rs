@@ -6,10 +6,10 @@ use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLStyleElementDerived, NodeCast};
-use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary, RootedReference};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::element::{Element, ElementTypeId, AttributeHandlers};
+use dom::element::{ElementTypeId, AttributeHandlers};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -36,7 +36,7 @@ impl HTMLStyleElementDerived for EventTarget {
 impl HTMLStyleElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLStyleElement {
+                     document: &Document) -> HTMLStyleElement {
         HTMLStyleElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLStyleElement, localName, prefix, document)
         }
@@ -45,7 +45,7 @@ impl HTMLStyleElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLStyleElement> {
+               document: &Document) -> Root<HTMLStyleElement> {
         let element = HTMLStyleElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLStyleElementBinding::Wrap)
     }
@@ -55,21 +55,20 @@ pub trait StyleElementHelpers {
     fn parse_own_css(self);
 }
 
-impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
+impl<'a> StyleElementHelpers for &'a HTMLStyleElement {
     fn parse_own_css(self) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         assert!(node.is_in_doc());
 
-        let win = window_from_node(node).root();
+        let win = window_from_node(node);
         let win = win.r();
         let url = win.get_url();
 
-        let mq_attribute = element.get_attribute(&ns!(""), &atom!("media")).root();
-        let value = mq_attribute.r().map(|a| a.value());
-        let mq_str = match value {
-            Some(ref value) => &***value,
-            None => "",
+        let mq_attribute = element.get_attribute(&ns!(""), &atom!("media"));
+        let mq_str = match mq_attribute {
+            Some(a) => String::from_str(&**a.r().value()),
+            None => String::new(),
         };
         let mut css_parser = CssParser::new(&mq_str);
         let media = parse_media_query_list(&mut css_parser);
@@ -81,18 +80,18 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
+impl<'a> VirtualMethods for &'a HTMLStyleElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn child_inserted(&self, child: JSRef<Node>) {
+    fn child_inserted(&self, child: &Node) {
         if let Some(ref s) = self.super_type() {
             s.child_inserted(child);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if node.is_in_doc() {
             self.parse_own_css();
         }

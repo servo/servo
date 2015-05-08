@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLMetaElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -29,7 +29,7 @@ impl HTMLMetaElementDerived for EventTarget {
 impl HTMLMetaElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLMetaElement {
+                     document: &Document) -> HTMLMetaElement {
         HTMLMetaElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLMetaElement, localName, prefix, document)
         }
@@ -38,13 +38,13 @@ impl HTMLMetaElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLMetaElement> {
+               document: &Document) -> Root<HTMLMetaElement> {
         let element = HTMLMetaElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLMetaElementBinding::Wrap)
     }
 }
 
-impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
+impl<'a> HTMLMetaElementMethods for &'a HTMLMetaElement {
     // https://html.spec.whatwg.org/multipage/#dom-meta-name
     make_getter!(Name, "name");
 
