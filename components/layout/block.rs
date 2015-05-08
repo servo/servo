@@ -33,7 +33,7 @@ use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use display_list_builder::{FragmentDisplayListBuilding};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, AbsolutePositionInfo, BaseFlow, ForceNonfloatedFlag, FlowClass, Flow};
-use flow::{ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
+use flow::{ImmutableFlowUtils, PreorderFlowTraversal};
 use flow::{PostorderFlowTraversal, mut_base};
 use flow::{BLOCK_POSITION_IS_STATIC, HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, INLINE_POSITION_IS_STATIC};
@@ -1631,6 +1631,7 @@ impl Flow for BlockFlow {
             self.base.thread_id = parent_thread_id;
             if self.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
                 self.assign_block_size(layout_context);
+                self.store_overflow(layout_context);
                 // Don't remove the restyle damage; `assign_block_size` decides whether that is
                 // appropriate (which in the case of e.g. absolutely-positioned flows, it is not).
             }

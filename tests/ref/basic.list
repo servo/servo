@@ -92,6 +92,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == float_clearance_intrinsic_width_a.html float_clearance_intrinsic_width_ref.html
 == float_intrinsic_height.html float_intrinsic_height_ref.html
 == float_intrinsic_width_a.html float_intrinsic_width_ref.html
+== float_overflow_area_a.html float_overflow_area_ref.html
 == float_right_intrinsic_width_a.html float_right_intrinsic_width_ref.html
 == float_table_a.html float_table_ref.html
 == float_under_top_margin_a.html float_under_top_margin_ref.html
