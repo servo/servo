@@ -1248,11 +1248,15 @@ impl Fragment {
                 result.union_block(&block_flow.base.intrinsic_inline_sizes)
             }
             SpecificFragmentInfo::Image(ref mut image_fragment_info) => {
-                let image_inline_size = image_fragment_info.image_inline_size();
+                let image_inline_size = match image_fragment_info.replaced_image_fragment_info
+                                                                 .dom_inline_size {
+                    None => image_fragment_info.image_inline_size(),
+                    Some(dom_inline_size) => dom_inline_size,
+                };
                 result.union_block(&IntrinsicISizes {
                     minimum_inline_size: image_inline_size,
                     preferred_inline_size: image_inline_size,
-                })
+                });
             }
             SpecificFragmentInfo::Canvas(ref mut canvas_fragment_info) => {
                 let canvas_inline_size = canvas_fragment_info.canvas_inline_size();

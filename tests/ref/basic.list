@@ -131,6 +131,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == img_dynamic_remove.html img_dynamic_remove_ref.html
 != img_simple.html img_simple_ref.html
 == img_size_a.html img_size_b.html
+== img_width_attribute_intrinsic_width_a.html img_width_attribute_intrinsic_width_ref.html
 == incremental_float_a.html incremental_float_ref.html
 == incremental_inline_layout_a.html incremental_inline_layout_ref.html
 != inline_background_a.html inline_background_ref.html
