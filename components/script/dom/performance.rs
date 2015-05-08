@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::PerformanceBinding;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::performancetiming::{PerformanceTiming, PerformanceTimingHelpers};
@@ -21,20 +21,20 @@ pub struct Performance {
 }
 
 impl Performance {
-    fn new_inherited(window: JSRef<Window>,
+    fn new_inherited(window: &Window,
                      navigation_start: u64,
                      navigation_start_precise: f64) -> Performance {
         Performance {
             reflector_: Reflector::new(),
-            timing: JS::from_rooted(PerformanceTiming::new(window,
-                                                           navigation_start,
-                                                           navigation_start_precise)),
+            timing: JS::from_rooted(&PerformanceTiming::new(window,
+                                                            navigation_start,
+                                                            navigation_start_precise)),
         }
     }
 
-    pub fn new(window: JSRef<Window>,
+    pub fn new(window: &Window,
                navigation_start: u64,
-               navigation_start_precise: f64) -> Temporary<Performance> {
+               navigation_start_precise: f64) -> Root<Performance> {
         reflect_dom_object(box Performance::new_inherited(window,
                                                           navigation_start,
                                                           navigation_start_precise),
@@ -43,9 +43,9 @@ impl Performance {
     }
 }
 
-impl<'a> PerformanceMethods for JSRef<'a, Performance> {
-    fn Timing(self) -> Temporary<PerformanceTiming> {
-        Temporary::from_rooted(self.timing.clone())
+impl<'a> PerformanceMethods for &'a Performance {
+    fn Timing(self) -> Root<PerformanceTiming> {
+        self.timing.root()
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now

@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{AttributeHandlers, Element, ElementHelpers};
 use dom::window::Window;
@@ -23,20 +23,20 @@ pub struct NamedNodeMap {
 }
 
 impl NamedNodeMap {
-    fn new_inherited(elem: JSRef<Element>) -> NamedNodeMap {
+    fn new_inherited(elem: &Element) -> NamedNodeMap {
         NamedNodeMap {
             reflector_: Reflector::new(),
-            owner: JS::from_rooted(elem),
+            owner: JS::from_ref(elem),
         }
     }
 
-    pub fn new(window: JSRef<Window>, elem: JSRef<Element>) -> Temporary<NamedNodeMap> {
+    pub fn new(window: &Window, elem: &Element) -> Root<NamedNodeMap> {
         reflect_dom_object(box NamedNodeMap::new_inherited(elem),
                            GlobalRef::Window(window), NamedNodeMapBinding::Wrap)
     }
 }
 
-impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
+impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
     // https://dom.spec.whatwg.org/#dom-namednodemap-length
     fn Length(self) -> u32 {
         let owner = self.owner.root();
@@ -47,16 +47,16 @@ impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-item
-    fn Item(self, index: u32) -> Option<Temporary<Attr>> {
+    fn Item(self, index: u32) -> Option<Root<Attr>> {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
         let attrs = owner.attrs();
-        attrs.get(index as usize).map(|x| Temporary::from_rooted(x.clone()))
+        attrs.get(index as usize).map(|t| t.root())
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditem
-    fn GetNamedItem(self, name: DOMString) -> Option<Temporary<Attr>> {
+    fn GetNamedItem(self, name: DOMString) -> Option<Root<Attr>> {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
@@ -65,7 +65,7 @@ impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditemns
     fn GetNamedItemNS(self, namespace: Option<DOMString>, local_name: DOMString)
-                     -> Option<Temporary<Attr>> {
+                     -> Option<Root<Attr>> {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
@@ -74,7 +74,7 @@ impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditem
-    fn RemoveNamedItem(self, name: DOMString) -> Fallible<Temporary<Attr>> {
+    fn RemoveNamedItem(self, name: DOMString) -> Fallible<Root<Attr>> {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
@@ -84,7 +84,7 @@ impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditemns
     fn RemoveNamedItemNS(self, namespace: Option<DOMString>, local_name: DOMString)
-                      -> Fallible<Temporary<Attr>> {
+                      -> Fallible<Root<Attr>> {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
@@ -92,13 +92,13 @@ impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
         owner.remove_attribute(&ns, &Atom::from_slice(&local_name)).ok_or(Error::NotFound)
     }
 
-    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Temporary<Attr>> {
+    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Root<Attr>> {
         let item = self.Item(index);
         *found = item.is_some();
         item
     }
 
-    fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<Temporary<Attr>> {
+    fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<Root<Attr>> {
         let item = self.GetNamedItem(name);
         *found = item.is_some();
         item

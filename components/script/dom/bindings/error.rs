@@ -6,7 +6,6 @@
 
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::Rootable;
 use dom::domexception::{DOMException, DOMErrorName};
 
 use util::str::DOMString;
@@ -118,7 +117,7 @@ pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
     };
 
     assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
-    let exception = DOMException::new(global, code).root();
+    let exception = DOMException::new(global, code);
     let thrown = RootedValue::new(cx, exception.to_jsval(cx));
     unsafe {
         JS_SetPendingException(cx, thrown.handle());

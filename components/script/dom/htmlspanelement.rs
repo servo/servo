@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLSpanElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSpanElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -24,14 +24,14 @@ impl HTMLSpanElementDerived for EventTarget {
 }
 
 impl HTMLSpanElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLSpanElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLSpanElement {
         HTMLSpanElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLSpanElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLSpanElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> Root<HTMLSpanElement> {
         let element = HTMLSpanElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLSpanElementBinding::Wrap)
     }

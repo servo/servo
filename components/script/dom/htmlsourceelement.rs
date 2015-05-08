@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLSourceElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSourceElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -24,14 +24,14 @@ impl HTMLSourceElementDerived for EventTarget {
 }
 
 impl HTMLSourceElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLSourceElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLSourceElement {
         HTMLSourceElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLSourceElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLSourceElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> Root<HTMLSourceElement> {
         let element = HTMLSourceElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLSourceElementBinding::Wrap)
     }

@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::CommentDerived;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Rootable, Temporary};
+use dom::bindings::js::Root;
 use dom::characterdata::{CharacterData, CharacterDataTypeId};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -27,19 +27,19 @@ impl CommentDerived for EventTarget {
 }
 
 impl Comment {
-    fn new_inherited(text: DOMString, document: JSRef<Document>) -> Comment {
+    fn new_inherited(text: DOMString, document: &Document) -> Comment {
         Comment {
             characterdata: CharacterData::new_inherited(CharacterDataTypeId::Comment, text, document)
         }
     }
 
-    pub fn new(text: DOMString, document: JSRef<Document>) -> Temporary<Comment> {
+    pub fn new(text: DOMString, document: &Document) -> Root<Comment> {
         Node::reflect_node(box Comment::new_inherited(text, document),
                            document, CommentBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef, data: DOMString) -> Fallible<Temporary<Comment>> {
-        let document = global.as_window().Document().root();
+    pub fn Constructor(global: GlobalRef, data: DOMString) -> Fallible<Root<Comment>> {
+        let document = global.as_window().Document();
         Ok(Comment::new(data, document.r()))
     }
 }

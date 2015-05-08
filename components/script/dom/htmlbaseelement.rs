@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLBaseElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBaseElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -24,14 +24,14 @@ impl HTMLBaseElementDerived for EventTarget {
 }
 
 impl HTMLBaseElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLBaseElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLBaseElement {
         HTMLBaseElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLBaseElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLBaseElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> Root<HTMLBaseElement> {
         let element = HTMLBaseElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLBaseElementBinding::Wrap)
     }

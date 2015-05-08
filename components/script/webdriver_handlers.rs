@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use dom::bindings::js::{OptionalRootable, Rootable, Temporary};
+use dom::bindings::js::Root;
 use dom::node::{Node, NodeHelpers};
 use dom::window::{ScriptHelpers, WindowHelpers};
 use dom::document::DocumentHelpers;
@@ -24,13 +24,13 @@ use js::jsval::UndefinedValue;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 
-fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String) -> Option<Temporary<Node>> {
+fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String) -> Option<Root<Node>> {
     let page = get_page(&*page, pipeline);
-    let document = page.document().root();
+    let document = page.document();
     let node = NodeCast::from_ref(document.r());
 
     for candidate in node.traverse_preorder() {
-        if candidate.root().r().get_unique_id() == node_id {
+        if candidate.r().get_unique_id() == node_id {
             return Some(candidate);
         }
     }
@@ -57,7 +57,7 @@ pub fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDriverJSRe
 
 pub fn handle_execute_script(page: &Rc<Page>, pipeline: PipelineId, eval: String, reply: Sender<WebDriverJSResult>) {
     let page = get_page(&*page, pipeline);
-    let window = page.window().root();
+    let window = page.window();
     let cx = window.r().get_cx();
     let mut rval = RootedValue::new(cx, UndefinedValue());
     window.r().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
@@ -85,13 +85,12 @@ pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector:
 }
 
 pub fn handle_find_elements_css(page: &Rc<Page>, _pipeline: PipelineId, selector: String, reply: Sender<Result<Vec<String>, ()>>) {
-    reply.send(match page.document().root().r().QuerySelectorAll(selector.clone()) {
-        Ok(ref node_list) => {
-            let nodes = node_list.root();
+    reply.send(match page.document().r().QuerySelectorAll(selector.clone()) {
+        Ok(ref nodes) => {
             let mut result = Vec::with_capacity(nodes.r().Length() as usize);
             for i in 0..nodes.r().Length() {
                 if let Some(ref node) = nodes.r().Item(i) {
-                    result.push(node.root().r().get_unique_id());
+                    result.push(node.r().get_unique_id());
                 }
             }
             Ok(result)
@@ -103,18 +102,18 @@ pub fn handle_find_elements_css(page: &Rc<Page>, _pipeline: PipelineId, selector
 }
 
 pub fn handle_get_active_element(page: &Rc<Page>, _pipeline: PipelineId, reply: Sender<Option<String>>) {
-    reply.send(page.document().root().r().GetActiveElement().map(
-        |elem| NodeCast::from_ref(elem.root().r()).get_unique_id())).unwrap();
+    reply.send(page.document().r().GetActiveElement().map(
+        |elem| NodeCast::from_ref(elem.r()).get_unique_id())).unwrap();
 }
 
 pub fn handle_get_title(page: &Rc<Page>, _pipeline: PipelineId, reply: Sender<String>) {
-    reply.send(page.document().root().r().Title()).unwrap();
+    reply.send(page.document().r().Title()).unwrap();
 }
 
 pub fn handle_get_text(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: Sender<Result<String, ()>>) {
     reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
         Some(ref node) => {
-            Ok(node.root().r().GetTextContent().unwrap_or("".to_owned()))
+            Ok(node.r().GetTextContent().unwrap_or("".to_owned()))
         },
         None => Err(())
     }).unwrap();
@@ -122,8 +121,7 @@ pub fn handle_get_text(page: &Rc<Page>, pipeline: PipelineId, node_id: String, r
 
 pub fn handle_get_name(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: Sender<Result<String, ()>>) {
     reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
-        Some(tmp_node) => {
-            let node = tmp_node.root();
+        Some(node) => {
             let element = ElementCast::to_ref(node.r()).unwrap();
             Ok(element.TagName())
         },

@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, KeyboardEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary, Rootable, RootedReference};
+use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::event::{Event, EventTypeId};
 use dom::uievent::UIEvent;
@@ -65,17 +65,17 @@ impl KeyboardEvent {
         }
     }
 
-    pub fn new_uninitialized(window: JSRef<Window>) -> Temporary<KeyboardEvent> {
+    pub fn new_uninitialized(window: &Window) -> Root<KeyboardEvent> {
         reflect_dom_object(box KeyboardEvent::new_inherited(),
                            GlobalRef::Window(window),
                            KeyboardEventBinding::Wrap)
     }
 
-    pub fn new(window: JSRef<Window>,
+    pub fn new(window: &Window,
                type_: DOMString,
                canBubble: bool,
                cancelable: bool,
-               view: Option<JSRef<Window>>,
+               view: Option<&Window>,
                _detail: i32,
                key: Option<Key>,
                key_string: DOMString,
@@ -88,27 +88,29 @@ impl KeyboardEvent {
                shiftKey: bool,
                metaKey: bool,
                char_code: Option<u32>,
-               key_code: u32) -> Temporary<KeyboardEvent> {
-        let ev = KeyboardEvent::new_uninitialized(window).root();
+               key_code: u32) -> Root<KeyboardEvent> {
+        let ev = KeyboardEvent::new_uninitialized(window);
         ev.r().InitKeyboardEvent(type_, canBubble, cancelable, view, key_string, location,
                                  "".to_owned(), repeat, "".to_owned());
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let ev = ev.r();
-        ev.key.set(key);
-        *ev.code.borrow_mut() = code;
-        ev.ctrl.set(ctrlKey);
-        ev.alt.set(altKey);
-        ev.shift.set(shiftKey);
-        ev.meta.set(metaKey);
-        ev.char_code.set(char_code);
-        ev.key_code.set(key_code);
-        ev.is_composing.set(isComposing);
-        Temporary::from_rooted(ev)
+        {
+            let ev = ev.r();
+            ev.key.set(key);
+            *ev.code.borrow_mut() = code;
+            ev.ctrl.set(ctrlKey);
+            ev.alt.set(altKey);
+            ev.shift.set(shiftKey);
+            ev.meta.set(metaKey);
+            ev.char_code.set(char_code);
+            ev.key_code.set(key_code);
+            ev.is_composing.set(isComposing);
+        }
+        ev
     }
 
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
-                       init: &KeyboardEventBinding::KeyboardEventInit) -> Fallible<Temporary<KeyboardEvent>> {
+                       init: &KeyboardEventBinding::KeyboardEventInit) -> Fallible<Root<KeyboardEvent>> {
         let event = KeyboardEvent::new(global.as_window(), type_,
                                        init.parent.parent.parent.bubbles,
                                        init.parent.parent.parent.cancelable,
@@ -134,16 +136,16 @@ impl KeyboardEvent {
 }
 
 pub trait KeyboardEventHelpers {
-    fn get_key(&self) -> Option<Key>;
-    fn get_key_modifiers(&self) -> KeyModifiers;
+    fn get_key(self) -> Option<Key>;
+    fn get_key_modifiers(self) -> KeyModifiers;
 }
 
-impl<'a> KeyboardEventHelpers for JSRef<'a, KeyboardEvent> {
-    fn get_key(&self) -> Option<Key> {
+impl<'a> KeyboardEventHelpers for &'a KeyboardEvent {
+    fn get_key(self) -> Option<Key> {
         self.key.get().clone()
     }
 
-    fn get_key_modifiers(&self) -> KeyModifiers {
+    fn get_key_modifiers(self) -> KeyModifiers {
         let mut result = KeyModifiers::empty();
         if self.shift.get() {
             result = result | constellation_msg::SHIFT;
@@ -758,23 +760,23 @@ impl KeyEventProperties {
     }
 }
 
-impl<'a> KeyboardEventMethods for JSRef<'a, KeyboardEvent> {
+impl<'a> KeyboardEventMethods for &'a KeyboardEvent {
     fn InitKeyboardEvent(self,
                          typeArg: DOMString,
                          canBubbleArg: bool,
                          cancelableArg: bool,
-                         viewArg: Option<JSRef<Window>>,
+                         viewArg: Option<&Window>,
                          keyArg: DOMString,
                          locationArg: u32,
                          _modifiersListArg: DOMString,
                          repeat: bool,
                          _locale: DOMString) {
-        let event: JSRef<Event> = EventCast::from_ref(self);
+        let event = EventCast::from_ref(self);
         if event.dispatching() {
             return;
         }
 
-        let uievent: JSRef<UIEvent> = UIEventCast::from_ref(self);
+        let uievent = UIEventCast::from_ref(self);
         uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, 0);
         *self.key_string.borrow_mut() = keyArg;
         self.location.set(locationArg);

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLHeadingElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLHeadingElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -35,7 +35,7 @@ impl HTMLHeadingElementDerived for EventTarget {
 }
 
 impl HTMLHeadingElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>, level: HeadingLevel) -> HTMLHeadingElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document, level: HeadingLevel) -> HTMLHeadingElement {
         HTMLHeadingElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLHeadingElement, localName, prefix, document),
             level: level,
@@ -43,7 +43,7 @@ impl HTMLHeadingElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>, level: HeadingLevel) -> Temporary<HTMLHeadingElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document, level: HeadingLevel) -> Root<HTMLHeadingElement> {
         let element = HTMLHeadingElement::new_inherited(localName, prefix, document, level);
         Node::reflect_node(box element, document, HTMLHeadingElementBinding::Wrap)
     }

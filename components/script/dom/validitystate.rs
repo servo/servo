@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::ValidityStateBinding;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
 
@@ -23,7 +23,7 @@ impl ValidityState {
         }
     }
 
-    pub fn new(window: JSRef<Window>) -> Temporary<ValidityState> {
+    pub fn new(window: &Window) -> Root<ValidityState> {
         reflect_dom_object(box ValidityState::new_inherited(),
                            GlobalRef::Window(window),
                            ValidityStateBinding::Wrap)

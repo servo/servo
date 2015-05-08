@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLabelElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -24,14 +24,14 @@ impl HTMLLabelElementDerived for EventTarget {
 }
 
 impl HTMLLabelElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLLabelElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLLabelElement {
         HTMLLabelElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLLabelElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLLabelElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> Root<HTMLLabelElement> {
         let element = HTMLLabelElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLLabelElementBinding::Wrap)
     }
