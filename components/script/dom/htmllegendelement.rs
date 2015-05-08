@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLLegendElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLegendElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -28,7 +28,7 @@ impl HTMLLegendElementDerived for EventTarget {
 impl HTMLLegendElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLLegendElement {
+                     document: &Document) -> HTMLLegendElement {
         HTMLLegendElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLLegendElement, localName, prefix, document)
@@ -38,7 +38,7 @@ impl HTMLLegendElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLLegendElement> {
+               document: &Document) -> Root<HTMLLegendElement> {
         let element = HTMLLegendElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLLegendElementBinding::Wrap)
     }

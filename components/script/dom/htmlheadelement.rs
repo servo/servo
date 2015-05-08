@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLHeadElementDerived};
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -30,7 +30,7 @@ impl HTMLHeadElementDerived for EventTarget {
 impl HTMLHeadElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLHeadElement {
+                     document: &Document) -> HTMLHeadElement {
         HTMLHeadElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLHeadElement, localName, prefix, document)
         }
@@ -39,15 +39,15 @@ impl HTMLHeadElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLHeadElement> {
+               document: &Document) -> Root<HTMLHeadElement> {
         let element = HTMLHeadElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLHeadElementBinding::Wrap)
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLHeadElement> {
+impl<'a> VirtualMethods for &'a HTMLHeadElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
     fn bind_to_tree(&self, _tree_in_doc: bool) {

@@ -11,7 +11,7 @@ use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::error::Error::IndexSize;
-use dom::bindings::js::{JSRef, LayoutJS, Temporary};
+use dom::bindings::js::{LayoutJS, Root};
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -39,7 +39,7 @@ impl CharacterDataDerived for EventTarget {
 }
 
 impl CharacterData {
-    pub fn new_inherited(id: CharacterDataTypeId, data: DOMString, document: JSRef<Document>) -> CharacterData {
+    pub fn new_inherited(id: CharacterDataTypeId, data: DOMString, document: &Document) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(NodeTypeId::CharacterData(id), document),
             data: DOMRefCell::new(data),
@@ -47,7 +47,7 @@ impl CharacterData {
     }
 }
 
-impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
+impl<'a> CharacterDataMethods for &'a CharacterData {
     // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn Data(self) -> DOMString {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
@@ -136,20 +136,20 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(self) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.remove_self();
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
-    fn GetPreviousElementSibling(self) -> Option<Temporary<Element>> {
+    fn GetPreviousElementSibling(self) -> Option<Root<Element>> {
         NodeCast::from_ref(self).preceding_siblings()
-                                .filter_map(ElementCast::to_temporary).next()
+                                .filter_map(ElementCast::to_root).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
-    fn GetNextElementSibling(self) -> Option<Temporary<Element>> {
+    fn GetNextElementSibling(self) -> Option<Root<Element>> {
         NodeCast::from_ref(self).following_siblings()
-                                .filter_map(ElementCast::to_temporary).next()
+                                .filter_map(ElementCast::to_root).next()
     }
 }
 
@@ -166,10 +166,10 @@ pub trait CharacterDataHelpers<'a> {
     fn data(self) -> Ref<'a, DOMString>;
 }
 
-impl<'a> CharacterDataHelpers<'a> for JSRef<'a, CharacterData> {
+impl<'a> CharacterDataHelpers<'a> for &'a CharacterData {
     #[inline]
     fn data(self) -> Ref<'a, DOMString> {
-        self.extended_deref().data.borrow()
+        self.data.borrow()
     }
 }
 

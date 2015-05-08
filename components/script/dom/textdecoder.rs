@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::TextDecoderBinding;
 use dom::bindings::codegen::Bindings::TextDecoderBinding::TextDecoderMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -39,11 +39,11 @@ impl TextDecoder {
         }
     }
 
-    fn make_range_error() -> Fallible<Temporary<TextDecoder>> {
+    fn make_range_error() -> Fallible<Root<TextDecoder>> {
         Err(Error::Range("The given encoding is not supported.".to_owned()))
     }
 
-    pub fn new(global: GlobalRef, encoding: EncodingRef, fatal: bool) -> Temporary<TextDecoder> {
+    pub fn new(global: GlobalRef, encoding: EncodingRef, fatal: bool) -> Root<TextDecoder> {
         reflect_dom_object(box TextDecoder::new_inherited(encoding, fatal),
                            global,
                            TextDecoderBinding::Wrap)
@@ -53,7 +53,7 @@ impl TextDecoder {
     pub fn Constructor(global: GlobalRef,
                        label: DOMString,
                        options: &TextDecoderBinding::TextDecoderOptions)
-                            -> Fallible<Temporary<TextDecoder>> {
+                            -> Fallible<Root<TextDecoder>> {
         let encoding = match encoding_from_whatwg_label(&label) {
             None => return TextDecoder::make_range_error(),
             Some(enc) => enc
@@ -72,7 +72,7 @@ impl TextDecoder {
 }
 
 
-impl<'a> TextDecoderMethods for JSRef<'a, TextDecoder> {
+impl<'a> TextDecoderMethods for &'a TextDecoder {
     fn Encoding(self) -> DOMString {
         self.encoding.whatwg_name().unwrap().to_owned()
     }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLEmbedElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLEmbedElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -26,7 +26,7 @@ impl HTMLEmbedElementDerived for EventTarget {
 }
 
 impl HTMLEmbedElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLEmbedElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLEmbedElement {
         HTMLEmbedElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLEmbedElement, localName, prefix, document)
         }
@@ -35,7 +35,7 @@ impl HTMLEmbedElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLEmbedElement> {
+               document: &Document) -> Root<HTMLEmbedElement> {
         let element = HTMLEmbedElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLEmbedElementBinding::Wrap)
     }

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::InheritTypes::ElementCast;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::Element;
 use dom::element::ElementCreator;
@@ -81,8 +81,8 @@ use string_cache::{Atom, QualName};
 use std::borrow::ToOwned;
 
 pub fn create_element(name: QualName, prefix: Option<Atom>,
-                      document: JSRef<Document>, creator: ElementCreator)
-                      -> Temporary<Element> {
+                      document: &Document, creator: ElementCreator)
+                      -> Root<Element> {
     let prefix = prefix.map(|p| (*p).to_owned());
 
     if name.ns != ns!(HTML) {
@@ -92,11 +92,11 @@ pub fn create_element(name: QualName, prefix: Option<Atom>,
     macro_rules! make(
         ($ctor:ident) => ({
             let obj = $ctor::new((*name.local).to_owned(), prefix, document);
-            ElementCast::from_temporary(obj)
+            ElementCast::from_root(obj)
         });
         ($ctor:ident, $($arg:expr),+) => ({
             let obj = $ctor::new((*name.local).to_owned(), prefix, document, $($arg),+);
-            ElementCast::from_temporary(obj)
+            ElementCast::from_root(obj)
         })
     );
 

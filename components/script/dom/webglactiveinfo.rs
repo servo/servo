@@ -6,7 +6,7 @@
 use dom::bindings::codegen::Bindings::WebGLActiveInfoBinding;
 use dom::bindings::codegen::Bindings::WebGLActiveInfoBinding::WebGLActiveInfoMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Temporary, JSRef};
+use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector,reflect_dom_object};
 use util::str::DOMString;
 
@@ -29,12 +29,12 @@ impl WebGLActiveInfo {
         }
     }
 
-    pub fn new(global: GlobalRef, size: i32, ty: u32, name: String) -> Temporary<WebGLActiveInfo> {
+    pub fn new(global: GlobalRef, size: i32, ty: u32, name: String) -> Root<WebGLActiveInfo> {
         reflect_dom_object(box WebGLActiveInfo::new_inherited(size, ty, name), global, WebGLActiveInfoBinding::Wrap)
     }
 }
 
-impl<'a> WebGLActiveInfoMethods for JSRef<'a, WebGLActiveInfo> {
+impl<'a> WebGLActiveInfoMethods for &'a WebGLActiveInfo {
     fn Size(self) -> i32 {
         self.size
     }

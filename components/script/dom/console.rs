@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::ConsoleBinding;
 use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::WindowHelpers;
 use devtools_traits::{DevtoolsControlMsg, ConsoleMessage, LogLevel};
@@ -26,12 +26,12 @@ impl Console {
         }
     }
 
-    pub fn new(global: GlobalRef) -> Temporary<Console> {
+    pub fn new(global: GlobalRef) -> Root<Console> {
         reflect_dom_object(box Console::new_inherited(global), global, ConsoleBinding::Wrap)
     }
 }
 
-impl<'a> ConsoleMethods for JSRef<'a, Console> {
+impl<'a> ConsoleMethods for &'a Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
     fn Log(self, messages: Vec<DOMString>) {
         for message in messages {
@@ -95,7 +95,7 @@ fn prepare_message(logLevel: LogLevel, message: String) -> ConsoleMessage {
     }
 }
 
-fn propagate_console_msg(console: &JSRef<Console>, console_message: ConsoleMessage) {
+fn propagate_console_msg(console: &&Console, console_message: ConsoleMessage) {
     let global = console.global.root();
     match global.r() {
         GlobalRef::Window(window_ref) => {
