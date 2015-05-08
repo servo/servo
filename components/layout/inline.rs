@@ -917,7 +917,7 @@ impl InlineFlow {
                 InlineFlow::justify_inline_fragments(fragments, line, slack_inline_size)
             }
             text_align::T::justify | text_align::T::start => {}
-            text_align::T::center => {
+            text_align::T::center | text_align::T::servo_center => {
                 inline_start_position_for_fragment = inline_start_position_for_fragment +
                     slack_inline_size.scale_by(0.5)
             }
