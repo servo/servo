@@ -230,6 +230,7 @@ experimental != overconstrained_block.html overconstrained_block_ref.html
 == percent_height.html percent_height_ref.html
 == percentage_height_float_a.html percentage_height_float_ref.html
 == percentage_height_root.html percentage_height_root_ref.html
+== percentage_width_inline_block_a.html percentage_width_inline_block_ref.html
 == png_rgba_colorspace_a.html png_rgba_colorspace_b.html
 == position_abs_cb_with_non_cb_kid_a.html position_abs_cb_with_non_cb_kid_b.html
 == position_abs_height_width_a.html position_abs_height_width_b.html
