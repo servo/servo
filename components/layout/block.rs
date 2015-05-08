@@ -1207,6 +1207,7 @@ impl BlockFlow {
                                                                         usize,
                                                                         Au,
                                                                         WritingMode,
+                                                                        &mut Au,
                                                                         &mut Au) {
         // Keep track of whether floats could impact each child.
         let mut inline_start_floats_impact_child =
@@ -1259,6 +1260,7 @@ impl BlockFlow {
 
         // This value is used only for table cells.
         let mut inline_start_margin_edge = inline_start_content_edge;
+        let mut inline_end_margin_edge = inline_end_content_edge;
 
         let mut iterator = self.base.child_iter().enumerate().peekable();
         while let Some((i, kid)) = iterator.next() {
@@ -1332,7 +1334,8 @@ impl BlockFlow {
                      i,
                      content_inline_size,
                      containing_block_mode,
-                     &mut inline_start_margin_edge);
+                     &mut inline_start_margin_edge,
+                     &mut inline_end_margin_edge);
 
             // Per CSS 2.1 § 16.3.1, text alignment propagates to all children in flow.
             //
@@ -1602,7 +1605,7 @@ impl Flow for BlockFlow {
                                                         inline_start_content_edge,
                                                         inline_end_content_edge,
                                                         content_inline_size,
-                                                        |_, _, _, _, _| {});
+                                                        |_, _, _, _, _, _| {});
     }
 
     fn place_float_if_applicable<'a>(&mut self, _: &'a LayoutContext<'a>) {

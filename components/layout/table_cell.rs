@@ -157,7 +157,7 @@ impl Flow for TableCellFlow {
                                                                    inline_start_content_edge,
                                                                    inline_end_content_edge,
                                                                    content_inline_size,
-                                                                   |_, _, _, _, _| {});
+                                                                   |_, _, _, _, _, _| {});
     }
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
