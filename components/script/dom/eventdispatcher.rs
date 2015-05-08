@@ -5,7 +5,7 @@
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast};
-use dom::bindings::js::{JS, JSRef, OptionalRootable, Rootable};
+use dom::bindings::js::JS;
 use dom::bindings::trace::RootedVec;
 use dom::eventtarget::{EventTarget, ListenerPhase};
 use dom::event::{Event, EventPhase};
@@ -13,9 +13,9 @@ use dom::node::{Node, NodeHelpers};
 use dom::virtualmethods::vtable_for;
 
 // See https://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
-pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
-                              pseudo_target: Option<JSRef<'b, EventTarget>>,
-                              event: JSRef<Event>) -> bool {
+pub fn dispatch_event<'a, 'b>(target: &'a EventTarget,
+                              pseudo_target: Option<&'b EventTarget>,
+                              event: &Event) -> bool {
     assert!(!event.dispatching());
     assert!(event.initialized());
 
@@ -31,9 +31,8 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
     let mut chain: RootedVec<JS<EventTarget>> = RootedVec::new();
     if let Some(target_node) = NodeCast::to_ref(target) {
         for ancestor in target_node.ancestors() {
-            let ancestor = ancestor.root();
             let ancestor_target = EventTargetCast::from_ref(ancestor.r());
-            chain.push(JS::from_rooted(ancestor_target))
+            chain.push(JS::from_ref(ancestor_target))
         }
     }
 
@@ -113,10 +112,10 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
     }
 
     /* default action */
-    let target = event.GetTarget().root();
+    let target = event.GetTarget();
     match target {
         Some(ref target) => {
-            let node: Option<JSRef<Node>> = NodeCast::to_ref(target.r());
+            let node: Option<&Node> = NodeCast::to_ref(target.r());
             match node {
                 Some(node) => {
                     let vtable = vtable_for(&node);

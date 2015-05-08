@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::error::{Fallible, report_pending_exception};
 use dom::bindings::error::Error::InvalidState;
-use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::event::{Event, EventHelpers};
 use dom::eventdispatcher::dispatch_event;
@@ -115,9 +114,9 @@ impl EventTarget {
 
 pub trait EventTargetHelpers {
     fn dispatch_event_with_target(self,
-                                  target: JSRef<EventTarget>,
-                                  event: JSRef<Event>) -> bool;
-    fn dispatch_event(self, event: JSRef<Event>) -> bool;
+                                  target: &EventTarget,
+                                  event: &Event) -> bool;
+    fn dispatch_event(self, event: &Event) -> bool;
     fn set_inline_event_listener(self,
                                  ty: DOMString,
                                  listener: Option<EventListener>);
@@ -135,14 +134,14 @@ pub trait EventTargetHelpers {
     fn has_handlers(self) -> bool;
 }
 
-impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
+impl<'a> EventTargetHelpers for &'a EventTarget {
     fn dispatch_event_with_target(self,
-                                  target: JSRef<EventTarget>,
-                                  event: JSRef<Event>) -> bool {
+                                  target: &EventTarget,
+                                  event: &Event) -> bool {
         dispatch_event(self, Some(target), event)
     }
 
-    fn dispatch_event(self, event: JSRef<Event>) -> bool {
+    fn dispatch_event(self, event: &Event) -> bool {
         dispatch_event(self, None, event)
     }
 
@@ -257,7 +256,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     }
 }
 
-impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
+impl<'a> EventTargetMethods for &'a EventTarget {
     fn AddEventListener(self,
                         ty: DOMString,
                         listener: Option<EventListener>,
@@ -307,7 +306,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
         }
     }
 
-    fn DispatchEvent(self, event: JSRef<Event>) -> Fallible<bool> {
+    fn DispatchEvent(self, event: &Event) -> Fallible<bool> {
         if event.dispatching() || !event.initialized() {
             return Err(InvalidState);
         }
@@ -316,7 +315,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, EventTarget> {
+impl<'a> VirtualMethods for &'a EventTarget {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         None
     }

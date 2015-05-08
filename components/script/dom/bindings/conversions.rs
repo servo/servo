@@ -24,7 +24,7 @@
 //! | USVString               | `USVString`                      |
 //! | ByteString              | `ByteString`                     |
 //! | object                  | `*mut JSObject`                  |
-//! | interface types         | `JSRef<T>`      | `Temporary<T>` |
+//! | interface types         | `&T`            | `Root<T>`      |
 //! | dictionary types        | `&T`            | *unsupported*  |
 //! | enumeration types       | `T`                              |
 //! | callback function types | `T`                              |
@@ -34,7 +34,7 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::error::throw_type_error;
-use dom::bindings::js::{JSRef, Root, Unrooted};
+use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::str::{ByteString, USVString};
 use dom::bindings::utils::{Reflectable, Reflector, DOMClass};
@@ -51,7 +51,7 @@ use js::jsapi::{JS_StringHasLatin1Chars, JS_GetLatin1StringCharsAndLength, JS_Ge
 use js::jsapi::{JS_NewUCStringCopyN, JS_NewStringCopyN};
 use js::jsapi::{JS_WrapValue};
 use js::jsapi::{JSClass, JS_GetClass};
-use js::jsapi::{HandleId, RootedValue, HandleValue};
+use js::jsapi::{HandleId, RootedValue, HandleValue, HandleObject};
 use js::jsval::JSVal;
 use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value};
 use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
@@ -62,6 +62,7 @@ use std::borrow::ToOwned;
 use std::default;
 use std::slice;
 use std::ptr;
+use core::nonzero::NonZero;
 
 /// A trait to retrieve the constants necessary to check if a `JSObject`
 /// implements a given interface.
@@ -518,7 +519,11 @@ pub unsafe fn native_from_reflector<T>(obj: *mut JSObject) -> *const T {
         assert!(is_dom_proxy(obj));
         GetProxyPrivate(obj)
     };
-    value.to_private() as *const T
+    if value.is_undefined() {
+        ptr::null()
+    } else {
+        value.to_private() as *const T
+    }
 }
 
 /// Get the `DOMClass` from `obj`, or `Err(())` if `obj` is not a DOM object.
@@ -547,7 +552,7 @@ unsafe fn get_dom_class(obj: *mut JSObject) -> Result<DOMClass, ()> {
 /// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
 /// not a reflector for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
-pub fn native_from_reflector_jsmanaged<T>(mut obj: *mut JSObject) -> Result<Unrooted<T>, ()>
+pub fn native_from_reflector_jsmanaged<T>(mut obj: *mut JSObject) -> Result<Root<T>, ()>
     where T: Reflectable + IDLInterface
 {
     use js::glue::{IsWrapper, UnwrapObject};
@@ -575,12 +580,28 @@ pub fn native_from_reflector_jsmanaged<T>(mut obj: *mut JSObject) -> Result<Unro
         let proto_depth = <T as IDLInterface>::get_prototype_depth();
         if dom_class.interface_chain[proto_depth] == proto_id {
             debug!("good prototype");
-            Ok(Unrooted::from_raw(native_from_reflector(obj)))
+            let native = native_from_reflector(obj);
+            assert!(!native.is_null());
+            Ok(Root::new(NonZero::new(native)))
         } else {
             debug!("bad prototype");
             Err(())
         }
     }
+}
+
+/// Get a Rooted<T> for a DOM object accessible from a HandleValue
+pub fn native_from_handlevalue<T>(v: HandleValue) -> Result<Root<T>, ()>
+    where T: Reflectable + IDLInterface
+{
+    native_from_reflector_jsmanaged(v.get().to_object())
+}
+
+/// Get a Rooted<T> for a DOM object accessible from a HandleObject
+pub fn native_from_handleobject<T>(obj: HandleObject) -> Result<Root<T>, ()>
+    where T: Reflectable + IDLInterface
+{
+    native_from_reflector_jsmanaged(obj.get())
 }
 
 impl<T: Reflectable> ToJSValConvertible for Root<T> {
@@ -589,13 +610,7 @@ impl<T: Reflectable> ToJSValConvertible for Root<T> {
     }
 }
 
-impl<'a, T: Reflectable> ToJSValConvertible for JSRef<'a, T> {
-    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-        self.reflector().to_jsval(cx)
-    }
-}
-
-impl<'a, T: Reflectable> ToJSValConvertible for Unrooted<T> {
+impl<'a, T: Reflectable> ToJSValConvertible for &'a T {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         self.reflector().to_jsval(cx)
     }

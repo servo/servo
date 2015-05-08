@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DocumentTypeBinding::DocumentTypeMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentTypeDerived, NodeCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
@@ -35,7 +35,7 @@ impl DocumentType {
     fn new_inherited(name: DOMString,
                          public_id: Option<DOMString>,
                          system_id: Option<DOMString>,
-                         document: JSRef<Document>)
+                         document: &Document)
             -> DocumentType {
         DocumentType {
             node: Node::new_inherited(NodeTypeId::DocumentType, document),
@@ -48,8 +48,8 @@ impl DocumentType {
     pub fn new(name: DOMString,
                public_id: Option<DOMString>,
                system_id: Option<DOMString>,
-               document: JSRef<Document>)
-               -> Temporary<DocumentType> {
+               document: &Document)
+               -> Root<DocumentType> {
         let documenttype = DocumentType::new_inherited(name,
                                                        public_id,
                                                        system_id,
@@ -73,7 +73,7 @@ impl DocumentType {
     }
 }
 
-impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
+impl<'a> DocumentTypeMethods for &'a DocumentType {
     // https://dom.spec.whatwg.org/#dom-documenttype-name
     fn Name(self) -> DOMString {
         self.name.clone()
@@ -106,7 +106,7 @@ impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(self) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.remove_self();
     }
 }

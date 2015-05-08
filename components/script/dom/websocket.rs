@@ -12,7 +12,7 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::error::Error::InvalidAccess;
 use dom::bindings::error::Error::Syntax;
 use dom::bindings::global::{GlobalField, GlobalRef};
-use dom::bindings::js::{Temporary, JSRef, Rootable};
+use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::reflect_dom_object;
@@ -83,7 +83,7 @@ impl WebSocket {
 
     }
 
-    pub fn new(global: GlobalRef, url: DOMString) -> Temporary<WebSocket> {
+    pub fn new(global: GlobalRef, url: DOMString) -> Root<WebSocket> {
         /*TODO: This constructor is only a prototype, it does not accomplish the specs
           defined here:
           http://html.spec.whatwg.org
@@ -91,32 +91,29 @@ impl WebSocket {
           TODO: This constructor should be responsible for spawning a thread for the
           receive loop after ws_root.r().Open() - See comment
         */
-        let ws_root = reflect_dom_object(box WebSocket::new_inherited(global, url),
-                                         global,
-                                         WebSocketBinding::Wrap).root();
-        let ws_root = ws_root.r();
-        let parsed_url = Url::parse(&ws_root.url).unwrap();
+        let ws = reflect_dom_object(box WebSocket::new_inherited(global, url),
+                                    global,
+                                    WebSocketBinding::Wrap);
+        let parsed_url = Url::parse(&ws.r().url).unwrap();
         let request = Client::connect(parsed_url).unwrap();
         let response = request.send().unwrap();
         response.validate().unwrap();
-        ws_root.ready_state.set(WebSocketRequestState::Open);
+        ws.r().ready_state.set(WebSocketRequestState::Open);
         //Check to see if ready_state is Closing or Closed and failed = true - means we failed the websocket
         //if so return without setting any states
-        let ready_state = ws_root.ready_state.get();
-        let failed = ws_root.failed.get();
+        let ready_state = ws.r().ready_state.get();
+        let failed = ws.r().failed.get();
         if failed && (ready_state == WebSocketRequestState::Closed || ready_state == WebSocketRequestState::Closing) {
             //Do nothing else. Let the close finish.
-            return Temporary::from_rooted(ws_root);
+            return ws;
         }
         let (temp_sender, temp_receiver) = response.begin().split();
-        let mut other_sender = ws_root.sender.borrow_mut();
-        let mut other_receiver = ws_root.receiver.borrow_mut();
-        *other_sender = Some(temp_sender);
-        *other_receiver = Some(temp_receiver);
+        *ws.r().sender.borrow_mut() = Some(temp_sender);
+        *ws.r().receiver.borrow_mut() = Some(temp_receiver);
 
         //Create everything necessary for starting the open asynchronous task, then begin the task.
-        let global_root = ws_root.global.root();
-        let addr: Trusted<WebSocket> = Trusted::new(global_root.r().get_cx(), ws_root, global_root.r().script_chan().clone());
+        let global_root = ws.r().global.root();
+        let addr: Trusted<WebSocket> = Trusted::new(global_root.r().get_cx(), ws.r(), global_root.r().script_chan().clone());
         let open_task = box WebSocketTaskHandler::new(addr.clone(), WebSocketTask::Open);
         global_root.r().script_chan().send(ScriptMsg::RunnableMsg(open_task)).unwrap();
         //TODO: Spawn thread here for receive loop
@@ -132,15 +129,15 @@ impl WebSocket {
           it confirms the websocket is now closed. This requires the close event
           to be fired (dispatch_close fires the close event - see implementation below)
         */
-        Temporary::from_rooted(ws_root)
+        ws
     }
 
-    pub fn Constructor(global: GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
+    pub fn Constructor(global: GlobalRef, url: DOMString) -> Fallible<Root<WebSocket>> {
         Ok(WebSocket::new(global, url))
     }
 }
 
-impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
+impl<'a> WebSocketMethods for &'a WebSocket {
     event_handler!(open, GetOnopen, SetOnopen);
     event_handler!(close, GetOnclose, SetOnclose);
     event_handler!(error, GetOnerror, SetOnerror);
@@ -241,19 +238,19 @@ impl WebSocketTaskHandler {
         /*TODO: Items 1, 3, 4, & 5 under "WebSocket connection is established" as specified here:
           https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol
         */
-        let ws = self.addr.to_temporary().root(); //Get root
+        let ws = self.addr.root(); //Get root
         let ws = ws.r(); //Get websocket reference
         let global = ws.global.root();
         let event = Event::new(global.r(),
             "open".to_owned(),
             EventBubbles::DoesNotBubble,
-            EventCancelable::NotCancelable).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws);
+            EventCancelable::NotCancelable);
+        let target = EventTargetCast::from_ref(ws);
         event.r().fire(target);
     }
 
     fn dispatch_close(&self) {
-        let ws = self.addr.to_temporary().root();
+        let ws = self.addr.root();
         let ws = ws.r();
         let global = ws.global.root();
         ws.ready_state.set(WebSocketRequestState::Closed);
@@ -266,8 +263,8 @@ impl WebSocketTaskHandler {
             let event = Event::new(global.r(),
                                    "error".to_owned(),
                                    EventBubbles::DoesNotBubble,
-                                   EventCancelable::Cancelable).root();
-            let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws);
+                                   EventCancelable::Cancelable);
+            let target = EventTargetCast::from_ref(ws);
             event.r().fire(target);
         }
         let rsn = ws.reason.borrow();
@@ -281,9 +278,9 @@ impl WebSocketTaskHandler {
                                           EventCancelable::Cancelable,
                                           ws.clean_close.get(),
                                           ws.code.get(),
-                                          rsn_clone).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(ws);
-        let event: JSRef<Event> = EventCast::from_ref(close_event.r());
+                                          rsn_clone);
+        let target = EventTargetCast::from_ref(ws);
+        let event = EventCast::from_ref(close_event.r());
         event.fire(target);
     }
 }

@@ -5,7 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom::bindings::codegen::Bindings::WebGLShaderBinding;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Temporary, JSRef};
+use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 
@@ -23,17 +23,17 @@ impl WebGLShader {
         }
     }
 
-    pub fn new(global: GlobalRef, id: u32) -> Temporary<WebGLShader> {
+    pub fn new(global: GlobalRef, id: u32) -> Root<WebGLShader> {
         reflect_dom_object(box WebGLShader::new_inherited(id), global, WebGLShaderBinding::Wrap)
     }
 }
 
 pub trait WebGLShaderHelpers {
-    fn get_id(&self) -> u32;
+    fn get_id(self) -> u32;
 }
 
-impl<'a> WebGLShaderHelpers for JSRef<'a, WebGLShader> {
-    fn get_id(&self) -> u32 {
+impl<'a> WebGLShaderHelpers for &'a WebGLShader {
+    fn get_id(self) -> u32 {
         self.id
     }
 }

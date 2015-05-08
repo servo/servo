@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLModElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLModElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -24,14 +24,14 @@ impl HTMLModElementDerived for EventTarget {
 }
 
 impl HTMLModElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLModElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLModElement {
         HTMLModElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLModElement, localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLModElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> Root<HTMLModElement> {
         let element = HTMLModElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLModElementBinding::Wrap)
     }

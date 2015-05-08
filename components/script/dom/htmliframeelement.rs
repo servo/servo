@@ -14,12 +14,11 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::NotSupported;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary};
+use dom::bindings::js::{Root};
 use dom::customevent::CustomEvent;
 use dom::document::Document;
-use dom::element::Element;
 use dom::element::AttributeHandlers;
-use dom::event::{Event, EventHelpers};
+use dom::event::EventHelpers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -77,19 +76,19 @@ pub trait HTMLIFrameElementHelpers {
     fn update_subpage_id(self, new_subpage_id: SubpageId);
 }
 
-impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
+impl<'a> HTMLIFrameElementHelpers for &'a HTMLIFrameElement {
     fn is_sandboxed(self) -> bool {
         self.sandbox.get().is_some()
     }
 
     fn get_url(self) -> Option<Url> {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.get_attribute(&ns!(""), &atom!("src")).root().and_then(|src| {
+        let element = ElementCast::from_ref(self);
+        element.get_attribute(&ns!(""), &atom!("src")).and_then(|src| {
             let url = src.r().value();
             if url.is_empty() {
                 None
             } else {
-                let window = window_from_node(self).root();
+                let window = window_from_node(self);
                 UrlParser::new().base_url(&window.r().get_url())
                     .parse(&url).ok()
             }
@@ -98,7 +97,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 
     fn generate_new_subpage_id(self) -> (SubpageId, Option<SubpageId>) {
         let old_subpage_id = self.subpage_id.get();
-        let win = window_from_node(self).root();
+        let win = window_from_node(self);
         let subpage_id = win.r().get_next_subpage_id();
         self.subpage_id.set(Some(subpage_id));
         (subpage_id, old_subpage_id)
@@ -111,7 +110,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
             IFrameUnsandboxed
         };
 
-        let window = window_from_node(self).root();
+        let window = window_from_node(self);
         let window = window.r();
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
 
@@ -146,16 +145,16 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         assert!(opts::experimental_enabled());
 
         if self.Mozbrowser() {
-            let window = window_from_node(self).root();
+            let window = window_from_node(self);
             let cx = window.r().get_cx();
             let detail = RootedValue::new(cx, event.detail().to_jsval(cx));
             let custom_event = CustomEvent::new(GlobalRef::Window(window.r()),
                                                 event.name().to_owned(),
                                                 true,
                                                 true,
-                                                detail.handle()).root();
-            let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-            let event: JSRef<Event> = EventCast::from_ref(custom_event.r());
+                                                detail.handle());
+            let target = EventTargetCast::from_ref(self);
+            let event = EventCast::from_ref(custom_event.r());
             event.fire(target);
         }
     }
@@ -166,7 +165,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 }
 
 impl HTMLIFrameElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLIFrameElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLIFrameElement, localName, prefix, document),
             subpage_id: Cell::new(None),
@@ -176,7 +175,7 @@ impl HTMLIFrameElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLIFrameElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> Root<HTMLIFrameElement> {
         let element = HTMLIFrameElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLIFrameElementBinding::Wrap)
     }
@@ -192,46 +191,46 @@ impl HTMLIFrameElement {
     }
 }
 
-impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
+impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
     fn Src(self) -> DOMString {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         element.get_string_attribute(&atom!("src"))
     }
 
     fn SetSrc(self, src: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         element.set_url_attribute(&atom!("src"), src)
     }
 
     fn Sandbox(self) -> DOMString {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         element.get_string_attribute(&atom!("sandbox"))
     }
 
     fn SetSandbox(self, sandbox: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         element.set_tokenlist_attribute(&atom!("sandbox"), sandbox);
     }
 
-    fn GetContentWindow(self) -> Option<Temporary<Window>> {
+    fn GetContentWindow(self) -> Option<Root<Window>> {
         self.subpage_id.get().and_then(|subpage_id| {
-            let window = window_from_node(self).root();
+            let window = window_from_node(self);
             let window = window.r();
             let children = window.page().children.borrow();
             children.iter().find(|page| {
-                let window = page.window().root();
+                let window = page.window();
                 window.r().subpage() == Some(subpage_id)
             }).map(|page| page.window())
         })
     }
 
-    fn GetContentDocument(self) -> Option<Temporary<Document>> {
-        self.GetContentWindow().root().and_then(|window| {
+    fn GetContentDocument(self) -> Option<Root<Document>> {
+        self.GetContentWindow().and_then(|window| {
             let self_url = match self.get_url() {
                 Some(self_url) => self_url,
                 None => return None,
             };
-            let win_url = window_from_node(self).root().r().get_url();
+            let win_url = window_from_node(self).r().get_url();
 
             if UrlHelper::SameOrigin(&self_url, &win_url) {
                 Some(window.r().Document())
@@ -251,7 +250,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn Mozbrowser(self) -> bool {
         if opts::experimental_enabled() {
-            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let element = ElementCast::from_ref(self);
             element.has_attribute(&Atom::from_slice("mozbrowser"))
         } else {
             false
@@ -260,7 +259,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
 
     fn SetMozbrowser(self, value: bool) -> ErrorResult {
         if opts::experimental_enabled() {
-            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let element = ElementCast::from_ref(self);
             element.set_bool_attribute(&Atom::from_slice("mozbrowser"), value);
         }
         Ok(())
@@ -269,9 +268,9 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
     fn GoBack(self) -> Fallible<()> {
          if self.Mozbrowser() {
-            let node: JSRef<Node> = NodeCast::from_ref(self);
+            let node = NodeCast::from_ref(self);
             if node.is_in_doc() {
-                let window = window_from_node(self).root();
+                let window = window_from_node(self);
                 let window = window.r();
 
                 let pipeline_info = Some((self.containing_page_pipeline_id().unwrap(),
@@ -291,9 +290,9 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goForward
     fn GoForward(self) -> Fallible<()> {
          if self.Mozbrowser() {
-            let node: JSRef<Node> = NodeCast::from_ref(self);
+            let node = NodeCast::from_ref(self);
             if node.is_in_doc() {
-                let window = window_from_node(self).root();
+                let window = window_from_node(self);
                 let window = window.r();
 
                 let pipeline_info = Some((self.containing_page_pipeline_id().unwrap(),
@@ -321,13 +320,13 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
+impl<'a> VirtualMethods for &'a HTMLIFrameElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
@@ -351,7 +350,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                 self.sandbox.set(Some(modes));
             },
             &atom!("src") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 if node.is_in_doc() {
                     self.process_the_iframe_attributes()
                 }
@@ -367,7 +366,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         }
     }
 
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+    fn before_remove_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
            s.before_remove_attr(attr);
         }
@@ -396,7 +395,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
         match (self.containing_page_pipeline_id(), self.subpage_id()) {
             (Some(containing_pipeline_id), Some(subpage_id)) => {
-                let window = window_from_node(*self).root();
+                let window = window_from_node(*self);
                 let window = window.r();
 
                 let ConstellationChan(ref chan) = window.constellation_chan();

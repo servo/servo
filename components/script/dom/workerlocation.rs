@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::WorkerLocationBinding;
 use dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::str::USVString;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -28,14 +28,14 @@ impl WorkerLocation {
         }
     }
 
-    pub fn new(global: JSRef<WorkerGlobalScope>, url: Url) -> Temporary<WorkerLocation> {
+    pub fn new(global: &WorkerGlobalScope, url: Url) -> Root<WorkerLocation> {
         reflect_dom_object(box WorkerLocation::new_inherited(url),
                            GlobalRef::Worker(global),
                            WorkerLocationBinding::Wrap)
     }
 }
 
-impl<'a> WorkerLocationMethods for JSRef<'a, WorkerLocation> {
+impl<'a> WorkerLocationMethods for &'a WorkerLocation {
     fn Href(self) -> USVString {
         UrlHelper::Href(&self.url)
     }

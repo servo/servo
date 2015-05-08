@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::conversions::native_from_reflector_jsmanaged;
+use dom::bindings::conversions::native_from_handleobject;
 use dom::bindings::conversions::{ToJSValConvertible};
-use dom::bindings::js::{JS, JSRef, Temporary, Root};
-use dom::bindings::js::{OptionalRootable, OptionalOptionalRootable};
-use dom::bindings::js::{ResultRootable, Rootable};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::proxyhandler::{get_property_descriptor, fill_property_descriptor};
 use dom::bindings::utils::{Reflectable, WindowProxyHandler};
 use dom::bindings::utils::get_array_index_from_id;
@@ -33,43 +31,43 @@ use std::ptr;
 pub struct BrowserContext {
     history: Vec<SessionHistoryEntry>,
     active_index: usize,
-    window_proxy: Heap<*mut JSObject>,
+    window_proxy: *mut JSObject,
     frame_element: Option<JS<Element>>,
 }
 
 impl BrowserContext {
-    pub fn new(document: JSRef<Document>, frame_element: Option<JSRef<Element>>) -> BrowserContext {
+    pub fn new(document: &Document, frame_element: Option<&Element>) -> BrowserContext {
         let mut context = BrowserContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
-            window_proxy: Heap { ptr: ptr::null_mut() },
-            frame_element: frame_element.map(JS::from_rooted),
+            window_proxy: ptr::null_mut(),
+            frame_element: frame_element.map(JS::from_ref),
         };
         context.create_window_proxy();
         context
     }
 
-    pub fn active_document(&self) -> Temporary<Document> {
-        Temporary::from_rooted(self.history[self.active_index].document.clone())
+    pub fn active_document(&self) -> Root<Document> {
+        self.history[self.active_index].document.root()
     }
 
-    pub fn active_window(&self) -> Temporary<Window> {
-        let doc = self.active_document().root();
+    pub fn active_window(&self) -> Root<Window> {
+        let doc = self.active_document();
         doc.r().window()
     }
 
-    pub fn frame_element(&self) -> Option<Temporary<Element>> {
-        self.frame_element.map(Temporary::from_rooted)
+    pub fn frame_element(&self) -> Option<Root<Element>> {
+        self.frame_element.map(Root::from_rooted)
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
-        assert!(!self.window_proxy.ptr.is_null());
-        self.window_proxy.ptr
+        assert!(!self.window_proxy.is_null());
+        self.window_proxy
     }
 
     #[allow(unsafe_code)]
     fn create_window_proxy(&mut self) {
-        let win = self.active_window().root();
+        let win = self.active_window();
         let win = win.r();
 
         let WindowProxyHandler(handler) = win.windowproxy_handler();
@@ -81,7 +79,7 @@ impl BrowserContext {
         let _ac = JSAutoCompartment::new(cx, parent.ptr);
         let wrapper = unsafe { WrapperNew(cx, parent.handle(), handler) };
         assert!(!wrapper.is_null());
-        self.window_proxy.set(wrapper);
+        self.window_proxy = wrapper;
     }
 }
 
@@ -96,20 +94,20 @@ pub struct SessionHistoryEntry {
 }
 
 impl SessionHistoryEntry {
-    fn new(document: JSRef<Document>) -> SessionHistoryEntry {
+    fn new(document: &Document) -> SessionHistoryEntry {
         SessionHistoryEntry {
-            document: JS::from_rooted(document),
+            document: JS::from_ref(document),
             children: vec!()
         }
     }
 }
 
 #[allow(unsafe_code)]
-unsafe fn GetSubframeWindow(cx: *mut JSContext, proxy: HandleObject, id: HandleId) -> Option<Temporary<Window>> {
+unsafe fn GetSubframeWindow(cx: *mut JSContext, proxy: HandleObject, id: HandleId) -> Option<Root<Window>> {
     let index = get_array_index_from_id(cx, id);
     if let Some(index) = index {
         let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
-        let win: Root<Window> = native_from_reflector_jsmanaged(target.ptr).unwrap().root();
+        let win: Root<Window> = native_from_handleobject(target.handle()).unwrap();
         let mut found = false;
         return win.r().IndexedGetter(index, &mut found);
     }
@@ -121,7 +119,6 @@ unsafe fn GetSubframeWindow(cx: *mut JSContext, proxy: HandleObject, id: HandleI
 unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: HandleObject, id: HandleId, desc: MutableHandle<JSPropertyDescriptor>) -> u8 {
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
-        let window = window.root();
         (*desc.ptr).value = window.to_jsval(cx);
         fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, true);
         return true as u8;
@@ -188,7 +185,6 @@ unsafe extern fn get(cx: *mut JSContext,
                      vp: MutableHandleValue) -> u8 {
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
-        let window = window.root();
         *vp.ptr = window.to_jsval(cx);
         return true as u8;
     }
