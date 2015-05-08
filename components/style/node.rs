@@ -5,7 +5,7 @@
 //! Traits that nodes must implement. Breaks the otherwise-cyclic dependency between layout and
 //! style.
 
-use legacy::{IntegerAttribute, LengthAttribute, UnsignedIntegerAttribute};
+use legacy::{IntegerAttribute, UnsignedIntegerAttribute};
 use properties::PropertyDeclaration;
 use util::smallvec::VecLike;
 use util::str::LengthOrPercentageOrAuto;
@@ -17,7 +17,6 @@ use string_cache::{Atom, Namespace};
 pub trait TElementAttributes<'a> : Copy {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(self, &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
-    fn get_length_attribute(self, attribute: LengthAttribute) -> LengthOrPercentageOrAuto;
     fn get_integer_attribute(self, attribute: IntegerAttribute) -> Option<i32>;
     fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute) -> Option<u32>;
 
