@@ -9,7 +9,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eURLSearchParams, eString};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Rootable, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 
 use encoding::types::EncodingRef;
@@ -32,16 +32,16 @@ impl URLSearchParams {
         }
     }
 
-    pub fn new(global: GlobalRef) -> Temporary<URLSearchParams> {
+    pub fn new(global: GlobalRef) -> Root<URLSearchParams> {
         reflect_dom_object(box URLSearchParams::new_inherited(), global,
                            URLSearchParamsBinding::Wrap)
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams
     pub fn Constructor(global: GlobalRef, init: Option<StringOrURLSearchParams>) ->
-                       Fallible<Temporary<URLSearchParams>> {
+                       Fallible<Root<URLSearchParams>> {
         // Step 1.
-        let query = URLSearchParams::new(global).root();
+        let query = URLSearchParams::new(global);
         match init {
             Some(eString(init)) => {
                 // Step 2.
@@ -52,18 +52,17 @@ impl URLSearchParams {
                 // Step 3.
                 // FIXME(https://github.com/rust-lang/rust/issues/23338)
                 let query = query.r();
-                let init = init.root();
                 let init = init.r();
                 *query.list.borrow_mut() = init.list.borrow().clone();
             },
             None => {}
         }
         // Step 4.
-        Ok(Temporary::from_rooted(query.r()))
+        Ok(query)
     }
 }
 
-impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
+impl<'a> URLSearchParamsMethods for &'a URLSearchParams {
     // https://url.spec.whatwg.org/#dom-urlsearchparams-append
     fn Append(self, name: DOMString, value: DOMString) {
         // Step 1.
@@ -132,7 +131,7 @@ pub trait URLSearchParamsHelpers {
     fn serialize(self, encoding: Option<EncodingRef>) -> DOMString;
 }
 
-impl<'a> URLSearchParamsHelpers for JSRef<'a, URLSearchParams> {
+impl<'a> URLSearchParamsHelpers for &'a URLSearchParams {
     // https://url.spec.whatwg.org/#concept-urlencoded-serializer
     fn serialize(self, encoding: Option<EncodingRef>) -> DOMString {
         let list = self.list.borrow();
@@ -144,7 +143,7 @@ trait PrivateURLSearchParamsHelpers {
     fn update_steps(self);
 }
 
-impl<'a> PrivateURLSearchParamsHelpers for JSRef<'a, URLSearchParams> {
+impl<'a> PrivateURLSearchParamsHelpers for &'a URLSearchParams {
     // https://url.spec.whatwg.org/#concept-uq-update
     fn update_steps(self) {
         // XXXManishearth Implement this when the URL interface is implemented

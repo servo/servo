@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
  use dom::bindings::codegen::Bindings::TestBindingProxyBinding::TestBindingProxyMethods;
- use dom::bindings::js::JSRef;
  use dom::bindings::utils::Reflector;
  use util::str::DOMString;
 
@@ -12,7 +11,7 @@
      reflector_: Reflector
  }
 
- impl<'a> TestBindingProxyMethods for JSRef<'a, TestBindingProxy> {
+ impl<'a> TestBindingProxyMethods for &'a TestBindingProxy {
 
      fn GetNamedItem(self, _: DOMString) -> DOMString {"".to_owned()}
      fn SetNamedItem(self, _: DOMString, _: DOMString) -> () {}

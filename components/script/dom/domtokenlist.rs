@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, OptionalRootable, Rootable, Temporary};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::window_from_node;
@@ -26,16 +26,16 @@ pub struct DOMTokenList {
 }
 
 impl DOMTokenList {
-    pub fn new_inherited(element: JSRef<Element>, local_name: Atom) -> DOMTokenList {
+    pub fn new_inherited(element: &Element, local_name: Atom) -> DOMTokenList {
         DOMTokenList {
             reflector_: Reflector::new(),
-            element: JS::from_rooted(element),
+            element: JS::from_ref(element),
             local_name: local_name,
         }
     }
 
-    pub fn new(element: JSRef<Element>, local_name: &Atom) -> Temporary<DOMTokenList> {
-        let window = window_from_node(element).root();
+    pub fn new(element: &Element, local_name: &Atom) -> Root<DOMTokenList> {
+        let window = window_from_node(element);
         reflect_dom_object(box DOMTokenList::new_inherited(element, local_name.clone()),
                            GlobalRef::Window(window.r()),
                            DOMTokenListBinding::Wrap)
@@ -43,12 +43,12 @@ impl DOMTokenList {
 }
 
 trait PrivateDOMTokenListHelpers {
-    fn attribute(self) -> Option<Temporary<Attr>>;
+    fn attribute(self) -> Option<Root<Attr>>;
     fn check_token_exceptions(self, token: &str) -> Fallible<Atom>;
 }
 
-impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
-    fn attribute(self) -> Option<Temporary<Attr>> {
+impl<'a> PrivateDOMTokenListHelpers for &'a DOMTokenList {
+    fn attribute(self) -> Option<Root<Attr>> {
         let element = self.element.root();
         element.r().get_attribute(&ns!(""), &self.local_name)
     }
@@ -63,10 +63,10 @@ impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
 }
 
 // https://dom.spec.whatwg.org/#domtokenlist
-impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
+impl<'a> DOMTokenListMethods for &'a DOMTokenList {
     // https://dom.spec.whatwg.org/#dom-domtokenlist-length
     fn Length(self) -> u32 {
-        self.attribute().root().map(|attr| {
+        self.attribute().map(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let value = attr.value();
@@ -76,7 +76,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-item
     fn Item(self, index: u32) -> Option<DOMString> {
-        self.attribute().root().and_then(|attr| {
+        self.attribute().and_then(|attr| {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attr = attr.r();
             let value = attr.value();
@@ -95,7 +95,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
     // https://dom.spec.whatwg.org/#dom-domtokenlist-contains
     fn Contains(self, token: DOMString) -> Fallible<bool> {
         self.check_token_exceptions(&token).map(|token| {
-            self.attribute().root().map(|attr| {
+            self.attribute().map(|attr| {
                 // FIXME(https://github.com/rust-lang/rust/issues/23338)
                 let attr = attr.r();
                 let value = attr.value();

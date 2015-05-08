@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDerived};
-use dom::bindings::js::{JSRef, Rootable, RootedReference, Temporary};
+use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeHandlers, Element, ElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -37,7 +37,7 @@ impl HTMLFieldSetElementDerived for EventTarget {
 impl HTMLFieldSetElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLFieldSetElement {
+                     document: &Document) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLFieldSetElement, localName, prefix, document)
@@ -47,32 +47,32 @@ impl HTMLFieldSetElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLFieldSetElement> {
+               document: &Document) -> Root<HTMLFieldSetElement> {
         let element = HTMLFieldSetElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLFieldSetElementBinding::Wrap)
     }
 }
 
-impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
+impl<'a> HTMLFieldSetElementMethods for &'a HTMLFieldSetElement {
     // https://www.whatwg.org/html/#dom-fieldset-elements
-    fn Elements(self) -> Temporary<HTMLCollection> {
+    fn Elements(self) -> Root<HTMLCollection> {
         #[jstraceable]
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
-            fn filter<'a>(&self, elem: JSRef<'a, Element>, _root: JSRef<'a, Node>) -> bool {
+            fn filter<'a>(&self, elem: &'a Element, _root: &'a Node) -> bool {
                 static TAG_NAMES: StaticStringVec = &["button", "fieldset", "input",
                     "keygen", "object", "output", "select", "textarea"];
                 TAG_NAMES.iter().any(|&tag_name| tag_name == &**elem.local_name())
             }
         }
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         let filter = box ElementsFilter;
-        let window = window_from_node(node).root();
+        let window = window_from_node(node);
         HTMLCollection::create(window.r(), node, filter)
     }
 
-    fn Validity(self) -> Temporary<ValidityState> {
-        let window = window_from_node(self).root();
+    fn Validity(self) -> Root<ValidityState> {
+        let window = window_from_node(self);
         ValidityState::new(window.r())
     }
 
@@ -83,34 +83,31 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     make_bool_setter!(SetDisabled, "disabled");
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
+impl<'a> VirtualMethods for &'a HTMLFieldSetElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
                 let maybe_legend = node.children()
-                                       .map(|node| node.root())
                                        .find(|node| node.r().is_htmllegendelement());
 
                 for child in node.children() {
-                    let child = child.root();
                     if Some(child.r()) == maybe_legend.r() {
                         continue;
                     }
 
                     for descendant in child.r().traverse_preorder() {
-                        let descendant = descendant.root();
                         match descendant.r().type_id() {
                             NodeTypeId::Element(
                                     ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
@@ -132,28 +129,25 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
         }
     }
 
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+    fn before_remove_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.before_remove_attr(attr);
         }
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(*self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 let maybe_legend = node.children()
-                                       .map(|node| node.root())
                                        .find(|node| node.r().is_htmllegendelement());
 
                 for child in node.children() {
-                    let child = child.root();
                     if Some(child.r()) == maybe_legend.r() {
                         continue;
                     }
 
                     for descendant in child.r().traverse_preorder() {
-                        let descendant = descendant.root();
                         match descendant.r().type_id() {
                             NodeTypeId::Element(
                                     ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |

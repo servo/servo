@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::PerformanceTimingBinding;
 use dom::bindings::codegen::Bindings::PerformanceTimingBinding::PerformanceTimingMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
 
@@ -27,10 +27,10 @@ impl PerformanceTiming {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: JSRef<Window>,
+    pub fn new(window: &Window,
                navigation_start: u64,
                navigation_start_precise: f64)
-               -> Temporary<PerformanceTiming> {
+               -> Root<PerformanceTiming> {
         let timing = PerformanceTiming::new_inherited(navigation_start,
                                                       navigation_start_precise);
         reflect_dom_object(box timing, GlobalRef::Window(window),
@@ -38,7 +38,7 @@ impl PerformanceTiming {
     }
 }
 
-impl<'a> PerformanceTimingMethods for JSRef<'a, PerformanceTiming> {
+impl<'a> PerformanceTimingMethods for &'a PerformanceTiming {
     fn NavigationStart(self) -> u64 {
         self.navigationStart
     }
@@ -48,7 +48,7 @@ pub trait PerformanceTimingHelpers {
     fn NavigationStartPrecise(self) -> f64;
 }
 
-impl<'a> PerformanceTimingHelpers for JSRef<'a, PerformanceTiming> {
+impl<'a> PerformanceTimingHelpers for &'a PerformanceTiming {
     fn NavigationStartPrecise(self) -> f64 {
         self.navigationStartPrecise
     }

@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestEventTargetBinding::XMLHttpRequestEventTargetMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::XMLHttpRequestEventTargetDerived;
-use dom::bindings::js::JSRef;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 
 #[derive(Copy, Clone, PartialEq)]
@@ -43,7 +42,7 @@ impl XMLHttpRequestEventTargetDerived for EventTarget {
 
 }
 
-impl<'a> XMLHttpRequestEventTargetMethods for JSRef<'a, XMLHttpRequestEventTarget> {
+impl<'a> XMLHttpRequestEventTargetMethods for &'a XMLHttpRequestEventTarget {
     event_handler!(loadstart,GetOnloadstart, SetOnloadstart);
     event_handler!(progress, GetOnprogress, SetOnprogress);
     event_handler!(abort, GetOnabort, SetOnabort);

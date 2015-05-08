@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::LocationBinding;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::str::USVString;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
@@ -22,21 +22,21 @@ pub struct Location {
 }
 
 impl Location {
-    fn new_inherited(window: JSRef<Window>) -> Location {
+    fn new_inherited(window: &Window) -> Location {
         Location {
             reflector_: Reflector::new(),
-            window: JS::from_rooted(window)
+            window: JS::from_ref(window)
         }
     }
 
-    pub fn new(window: JSRef<Window>) -> Temporary<Location> {
+    pub fn new(window: &Window) -> Root<Location> {
         reflect_dom_object(box Location::new_inherited(window),
                            GlobalRef::Window(window),
                            LocationBinding::Wrap)
     }
 }
 
-impl<'a> LocationMethods for JSRef<'a, Location> {
+impl<'a> LocationMethods for &'a Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-assign
     fn Assign(self, url: DOMString) {
         self.window.root().r().load_url(url);
@@ -72,7 +72,7 @@ trait PrivateLocationHelpers {
     fn get_url(self) -> Url;
 }
 
-impl<'a> PrivateLocationHelpers for JSRef<'a, Location> {
+impl<'a> PrivateLocationHelpers for &'a Location {
     fn get_url(self) -> Url {
         let window = self.window.root();
         window.r().get_url()

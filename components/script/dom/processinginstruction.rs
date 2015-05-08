@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding;
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::characterdata::{CharacterData, CharacterDataTypeId};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -27,14 +27,14 @@ impl ProcessingInstructionDerived for EventTarget {
 }
 
 impl ProcessingInstruction {
-    fn new_inherited(target: DOMString, data: DOMString, document: JSRef<Document>) -> ProcessingInstruction {
+    fn new_inherited(target: DOMString, data: DOMString, document: &Document) -> ProcessingInstruction {
         ProcessingInstruction {
             characterdata: CharacterData::new_inherited(CharacterDataTypeId::ProcessingInstruction, data, document),
             target: target
         }
     }
 
-    pub fn new(target: DOMString, data: DOMString, document: JSRef<Document>) -> Temporary<ProcessingInstruction> {
+    pub fn new(target: DOMString, data: DOMString, document: &Document) -> Root<ProcessingInstruction> {
         Node::reflect_node(box ProcessingInstruction::new_inherited(target, data, document),
                            document, ProcessingInstructionBinding::Wrap)
     }
@@ -44,13 +44,13 @@ pub trait ProcessingInstructionHelpers<'a> {
     fn target(self) -> &'a DOMString;
 }
 
-impl<'a> ProcessingInstructionHelpers<'a> for JSRef<'a, ProcessingInstruction> {
+impl<'a> ProcessingInstructionHelpers<'a> for &'a ProcessingInstruction {
     fn target(self) -> &'a DOMString {
-        &self.extended_deref().target
+        &self.target
     }
 }
 
-impl<'a> ProcessingInstructionMethods for JSRef<'a, ProcessingInstruction> {
+impl<'a> ProcessingInstructionMethods for &'a ProcessingInstruction {
     // https://dom.spec.whatwg.org/#dom-processinginstruction-target
     fn Target(self) -> DOMString {
         self.target.clone()
