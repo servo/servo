@@ -59,7 +59,7 @@ use dom::virtualmethods::{VirtualMethods, vtable_for};
 
 use devtools_traits::AttrInfo;
 use style;
-use style::legacy::{UnsignedIntegerAttribute, IntegerAttribute, LengthAttribute, from_declaration};
+use style::legacy::{UnsignedIntegerAttribute, IntegerAttribute, from_declaration};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
 use style::properties::DeclaredValue::SpecifiedValue;
 use style::properties::longhands::border_spacing;
@@ -164,8 +164,6 @@ pub trait RawLayoutElementHelpers {
 
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
-    unsafe fn get_length_attribute_for_layout(&self, length_attribute: LengthAttribute)
-                                              -> LengthOrPercentageOrAuto;
     unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
                                                -> Option<i32>;
     unsafe fn get_checked_state_for_layout(&self) -> bool;
@@ -307,22 +305,29 @@ impl RawLayoutElementHelpers for Element {
                 PropertyDeclaration::Width(SpecifiedValue(
                     specified::LengthOrPercentageOrAuto::Length(value)))));
         }
-    }
 
-    #[inline]
-    unsafe fn get_length_attribute_for_layout(&self, length_attribute: LengthAttribute)
-                                              -> LengthOrPercentageOrAuto {
-        match length_attribute {
-            LengthAttribute::Width => {
-                if self.is_htmltableelement() {
-                    let this: &HTMLTableElement = mem::transmute(self);
-                    this.get_width()
-                } else if self.is_htmltablecellelement() {
-                    let this: &HTMLTableCellElement = mem::transmute(self);
-                    this.get_width()
-                } else {
-                    panic!("I'm not a table or table cell!")
-                }
+
+        let width = if self.is_htmltableelement() {
+            let this: &HTMLTableElement = mem::transmute(self);
+            this.get_width()
+        } else if self.is_htmltabledatacellelement() {
+            let this: &HTMLTableCellElement = mem::transmute(self);
+            this.get_width()
+        } else {
+            LengthOrPercentageOrAuto::Auto
+        };
+
+        match width {
+            LengthOrPercentageOrAuto::Auto => {}
+            LengthOrPercentageOrAuto::Percentage(percentage) => {
+                let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
+                hints.push(from_declaration(
+                    PropertyDeclaration::Width(SpecifiedValue(width_value))));
+            }
+            LengthOrPercentageOrAuto::Length(length) => {
+                let width_value = specified::LengthOrPercentageOrAuto::Length(specified::Length::Absolute(length));
+                hints.push(from_declaration(
+                    PropertyDeclaration::Width(SpecifiedValue(width_value))));
             }
         }
     }
