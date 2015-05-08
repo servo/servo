@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLTableColElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableColElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -28,7 +28,7 @@ impl HTMLTableColElementDerived for EventTarget {
 impl HTMLTableColElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLTableColElement {
+                     document: &Document) -> HTMLTableColElement {
         HTMLTableColElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableColElement, localName, prefix, document)
@@ -38,7 +38,7 @@ impl HTMLTableColElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLTableColElement> {
+               document: &Document) -> Root<HTMLTableColElement> {
         let element = HTMLTableColElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableColElementBinding::Wrap)
     }

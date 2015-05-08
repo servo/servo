@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLDListElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDListElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -26,7 +26,7 @@ impl HTMLDListElementDerived for EventTarget {
 }
 
 impl HTMLDListElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLDListElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLDListElement {
         HTMLDListElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLDListElement, localName, prefix, document)
@@ -36,7 +36,7 @@ impl HTMLDListElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLDListElement> {
+               document: &Document) -> Root<HTMLDListElement> {
         let element = HTMLDListElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLDListElementBinding::Wrap)
     }

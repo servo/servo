@@ -11,7 +11,7 @@ use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, RootCollection, Rootable, Temporary};
+use dom::bindings::js::{RootCollection, Root};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;
@@ -68,12 +68,12 @@ impl ScriptChan for SendableWorkerScriptChan {
 /// object only lives as long as necessary (ie. while events are being executed), while
 /// providing a reference that can be cloned freely.
 struct AutoWorkerReset<'a> {
-    workerscope: JSRef<'a, DedicatedWorkerGlobalScope>,
+    workerscope: &'a DedicatedWorkerGlobalScope,
     old_worker: Option<TrustedWorkerAddress>,
 }
 
 impl<'a> AutoWorkerReset<'a> {
-    fn new(workerscope: JSRef<'a, DedicatedWorkerGlobalScope>, worker: TrustedWorkerAddress) -> AutoWorkerReset<'a> {
+    fn new(workerscope: &'a DedicatedWorkerGlobalScope, worker: TrustedWorkerAddress) -> AutoWorkerReset<'a> {
         let reset = AutoWorkerReset {
             workerscope: workerscope,
             old_worker: workerscope.worker.borrow().clone()
@@ -131,7 +131,7 @@ impl DedicatedWorkerGlobalScope {
                parent_sender: Box<ScriptChan+Send>,
                own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
-               -> Temporary<DedicatedWorkerGlobalScope> {
+               -> Root<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
             worker_url, id, devtools_chan, runtime.clone(), resource_task,
             parent_sender, own_sender, receiver);
@@ -169,7 +169,7 @@ impl DedicatedWorkerGlobalScope {
             let runtime = Rc::new(ScriptTask::new_rt_and_cx());
             let global = DedicatedWorkerGlobalScope::new(
                 worker_url, id, devtools_chan, runtime.clone(), resource_task,
-                parent_sender, own_sender, receiver).root();
+                parent_sender, own_sender, receiver);
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
@@ -201,7 +201,7 @@ pub trait DedicatedWorkerGlobalScopeHelpers {
     fn process_event(self, msg: ScriptMsg);
 }
 
-impl<'a> DedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
+impl<'a> DedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
     fn script_chan(self) -> Box<ScriptChan+Send> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let worker = self.worker.borrow();
@@ -231,15 +231,15 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalSc
 
 trait PrivateDedicatedWorkerGlobalScopeHelpers {
     fn handle_event(self, msg: ScriptMsg);
-    fn dispatch_error_to_worker(self, JSRef<ErrorEvent>);
+    fn dispatch_error_to_worker(self, &ErrorEvent);
 }
 
-impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
+impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
     fn handle_event(self, msg: ScriptMsg) {
         match msg {
             ScriptMsg::DOMMessage(data) => {
-                let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
-                let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+                let scope = WorkerGlobalScopeCast::from_ref(self);
+                let target = EventTargetCast::from_ref(self);
                 let message = data.read(GlobalRef::Worker(scope));
                 MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message);
             },
@@ -247,18 +247,18 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
                 runnable.handler()
             },
             ScriptMsg::RefcountCleanup(addr) => {
-                let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
+                let scope = WorkerGlobalScopeCast::from_ref(self);
                 LiveDOMReferences::cleanup(scope.get_cx(), addr);
             }
             ScriptMsg::FireTimer(TimerSource::FromWorker, timer_id) => {
-                let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
+                let scope = WorkerGlobalScopeCast::from_ref(self);
                 scope.handle_fire_timer(timer_id);
             }
             _ => panic!("Unexpected message"),
         }
     }
 
-    fn dispatch_error_to_worker(self, errorevent: JSRef<ErrorEvent>) {
+    fn dispatch_error_to_worker(self, errorevent: &ErrorEvent) {
         let msg = errorevent.Message();
         let file_name = errorevent.Filename();
         let line_num = errorevent.Lineno();
@@ -269,7 +269,7 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
  }
 }
 
-impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
+impl<'a> DedicatedWorkerGlobalScopeMethods for &'a DedicatedWorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
     fn PostMessage(self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
