@@ -23,6 +23,7 @@ use layers::platform::surface::NativeGraphicsMetadata;
 use libc::{c_char, c_void};
 use msg::constellation_msg::{Key, KeyModifiers};
 use msg::compositor_msg::{ReadyState, PaintState};
+use std::ptr;
 use std_url::Url;
 use util::cursor::Cursor;
 use util::geometry::ScreenPx;
@@ -30,11 +31,17 @@ use std::cell::RefCell;
 use std::ffi::CString;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, channel};
+#[cfg(target_os="linux")]
+extern crate x11;
+#[cfg(target_os="linux")]
+use self::x11::xlib::XOpenDisplay;
 
 /// The type of an off-screen window.
 #[derive(Clone)]
 pub struct Window {
     cef_browser: RefCell<Option<CefBrowser>>,
+#[cfg(target_os="linux")]
+    display: *mut c_void,
 }
 
 #[cfg(target_os="macos")]
@@ -69,6 +76,16 @@ fn load_gl() {
 
 impl Window {
     /// Creates a new window.
+#[cfg(target_os="linux")]
+    pub fn new() -> Rc<Window> {
+        load_gl();
+
+        Rc::new(Window {
+            cef_browser: RefCell::new(None),
+            display: unsafe { XOpenDisplay(ptr::null()) as *mut c_void },
+        })
+    }
+#[cfg(not(target_os="linux"))]
     pub fn new() -> Rc<Window> {
         load_gl();
 
@@ -249,15 +266,9 @@ impl WindowMethods for Window {
 
     #[cfg(target_os="linux")]
     fn native_metadata(&self) -> NativeGraphicsMetadata {
-        extern {
-            fn cef_get_xdisplay() -> *mut c_void;
-        }
-
-        unsafe {
-            NativeGraphicsMetadata {
-                display: cef_get_xdisplay()
-            }
-        }
+       NativeGraphicsMetadata {
+           display: self.display,
+       }
     }
 
     fn create_compositor_channel(_: &Option<Rc<Window>>)

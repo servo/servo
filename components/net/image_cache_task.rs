@@ -330,14 +330,21 @@ pub fn new_image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
         // Preload the placeholder image, used when images fail to load.
         let mut placeholder_url = resources_dir_path();
         placeholder_url.push("rippy.jpg");
-        let url = Url::from_file_path(&*placeholder_url).unwrap();
-        let placeholder_image = match load_whole_resource(&resource_task, url) {
-            Err(..) => {
-                debug!("image_cache_task: failed loading the placeholder.");
-                None
+        let placeholder_image = match Url::from_file_path(&*placeholder_url) {
+            Ok(url) => {
+                match load_whole_resource(&resource_task, url) {
+                    Err(..) => {
+                        debug!("image_cache_task: failed loading the placeholder.");
+                        None
+                    }
+                    Ok((_, image_data)) => {
+                        Some(Arc::new(load_from_memory(&image_data).unwrap()))
+                    }
+                }
             }
-            Ok((_, image_data)) => {
-                Some(Arc::new(load_from_memory(&image_data).unwrap()))
+            Err(..) => {
+                debug!("image_cache_task: url {}", placeholder_url.display());
+                None
             }
         };
 
