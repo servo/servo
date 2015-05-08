@@ -11,8 +11,8 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLLinkElementDerived};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, Rootable, Temporary};
-use dom::bindings::js::{OptionalRootable, RootedReference};
+use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
@@ -53,7 +53,7 @@ impl HTMLLinkElementDerived for EventTarget {
 }
 
 impl HTMLLinkElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLLinkElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLLinkElement, localName, prefix, document),
             rel_list: Default::default(),
@@ -63,14 +63,14 @@ impl HTMLLinkElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLLinkElement> {
+               document: &Document) -> Root<HTMLLinkElement> {
         let element = HTMLLinkElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLLinkElementBinding::Wrap)
     }
 }
 
-fn get_attr(element: JSRef<Element>, local_name: &Atom) -> Option<String> {
-    let elem = element.get_attribute(&ns!(""), local_name).root();
+fn get_attr(element: &Element, local_name: &Atom) -> Option<String> {
+    let elem = element.get_attribute(&ns!(""), local_name);
     elem.r().map(|e| {
         let value = e.value();
         (**value).to_owned()
@@ -100,23 +100,23 @@ fn is_favicon(value: &Option<String>) -> bool {
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
+impl<'a> VirtualMethods for &'a HTMLLinkElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if !node.is_in_doc() {
             return;
         }
 
-        let element: JSRef<Element> = ElementCast::from_ref(*self);
+        let element = ElementCast::from_ref(*self);
         let rel = get_attr(element, &atom!("rel"));
 
         match (rel, attr.local_name()) {
@@ -149,7 +149,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
         }
 
         if tree_in_doc {
-            let element: JSRef<Element> = ElementCast::from_ref(*self);
+            let element = ElementCast::from_ref(*self);
 
             let rel = get_attr(element, &atom!("rel"));
             let href = get_attr(element, &atom!("href"));
@@ -172,15 +172,15 @@ trait PrivateHTMLLinkElementHelpers {
     fn handle_favicon_url(self, href: &str);
 }
 
-impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
+impl<'a> PrivateHTMLLinkElementHelpers for &'a HTMLLinkElement {
     fn handle_stylesheet_url(self, href: &str) {
-        let window = window_from_node(self).root();
+        let window = window_from_node(self);
         let window = window.r();
         match UrlParser::new().base_url(&window.get_url()).parse(href) {
             Ok(url) => {
-                let element: JSRef<Element> = ElementCast::from_ref(self);
+                let element = ElementCast::from_ref(self);
 
-                let mq_attribute = element.get_attribute(&ns!(""), &atom!("media")).root();
+                let mq_attribute = element.get_attribute(&ns!(""), &atom!("media"));
                 let value = mq_attribute.r().map(|a| a.value());
                 let mq_str = match value {
                     Some(ref value) => &***value,
@@ -189,7 +189,7 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
                 let mut css_parser = CssParser::new(&mq_str);
                 let media = parse_media_query_list(&mut css_parser);
 
-                let doc = window.Document().root();
+                let doc = window.Document();
                 let link_element = Trusted::new(window.get_cx(), self, window.script_chan().clone());
                 let load_dispatcher = StylesheetLoadDispatcher::new(link_element);
 
@@ -202,7 +202,7 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
     }
 
     fn handle_favicon_url(self, href: &str) {
-        let window = window_from_node(self).root();
+        let window = window_from_node(self);
         let window = window.r();
         match UrlParser::new().base_url(&window.get_url()).parse(href) {
             Ok(url) => {
@@ -215,7 +215,7 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
     }
 }
 
-impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
+impl<'a> HTMLLinkElementMethods for &'a HTMLLinkElement {
     make_url_getter!(Href);
     make_setter!(SetHref, "href");
 
@@ -231,7 +231,7 @@ impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
     make_getter!(Type);
     make_setter!(SetType, "type");
 
-    fn RelList(self) -> Temporary<DOMTokenList> {
+    fn RelList(self) -> Root<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
         })
@@ -252,11 +252,11 @@ impl StylesheetLoadDispatcher {
 
 impl StylesheetLoadResponder for StylesheetLoadDispatcher {
     fn respond(self: Box<StylesheetLoadDispatcher>) {
-        let elem = self.elem.to_temporary().root();
-        let window = window_from_node(elem.r()).root();
+        let elem = self.elem.root();
+        let window = window_from_node(elem.r());
         let event = Event::new(GlobalRef::Window(window.r()), "load".to_owned(),
                                EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable).root();
+                               EventCancelable::NotCancelable);
         let target = EventTargetCast::from_ref(elem.r());
         event.r().fire(target);
     }

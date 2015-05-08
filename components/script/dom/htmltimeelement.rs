@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLTimeElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTimeElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -26,7 +26,7 @@ impl HTMLTimeElementDerived for EventTarget {
 }
 
 impl HTMLTimeElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTimeElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLTimeElement {
         HTMLTimeElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTimeElement, localName, prefix, document)
         }
@@ -35,7 +35,7 @@ impl HTMLTimeElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLTimeElement> {
+               document: &Document) -> Root<HTMLTimeElement> {
         let element = HTMLTimeElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTimeElementBinding::Wrap)
     }

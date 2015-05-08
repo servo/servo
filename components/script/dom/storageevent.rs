@@ -10,8 +10,7 @@ use dom::bindings::codegen::Bindings::StorageEventBinding::{StorageEventMethods}
 use dom::bindings::codegen::InheritTypes::{EventCast};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, MutNullableHeap, Rootable, RootedReference};
-use dom::bindings::js::Temporary;
+use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::utils::{reflect_dom_object};
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use dom::storage::Storage;
@@ -34,14 +33,14 @@ impl StorageEvent {
                          oldValue: Option<DOMString>,
                          newValue: Option<DOMString>,
                          url: DOMString,
-                         storageArea: Option<JSRef<Storage>>) -> StorageEvent {
+                         storageArea: Option<&Storage>) -> StorageEvent {
         StorageEvent {
             event: Event::new_inherited(type_id),
             key: DOMRefCell::new(key),
             oldValue: DOMRefCell::new(oldValue),
             newValue: DOMRefCell::new(newValue),
             url: DOMRefCell::new(url),
-            storageArea: MutNullableHeap::new(storageArea.map(JS::from_rooted))
+            storageArea: MutNullableHeap::new(storageArea.map(JS::from_ref))
         }
     }
 
@@ -53,20 +52,22 @@ impl StorageEvent {
                oldValue: Option<DOMString>,
                newValue: Option<DOMString>,
                url: DOMString,
-               storageArea: Option<JSRef<Storage>>) -> Temporary<StorageEvent> {
+               storageArea: Option<&Storage>) -> Root<StorageEvent> {
         let ev = reflect_dom_object(box StorageEvent::new_inherited(EventTypeId::StorageEvent,
                                                                     key, oldValue, newValue,
                                                                     url, storageArea),
                                     global,
-                                    StorageEventBinding::Wrap).root();
-        let event: JSRef<Event> = EventCast::from_ref(ev.r());
-        event.InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
-        Temporary::from_rooted(ev.r())
+                                    StorageEventBinding::Wrap);
+        {
+            let event = EventCast::from_ref(ev.r());
+            event.InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
+        }
+        ev
     }
 
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
-                       init: &StorageEventBinding::StorageEventInit) -> Fallible<Temporary<StorageEvent>> {
+                       init: &StorageEventBinding::StorageEventInit) -> Fallible<Root<StorageEvent>> {
         let key = init.key.clone();
         let oldValue = init.oldValue.clone();
         let newValue = init.newValue.clone();
@@ -86,7 +87,7 @@ impl StorageEvent {
     }
 }
 
-impl<'a> StorageEventMethods for JSRef<'a, StorageEvent> {
+impl<'a> StorageEventMethods for &'a StorageEvent {
     fn GetKey(self) -> Option<DOMString> {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let key = self.key.borrow();
@@ -111,8 +112,8 @@ impl<'a> StorageEventMethods for JSRef<'a, StorageEvent> {
         url.clone()
     }
 
-    fn GetStorageArea(self) -> Option<Temporary<Storage>> {
-        self.storageArea.get().map(Temporary::from_rooted)
+    fn GetStorageArea(self) -> Option<Root<Storage>> {
+        self.storageArea.get().map(Root::from_rooted)
     }
 
 }

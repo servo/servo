@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementM
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTitleElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, TextCast};
-use dom::bindings::js::{JSRef, Rootable, Temporary};
+use dom::bindings::js::Root;
 use dom::characterdata::CharacterDataHelpers;
 use dom::document::{Document, DocumentHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -32,7 +32,7 @@ impl HTMLTitleElementDerived for EventTarget {
 }
 
 impl HTMLTitleElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTitleElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLTitleElement {
         HTMLTitleElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTitleElement, localName, prefix, document)
         }
@@ -41,20 +41,19 @@ impl HTMLTitleElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLTitleElement> {
+               document: &Document) -> Root<HTMLTitleElement> {
         let element = HTMLTitleElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTitleElementBinding::Wrap)
     }
 }
 
-impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
+impl<'a> HTMLTitleElementMethods for &'a HTMLTitleElement {
     // https://www.whatwg.org/html/#dom-title-text
     fn Text(self) -> DOMString {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         let mut content = String::new();
         for child in node.children() {
-            let child = child.root();
-            let text: Option<JSRef<Text>> = TextCast::to_ref(child.r());
+            let text: Option<&Text> = TextCast::to_ref(child.r());
             match text {
                 Some(text) => content.push_str(&CharacterDataCast::from_ref(text).data()),
                 None => (),
@@ -65,33 +64,33 @@ impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
 
     // https://www.whatwg.org/html/#dom-title-text
     fn SetText(self, value: DOMString) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
+        let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLTitleElement> {
+impl<'a> VirtualMethods for &'a HTMLTitleElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn child_inserted(&self, child: JSRef<Node>) {
+    fn child_inserted(&self, child: &Node) {
         if let Some(ref s) = self.super_type() {
             s.child_inserted(child);
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if node.is_in_doc() {
-            let document = node.owner_doc().root();
+            let document = node.owner_doc();
             document.r().title_changed();
         }
     }
 
     fn bind_to_tree(&self, is_in_doc: bool) {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(*self);
         if is_in_doc {
-            let document = node.owner_doc().root();
+            let document = node.owner_doc();
             document.r().title_changed();
         }
     }

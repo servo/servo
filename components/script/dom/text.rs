@@ -11,8 +11,8 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataCast, TextDerived};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, OptionalRootable, Rootable, RootedReference};
-use dom::bindings::js::Temporary;
+use dom::bindings::js::{RootedReference};
+use dom::bindings::js::Root;
 use dom::characterdata::{CharacterData, CharacterDataHelpers, CharacterDataTypeId};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -32,26 +32,26 @@ impl TextDerived for EventTarget {
 }
 
 impl Text {
-    fn new_inherited(text: DOMString, document: JSRef<Document>) -> Text {
+    fn new_inherited(text: DOMString, document: &Document) -> Text {
         Text {
             characterdata: CharacterData::new_inherited(CharacterDataTypeId::Text, text, document)
         }
     }
 
-    pub fn new(text: DOMString, document: JSRef<Document>) -> Temporary<Text> {
+    pub fn new(text: DOMString, document: &Document) -> Root<Text> {
         Node::reflect_node(box Text::new_inherited(text, document),
                            document, TextBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef, text: DOMString) -> Fallible<Temporary<Text>> {
-        let document = global.as_window().Document().root();
+    pub fn Constructor(global: GlobalRef, text: DOMString) -> Fallible<Root<Text>> {
+        let document = global.as_window().Document();
         Ok(Text::new(text, document.r()))
     }
 }
 
-impl<'a> TextMethods for JSRef<'a, Text> {
+impl<'a> TextMethods for &'a Text {
     // https://dom.spec.whatwg.org/#dom-text-splittextoffset
-    fn SplitText(self, offset: u32) -> Fallible<Temporary<Text>> {
+    fn SplitText(self, offset: u32) -> Fallible<Root<Text>> {
         let cdata = CharacterDataCast::from_ref(self);
         // Step 1.
         let length = cdata.Length();
@@ -65,14 +65,14 @@ impl<'a> TextMethods for JSRef<'a, Text> {
         let new_data = cdata.SubstringData(offset, count).unwrap();
         // Step 5.
         let node = NodeCast::from_ref(self);
-        let owner_doc = node.owner_doc().root();
-        let new_node = owner_doc.r().CreateTextNode(new_data).root();
+        let owner_doc = node.owner_doc();
+        let new_node = owner_doc.r().CreateTextNode(new_data);
         // Step 6.
-        let parent = node.GetParentNode().root();
+        let parent = node.GetParentNode();
         if let Some(ref parent) = parent {
             // Step 7.
             parent.r().InsertBefore(NodeCast::from_ref(new_node.r()),
-                                    node.GetNextSibling().root().r())
+                                    node.GetNextSibling().r())
                   .unwrap();
             // TODO: Ranges.
         }
@@ -83,16 +83,15 @@ impl<'a> TextMethods for JSRef<'a, Text> {
             // TODO: Ranges
         }
         // Step 10.
-        Ok(Temporary::from_rooted(new_node.r()))
+        Ok(new_node)
     }
 
     // https://dom.spec.whatwg.org/#dom-text-wholetext
     fn WholeText(self) -> DOMString {
         let first = NodeCast::from_ref(self).inclusively_preceding_siblings()
-                                            .map(|node| node.root())
                                             .take_while(|node| node.r().is_text())
                                             .last().unwrap();
-        let nodes = first.r().inclusively_following_siblings().map(|node| node.root())
+        let nodes = first.r().inclusively_following_siblings()
                              .take_while(|node| node.r().is_text());
         let mut text = DOMString::new();
         for ref node in nodes {

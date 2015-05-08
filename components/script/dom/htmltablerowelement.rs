@@ -5,7 +5,7 @@
 use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableRowElementDerived};
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -32,7 +32,7 @@ impl HTMLTableRowElementDerived for EventTarget {
 }
 
 impl HTMLTableRowElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableRowElement {
         HTMLTableRowElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableRowElement,
@@ -44,8 +44,8 @@ impl HTMLTableRowElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
-               -> Temporary<HTMLTableRowElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document)
+               -> Root<HTMLTableRowElement> {
         Node::reflect_node(box HTMLTableRowElement::new_inherited(localName, prefix, document),
                            document,
                            HTMLTableRowElementBinding::Wrap)
@@ -54,22 +54,22 @@ impl HTMLTableRowElement {
 
 
 pub trait HTMLTableRowElementHelpers {
-    fn get_background_color(&self) -> Option<RGBA>;
+    fn get_background_color(self) -> Option<RGBA>;
 }
 
-impl HTMLTableRowElementHelpers for HTMLTableRowElement {
-    fn get_background_color(&self) -> Option<RGBA> {
+impl<'a> HTMLTableRowElementHelpers for &'a HTMLTableRowElement {
+    fn get_background_color(self) -> Option<RGBA> {
         self.background_color.get()
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLTableRowElement> {
+impl<'a> VirtualMethods for &'a HTMLTableRowElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
@@ -82,7 +82,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableRowElement> {
         }
     }
 
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+    fn before_remove_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.before_remove_attr(attr);
         }

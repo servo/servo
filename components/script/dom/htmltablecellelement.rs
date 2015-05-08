@@ -5,7 +5,6 @@
 use dom::attr::{Attr, AttrHelpers, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
-use dom::bindings::js::JSRef;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
@@ -59,7 +58,7 @@ impl HTMLTableCellElement {
     pub fn new_inherited(type_id: HTMLTableCellElementTypeId,
                          tag_name: DOMString,
                          prefix: Option<DOMString>,
-                         document: JSRef<Document>)
+                         document: &Document)
                          -> HTMLTableCellElement {
         HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableCellElement(type_id),
@@ -76,39 +75,39 @@ impl HTMLTableCellElement {
     }
 }
 
-impl<'a> HTMLTableCellElementMethods for JSRef<'a, HTMLTableCellElement> {
+impl<'a> HTMLTableCellElementMethods for &'a HTMLTableCellElement {
     // https://html.spec.whatwg.org/multipage/#dom-tdth-colspan
     make_uint_getter!(ColSpan, "colspan", DEFAULT_COLSPAN);
     make_uint_setter!(SetColSpan, "colspan");
 }
 
 pub trait HTMLTableCellElementHelpers {
-    fn get_background_color(&self) -> Option<RGBA>;
-    fn get_colspan(&self) -> Option<u32>;
-    fn get_width(&self) -> LengthOrPercentageOrAuto;
+    fn get_background_color(self) -> Option<RGBA>;
+    fn get_colspan(self) -> Option<u32>;
+    fn get_width(self) -> LengthOrPercentageOrAuto;
 }
 
-impl HTMLTableCellElementHelpers for HTMLTableCellElement {
-    fn get_background_color(&self) -> Option<RGBA> {
+impl<'a> HTMLTableCellElementHelpers for &'a HTMLTableCellElement {
+    fn get_background_color(self) -> Option<RGBA> {
         self.background_color.get()
     }
 
-    fn get_colspan(&self) -> Option<u32> {
+    fn get_colspan(self) -> Option<u32> {
         self.colspan.get()
     }
 
-    fn get_width(&self) -> LengthOrPercentageOrAuto {
+    fn get_width(self) -> LengthOrPercentageOrAuto {
         self.width.get()
     }
 }
 
-impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
+impl<'a> VirtualMethods for &'a HTMLTableCellElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
+    fn after_set_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
@@ -130,7 +129,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
         }
     }
 
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+    fn before_remove_attr(&self, attr: &Attr) {
         if let Some(ref s) = self.super_type() {
             s.before_remove_attr(attr);
         }

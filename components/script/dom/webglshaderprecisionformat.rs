@@ -6,7 +6,7 @@
 use dom::bindings::codegen::Bindings::WebGLShaderPrecisionFormatBinding;
 use dom::bindings::codegen::Bindings::WebGLShaderPrecisionFormatBinding::WebGLShaderPrecisionFormatMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Temporary, JSRef};
+use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector,reflect_dom_object};
 
 #[dom_struct]
@@ -30,7 +30,7 @@ impl WebGLShaderPrecisionFormat {
     pub fn new(global: GlobalRef,
                range_min: i32,
                range_max: i32,
-               precision: i32) -> Temporary<WebGLShaderPrecisionFormat> {
+               precision: i32) -> Root<WebGLShaderPrecisionFormat> {
         reflect_dom_object(
             box WebGLShaderPrecisionFormat::new_inherited(range_min, range_max, precision),
             global,
@@ -38,7 +38,7 @@ impl WebGLShaderPrecisionFormat {
     }
 }
 
-impl<'a> WebGLShaderPrecisionFormatMethods for JSRef<'a, WebGLShaderPrecisionFormat> {
+impl<'a> WebGLShaderPrecisionFormatMethods for &'a WebGLShaderPrecisionFormat {
     fn RangeMin(self) -> i32 {
         self.range_min
     }

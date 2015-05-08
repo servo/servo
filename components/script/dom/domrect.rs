@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::DOMRectBinding;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
@@ -32,15 +32,15 @@ impl DOMRect {
         }
     }
 
-    pub fn new(window: JSRef<Window>,
+    pub fn new(window: &Window,
                top: Au, bottom: Au,
-               left: Au, right: Au) -> Temporary<DOMRect> {
+               left: Au, right: Au) -> Root<DOMRect> {
         reflect_dom_object(box DOMRect::new_inherited(top, bottom, left, right),
                            GlobalRef::Window(window), DOMRectBinding::Wrap)
     }
 }
 
-impl<'a> DOMRectMethods for JSRef<'a, DOMRect> {
+impl<'a> DOMRectMethods for &'a DOMRect {
     fn Top(self) -> Finite<f32> {
         Finite::wrap(self.top)
     }

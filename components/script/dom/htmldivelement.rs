@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLDivElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDivElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -28,7 +28,7 @@ impl HTMLDivElementDerived for EventTarget {
 impl HTMLDivElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
-                     document: JSRef<Document>) -> HTMLDivElement {
+                     document: &Document) -> HTMLDivElement {
         HTMLDivElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLDivElement, localName, prefix, document)
         }
@@ -37,7 +37,7 @@ impl HTMLDivElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: JSRef<Document>) -> Temporary<HTMLDivElement> {
+               document: &Document) -> Root<HTMLDivElement> {
         let element = HTMLDivElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLDivElementBinding::Wrap)
     }
