@@ -17,7 +17,8 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLInputElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLFontElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCellElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTextAreaElementDerived};
@@ -45,6 +46,7 @@ use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElementTypeId;
+use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementHelpers};
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers, HTMLInputElementHelpers};
 use dom::htmltableelement::{HTMLTableElement, HTMLTableElementHelpers};
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
@@ -62,7 +64,7 @@ use style;
 use style::legacy::{UnsignedIntegerAttribute, IntegerAttribute, LengthAttribute, from_declaration};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
 use style::properties::DeclaredValue::SpecifiedValue;
-use style::values::specified::CSSColor;
+use style::values::specified::{CSSColor, CSSRGBA};
 use util::namespace;
 use util::smallvec::VecLike;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
@@ -255,10 +257,24 @@ impl RawLayoutElementHelpers for Element {
             None
         };
 
+        let color = if self.is_htmlfontelement() {
+            let this: &HTMLFontElement = mem::transmute(self);
+            this.get_color()
+        } else {
+            None
+        };
+
         if let Some(color) = bgcolor {
             hints.push(from_declaration(
                 PropertyDeclaration::BackgroundColor(SpecifiedValue(
                     CSSColor { parsed: Color::RGBA(color), authored: None }))));
+        }
+        if let Some(color) = color {
+            hints.push(from_declaration(
+                PropertyDeclaration::Color(SpecifiedValue(CSSRGBA {
+                    parsed: color,
+                    authored: None,
+                }))));
         }
     }
 
