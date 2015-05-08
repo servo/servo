@@ -163,12 +163,20 @@ impl Stylist {
     }
 
     pub fn add_quirks_mode_stylesheet(&mut self) {
-        self.add_stylesheet(Stylesheet::from_bytes(
-            &read_resource_file(&["quirks-mode.css"]).unwrap(),
-            Url::parse("chrome:///quirks-mode.css").unwrap(),
-            None,
-            None,
-            Origin::UserAgent))
+        match read_resource_file(&["quirks-mode.css"]) {
+            Ok(res) => {
+            self.add_stylesheet(Stylesheet::from_bytes(
+                &res,
+                Url::parse("chrome:///quirks-mode.css").unwrap(),
+                None,
+                None,
+                Origin::UserAgent));
+            }
+            Err(..) => {
+                error!("Stylist::add_quirks_mode_stylesheet() failed at loading 'quirks-mode.css'!");
+                process::exit(1);
+            }
+        }
     }
 
     pub fn add_stylesheet(&mut self, stylesheet: Stylesheet) {
