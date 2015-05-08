@@ -25,14 +25,23 @@ pub fn resources_dir_path() -> PathBuf {
             // or `<servo source>/components/servo/target/release`.
             let mut path = env::current_exe().ok().expect("can't get exe path");
             path.pop();
-            path.pop();
-            path.pop();
-            path.pop();
             path.push("resources");
-            if !path.is_dir() {  // self_exe_path() is probably in .../target/release
+            if !path.is_dir() {   // resources dir not in same dir as exe?
+                path.pop();
+                path.pop();
                 path.pop();
                 path.pop();
                 path.push("resources");
+                if !path.is_dir() {  // self_exe_path() is probably in .../target/release
+                    path.pop();
+                    path.pop();
+                    path.push("resources");
+                    if !path.is_dir() { // self_exe_path() is probably in .../target/release
+                        path.pop();
+                        path.pop();
+                        path.push("resources");
+                    }
+                }
             }
             path
         }
