@@ -334,7 +334,9 @@ impl<'a> FlowConstructor<'a> {
         if child.is_table() {
             let fragment = Fragment::new(child_node, SpecificFragmentInfo::TableWrapper);
             let mut new_child =
-                FlowRef::new(box TableWrapperFlow::from_node_and_fragment(child_node, fragment, None));
+                FlowRef::new(box TableWrapperFlow::from_node_and_fragment(child_node,
+                                                                          fragment,
+                                                                          None));
             new_child.add_new_child(child.clone());
             child.finish();
             *child = new_child
@@ -376,8 +378,8 @@ impl<'a> FlowConstructor<'a> {
 
         // Build a list of all the inline-block fragments before fragments is moved.
         let mut inline_block_flows = vec!();
-        for f in fragments.iter() {
-            match f.specific {
+        for fragment in fragments.iter() {
+            match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref info) => {
                     inline_block_flows.push(info.flow_ref.clone())
                 }
@@ -511,13 +513,15 @@ impl<'a> FlowConstructor<'a> {
                 inline_fragment_accumulator.push_all(successor_fragments);
                 abs_descendants.push_descendants(kid_abs_descendants);
             }
-            ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(whitespace_node,
-                                                                          whitespace_style,
-                                                                          whitespace_damage)) => {
+            ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
+                    whitespace_node,
+                    mut whitespace_style,
+                    whitespace_damage)) => {
                 // Add whitespace results. They will be stripped out later on when
                 // between block elements, and retained when between inline elements.
                 let fragment_info = SpecificFragmentInfo::UnscannedText(
                     UnscannedTextFragmentInfo::from_text(" ".to_owned()));
+                properties::modify_style_for_replaced_content(&mut whitespace_style);
                 let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                     whitespace_style,
                                                                     whitespace_damage,
@@ -729,11 +733,12 @@ impl<'a> FlowConstructor<'a> {
                 }
                 ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                         whitespace_node,
-                        whitespace_style,
+                        mut whitespace_style,
                         whitespace_damage)) => {
                     // Instantiate the whitespace fragment.
                     let fragment_info = SpecificFragmentInfo::UnscannedText(
                         UnscannedTextFragmentInfo::from_text(" ".to_owned()));
+                    properties::modify_style_for_replaced_content(&mut whitespace_style);
                     let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                         whitespace_style,
                                                                         whitespace_damage,
