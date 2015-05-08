@@ -1283,10 +1283,11 @@ impl Flow for InlineFlow {
         // TODO(pcwalton): Cache the line scanner?
         debug!("assign_block_size_inline: floats in: {:?}", self.base.floats);
 
-        // Assign the block-size for the inline fragments.
+        // Assign the block-size and late-computed inline-sizes for the inline fragments.
         let containing_block_block_size =
             self.base.block_container_explicit_block_size.unwrap_or(Au(0));
         for fragment in self.fragments.fragments.iter_mut() {
+            fragment.update_late_computed_replaced_inline_size_if_necessary();
             fragment.assign_replaced_block_size_if_necessary(
                 containing_block_block_size);
         }
