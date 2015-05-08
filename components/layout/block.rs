@@ -55,7 +55,7 @@ use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, box_sizing, display, float, overflow_x, overflow_y};
-use style::computed_values::{position};
+use style::computed_values::{position, text_align};
 use style::properties::ComputedValues;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
@@ -1954,6 +1954,7 @@ pub struct ISizeConstraintInput {
     pub inline_end_margin: MaybeAuto,
     pub inline_start: MaybeAuto,
     pub inline_end: MaybeAuto,
+    pub text_align: text_align::T,
     pub available_inline_size: Au,
 }
 
@@ -1963,6 +1964,7 @@ impl ISizeConstraintInput {
                inline_end_margin: MaybeAuto,
                inline_start: MaybeAuto,
                inline_end: MaybeAuto,
+               text_align: text_align::T,
                available_inline_size: Au)
            -> ISizeConstraintInput {
         ISizeConstraintInput {
@@ -1971,6 +1973,7 @@ impl ISizeConstraintInput {
             inline_end_margin: inline_end_margin,
             inline_start: inline_start,
             inline_end: inline_end,
+            text_align: text_align,
             available_inline_size: available_inline_size,
         }
     }
@@ -2066,6 +2069,7 @@ pub trait ISizeAndMarginsComputer {
                                                         containing_block_inline_size),
                                   MaybeAuto::from_style(position.inline_end,
                                                         containing_block_inline_size),
+                                  style.get_inheritedtext().text_align,
                                   available_inline_size)
     }
 
@@ -2241,18 +2245,28 @@ pub trait ISizeAndMarginsComputer {
         // available_inline-size
         let (inline_start_margin, mut inline_size, inline_end_margin) =
             match (inline_start_margin, computed_inline_size, inline_end_margin) {
-                // If all have a computed value other than 'auto', the system is
-                // over-constrained so we discard the end margin.
+                // If all have a computed value other than 'auto', the system is over-constrained.
                 (MaybeAuto::Specified(margin_start),
                  MaybeAuto::Specified(inline_size),
                  MaybeAuto::Specified(margin_end)) => {
-                    if parent_has_same_direction {
-                        (margin_start, inline_size, available_inline_size -
-                         (margin_start + inline_size))
-                    } else {
-                        (available_inline_size - (margin_end + inline_size),
-                         inline_size,
-                         margin_end)
+                    match (input.text_align, parent_has_same_direction) {
+                        (text_align::T::servo_center, _) => {
+                            // This is used for `<center>` and friends per HTML5 § 14.3.3. Make the
+                            // inline-start and inline-end margins equal per HTML5 § 14.2.
+                            let margin = (available_inline_size - inline_size).scale_by(0.5);
+                            (margin, inline_size, margin)
+                        }
+                        (_, true) => {
+                            // Ignore the end margin.
+                            (margin_start, inline_size, available_inline_size -
+                             (margin_start + inline_size))
+                        }
+                        (_, false) => {
+                            // Ignore the start margin.
+                            (available_inline_size - (margin_end + inline_size),
+                             inline_size,
+                             margin_end)
+                        }
                     }
                 }
                 // If exactly one value is 'auto', solve for it

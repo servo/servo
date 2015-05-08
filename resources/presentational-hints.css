@@ -11,7 +11,6 @@ pre[wrap] { white-space: pre-wrap; }
 FIXME: also "align descendants"
 https://html.spec.whatwg.org/multipage/#align-descendants
 */
-center, div[align=center i], div[align=middle i] { text-align: center; }
 div[align=left i] { text-align: left; }
 div[align=right i] { text-align: right; }
 div[align=justify i] { text-align: justify; }

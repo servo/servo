@@ -261,6 +261,7 @@ experimental != overconstrained_block.html overconstrained_block_ref.html
 == root_pseudo_a.html root_pseudo_b.html
 experimental == rtl_body.html rtl_body_ref.html
 experimental == rtl_simple.html rtl_simple_ref.html
+== servo_center_a.html servo_center_ref.html
 == setattribute_id_restyle_a.html setattribute_id_restyle_b.html
 == stacking_context_overflow_a.html stacking_context_overflow_ref.html
 == stacking_context_overflow_relative_outline_a.html stacking_context_overflow_relative_outline_ref.html
@@ -279,6 +280,7 @@ experimental == rtl_simple.html rtl_simple_ref.html
 == table_percentage_capping_a.html table_percentage_capping_ref.html
 == table_percentage_width_a.html table_percentage_width_ref.html
 experimental == table_row_direction_a.html table_row_direction_ref.html
+== table_width_attribute_a.html table_width_attribute_ref.html
 == text_align_complex_a.html text_align_complex_ref.html
 == text_align_justify_a.html text_align_justify_ref.html
 experimental == text_align_rtl.html text_align_rtl_ref.html
