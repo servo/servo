@@ -147,6 +147,7 @@ impl Browser  {
         self.compositor.shutdown();
     }
 }
+
 fn create_constellation(opts: opts::Opts,
                         compositor_proxy: Box<CompositorProxy+Send>,
                         time_profiler_chan: time::ProfilerChan,
