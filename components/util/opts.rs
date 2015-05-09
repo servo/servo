@@ -400,7 +400,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         disable_share_style_cache: debug_options.contains(&"disable-share-style-cache"),
     };
 
-    set_opts(opts);
+    set(opts);
     true
 }
 
@@ -423,7 +423,7 @@ pub fn experimental_enabled() -> bool {
 // when passing through the DOM structures.
 static mut OPTIONS: *mut Opts = 0 as *mut Opts;
 
-pub fn set_opts(opts: Opts) {
+pub fn set(opts: Opts) {
     unsafe {
         assert!(OPTIONS.is_null());
         let box_opts = box opts;
@@ -439,7 +439,7 @@ pub fn get<'a>() -> &'a Opts {
         // set of options. This is mostly useful for unit tests that
         // run through a code path which queries the cmd line options.
         if OPTIONS == ptr::null_mut() {
-            set_opts(default_opts());
+            set(default_opts());
         }
         mem::transmute(OPTIONS)
     }

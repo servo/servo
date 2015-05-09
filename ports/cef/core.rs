@@ -78,7 +78,7 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
     temp_opts.hard_fail = false;
     temp_opts.enable_text_antialiasing = true;
     temp_opts.resources_path = resources_path();
-    opts::set_opts(temp_opts);
+    opts::set(temp_opts);
 
     return 1
 }
