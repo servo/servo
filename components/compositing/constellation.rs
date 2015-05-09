@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! The `Constellation`, Servo's Grand Central Station
+//!
+//! The primary duty of a `Constellation` is to mediate between the
+//! graphics compositor and the many `Pipeline`s in the browser's
+//! navigation context, each `Pipeline` encompassing a `ScriptTask`,
+//! `LayoutTask`, and `PaintTask`.
+
 use pipeline::{Pipeline, CompositionPipeline};
 
 use compositor_task::CompositorProxy;
@@ -44,6 +51,11 @@ use clipboard::ClipboardContext;
 use webdriver_traits::WebDriverScriptCommand;
 
 /// Maintains the pipelines and navigation context and grants permission to composite.
+///
+/// It is parameterized over a `LayoutTaskFactory` and a
+/// `ScriptTaskFactory` (which in practice are implemented by
+/// `LayoutTask` in the `layout` crate, and `ScriptTask` in
+/// the `script` crate).
 pub struct Constellation<LTF, STF> {
     /// A channel through which messages can be sent to this object.
     pub chan: ConstellationChan,
