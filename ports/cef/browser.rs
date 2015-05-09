@@ -177,6 +177,9 @@ impl ServoCefBrowserExtensions for CefBrowser {
 pub fn update() {
     BROWSERS.with(|browsers| {
         for browser in browsers.borrow().iter() {
+            if browser.downcast().callback_executed.get() == false {
+                browser_callback_after_created(browser.clone());
+            }
             browser.send_window_event(WindowEvent::Idle);
         }
     });
