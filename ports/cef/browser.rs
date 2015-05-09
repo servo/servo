@@ -96,7 +96,7 @@ impl ServoCefBrowser {
         let host = ServoCefBrowserHost::new(client.clone()).as_cef_interface();
 
         let servo_browser = if window_info.windowless_rendering_enabled == 0 {
-            let glutin_window = glutin_app::create_window();
+            let glutin_window = glutin_app::create_window(window_info.parent_window as glutin_app::WindowID);
             let servo_browser = Browser::new(Some(glutin_window.clone()));
             ServoBrowser::OnScreen(servo_browser)
         } else {
