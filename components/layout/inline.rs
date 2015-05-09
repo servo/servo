@@ -813,9 +813,9 @@ impl InlineFlow {
         for style in fragment.inline_styles() {
             // Ignore `vertical-align` values for table cells.
             let box_style = style.get_box();
-            if box_style.display != display::T::inline &&
-                    box_style.display != display::T::block {
-                continue
+            match box_style.display {
+                display::T::inline | display::T::block | display::T::inline_block => {}
+                _ => continue,
             }
 
             match box_style.vertical_align {
@@ -1030,12 +1030,14 @@ impl InlineFlow {
             for style in fragment.inline_styles() {
                 match (style.get_box().display, style.get_box().vertical_align) {
                     (display::T::inline, vertical_align::T::top) |
-                    (display::T::block, vertical_align::T::top) => {
+                    (display::T::block, vertical_align::T::top) |
+                    (display::T::inline_block, vertical_align::T::top) => {
                         vertical_align = vertical_align::T::top;
                         break
                     }
                     (display::T::inline, vertical_align::T::bottom) |
-                    (display::T::block, vertical_align::T::bottom) => {
+                    (display::T::block, vertical_align::T::bottom) |
+                    (display::T::inline_block, vertical_align::T::bottom) => {
                         vertical_align = vertical_align::T::bottom;
                         break
                     }

@@ -301,6 +301,7 @@ experimental == text_align_start_end.html text_align_start_end_ref.html
 == upper_id_attr.html upper_id_attr_ref.html
 flaky_cpu,experimental == vertical-lr-blocks.html vertical-lr-blocks_ref.html
 == vertical_align_bottom_a.html vertical_align_bottom_ref.html
+== vertical_align_inline_block_a.html vertical_align_inline_block_ref.html
 == vertical_align_inside_table_a.html vertical_align_inside_table_ref.html
 == vertical_align_sub_a.html vertical_align_sub_ref.html
 == vertical_align_super_a.html vertical_align_super_ref.html
