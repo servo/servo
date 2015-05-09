@@ -36,6 +36,7 @@ extern crate rustc_serialize;
 extern crate selectors;
 extern crate smallvec as smallvec_;
 extern crate string_cache;
+extern crate url;
 
 use std::sync::Arc;
 

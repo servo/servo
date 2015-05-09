@@ -18,12 +18,13 @@ use std::env;
 use std::io::{self, Write};
 use std::mem;
 use std::ptr;
+use url::{self, Url};
 
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone)]
 pub struct Opts {
     /// The initial URL to load.
-    pub url: String,
+    pub url: Url,
 
     /// How many threads to use for CPU painting (`-t`).
     ///
@@ -192,7 +193,7 @@ static FORCE_CPU_PAINTING: bool = false;
 
 pub fn default_opts() -> Opts {
     Opts {
-        url: String::new(),
+        url: Url::parse("about:blank").unwrap(),
         paint_threads: 1,
         gpu_painting: false,
         tile_size: 512,
@@ -293,7 +294,14 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         args_fail("servo asks that you provide a URL");
         return false;
     } else {
-        opt_match.free[0].clone()
+        let ref url = opt_match.free[0];
+        let cwd = env::current_dir().unwrap();
+        match Url::parse(url) {
+            Ok(url) => url,
+            Err(url::ParseError::RelativeUrlWithoutBase)
+                => Url::from_file_path(&*cwd.join(url)).unwrap(),
+            Err(_) => panic!("URL parsing failed"),
+        }
     };
 
     let tile_size: usize = match opt_match.opt_str("s") {
