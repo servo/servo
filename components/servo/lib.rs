@@ -154,7 +154,6 @@ fn create_constellation(opts: opts::Opts,
                         mem_profiler_chan: mem::ProfilerChan) -> ConstellationChan {
     use std::env;
 
-    // Create a Servo instance.
     let resource_task = new_resource_task(opts.user_agent.clone(), devtools_chan.clone());
 
     let image_cache_task = new_image_cache_task(resource_task.clone());
