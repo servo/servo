@@ -71,12 +71,13 @@ pub struct Window {
 
 #[cfg(feature = "window")]
 impl Window {
-    pub fn new(is_foreground: bool, window_size: TypedSize2D<DevicePixel, u32>) -> Rc<Window> {
+    pub fn new(is_foreground: bool, window_size: TypedSize2D<DevicePixel, u32>, parent: glutin::WindowID) -> Rc<Window> {
         let mut glutin_window = glutin::WindowBuilder::new()
                             .with_title("Servo".to_string())
                             .with_dimensions(window_size.to_untyped().width, window_size.to_untyped().height)
                             .with_gl(Window::gl_version())
                             .with_visibility(is_foreground)
+                            .with_parent(parent)
                             .build()
                             .unwrap();
         unsafe { glutin_window.make_current() };
@@ -614,7 +615,7 @@ pub struct Window {
 
 #[cfg(feature = "headless")]
 impl Window {
-    pub fn new(_is_foreground: bool, window_size: TypedSize2D<DevicePixel, u32>) -> Rc<Window> {
+    pub fn new(_is_foreground: bool, window_size: TypedSize2D<DevicePixel, u32>, _parent: glutin::WindowID) -> Rc<Window> {
         let window_size = window_size.to_untyped();
         let headless_builder = glutin::HeadlessRendererBuilder::new(window_size.width,
                                                                     window_size.height);
