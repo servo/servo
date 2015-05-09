@@ -71,7 +71,7 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{NamespaceConstraint, AttrSelector};
-use style::legacy::{IntegerAttribute, UnsignedIntegerAttribute};
+use style::legacy::UnsignedIntegerAttribute;
 use style::node::{TElement, TElementAttributes, TNode};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use util::smallvec::VecLike;
@@ -653,12 +653,6 @@ impl<'le> TElementAttributes<'le> for LayoutElement<'le> {
     {
         unsafe {
             self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
-        }
-    }
-
-    fn get_integer_attribute(self, integer_attribute: IntegerAttribute) -> Option<i32> {
-        unsafe {
-            self.element.get_integer_attribute_for_layout(integer_attribute)
         }
     }
 
