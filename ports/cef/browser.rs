@@ -137,6 +137,9 @@ impl ServoCefBrowserExtensions for CefBrowser {
 
         self.downcast().host.set_browser((*self).clone());
         self.downcast().frame.set_browser((*self).clone());
+        if window_info.parent_window != 0 {
+            self.downcast().host.initialize_compositing();
+        }
     }
 
     fn send_window_event(&self, event: WindowEvent) {
