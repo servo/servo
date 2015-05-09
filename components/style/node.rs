@@ -8,7 +8,6 @@
 use legacy::{IntegerAttribute, UnsignedIntegerAttribute};
 use properties::PropertyDeclaration;
 use util::smallvec::VecLike;
-use util::str::LengthOrPercentageOrAuto;
 
 use selectors::matching::DeclarationBlock;
 pub use selectors::tree::{TNode, TElement};

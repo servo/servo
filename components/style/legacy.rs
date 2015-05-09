@@ -18,7 +18,6 @@ use selector_matching::Stylist;
 
 use util::geometry::Au;
 use util::smallvec::VecLike;
-use util::str::LengthOrPercentageOrAuto;
 
 /// Legacy presentational attributes that take an integer as defined in HTML5 § 2.4.4.2.
 #[derive(Copy, Clone, PartialEq, Eq)]
