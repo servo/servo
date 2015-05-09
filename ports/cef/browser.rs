@@ -72,6 +72,10 @@ cef_class_impl! {
         fn get_main_frame(&this,) -> *mut cef_frame_t {{
             this.downcast().frame.clone()
         }}
+
+        fn get_identifier(&this,) -> c_int {{
+            this.downcast().id as c_int
+        }}
     }
 }
 
