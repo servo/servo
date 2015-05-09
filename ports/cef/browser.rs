@@ -11,12 +11,14 @@ use interfaces::{cef_request_context_t};
 use servo::Browser;
 use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t};
 use window;
+use wrappers::CefWrap;
 
 use compositing::windowing::{WindowNavigateMsg, WindowEvent};
 use glutin_app;
 use libc::c_int;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, BorrowState};
+use std::ptr;
 use std::sync::atomic::{AtomicIsize, Ordering};
 
 thread_local!(pub static ID_COUNTER: AtomicIsize = AtomicIsize::new(0));
@@ -211,12 +213,16 @@ pub fn browser_callback_after_created(browser: CefBrowser) {
 
 fn browser_host_create(window_info: &cef_window_info_t,
                        client: CefClient,
+                       url: *const cef_string_t,
                        callback_executed: bool)
                        -> CefBrowser {
     let browser = ServoCefBrowser::new(window_info, client).as_cef_interface();
     browser.init(window_info);
     if callback_executed {
         browser_callback_after_created(browser.clone());
+    }
+    if url != ptr::null() {
+       unsafe { browser.downcast().frame.load_url(CefWrap::to_rust(url)); }
     }
     BROWSERS.with(|browsers| {
         browsers.borrow_mut().push(browser.clone());
@@ -227,27 +233,25 @@ fn browser_host_create(window_info: &cef_window_info_t,
 cef_static_method_impls! {
     fn cef_browser_host_create_browser(window_info: *const cef_window_info_t,
                                        client: *mut cef_client_t,
-                                       _url: *const cef_string_t,
+                                       url: *const cef_string_t,
                                        _browser_settings: *const cef_browser_settings_t,
                                        _request_context: *mut cef_request_context_t)
                                        -> c_int {{
         let client: CefClient = client;
-        let _url: &[u16] = _url;
         let _browser_settings: &cef_browser_settings_t = _browser_settings;
         let _request_context: CefRequestContext = _request_context;
-        browser_host_create(window_info, client, false);
+        browser_host_create(window_info, client, url, false);
         1i32
     }}
     fn cef_browser_host_create_browser_sync(window_info: *const cef_window_info_t,
                                             client: *mut cef_client_t,
-                                            _url: *const cef_string_t,
+                                            url: *const cef_string_t,
                                             _browser_settings: *const cef_browser_settings_t,
                                             _request_context: *mut cef_request_context_t)
                                             -> *mut cef_browser_t {{
         let client: CefClient = client;
-        let _url: &[u16] = _url;
         let _browser_settings: &cef_browser_settings_t = _browser_settings;
         let _request_context: CefRequestContext = _request_context;
-        browser_host_create(window_info, client, true)
+        browser_host_create(window_info, client, url, true)
     }}
 }
