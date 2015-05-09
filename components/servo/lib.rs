@@ -78,8 +78,6 @@ pub struct Browser {
 impl Browser  {
     pub fn new<Window>(window: Option<Rc<Window>>) -> Browser
     where Window: WindowMethods + 'static {
-        ::util::opts::set_experimental_enabled(opts::get().enable_experimental);
-
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 

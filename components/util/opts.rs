@@ -406,6 +406,9 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
 
 static mut EXPERIMENTAL_ENABLED: bool = false;
 
+/// Turn on experimental features globally. Normally this is done
+/// during initialization by `set` or `from_cmdline_args`, but
+/// tests that require experimental features will also set it.
 pub fn set_experimental_enabled(new_value: bool) {
     unsafe {
         EXPERIMENTAL_ENABLED = new_value;
@@ -426,6 +429,7 @@ static mut OPTIONS: *mut Opts = 0 as *mut Opts;
 pub fn set(opts: Opts) {
     unsafe {
         assert!(OPTIONS.is_null());
+        set_experimental_enabled(opts.enable_experimental);
         let box_opts = box opts;
         OPTIONS = mem::transmute(box_opts);
     }
