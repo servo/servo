@@ -1495,27 +1495,6 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
 impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
     #[allow(unsafe_code)]
-    fn get_attr(self, namespace: &Namespace, local_name: &Atom) -> Option<&'a str> {
-        self.get_attribute(namespace, local_name).root().map(|attr| {
-            // This transmute is used to cheat the lifetime restriction.
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let attr = attr.r();
-            let value: &str = &**attr.value();
-            unsafe { mem::transmute(value) }
-        })
-    }
-    #[allow(unsafe_code)]
-    fn get_attrs(self, local_name: &Atom) -> Vec<&'a str> {
-        let mut attributes = RootedVec::new();
-        self.get_attributes(local_name, &mut attributes);
-        attributes.iter().map(|attr| attr.root()).map(|attr| {
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let attr = attr.r();
-            let value: &str = &**attr.value();
-            // This transmute is used to cheat the lifetime restriction.
-            unsafe { mem::transmute(value) }
-        }).collect()
-    }
     fn get_link(self) -> Option<&'a str> {
         // FIXME: This is HTML only.
         let node: JSRef<Node> = NodeCast::from_ref(self);
@@ -1523,7 +1502,15 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
             // https://html.spec.whatwg.org/multipage/#selector-link
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => self.get_attr(&ns!(""), &atom!("href")),
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
+                self.get_attribute(&ns!(""), &atom!("href")).root().map(|attr| {
+                    // This transmute is used to cheat the lifetime restriction.
+                    // FIXME(https://github.com/rust-lang/rust/issues/23338)
+                    let attr = attr.r();
+                    let value: &str = &**attr.value();
+                    unsafe { mem::transmute(value) }
+                })
+            },
             _ => None,
          }
     }
