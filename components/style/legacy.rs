@@ -63,7 +63,7 @@ pub trait PresentationalHintSynthesis {
                                                              matching_rules_list: &mut V,
                                                              shareable: &mut bool)
                                                              where N: TNode<'a>,
-                                                                   N::Element: TElementAttributes,
+                                                                   N::Element: TElementAttributes<'a>,
                                                                    V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
     /// Synthesizes rules for the legacy `border` attribute.
     fn synthesize_presentational_hint_for_legacy_border_attribute<'a,E,V>(
@@ -73,7 +73,7 @@ pub trait PresentationalHintSynthesis {
                                                                   shareable: &mut bool)
                                                                   where
                                                                     E: TElement<'a> +
-                                                                       TElementAttributes,
+                                                                       TElementAttributes<'a>,
                                                                     V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
 }
 
@@ -84,7 +84,7 @@ impl PresentationalHintSynthesis for Stylist {
                                                              matching_rules_list: &mut V,
                                                              shareable: &mut bool)
                                                              where N: TNode<'a>,
-                                                                   N::Element: TElementAttributes,
+                                                                   N::Element: TElementAttributes<'a>,
                                                                    V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {
         let element = node.as_element();
 
@@ -199,7 +199,7 @@ impl PresentationalHintSynthesis for Stylist {
                                                                   shareable: &mut bool)
                                                                   where
                                                                     E: TElement<'a> +
-                                                                       TElementAttributes,
+                                                                       TElementAttributes<'a>,
                                                                     V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {
         match element.get_unsigned_integer_attribute(UnsignedIntegerAttribute::Border) {
             None => {}
