@@ -305,6 +305,8 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         for node in self.traverse_preorder() {
             let node = node.root();
             vtable_for(&node.r()).unbind_from_tree(parent_in_doc);
+            node.r().set_flag(IS_IN_DOC, false);
+            
         }
         self.layout_data.dispose();
     }
@@ -1667,17 +1669,9 @@ impl Node {
         parent.remove_child(node);
 
         node.set_flag(IS_IN_DOC, false);
-        for child in node.traverse_preorder() {
-            let child = child.root();
-            let child = child.r();
-            child.set_flag(IS_IN_DOC, false);
-        }
 
         // Step 9.
-        match suppress_observers {
-            SuppressObserver::Suppressed => (),
-            SuppressObserver::Unsuppressed => node.node_removed(parent.is_in_doc()),
-        }
+        node.node_removed(parent.is_in_doc());
     }
 
     // https://dom.spec.whatwg.org/#concept-node-clone
