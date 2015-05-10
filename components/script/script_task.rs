@@ -80,7 +80,7 @@ use hyper::header::{LastModified, Headers};
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetExtraGCRootsTracer};
 use js::jsapi::{JSContext, JSRuntime, JSObject, JSTracer};
 use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
-use js::rust::{Runtime, RtUtils};
+use js::rust::Runtime;
 use url::Url;
 
 use libc;
