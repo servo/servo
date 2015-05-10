@@ -51,7 +51,7 @@ use js::jsapi::JS_EvaluateUCScript;
 use js::jsapi::JSContext;
 use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{Cx, with_compartment};
+use js::rust::{Runtime, with_compartment};
 use url::{Url, UrlParser};
 
 use libc;
@@ -133,8 +133,8 @@ pub struct Window {
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
 
-    /// The JavaScript context.
-    js_context: DOMRefCell<Option<Rc<Cx>>>,
+    /// The JavaScript runtime.
+    js_runtime: DOMRefCell<Option<Rc<Runtime>>>,
 
     /// A handle for communicating messages to the layout task.
     layout_chan: LayoutChan,
@@ -170,15 +170,15 @@ pub struct Window {
 
 impl Window {
     #[allow(unsafe_code)]
-    pub fn clear_js_context_for_script_deallocation(&self) {
+    pub fn clear_js_runtime_for_script_deallocation(&self) {
         unsafe {
-            *self.js_context.borrow_for_script_deallocation() = None;
+            *self.js_runtime.borrow_for_script_deallocation() = None;
             *self.browser_context.borrow_for_script_deallocation() = None;
         }
     }
 
     pub fn get_cx(&self) -> *mut JSContext {
-        self.js_context.borrow().as_ref().unwrap().ptr
+        self.js_runtime.borrow().as_ref().unwrap().cx()
     }
 
     pub fn script_chan(&self) -> Box<ScriptChan+Send> {
@@ -486,7 +486,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 }
 
 pub trait WindowHelpers {
-    fn clear_js_context(self);
+    fn clear_js_runtime(self);
     fn init_browser_context(self, doc: JSRef<Document>, frame_element: Option<JSRef<Element>>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
@@ -559,11 +559,11 @@ impl<'a, T: Reflectable> ScriptHelpers for JSRef<'a, T> {
 }
 
 impl<'a> WindowHelpers for JSRef<'a, Window> {
-    fn clear_js_context(self) {
+    fn clear_js_runtime(self) {
         let document = self.Document().root();
         NodeCast::from_ref(document.r()).teardown();
 
-        *self.js_context.borrow_mut() = None;
+        *self.js_runtime.borrow_mut() = None;
         *self.browser_context.borrow_mut() = None;
     }
 
@@ -883,7 +883,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 }
 
 impl Window {
-    pub fn new(js_context: Rc<Cx>,
+    pub fn new(runtime: Rc<Runtime>,
                page: Rc<Page>,
                script_chan: Box<ScriptChan+Send>,
                image_cache_chan: ImageCacheChan,
@@ -929,7 +929,7 @@ impl Window {
             id: id,
             parent_info: parent_info,
             dom_static: GlobalStaticData::new(),
-            js_context: DOMRefCell::new(Some(js_context.clone())),
+            js_runtime: DOMRefCell::new(Some(runtime.clone())),
             resource_task: resource_task,
             storage_task: storage_task,
             constellation_chan: constellation_chan,
@@ -949,7 +949,7 @@ impl Window {
             devtools_wants_updates: Cell::new(false),
         };
 
-        WindowBinding::Wrap(js_context.ptr, win)
+        WindowBinding::Wrap(runtime.cx(), win)
     }
 }
 

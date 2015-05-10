@@ -312,7 +312,7 @@ pub struct ScriptTask {
     devtools_marker_sender: RefCell<Option<Sender<TimelineMarker>>>,
 
     /// The JavaScript runtime.
-    js_runtime: Runtime,
+    js_runtime: Rc<Runtime>,
 
     mouse_over_targets: DOMRefCell<Vec<JS<Node>>>
 }
@@ -346,7 +346,7 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
                     let page = owner.page.borrow_for_script_deallocation();
                     for page in page.iter() {
                         let window = page.window_for_script_deallocation();
-                        (*window.unsafe_get()).clear_js_context_for_script_deallocation();
+                        (*window.unsafe_get()).clear_js_runtime_for_script_deallocation();
                     }
                 }
             }
@@ -491,7 +491,7 @@ impl ScriptTask {
             devtools_markers: RefCell::new(HashSet::new()),
             devtools_marker_sender: RefCell::new(None),
 
-            js_runtime: runtime,
+            js_runtime: Rc::new(runtime),
             mouse_over_targets: DOMRefCell::new(vec!())
         }
     }
@@ -1117,7 +1117,7 @@ impl ScriptTask {
         let mut page_remover = AutoPageRemover::new(self, page_to_remove);
 
         // Create the window and document objects.
-        let window = Window::new(self.js_runtime.cx.clone(),
+        let window = Window::new(self.js_runtime.clone(),
                                  page.clone(),
                                  self.chan.clone(),
                                  self.image_cache_channel.clone(),
@@ -1493,7 +1493,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
     // Drop our references to the JSContext and DOM objects.
     for page in page_tree.iter() {
         let window = page.window().root();
-        window.r().clear_js_context();
+        window.r().clear_js_runtime();
         // Sever the connection between the global and the DOM tree
         page.set_frame(None);
     }

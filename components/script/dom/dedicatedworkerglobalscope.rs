@@ -35,11 +35,11 @@ use util::task_state::{SCRIPT, IN_WORKER};
 
 use js::jsapi::JSContext;
 use js::jsval::JSVal;
-use js::rust::Cx;
+use js::rust::Runtime;
+use url::Url;
 
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, Receiver, channel};
-use url::Url;
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
 /// every message. While this SendableWorkerScriptChan is alive, the associated Worker object
@@ -104,17 +104,18 @@ pub struct DedicatedWorkerGlobalScope {
 
 impl DedicatedWorkerGlobalScope {
     fn new_inherited(worker_url: Url,
-                         id: PipelineId,
-                         devtools_chan: Option<DevtoolsControlChan>,
-                         cx: Rc<Cx>,
-                         resource_task: ResourceTask,
-                         parent_sender: Box<ScriptChan+Send>,
-                         own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
-                         receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
-                         -> DedicatedWorkerGlobalScope {
+                     id: PipelineId,
+                     devtools_chan: Option<DevtoolsControlChan>,
+                     runtime: Rc<Runtime>,
+                     resource_task: ResourceTask,
+                     parent_sender: Box<ScriptChan+Send>,
+                     own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+                     receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
+                     -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
-                WorkerGlobalScopeTypeId::DedicatedGlobalScope, worker_url, cx, resource_task, devtools_chan),
+                WorkerGlobalScopeTypeId::DedicatedGlobalScope, worker_url,
+                runtime, resource_task, devtools_chan),
             id: id,
             receiver: receiver,
             own_sender: own_sender,
@@ -126,16 +127,16 @@ impl DedicatedWorkerGlobalScope {
     pub fn new(worker_url: Url,
                id: PipelineId,
                devtools_chan: Option<DevtoolsControlChan>,
-               cx: Rc<Cx>,
+               runtime: Rc<Runtime>,
                resource_task: ResourceTask,
                parent_sender: Box<ScriptChan+Send>,
                own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
                -> Temporary<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
-            worker_url, id, devtools_chan, cx.clone(), resource_task, parent_sender,
-            own_sender, receiver);
-        DedicatedWorkerGlobalScopeBinding::Wrap(cx.ptr, scope)
+            worker_url, id, devtools_chan, runtime.clone(), resource_task,
+            parent_sender, own_sender, receiver);
+        DedicatedWorkerGlobalScopeBinding::Wrap(runtime.cx(), scope)
     }
 }
 
@@ -166,15 +167,15 @@ impl DedicatedWorkerGlobalScope {
                 }
             };
 
-            let runtime = ScriptTask::new_rt_and_cx();
+            let runtime = Rc::new(ScriptTask::new_rt_and_cx());
             let global = DedicatedWorkerGlobalScope::new(
-                worker_url, id, devtools_chan, runtime.cx.clone(), resource_task,
+                worker_url, id, devtools_chan, runtime.clone(), resource_task,
                 parent_sender, own_sender, receiver).root();
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
 
-                match runtime.cx.evaluate_script(
+                match runtime.evaluate_script(
                     global.r().reflector().get_jsobject(), source, url.serialize(), 1) {
                     Ok(_) => (),
                     Err(_) => println!("evaluate_script failed")
