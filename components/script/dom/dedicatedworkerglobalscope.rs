@@ -35,9 +35,8 @@ use util::task_state::{SCRIPT, IN_WORKER};
 
 use js::jsapi::JSContext;
 use js::jsval::JSVal;
-use js::rust::Cx;
+use js::rust::Runtime;
 
-use std::rc::Rc;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use url::Url;
 
@@ -104,17 +103,18 @@ pub struct DedicatedWorkerGlobalScope {
 
 impl DedicatedWorkerGlobalScope {
     fn new_inherited(worker_url: Url,
-                         id: PipelineId,
-                         devtools_chan: Option<DevtoolsControlChan>,
-                         cx: Rc<Cx>,
-                         resource_task: ResourceTask,
-                         parent_sender: Box<ScriptChan+Send>,
-                         own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
-                         receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
-                         -> DedicatedWorkerGlobalScope {
+                     id: PipelineId,
+                     devtools_chan: Option<DevtoolsControlChan>,
+                     runtime: Runtime,
+                     resource_task: ResourceTask,
+                     parent_sender: Box<ScriptChan+Send>,
+                     own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+                     receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
+                     -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
-                WorkerGlobalScopeTypeId::DedicatedGlobalScope, worker_url, cx, resource_task, devtools_chan),
+                WorkerGlobalScopeTypeId::DedicatedGlobalScope, worker_url,
+                runtime, resource_task, devtools_chan),
             id: id,
             receiver: receiver,
             own_sender: own_sender,
@@ -126,16 +126,16 @@ impl DedicatedWorkerGlobalScope {
     pub fn new(worker_url: Url,
                id: PipelineId,
                devtools_chan: Option<DevtoolsControlChan>,
-               cx: Rc<Cx>,
+               runtime: Runtime,
                resource_task: ResourceTask,
                parent_sender: Box<ScriptChan+Send>,
                own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
                -> Temporary<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
-            worker_url, id, devtools_chan, cx.clone(), resource_task, parent_sender,
-            own_sender, receiver);
-        DedicatedWorkerGlobalScopeBinding::Wrap(cx.ptr, scope)
+            worker_url, id, devtools_chan, runtime.clone(), resource_task,
+            parent_sender, own_sender, receiver);
+        DedicatedWorkerGlobalScopeBinding::Wrap(runtime.cx(), scope)
     }
 }
 
@@ -168,7 +168,7 @@ impl DedicatedWorkerGlobalScope {
 
             let runtime = ScriptTask::new_rt_and_cx();
             let global = DedicatedWorkerGlobalScope::new(
-                worker_url, id, devtools_chan, runtime.cx.clone(), resource_task,
+                worker_url, id, devtools_chan, runtime.clone(), resource_task,
                 parent_sender, own_sender, receiver).root();
 
             {
