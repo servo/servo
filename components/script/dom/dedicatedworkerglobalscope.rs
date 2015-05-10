@@ -174,7 +174,7 @@ impl DedicatedWorkerGlobalScope {
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
 
-                match runtime.cx.evaluate_script(
+                match runtime.evaluate_script(
                     global.r().reflector().get_jsobject(), source, url.serialize(), 1) {
                     Ok(_) => (),
                     Err(_) => println!("evaluate_script failed")

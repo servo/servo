@@ -136,7 +136,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
                 }
             };
 
-            match self.runtime.cx.evaluate_script(
+            match self.runtime.evaluate_script(
                 self.reflector().get_jsobject(), source, url.serialize(), 1) {
                 Ok(_) => (),
                 Err(_) => {
