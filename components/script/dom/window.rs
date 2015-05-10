@@ -134,7 +134,7 @@ pub struct Window {
     dom_static: GlobalStaticData,
 
     /// The JavaScript runtime.
-    js_runtime: DOMRefCell<Option<Runtime>>,
+    js_runtime: DOMRefCell<Option<Rc<Runtime>>>,
 
     /// A handle for communicating messages to the layout task.
     layout_chan: LayoutChan,
@@ -883,7 +883,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 }
 
 impl Window {
-    pub fn new(runtime: Runtime,
+    pub fn new(runtime: Rc<Runtime>,
                page: Rc<Page>,
                script_chan: Box<ScriptChan+Send>,
                image_cache_chan: ImageCacheChan,

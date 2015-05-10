@@ -312,7 +312,7 @@ pub struct ScriptTask {
     devtools_marker_sender: RefCell<Option<Sender<TimelineMarker>>>,
 
     /// The JavaScript runtime.
-    js_runtime: Runtime,
+    js_runtime: Rc<Runtime>,
 
     mouse_over_targets: DOMRefCell<Vec<JS<Node>>>
 }
@@ -491,7 +491,7 @@ impl ScriptTask {
             devtools_markers: RefCell::new(HashSet::new()),
             devtools_marker_sender: RefCell::new(None),
 
-            js_runtime: runtime,
+            js_runtime: Rc::new(runtime),
             mouse_over_targets: DOMRefCell::new(vec!())
         }
     }

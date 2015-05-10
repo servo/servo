@@ -28,10 +28,11 @@ use util::str::DOMString;
 use js::jsapi::JSContext;
 use js::jsval::JSVal;
 use js::rust::Runtime;
+use url::{Url, UrlParser};
 
 use std::default::Default;
 use std::cell::Cell;
-use url::{Url, UrlParser};
+use std::rc::Rc;
 
 #[derive(Copy, Clone, PartialEq)]
 #[jstraceable]
@@ -44,7 +45,7 @@ pub enum WorkerGlobalScopeTypeId {
 pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
     worker_url: Url,
-    runtime: Runtime,
+    runtime: Rc<Runtime>,
     next_worker_id: Cell<WorkerId>,
     resource_task: ResourceTask,
     location: MutNullableHeap<JS<WorkerLocation>>,
@@ -57,7 +58,7 @@ pub struct WorkerGlobalScope {
 impl WorkerGlobalScope {
     pub fn new_inherited(type_id: WorkerGlobalScopeTypeId,
                          worker_url: Url,
-                         runtime: Runtime,
+                         runtime: Rc<Runtime>,
                          resource_task: ResourceTask,
                          devtools_chan: Option<DevtoolsControlChan>) -> WorkerGlobalScope {
         WorkerGlobalScope {
