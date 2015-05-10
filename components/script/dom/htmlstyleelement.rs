@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLStyleElementDerived, NodeCast};
-use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary};
+use dom::bindings::js::{JSRef, OptionalRootable, Rootable, Temporary, RootedReference};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::element::{Element, ElementTypeId};
+use dom::element::{Element, ElementTypeId, AttributeHandlers};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -17,7 +18,6 @@ use layout_interface::{LayoutChan, Msg};
 use util::str::DOMString;
 use style::stylesheets::{Origin, Stylesheet};
 use style::media_queries::parse_media_query_list;
-use style::node::TElement;
 use cssparser::Parser as CssParser;
 
 #[dom_struct]
@@ -59,7 +59,12 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
         let win = win.r();
         let url = win.get_url();
 
-        let mq_str = element.get_attr(&ns!(""), &atom!("media")).unwrap_or("");
+        let mq_attribute = element.get_attribute(&ns!(""), &atom!("media")).root();
+        let value = mq_attribute.r().map(|a| a.value());
+        let mq_str = match value {
+            Some(ref value) => &***value,
+            None => "",
+        };
         let mut css_parser = CssParser::new(&mq_str);
         let media = parse_media_query_list(&mut css_parser);
 
