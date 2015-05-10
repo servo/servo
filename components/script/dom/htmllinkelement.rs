@@ -22,7 +22,6 @@ use dom::window::WindowHelpers;
 use layout_interface::{LayoutChan, Msg};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use style::media_queries::parse_media_query_list;
-use style::node::TElement;
 use cssparser::Parser as CssParser;
 
 use std::ascii::AsciiExt;
@@ -145,7 +144,12 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
             Ok(url) => {
                 let element: JSRef<Element> = ElementCast::from_ref(self);
 
-                let mq_str = element.get_attr(&ns!(""), &atom!("media")).unwrap_or("");
+                let mq_attribute = element.get_attribute(&ns!(""), &atom!("media")).root();
+                let value = mq_attribute.r().map(|a| a.value());
+                let mq_str = match value {
+                    Some(ref value) => &***value,
+                    None => "",
+                };
                 let mut css_parser = CssParser::new(&mq_str);
                 let media = parse_media_query_list(&mut css_parser);
 
