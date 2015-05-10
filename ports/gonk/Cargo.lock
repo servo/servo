@@ -908,7 +908,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-selectors#1fda09bf0c59acfcb697f71b38dad22108b3d27a"
+source = "git+https://github.com/servo/rust-selectors#31e13ceb0e4128e0782490cf683443f93a2289be"
 dependencies = [
  "bitflags 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
