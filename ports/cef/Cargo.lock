@@ -1068,6 +1068,7 @@ dependencies = [
  "profile_traits 0.0.1",
  "script 0.0.1",
  "time 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "webdriver_server 0.0.1",
 ]
