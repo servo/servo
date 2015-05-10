@@ -122,17 +122,8 @@ impl Browser {
                                                       devtools_chan,
                                                       storage_task);
 
-        // Send the URL command to the constellation.
-        let cwd = env::current_dir().unwrap();
-        let url = match url::Url::parse(&opts.url) {
-            Ok(url) => url,
-            Err(url::ParseError::RelativeUrlWithoutBase)
-            => url::Url::from_file_path(&*cwd.join(&opts.url)).unwrap(),
-            Err(_) => panic!("URL parsing failed"),
-        };
-
         let ConstellationChan(ref chan) = constellation_chan;
-        chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
+        chan.send(ConstellationMsg::InitLoadUrl(opts.url.clone())).unwrap();
 
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
