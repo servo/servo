@@ -182,7 +182,7 @@ impl Stylist {
                                         applicable_declarations: &mut V)
                                         -> bool
                                         where N: TNode<'a>,
-                                              N::Element: TElementAttributes,
+                                              N::Element: TElementAttributes<'a>,
                                               V: VecLike<DeclarationBlock> {
         assert!(!self.is_dirty);
         assert!(element.is_element());

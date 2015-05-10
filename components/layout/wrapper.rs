@@ -536,18 +536,6 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
         self.element.namespace()
     }
 
-    #[inline]
-    fn get_attr(self, namespace: &Namespace, name: &Atom) -> Option<&'le str> {
-        unsafe { self.element.get_attr_val_for_layout(namespace, name) }
-    }
-
-    #[inline]
-    fn get_attrs(self, name: &Atom) -> Vec<&'le str> {
-        unsafe {
-            self.element.get_attr_vals_for_layout(name)
-        }
-    }
-
     fn get_link(self) -> Option<&'le str> {
         // FIXME: This is HTML only.
         let node: &Node = NodeCast::from_actual(self.element);
@@ -650,7 +638,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 }
 
-impl<'le> TElementAttributes for LayoutElement<'le> {
+impl<'le> TElementAttributes<'le> for LayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
@@ -674,6 +662,18 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
     fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute) -> Option<u32> {
         unsafe {
             self.element.get_unsigned_integer_attribute_for_layout(attribute)
+        }
+    }
+
+    #[inline]
+    fn get_attr(self, namespace: &Namespace, name: &Atom) -> Option<&'le str> {
+        unsafe { self.element.get_attr_val_for_layout(namespace, name) }
+    }
+
+    #[inline]
+    fn get_attrs(self, name: &Atom) -> Vec<&'le str> {
+        unsafe {
+            self.element.get_attr_vals_for_layout(name)
         }
     }
 }
