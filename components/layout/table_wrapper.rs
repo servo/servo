@@ -341,7 +341,7 @@ impl Flow for TableWrapperFlow {
                                                                 inline_start_content_edge,
                                                                 inline_end_content_edge,
                                                                 content_inline_size,
-                                                                |_, _, _, _, _| {})
+                                                                |_, _, _, _, _, _| {})
             }
             Some(ref assigned_column_inline_sizes) => {
                 self.block_flow
@@ -350,19 +350,16 @@ impl Flow for TableWrapperFlow {
                                                                 inline_end_content_edge,
                                                                 content_inline_size,
                                                                 |child_flow,
-                                                                 child_index,
-                                                                 content_inline_size,
+                                                                 _child_index,
+                                                                 _content_inline_size,
                                                                  writing_mode,
-                                                                 inline_start_margin_edge| {
+                                                                 _inline_start_margin_edge,
+                                                                 _inline_end_margin_edge| {
                     table_row::propagate_column_inline_sizes_to_child(
                         child_flow,
-                        child_index,
-                        content_inline_size,
                         writing_mode,
                         assigned_column_inline_sizes,
-                        &border_spacing,
-                        &None,
-                        inline_start_margin_edge)
+                        &border_spacing);
                 })
             }
         }

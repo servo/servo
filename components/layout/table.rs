@@ -473,19 +473,16 @@ impl Flow for TableFlow {
                                                                    inline_end_content_edge,
                                                                    content_inline_size,
                                                                    |child_flow,
-                                                                    child_index,
-                                                                    content_inline_size,
+                                                                    _child_index,
+                                                                    _content_inline_size,
                                                                     writing_mode,
-                                                                    inline_start_margin_edge| {
+                                                                    _inline_start_margin_edge,
+                                                                    _inline_end_margin_edge| {
             table_row::propagate_column_inline_sizes_to_child(
                 child_flow,
-                child_index,
-                content_inline_size,
                 writing_mode,
                 column_computed_inline_sizes,
-                &spacing_per_cell,
-                &None,
-                inline_start_margin_edge);
+                &spacing_per_cell);
             if child_flow.is_table_row() {
                 let child_table_row = child_flow.as_table_row();
                 child_table_row.populate_collapsed_border_spacing(

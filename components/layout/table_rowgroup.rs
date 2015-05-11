@@ -23,7 +23,7 @@ use std::iter::{IntoIterator, Iterator, Peekable};
 use std::sync::Arc;
 use style::properties::ComputedValues;
 use util::geometry::Au;
-use util::logical_geometry::LogicalRect;
+use util::logical_geometry::{LogicalRect, WritingMode};
 
 /// A table formatting context.
 pub struct TableRowGroupFlow {
@@ -38,6 +38,10 @@ pub struct TableRowGroupFlow {
 
     /// The spacing for this rowgroup.
     pub spacing: border_spacing::T,
+
+    /// The direction of the columns, propagated down from the table during the inline-size
+    /// assignment phase.
+    pub table_writing_mode: WritingMode,
 
     /// Information about the borders for each cell that we bubble up to our parent. This is only
     /// computed if `border-collapse` is `collapse`.
@@ -61,6 +65,7 @@ impl Encodable for TableRowGroupFlow {
 impl TableRowGroupFlow {
     pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment)
                                   -> TableRowGroupFlow {
+        let writing_mode = fragment.style().writing_mode;
         TableRowGroupFlow {
             block_flow: BlockFlow::from_node_and_fragment(node, fragment, None),
             column_intrinsic_inline_sizes: Vec::new(),
@@ -69,6 +74,7 @@ impl TableRowGroupFlow {
                 horizontal: Au(0),
                 vertical: Au(0),
             },
+            table_writing_mode: writing_mode,
             preliminary_collapsed_borders: CollapsedBordersForRow::new(),
             collapsed_inline_direction_border_widths_for_table: Vec::new(),
             collapsed_block_direction_border_widths_for_table: Vec::new(),
@@ -161,6 +167,7 @@ impl Flow for TableRowGroupFlow {
 
         let column_computed_inline_sizes = &self.column_computed_inline_sizes;
         let border_spacing = self.spacing;
+        let table_writing_mode = self.table_writing_mode;
         let collapsed_inline_direction_border_widths_for_table =
             &self.collapsed_inline_direction_border_widths_for_table;
         let mut collapsed_block_direction_border_widths_for_table =
@@ -170,19 +177,16 @@ impl Flow for TableRowGroupFlow {
                                                                    inline_end_content_edge,
                                                                    content_inline_size,
                                                                    |child_flow,
-                                                                    child_index,
-                                                                    content_inline_size,
-                                                                    writing_mode,
-                                                                    inline_start_margin_edge| {
+                                                                    _child_index,
+                                                                    _content_inline_size,
+                                                                    _writing_mode,
+                                                                    _inline_start_margin_edge,
+                                                                    _inline_end_margin_edge| {
             table_row::propagate_column_inline_sizes_to_child(
                 child_flow,
-                child_index,
-                content_inline_size,
-                writing_mode,
+                table_writing_mode,
                 column_computed_inline_sizes,
-                &border_spacing,
-                &None,
-                inline_start_margin_edge);
+                &border_spacing);
 
             if border_collapse == border_collapse::T::collapse {
                 let child_table_row = child_flow.as_table_row();

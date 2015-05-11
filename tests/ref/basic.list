@@ -278,6 +278,7 @@ experimental == rtl_simple.html rtl_simple_ref.html
 == table_padding_a.html table_padding_ref.html
 == table_percentage_capping_a.html table_percentage_capping_ref.html
 == table_percentage_width_a.html table_percentage_width_ref.html
+experimental == table_row_direction_a.html table_row_direction_ref.html
 == text_align_complex_a.html text_align_complex_ref.html
 == text_align_justify_a.html text_align_justify_ref.html
 experimental == text_align_rtl.html text_align_rtl_ref.html
