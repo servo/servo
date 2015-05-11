@@ -21,6 +21,7 @@ use msg::constellation_msg::{IFrameSandboxState, MozBrowserEvent, NavigationDire
 use msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::constellation_msg::{self, ConstellationChan, Failure};
+use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::{self, ResourceTask};
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg};
@@ -41,7 +42,6 @@ use util::geometry::PagePx;
 use util::opts;
 use util::task::spawn_named;
 use clipboard::ClipboardContext;
-use webdriver_traits::WebDriverScriptCommand;
 
 /// Maintains the pipelines and navigation context and grants permission to composite.
 pub struct Constellation<LTF, STF> {
@@ -395,9 +395,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                  subpage_id,
                                                  event);
             }
-            ConstellationMsg::GetRootPipeline(resp_chan) => {
+            ConstellationMsg::GetPipeline(frame_id, resp_chan) => {
                 debug!("constellation got get root pipeline message");
-                self.handle_get_root_pipeline(resp_chan);
+                self.handle_get_pipeline(frame_id, resp_chan);
+            }
+            ConstellationMsg::GetFrame(parent_pipeline_id, subpage_id, resp_chan) => {
+                debug!("constellation got get root pipeline message");
+                self.handle_get_frame(parent_pipeline_id, subpage_id, resp_chan);
             }
             ConstellationMsg::Focus(pipeline_id) => {
                 debug!("constellation got focus message");
@@ -740,12 +744,22 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         pipeline.trigger_mozbrowser_event(subpage_id, event);
     }
 
-    fn handle_get_root_pipeline(&mut self, resp_chan: Sender<Option<PipelineId>>) {
-        let pipeline_id = self.root_frame_id.map(|frame_id| {
+    fn handle_get_pipeline(&mut self, frame_id: Option<FrameId>,
+                           resp_chan: Sender<Option<PipelineId>>) {
+        let pipeline_id = frame_id.or(self.root_frame_id).map(|frame_id| {
             let frame = self.frames.get(&frame_id).unwrap();
             frame.current
         });
         resp_chan.send(pipeline_id).unwrap();
+    }
+
+    fn handle_get_frame(&mut self,
+                        containing_pipeline_id: PipelineId,
+                        subpage_id: SubpageId,
+                        resp_chan: Sender<Option<FrameId>>) {
+        let frame_id = self.subpage_map.get(&(containing_pipeline_id, subpage_id)).and_then(
+            |x| self.pipeline_to_frame_map.get(&x)).map(|x| *x);
+        resp_chan.send(frame_id).unwrap();
     }
 
     fn focus_parent_pipeline(&self, pipeline_id: PipelineId) {

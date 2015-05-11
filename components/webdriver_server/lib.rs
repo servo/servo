@@ -17,16 +17,16 @@ extern crate url;
 extern crate util;
 extern crate rustc_serialize;
 extern crate uuid;
-extern crate webdriver_traits;
 
-use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, NavigationDirection};
+use msg::constellation_msg::{ConstellationChan, LoadData, FrameId, PipelineId, NavigationDirection};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use std::sync::mpsc::channel;
-use webdriver_traits::WebDriverScriptCommand;
+use msg::webdriver_msg::{WebDriverFrameId, WebDriverScriptCommand};
 
 use url::Url;
 use webdriver::command::{WebDriverMessage, WebDriverCommand};
-use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
+use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters,
+                         SwitchToFrameParameters};
 use webdriver::common::{LocatorStrategy, WebElement};
 use webdriver::response::{
     WebDriverResponse, NewSessionResponse, ValueResponse};
@@ -51,19 +51,21 @@ pub fn start_server(port: u16, constellation_chan: ConstellationChan) {
     });
 }
 
-struct WebdriverSession {
-    id: Uuid
+struct WebDriverSession {
+    id: Uuid,
+    frame_id: Option<FrameId>
 }
 
 struct Handler {
-    session: Option<WebdriverSession>,
+    session: Option<WebDriverSession>,
     constellation_chan: ConstellationChan,
 }
 
-impl WebdriverSession {
-    pub fn new() -> WebdriverSession {
-        WebdriverSession {
-            id: Uuid::new_v4()
+impl WebDriverSession {
+    pub fn new() -> WebDriverSession {
+        WebDriverSession {
+            id: Uuid::new_v4(),
+            frame_id: None
         }
     }
 }
@@ -77,16 +79,51 @@ impl Handler {
     }
 
     fn get_root_pipeline(&self) -> PipelineId {
+        self.get_pipeline(None).unwrap()
+    }
+
+    fn get_frame_pipeline(&self) -> WebDriverResult<PipelineId> {
+        if let Some(ref session) = self.session {
+            match self.get_pipeline(session.frame_id) {
+                Some(x) => Ok(x),
+                None => Err(WebDriverError::new(ErrorStatus::NoSuchFrame,
+                                                "Frame got closed"))
+            }
+        } else {
+            Err(WebDriverError::new(ErrorStatus::SessionNotCreated,
+                                    "Session not created"))
+        }
+    }
+
+    fn get_session(&self) -> WebDriverResult<&WebDriverSession> {
+        match self.session {
+            Some(ref x) => Ok(x),
+            None => Err(WebDriverError::new(ErrorStatus::SessionNotCreated,
+                                            "Session not created"))
+        }
+    }
+
+    fn set_frame_id(&mut self, frame_id: Option<FrameId>) -> WebDriverResult<()> {
+        match self.session {
+            Some(ref mut x) => {
+                x.frame_id = frame_id;
+                Ok(())
+            },
+            None => Err(WebDriverError::new(ErrorStatus::SessionNotCreated,
+                                            "Session not created"))
+        }
+    }
+
+    fn get_pipeline(&self, frame_id: Option<FrameId>) -> Option<PipelineId> {
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::GetRootPipeline(sender)).unwrap();
-
-        reciever.recv().unwrap().unwrap()
+        const_chan.send(ConstellationMsg::GetPipeline(frame_id, sender)).unwrap();
+        reciever.recv().unwrap()
     }
 
     fn handle_new_session(&mut self) -> WebDriverResult<WebDriverResponse> {
         if self.session.is_none() {
-            let session = WebdriverSession::new();
+            let session = WebDriverSession::new();
             let mut capabilities = BTreeMap::new();
             capabilities.insert("browserName".to_owned(), "servo".to_json());
             capabilities.insert("browserVersion".to_owned(), "0.0.1".to_json());
@@ -156,7 +193,7 @@ impl Handler {
     }
 
     fn handle_find_element(&self, parameters: &LocatorParameters) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_frame_pipeline());
 
         if parameters.using != LocatorStrategy::CSSSelector {
             return Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
@@ -176,8 +213,55 @@ impl Handler {
         }
     }
 
+    fn handle_switch_to_frame(&mut self, parameters: &SwitchToFrameParameters) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.get_frame_pipeline());
+
+        //Ensure we have a session
+        try!(self.get_session());
+
+        let wd_frame_id = match parameters.id {
+            webdriver::common::FrameId::Null => {
+                self.set_frame_id(None).unwrap();
+                return Ok(WebDriverResponse::Void)
+            },
+            webdriver::common::FrameId::Short(ref x) => WebDriverFrameId::Short(*x),
+            webdriver::common::FrameId::Element(ref x) => WebDriverFrameId::Element(x.id.clone())
+        };
+
+        let (sender, reciever) = channel();
+            let cmd = WebDriverScriptCommand::GetFrameId(wd_frame_id, sender);
+        {
+            let ConstellationChan(ref const_chan) = self.constellation_chan;
+            const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        }
+
+        let frame = match reciever.recv().unwrap() {
+            Some((pipeline_id, subpage_id)) => {
+                let (sender, reciever) = channel();
+                let ConstellationChan(ref const_chan) = self.constellation_chan;
+                const_chan.send(ConstellationMsg::GetFrame(pipeline_id, subpage_id, sender)).unwrap();
+                reciever.recv().unwrap()
+            },
+            None => {
+                return Err(WebDriverError::new(ErrorStatus::NoSuchFrame,
+                                               "Frame does not exist"));
+            }
+        };
+
+        match frame {
+            Some(x) => {
+                self.set_frame_id(Some(x)).unwrap();
+                Ok(WebDriverResponse::Void)
+            },
+            None => {
+                Err(WebDriverError::new(ErrorStatus::NoSuchFrame,
+                                        "Frame element didn't match any known frame"))
+            }
+        }
+    }
+
     fn handle_find_elements(&self, parameters: &LocatorParameters) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_frame_pipeline());
 
         if parameters.using != LocatorStrategy::CSSSelector {
             return Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
@@ -200,7 +284,7 @@ impl Handler {
     }
 
     fn handle_get_element_text(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_frame_pipeline());
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
@@ -225,7 +309,7 @@ impl Handler {
     }
 
     fn handle_get_element_tag_name(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_frame_pipeline());
 
         let (sender, reciever) = channel();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
@@ -241,7 +325,7 @@ impl Handler {
     fn handle_execute_script(&self, parameters: &JavascriptCommandParameters)  -> WebDriverResult<WebDriverResponse> {
         // TODO: This isn't really right because it always runs the script in the
         // root window
-        let pipeline_id = self.get_root_pipeline();
+        let pipeline_id = try!(self.get_frame_pipeline());
 
         let func_body = &parameters.script;
         let args_string = "";
@@ -315,6 +399,7 @@ impl WebDriverHandler for Handler {
             WebDriverCommand::GetTitle => self.handle_get_title(),
             WebDriverCommand::GetWindowHandle => self.handle_get_window_handle(),
             WebDriverCommand::GetWindowHandles => self.handle_get_window_handles(),
+            WebDriverCommand::SwitchToFrame(ref parameters) => self.handle_switch_to_frame(parameters),
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
             WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
             WebDriverCommand::GetActiveElement => self.handle_get_active_element(),

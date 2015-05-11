@@ -26,7 +26,6 @@ extern crate style;
 #[macro_use]
 extern crate util;
 extern crate gleam;
-extern crate webdriver_traits;
 extern crate clipboard;
 
 extern crate libc;

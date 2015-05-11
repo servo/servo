@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use webdriver_traits::{EvaluateJSReply};
+use msg::webdriver_msg::{EvaluateJSReply};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLIFrameElementCast};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -15,7 +15,8 @@ use dom::node::{Node, NodeHelpers};
 use dom::window::ScriptHelpers;
 use dom::document::DocumentHelpers;
 use page::Page;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::webdriver_msg::WebDriverFrameId;
 use script_task::get_page;
 
 use std::rc::Rc;
@@ -55,6 +56,26 @@ pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, r
     } else {
         Err(())
     }).unwrap();
+}
+
+pub fn handle_get_frame_id(page: &Rc<Page>, pipeline: PipelineId, webdriver_frame_id: WebDriverFrameId, reply: Sender<Option<(PipelineId, SubpageId)>>) {
+    let frame_id = match webdriver_frame_id {
+        WebDriverFrameId::Short(_) => {
+            // This isn't supported yet
+            None
+        },
+        WebDriverFrameId::Element(x) => {
+            match find_node_by_unique_id(page, pipeline, x) {
+                Some(x) => {
+                    HTMLIFrameElementCast::to_ref(x.root().r()).map(
+                    |frame| (frame.containing_page_pipeline_id().unwrap(),
+                             frame.subpage_id().unwrap()))
+                },
+                None => None
+            }
+        }
+    };
+    reply.send(frame_id).unwrap();
 }
 
 pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector: String, reply: Sender<Result<Option<String>, ()>>) {
