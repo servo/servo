@@ -108,6 +108,18 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     make_getter!(FormTarget);
 
     make_setter!(SetFormTarget, "formtarget");
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-fe-name
+    make_getter!(Name);
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-fe-name
+    make_setter!(SetName, "name");
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-button-value
+    make_getter!(Value);
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-button-value
+    make_setter!(SetValue, "value");
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
