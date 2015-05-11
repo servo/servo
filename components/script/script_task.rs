@@ -791,6 +791,14 @@ impl ScriptTask {
         match msg {
             WebDriverScriptCommand::EvaluateJS(script, reply) =>
                 webdriver_handlers::handle_evaluate_js(&page, pipeline_id, script, reply),
+            WebDriverScriptCommand::FindElementCSS(selector, reply) =>
+                webdriver_handlers::handle_find_element_css(&page, pipeline_id, selector, reply),
+            WebDriverScriptCommand::FindElementsCSS(selector, reply) =>
+                webdriver_handlers::handle_find_elements_css(&page, pipeline_id, selector, reply),
+            WebDriverScriptCommand::GetElementTagName(node_id, reply) =>
+                webdriver_handlers::handle_get_name(&page, pipeline_id, node_id, reply),
+            WebDriverScriptCommand::GetElementText(node_id, reply) =>
+                webdriver_handlers::handle_get_text(&page, pipeline_id, node_id, reply),
             WebDriverScriptCommand::GetTitle(reply) =>
                 webdriver_handlers::handle_get_title(&page, pipeline_id, reply)
         }

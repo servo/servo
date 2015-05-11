@@ -26,7 +26,8 @@ use webdriver_traits::WebDriverScriptCommand;
 
 use url::Url;
 use webdriver::command::{WebDriverMessage, WebDriverCommand};
-use webdriver::command::{GetParameters, JavascriptCommandParameters};
+use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
+use webdriver::common::{LocatorStrategy, WebElement};
 use webdriver::response::{
     WebDriverResponse, NewSessionResponse, ValueResponse};
 use webdriver::server::{self, WebDriverHandler, Session};
@@ -151,6 +152,78 @@ impl Handler {
         Ok(WebDriverResponse::Generic(ValueResponse::new(handles.to_json())))
     }
 
+    fn handle_find_element(&self, parameters: &LocatorParameters) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = self.get_root_pipeline();
+
+        if parameters.using != LocatorStrategy::CSSSelector {
+            return Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
+                                           "Unsupported locator strategy"))
+        }
+
+        let (sender, reciever) = channel();
+        let ConstellationChan(ref const_chan) = self.constellation_chan;
+        let cmd = WebDriverScriptCommand::FindElementCSS(parameters.value.clone(), sender);
+        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        match reciever.recv().unwrap() {
+            Ok(value) => {
+                Ok(WebDriverResponse::Generic(ValueResponse::new(value.map(|x| WebElement::new(x).to_json()).to_json())))
+            }
+            Err(_) => Err(WebDriverError::new(ErrorStatus::InvalidSelector,
+                                              "Invalid selector"))
+        }
+    }
+
+    fn handle_find_elements(&self, parameters: &LocatorParameters) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = self.get_root_pipeline();
+
+        if parameters.using != LocatorStrategy::CSSSelector {
+            return Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
+                                           "Unsupported locator strategy"))
+        }
+
+        let (sender, reciever) = channel();
+        let ConstellationChan(ref const_chan) = self.constellation_chan;
+        let cmd = WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(), sender);
+        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        match reciever.recv().unwrap() {
+            Ok(value) => {
+                let resp_value: Vec<Json> = value.into_iter().map(
+                    |x| WebElement::new(x).to_json()).collect();
+                Ok(WebDriverResponse::Generic(ValueResponse::new(resp_value.to_json())))
+            }
+            Err(_) => Err(WebDriverError::new(ErrorStatus::InvalidSelector,
+                                              "Invalid selector"))
+        }
+    }
+
+    fn handle_get_element_text(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = self.get_root_pipeline();
+
+        let (sender, reciever) = channel();
+        let ConstellationChan(ref const_chan) = self.constellation_chan;
+        let cmd = WebDriverScriptCommand::GetElementText(element.id.clone(), sender);
+        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        match reciever.recv().unwrap() {
+            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
+            Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
+                                              "Unable to find element in document"))
+        }
+    }
+
+    fn handle_get_element_tag_name(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = self.get_root_pipeline();
+
+        let (sender, reciever) = channel();
+        let ConstellationChan(ref const_chan) = self.constellation_chan;
+        let cmd = WebDriverScriptCommand::GetElementTagName(element.id.clone(), sender);
+        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        match reciever.recv().unwrap() {
+            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
+            Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
+                                              "Unable to find element in document"))
+        }
+    }
+
     fn handle_execute_script(&self, parameters: &JavascriptCommandParameters)  -> WebDriverResult<WebDriverResponse> {
         // TODO: This isn't really right because it always runs the script in the
         // root window
@@ -228,6 +301,10 @@ impl WebDriverHandler for Handler {
             WebDriverCommand::GetTitle => self.handle_get_title(),
             WebDriverCommand::GetWindowHandle => self.handle_get_window_handle(),
             WebDriverCommand::GetWindowHandles => self.handle_get_window_handles(),
+            WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
+            WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
+            WebDriverCommand::GetElementText(ref element) => self.handle_get_element_text(element),
+            WebDriverCommand::GetElementTagName(ref element) => self.handle_get_element_tag_name(element),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
             _ => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
