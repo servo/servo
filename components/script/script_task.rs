@@ -795,6 +795,8 @@ impl ScriptTask {
                 webdriver_handlers::handle_find_element_css(&page, pipeline_id, selector, reply),
             WebDriverScriptCommand::FindElementsCSS(selector, reply) =>
                 webdriver_handlers::handle_find_elements_css(&page, pipeline_id, selector, reply),
+            WebDriverScriptCommand::GetActiveElement(reply) =>
+                webdriver_handlers::handle_get_active_element(&page, pipeline_id, reply),
             WebDriverScriptCommand::GetElementTagName(node_id, reply) =>
                 webdriver_handlers::handle_get_name(&page, pipeline_id, node_id, reply),
             WebDriverScriptCommand::GetElementText(node_id, reply) =>

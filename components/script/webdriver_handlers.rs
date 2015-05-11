@@ -85,6 +85,11 @@ pub fn handle_find_elements_css(page: &Rc<Page>, _pipeline: PipelineId, selector
     }).unwrap();
 }
 
+pub fn handle_get_active_element(page: &Rc<Page>, _pipeline: PipelineId, reply: Sender<Option<String>>) {
+    reply.send(page.document().root().r().GetActiveElement().map(
+        |elem| NodeCast::from_ref(elem.root().r()).get_unique_id())).unwrap();
+}
+
 pub fn handle_get_title(page: &Rc<Page>, _pipeline: PipelineId, reply: Sender<String>) {
     reply.send(page.document().root().r().Title()).unwrap();
 }

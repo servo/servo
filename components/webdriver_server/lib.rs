@@ -213,6 +213,17 @@ impl Handler {
         }
     }
 
+    fn handle_get_active_element(&self) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = self.get_root_pipeline();
+
+        let (sender, reciever) = channel();
+        let ConstellationChan(ref const_chan) = self.constellation_chan;
+        let cmd = WebDriverScriptCommand::GetActiveElement(sender);
+        const_chan.send(ConstellationMsg::WebDriverCommand(pipeline_id, cmd)).unwrap();
+        let value = reciever.recv().unwrap().map(|x| WebElement::new(x).to_json());
+        Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json())))
+    }
+
     fn handle_get_element_tag_name(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let pipeline_id = self.get_root_pipeline();
 
@@ -306,6 +317,7 @@ impl WebDriverHandler for Handler {
             WebDriverCommand::GetWindowHandles => self.handle_get_window_handles(),
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
             WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
+            WebDriverCommand::GetActiveElement => self.handle_get_active_element(),
             WebDriverCommand::GetElementText(ref element) => self.handle_get_element_text(element),
             WebDriverCommand::GetElementTagName(ref element) => self.handle_get_element_tag_name(element),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),

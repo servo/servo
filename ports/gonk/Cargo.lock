@@ -1100,7 +1100,7 @@ dependencies = [
 [[package]]
 name = "webdriver"
 version = "0.1.0"
-source = "git+https://github.com/jgraham/webdriver-rust.git#c2038b4195ee8cd982079cc48d6a9d039f59f1fb"
+source = "git+https://github.com/jgraham/webdriver-rust.git#4065017191f1054b62f8c17c2b07c412111e0022"
 dependencies = [
  "hyper 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",

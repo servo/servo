@@ -14,6 +14,7 @@ pub enum WebDriverScriptCommand {
     EvaluateJS(String, Sender<Result<EvaluateJSReply, ()>>),
     FindElementCSS(String, Sender<Result<Option<String>, ()>>),
     FindElementsCSS(String, Sender<Result<Vec<String>, ()>>),
+    GetActiveElement(Sender<Option<String>>),
     GetElementTagName(String, Sender<Result<String, ()>>),
     GetElementText(String, Sender<Result<String, ()>>),
     GetTitle(Sender<String>)
