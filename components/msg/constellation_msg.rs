@@ -18,8 +18,8 @@ use util::geometry::{PagePx, ViewportPx};
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use style::viewport::ViewportConstraints;
-use webdriver_traits::{WebDriverScriptCommand, LoadComplete};
 use url::Url;
+use webdriver_msg::{WebDriverScriptCommand, LoadComplete};
 
 #[derive(Clone)]
 pub struct ConstellationChan(pub Sender<Msg>);
@@ -230,8 +230,12 @@ pub enum Msg {
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
     TickAnimation(PipelineId),
-    /// Request that the constellation send the current root pipeline id over a provided channel
-    GetRootPipeline(Sender<Option<PipelineId>>),
+    /// Request that the constellation send the current pipeline id for the provided frame
+    /// id, or for the root frame if this is None, over a provided channel
+    GetPipeline(Option<FrameId>, Sender<Option<PipelineId>>),
+    /// Request that the constellation send the FrameId corresponding to the document
+    /// with the provided parent pipeline id and subpage id
+    GetFrame(PipelineId, SubpageId, Sender<Option<FrameId>>),
     /// Notifies the constellation that this frame has received focus.
     Focus(PipelineId),
     /// Requests that the constellation retrieve the current contents of the clipboard

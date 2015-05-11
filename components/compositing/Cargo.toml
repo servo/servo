@@ -37,9 +37,6 @@ path = "../style"
 [dependencies.util]
 path = "../util"
 
-[dependencies.webdriver_traits]
-path = "../webdriver_traits"
-
 [dependencies.devtools_traits]
 path = "../devtools_traits"
 
