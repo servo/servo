@@ -536,7 +536,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
         self.element.namespace()
     }
 
-    fn get_link(self) -> Option<&'le str> {
+    fn is_link(self) -> bool {
         // FIXME: This is HTML only.
         let node: &Node = NodeCast::from_actual(self.element);
         match node.type_id_for_layout() {
@@ -545,11 +545,21 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
                 unsafe {
-                    self.element.get_attr_val_for_layout(&ns!(""), &atom!("href"))
+                    self.element.get_attr_val_for_layout(&ns!(""), &atom!("href")).is_some()
                 }
             }
-            _ => None,
+            _ => false,
         }
+    }
+
+    #[inline]
+    fn is_unvisited_link(self) -> bool {
+        self.is_link()
+    }
+
+    #[inline]
+    fn is_visited_link(self) -> bool {
+        false
     }
 
     #[inline]

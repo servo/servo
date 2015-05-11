@@ -1494,8 +1494,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 }
 
 impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
-    #[allow(unsafe_code)]
-    fn get_link(self) -> Option<&'a str> {
+    fn is_link(self) -> bool {
         // FIXME: This is HTML only.
         let node: JSRef<Node> = NodeCast::from_ref(self);
         match node.type_id() {
@@ -1503,17 +1502,22 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
-                self.get_attribute(&ns!(""), &atom!("href")).root().map(|attr| {
-                    // This transmute is used to cheat the lifetime restriction.
-                    // FIXME(https://github.com/rust-lang/rust/issues/23338)
-                    let attr = attr.r();
-                    let value: &str = &**attr.value();
-                    unsafe { mem::transmute(value) }
-                })
+                self.has_attribute(&atom!("href"))
             },
-            _ => None,
+            _ => false,
          }
     }
+
+    #[inline]
+    fn is_unvisited_link(self) -> bool {
+        self.is_link()
+    }
+
+    #[inline]
+    fn is_visited_link(self) -> bool {
+        false
+    }
+
     fn get_local_name(self) -> &'a Atom {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
