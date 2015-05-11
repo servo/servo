@@ -1735,10 +1735,10 @@ pub mod longhands {
         impl ComputedValueAsSpecified for SpecifiedValue {}
         pub mod computed_value {
             macro_rules! define_text_align {
-                ( $( $name: ident => $discriminant: expr, )+ ) => {
+                ( $( $name: ident ( $string: expr ) => $discriminant: expr, )+ ) => {
                     define_css_keyword_enum! { T:
                         $(
-                            stringify!($name) => $name,
+                            $string => $name,
                         )+
                     }
                     impl T {
@@ -1761,12 +1761,13 @@ pub mod longhands {
                 }
             }
             define_text_align! {
-                start => 0,
-                end => 1,
-                left => 2,
-                right => 3,
-                center => 4,
-                justify => 5,
+                start("start") => 0,
+                end("end") => 1,
+                left("left") => 2,
+                right("right") => 3,
+                center("center") => 4,
+                justify("justify") => 5,
+                servo_center("-servo-center") => 6,
             }
         }
         #[inline] pub fn get_initial_value() -> computed_value::T {

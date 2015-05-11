@@ -75,6 +75,14 @@ pub trait PresentationalHintSynthesis {
                                                                     E: TElement<'a> +
                                                                        TElementAttributes<'a>,
                                                                     V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
+    /// Synthesizes rules for the legacy `width` attribute.
+    fn synthesize_presentational_hint_for_legacy_width_attribute<'a,E,V>(
+            &self,
+            element: E,
+            matching_rules_list: &mut V,
+            shareable: &mut bool)
+            where E: TElement<'a> + TElementAttributes<'a>,
+                  V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
 }
 
 impl PresentationalHintSynthesis for Stylist {
@@ -97,27 +105,20 @@ impl PresentationalHintSynthesis for Stylist {
 
         match element.get_local_name() {
             name if *name == atom!("td") => {
-                match element.get_length_attribute(LengthAttribute::Width) {
-                    LengthOrPercentageOrAuto::Auto => {}
-                    LengthOrPercentageOrAuto::Percentage(percentage) => {
-                        let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
-                        matching_rules_list.push(from_declaration(
-                                PropertyDeclaration::Width(SpecifiedValue(width_value))));
-                        *shareable = false
-                    }
-                    LengthOrPercentageOrAuto::Length(length) => {
-                        let width_value = specified::LengthOrPercentageOrAuto::Length(specified::Length::Absolute(length));
-                        matching_rules_list.push(from_declaration(
-                                PropertyDeclaration::Width(SpecifiedValue(width_value))));
-                        *shareable = false
-                    }
-                }
+                self.synthesize_presentational_hint_for_legacy_width_attribute(
+                    element,
+                    matching_rules_list,
+                    shareable);
                 self.synthesize_presentational_hint_for_legacy_border_attribute(
                     element,
                     matching_rules_list,
                     shareable);
             }
             name if *name == atom!("table") => {
+                self.synthesize_presentational_hint_for_legacy_width_attribute(
+                    element,
+                    matching_rules_list,
+                    shareable);
                 self.synthesize_presentational_hint_for_legacy_border_attribute(
                     element,
                     matching_rules_list,
@@ -217,6 +218,31 @@ impl PresentationalHintSynthesis for Stylist {
                 matching_rules_list.push(from_declaration(
                         PropertyDeclaration::BorderRightWidth(SpecifiedValue(
                             longhands::border_right_width::SpecifiedValue(width_value)))));
+                *shareable = false
+            }
+        }
+    }
+
+    fn synthesize_presentational_hint_for_legacy_width_attribute<'a,E,V>(
+            &self,
+            element: E,
+            matching_rules_list: &mut V,
+            shareable: &mut bool)
+            where E: TElement<'a> + TElementAttributes<'a>,
+                  V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {
+        match element.get_length_attribute(LengthAttribute::Width) {
+            LengthOrPercentageOrAuto::Auto => {}
+            LengthOrPercentageOrAuto::Percentage(percentage) => {
+                let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
+                matching_rules_list.push(from_declaration(
+                        PropertyDeclaration::Width(SpecifiedValue(width_value))));
+                *shareable = false
+            }
+            LengthOrPercentageOrAuto::Length(length) => {
+                let width_value = specified::LengthOrPercentageOrAuto::Length(
+                    specified::Length::Absolute(length));
+                matching_rules_list.push(from_declaration(
+                        PropertyDeclaration::Width(SpecifiedValue(width_value))));
                 *shareable = false
             }
         }
