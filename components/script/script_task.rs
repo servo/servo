@@ -62,12 +62,12 @@ use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
 use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
 use script_traits::{ConstellationControlMsg, ScriptControlChan};
 use script_traits::{ScriptState, ScriptTaskFactory};
-use webdriver_traits::WebDriverScriptCommand;
 use msg::compositor_msg::{LayerId, ScriptListener};
 use msg::constellation_msg::{ConstellationChan, FocusType};
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent, WorkerId};
 use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::{ResourceTask, LoadConsumer, ControlMsg, Metadata};
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
@@ -835,6 +835,8 @@ impl ScriptTask {
                 webdriver_handlers::handle_get_name(&page, pipeline_id, node_id, reply),
             WebDriverScriptCommand::GetElementText(node_id, reply) =>
                 webdriver_handlers::handle_get_text(&page, pipeline_id, node_id, reply),
+            WebDriverScriptCommand::GetFrameId(frame_id, reply) =>
+                webdriver_handlers::handle_get_frame_id(&page, pipeline_id, frame_id, reply),
             WebDriverScriptCommand::GetTitle(reply) =>
                 webdriver_handlers::handle_get_title(&page, pipeline_id, reply),
             WebDriverScriptCommand::ExecuteAsyncScript(script, reply) =>

@@ -15,7 +15,6 @@ extern crate msg;
 extern crate net_traits;
 extern crate util;
 extern crate url;
-extern crate webdriver_traits;
 
 use devtools_traits::DevtoolsControlChan;
 use libc::c_void;
@@ -23,12 +22,12 @@ use msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeD
 use msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
 use msg::constellation_msg::{MozBrowserEvent, PipelineExitType};
 use msg::compositor_msg::ScriptListener;
+use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
 use std::any::Any;
 use std::sync::mpsc::{Sender, Receiver};
-use webdriver_traits::WebDriverScriptCommand;
 use url::Url;
 
 use geom::point::Point2D;
