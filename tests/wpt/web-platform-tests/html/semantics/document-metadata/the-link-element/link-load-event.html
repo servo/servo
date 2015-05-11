@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="author" title="Josh Matthews" href="mailto:josh@joshmatthews.net">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-link-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link href="style.css?pipe=trickle(d3)" rel="stylesheet" id="style_test"></link>
+<script>
+var saw_link_onload = false;
+var t = async_test("Check if the stylesheet's load event blocks the document load event");
+document.getElementById('style_test').onload = t.step_func(function() {
+  saw_link_onload = true;
+});
+window.addEventListener('load', function() {
+  t.step_func(function() {
+    assert_true(saw_link_onload);
+  });
+  t.done();
+}, false);
+</script>
+</head>
+</html>

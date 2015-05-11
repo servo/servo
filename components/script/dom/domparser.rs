@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use document_loader::DocumentLoader;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyState;
 use dom::bindings::codegen::Bindings::DOMParserBinding;
 use dom::bindings::codegen::Bindings::DOMParserBinding::DOMParserMethods;
 use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::{Text_html, Text_xml};
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Rootable, Temporary};
@@ -51,13 +53,17 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
         let window = self.window.root();
         let url = window.r().get_url();
         let content_type = DOMParserBinding::SupportedTypeValues::strings[ty as usize].to_owned();
+        let doc = window.r().Document().root();
+        let doc = doc.r();
+        let loader = DocumentLoader::new(&*doc.loader());
         match ty {
             Text_html => {
                 let document = Document::new(window.r(), Some(url.clone()),
                                              IsHTMLDocument::HTMLDocument,
                                              Some(content_type),
                                              None,
-                                             DocumentSource::FromParser).root();
+                                             DocumentSource::FromParser,
+                                             loader).root();
                 parse_html(document.r(), HTMLInput::InputString(s), &url, None);
                 document.r().set_ready_state(DocumentReadyState::Complete);
                 Ok(Temporary::from_rooted(document.r()))
@@ -68,7 +74,8 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                                  IsHTMLDocument::NonHTMLDocument,
                                  Some(content_type),
                                  None,
-                                 DocumentSource::NotFromParser))
+                                 DocumentSource::NotFromParser,
+                                 loader))
             }
         }
     }

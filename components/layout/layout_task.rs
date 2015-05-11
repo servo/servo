@@ -45,7 +45,7 @@ use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, Pipel
 use profile_traits::mem::{self, Report, ReportsChan};
 use profile_traits::time::{self, ProfilerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
-use net_traits::{load_bytes_iter, ResourceTask};
+use net_traits::{load_bytes_iter, PendingAsyncLoad};
 use net_traits::image_cache_task::{ImageCacheTask, ImageCacheResult, ImageCacheChan};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{LayoutData, Node};
@@ -54,7 +54,7 @@ use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC};
 use script::layout_interface::{MouseOverResponse, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
 use script_traits::{ConstellationControlMsg, OpaqueScriptLayoutChannel};
-use script_traits::ScriptControlChan;
+use script_traits::{ScriptControlChan, StylesheetLoadResponder};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::mem::transmute;
@@ -170,8 +170,8 @@ pub struct LayoutTask {
     /// The name used for the task's memory reporter.
     pub reporter_name: String,
 
-    /// The channel on which messages can be sent to the resource task.
-    pub resource_task: ResourceTask,
+    /// The channel on which messages can be sent to the image cache.
+    pub image_cache_task: ImageCacheTask,
 
     /// Public interface to the font cache task.
     pub font_cache_task: FontCacheTask,
@@ -198,7 +198,6 @@ impl LayoutTaskFactory for LayoutTask {
               failure_msg: Failure,
               script_chan: ScriptControlChan,
               paint_chan: PaintChan,
-              resource_task: ResourceTask,
               image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,
@@ -217,7 +216,6 @@ impl LayoutTaskFactory for LayoutTask {
                                              constellation_chan,
                                              script_chan,
                                              paint_chan,
-                                             resource_task,
                                              image_cache_task,
                                              font_cache_task,
                                              time_profiler_chan,
@@ -270,7 +268,6 @@ impl LayoutTask {
            constellation_chan: ConstellationChan,
            script_chan: ScriptControlChan,
            paint_chan: PaintChan,
-           resource_task: ResourceTask,
            image_cache_task: ImageCacheTask,
            font_cache_task: FontCacheTask,
            time_profiler_chan: time::ProfilerChan,
@@ -311,7 +308,7 @@ impl LayoutTask {
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
             reporter_name: reporter_name,
-            resource_task: resource_task,
+            image_cache_task: image_cache_task.clone(),
             font_cache_task: font_cache_task,
             first_reflow: Cell::new(true),
             image_cache_receiver: image_cache_receiver,
@@ -489,8 +486,8 @@ impl LayoutTask {
             Msg::AddStylesheet(sheet, mq) => {
                 self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data)
             }
-            Msg::LoadStylesheet(url, mq) => {
-                self.handle_load_stylesheet(url, mq, possibly_locked_rw_data)
+            Msg::LoadStylesheet(url, mq, pending, link_element) => {
+                self.handle_load_stylesheet(url, mq, pending, link_element, possibly_locked_rw_data)
             }
             Msg::SetQuirksMode => self.handle_set_quirks_mode(possibly_locked_rw_data),
             Msg::GetRPC(response_chan) => {
@@ -595,13 +592,15 @@ impl LayoutTask {
     fn handle_load_stylesheet<'a>(&'a self,
                                   url: Url,
                                   mq: MediaQueryList,
+                                  pending: PendingAsyncLoad,
+                                  responder: Box<StylesheetLoadResponder+Send>,
                                   possibly_locked_rw_data:
                                     &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
         let environment_encoding = UTF_8 as EncodingRef;
 
         // TODO we don't really even need to load this if mq does not match
-        let (metadata, iter) = load_bytes_iter(&self.resource_task, url);
+        let (metadata, iter) = load_bytes_iter(pending);
         let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
         let final_url = metadata.final_url;
 
@@ -610,6 +609,11 @@ impl LayoutTask {
                                                 protocol_encoding_label,
                                                 Some(environment_encoding),
                                                 Origin::Author);
+
+        //TODO: mark critical subresources as blocking load as well (#5974)
+        let ScriptControlChan(ref chan) = self.script_chan;
+        chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id, url, responder)).unwrap();
+
         self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data);
     }
 

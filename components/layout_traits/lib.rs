@@ -20,7 +20,6 @@ use gfx::paint_task::PaintChan;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, PipelineExitType};
 use profile_traits::mem;
 use profile_traits::time;
-use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
 use url::Url;
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel};
@@ -49,7 +48,6 @@ pub trait LayoutTaskFactory {
               failure_msg: Failure,
               script_chan: ScriptControlChan,
               paint_chan: PaintChan,
-              resource_task: ResourceTask,
               image_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
               time_profiler_chan: time::ProfilerChan,

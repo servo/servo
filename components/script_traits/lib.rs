@@ -29,6 +29,7 @@ use net_traits::storage_task::StorageTask;
 use std::any::Any;
 use std::sync::mpsc::{Sender, Receiver};
 use webdriver_traits::WebDriverScriptCommand;
+use url::Url;
 
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -53,6 +54,10 @@ pub struct NewLayoutInfo {
     pub layout_chan: Box<Any+Send>,
     /// Network request data which will be initiated by the script task.
     pub load_data: LoadData,
+}
+
+pub trait StylesheetLoadResponder {
+    fn respond(self: Box<Self>);
 }
 
 /// Messages sent from the constellation to the script task
@@ -89,6 +94,8 @@ pub enum ConstellationControlMsg {
     WebDriverCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script task that all animations are done
     TickAllAnimations(PipelineId),
+    /// Notifies script that a stylesheet has finished loading.
+    StylesheetLoadComplete(PipelineId, Url, Box<StylesheetLoadResponder+Send>),
 }
 
 /// The mouse button involved in the event.

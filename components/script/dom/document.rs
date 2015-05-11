@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use document_loader::{DocumentLoader, LoadType};
 use dom::attr::{Attr, AttrHelpers, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding;
@@ -71,6 +72,7 @@ use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyState, KeyMod
 use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
+use net_traits::{Metadata, LoadResponse, PendingAsyncLoad};
 use script_task::Runnable;
 use script_traits::{MouseButton, UntrustedNodeAddress};
 use util::opts;
@@ -90,9 +92,9 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::ascii::AsciiExt;
-use std::cell::{Cell, Ref, RefCell};
+use std::cell::{Cell, Ref, RefMut, RefCell};
 use std::default::Default;
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{Receiver, channel};
 use time;
 
 #[derive(PartialEq)]
@@ -139,6 +141,8 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
     animation_frame_list: RefCell<HashMap<i32, Box<Fn(f64)>>>,
+    /// Tracks all outstanding loads related to this document.
+    loader: DOMRefCell<DocumentLoader>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -205,6 +209,8 @@ impl CollectionFilter for AppletsFilter {
 }
 
 pub trait DocumentHelpers<'a> {
+    fn loader(&self) -> Ref<DocumentLoader>;
+    fn mut_loader(&self) -> RefMut<DocumentLoader>;
     fn window(self) -> Temporary<Window>;
     fn encoding_name(self) -> Ref<'a, DOMString>;
     fn is_html_document(self) -> bool;
@@ -254,9 +260,23 @@ pub trait DocumentHelpers<'a> {
     fn cancel_animation_frame(self, ident: i32);
     /// http://w3c.github.io/animation-timing/#dfn-invoke-callbacks-algorithm
     fn invoke_animation_callbacks(self);
+    fn prepare_async_load(self, load: LoadType) -> PendingAsyncLoad;
+    fn load_async(self, load: LoadType) -> Receiver<LoadResponse>;
+    fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String>;
+    fn finish_load(self, load: LoadType);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
+    #[inline]
+    fn loader(&self) -> Ref<DocumentLoader> {
+        self.loader.borrow()
+    }
+
+    #[inline]
+    fn mut_loader(&self) -> RefMut<DocumentLoader> {
+        self.loader.borrow_mut()
+    }
+
     #[inline]
     fn window(self) -> Temporary<Window> {
         Temporary::from_rooted(self.window)
@@ -864,6 +884,26 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             callback(*performance.Now());
         }
     }
+
+    fn prepare_async_load(self, load: LoadType) -> PendingAsyncLoad {
+        let mut loader = self.loader.borrow_mut();
+        loader.prepare_async_load(load)
+    }
+
+    fn load_async(self, load: LoadType) -> Receiver<LoadResponse> {
+        let mut loader = self.loader.borrow_mut();
+        loader.load_async(load)
+    }
+
+    fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String> {
+        let mut loader = self.loader.borrow_mut();
+        loader.load_sync(load)
+    }
+
+    fn finish_load(self, load: LoadType) {
+        let mut loader = self.loader.borrow_mut();
+        loader.finish_load(load);
+    }
 }
 
 pub enum MouseEventType {
@@ -898,7 +938,8 @@ impl Document {
                      is_html_document: IsHTMLDocument,
                      content_type: Option<DOMString>,
                      last_modified: Option<DOMString>,
-                     source: DocumentSource) -> Document {
+                     source: DocumentSource,
+                     doc_loader: DocumentLoader) -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
         let ready_state = if source == DocumentSource::FromParser {
@@ -943,14 +984,19 @@ impl Document {
             scripting_enabled: Cell::new(true),
             animation_frame_ident: Cell::new(0),
             animation_frame_list: RefCell::new(HashMap::new()),
+            loader: DOMRefCell::new(doc_loader),
         }
     }
 
     // https://dom.spec.whatwg.org/#dom-document
     pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<Document>> {
-        Ok(Document::new(global.as_window(), None,
+        let win = global.as_window();
+        let doc = win.Document().root();
+        let doc = doc.r();
+        let docloader = DocumentLoader::new(&*doc.loader());
+        Ok(Document::new(win, None,
                          IsHTMLDocument::NonHTMLDocument, None,
-                         None, DocumentSource::NotFromParser))
+                         None, DocumentSource::NotFromParser, docloader))
     }
 
     pub fn new(window: JSRef<Window>,
@@ -958,10 +1004,11 @@ impl Document {
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
                last_modified: Option<DOMString>,
-               source: DocumentSource) -> Temporary<Document> {
+               source: DocumentSource,
+               doc_loader: DocumentLoader) -> Temporary<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window, url, doctype,
                                                                       content_type, last_modified,
-                                                                      source),
+                                                                      source, doc_loader),
                                           GlobalRef::Window(window),
                                           DocumentBinding::Wrap).root();
 
