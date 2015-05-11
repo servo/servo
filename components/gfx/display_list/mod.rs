@@ -87,8 +87,10 @@ pub struct DisplayList {
     pub block_backgrounds_and_borders: LinkedList<DisplayItem>,
     /// Floats: step 5. These are treated as pseudo-stacking contexts.
     pub floats: LinkedList<DisplayItem>,
-    /// All other content.
+    /// All non-positioned content.
     pub content: LinkedList<DisplayItem>,
+    /// All positioned content that does not get a stacking context.
+    pub positioned_content: LinkedList<DisplayItem>,
     /// Outlines: step 10.
     pub outlines: LinkedList<DisplayItem>,
     /// Child stacking contexts.
@@ -104,6 +106,7 @@ impl DisplayList {
             block_backgrounds_and_borders: LinkedList::new(),
             floats: LinkedList::new(),
             content: LinkedList::new(),
+            positioned_content: LinkedList::new(),
             outlines: LinkedList::new(),
             children: LinkedList::new(),
         }
@@ -117,6 +120,7 @@ impl DisplayList {
         self.block_backgrounds_and_borders.append(&mut other.block_backgrounds_and_borders);
         self.floats.append(&mut other.floats);
         self.content.append(&mut other.content);
+        self.positioned_content.append(&mut other.positioned_content);
         self.outlines.append(&mut other.outlines);
         self.children.append(&mut other.children);
     }
@@ -125,9 +129,21 @@ impl DisplayList {
     #[inline]
     pub fn form_float_pseudo_stacking_context(&mut self) {
         prepend_from(&mut self.floats, &mut self.outlines);
+        prepend_from(&mut self.floats, &mut self.positioned_content);
         prepend_from(&mut self.floats, &mut self.content);
         prepend_from(&mut self.floats, &mut self.block_backgrounds_and_borders);
         prepend_from(&mut self.floats, &mut self.background_and_borders);
+    }
+
+    /// Merges all display items from all non-positioned-content stacking levels to the
+    /// positioned-content stacking level.
+    #[inline]
+    pub fn form_pseudo_stacking_context_for_positioned_content(&mut self) {
+        prepend_from(&mut self.positioned_content, &mut self.outlines);
+        prepend_from(&mut self.positioned_content, &mut self.content);
+        prepend_from(&mut self.positioned_content, &mut self.floats);
+        prepend_from(&mut self.positioned_content, &mut self.block_backgrounds_and_borders);
+        prepend_from(&mut self.positioned_content, &mut self.background_and_borders);
     }
 
     /// Returns a list of all items in this display list concatenated together. This is extremely
@@ -144,6 +160,9 @@ impl DisplayList {
             result.push((*display_item).clone())
         }
         for display_item in self.content.iter() {
+            result.push((*display_item).clone())
+        }
+        for display_item in self.positioned_content.iter() {
             result.push((*display_item).clone())
         }
         for display_item in self.outlines.iter() {
@@ -215,6 +234,7 @@ impl HeapSizeOf for DisplayList {
             self.block_backgrounds_and_borders.heap_size_of_children() +
             self.floats.heap_size_of_children() +
             self.content.heap_size_of_children() +
+            self.positioned_content.heap_size_of_children() +
             self.outlines.heap_size_of_children() +
             self.children.heap_size_of_children()
     }
@@ -359,7 +379,12 @@ impl StackingContext {
                 display_item.draw_into_context(&mut paint_subcontext)
             }
 
-            // Steps 8 and 9: Positioned descendants with nonnegative z-indices.
+            // Step 8: Positioned descendants with `z-index: auto`.
+            for display_item in display_list.positioned_content.iter() {
+                display_item.draw_into_context(&mut paint_subcontext)
+            }
+
+            // Step 9: Positioned descendants with nonnegative, numeric z-indices.
             for positioned_kid in positioned_children.iter() {
                 if positioned_kid.z_index < 0 {
                     continue
@@ -513,10 +538,12 @@ impl StackingContext {
             }
         }
 
-        // Steps 7, 5, and 4: Content, floats, and block backgrounds and borders.
+        // Steps 8, 7, 5, and 4: Positioned content, content, floats, and block backgrounds and
+        // borders.
         //
         // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
         for display_list in [
+            &self.display_list.positioned_content,
             &self.display_list.content,
             &self.display_list.floats,
             &self.display_list.block_backgrounds_and_borders,
