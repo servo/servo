@@ -265,7 +265,7 @@ impl StyleSharingCandidate {
             local_name: element.get_local_name().clone(),
             class: element.get_attr(&ns!(""), &atom!("class"))
                           .map(|string| string.to_owned()),
-            link: element.get_link().is_some(),
+            link: element.is_link(),
             namespace: (*element.get_namespace()).clone(),
             common_style_affecting_attributes:
                    create_common_style_affecting_attributes_from_element(&element)
@@ -333,7 +333,7 @@ impl StyleSharingCandidate {
             }
         }
 
-        if element.get_link().is_some() != self.link {
+        if element.is_link() != self.link {
             return false
         }
 
