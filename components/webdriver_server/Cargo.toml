@@ -13,9 +13,6 @@ path = "../msg"
 [dependencies.util]
 path = "../util"
 
-[dependencies.webdriver_traits]
-path = "../webdriver_traits"
-
 [dependencies.webdriver]
 git = "https://github.com/jgraham/webdriver-rust.git"
 
