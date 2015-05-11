@@ -251,6 +251,7 @@ experimental != overconstrained_block.html overconstrained_block_ref.html
 == position_fixed_tile_edge_2.html position_fixed_tile_edge_ref.html
 == position_fixed_tile_edge_3.html position_fixed_tile_edge_ref.html
 == position_relative_a.html position_relative_b.html
+== position_relative_painting_order_a.html position_relative_painting_order_ref.html
 == position_relative_top_percentage_a.html position_relative_top_percentage_b.html
 == pre_ignorable_whitespace_a.html pre_ignorable_whitespace_ref.html
 == pre_with_tab.html pre_with_tab_ref.html
