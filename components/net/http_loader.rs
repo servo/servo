@@ -6,7 +6,7 @@ use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, Inc
 use net_traits::ProgressMsg::{Payload, Done};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use mime_classifier::MIMEClassifier;
-use resource_task::{start_sending_opt, start_sending_sniffed_opt};
+use resource_task::{start_sending_opt, start_sending_sniffed_opt, Connector};
 use hsts::{HSTSList, secure_url};
 
 use ipc_channel::ipc::{self, IpcSender};
@@ -14,36 +14,37 @@ use log;
 use std::collections::HashSet;
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
-use hyper::client::Request;
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
-use hyper::header::StrictTransportSecurity;
 use hyper::Error as HttpError;
+use hyper::client::Request;
+use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, Quality};
+use hyper::header::{QualityItem, qitem};
+use hyper::header::StrictTransportSecurity;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
-use hyper::net::{HttpConnector, HttpsConnector, Openssl};
+use hyper::net::NetworkConnector;
 use hyper::status::{StatusCode, StatusClass};
 use std::error::Error;
 use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
 use std::io::{self, Read, Write};
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender, channel};
 use util::task::spawn_named;
 use util::resource_files::resources_dir_path;
-use util::opts;
 use url::{Url, UrlParser};
 
 use uuid;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 
-pub fn factory(resource_mgr_chan: IpcSender<ControlMsg>,
+pub fn factory(cookies_chan: Sender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-               hsts_list: Arc<Mutex<HSTSList>>)
+               hsts_list: Arc<Mutex<HSTSList>>,
+               connector: Arc<Mutex<Box<NetworkConnector>>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
     box move |load_data, senders, classifier| {
-        spawn_named("http_loader".to_owned(),
-                    move || load(load_data, senders, classifier, resource_mgr_chan, devtools_chan, hsts_list))
+        spawn_named("http_loader".to_owned(), move || {
+            load(load_data, senders, classifier, connector, cookies_chan, devtools_chan, hsts_list)
+        })
     }
 }
 
@@ -87,6 +88,7 @@ fn request_must_be_secured(hsts_list: &HSTSList, url: &Url) -> bool {
 fn load(mut load_data: LoadData,
         start_chan: LoadConsumer,
         classifier: Arc<MIMEClassifier>,
+        connector: Arc<Mutex<Box<NetworkConnector>>>,
         resource_mgr_chan: IpcSender<ControlMsg>,
         devtools_chan: Option<Sender<DevtoolsControlMsg>>,
         hsts_list: Arc<Mutex<HSTSList>>) {
@@ -145,254 +147,251 @@ fn load(mut load_data: LoadData,
 function: \"SSL3_GET_SERVER_CERTIFICATE\", \
 reason: \"certificate verify failed\" }]))";
 
-        let req = if opts::get().nossl {
-            Request::with_connector(load_data.method.clone(), url.clone(), &HttpConnector)
-        } else {
-            let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
-            context.set_verify(SSL_VERIFY_PEER, None);
-            context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
-            Request::with_connector(load_data.method.clone(), url.clone(),
-                &HttpsConnector::new(Openssl { context: Arc::new(context) }))
-        };
-
-        let mut req = match req {
-            Ok(req) => req,
-            Err(HttpError::Io(ref io_error)) if (
-                io_error.kind() == io::ErrorKind::Other &&
-                io_error.description() == "Error in OpenSSL" &&
-                // FIXME: This incredibly hacky. Make it more robust, and at least test it.
-                format!("{:?}", io_error.cause()) == ssl_err_string
-            ) => {
-                let mut image = resources_dir_path();
-                image.push("badcert.html");
-                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
-                file_loader::factory(load_data, start_chan, classifier);
-                return;
-            },
-            Err(e) => {
-                println!("{:?}", e);
-                send_error(url, e.description().to_string(), start_chan);
-                return;
-            }
-        };
-
-        // Preserve the `host` header set automatically by Request.
-        let host = req.headers().get::<Host>().unwrap().clone();
-
-        // Avoid automatically preserving request headers when redirects occur.
-        // See https://bugzilla.mozilla.org/show_bug.cgi?id=401564 and
-        // https://bugzilla.mozilla.org/show_bug.cgi?id=216828 .
-        // Only preserve ones which have been explicitly marked as such.
-        if iters == 1 {
-            let mut combined_headers = load_data.headers.clone();
-            combined_headers.extend(load_data.preserved_headers.iter());
-            *req.headers_mut() = combined_headers;
-        } else {
-            *req.headers_mut() = load_data.preserved_headers.clone();
-        }
-
-        req.headers_mut().set(host);
-
-        if !req.headers().has::<Accept>() {
-            let accept = Accept(vec![
-                qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
-                qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
-                QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
-                QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
-            ]);
-            req.headers_mut().set(accept);
-        }
-
-        let (tx, rx) = ipc::channel().unwrap();
-        resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(url.clone(),
-                                                       tx,
-                                                       CookieSource::HTTP)).unwrap();
-        if let Some(cookie_list) = rx.recv().unwrap() {
-            let mut v = Vec::new();
-            v.push(cookie_list.into_bytes());
-            req.headers_mut().set_raw("Cookie".to_owned(), v);
-        }
-
-        if !req.headers().has::<AcceptEncoding>() {
-            req.headers_mut().set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
-        }
-        if log_enabled!(log::LogLevel::Info) {
-            info!("{}", load_data.method);
-            for header in req.headers().iter() {
-                info!(" - {}", header);
-            }
-            info!("{:?}", load_data.data);
-        }
-
-        // Avoid automatically sending request body if a redirect has occurred.
-        let writer = match load_data.data {
-            Some(ref data) if iters == 1 => {
-                req.headers_mut().set(ContentLength(data.len() as u64));
-                let mut writer = match req.start() {
-                    Ok(w) => w,
-                    Err(e) => {
-                        send_error(url, e.description().to_string(), start_chan);
-                        return;
-                    }
-                };
-                match writer.write_all(&*data) {
-                    Err(e) => {
-                        send_error(url, e.description().to_string(), start_chan);
-                        return;
-                    }
-                    _ => {}
-                };
-                writer
-            },
-            _ => {
-                match load_data.method {
-                    Method::Get | Method::Head => (),
-                    _ => req.headers_mut().set(ContentLength(0))
+        let mut writer;
+        {
+            let mut lock = connector.lock().unwrap();
+            let connector = &mut *lock;
+            let mut req = match Request::with_connector(load_data.method.clone(),
+                                                        url.clone(),
+                                                        connector) {
+                Ok(req) => req,
+                Err(HttpError::Io(ref io_error)) if (
+                    io_error.kind() == io::ErrorKind::Other &&
+                    io_error.description() == "Error in OpenSSL" &&
+                    // FIXME: This incredibly hacky. Make it more robust, and at least test it.
+                    format!("{:?}", io_error.cause()) == ssl_err_string
+                ) => {
+                    let mut image = resources_dir_path();
+                    image.push("badcert.html");
+                    let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
+                    file_loader::factory(load_data, start_chan, classifier);
+                    return;
+                },
+                Err(e) => {
+                    println!("{:?}", e);
+                    send_error(url, e.description().to_string(), start_chan);
+                    return;
                 }
-                match req.start() {
-                    Ok(w) => w,
-                    Err(e) => {
-                        send_error(url, e.description().to_string(), start_chan);
-                        return;
-                    }
+            };
+
+            // Preserve the `host` header set automatically by Request.
+            let host = req.headers().get::<Host>().unwrap().clone();
+
+            // Avoid automatically preserving request headers when redirects occur.
+            // See https://bugzilla.mozilla.org/show_bug.cgi?id=401564 and
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=216828 .
+            // Only preserve ones which have been explicitly marked as such.
+            if iters == 1 {
+                let mut combined_headers = load_data.headers.clone();
+                combined_headers.extend(load_data.preserved_headers.iter());
+                *req.headers_mut() = combined_headers;
+            } else {
+                *req.headers_mut() = load_data.preserved_headers.clone();
+            }
+
+            req.headers_mut().set(host);
+
+            if !req.headers().has::<Accept>() {
+                let accept = Accept(vec![
+                    qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+                    qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
+                    QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
+                    QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
+                ]);
+                req.headers_mut().set(accept);
+            }
+
+            let (tx, rx) = ipc::channel().unwrap();
+            resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(url.clone(),
+                                                           tx,
+                                                           CookieSource::HTTP)).unwrap();
+            if let Some(cookie_list) = rx.recv().unwrap() {
+                let mut v = Vec::new();
+                v.push(cookie_list.into_bytes());
+                req.headers_mut().set_raw("Cookie".to_owned(), v);
+            }
+
+            if !req.headers().has::<AcceptEncoding>() {
+                req.headers_mut().set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
+            }
+            if log_enabled!(log::LogLevel::Info) {
+                info!("{}", load_data.method);
+                for header in req.headers().iter() {
+                    info!(" - {}", header);
                 }
-            }
-        };
 
-        // Send an HttpRequest message to devtools with a unique request_id
-        // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the message
-        let request_id = uuid::Uuid::new_v4().to_simple_string();
-        if let Some(ref chan) = devtools_chan {
-            let net_event = NetworkEvent::HttpRequest(load_data.url.clone(),
-                                                      load_data.method.clone(),
-                                                      load_data.headers.clone(),
-                                                      load_data.data.clone());
-            chan.send(DevtoolsControlMsg::FromChrome(
-                    ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id.clone(),
-                                                                    net_event))).unwrap();
-        }
-
-        let mut response = match writer.send() {
-            Ok(r) => r,
-            Err(e) => {
-                send_error(url, e.description().to_string(), start_chan);
-                return;
-            }
-        };
-
-        // Dump headers, but only do the iteration if info!() is enabled.
-        info!("got HTTP response {}, headers:", response.status);
-        if log_enabled!(log::LogLevel::Info) {
-            for header in response.headers.iter() {
-                info!(" - {}", header);
-            }
-        }
-
-        if let Some(cookies) = response.headers.get_raw("set-cookie") {
-            for cookie in cookies.iter() {
-                if let Ok(cookies) = String::from_utf8(cookie.clone()) {
-                    resource_mgr_chan.send(ControlMsg::SetCookiesForUrl(url.clone(),
-                                                                        cookies,
-                                                                        CookieSource::HTTP)).unwrap();
-                }
-            }
-        }
-
-        if url.scheme == "https" {
-            if let Some(header) = response.headers.get::<StrictTransportSecurity>() {
-                if let Some(host) = url.domain() {
-                    info!("adding host {} to the strict transport security list", host);
-                    info!("- max-age {}", header.max_age);
-
-                    let include_subdomains = if header.include_subdomains {
-                        info!("- includeSubdomains");
-                        IncludeSubdomains::Included
-                    } else {
-                        IncludeSubdomains::NotIncluded
-                    };
-
-                    resource_mgr_chan.send(
-                        ControlMsg::SetHSTSEntryForHost(
-                            host.to_string(), include_subdomains, header.max_age
-                        )
-                    ).unwrap();
-                }
-            }
-        }
-
-
-        if response.status.class() == StatusClass::Redirection {
-            match response.headers.get::<Location>() {
-                Some(&Location(ref new_url)) => {
-                    // CORS (https://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
-                    match load_data.cors {
-                        Some(ref c) => {
-                            if c.preflight {
-                                // The preflight lied
-                                send_error(url,
-                                           "Preflight fetch inconsistent with main fetch".to_string(),
-                                           start_chan);
+                // Avoid automatically sending request body if a redirect has occurred.
+                writer = match load_data.data {
+                    Some(ref data) if iters == 1 => {
+                        req.headers_mut().set(ContentLength(data.len() as u64));
+                        let mut writer = match req.start() {
+                            Ok(w) => w,
+                            Err(e) => {
+                                send_error(url, e.description().to_string(), start_chan);
                                 return;
-                            } else {
-                                // XXXManishearth There are some CORS-related steps here,
-                                // but they don't seem necessary until credentials are implemented
+                            }
+                        };
+                        match writer.write_all(&*data) {
+                            Err(e) => {
+                                send_error(url, e.description().to_string(), start_chan);
+                                return;
+                            }
+                            _ => {}
+                        };
+                        writer
+                    },
+                    _ => {
+                        match load_data.method {
+                            Method::Get | Method::Head => (),
+                            _ => req.headers_mut().set(ContentLength(0))
+                        }
+                        match req.start() {
+                            Ok(w) => w,
+                            Err(e) => {
+                                send_error(url, e.description().to_string(), start_chan);
+                                return;
                             }
                         }
-                        _ => {}
                     }
-                    let new_url = match UrlParser::new().base_url(&url).parse(&new_url) {
-                        Ok(u) => u,
-                        Err(e) => {
-                            send_error(url, e.to_string(), start_chan);
+                };
+            }
+
+            // Send an HttpRequest message to devtools with a unique request_id
+            // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the message
+            let request_id = uuid::Uuid::new_v4().to_simple_string();
+            if let Some(ref chan) = devtools_chan {
+                let net_event = NetworkEvent::HttpRequest(load_data.url.clone(),
+                                                          load_data.method.clone(),
+                                                          load_data.headers.clone(),
+                                                          load_data.data.clone());
+                chan.send(DevtoolsControlMsg::FromChrome(
+                        ChromeToDevtoolsControlMsg::NetworkEventMessage(request_id.clone(),
+                                                                        net_event))).unwrap();
+            }
+
+            let mut response = match writer.send() {
+                Ok(r) => r,
+                Err(e) => {
+                    send_error(url, e.description().to_string(), start_chan);
+                    return;
+                }
+            };
+
+            // Dump headers, but only do the iteration if info!() is enabled.
+            info!("got HTTP response {}, headers:", response.status);
+            if log_enabled!(log::LogLevel::Info) {
+                for header in response.headers.iter() {
+                    info!(" - {}", header);
+                }
+            }
+
+            if let Some(cookies) = response.headers.get_raw("set-cookie") {
+                for cookie in cookies.iter() {
+                    if let Ok(cookies) = String::from_utf8(cookie.clone()) {
+                        resource_mgr_chan.send(ControlMsg::SetCookiesForUrl(url.clone(),
+                                                                            cookies,
+                                                                            CookieSource::HTTP)).unwrap();
+                    }
+                }
+            }
+
+            if url.scheme == "https" {
+                if let Some(header) = response.headers.get::<StrictTransportSecurity>() {
+                    if let Some(host) = url.domain() {
+                        info!("adding host {} to the strict transport security list", host);
+                        info!("- max-age {}", header.max_age);
+
+                        let include_subdomains = if header.include_subdomains {
+                            info!("- includeSubdomains");
+                            IncludeSubdomains::Included
+                        } else {
+                            IncludeSubdomains::NotIncluded
+                        };
+
+                        resource_mgr_chan.send(
+                            ControlMsg::SetHSTSEntryForHost(
+                                host.to_string(), include_subdomains, header.max_age
+                            )
+                        ).unwrap();
+                    }
+                }
+            }
+
+
+            if response.status.class() == StatusClass::Redirection {
+                match response.headers.get::<Location>() {
+                    Some(&Location(ref new_url)) => {
+                        // CORS (https://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
+                        match load_data.cors {
+                            Some(ref c) => {
+                                if c.preflight {
+                                    // The preflight lied
+                                    send_error(url,
+                                               "Preflight fetch inconsistent with main fetch".to_string(),
+                                               start_chan);
+                                    return;
+                                } else {
+                                    // XXXManishearth There are some CORS-related steps here,
+                                    // but they don't seem necessary until credentials are implemented
+                                }
+                            }
+                            _ => {}
+                        }
+                        let new_url = match UrlParser::new().base_url(&url).parse(&new_url) {
+                            Ok(u) => u,
+                            Err(e) => {
+                                send_error(url, e.to_string(), start_chan);
+                                return;
+                            }
+                        };
+                        info!("redirecting to {}", new_url);
+                        url = new_url;
+
+                        // According to https://tools.ietf.org/html/rfc7231#section-6.4.2,
+                        // historically UAs have rewritten POST->GET on 301 and 302 responses.
+                        if load_data.method == Method::Post &&
+                            (response.status == StatusCode::MovedPermanently ||
+                             response.status == StatusCode::Found) {
+                            load_data.method = Method::Get;
+                        }
+
+                        if redirected_to.contains(&url) {
+                            send_error(url, "redirect loop".to_string(), start_chan);
                             return;
                         }
-                    };
-                    info!("redirecting to {}", new_url);
-                    url = new_url;
 
-                    // According to https://tools.ietf.org/html/rfc7231#section-6.4.2,
-                    // historically UAs have rewritten POST->GET on 301 and 302 responses.
-                    if load_data.method == Method::Post &&
-                        (response.status == StatusCode::MovedPermanently ||
-                         response.status == StatusCode::Found) {
-                        load_data.method = Method::Get;
+                        redirected_to.insert(url.clone());
+                        continue;
                     }
-
-                    if redirected_to.contains(&url) {
-                        send_error(url, "redirect loop".to_string(), start_chan);
-                        return;
-                    }
-
-                    redirected_to.insert(url.clone());
-                    continue;
+                    None => ()
                 }
-                None => ()
             }
-        }
 
-        let mut adjusted_headers = response.headers.clone();
-        if viewing_source {
-            adjusted_headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec![])));
-        }
-        let mut metadata: Metadata = Metadata::default(url);
-        metadata.set_content_type(match adjusted_headers.get() {
-            Some(&ContentType(ref mime)) => Some(mime),
-            None => None
-        });
-        metadata.headers = Some(adjusted_headers);
-        metadata.status = Some(response.status_raw().clone());
+            let mut adjusted_headers = response.headers.clone();
+            if viewing_source {
+                adjusted_headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec![])));
+            }
+            let mut metadata: Metadata = Metadata::default(url);
+            metadata.set_content_type(match adjusted_headers.get() {
+                Some(&ContentType(ref mime)) => Some(mime),
+                None => None
+            });
+            metadata.headers = Some(adjusted_headers);
+            metadata.status = Some(response.status_raw().clone());
 
-        let mut encoding_str: Option<String> = None;
-        //FIXME: Implement Content-Encoding Header https://github.com/hyperium/hyper/issues/391
-        if let Some(encodings) = response.headers.get_raw("content-encoding") {
-            for encoding in encodings.iter() {
-                if let Ok(encodings) = String::from_utf8(encoding.clone()) {
-                    if encodings == "gzip" || encodings == "deflate" {
-                        encoding_str = Some(encodings);
-                        break;
+            let mut encoding_str: Option<String> = None;
+            //FIXME: Implement Content-Encoding Header https://github.com/hyperium/hyper/issues/391
+            if let Some(encodings) = response.headers.get_raw("content-encoding") {
+                for encoding in encodings.iter() {
+                    if let Ok(encodings) = String::from_utf8(encoding.clone()) {
+                        if encodings == "gzip" || encodings == "deflate" {
+                            encoding_str = Some(encodings);
+                            break;
+                        }
                     }
                 }
             }
+
         }
 
         // Send an HttpResponse message to devtools with the corresponding request_id

@@ -22,9 +22,12 @@ use url::Url;
 use hsts::{HSTSList, HSTSEntry, preload_hsts_domains};
 
 use devtools_traits::{DevtoolsControlMsg};
+use hyper::client::pool::Pool;
 use hyper::header::{ContentType, Header, SetCookie, UserAgent};
+use hyper::net::HttpConnector;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use openssl::ssl::SslContext;
 
 use regex::Regex;
 use std::borrow::ToOwned;
@@ -33,9 +36,9 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
-use std::sync::Arc;
-use std::sync::Mutex;
-use std::sync::mpsc::{channel, Sender};
+use std::str::FromStr;
+use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{channel, Receiver, Sender};
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 pub static IPV4_REGEX: Regex = regex!(
@@ -250,12 +253,44 @@ impl ResourceChannelManager {
     }
 }
 
+pub enum Connector {
+    Http(HttpConnector),
+    Https(HttpsConnector<Openssl>)
+}
+
+impl NetworkConnector for Connector {
+    type Stream = Box<NetworkStream + Send>;
+    #[inline]
+    fn connect(&self, host: &str, port: u16, scheme: &str) -> HttpResult<Self::Stream> {
+        match *self {
+            Http(ref c) => try!(c.connect(host, port, scheme)).into(),
+            Https(ref c) => try!(c.connect(host, port, scheme)).into()
+        }
+    }
+}
+
+fn create_http_connector() -> Arc<Mutex<Pool<Connector>>> {
+    let connector = if opts::get().nossl {
+        Connector::Http(HttpConnector)
+    } else {
+        let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
+        context.set_verify(SSL_VERIFY_PEER, None);
+        context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
+        Connector::Https(HttpsConnector::new(Openssl {
+            context: Arc::new(context)
+        }))
+    };
+
+    Arc::new(Mutex::new(Pool::with_connector(Default::default(), connector)))
+}
+
 pub struct ResourceManager {
     user_agent: Option<String>,
     cookie_storage: CookieStorage,
     resource_task: IpcSender<ControlMsg>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    connector: Arc<Mutex<Pool<Connector>>>,
     hsts_list: Arc<Mutex<HSTSList>>
 }
 
@@ -270,7 +305,8 @@ impl ResourceManager {
             resource_task: resource_task,
             mime_classifier: Arc::new(MIMEClassifier::new()),
             devtools_chan: devtools_channel,
-            hsts_list: Arc::new(Mutex::new(hsts_list))
+            hsts_list: Arc::new(Mutex::new(hsts_list)),
+            connector: create_http_connector(),
         }
     }
 }
@@ -316,7 +352,10 @@ impl ResourceManager {
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" =>
-                http_loader::factory(self.resource_task.clone(), self.devtools_chan.clone(), self.hsts_list.clone()),
+                http_loader::factory(self.resource_task.clone(),
+                                     self.devtools_chan.clone(), 
+                                     self.hsts_list.clone(),
+                                     self.connector.clone()),
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
             _ => {
