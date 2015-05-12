@@ -8,10 +8,10 @@ interface HTMLSelectElement : HTMLElement {
   //         attribute boolean autofocus;
            attribute boolean disabled;
   //readonly attribute HTMLFormElement? form;
-  //         attribute boolean multiple;
-  //         attribute DOMString name;
+           attribute boolean multiple;
+           attribute DOMString name;
   //         attribute boolean required;
-  //         attribute unsigned long size;
+           attribute unsigned long size;
 
   readonly attribute DOMString type;
 
