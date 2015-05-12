@@ -7,23 +7,17 @@
 
 use std::sync::Arc;
 
-use selectors::tree::{TElement, TNode};
+use selectors::tree::TNode;
 use selectors::matching::DeclarationBlock;
 use node::TElementAttributes;
-use values::specified;
-use properties::DeclaredValue::SpecifiedValue;
 use properties::PropertyDeclaration;
-use properties::longhands;
 use selector_matching::Stylist;
 
-use util::geometry::Au;
 use util::smallvec::VecLike;
 
 /// Legacy presentational attributes that take a nonnegative integer as defined in HTML5 § 2.4.4.2.
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum UnsignedIntegerAttribute {
-    /// `<td border>`
-    Border,
     /// `<td colspan>`
     ColSpan,
 }
@@ -46,16 +40,6 @@ pub trait PresentationalHintSynthesis {
                                                              where N: TNode<'a>,
                                                                    N::Element: TElementAttributes<'a>,
                                                                    V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
-    /// Synthesizes rules for the legacy `border` attribute.
-    fn synthesize_presentational_hint_for_legacy_border_attribute<'a,E,V>(
-                                                                  &self,
-                                                                  element: E,
-                                                                  matching_rules_list: &mut V,
-                                                                  shareable: &mut bool)
-                                                                  where
-                                                                    E: TElement<'a> +
-                                                                       TElementAttributes<'a>,
-                                                                    V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
 }
 
 impl PresentationalHintSynthesis for Stylist {
@@ -74,52 +58,6 @@ impl PresentationalHintSynthesis for Stylist {
         if matching_rules_list.len() != length {
             // Never share style for elements with preshints
             *shareable = false;
-        }
-
-        match element.get_local_name() {
-            name if *name == atom!("td") => {
-                self.synthesize_presentational_hint_for_legacy_border_attribute(
-                    element,
-                    matching_rules_list,
-                    shareable);
-            }
-            name if *name == atom!("table") => {
-                self.synthesize_presentational_hint_for_legacy_border_attribute(
-                    element,
-                    matching_rules_list,
-                    shareable);
-            }
-            _ => {}
-        }
-    }
-
-    fn synthesize_presentational_hint_for_legacy_border_attribute<'a,E,V>(
-                                                                  &self,
-                                                                  element: E,
-                                                                  matching_rules_list: &mut V,
-                                                                  shareable: &mut bool)
-                                                                  where
-                                                                    E: TElement<'a> +
-                                                                       TElementAttributes<'a>,
-                                                                    V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {
-        match element.get_unsigned_integer_attribute(UnsignedIntegerAttribute::Border) {
-            None => {}
-            Some(length) => {
-                let width_value = specified::Length::Absolute(Au::from_px(length as i32));
-                matching_rules_list.push(from_declaration(
-                        PropertyDeclaration::BorderTopWidth(SpecifiedValue(
-                            longhands::border_top_width::SpecifiedValue(width_value)))));
-                matching_rules_list.push(from_declaration(
-                        PropertyDeclaration::BorderLeftWidth(SpecifiedValue(
-                            longhands::border_left_width::SpecifiedValue(width_value)))));
-                matching_rules_list.push(from_declaration(
-                        PropertyDeclaration::BorderBottomWidth(SpecifiedValue(
-                            longhands::border_bottom_width::SpecifiedValue(width_value)))));
-                matching_rules_list.push(from_declaration(
-                        PropertyDeclaration::BorderRightWidth(SpecifiedValue(
-                            longhands::border_right_width::SpecifiedValue(width_value)))));
-                *shareable = false
-            }
         }
     }
 }
