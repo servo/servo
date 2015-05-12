@@ -1228,7 +1228,7 @@ class PropertyDefiner:
 # argument lists of all its overloads.
 def methodLength(method):
     signatures = method.signatures()
-    return min(len([arg for arg in arguments if not arg.optional or arg.variadic]) for (_, arguments) in signatures)
+    return min(len([arg for arg in arguments if not arg.optional and not arg.variadic]) for (_, arguments) in signatures)
 
 class MethodDefiner(PropertyDefiner):
     """
