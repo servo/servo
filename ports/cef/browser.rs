@@ -9,7 +9,7 @@ use interfaces::{CefBrowser, CefBrowserHost, CefClient, CefFrame, CefRequestCont
 use interfaces::{cef_browser_t, cef_browser_host_t, cef_client_t, cef_frame_t};
 use interfaces::{cef_request_context_t};
 use servo::Browser;
-use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t};
+use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t, cef_window_handle_t};
 use window;
 use wrappers::CefWrap;
 
@@ -90,6 +90,8 @@ pub struct ServoCefBrowser {
     pub client: CefClient,
     /// Whether the on-created callback has fired yet.
     pub callback_executed: Cell<bool>,
+    /// the display system window handle: only to be used with host.get_window_handle()
+    window_handle: cef_window_handle_t,
 
     id: isize,
     servo_browser: RefCell<ServoBrowser>,
@@ -100,10 +102,12 @@ impl ServoCefBrowser {
     pub fn new(window_info: &cef_window_info_t, client: CefClient) -> ServoCefBrowser {
         let frame = ServoCefFrame::new().as_cef_interface();
         let host = ServoCefBrowserHost::new(client.clone()).as_cef_interface();
+        let mut window_handle: cef_window_handle_t = 0;
 
         let servo_browser = if window_info.windowless_rendering_enabled == 0 {
             let glutin_window = glutin_app::create_window();
             let servo_browser = Browser::new(Some(glutin_window.clone()));
+            window_handle = glutin_window.platform_window() as cef_window_handle_t;
             ServoBrowser::OnScreen(servo_browser)
         } else {
             ServoBrowser::Invalid
@@ -121,6 +125,7 @@ impl ServoCefBrowser {
             servo_browser: RefCell::new(servo_browser),
             message_queue: RefCell::new(vec!()),
             id: id,
+            window_handle: window_handle,
         }
     }
 }
@@ -197,6 +202,10 @@ pub fn close(browser: CefBrowser) {
                 .position(|&ref n| n.downcast().id == browser.downcast().id)
                 .map(|e| browsers.remove(e));
     });
+}
+
+pub fn get_window(browser: &CefBrowser) -> cef_window_handle_t {
+    browser.downcast().window_handle
 }
 
 pub fn browser_callback_after_created(browser: CefBrowser) {

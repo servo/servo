@@ -4,7 +4,7 @@
 
 use eutil::Downcast;
 use interfaces::{CefBrowser, CefBrowserHost, CefClient, cef_browser_t, cef_browser_host_t, cef_client_t};
-use types::{cef_mouse_button_type_t, cef_mouse_event, cef_rect_t, cef_key_event};
+use types::{cef_mouse_button_type_t, cef_mouse_event, cef_rect_t, cef_key_event, cef_window_handle_t};
 use types::cef_key_event_type_t::{KEYEVENT_CHAR, KEYEVENT_KEYDOWN, KEYEVENT_KEYUP, KEYEVENT_RAWKEYDOWN};
 use browser::{self, ServoCefBrowserExtensions};
 
@@ -163,6 +163,12 @@ full_cef_class_impl! {
 
         fn initialize_compositing(&this,) -> () {{
             this.downcast().send_window_event(WindowEvent::InitializeCompositing);
+        }}
+
+        fn get_window_handle(&this,) -> cef_window_handle_t {{
+            let t = this.downcast();
+            let browser = t.browser.borrow();
+            browser::get_window(&browser.as_ref().unwrap()) as cef_window_handle_t
         }}
     }
 }
