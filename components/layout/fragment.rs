@@ -1770,8 +1770,9 @@ impl Fragment {
                 let font_metrics = text::font_metrics_for_style(layout_context.font_context(),
                                                                 font_style);
                 InlineMetrics::from_block_height(&font_metrics,
-                                                 block_flow.base.position.size.block +
-                                                 block_flow.fragment.margin.block_start_end())
+                                                 block_flow.base.position.size.block,
+                                                 block_flow.fragment.margin.block_start,
+                                                 block_flow.fragment.margin.block_end)
             }
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
                 // Hypothetical boxes take up no space.

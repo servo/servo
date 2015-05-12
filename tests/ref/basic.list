@@ -137,6 +137,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == incremental_inline_layout_a.html incremental_inline_layout_ref.html
 != inline_background_a.html inline_background_ref.html
 == inline_block_baseline_a.html inline_block_baseline_ref.html
+== inline_block_block_direction_margins_a.html inline_block_block_direction_margins_ref.html
 == inline_block_border_a.html inline_block_border_ref.html
 == inline_block_border_intrinsic_size_a.html inline_block_border_intrinsic_size_ref.html
 == inline_block_img_a.html inline_block_img_ref.html

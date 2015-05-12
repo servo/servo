@@ -1580,12 +1580,17 @@ impl InlineMetrics {
 
     /// Calculates inline metrics from font metrics and line block-size per CSS 2.1 § 10.8.1.
     #[inline]
-    pub fn from_block_height(font_metrics: &FontMetrics, block_height: Au) -> InlineMetrics {
-        let leading = block_height - (font_metrics.ascent + font_metrics.descent);
+    pub fn from_block_height(font_metrics: &FontMetrics,
+                             block_height: Au,
+                             block_start_margin: Au,
+                             block_end_margin: Au)
+                             -> InlineMetrics {
+        let leading = block_height + block_start_margin + block_end_margin -
+            (font_metrics.ascent + font_metrics.descent);
         InlineMetrics {
             block_size_above_baseline: font_metrics.ascent + leading.scale_by(0.5),
             depth_below_baseline: font_metrics.descent + leading.scale_by(0.5),
-            ascent: font_metrics.ascent + leading.scale_by(0.5),
+            ascent: font_metrics.ascent + leading.scale_by(0.5) - block_start_margin,
         }
     }
 
