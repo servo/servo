@@ -28,7 +28,6 @@ use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
 use std::any::Any;
 use std::sync::mpsc::{Sender, Receiver};
-use webdriver_traits::WebDriverScriptCommand;
 use url::Url;
 
 use geom::point::Point2D;
