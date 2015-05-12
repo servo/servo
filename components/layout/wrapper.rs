@@ -60,7 +60,7 @@ use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DES
 use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
 use msg::constellation_msg::{PipelineId, SubpageId};
-use util::str::{LengthOrPercentageOrAuto, is_whitespace};
+use util::str::is_whitespace;
 use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
 use std::marker::PhantomData;
@@ -71,8 +71,7 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{NamespaceConstraint, AttrSelector};
-use style::legacy::{IntegerAttribute, LengthAttribute};
-use style::legacy::{UnsignedIntegerAttribute};
+use style::legacy::UnsignedIntegerAttribute;
 use style::node::{TElement, TElementAttributes, TNode};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use util::smallvec::VecLike;
@@ -654,18 +653,6 @@ impl<'le> TElementAttributes<'le> for LayoutElement<'le> {
     {
         unsafe {
             self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
-        }
-    }
-
-    fn get_length_attribute(self, length_attribute: LengthAttribute) -> LengthOrPercentageOrAuto {
-        unsafe {
-            self.element.get_length_attribute_for_layout(length_attribute)
-        }
-    }
-
-    fn get_integer_attribute(self, integer_attribute: IntegerAttribute) -> Option<i32> {
-        unsafe {
-            self.element.get_integer_attribute_for_layout(integer_attribute)
         }
     }
 

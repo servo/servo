@@ -59,10 +59,13 @@ use dom::virtualmethods::{VirtualMethods, vtable_for};
 
 use devtools_traits::AttrInfo;
 use style;
-use style::legacy::{UnsignedIntegerAttribute, IntegerAttribute, LengthAttribute, from_declaration};
+use style::legacy::{UnsignedIntegerAttribute, from_declaration};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
 use style::properties::DeclaredValue::SpecifiedValue;
-use style::values::specified::CSSColor;
+use style::properties::longhands::{self, border_spacing};
+use style::values::CSSFloat;
+use style::values::specified::{self, CSSColor};
+use util::geometry::Au;
 use util::namespace;
 use util::smallvec::VecLike;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
@@ -162,10 +165,6 @@ pub trait RawLayoutElementHelpers {
 
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
-    unsafe fn get_length_attribute_for_layout(&self, length_attribute: LengthAttribute)
-                                              -> LengthOrPercentageOrAuto;
-    unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
-                                               -> Option<i32>;
     unsafe fn get_checked_state_for_layout(&self) -> bool;
     unsafe fn get_indeterminate_state_for_layout(&self) -> bool;
     unsafe fn get_unsigned_integer_attribute_for_layout(&self, attribute: UnsignedIntegerAttribute)
@@ -260,51 +259,120 @@ impl RawLayoutElementHelpers for Element {
                 PropertyDeclaration::BackgroundColor(SpecifiedValue(
                     CSSColor { parsed: Color::RGBA(color), authored: None }))));
         }
-    }
 
-    #[inline]
-    unsafe fn get_length_attribute_for_layout(&self, length_attribute: LengthAttribute)
-                                              -> LengthOrPercentageOrAuto {
-        match length_attribute {
-            LengthAttribute::Width => {
-                if self.is_htmltableelement() {
-                    let this: &HTMLTableElement = mem::transmute(self);
-                    this.get_width()
-                } else if self.is_htmltablecellelement() {
-                    let this: &HTMLTableCellElement = mem::transmute(self);
-                    this.get_width()
-                } else {
-                    panic!("I'm not a table or table cell!")
+
+        let cellspacing = if self.is_htmltableelement() {
+            let this: &HTMLTableElement = mem::transmute(self);
+            this.get_cellspacing()
+        } else {
+            None
+        };
+
+        if let Some(cellspacing) = cellspacing {
+            let width_value = specified::Length::Absolute(Au::from_px(cellspacing as i32));
+            hints.push(from_declaration(
+                PropertyDeclaration::BorderSpacing(SpecifiedValue(
+                    border_spacing::SpecifiedValue {
+                        horizontal: width_value,
+                        vertical: width_value,
+                    }))));
+        }
+
+
+        let size = if self.is_htmlinputelement() {
+            // FIXME(pcwalton): More use of atoms, please!
+            // FIXME(Ms2ger): this is nonsense! Invalid values also end up as
+            //                a text field
+            match self.get_attr_val_for_layout(&ns!(""), &atom!("type")) {
+                Some("text") | Some("password") => {
+                    let this: &HTMLInputElement = mem::transmute(self);
+                    match this.get_size_for_layout() {
+                        0 => None,
+                        s => Some(s as i32),
+                    }
                 }
+                _ => None
+            }
+        } else {
+            None
+        };
+
+        if let Some(size) = size {
+            let value = specified::Length::ServoCharacterWidth(
+                specified::CharacterWidth(size));
+            hints.push(from_declaration(
+                PropertyDeclaration::Width(SpecifiedValue(
+                    specified::LengthOrPercentageOrAuto::Length(value)))));
+        }
+
+
+        let width = if self.is_htmltableelement() {
+            let this: &HTMLTableElement = mem::transmute(self);
+            this.get_width()
+        } else if self.is_htmltabledatacellelement() {
+            let this: &HTMLTableCellElement = mem::transmute(self);
+            this.get_width()
+        } else {
+            LengthOrPercentageOrAuto::Auto
+        };
+
+        match width {
+            LengthOrPercentageOrAuto::Auto => {}
+            LengthOrPercentageOrAuto::Percentage(percentage) => {
+                let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
+                hints.push(from_declaration(
+                    PropertyDeclaration::Width(SpecifiedValue(width_value))));
+            }
+            LengthOrPercentageOrAuto::Length(length) => {
+                let width_value = specified::LengthOrPercentageOrAuto::Length(specified::Length::Absolute(length));
+                hints.push(from_declaration(
+                    PropertyDeclaration::Width(SpecifiedValue(width_value))));
             }
         }
-    }
 
-    #[inline]
-    unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
-                                               -> Option<i32> {
-        match integer_attribute {
-            IntegerAttribute::Size => {
-                if !self.is_htmlinputelement() {
-                    panic!("I'm not a form input!")
-                }
-                let this: &HTMLInputElement = mem::transmute(self);
-                Some(this.get_size_for_layout() as i32)
+
+        let cols = if self.is_htmltextareaelement() {
+            let this: &HTMLTextAreaElement = mem::transmute(self);
+            match this.get_cols_for_layout() {
+                0 => None,
+                c => Some(c as i32),
             }
-            IntegerAttribute::Cols => {
-                if !self.is_htmltextareaelement() {
-                    panic!("I'm not a textarea element!")
-                }
-                let this: &HTMLTextAreaElement = mem::transmute(self);
-                Some(this.get_cols_for_layout() as i32)
+        } else {
+            None
+        };
+
+        if let Some(cols) = cols {
+            // TODO(mttr) ServoCharacterWidth uses the size math for <input type="text">, but
+            // the math for <textarea> is a little different since we need to take
+            // scrollbar size into consideration (but we don't have a scrollbar yet!)
+            //
+            // https://html.spec.whatwg.org/multipage/#textarea-effective-width
+            let value = specified::Length::ServoCharacterWidth(specified::CharacterWidth(cols));
+            hints.push(from_declaration(
+                PropertyDeclaration::Width(SpecifiedValue(
+                    specified::LengthOrPercentageOrAuto::Length(value)))));
+        }
+
+
+        let rows = if self.is_htmltextareaelement() {
+            let this: &HTMLTextAreaElement = mem::transmute(self);
+            match this.get_rows_for_layout() {
+                0 => None,
+                r => Some(r as i32),
             }
-            IntegerAttribute::Rows => {
-                if !self.is_htmltextareaelement() {
-                    panic!("I'm not a textarea element!")
-                }
-                let this: &HTMLTextAreaElement = mem::transmute(self);
-                Some(this.get_rows_for_layout() as i32)
-            }
+        } else {
+            None
+        };
+
+        if let Some(rows) = rows {
+            // TODO(mttr) This should take scrollbar size into consideration.
+            //
+            // https://html.spec.whatwg.org/multipage/#textarea-effective-height
+            let value = specified::Length::FontRelative(specified::FontRelativeLength::Em(rows as CSSFloat));
+            hints.push(from_declaration(
+                PropertyDeclaration::Height(SpecifiedValue(
+                    longhands::height::SpecifiedValue(
+                        specified::LengthOrPercentageOrAuto::Length(value))))));
         }
     }
 
@@ -342,16 +410,6 @@ impl RawLayoutElementHelpers for Element {
                 } else {
                     // Don't panic since `:-servo-nonzero-border` can cause this to be called on
                     // arbitrary elements.
-                    None
-                }
-            }
-            UnsignedIntegerAttribute::CellSpacing => {
-                if self.is_htmltableelement() {
-                    let this: &HTMLTableElement = mem::transmute(self);
-                    this.get_cellspacing()
-                } else {
-                    // Don't panic since `display` can cause this to be called on arbitrary
-                    // elements.
                     None
                 }
             }
