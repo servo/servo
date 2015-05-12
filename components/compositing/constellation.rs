@@ -16,11 +16,12 @@ use compositor_task::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlMsg};
 use geom::point::Point2D;
 use geom::rect::{Rect, TypedRect};
+use geom::size::Size2D;
 use geom::scale_factor::ScaleFactor;
 use gfx::font_cache_task::FontCacheTask;
-use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
+use layout_traits::{LayoutControlChan, LayoutControlMsg, LayoutTaskFactory};
 use libc;
-use msg::compositor_msg::LayerId;
+use msg::compositor_msg::{Epoch, LayerId};
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{FrameId, PipelineExitType, PipelineId};
@@ -34,7 +35,7 @@ use net_traits::storage_task::{StorageTask, StorageTaskMsg};
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{CompositorEvent, ConstellationControlMsg};
-use script_traits::{ScriptControlChan, ScriptTaskFactory};
+use script_traits::{ScriptControlChan, ScriptState, ScriptTaskFactory};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::{self, Write};
@@ -437,6 +438,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             ConstellationMsg::ViewportConstrained(pipeline_id, constraints) => {
                 debug!("constellation got viewport-constrained event message");
                 self.handle_viewport_constrained_msg(pipeline_id, constraints);
+            }
+            ConstellationMsg::IsReadyToSaveImage(pipeline_states) => {
+                let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
+                self.compositor_proxy.send(CompositorMsg::IsReadyToSaveImageReply(is_ready));
             }
         }
         true
@@ -936,6 +941,87 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     /// Handle updating actual viewport / zoom due to @viewport rules
     fn handle_viewport_constrained_msg(&mut self, pipeline_id: PipelineId, constraints: ViewportConstraints) {
         self.compositor_proxy.send(CompositorMsg::ViewportConstrained(pipeline_id, constraints));
+    }
+
+    /// Checks the state of all script and layout pipelines to see if they are idle
+    /// and compares the current layout state to what the compositor has. This is used
+    /// to check if the output image is "stable" and can be written as a screenshot
+    /// for reftests.
+    fn handle_is_ready_to_save_image(&mut self,
+                                     pipeline_states: HashMap<PipelineId, Epoch>) -> bool {
+        // If there is no root frame yet, the initial page has
+        // not loaded, so there is nothing to save yet.
+        if self.root_frame_id.is_none() {
+            return false;
+        }
+
+        // If there are pending changes to the current frame
+        // tree, the image is not stable yet.
+        if self.pending_frames.len() > 0 {
+            return false;
+        }
+
+        // Step through the current frame tree, checking that the script
+        // task is idle, and that the current epoch of the layout task
+        // matches what the compositor has painted. If all these conditions
+        // are met, then the output image should not change and a reftest
+        // screenshot can safely be written.
+        for frame in self.current_frame_tree_iter(self.root_frame_id) {
+            let pipeline = self.pipeline(frame.current);
+
+            // Synchronously query the script task for this pipeline
+            // to see if it is idle.
+            let ScriptControlChan(ref script_chan) = pipeline.script_chan;
+            let (sender, receiver) = channel();
+            let msg = ConstellationControlMsg::GetCurrentState(sender, frame.current);
+            script_chan.send(msg).unwrap();
+            if receiver.recv().unwrap() == ScriptState::DocumentLoading {
+                return false;
+            }
+
+            // Check the visible rectangle for this pipeline. If the constellation
+            // hasn't received a rectangle for this pipeline yet, then assume
+            // that the output image isn't stable yet.
+            match pipeline.rect {
+                Some(rect) => {
+                    // If the rectangle for this pipeline is zero sized, it will
+                    // never be painted. In this case, don't query the layout
+                    // task as it won't contribute to the final output image.
+                    if rect.size == Size2D::zero() {
+                        continue;
+                    }
+
+                    // Get the epoch that the compositor has drawn for this pipeline.
+                    let compositor_epoch = pipeline_states.get(&frame.current);
+                    match compositor_epoch {
+                        Some(compositor_epoch) => {
+                            // Synchronously query the layout task to see if the current
+                            // epoch matches what the compositor has drawn. If they match
+                            // (and script is idle) then this pipeline won't change again
+                            // and can be considered stable.
+                            let (sender, receiver) = channel();
+                            let LayoutControlChan(ref layout_chan) = pipeline.layout_chan;
+                            layout_chan.send(LayoutControlMsg::GetCurrentEpoch(sender)).unwrap();
+                            let layout_task_epoch = receiver.recv().unwrap();
+                            if layout_task_epoch != *compositor_epoch {
+                                return false;
+                            }
+                        }
+                        None => {
+                            // The compositor doesn't know about this pipeline yet.
+                            // Assume it hasn't rendered yet.
+                            return false;
+                        }
+                    }
+                }
+                None => {
+                    return false;
+                }
+            }
+        }
+
+        // All script tasks are idle and layout epochs match compositor, so output image!
+        true
     }
 
     // Close a frame (and all children)

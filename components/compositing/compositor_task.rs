@@ -11,14 +11,12 @@ use compositor;
 use headless;
 use windowing::{WindowEvent, WindowMethods};
 
-use azure::azure_hl::{SourceSurfaceMethods, Color};
 use geom::point::Point2D;
 use geom::rect::Rect;
-use geom::size::Size2D;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
 use layers::layers::LayerBufferSet;
-use msg::compositor_msg::{Epoch, LayerId, LayerMetadata, FrameTreeId, ReadyState};
-use msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
+use msg::compositor_msg::{Epoch, LayerId, LayerProperties, FrameTreeId};
+use msg::compositor_msg::{PaintListener, ScriptListener};
 use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use profile_traits::mem;
@@ -65,11 +63,6 @@ impl CompositorReceiver for Receiver<Msg> {
 
 /// Implementation of the abstract `ScriptListener` interface.
 impl ScriptListener for Box<CompositorProxy+'static+Send> {
-    fn set_ready_state(&mut self, pipeline_id: PipelineId, ready_state: ReadyState) {
-        let msg = Msg::ChangeReadyState(pipeline_id, ready_state);
-        self.send(msg);
-    }
-
     fn scroll_fragment_point(&mut self,
                              pipeline_id: PipelineId,
                              layer_id: LayerId,
@@ -96,33 +89,6 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
     }
 }
 
-/// Information about each layer that the compositor keeps.
-#[derive(Clone, Copy)]
-pub struct LayerProperties {
-    pub pipeline_id: PipelineId,
-    pub epoch: Epoch,
-    pub id: LayerId,
-    pub rect: Rect<f32>,
-    pub background_color: Color,
-    pub scroll_policy: ScrollPolicy,
-}
-
-impl LayerProperties {
-    fn new(pipeline_id: PipelineId, epoch: Epoch, metadata: &LayerMetadata) -> LayerProperties {
-        LayerProperties {
-            pipeline_id: pipeline_id,
-            epoch: epoch,
-            id: metadata.id,
-            rect: Rect(Point2D(metadata.position.origin.x as f32,
-                               metadata.position.origin.y as f32),
-                       Size2D(metadata.position.size.width as f32,
-                              metadata.position.size.height as f32)),
-            background_color: metadata.background_color,
-            scroll_policy: metadata.scroll_policy,
-        }
-    }
-}
-
 /// Implementation of the abstract `PaintListener` interface.
 impl PaintListener for Box<CompositorProxy+'static+Send> {
     fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata> {
@@ -141,29 +107,12 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
 
     fn initialize_layers_for_pipeline(&mut self,
                                       pipeline_id: PipelineId,
-                                      metadata: Vec<LayerMetadata>,
+                                      properties: Vec<LayerProperties>,
                                       epoch: Epoch) {
         // FIXME(#2004, pcwalton): This assumes that the first layer determines the page size, and
         // that all other layers are immediate children of it. This is sufficient to handle
         // `position: fixed` but will not be sufficient to handle `overflow: scroll` or transforms.
-        let mut first = true;
-        for metadata in metadata.iter() {
-            let layer_properties = LayerProperties::new(pipeline_id, epoch, metadata);
-            if first {
-                self.send(Msg::CreateOrUpdateBaseLayer(layer_properties));
-                first = false
-            } else {
-                self.send(Msg::CreateOrUpdateDescendantLayer(layer_properties));
-            }
-        }
-    }
-
-    fn paint_msg_discarded(&mut self) {
-        self.send(Msg::PaintMsgDiscarded);
-    }
-
-    fn set_paint_state(&mut self, pipeline_id: PipelineId, paint_state: PaintState) {
-        self.send(Msg::ChangePaintState(pipeline_id, paint_state))
+        self.send(Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties));
     }
 }
 
@@ -184,30 +133,21 @@ pub enum Msg {
     /// The headless compositor returns `None`.
     GetGraphicsMetadata(Sender<Option<NativeGraphicsMetadata>>),
 
-    /// Tells the compositor to create the root layer for a pipeline if necessary (i.e. if no layer
-    /// with that ID exists).
-    CreateOrUpdateBaseLayer(LayerProperties),
-    /// Tells the compositor to create a descendant layer for a pipeline if necessary (i.e. if no
-    /// layer with that ID exists).
-    CreateOrUpdateDescendantLayer(LayerProperties),
+    /// Tells the compositor to create or update the layers for a pipeline if necessary
+    /// (i.e. if no layer with that ID exists).
+    InitializeLayersForPipeline(PipelineId, Epoch, Vec<LayerProperties>),
     /// Alerts the compositor that the specified layer's rect has changed.
     SetLayerRect(PipelineId, LayerId, Rect<f32>),
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
     /// Requests that the compositor assign the painted buffers to the given layers.
     AssignPaintedBuffers(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>, FrameTreeId),
-    /// Alerts the compositor to the current status of page loading.
-    ChangeReadyState(PipelineId, ReadyState),
-    /// Alerts the compositor to the current status of painting.
-    ChangePaintState(PipelineId, PaintState),
     /// Alerts the compositor that the current page has changed its title.
     ChangePageTitle(PipelineId, Option<String>),
     /// Alerts the compositor that the current page has changed its URL.
     ChangePageUrl(PipelineId, Url),
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
-    /// Alerts the compositor that a `PaintMsg` has been discarded.
-    PaintMsgDiscarded,
     /// Replaces the current frame tree, typically called during main frame navigation.
     SetFrameTree(SendableFrameTree, Sender<()>, ConstellationChan),
     /// The load of a page has completed.
@@ -226,6 +166,8 @@ pub enum Msg {
     PaintTaskExited(PipelineId),
     /// Alerts the compositor that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
+    /// A reply to the compositor asking if the output image is stable.
+    IsReadyToSaveImageReply(bool),
 }
 
 impl Debug for Msg {
@@ -234,17 +176,13 @@ impl Debug for Msg {
             Msg::Exit(..) => write!(f, "Exit"),
             Msg::ShutdownComplete(..) => write!(f, "ShutdownComplete"),
             Msg::GetGraphicsMetadata(..) => write!(f, "GetGraphicsMetadata"),
-            Msg::CreateOrUpdateBaseLayer(..) => write!(f, "CreateOrUpdateBaseLayer"),
-            Msg::CreateOrUpdateDescendantLayer(..) => write!(f, "CreateOrUpdateDescendantLayer"),
+            Msg::InitializeLayersForPipeline(..) => write!(f, "InitializeLayersForPipeline"),
             Msg::SetLayerRect(..) => write!(f, "SetLayerRect"),
             Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
             Msg::AssignPaintedBuffers(..) => write!(f, "AssignPaintedBuffers"),
-            Msg::ChangeReadyState(..) => write!(f, "ChangeReadyState"),
-            Msg::ChangePaintState(..) => write!(f, "ChangePaintState"),
             Msg::ChangeRunningAnimationsState(..) => write!(f, "ChangeRunningAnimationsState"),
             Msg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             Msg::ChangePageUrl(..) => write!(f, "ChangePageUrl"),
-            Msg::PaintMsgDiscarded(..) => write!(f, "PaintMsgDiscarded"),
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
             Msg::LoadComplete => write!(f, "LoadComplete"),
             Msg::ScrollTimeout(..) => write!(f, "ScrollTimeout"),
@@ -254,6 +192,7 @@ impl Debug for Msg {
             Msg::CreatePng(..) => write!(f, "CreatePng"),
             Msg::PaintTaskExited(..) => write!(f, "PaintTaskExited"),
             Msg::ViewportConstrained(..) => write!(f, "ViewportConstrained"),
+            Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
         }
     }
 }
