@@ -70,6 +70,9 @@ class MachCommands(CommandBase):
     @CommandArgument('--release', '-r',
                      action='store_true',
                      help='Build in release mode')
+    @CommandArgument('--dev', '-d',
+                     action='store_true',
+                     help='Build in development mode')
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
@@ -86,7 +89,7 @@ class MachCommands(CommandBase):
                      help='Print verbose output')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
-    def build(self, target=None, release=False, jobs=None, android=None,
+    def build(self, target=None, release=False, jobs=None, android=None, dev=False,
               verbose=False, debug_mozjs=False, params=None):
         self.ensure_bootstrapped()
 
@@ -95,6 +98,19 @@ class MachCommands(CommandBase):
 
         opts = params or []
         features = []
+
+        if not(release or dev):
+            if self.config["build"]["mode"] == "dev":
+                dev = True
+            elif self.config["build"]["mode"] == "release":
+                release = True 
+            else:
+                print("Please specify either --dev(or -d) for a development build or --release(or -r) for an optimized build.")
+                sys.exit(1)
+
+        if release and dev:
+            print("Please specify either --dev(or -d) for a development build or --release(or -r) for an optimized build.")
+            sys.exit(1)
 
         if release:
             opts += ["--release"]
