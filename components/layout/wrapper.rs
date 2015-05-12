@@ -40,6 +40,7 @@ use data::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper, PrivateLayoutDa
 use opaque_node::OpaqueNodeMethods;
 
 use gfx::display_list::OpaqueNode;
+use script::dom::attr::AttrValue;
 use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLCanvasElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
@@ -638,9 +639,8 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     #[inline]
     fn has_nonzero_border(self) -> bool {
         unsafe {
-            match self.element.get_unsigned_integer_attribute_for_layout(
-                    UnsignedIntegerAttribute::Border) {
-                None | Some(0) => false,
+            match self.element.get_attr_for_layout(&ns!(""), &atom!("border")) {
+                None | Some(&AttrValue::UInt(_, 0)) => false,
                 _ => true,
             }
         }

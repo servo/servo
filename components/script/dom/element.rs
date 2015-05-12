@@ -156,6 +156,8 @@ impl Element {
 
 #[allow(unsafe_code)]
 pub trait RawLayoutElementHelpers {
+    unsafe fn get_attr_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
+                                      -> Option<&'a AttrValue>;
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                       -> Option<&'a str>;
     unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &Atom) -> Vec<&'a str>;
@@ -190,6 +192,13 @@ unsafe fn get_attr_for_layout(elem: &Element, namespace: &Namespace, name: &Atom
 #[allow(unsafe_code)]
 impl RawLayoutElementHelpers for Element {
     #[inline]
+    unsafe fn get_attr_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
+                                      -> Option<&'a AttrValue> {
+        get_attr_for_layout(self, namespace, name).map(|attr| {
+            (*attr.unsafe_get()).value_forever()
+        })
+    }
+
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                           -> Option<&'a str> {
         get_attr_for_layout(self, namespace, name).map(|attr| {
@@ -374,6 +383,30 @@ impl RawLayoutElementHelpers for Element {
                     longhands::height::SpecifiedValue(
                         specified::LengthOrPercentageOrAuto::Length(value))))));
         }
+
+
+        let border = if self.is_htmltableelement() {
+            let this: &HTMLTableElement = mem::transmute(self);
+            this.get_border()
+        } else {
+            None
+        };
+
+        if let Some(border) = border {
+            let width_value = specified::Length::Absolute(Au::from_px(border as i32));
+            hints.push(from_declaration(
+                PropertyDeclaration::BorderTopWidth(SpecifiedValue(
+                    longhands::border_top_width::SpecifiedValue(width_value)))));
+            hints.push(from_declaration(
+                PropertyDeclaration::BorderLeftWidth(SpecifiedValue(
+                    longhands::border_left_width::SpecifiedValue(width_value)))));
+            hints.push(from_declaration(
+                PropertyDeclaration::BorderBottomWidth(SpecifiedValue(
+                    longhands::border_bottom_width::SpecifiedValue(width_value)))));
+            hints.push(from_declaration(
+                PropertyDeclaration::BorderRightWidth(SpecifiedValue(
+                    longhands::border_right_width::SpecifiedValue(width_value)))));
+        }
     }
 
     #[inline]
@@ -403,16 +436,6 @@ impl RawLayoutElementHelpers for Element {
                                                         attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32> {
         match attribute {
-            UnsignedIntegerAttribute::Border => {
-                if self.is_htmltableelement() {
-                    let this: &HTMLTableElement = mem::transmute(self);
-                    this.get_border()
-                } else {
-                    // Don't panic since `:-servo-nonzero-border` can cause this to be called on
-                    // arbitrary elements.
-                    None
-                }
-            }
             UnsignedIntegerAttribute::ColSpan => {
                 if self.is_htmltablecellelement() {
                     let this: &HTMLTableCellElement = mem::transmute(self);

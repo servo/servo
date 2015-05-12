@@ -306,6 +306,7 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
 
 #[allow(unsafe_code)]
 pub trait AttrHelpersForLayout {
+    unsafe fn value_forever(&self) -> &'static AttrValue;
     unsafe fn value_ref_forever(&self) -> &'static str;
     unsafe fn value_atom_forever(&self) -> Option<Atom>;
     unsafe fn value_tokens_forever(&self) -> Option<&'static [Atom]>;
@@ -314,6 +315,12 @@ pub trait AttrHelpersForLayout {
 
 #[allow(unsafe_code)]
 impl AttrHelpersForLayout for Attr {
+    #[inline]
+    unsafe fn value_forever(&self) -> &'static AttrValue {
+        // This transmute is used to cheat the lifetime restriction.
+        mem::transmute::<&AttrValue, &AttrValue>(self.value.borrow_for_layout())
+    }
+
     #[inline]
     unsafe fn value_ref_forever(&self) -> &'static str {
         // This transmute is used to cheat the lifetime restriction.
