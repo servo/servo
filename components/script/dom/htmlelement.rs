@@ -4,6 +4,7 @@
 
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
+use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
@@ -101,7 +102,10 @@ impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
                         let attr = attr.root();
                         let attr = attr.r();
                         let value = attr.value();
-                        let is_true = value.as_slice() == "true";
+                        let is_true = match *value {
+                            AttrValue::String(ref string) => string == "true",
+                            _ => false,
+                        };
                         node.set_flag(SEQUENTIALLY_FOCUSABLE, is_true);
                     } else {
                         node.set_flag(SEQUENTIALLY_FOCUSABLE, false);

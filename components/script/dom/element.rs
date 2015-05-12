@@ -924,6 +924,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 };
                 document.r().content_changed(node, damage);
             }
+            node.after_remove_attr(attr.r().name());
             Temporary::from_rooted(attr.r())
         })
     }
