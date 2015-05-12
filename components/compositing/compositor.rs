@@ -25,7 +25,7 @@ use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
 use layers::rendergl::RenderContext;
 use layers::rendergl;
 use layers::scene::Scene;
-use msg::compositor_msg::{Epoch, LayerId};
+use msg::compositor_msg::{Epoch, FrameTreeId, LayerId};
 use msg::compositor_msg::{ReadyState, PaintState, ScrollPolicy};
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
@@ -119,8 +119,8 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// many times for a single page.
     got_load_complete_message: bool,
 
-    /// Whether we have received a `SetFrameTree` message.
-    got_set_frame_tree_message: bool,
+    /// The current frame tree ID (used to reject old paint buffers)
+    frame_tree_id: FrameTreeId,
 
     /// The channel on which messages can be sent to the constellation.
     constellation_chan: ConstellationChan,
@@ -269,7 +269,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             zoom_action: false,
             zoom_time: 0f64,
             got_load_complete_message: false,
-            got_set_frame_tree_message: false,
+            frame_tree_id: FrameTreeId(0),
             constellation_chan: constellation_chan,
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
@@ -372,13 +372,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.set_layer_rect(pipeline_id, layer_id, &rect);
             }
 
-            (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies),
+            (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies, frame_tree_id),
              ShutdownState::NotShuttingDown) => {
                 for (layer_id, new_layer_buffer_set) in replies.into_iter() {
                     self.assign_painted_buffers(pipeline_id,
                                                 layer_id,
                                                 new_layer_buffer_set,
-                                                epoch);
+                                                epoch,
+                                                frame_tree_id);
                 }
                 self.remove_outstanding_paint_msg();
             }
@@ -606,7 +607,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.constellation_chan = new_constellation_chan;
         self.send_window_size();
 
-        self.got_set_frame_tree_message = true;
+        self.frame_tree_id.next();
         self.composite_if_necessary(CompositingReason::NewFrameTree);
     }
 
@@ -796,10 +797,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                               pipeline_id: PipelineId,
                               layer_id: LayerId,
                               new_layer_buffer_set: Box<LayerBufferSet>,
-                              epoch: Epoch) {
-        if let Some(layer) = self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
-            self.assign_painted_buffers_to_layer(layer, new_layer_buffer_set, epoch);
-            return
+                              epoch: Epoch,
+                              frame_tree_id: FrameTreeId) {
+        // If the frame tree id has changed since this paint request was sent,
+        // reject the buffers and send them back to the paint task. If this isn't handled
+        // correctly, the content_age in the tile grid can get out of sync when iframes are
+        // loaded and the frame tree changes. This can result in the compositor thinking it
+        // has already drawn the most recently painted buffer, and missing a frame.
+        if frame_tree_id == self.frame_tree_id {
+            if let Some(layer) = self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
+                self.assign_painted_buffers_to_layer(layer, new_layer_buffer_set, epoch);
+                return
+            }
         }
 
         let pipeline = self.get_pipeline(pipeline_id);
@@ -1183,7 +1192,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let mut num_paint_msgs_sent = 0;
         for (pipeline_id, requests) in pipeline_requests.into_iter() {
             num_paint_msgs_sent += 1;
-            let _ = self.get_pipeline(pipeline_id).paint_chan.send(PaintMsg::Paint(requests));
+            let msg = PaintMsg::Paint(requests, self.frame_tree_id);
+            let _ = self.get_pipeline(pipeline_id).paint_chan.send(msg);
         }
 
         self.add_outstanding_paint_msg(num_paint_msgs_sent);
@@ -1207,7 +1217,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return false;
         }
 
-        if !self.got_set_frame_tree_message {
+        if self.frame_tree_id == FrameTreeId(0) {
             return false;
         }
 

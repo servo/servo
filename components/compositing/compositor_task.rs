@@ -17,7 +17,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
 use layers::layers::LayerBufferSet;
-use msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
+use msg::compositor_msg::{Epoch, LayerId, LayerMetadata, FrameTreeId, ReadyState};
 use msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
 use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
@@ -134,8 +134,9 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
     fn assign_painted_buffers(&mut self,
                               pipeline_id: PipelineId,
                               epoch: Epoch,
-                              replies: Vec<(LayerId, Box<LayerBufferSet>)>) {
-        self.send(Msg::AssignPaintedBuffers(pipeline_id, epoch, replies));
+                              replies: Vec<(LayerId, Box<LayerBufferSet>)>,
+                              frame_tree_id: FrameTreeId) {
+        self.send(Msg::AssignPaintedBuffers(pipeline_id, epoch, replies, frame_tree_id));
     }
 
     fn initialize_layers_for_pipeline(&mut self,
@@ -194,7 +195,7 @@ pub enum Msg {
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
     /// Requests that the compositor assign the painted buffers to the given layers.
-    AssignPaintedBuffers(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>),
+    AssignPaintedBuffers(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>, FrameTreeId),
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(PipelineId, ReadyState),
     /// Alerts the compositor to the current status of painting.
