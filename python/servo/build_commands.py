@@ -70,6 +70,9 @@ class MachCommands(CommandBase):
     @CommandArgument('--release', '-r',
                      action='store_true',
                      help='Build in release mode')
+    @CommandArgument('--dev', '-d',
+                     action='store_true',
+                     help='Build in development mode')
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
@@ -86,8 +89,8 @@ class MachCommands(CommandBase):
                      help='Print verbose output')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
-    def build(self, target=None, release=False, jobs=None, android=None,
-              verbose=False, debug_mozjs=False, params=None):
+    def build(self, target=None, release=False, dev=False, jobs=None,
+              android=None, verbose=False, debug_mozjs=False, params=None):
         self.ensure_bootstrapped()
 
         if android is None:
