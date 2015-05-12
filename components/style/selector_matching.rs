@@ -9,6 +9,7 @@ use selectors::matching::{SelectorMap, Rule};
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::parser::PseudoElement;
 use selectors::tree::TNode;
+use std::process;
 use util::resource_files::read_resource_file;
 use util::smallvec::VecLike;
 
@@ -59,13 +60,21 @@ impl Stylist {
         // FIXME: presentational-hints.css should be at author origin with zero specificity.
         //        (Does it make a difference?)
         for &filename in ["user-agent.css", "servo.css", "presentational-hints.css"].iter() {
-            let ua_stylesheet = Stylesheet::from_bytes(
-                &read_resource_file(&[filename]).unwrap(),
-                Url::parse(&format!("chrome:///{:?}", filename)).unwrap(),
-                None,
-                None,
-                Origin::UserAgent);
-            stylist.add_stylesheet(ua_stylesheet);
+            match read_resource_file(&[filename]) {
+                Ok(res) => {
+                    let ua_stylesheet = Stylesheet::from_bytes(
+                        &res,
+                        Url::parse(&format!("chrome:///{:?}", filename)).unwrap(),
+                        None,
+                        None,
+                        Origin::UserAgent);
+                    stylist.add_stylesheet(ua_stylesheet);
+                }
+                Err(..) => {
+                    error!("Stylist::new() failed at loading {}!", filename);
+                    process::exit(1);
+                }
+            }
         }
         stylist
     }
@@ -154,12 +163,20 @@ impl Stylist {
     }
 
     pub fn add_quirks_mode_stylesheet(&mut self) {
-        self.add_stylesheet(Stylesheet::from_bytes(
-            &read_resource_file(&["quirks-mode.css"]).unwrap(),
-            Url::parse("chrome:///quirks-mode.css").unwrap(),
-            None,
-            None,
-            Origin::UserAgent))
+        match read_resource_file(&["quirks-mode.css"]) {
+            Ok(res) => {
+            self.add_stylesheet(Stylesheet::from_bytes(
+                &res,
+                Url::parse("chrome:///quirks-mode.css").unwrap(),
+                None,
+                None,
+                Origin::UserAgent));
+            }
+            Err(..) => {
+                error!("Stylist::add_quirks_mode_stylesheet() failed at loading 'quirks-mode.css'!");
+                process::exit(1);
+            }
+        }
     }
 
     pub fn add_stylesheet(&mut self, stylesheet: Stylesheet) {
