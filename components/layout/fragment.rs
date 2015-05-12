@@ -1929,14 +1929,10 @@ impl Fragment {
         }
         match self.style().get_box().position {
             position::T::absolute | position::T::fixed => {
-                // FIXME(pcwalton): This should only establish a new stacking context when
-                // `z-index` is not `auto`. But this matches what we did before.
-                true
+                self.style().get_box().z_index.is_number()
             }
             position::T::relative | position::T::static_ => {
-                // FIXME(pcwalton): `position: relative` establishes a new stacking context if
-                // `z-index` is not `auto`. But this matches what we did before.
-                false
+                self.style().get_box().z_index.is_number()
             }
         }
     }
