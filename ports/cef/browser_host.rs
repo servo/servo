@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use eutil::Downcast;
-use interfaces::{CefBrowser, CefBrowserHost, CefClient, cef_browser_host_t, cef_client_t};
+use interfaces::{CefBrowser, CefBrowserHost, CefClient, cef_browser_t, cef_browser_host_t, cef_client_t};
 use types::{cef_mouse_button_type_t, cef_mouse_event, cef_rect_t, cef_key_event};
 use types::cef_key_event_type_t::{KEYEVENT_CHAR, KEYEVENT_KEYDOWN, KEYEVENT_KEYUP, KEYEVENT_RAWKEYDOWN};
 use browser::{self, ServoCefBrowserExtensions};
@@ -27,6 +27,10 @@ full_cef_class_impl! {
     ServoCefBrowserHost : CefBrowserHost, cef_browser_host_t {
         fn get_client(&this,) -> *mut cef_client_t {{
             this.downcast().client.clone()
+        }}
+        fn get_browser(&this,) -> *mut cef_browser_t {{
+            let browser = this.downcast().browser.borrow_mut();
+            browser.clone().unwrap()
         }}
 
         fn was_resized(&this,) -> () {{
