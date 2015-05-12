@@ -14,7 +14,7 @@ use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hyper::client::Request;
 use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
-use hyper::HttpError;
+use hyper::Error as HttpError;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::net::HttpConnector;
@@ -135,7 +135,7 @@ reason: \"certificate verify failed\" }]))";
 
         let mut req = match Request::with_connector(load_data.method.clone(), url.clone(), &mut connector) {
             Ok(req) => req,
-            Err(HttpError::HttpIoError(ref io_error)) if (
+            Err(HttpError::Io(ref io_error)) if (
                 io_error.kind() == io::ErrorKind::Other &&
                 io_error.description() == "Error in OpenSSL" &&
                 // FIXME: This incredibly hacky. Make it more robust, and at least test it.

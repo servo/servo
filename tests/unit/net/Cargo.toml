@@ -19,5 +19,5 @@ path = "../../../components/util"
 
 [dependencies]
 cookie = "*"
-hyper = "*"
+hyper = "0.4"
 url = "*"
