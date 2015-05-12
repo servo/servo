@@ -18,12 +18,13 @@ use std::env;
 use std::io::{self, Write};
 use std::mem;
 use std::ptr;
+use url::{self, Url};
 
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone)]
 pub struct Opts {
     /// The initial URL to load.
-    pub url: String,
+    pub url: Url,
 
     /// How many threads to use for CPU painting (`-t`).
     ///
@@ -192,7 +193,7 @@ static FORCE_CPU_PAINTING: bool = false;
 
 pub fn default_opts() -> Opts {
     Opts {
-        url: String::new(),
+        url: Url::parse("about:blank").unwrap(),
         paint_threads: 1,
         gpu_painting: false,
         tile_size: 512,
@@ -293,7 +294,14 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         args_fail("servo asks that you provide a URL");
         return false;
     } else {
-        opt_match.free[0].clone()
+        let ref url = opt_match.free[0];
+        let cwd = env::current_dir().unwrap();
+        match Url::parse(url) {
+            Ok(url) => url,
+            Err(url::ParseError::RelativeUrlWithoutBase)
+                => Url::from_file_path(&*cwd.join(url)).unwrap(),
+            Err(_) => panic!("URL parsing failed"),
+        }
     };
 
     let tile_size: usize = match opt_match.opt_str("s") {
@@ -392,12 +400,15 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         disable_share_style_cache: debug_options.contains(&"disable-share-style-cache"),
     };
 
-    set_opts(opts);
+    set(opts);
     true
 }
 
 static mut EXPERIMENTAL_ENABLED: bool = false;
 
+/// Turn on experimental features globally. Normally this is done
+/// during initialization by `set` or `from_cmdline_args`, but
+/// tests that require experimental features will also set it.
 pub fn set_experimental_enabled(new_value: bool) {
     unsafe {
         EXPERIMENTAL_ENABLED = new_value;
@@ -415,8 +426,10 @@ pub fn experimental_enabled() -> bool {
 // when passing through the DOM structures.
 static mut OPTIONS: *mut Opts = 0 as *mut Opts;
 
-pub fn set_opts(opts: Opts) {
+pub fn set(opts: Opts) {
     unsafe {
+        assert!(OPTIONS.is_null());
+        set_experimental_enabled(opts.enable_experimental);
         let box_opts = box opts;
         OPTIONS = mem::transmute(box_opts);
     }
@@ -430,7 +443,7 @@ pub fn get<'a>() -> &'a Opts {
         // set of options. This is mostly useful for unit tests that
         // run through a code path which queries the cmd line options.
         if OPTIONS == ptr::null_mut() {
-            set_opts(default_opts());
+            set(default_opts());
         }
         mem::transmute(OPTIONS)
     }

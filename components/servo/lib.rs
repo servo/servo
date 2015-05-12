@@ -32,7 +32,6 @@ extern crate script;
 extern crate layout;
 extern crate gfx;
 extern crate libc;
-extern crate url;
 extern crate webdriver_server;
 
 use compositing::CompositorEventListener;
@@ -79,8 +78,6 @@ pub struct Browser {
 impl Browser  {
     pub fn new<Window>(window: Option<Rc<Window>>) -> Browser
     where Window: WindowMethods + 'static {
-        ::util::opts::set_experimental_enabled(opts::get().enable_experimental);
-
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -147,14 +144,12 @@ impl Browser  {
         self.compositor.shutdown();
     }
 }
+
 fn create_constellation(opts: opts::Opts,
                         compositor_proxy: Box<CompositorProxy+Send>,
                         time_profiler_chan: time::ProfilerChan,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         mem_profiler_chan: mem::ProfilerChan) -> ConstellationChan {
-    use std::env;
-
-    // Create a Servo instance.
     let resource_task = new_resource_task(opts.user_agent.clone(), devtools_chan.clone());
 
     let image_cache_task = new_image_cache_task(resource_task.clone());
@@ -173,17 +168,9 @@ fn create_constellation(opts: opts::Opts,
         storage_task);
 
     // Send the URL command to the constellation.
-    let cwd = env::current_dir().unwrap();
-    let url = match url::Url::parse(&opts.url) {
-        Ok(url) => url,
-        Err(url::ParseError::RelativeUrlWithoutBase)
-        => url::Url::from_file_path(&*cwd.join(&opts.url)).unwrap(),
-        Err(_) => panic!("URL parsing failed"),
-    };
-
     {
         let ConstellationChan(ref chan) = constellation_chan;
-        chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
+        chan.send(ConstellationMsg::InitLoadUrl(opts.url.clone())).unwrap();
     }
 
     constellation_chan

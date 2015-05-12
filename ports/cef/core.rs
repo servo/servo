@@ -12,6 +12,7 @@ use std::borrow::ToOwned;
 use std::ffi;
 use std::str;
 use browser;
+use std_url::Url;
 
 const MAX_RENDERING_THREADS: usize = 128;
 
@@ -70,14 +71,14 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
     };
 
     let mut temp_opts = opts::default_opts();
-    temp_opts.url = HOME_URL.to_owned();
+    temp_opts.url = Url::parse(HOME_URL).unwrap();
     temp_opts.paint_threads = rendering_threads;
     temp_opts.layout_threads = rendering_threads;
     temp_opts.headless = false;
     temp_opts.hard_fail = false;
     temp_opts.enable_text_antialiasing = true;
     temp_opts.resources_path = resources_path();
-    opts::set_opts(temp_opts);
+    opts::set(temp_opts);
 
     return 1
 }

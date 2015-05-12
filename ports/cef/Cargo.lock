@@ -1224,6 +1224,7 @@ dependencies = [
  "string_cache 0.1.0 (git+https://github.com/servo/string-cache)",
  "string_cache_plugin 0.1.1 (git+https://github.com/servo/string-cache)",
  "time 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.31 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
